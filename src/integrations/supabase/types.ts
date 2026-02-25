@@ -181,6 +181,66 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          code: string
+          created_at: string | null
+          head_name: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          head_name?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          head_name?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       document_templates: {
         Row: {
           category_id: string | null
@@ -323,6 +383,47 @@ export type Database = {
           },
         ]
       }
+      goods_received: {
+        Row: {
+          created_at: string | null
+          grn_number: string
+          id: string
+          inspection_status: string | null
+          notes: string | null
+          po_id: string | null
+          received_at: string | null
+          received_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          grn_number: string
+          id?: string
+          inspection_status?: string | null
+          notes?: string | null
+          po_id?: string | null
+          received_at?: string | null
+          received_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          grn_number?: string
+          id?: string
+          inspection_status?: string | null
+          notes?: string | null
+          po_id?: string | null
+          received_at?: string | null
+          received_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_received_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string | null
@@ -351,6 +452,129 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "item_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          added_by: string | null
+          barcode: string | null
+          batch_number: string | null
+          category_id: string | null
+          created_at: string | null
+          department_id: string | null
+          description: string | null
+          expiry_date: string | null
+          id: string
+          item_type: string | null
+          location: string | null
+          name: string
+          quantity_in_stock: number | null
+          reorder_level: number | null
+          sku: string | null
+          status: string | null
+          supplier_id: string | null
+          unit_of_measure: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          barcode?: string | null
+          batch_number?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          id?: string
+          item_type?: string | null
+          location?: string | null
+          name: string
+          quantity_in_stock?: number | null
+          reorder_level?: number | null
+          sku?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          unit_of_measure?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          barcode?: string | null
+          batch_number?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          id?: string
+          item_type?: string | null
+          location?: string | null
+          name?: string
+          quantity_in_stock?: number | null
+          reorder_level?: number | null
+          sku?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          unit_of_measure?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "item_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -524,6 +748,173 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_orders: {
+        Row: {
+          approved_by: string | null
+          created_at: string | null
+          created_by: string | null
+          delivery_date: string | null
+          id: string
+          po_number: string
+          requisition_id: string | null
+          status: string | null
+          supplier_id: string | null
+          total_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_date?: string | null
+          id?: string
+          po_number: string
+          requisition_id?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_date?: string | null
+          id?: string
+          po_number?: string
+          requisition_id?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requisition_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string | null
+          item_name: string
+          notes: string | null
+          quantity: number
+          requisition_id: string | null
+          total_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_name: string
+          notes?: string | null
+          quantity?: number
+          requisition_id?: string | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          notes?: string | null
+          quantity?: number
+          requisition_id?: string | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisition_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requisition_items_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requisitions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          department_id: string | null
+          id: string
+          justification: string | null
+          notes: string | null
+          priority: string | null
+          requested_by: string | null
+          requisition_number: string
+          status: string | null
+          submitted_at: string | null
+          total_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          justification?: string | null
+          notes?: string | null
+          priority?: string | null
+          requested_by?: string | null
+          requisition_number: string
+          status?: string | null
+          submitted_at?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          justification?: string | null
+          notes?: string | null
+          priority?: string | null
+          requested_by?: string | null
+          requisition_number?: string
+          status?: string | null
+          submitted_at?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisitions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_groups: {
         Row: {
           created_at: string | null
@@ -691,6 +1082,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          contact_person: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          rating: number | null
+          status: string | null
+          tax_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          rating?: number | null
+          status?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          rating?: number | null
+          status?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       template_categories: {
         Row: {
