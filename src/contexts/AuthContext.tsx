@@ -1,6 +1,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, db } from "@/integrations/supabase/client";
+
+export type ProcurementRole = 
+  | "admin" 
+  | "requisitioner" 
+  | "procurement_officer" 
+  | "procurement_manager" 
+  | "warehouse_officer" 
+  | "inventory_manager";
 
 interface AuthContextType {
   session: Session | null;
@@ -9,6 +17,8 @@ interface AuthContextType {
   roles: string[];
   loading: boolean;
   signOut: () => Promise<void>;
+  hasRole: (role: ProcurementRole) => boolean;
+  primaryRole: ProcurementRole;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,9 +28,20 @@ const AuthContext = createContext<AuthContextType>({
   roles: [],
   loading: true,
   signOut: async () => {},
+  hasRole: () => false,
+  primaryRole: "requisitioner",
 });
 
 export const useAuth = () => useContext(AuthContext);
+
+const ROLE_PRIORITY: ProcurementRole[] = [
+  "admin",
+  "procurement_manager",
+  "procurement_officer",
+  "inventory_manager",
+  "warehouse_officer",
+  "requisitioner",
+];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -39,11 +60,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase
+    const { data } = await db
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    setRoles(data?.map((r) => r.role) || []);
+    setRoles((data as any[])?.map((r: any) => r.role) || []);
   };
 
   useEffect(() => {
@@ -86,8 +107,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRoles([]);
   };
 
+  const hasRole = (role: ProcurementRole) => roles.includes(role);
+  
+  const primaryRole: ProcurementRole = 
+    ROLE_PRIORITY.find(r => roles.includes(r)) || "requisitioner";
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut, hasRole, primaryRole }}>
       {children}
     </AuthContext.Provider>
   );
