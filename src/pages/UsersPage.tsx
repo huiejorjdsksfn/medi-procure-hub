@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase, db } from "@/integrations/supabase/client";
+import { useAuth, ProcurementRole } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -15,6 +14,15 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Shield, UserCog, KeyRound } from "lucide-react";
+
+const PROCUREMENT_ROLES: { value: ProcurementRole; label: string }[] = [
+  { value: "admin", label: "Administrator" },
+  { value: "requisitioner", label: "Requisitioner" },
+  { value: "procurement_officer", label: "Procurement Officer" },
+  { value: "procurement_manager", label: "Procurement Manager" },
+  { value: "warehouse_officer", label: "Warehouse Officer" },
+  { value: "inventory_manager", label: "Inventory Manager" },
+];
 
 const UsersPage = () => {
   const { roles: myRoles } = useAuth();
@@ -29,23 +37,23 @@ const UsersPage = () => {
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*");
-    const { data: roles } = await supabase.from("user_roles").select("*");
+    const { data: roles } = await db.from("user_roles").select("*");
 
-    const usersWithRoles = (profiles || []).map((p) => ({
+    const usersWithRoles = (profiles || []).map((p: any) => ({
       ...p,
-      roles: (roles || []).filter((r) => r.user_id === p.id).map((r) => r.role),
+      roles: ((roles as any[]) || []).filter((r: any) => r.user_id === p.id).map((r: any) => r.role),
     }));
     setUsers(usersWithRoles);
   };
 
   const assignRole = async () => {
     if (!roleDialog || !selectedRole) return;
-    const { error } = await supabase.from("user_roles").insert({
+    const { error } = await (db as any).from("user_roles").insert([{
       user_id: roleDialog.id,
-      role: selectedRole as any,
-    });
+      role: selectedRole,
+    }] as any);
     if (error) {
-      if (error.message.includes("duplicate")) {
+      if (error.message?.includes("duplicate")) {
         toast({ title: "Role already assigned", variant: "destructive" });
       } else {
         toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -59,7 +67,7 @@ const UsersPage = () => {
   };
 
   const removeRole = async (userId: string, role: string) => {
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+    const { error } = await db.from("user_roles").delete().eq("user_id", userId).eq("role", role);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Role removed" });
     fetchUsers();
@@ -85,7 +93,7 @@ const UsersPage = () => {
             <TableRow className="bg-muted/50">
               <TableHead>Name</TableHead>
               <TableHead>Roles</TableHead>
-              <TableHead>Institution</TableHead>
+              <TableHead>Department</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="w-32">Actions</TableHead>
             </TableRow>
@@ -98,14 +106,14 @@ const UsersPage = () => {
                   <div className="flex flex-wrap gap-1">
                     {u.roles.map((r: string) => (
                       <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize inline-flex items-center gap-1">
-                        <Shield className="w-3 h-3" /> {r}
+                        <Shield className="w-3 h-3" /> {r.replace(/_/g, " ")}
                         <button onClick={() => removeRole(u.id, r)} className="ml-1 hover:text-destructive">×</button>
                       </span>
                     ))}
                     {u.roles.length === 0 && <span className="text-xs text-muted-foreground">No roles</span>}
                   </div>
                 </TableCell>
-                <TableCell>{u.institution_name || "—"}</TableCell>
+                <TableCell>{u.department || "—"}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <Button variant="outline" size="sm" onClick={() => { setRoleDialog(u); setSelectedRole(""); }}>
@@ -127,8 +135,8 @@ const UsersPage = () => {
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger><SelectValue placeholder="Choose role" /></SelectTrigger>
                 <SelectContent>
-                  {["student","teacher","admin","parent","ministry_official","curriculum_developer"].map((r) => (
-                    <SelectItem key={r} value={r} className="capitalize">{r.replace(/_/g, " ")}</SelectItem>
+                  {PROCUREMENT_ROLES.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
