@@ -14,374 +14,11 @@ export type Database = {
   }
   public: {
     Tables: {
-      achievements: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          icon_url: string | null
-          id: string
-          name: string
-          points: number | null
-          requirement_type: string | null
-          requirement_value: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          icon_url?: string | null
-          id?: string
-          name: string
-          points?: number | null
-          requirement_type?: string | null
-          requirement_value?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          icon_url?: string | null
-          id?: string
-          name?: string
-          points?: number | null
-          requirement_type?: string | null
-          requirement_value?: number | null
-        }
-        Relationships: []
-      }
-      announcements: {
-        Row: {
-          content: string
-          created_at: string | null
-          created_by: string | null
-          expires_at: string | null
-          id: string
-          priority: string | null
-          target_levels: Database["public"]["Enums"]["education_level"][] | null
-          target_roles: Database["public"]["Enums"]["app_role"][] | null
-          title: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          priority?: string | null
-          target_levels?:
-            | Database["public"]["Enums"]["education_level"][]
-            | null
-          target_roles?: Database["public"]["Enums"]["app_role"][] | null
-          title: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          priority?: string | null
-          target_levels?:
-            | Database["public"]["Enums"]["education_level"][]
-            | null
-          target_roles?: Database["public"]["Enums"]["app_role"][] | null
-          title?: string
-        }
-        Relationships: []
-      }
-      assignment_submissions: {
-        Row: {
-          assignment_id: string | null
-          feedback: string | null
-          grade: number | null
-          graded_at: string | null
-          graded_by: string | null
-          id: string
-          student_id: string | null
-          submission_text: string | null
-          submission_url: string | null
-          submitted_at: string | null
-        }
-        Insert: {
-          assignment_id?: string | null
-          feedback?: string | null
-          grade?: number | null
-          graded_at?: string | null
-          graded_by?: string | null
-          id?: string
-          student_id?: string | null
-          submission_text?: string | null
-          submission_url?: string | null
-          submitted_at?: string | null
-        }
-        Update: {
-          assignment_id?: string | null
-          feedback?: string | null
-          grade?: number | null
-          graded_at?: string | null
-          graded_by?: string | null
-          id?: string
-          student_id?: string | null
-          submission_text?: string | null
-          submission_url?: string | null
-          submitted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assignment_submissions_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "assignments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      assignments: {
-        Row: {
-          attachment_url: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          due_date: string | null
-          id: string
-          instructions: string | null
-          subject_id: string | null
-          title: string
-          total_points: number | null
-        }
-        Insert: {
-          attachment_url?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          instructions?: string | null
-          subject_id?: string | null
-          title: string
-          total_points?: number | null
-        }
-        Update: {
-          attachment_url?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          instructions?: string | null
-          subject_id?: string | null
-          title?: string
-          total_points?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assignments_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      audit_log: {
-        Row: {
-          action: string
-          created_at: string | null
-          details: Json | null
-          entity_id: string | null
-          entity_type: string
-          id: string
-          ip_address: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string | null
-          details?: Json | null
-          entity_id?: string | null
-          entity_type: string
-          id?: string
-          ip_address?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string | null
-          details?: Json | null
-          entity_id?: string | null
-          entity_type?: string
-          id?: string
-          ip_address?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       departments: {
-        Row: {
-          code: string
-          created_at: string | null
-          head_name: string | null
-          id: string
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          code: string
-          created_at?: string | null
-          head_name?: string | null
-          id?: string
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          code?: string
-          created_at?: string | null
-          head_name?: string | null
-          id?: string
-          name?: string
-          updated_at?: string | null
-        }
+        Row: {}
+        Insert: {}
+        Update: {}
         Relationships: []
-      }
-      document_templates: {
-        Row: {
-          category_id: string | null
-          created_at: string | null
-          description: string | null
-          downloads: number | null
-          file_url: string | null
-          id: string
-          institution: string | null
-          name: string
-          preview_url: string | null
-          template_type: string | null
-        }
-        Insert: {
-          category_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          downloads?: number | null
-          file_url?: string | null
-          id?: string
-          institution?: string | null
-          name: string
-          preview_url?: string | null
-          template_type?: string | null
-        }
-        Update: {
-          category_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          downloads?: number | null
-          file_url?: string | null
-          id?: string
-          institution?: string | null
-          name?: string
-          preview_url?: string | null
-          template_type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "document_templates_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "template_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_posts: {
-        Row: {
-          author_id: string | null
-          content: string
-          created_at: string | null
-          group_id: string | null
-          id: string
-          is_pinned: boolean | null
-          replies_count: number | null
-          subject_id: string | null
-          title: string
-          updated_at: string | null
-          upvotes: number | null
-        }
-        Insert: {
-          author_id?: string | null
-          content: string
-          created_at?: string | null
-          group_id?: string | null
-          id?: string
-          is_pinned?: boolean | null
-          replies_count?: number | null
-          subject_id?: string | null
-          title: string
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Update: {
-          author_id?: string | null
-          content?: string
-          created_at?: string | null
-          group_id?: string | null
-          id?: string
-          is_pinned?: boolean | null
-          replies_count?: number | null
-          subject_id?: string | null
-          title?: string
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_posts_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "study_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_posts_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_replies: {
-        Row: {
-          author_id: string | null
-          content: string
-          created_at: string | null
-          id: string
-          post_id: string | null
-          updated_at: string | null
-          upvotes: number | null
-        }
-        Insert: {
-          author_id?: string | null
-          content: string
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Update: {
-          author_id?: string | null
-          content?: string
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_replies_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "forum_posts"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       goods_received: {
         Row: {
@@ -420,38 +57,6 @@ export type Database = {
             columns: ["po_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      group_members: {
-        Row: {
-          group_id: string | null
-          id: string
-          joined_at: string | null
-          role: string | null
-          user_id: string | null
-        }
-        Insert: {
-          group_id?: string | null
-          id?: string
-          joined_at?: string | null
-          role?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          group_id?: string | null
-          id?: string
-          joined_at?: string | null
-          role?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "study_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -564,13 +169,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "items_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "items_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -579,149 +177,13 @@ export type Database = {
           },
         ]
       }
-      learning_content: {
-        Row: {
-          content_data: Json | null
-          content_type: Database["public"]["Enums"]["content_type"]
-          content_url: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          duration_minutes: number | null
-          file_size_mb: number | null
-          id: string
-          is_premium: boolean | null
-          subtopic_id: string | null
-          thumbnail_url: string | null
-          title: string
-          updated_at: string | null
-          view_count: number | null
-        }
-        Insert: {
-          content_data?: Json | null
-          content_type: Database["public"]["Enums"]["content_type"]
-          content_url?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          duration_minutes?: number | null
-          file_size_mb?: number | null
-          id?: string
-          is_premium?: boolean | null
-          subtopic_id?: string | null
-          thumbnail_url?: string | null
-          title: string
-          updated_at?: string | null
-          view_count?: number | null
-        }
-        Update: {
-          content_data?: Json | null
-          content_type?: Database["public"]["Enums"]["content_type"]
-          content_url?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          duration_minutes?: number | null
-          file_size_mb?: number | null
-          id?: string
-          is_premium?: boolean | null
-          subtopic_id?: string | null
-          thumbnail_url?: string | null
-          title?: string
-          updated_at?: string | null
-          view_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learning_content_subtopic_id_fkey"
-            columns: ["subtopic_id"]
-            isOneToOne: false
-            referencedRelation: "subtopics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      music_playlists: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          is_public: boolean | null
-          name: string
-          thumbnail_url: string | null
-          user_id: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_public?: boolean | null
-          name: string
-          thumbnail_url?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_public?: boolean | null
-          name?: string
-          thumbnail_url?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      playlist_tracks: {
-        Row: {
-          artist: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          file_url: string | null
-          id: string
-          order_index: number | null
-          playlist_id: string | null
-          title: string
-        }
-        Insert: {
-          artist?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_url?: string | null
-          id?: string
-          order_index?: number | null
-          playlist_id?: string | null
-          title: string
-        }
-        Update: {
-          artist?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_url?: string | null
-          id?: string
-          order_index?: number | null
-          playlist_id?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "playlist_tracks_playlist_id_fkey"
-            columns: ["playlist_id"]
-            isOneToOne: false
-            referencedRelation: "music_playlists"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          department: string | null
           full_name: string
           id: string
-          institution_name: string | null
           phone_number: string | null
           preferred_language: string | null
           updated_at: string | null
@@ -729,9 +191,9 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          department?: string | null
           full_name: string
           id: string
-          institution_name?: string | null
           phone_number?: string | null
           preferred_language?: string | null
           updated_at?: string | null
@@ -739,9 +201,9 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          department?: string | null
           full_name?: string
           id?: string
-          institution_name?: string | null
           phone_number?: string | null
           preferred_language?: string | null
           updated_at?: string | null
@@ -905,183 +367,28 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "requisitions_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      study_groups: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          is_public: boolean | null
-          max_members: number | null
-          name: string
-          subject_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_public?: boolean | null
-          max_members?: number | null
-          name: string
-          subject_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_public?: boolean | null
-          max_members?: number | null
-          name?: string
-          subject_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "study_groups_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      study_notes: {
-        Row: {
-          author_id: string | null
-          content: string
-          created_at: string | null
-          downloads: number | null
-          id: string
-          is_public: boolean | null
-          markdown_content: string | null
-          subtopic_id: string | null
-          tags: string[] | null
-          title: string
-          updated_at: string | null
-          upvotes: number | null
-        }
-        Insert: {
-          author_id?: string | null
-          content: string
-          created_at?: string | null
-          downloads?: number | null
-          id?: string
-          is_public?: boolean | null
-          markdown_content?: string | null
-          subtopic_id?: string | null
-          tags?: string[] | null
-          title: string
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Update: {
-          author_id?: string | null
-          content?: string
-          created_at?: string | null
-          downloads?: number | null
-          id?: string
-          is_public?: boolean | null
-          markdown_content?: string | null
-          subtopic_id?: string | null
-          tags?: string[] | null
-          title?: string
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "study_notes_subtopic_id_fkey"
-            columns: ["subtopic_id"]
-            isOneToOne: false
-            referencedRelation: "subtopics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      subjects: {
-        Row: {
-          code: string
-          created_at: string | null
-          description: string | null
-          icon_url: string | null
-          id: string
-          level: Database["public"]["Enums"]["education_level"]
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          code: string
-          created_at?: string | null
-          description?: string | null
-          icon_url?: string | null
-          id?: string
-          level: Database["public"]["Enums"]["education_level"]
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          code?: string
-          created_at?: string | null
-          description?: string | null
-          icon_url?: string | null
-          id?: string
-          level?: Database["public"]["Enums"]["education_level"]
-          name?: string
-          updated_at?: string | null
-        }
         Relationships: []
       }
-      subtopics: {
+      room_members: {
         Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          learning_objectives: string[] | null
-          name: string
-          order_index: number
-          topic_id: string | null
-          updated_at: string | null
+          joined_at: string | null
+          role: string | null
+          room_id: string
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          learning_objectives?: string[] | null
-          name: string
-          order_index: number
-          topic_id?: string | null
-          updated_at?: string | null
+          joined_at?: string | null
+          role?: string | null
+          room_id: string
+          user_id: string
         }
         Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          learning_objectives?: string[] | null
-          name?: string
-          order_index?: number
-          topic_id?: string | null
-          updated_at?: string | null
+          joined_at?: string | null
+          role?: string | null
+          room_id?: string
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "subtopics_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "topics"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       suppliers: {
         Row: {
@@ -1125,248 +432,103 @@ export type Database = {
         }
         Relationships: []
       }
-      template_categories: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          icon: string | null
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      topics: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          estimated_hours: number | null
-          id: string
-          name: string
-          order_index: number
-          subject_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          estimated_hours?: number | null
-          id?: string
-          name: string
-          order_index: number
-          subject_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          estimated_hours?: number | null
-          id?: string
-          name?: string
-          order_index?: number
-          subject_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "topics_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_achievements: {
-        Row: {
-          achievement_id: string | null
-          earned_at: string | null
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          achievement_id?: string | null
-          earned_at?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          achievement_id?: string | null
-          earned_at?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_achievements_achievement_id_fkey"
-            columns: ["achievement_id"]
-            isOneToOne: false
-            referencedRelation: "achievements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_notifications: {
-        Row: {
-          created_at: string | null
-          id: string
-          message: string
-          read_at: string | null
-          reference_id: string | null
-          title: string
-          type: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          message: string
-          read_at?: string | null
-          reference_id?: string | null
-          title: string
-          type?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          message?: string
-          read_at?: string | null
-          reference_id?: string | null
-          title?: string
-          type?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      user_progress: {
-        Row: {
-          completed_at: string | null
-          content_id: string | null
-          id: string
-          last_accessed: string | null
-          notes: string | null
-          progress_percentage: number | null
-          subtopic_id: string | null
-          time_spent_minutes: number | null
-          user_id: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          content_id?: string | null
-          id?: string
-          last_accessed?: string | null
-          notes?: string | null
-          progress_percentage?: number | null
-          subtopic_id?: string | null
-          time_spent_minutes?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          content_id?: string | null
-          id?: string
-          last_accessed?: string | null
-          notes?: string | null
-          progress_percentage?: number | null
-          subtopic_id?: string | null
-          time_spent_minutes?: number | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_progress_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "learning_content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_progress_subtopic_id_fkey"
-            columns: ["subtopic_id"]
-            isOneToOne: false
-            referencedRelation: "subtopics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
-          assigned_at: string | null
-          assigned_by: string | null
+          created_at: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
+          created_at?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
+          created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
       }
-      video_bookmarks: {
-        Row: {
-          content_id: string | null
-          created_at: string | null
-          id: string
-          note: string | null
-          timestamp_seconds: number
-          user_id: string | null
-        }
-        Insert: {
-          content_id?: string | null
-          created_at?: string | null
-          id?: string
-          note?: string | null
-          timestamp_seconds: number
-          user_id?: string | null
-        }
-        Update: {
-          content_id?: string | null
-          created_at?: string | null
-          id?: string
-          note?: string | null
-          timestamp_seconds?: number
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "video_bookmarks_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "learning_content"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      __plpgsql_show_dependency_tb:
+        | {
+            Args: {
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              funcoid: unknown
+              relid?: unknown
+            }
+            Returns: {
+              name: string
+              oid: unknown
+              params: string
+              schema: string
+              type: string
+            }[]
+          }
+        | {
+            Args: {
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              name: string
+              relid?: unknown
+            }
+            Returns: {
+              name: string
+              oid: unknown
+              params: string
+              schema: string
+              type: string
+            }[]
+          }
+      dblink: { Args: { "": string }; Returns: Record<string, unknown>[] }
+      dblink_cancel_query: { Args: { "": string }; Returns: string }
+      dblink_close: { Args: { "": string }; Returns: string }
+      dblink_connect: { Args: { "": string }; Returns: string }
+      dblink_connect_u: { Args: { "": string }; Returns: string }
+      dblink_current_query: { Args: never; Returns: string }
+      dblink_disconnect:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
+      dblink_error_message: { Args: { "": string }; Returns: string }
+      dblink_exec: { Args: { "": string }; Returns: string }
+      dblink_fdw_validator: {
+        Args: { catalog: unknown; options: string[] }
+        Returns: undefined
+      }
+      dblink_get_connections: { Args: never; Returns: string[] }
+      dblink_get_notify:
+        | { Args: { conname: string }; Returns: Record<string, unknown>[] }
+        | { Args: never; Returns: Record<string, unknown>[] }
+      dblink_get_pkey: {
+        Args: { "": string }
+        Returns: Database["public"]["CompositeTypes"]["dblink_pkey_results"][]
+        SetofOptions: {
+          from: "*"
+          to: "dblink_pkey_results"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      dblink_get_result: {
+        Args: { "": string }
+        Returns: Record<string, unknown>[]
+      }
+      dblink_is_busy: { Args: { "": string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1374,6 +536,300 @@ export type Database = {
         }
         Returns: boolean
       }
+      json_matches_schema: {
+        Args: { instance: Json; schema: Json }
+        Returns: boolean
+      }
+      jsonb_matches_schema: {
+        Args: { instance: Json; schema: Json }
+        Returns: boolean
+      }
+      jsonschema_is_valid: { Args: { schema: Json }; Returns: boolean }
+      jsonschema_validation_errors: {
+        Args: { instance: Json; schema: Json }
+        Returns: string[]
+      }
+      pgroonga_database_remove: { Args: never; Returns: boolean }
+      plpgsql_check_function:
+        | {
+            Args: {
+              all_warnings?: boolean
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              compatibility_warnings?: boolean
+              constant_tracing?: boolean
+              extra_warnings?: boolean
+              fatal_errors?: boolean
+              format?: string
+              funcoid: unknown
+              incomment_options_usage_warning?: boolean
+              newtable?: unknown
+              oldtable?: unknown
+              other_warnings?: boolean
+              performance_warnings?: boolean
+              relid?: unknown
+              security_warnings?: boolean
+              use_incomment_options?: boolean
+              without_warnings?: boolean
+            }
+            Returns: string[]
+          }
+        | {
+            Args: {
+              all_warnings?: boolean
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              compatibility_warnings?: boolean
+              constant_tracing?: boolean
+              extra_warnings?: boolean
+              fatal_errors?: boolean
+              format?: string
+              incomment_options_usage_warning?: boolean
+              name: string
+              newtable?: unknown
+              oldtable?: unknown
+              other_warnings?: boolean
+              performance_warnings?: boolean
+              relid?: unknown
+              security_warnings?: boolean
+              use_incomment_options?: boolean
+              without_warnings?: boolean
+            }
+            Returns: string[]
+          }
+      plpgsql_check_function_tb:
+        | {
+            Args: {
+              all_warnings?: boolean
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              compatibility_warnings?: boolean
+              constant_tracing?: boolean
+              extra_warnings?: boolean
+              fatal_errors?: boolean
+              funcoid: unknown
+              incomment_options_usage_warning?: boolean
+              newtable?: unknown
+              oldtable?: unknown
+              other_warnings?: boolean
+              performance_warnings?: boolean
+              relid?: unknown
+              security_warnings?: boolean
+              use_incomment_options?: boolean
+              without_warnings?: boolean
+            }
+            Returns: {
+              context: string
+              detail: string
+              functionid: unknown
+              hint: string
+              level: string
+              lineno: number
+              message: string
+              position: number
+              query: string
+              sqlstate: string
+              statement: string
+            }[]
+          }
+        | {
+            Args: {
+              all_warnings?: boolean
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              compatibility_warnings?: boolean
+              constant_tracing?: boolean
+              extra_warnings?: boolean
+              fatal_errors?: boolean
+              incomment_options_usage_warning?: boolean
+              name: string
+              newtable?: unknown
+              oldtable?: unknown
+              other_warnings?: boolean
+              performance_warnings?: boolean
+              relid?: unknown
+              security_warnings?: boolean
+              use_incomment_options?: boolean
+              without_warnings?: boolean
+            }
+            Returns: {
+              context: string
+              detail: string
+              functionid: unknown
+              hint: string
+              level: string
+              lineno: number
+              message: string
+              position: number
+              query: string
+              sqlstate: string
+              statement: string
+            }[]
+          }
+      plpgsql_check_pragma: { Args: { name: string[] }; Returns: number }
+      plpgsql_check_profiler: { Args: { enable?: boolean }; Returns: boolean }
+      plpgsql_check_tracer: {
+        Args: { enable?: boolean; verbosity?: string }
+        Returns: boolean
+      }
+      plpgsql_coverage_branches:
+        | { Args: { funcoid: unknown }; Returns: number }
+        | { Args: { name: string }; Returns: number }
+      plpgsql_coverage_statements:
+        | { Args: { funcoid: unknown }; Returns: number }
+        | { Args: { name: string }; Returns: number }
+      plpgsql_profiler_function_statements_tb:
+        | {
+            Args: { funcoid: unknown }
+            Returns: {
+              avg_time: number
+              block_num: number
+              exec_stmts: number
+              exec_stmts_err: number
+              lineno: number
+              max_time: number
+              parent_note: string
+              parent_stmtid: number
+              processed_rows: number
+              queryid: number
+              stmtid: number
+              stmtname: string
+              total_time: number
+            }[]
+          }
+        | {
+            Args: { name: string }
+            Returns: {
+              avg_time: number
+              block_num: number
+              exec_stmts: number
+              exec_stmts_err: number
+              lineno: number
+              max_time: number
+              parent_note: string
+              parent_stmtid: number
+              processed_rows: number
+              queryid: number
+              stmtid: number
+              stmtname: string
+              total_time: number
+            }[]
+          }
+      plpgsql_profiler_function_tb:
+        | {
+            Args: { funcoid: unknown }
+            Returns: {
+              avg_time: number
+              cmds_on_row: number
+              exec_stmts: number
+              exec_stmts_err: number
+              lineno: number
+              max_time: number[]
+              processed_rows: number[]
+              queryids: number[]
+              source: string
+              stmt_lineno: number
+              total_time: number
+            }[]
+          }
+        | {
+            Args: { name: string }
+            Returns: {
+              avg_time: number
+              cmds_on_row: number
+              exec_stmts: number
+              exec_stmts_err: number
+              lineno: number
+              max_time: number[]
+              processed_rows: number[]
+              queryids: number[]
+              source: string
+              stmt_lineno: number
+              total_time: number
+            }[]
+          }
+      plpgsql_profiler_functions_all: {
+        Args: never
+        Returns: {
+          avg_time: number
+          exec_count: number
+          exec_stmts_err: number
+          funcoid: unknown
+          max_time: number
+          min_time: number
+          stddev_time: number
+          total_time: number
+        }[]
+      }
+      plpgsql_profiler_install_fake_queryid_hook: {
+        Args: never
+        Returns: undefined
+      }
+      plpgsql_profiler_remove_fake_queryid_hook: {
+        Args: never
+        Returns: undefined
+      }
+      plpgsql_profiler_reset: { Args: { funcoid: unknown }; Returns: undefined }
+      plpgsql_profiler_reset_all: { Args: never; Returns: undefined }
+      plpgsql_show_dependency_tb:
+        | {
+            Args: {
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              fnname: string
+              relid?: unknown
+            }
+            Returns: {
+              name: string
+              oid: unknown
+              params: string
+              schema: string
+              type: string
+            }[]
+          }
+        | {
+            Args: {
+              anycompatiblerangetype?: unknown
+              anycompatibletype?: unknown
+              anyelememttype?: unknown
+              anyenumtype?: unknown
+              anyrangetype?: unknown
+              funcoid: unknown
+              relid?: unknown
+            }
+            Returns: {
+              name: string
+              oid: unknown
+              params: string
+              schema: string
+              type: string
+            }[]
+          }
+      ssl_cipher: { Args: never; Returns: string }
+      ssl_client_cert_present: { Args: never; Returns: boolean }
+      ssl_client_dn: { Args: never; Returns: string }
+      ssl_client_dn_field: { Args: { "": string }; Returns: string }
+      ssl_client_serial: { Args: never; Returns: number }
+      ssl_extension_info: { Args: never; Returns: Record<string, unknown>[] }
+      ssl_is_used: { Args: never; Returns: boolean }
+      ssl_issuer_dn: { Args: never; Returns: string }
+      ssl_issuer_field: { Args: { "": string }; Returns: string }
+      ssl_version: { Args: never; Returns: string }
     }
     Enums: {
       app_role:
@@ -1391,10 +847,12 @@ export type Database = {
         | "simulation"
         | "quiz"
         | "assignment"
-      education_level: "primary" | "secondary" | "tertiary" | "vocational"
     }
     CompositeTypes: {
-      [_ in never]: never
+      dblink_pkey_results: {
+        position: number | null
+        colname: string | null
+      }
     }
   }
 }
@@ -1536,7 +994,6 @@ export const Constants = {
         "quiz",
         "assignment",
       ],
-      education_level: ["primary", "secondary", "tertiary", "vocational"],
     },
   },
 } as const
