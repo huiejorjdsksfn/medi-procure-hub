@@ -15,9 +15,27 @@ export type Database = {
   public: {
     Tables: {
       departments: {
-        Row: {}
-        Insert: {}
-        Update: {}
+        Row: {
+          code: string | null
+          created_at: string | null
+          head_name: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          head_name?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          head_name?: string | null
+          id?: string
+          name?: string
+        }
         Relationships: []
       }
       goods_received: {
@@ -366,27 +384,6 @@ export type Database = {
           submitted_at?: string | null
           total_amount?: number | null
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      room_members: {
-        Row: {
-          joined_at: string | null
-          role: string | null
-          room_id: string
-          user_id: string
-        }
-        Insert: {
-          joined_at?: string | null
-          role?: string | null
-          room_id: string
-          user_id: string
-        }
-        Update: {
-          joined_at?: string | null
-          role?: string | null
-          room_id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -839,6 +836,11 @@ export type Database = {
         | "parent"
         | "ministry_official"
         | "curriculum_developer"
+        | "requisitioner"
+        | "procurement_officer"
+        | "procurement_manager"
+        | "warehouse_officer"
+        | "inventory_manager"
       content_type:
         | "video"
         | "document"
@@ -984,6 +986,11 @@ export const Constants = {
         "parent",
         "ministry_official",
         "curriculum_developer",
+        "requisitioner",
+        "procurement_officer",
+        "procurement_manager",
+        "warehouse_officer",
+        "inventory_manager",
       ],
       content_type: [
         "video",

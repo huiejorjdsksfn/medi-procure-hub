@@ -54,6 +54,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "warehouse_officer", "procurement_officer", "procurement_manager"],
     items: [
       { path: "/goods-received", label: "Goods Received", icon: ClipboardList, roles: [] },
+      { path: "/scanner", label: "Barcode Scanner", icon: Package, roles: ["admin", "warehouse_officer", "inventory_manager"] },
     ],
   },
   {
