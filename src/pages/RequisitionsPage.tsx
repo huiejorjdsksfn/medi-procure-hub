@@ -15,11 +15,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, CheckCircle, XCircle } from "lucide-react";
-import { exportToExcel, exportToPDF } from "@/lib/export";
+import { Plus, Download, Eye, CheckCircle, XCircle, FileDown } from "lucide-react";
+import { exportToExcel, exportToPDF, generateRequisitionPDF } from "@/lib/export";
 
 const RequisitionsPage = () => {
-  const { user, roles, hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const canApprove = hasRole("admin") || hasRole("procurement_manager");
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -73,17 +73,12 @@ const RequisitionsPage = () => {
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
 
     const reqItems = lineItems.filter(li => li.item_name).map((li) => ({
-      requisition_id: req.id,
-      item_id: li.item_id || null,
-      item_name: li.item_name,
-      quantity: parseInt(li.quantity) || 1,
-      unit_price: parseFloat(li.unit_price) || 0,
+      requisition_id: req.id, item_id: li.item_id || null, item_name: li.item_name,
+      quantity: parseInt(li.quantity) || 1, unit_price: parseFloat(li.unit_price) || 0,
       total_price: (parseInt(li.quantity) || 1) * (parseFloat(li.unit_price) || 0),
     }));
 
-    if (reqItems.length > 0) {
-      await supabase.from("requisition_items").insert(reqItems);
-    }
+    if (reqItems.length > 0) await supabase.from("requisition_items").insert(reqItems);
 
     toast({ title: "Requisition submitted", description: `Number: ${reqNumber}` });
     setDialogOpen(false);
@@ -100,19 +95,14 @@ const RequisitionsPage = () => {
 
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("requisitions").update({
-      status,
-      approved_by: user?.id,
+      status, approved_by: user?.id,
       approved_at: status === "approved" ? new Date().toISOString() : null,
     }).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: `Requisition ${status}` });
-    fetchRequisitions();
-    setDetailDialog(null);
+    toast({ title: `Requisition ${status}` }); fetchRequisitions(); setDetailDialog(null);
   };
 
-  const addLineItem = () => {
-    setLineItems([...lineItems, { item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
-  };
+  const addLineItem = () => setLineItems([...lineItems, { item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
 
   const updateLineItem = (index: number, field: string, value: string) => {
     const updated = [...lineItems];
@@ -137,7 +127,7 @@ const RequisitionsPage = () => {
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">Requisitions</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button size="sm" variant="outline" onClick={() => exportToExcel(requisitions, "requisitions")}>
             <Download className="w-4 h-4 mr-1" /> Excel
           </Button>
@@ -153,7 +143,7 @@ const RequisitionsPage = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Department</Label>
+                    <Label>Department *</Label>
                     <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                       <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
@@ -173,19 +163,18 @@ const RequisitionsPage = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Justification / Purpose of Request</Label>
+                  <Label>Justification / Purpose</Label>
                   <Textarea value={form.justification} onChange={(e) => setForm({ ...form, justification: e.target.value })} placeholder="Mandatory for non-stock & emergency items" />
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Store Items Requisition Details</Label>
+                    <Label>Items</Label>
                     <Button type="button" size="sm" variant="outline" onClick={addLineItem}><Plus className="w-3 h-3 mr-1" /> Add Line</Button>
                   </div>
                   <div className="border border-border rounded-lg overflow-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="w-20">Qty</TableHead><TableHead className="w-28">Unit Cost (KSH)</TableHead><TableHead className="w-28">Total (KSH)</TableHead></TableRow>
+                        <TableRow><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="w-20">Qty</TableHead><TableHead className="w-28">Unit Cost</TableHead><TableHead className="w-28">Total</TableHead></TableRow>
                       </TableHeader>
                       <TableBody>
                         {lineItems.map((li, i) => (
@@ -206,9 +195,7 @@ const RequisitionsPage = () => {
                     </Table>
                   </div>
                 </div>
-
                 <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                   <Button type="submit">Submit Requisition</Button>
@@ -225,7 +212,7 @@ const RequisitionsPage = () => {
             <TableRow className="bg-muted/50">
               <TableHead>Req. Number</TableHead><TableHead>Priority</TableHead>
               <TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Status</TableHead>
-              <TableHead>Submitted</TableHead><TableHead className="w-20">Actions</TableHead>
+              <TableHead>Submitted</TableHead><TableHead className="w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -245,7 +232,13 @@ const RequisitionsPage = () => {
                 <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${statusColor(req.status)}`}>{req.status}</span></TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(req.created_at).toLocaleString()}</TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" onClick={() => viewDetail(req)}><Eye className="w-4 h-4" /></Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => viewDetail(req)}><Eye className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={async () => {
+                      const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", req.id);
+                      generateRequisitionPDF(req, data || [], departments);
+                    }}><FileDown className="w-4 h-4" /></Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -275,8 +268,7 @@ const RequisitionsPage = () => {
                 <TableBody>
                   {detailItems.map((li, i) => (
                     <TableRow key={li.id}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{li.item_name}</TableCell>
+                      <TableCell>{i + 1}</TableCell><TableCell>{li.item_name}</TableCell>
                       <TableCell className="text-right">{li.quantity}</TableCell>
                       <TableCell className="text-right">{Number(li.unit_price).toFixed(2)}</TableCell>
                       <TableCell className="text-right font-medium">{Number(li.total_price).toFixed(2)}</TableCell>
@@ -284,16 +276,21 @@ const RequisitionsPage = () => {
                   ))}
                 </TableBody>
               </Table>
-              {canApprove && detailDialog.status === "pending" && (
-                <div className="flex gap-2 justify-end pt-2 border-t border-border">
-                  <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-red-600 hover:bg-red-500/10">
-                    <XCircle className="w-4 h-4 mr-1" /> Reject
-                  </Button>
-                  <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700">
-                    <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                  </Button>
-                </div>
-              )}
+              <div className="flex gap-2 justify-end pt-2 border-t border-border">
+                <Button variant="outline" size="sm" onClick={() => generateRequisitionPDF(detailDialog, detailItems, departments)}>
+                  <FileDown className="w-4 h-4 mr-1" /> Download PDF
+                </Button>
+                {canApprove && detailDialog.status === "pending" && (
+                  <>
+                    <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-red-600 hover:bg-red-500/10">
+                      <XCircle className="w-4 h-4 mr-1" /> Reject
+                    </Button>
+                    <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700">
+                      <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
