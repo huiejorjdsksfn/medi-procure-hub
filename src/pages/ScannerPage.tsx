@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Camera, ScanBarcode, Search, Plus, Package, CheckCircle, AlertTriangle } from "lucide-react";
+import { Camera, ScanBarcode, Search, Plus, Package, CheckCircle, Globe } from "lucide-react";
 
 const ScannerPage = () => {
   const { user } = useAuth();
@@ -24,16 +24,17 @@ const ScannerPage = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [onlineResults, setOnlineResults] = useState<any[]>([]);
+  const [searchingOnline, setSearchingOnline] = useState(false);
   const [addForm, setAddForm] = useState({
     name: "", barcode: "", category_id: "", department_id: "",
     unit_of_measure: "piece", unit_price: "", quantity_in_stock: "1",
-    reorder_level: "10", item_type: "consumable", batch_number: "", expiry_date: "",
+    reorder_level: "10", item_type: "consumable", batch_number: "", expiry_date: "", description: "",
   });
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    fetchCategories();
-    fetchDepartments();
+    fetchCategories(); fetchDepartments();
     return () => { stopScanner(); };
   }, []);
 
@@ -63,7 +64,7 @@ const ScannerPage = () => {
         () => {}
       );
     } catch {
-      toast({ title: "Camera Error", description: "Could not access camera. Check permissions.", variant: "destructive" });
+      toast({ title: "Camera Error", description: "Could not access camera.", variant: "destructive" });
       setScanning(false);
     }
   };
@@ -78,10 +79,9 @@ const ScannerPage = () => {
 
   const lookupBarcode = async (code: string) => {
     const { data } = await supabase
-      .from("items")
-      .select("*, item_categories(name)")
-      .eq("barcode", code)
-      .single();
+      .from("items").select("*, item_categories(name)")
+      .or(`barcode.eq.${code},sku.eq.${code},name.ilike.%${code}%`)
+      .limit(1).maybeSingle();
 
     const timestamp = new Date().toLocaleTimeString();
 
@@ -93,9 +93,41 @@ const ScannerPage = () => {
       setFoundItem(null);
       setScanHistory(prev => [{ code, found: false, name: "Not found", time: timestamp }, ...prev.slice(0, 19)]);
       setAddForm(prev => ({ ...prev, barcode: code, name: "" }));
+      // Search online
+      searchOnline(code);
       setShowAddDialog(true);
-      toast({ title: "Item not found", description: `Barcode ${code} — Add it now?`, variant: "destructive" });
+      toast({ title: "Item not found in database", description: "Add it now or search online.", variant: "destructive" });
     }
+  };
+
+  const searchOnline = async (query: string) => {
+    setSearchingOnline(true);
+    try {
+      // Use Open Food Facts API as a free barcode database
+      const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${query}.json`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 1 && data.product) {
+          const p = data.product;
+          setOnlineResults([{
+            name: p.product_name || p.generic_name || query,
+            brand: p.brands || "",
+            category: p.categories || "",
+            barcode: p.code || query,
+          }]);
+          setAddForm(prev => ({
+            ...prev,
+            name: p.product_name || p.generic_name || prev.name,
+            description: p.brands ? `Brand: ${p.brands}` : "",
+          }));
+        } else {
+          setOnlineResults([]);
+        }
+      }
+    } catch {
+      setOnlineResults([]);
+    }
+    setSearchingOnline(false);
   };
 
   const handleManualSearch = async () => {
@@ -108,6 +140,7 @@ const ScannerPage = () => {
     const { error } = await supabase.from("items").insert({
       name: addForm.name,
       barcode: addForm.barcode,
+      description: addForm.description || null,
       category_id: addForm.category_id || null,
       department_id: addForm.department_id || null,
       unit_of_measure: addForm.unit_of_measure,
@@ -126,54 +159,44 @@ const ScannerPage = () => {
       return;
     }
 
-    toast({ title: "Item added successfully!", description: `${addForm.name} saved to inventory.` });
+    toast({ title: "Item added!", description: `${addForm.name} saved to inventory.` });
     setShowAddDialog(false);
-    setAddForm({ name: "", barcode: "", category_id: "", department_id: "", unit_of_measure: "piece", unit_price: "", quantity_in_stock: "1", reorder_level: "10", item_type: "consumable", batch_number: "", expiry_date: "" });
-    // Re-lookup to show the item
+    setAddForm({ name: "", barcode: "", category_id: "", department_id: "", unit_of_measure: "piece", unit_price: "", quantity_in_stock: "1", reorder_level: "10", item_type: "consumable", batch_number: "", expiry_date: "", description: "" });
+    setOnlineResults([]);
     await lookupBarcode(addForm.barcode);
   };
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ScanBarcode className="w-6 h-6 text-primary" /> Barcode Scanner
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Scan barcodes to look up or add items to inventory</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <ScanBarcode className="w-6 h-6 text-primary" /> Barcode Scanner
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">Scan or search barcodes — items are saved to database by category</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Scanner panel */}
         <div className="lg:col-span-2 space-y-4">
           <Card className="border-border">
             <CardContent className="p-4 space-y-4">
-              {/* Manual input */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter or scan barcode..."
-                  value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
-                  className="font-mono text-lg h-12"
-                />
-                <Button onClick={handleManualSearch} size="lg" variant="outline" className="px-4">
-                  <Search className="w-5 h-5" />
-                </Button>
-              </div>
-
-              {/* Camera controls */}
-              <div className="flex gap-2">
+              {/* Action buttons - Scanner as button, not text input */}
+              <div className="grid grid-cols-2 gap-3">
                 {!scanning ? (
-                  <Button onClick={startScanner} className="w-full h-12 text-base gap-2">
-                    <Camera className="w-5 h-5" /> Open Camera Scanner
+                  <Button onClick={startScanner} className="h-14 text-base gap-2" size="lg">
+                    <Camera className="w-6 h-6" /> Scan with Camera
                   </Button>
                 ) : (
-                  <Button onClick={stopScanner} variant="destructive" className="w-full h-12 text-base">
+                  <Button onClick={stopScanner} variant="destructive" className="h-14 text-base">
                     Stop Scanner
                   </Button>
                 )}
+                <Button variant="outline" className="h-14 text-base gap-2" size="lg"
+                  onClick={() => {
+                    const code = prompt("Enter barcode or item name:");
+                    if (code) { setBarcode(code); lookupBarcode(code); }
+                  }}>
+                  <Search className="w-6 h-6" /> Manual Lookup
+                </Button>
               </div>
 
               {/* Camera preview */}
@@ -208,7 +231,6 @@ const ScannerPage = () => {
                   <div><span className="text-muted-foreground block text-xs">Type</span><span className="capitalize">{foundItem.item_type}</span></div>
                   {foundItem.batch_number && <div><span className="text-muted-foreground block text-xs">Batch</span><span>{foundItem.batch_number}</span></div>}
                   {foundItem.expiry_date && <div><span className="text-muted-foreground block text-xs">Expiry</span><span>{foundItem.expiry_date}</span></div>}
-                  {foundItem.location && <div><span className="text-muted-foreground block text-xs">Location</span><span>{foundItem.location}</span></div>}
                 </div>
               </CardContent>
             </Card>
@@ -248,6 +270,21 @@ const ScannerPage = () => {
               <Plus className="w-5 h-5 text-primary" /> Add New Item from Scan
             </DialogTitle>
           </DialogHeader>
+
+          {/* Online search results */}
+          {searchingOnline && <p className="text-xs text-muted-foreground flex items-center gap-1"><Globe className="w-3 h-3 animate-spin" /> Searching online databases...</p>}
+          {onlineResults.length > 0 && (
+            <div className="bg-info/5 border border-info/20 rounded-lg p-3 mb-2">
+              <p className="text-xs font-medium text-info mb-1 flex items-center gap-1"><Globe className="w-3 h-3" /> Online Result Found</p>
+              {onlineResults.map((r, i) => (
+                <div key={i} className="text-xs">
+                  <p className="font-medium">{r.name}</p>
+                  {r.brand && <p className="text-muted-foreground">Brand: {r.brand}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+
           <form onSubmit={handleAddItem} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
@@ -270,9 +307,9 @@ const ScannerPage = () => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Category</Label>
+                <Label>Category *</Label>
                 <Select value={addForm.category_id} onValueChange={(v) => setAddForm({ ...addForm, category_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
                     {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
@@ -314,9 +351,13 @@ const ScannerPage = () => {
                 <Label>Expiry Date</Label>
                 <Input type="date" value={addForm.expiry_date} onChange={(e) => setAddForm({ ...addForm, expiry_date: e.target.value })} />
               </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Description</Label>
+                <Input value={addForm.description} onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} placeholder="Brand, strength, specs..." />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { setShowAddDialog(false); setOnlineResults([]); }}>Cancel</Button>
               <Button type="submit" className="gap-1.5"><Package className="w-4 h-4" /> Save Item</Button>
             </div>
           </form>
