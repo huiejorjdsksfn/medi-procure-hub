@@ -16,9 +16,10 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Plus, Download, FileDown } from "lucide-react";
 import { exportToExcel, generateLPO_PDF } from "@/lib/export";
+import { logAudit } from "@/lib/audit";
 
 const PurchaseOrdersPage = () => {
-  const { user, hasRole } = useAuth();
+  const { user, profile, hasRole } = useAuth();
   const canCreate = hasRole("admin") || hasRole("procurement_officer");
   const [orders, setOrders] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -42,16 +43,18 @@ const PurchaseOrdersPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("purchase_orders").insert({
-      po_number: form.po_number || generatePONumber(),
+    const poNum = form.po_number || generatePONumber();
+    const { data, error } = await supabase.from("purchase_orders").insert({
+      po_number: poNum,
       requisition_id: form.requisition_id || null,
       supplier_id: form.supplier_id || null,
       total_amount: parseFloat(form.total_amount) || 0,
       delivery_date: form.delivery_date || null,
       status: form.status,
       created_by: user?.id,
-    });
+    }).select().single();
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit(user?.id, profile?.full_name, "create", "purchase_orders", data?.id, { po_number: poNum, supplier_id: form.supplier_id });
     toast({ title: "Purchase order created" });
     setDialogOpen(false);
     setForm({ po_number: "", requisition_id: "", supplier_id: "", total_amount: "", delivery_date: "", status: "draft" });
@@ -76,15 +79,13 @@ const PurchaseOrdersPage = () => {
                 <DialogHeader><DialogTitle>Create Local Purchase Order (EL5H/SCM/FRM/002)</DialogTitle></DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2"><Label>LPO Number</Label><Input value={form.po_number} onChange={(e) => setForm({...form, po_number: e.target.value})} placeholder="Auto-generated if empty" /></div>
-                  <div className="space-y-2">
-                    <Label>Requisition Reference</Label>
+                  <div className="space-y-2"><Label>Requisition Reference</Label>
                     <Select value={form.requisition_id} onValueChange={(v) => setForm({...form, requisition_id: v})}>
                       <SelectTrigger><SelectValue placeholder="Link to requisition" /></SelectTrigger>
                       <SelectContent>{requisitions.map(r => <SelectItem key={r.id} value={r.id}>{r.requisition_number}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Supplier *</Label>
+                  <div className="space-y-2"><Label>Supplier *</Label>
                     <Select value={form.supplier_id} onValueChange={(v) => setForm({...form, supplier_id: v})}>
                       <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                       <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
@@ -105,7 +106,7 @@ const PurchaseOrdersPage = () => {
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>LPO Number</TableHead><TableHead>Supplier</TableHead><TableHead>Requisition</TableHead><TableHead className="text-right">Amount</TableHead><TableHead>Delivery</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead><TableHead className="w-16">PDF</TableHead>
+            <TableHead>LPO Number</TableHead><TableHead>Supplier</TableHead><TableHead>Requisition</TableHead><TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Delivery</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead><TableHead className="w-16">PDF</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {orders.length === 0 ? (
@@ -115,7 +116,7 @@ const PurchaseOrdersPage = () => {
                 <TableCell className="font-mono font-medium">{o.po_number}</TableCell>
                 <TableCell>{o.suppliers?.name || "—"}</TableCell>
                 <TableCell className="font-mono text-sm">{o.requisitions?.requisition_number || "—"}</TableCell>
-                <TableCell className="text-right">{Number(o.total_amount).toFixed(2)}</TableCell>
+                <TableCell className="text-right">{Number(o.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
                 <TableCell>{o.delivery_date || "—"}</TableCell>
                 <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${o.status === "completed" ? "bg-emerald-500/10 text-emerald-600" : o.status === "draft" ? "bg-muted text-muted-foreground" : "bg-blue-500/10 text-blue-600"}`}>{o.status}</span></TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</TableCell>
