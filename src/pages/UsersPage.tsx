@@ -14,20 +14,21 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Shield, UserCog, KeyRound, Search, Plus, Download } from "lucide-react";
+import { Shield, UserCog, KeyRound, Search, Plus, Download, Trash2 } from "lucide-react";
 import { exportToExcel } from "@/lib/export";
+import { logAudit } from "@/lib/audit";
 
-const PROCUREMENT_ROLES: { value: ProcurementRole; label: string }[] = [
-  { value: "admin", label: "Administrator" },
-  { value: "requisitioner", label: "Requisitioner" },
-  { value: "procurement_officer", label: "Procurement Officer" },
-  { value: "procurement_manager", label: "Procurement Manager" },
-  { value: "warehouse_officer", label: "Warehouse Officer" },
-  { value: "inventory_manager", label: "Inventory Manager" },
+const PROCUREMENT_ROLES: { value: ProcurementRole; label: string; description: string }[] = [
+  { value: "admin", label: "Administrator", description: "Full system access, user management" },
+  { value: "requisitioner", label: "Requisitioner", description: "Create & track requisitions" },
+  { value: "procurement_officer", label: "Procurement Officer", description: "Create POs, manage suppliers" },
+  { value: "procurement_manager", label: "Procurement Manager", description: "Approve requisitions & POs" },
+  { value: "warehouse_officer", label: "Warehouse Officer", description: "Receive goods, scan items" },
+  { value: "inventory_manager", label: "Inventory Manager", description: "Manage items, categories, stock" },
 ];
 
 const UsersPage = () => {
-  const { roles: myRoles } = useAuth();
+  const { roles: myRoles, user, profile } = useAuth();
   const isAdmin = myRoles.includes("admin");
   const [users, setUsers] = useState<any[]>([]);
   const [roleDialog, setRoleDialog] = useState<any>(null);
@@ -36,9 +37,7 @@ const UsersPage = () => {
   const [createDialog, setCreateDialog] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "" });
 
-  useEffect(() => {
-    if (isAdmin) fetchUsers();
-  }, [isAdmin]);
+  useEffect(() => { if (isAdmin) fetchUsers(); }, [isAdmin]);
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*");
@@ -52,17 +51,13 @@ const UsersPage = () => {
 
   const assignRole = async () => {
     if (!roleDialog || !selectedRole) return;
-    const { error } = await (db as any).from("user_roles").insert([{
-      user_id: roleDialog.id, role: selectedRole,
-    }] as any);
+    const { error } = await (db as any).from("user_roles").insert([{ user_id: roleDialog.id, role: selectedRole }] as any);
     if (error) {
-      if (error.message?.includes("duplicate")) {
-        toast({ title: "Role already assigned", variant: "destructive" });
-      } else {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      }
+      if (error.message?.includes("duplicate")) toast({ title: "Role already assigned", variant: "destructive" });
+      else toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
+    logAudit(user?.id, profile?.full_name, "assign_role", "users", roleDialog.id, { role: selectedRole, target_user: roleDialog.full_name });
     toast({ title: "Role assigned" });
     setRoleDialog(null); setSelectedRole(""); fetchUsers();
   };
@@ -70,17 +65,18 @@ const UsersPage = () => {
   const removeRole = async (userId: string, role: string) => {
     const { error } = await db.from("user_roles").delete().eq("user_id", userId).eq("role", role);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit(user?.id, profile?.full_name, "remove_role", "users", userId, { role });
     toast({ title: "Role removed" }); fetchUsers();
   };
 
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.auth.signUp({
-      email: newUser.email,
-      password: newUser.password,
+      email: newUser.email, password: newUser.password,
       options: { data: { full_name: newUser.full_name }, emailRedirectTo: window.location.origin },
     });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit(user?.id, profile?.full_name, "create_user", "users", data.user?.id, { email: newUser.email, name: newUser.full_name });
     toast({ title: "User created", description: `${newUser.email} — they should check their email to confirm.` });
     setCreateDialog(false); setNewUser({ email: "", password: "", full_name: "" });
     setTimeout(fetchUsers, 2000);
@@ -92,26 +88,16 @@ const UsersPage = () => {
   );
 
   if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Admin access required</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground">Admin access required</p></div>;
   }
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <UserCog className="w-6 h-6" /> User Management
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><UserCog className="w-6 h-6" /> User Management</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportToExcel(users.map(u => ({ name: u.full_name, department: u.department, roles: u.roles.join(", "), joined: u.created_at })), "users")}>
-            <Download className="w-4 h-4 mr-1" /> Excel
-          </Button>
-          <Button size="sm" onClick={() => setCreateDialog(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Create User
-          </Button>
+          <Button size="sm" variant="outline" onClick={() => exportToExcel(users.map(u => ({ name: u.full_name, department: u.department, phone: u.phone_number, roles: u.roles.join(", "), joined: u.created_at })), "users")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+          <Button size="sm" onClick={() => setCreateDialog(true)}><Plus className="w-4 h-4 mr-1" /> Create User</Button>
         </div>
       </div>
 
@@ -122,16 +108,9 @@ const UsersPage = () => {
 
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Name</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="w-32">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+          <TableHeader><TableRow className="bg-muted/50">
+            <TableHead>Name</TableHead><TableHead>Roles</TableHead><TableHead>Department</TableHead><TableHead>Phone</TableHead><TableHead>Joined</TableHead><TableHead className="w-32">Actions</TableHead>
+          </TableRow></TableHeader>
           <TableBody>
             {filtered.map((u) => (
               <TableRow key={u.id} className="data-table-row">
@@ -141,7 +120,7 @@ const UsersPage = () => {
                     {u.roles.map((r: string) => (
                       <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize inline-flex items-center gap-1">
                         <Shield className="w-3 h-3" /> {r.replace(/_/g, " ")}
-                        <button onClick={() => removeRole(u.id, r)} className="ml-1 hover:text-destructive">×</button>
+                        <button onClick={() => removeRole(u.id, r)} className="ml-1 hover:text-destructive"><Trash2 className="w-3 h-3" /></button>
                       </span>
                     ))}
                     {u.roles.length === 0 && <span className="text-xs text-muted-foreground">No roles</span>}
@@ -167,13 +146,14 @@ const UsersPage = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>Assign Role to {roleDialog?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Role</Label>
+            <div className="space-y-2"><Label>Select Role</Label>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger><SelectValue placeholder="Choose role" /></SelectTrigger>
                 <SelectContent>
                   {PROCUREMENT_ROLES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    <SelectItem key={r.value} value={r.value}>
+                      <div><span className="font-medium">{r.label}</span><span className="text-xs text-muted-foreground ml-2">— {r.description}</span></div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

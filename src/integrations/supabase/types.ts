@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          module: string
+          record_id: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          module: string
+          record_id?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          module?: string
+          record_id?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           code: string | null
@@ -197,7 +233,7 @@ export type Database = {
       }
       profiles: {
         Row: {
-          avatar_url: string | null
+          avatar_url: unknown[] | null
           created_at: string | null
           department: string | null
           full_name: string
@@ -207,7 +243,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          avatar_url?: string | null
+          avatar_url?: unknown[] | null
           created_at?: string | null
           department?: string | null
           full_name: string
@@ -217,7 +253,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          avatar_url?: string | null
+          avatar_url?: unknown[] | null
           created_at?: string | null
           department?: string | null
           full_name?: string
