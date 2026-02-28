@@ -15,18 +15,16 @@ import PurchaseOrdersPage from "@/pages/PurchaseOrdersPage";
 import SuppliersPage from "@/pages/SuppliersPage";
 import GoodsReceivedPage from "@/pages/GoodsReceivedPage";
 import DepartmentsPage from "@/pages/DepartmentsPage";
-import ScannerPage from "@/pages/ScannerPage";
 import ReportsPage from "@/pages/ReportsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import AuditLogPage from "@/pages/AuditLogPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const ProtectedPage = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute>
-    <AppLayout>{children}</AppLayout>
-  </ProtectedRoute>
+  <ProtectedRoute><AppLayout>{children}</AppLayout></ProtectedRoute>
 );
 
 const App = () => (
@@ -47,10 +45,10 @@ const App = () => (
             <Route path="/suppliers" element={<ProtectedPage><SuppliersPage /></ProtectedPage>} />
             <Route path="/goods-received" element={<ProtectedPage><GoodsReceivedPage /></ProtectedPage>} />
             <Route path="/departments" element={<ProtectedPage><DepartmentsPage /></ProtectedPage>} />
-            <Route path="/scanner" element={<ProtectedPage><ScannerPage /></ProtectedPage>} />
             <Route path="/reports" element={<ProtectedPage><ReportsPage /></ProtectedPage>} />
             <Route path="/users" element={<ProtectedPage><UsersPage /></ProtectedPage>} />
             <Route path="/settings" element={<ProtectedPage><SettingsPage /></ProtectedPage>} />
+            <Route path="/audit-log" element={<ProtectedPage><AuditLogPage /></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

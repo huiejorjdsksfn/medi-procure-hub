@@ -15,11 +15,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, FileDown } from "lucide-react";
+import { Plus, Download, FileDown, ScanLine } from "lucide-react";
 import { exportToExcel, generateGRN_PDF } from "@/lib/export";
+import { logAudit } from "@/lib/audit";
 
 const GoodsReceivedPage = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [grns, setGrns] = useState<any[]>([]);
   const [pos, setPos] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -42,14 +43,13 @@ const GoodsReceivedPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("goods_received").insert({
-      grn_number: form.grn_number || generateGRN(),
-      po_id: form.po_id || null,
-      received_by: user?.id,
-      inspection_status: form.inspection_status,
-      notes: form.notes,
-    });
+    const grnNum = form.grn_number || generateGRN();
+    const { data, error } = await supabase.from("goods_received").insert({
+      grn_number: grnNum, po_id: form.po_id || null,
+      received_by: user?.id, inspection_status: form.inspection_status, notes: form.notes,
+    }).select().single();
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit(user?.id, profile?.full_name, "create", "goods_received", data?.id, { grn_number: grnNum, po_id: form.po_id });
     toast({ title: "GRN created" });
     setDialogOpen(false);
     setForm({ grn_number: "", po_id: "", inspection_status: "pending", notes: "" });
@@ -74,15 +74,13 @@ const GoodsReceivedPage = () => {
               <DialogHeader><DialogTitle>Create Goods Received Note (EL5H/SCM/FRM/003)</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2"><Label>GRN Number</Label><Input value={form.grn_number} onChange={(e) => setForm({...form, grn_number: e.target.value})} placeholder="Auto-generated" /></div>
-                <div className="space-y-2">
-                  <Label>Purchase Order *</Label>
+                <div className="space-y-2"><Label>Purchase Order *</Label>
                   <Select value={form.po_id} onValueChange={(v) => setForm({...form, po_id: v})}>
                     <SelectTrigger><SelectValue placeholder="Link to PO" /></SelectTrigger>
                     <SelectContent>{pos.map(p => <SelectItem key={p.id} value={p.id}>{p.po_number}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Inspection Status</Label>
+                <div className="space-y-2"><Label>Inspection Status</Label>
                   <Select value={form.inspection_status} onValueChange={(v) => setForm({...form, inspection_status: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -105,15 +103,16 @@ const GoodsReceivedPage = () => {
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>GRN Number</TableHead><TableHead>PO Number</TableHead><TableHead>Inspection</TableHead><TableHead>Received</TableHead><TableHead>Notes</TableHead><TableHead className="w-16">PDF</TableHead>
+            <TableHead>GRN Number</TableHead><TableHead>PO Number</TableHead><TableHead>Supplier</TableHead><TableHead>Inspection</TableHead><TableHead>Received</TableHead><TableHead>Notes</TableHead><TableHead className="w-16">PDF</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {grns.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No goods received notes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No goods received notes</TableCell></TableRow>
             ) : grns.map((g) => (
               <TableRow key={g.id} className="data-table-row">
                 <TableCell className="font-mono font-medium">{g.grn_number}</TableCell>
                 <TableCell className="font-mono text-sm">{g.purchase_orders?.po_number || "—"}</TableCell>
+                <TableCell className="text-sm">{g.purchase_orders?.suppliers?.name || "—"}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded-full capitalize ${g.inspection_status === "passed" ? "bg-emerald-500/10 text-emerald-600" : g.inspection_status === "failed" ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600"}`}>{g.inspection_status}</span>
                 </TableCell>
