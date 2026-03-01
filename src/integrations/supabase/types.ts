@@ -50,6 +50,71 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          contract_number: string
+          created_at: string | null
+          created_by: string | null
+          delivery_terms: string | null
+          description: string | null
+          end_date: string
+          id: string
+          milestones: Json | null
+          payment_terms: string | null
+          performance_score: number | null
+          start_date: string
+          status: string | null
+          supplier_id: string | null
+          title: string
+          total_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          contract_number: string
+          created_at?: string | null
+          created_by?: string | null
+          delivery_terms?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          milestones?: Json | null
+          payment_terms?: string | null
+          performance_score?: number | null
+          start_date: string
+          status?: string | null
+          supplier_id?: string | null
+          title: string
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          contract_number?: string
+          created_at?: string | null
+          created_by?: string | null
+          delivery_terms?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          milestones?: Json | null
+          payment_terms?: string | null
+          performance_score?: number | null
+          start_date?: string
+          status?: string | null
+          supplier_id?: string | null
+          title?: string
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           code: string | null
@@ -238,6 +303,7 @@ export type Database = {
           department: string | null
           full_name: string
           id: string
+          is_active: boolean | null
           phone_number: string | null
           preferred_language: string | null
           updated_at: string | null
@@ -248,6 +314,7 @@ export type Database = {
           department?: string | null
           full_name: string
           id: string
+          is_active?: boolean | null
           phone_number?: string | null
           preferred_language?: string | null
           updated_at?: string | null
@@ -258,6 +325,7 @@ export type Database = {
           department?: string | null
           full_name?: string
           id?: string
+          is_active?: boolean | null
           phone_number?: string | null
           preferred_language?: string | null
           updated_at?: string | null
