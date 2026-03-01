@@ -20,7 +20,7 @@ const LoginPage = () => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate("/dashboard");
+      navigate("/requisitions");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -36,7 +36,6 @@ const LoginPage = () => {
             <img src={logo} alt="MediProcure" className="w-12 h-12" />
             <h1 className="text-3xl font-bold text-foreground tracking-tight">MediProcure</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Embu Level 5 Hospital</p>
         </div>
         <Card className="border-border shadow-lg">
           <CardHeader className="pb-4">

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, Download, Edit, ScanLine } from "lucide-react";
+import { Plus, Search, Download, Edit } from "lucide-react";
 import { exportToExcel, exportToPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
 
@@ -32,8 +32,6 @@ const ItemsPage = () => {
   const [filterType, setFilterType] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [scannerActive, setScannerActive] = useState(false);
-  const scannerRef = useRef<any>(null);
   const [form, setForm] = useState({
     name: "", description: "", barcode: "", sku: "", category_id: "", department_id: "",
     supplier_id: "", unit_of_measure: "piece", unit_price: "", quantity_in_stock: "",
@@ -41,9 +39,7 @@ const ItemsPage = () => {
     status: "active",
   });
 
-  useEffect(() => {
-    fetchItems(); fetchCategories(); fetchDepartments(); fetchSuppliers();
-  }, []);
+  useEffect(() => { fetchItems(); fetchCategories(); fetchDepartments(); fetchSuppliers(); }, []);
 
   const fetchItems = async () => {
     const { data } = await supabase.from("items").select("*, item_categories(name), suppliers(name)").order("created_at", { ascending: false });
@@ -61,17 +57,11 @@ const ItemsPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      ...form,
-      unit_price: parseFloat(form.unit_price) || 0,
-      quantity_in_stock: parseInt(form.quantity_in_stock) || 0,
-      reorder_level: parseInt(form.reorder_level) || 10,
-      category_id: form.category_id || null,
-      department_id: form.department_id || null,
-      supplier_id: form.supplier_id || null,
-      expiry_date: form.expiry_date || null,
-      added_by: user?.id,
+      ...form, unit_price: parseFloat(form.unit_price) || 0, quantity_in_stock: parseInt(form.quantity_in_stock) || 0,
+      reorder_level: parseInt(form.reorder_level) || 10, category_id: form.category_id || null,
+      department_id: form.department_id || null, supplier_id: form.supplier_id || null,
+      expiry_date: form.expiry_date || null, added_by: user?.id,
     };
-
     if (editingItem) {
       const { error } = await supabase.from("items").update(payload).eq("id", editingItem.id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -81,11 +71,9 @@ const ItemsPage = () => {
       const { data, error } = await supabase.from("items").insert(payload).select().single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Item added" });
-      logAudit(user?.id, profile?.full_name, "create", "items", data?.id, { name: form.name, barcode: form.barcode });
+      logAudit(user?.id, profile?.full_name, "create", "items", data?.id, { name: form.name });
     }
-    setDialogOpen(false);
-    resetForm();
-    fetchItems();
+    setDialogOpen(false); resetForm(); fetchItems();
   };
 
   const editItem = (item: any) => {
@@ -100,52 +88,6 @@ const ItemsPage = () => {
       item_type: item.item_type || "consumable", status: item.status || "active",
     });
     setDialogOpen(true);
-  };
-
-  const startScanner = async () => {
-    setScannerActive(true);
-    try {
-      const { Html5Qrcode } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode("scanner-region");
-      scannerRef.current = scanner;
-      await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-        async (decodedText) => {
-          await scanner.stop(); setScannerActive(false);
-          // Search locally first
-          const found = items.find(i => i.barcode === decodedText);
-          if (found) {
-            editItem(found);
-            toast({ title: "Item found", description: found.name });
-          } else {
-            // Try online lookup
-            try {
-              const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
-              const json = await res.json();
-              if (json.status === 1) {
-                setForm(f => ({ ...f, barcode: decodedText, name: json.product?.product_name || "", description: json.product?.brands || "" }));
-                setDialogOpen(true);
-                toast({ title: "Product found online", description: json.product?.product_name });
-              } else {
-                setForm(f => ({ ...f, barcode: decodedText }));
-                setDialogOpen(true);
-                toast({ title: "Barcode scanned", description: `${decodedText} — fill in details` });
-              }
-            } catch {
-              setForm(f => ({ ...f, barcode: decodedText }));
-              setDialogOpen(true);
-            }
-          }
-        }, () => {}
-      );
-    } catch (err: any) {
-      toast({ title: "Scanner error", description: err.message, variant: "destructive" });
-      setScannerActive(false);
-    }
-  };
-
-  const stopScanner = async () => {
-    if (scannerRef.current) { try { await scannerRef.current.stop(); } catch {} }
-    setScannerActive(false);
   };
 
   const filtered = items.filter((item) => {
@@ -163,9 +105,6 @@ const ItemsPage = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">Items & Inventory</h1>
         <div className="flex gap-2 flex-wrap">
-          <Button size="sm" variant={scannerActive ? "destructive" : "outline"} onClick={scannerActive ? stopScanner : startScanner}>
-            <ScanLine className="w-4 h-4 mr-1" /> {scannerActive ? "Stop Scanner" : "Scan Barcode"}
-          </Button>
           <Button size="sm" variant="outline" onClick={() => exportToExcel(filtered, "items-inventory")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
           <Button size="sm" variant="outline" onClick={() => exportToPDF(filtered, "Items & Inventory", ["name","barcode","item_type","quantity_in_stock","unit_price","status"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
@@ -174,7 +113,7 @@ const ItemsPage = () => {
               <DialogHeader><DialogTitle>{editingItem ? "Edit Item" : "Add New Item"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
-                <div className="space-y-2"><Label>Barcode</Label><Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="Scan or enter" /></div>
+                <div className="space-y-2"><Label>Barcode</Label><Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="Enter barcode" /></div>
                 <div className="space-y-2"><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Category</Label>
                   <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
@@ -223,15 +162,6 @@ const ItemsPage = () => {
         </div>
       </div>
 
-      {/* Scanner region */}
-      {scannerActive && (
-        <div className="border border-primary rounded-lg overflow-hidden bg-card">
-          <div id="scanner-region" className="w-full max-w-md mx-auto" />
-          <p className="text-center text-sm text-muted-foreground py-2">Point camera at barcode</p>
-        </div>
-      )}
-
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -262,7 +192,7 @@ const ItemsPage = () => {
             {filtered.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No items found</TableCell></TableRow>
             ) : filtered.map((item) => (
-              <TableRow key={item.id} className="data-table-row">
+              <TableRow key={item.id}>
                 <TableCell className="font-medium text-foreground">{item.name}</TableCell>
                 <TableCell className="font-mono text-sm text-muted-foreground">{item.barcode || "—"}</TableCell>
                 <TableCell>{item.item_categories?.name || "—"}</TableCell>
