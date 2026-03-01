@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Shield, UserCog, KeyRound, Search, Plus, Download, Trash2 } from "lucide-react";
+import { Shield, UserCog, KeyRound, Search, Plus, Download, Trash2, UserCheck, UserX, Lock } from "lucide-react";
 import { exportToExcel } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
 
@@ -35,6 +35,8 @@ const UsersPage = () => {
   const [selectedRole, setSelectedRole] = useState("");
   const [search, setSearch] = useState("");
   const [createDialog, setCreateDialog] = useState(false);
+  const [passwordDialog, setPasswordDialog] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [newUser, setNewUser] = useState({ email: "", password: "", full_name: "" });
 
   useEffect(() => { if (isAdmin) fetchUsers(); }, [isAdmin]);
@@ -69,6 +71,15 @@ const UsersPage = () => {
     toast({ title: "Role removed" }); fetchUsers();
   };
 
+  const toggleUserActive = async (u: any) => {
+    const newStatus = !(u.is_active ?? true);
+    const { error } = await supabase.from("profiles").update({ is_active: newStatus } as any).eq("id", u.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit(user?.id, profile?.full_name, newStatus ? "activate_user" : "deactivate_user", "users", u.id, { target_user: u.full_name });
+    toast({ title: newStatus ? "User activated" : "User deactivated" });
+    fetchUsers();
+  };
+
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.auth.signUp({
@@ -96,7 +107,7 @@ const UsersPage = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><UserCog className="w-6 h-6" /> User Management</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportToExcel(users.map(u => ({ name: u.full_name, department: u.department, phone: u.phone_number, roles: u.roles.join(", "), joined: u.created_at })), "users")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => exportToExcel(users.map(u => ({ name: u.full_name, department: u.department, phone: u.phone_number, roles: u.roles.join(", "), active: (u.is_active ?? true) ? "Yes" : "No", joined: u.created_at })), "users")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
           <Button size="sm" onClick={() => setCreateDialog(true)}><Plus className="w-4 h-4 mr-1" /> Create User</Button>
         </div>
       </div>
@@ -109,11 +120,11 @@ const UsersPage = () => {
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>Name</TableHead><TableHead>Roles</TableHead><TableHead>Department</TableHead><TableHead>Phone</TableHead><TableHead>Joined</TableHead><TableHead className="w-32">Actions</TableHead>
+            <TableHead>Name</TableHead><TableHead>Roles</TableHead><TableHead>Department</TableHead><TableHead>Phone</TableHead><TableHead>Status</TableHead><TableHead>Joined</TableHead><TableHead className="w-48">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {filtered.map((u) => (
-              <TableRow key={u.id} className="data-table-row">
+              <TableRow key={u.id}>
                 <TableCell className="font-medium">{u.full_name}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
@@ -128,11 +139,21 @@ const UsersPage = () => {
                 </TableCell>
                 <TableCell>{u.department || "—"}</TableCell>
                 <TableCell>{u.phone_number || "—"}</TableCell>
+                <TableCell>
+                  <span className={`text-xs px-2 py-1 rounded-full ${(u.is_active ?? true) ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"}`}>
+                    {(u.is_active ?? true) ? "Active" : "Inactive"}
+                  </span>
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm" onClick={() => { setRoleDialog(u); setSelectedRole(""); }}>
-                    <KeyRound className="w-3 h-3 mr-1" /> Assign Role
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="sm" onClick={() => { setRoleDialog(u); setSelectedRole(""); }}>
+                      <KeyRound className="w-3 h-3 mr-1" /> Role
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => toggleUserActive(u)} title={(u.is_active ?? true) ? "Deactivate" : "Activate"}>
+                      {(u.is_active ?? true) ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

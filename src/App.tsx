@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import LoginPage from "@/pages/LoginPage";
-import DashboardPage from "@/pages/DashboardPage";
 import ItemsPage from "@/pages/ItemsPage";
 import CategoriesPage from "@/pages/CategoriesPage";
 import RequisitionsPage from "@/pages/RequisitionsPage";
@@ -19,6 +18,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AuditLogPage from "@/pages/AuditLogPage";
+import ContractsPage from "@/pages/ContractsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,8 +36,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
+            <Route path="/" element={<Navigate to="/requisitions" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/requisitions" replace />} />
             <Route path="/items" element={<ProtectedPage><ItemsPage /></ProtectedPage>} />
             <Route path="/categories" element={<ProtectedPage><CategoriesPage /></ProtectedPage>} />
             <Route path="/requisitions" element={<ProtectedPage><RequisitionsPage /></ProtectedPage>} />
@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/users" element={<ProtectedPage><UsersPage /></ProtectedPage>} />
             <Route path="/settings" element={<ProtectedPage><SettingsPage /></ProtectedPage>} />
             <Route path="/audit-log" element={<ProtectedPage><AuditLogPage /></ProtectedPage>} />
+            <Route path="/contracts" element={<ProtectedPage><ContractsPage /></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
