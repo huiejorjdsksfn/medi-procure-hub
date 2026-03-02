@@ -14,8 +14,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, FileDown } from "lucide-react";
-import { exportToExcel, generateLPO_PDF } from "@/lib/export";
+import { Plus, Download, FileDown, Search } from "lucide-react";
+import { exportToPDF, generateLPO_PDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
 
 const PurchaseOrdersPage = () => {
@@ -24,10 +24,15 @@ const PurchaseOrdersPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [requisitions, setRequisitions] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ po_number: "", requisition_id: "", supplier_id: "", total_amount: "", delivery_date: "", status: "draft" });
 
   useEffect(() => { fetchOrders(); fetchSuppliers(); fetchRequisitions(); }, []);
+  useEffect(() => {
+    const ch = supabase.channel("po-rt").on("postgres_changes", { event: "*", schema: "public", table: "purchase_orders" }, () => fetchOrders()).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const fetchOrders = async () => {
     const { data } = await supabase.from("purchase_orders").select("*, suppliers(name, contact_person, phone, email, address, tax_id), requisitions(requisition_number)").order("created_at", { ascending: false });
@@ -45,20 +50,15 @@ const PurchaseOrdersPage = () => {
     e.preventDefault();
     const poNum = form.po_number || generatePONumber();
     const { data, error } = await supabase.from("purchase_orders").insert({
-      po_number: poNum,
-      requisition_id: form.requisition_id || null,
-      supplier_id: form.supplier_id || null,
-      total_amount: parseFloat(form.total_amount) || 0,
-      delivery_date: form.delivery_date || null,
-      status: form.status,
-      created_by: user?.id,
+      po_number: poNum, requisition_id: form.requisition_id || null,
+      supplier_id: form.supplier_id || null, total_amount: parseFloat(form.total_amount) || 0,
+      delivery_date: form.delivery_date || null, status: form.status, created_by: user?.id,
     }).select().single();
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    logAudit(user?.id, profile?.full_name, "create", "purchase_orders", data?.id, { po_number: poNum, supplier_id: form.supplier_id });
-    toast({ title: "Purchase order created" });
+    logAudit(user?.id, profile?.full_name, "create", "purchase_orders", data?.id, { po_number: poNum });
+    toast({ title: "LPO created" });
     setDialogOpen(false);
     setForm({ po_number: "", requisition_id: "", supplier_id: "", total_amount: "", delivery_date: "", status: "draft" });
-    fetchOrders();
   };
 
   const downloadLPO = (po: any) => {
@@ -66,19 +66,24 @@ const PurchaseOrdersPage = () => {
     generateLPO_PDF(po, supplier, []);
   };
 
+  const filtered = orders.filter(o =>
+    o.po_number.toLowerCase().includes(search.toLowerCase()) ||
+    (o.suppliers?.name || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Purchase Orders</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportToExcel(orders.map(o => ({ po_number: o.po_number, supplier: o.suppliers?.name, amount: o.total_amount, delivery: o.delivery_date, status: o.status, created: o.created_at })), "purchase-orders")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => exportToPDF(orders, "Purchase Orders", ["po_number","total_amount","delivery_date","status"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
           {canCreate && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> New LPO</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Create Local Purchase Order (EL5H/SCM/FRM/002)</DialogTitle></DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2"><Label>LPO Number</Label><Input value={form.po_number} onChange={(e) => setForm({...form, po_number: e.target.value})} placeholder="Auto-generated if empty" /></div>
+                  <div className="space-y-2"><Label>LPO Number</Label><Input value={form.po_number} onChange={(e) => setForm({...form, po_number: e.target.value})} placeholder="Auto-generated" /></div>
                   <div className="space-y-2"><Label>Requisition Reference</Label>
                     <Select value={form.requisition_id} onValueChange={(v) => setForm({...form, requisition_id: v})}>
                       <SelectTrigger><SelectValue placeholder="Link to requisition" /></SelectTrigger>
@@ -103,15 +108,21 @@ const PurchaseOrdersPage = () => {
           )}
         </div>
       </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input placeholder="Search POs..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      </div>
+
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>LPO Number</TableHead><TableHead>Supplier</TableHead><TableHead>Requisition</TableHead><TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Delivery</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead><TableHead className="w-16">PDF</TableHead>
+            <TableHead>LPO Number</TableHead><TableHead>Supplier</TableHead><TableHead>Requisition</TableHead><TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Delivery</TableHead><TableHead>Status</TableHead><TableHead className="w-16">PDF</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {orders.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No purchase orders yet</TableCell></TableRow>
-            ) : orders.map((o) => (
+            {filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders</TableCell></TableRow>
+            ) : filtered.map((o) => (
               <TableRow key={o.id} className="data-table-row">
                 <TableCell className="font-mono font-medium">{o.po_number}</TableCell>
                 <TableCell>{o.suppliers?.name || "—"}</TableCell>
@@ -119,7 +130,6 @@ const PurchaseOrdersPage = () => {
                 <TableCell className="text-right">{Number(o.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
                 <TableCell>{o.delivery_date || "—"}</TableCell>
                 <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${o.status === "completed" ? "bg-emerald-500/10 text-emerald-600" : o.status === "draft" ? "bg-muted text-muted-foreground" : "bg-blue-500/10 text-blue-600"}`}>{o.status}</span></TableCell>
-                <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</TableCell>
                 <TableCell><Button variant="ghost" size="sm" onClick={() => downloadLPO(o)}><FileDown className="w-4 h-4" /></Button></TableCell>
               </TableRow>
             ))}

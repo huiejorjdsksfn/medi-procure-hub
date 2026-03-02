@@ -15,8 +15,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, CheckCircle, XCircle, FileDown } from "lucide-react";
-import { exportToExcel, exportToPDF, generateRequisitionPDF } from "@/lib/export";
+import { Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search } from "lucide-react";
+import { exportToPDF, generateRequisitionPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
 
 const RequisitionsPage = () => {
@@ -25,6 +25,7 @@ const RequisitionsPage = () => {
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [detailItems, setDetailItems] = useState<any[]>([]);
@@ -34,6 +35,11 @@ const RequisitionsPage = () => {
   ]);
 
   useEffect(() => { fetchRequisitions(); fetchDepartments(); fetchItems(); }, []);
+
+  useEffect(() => {
+    const ch = supabase.channel("req-rt").on("postgres_changes", { event: "*", schema: "public", table: "requisitions" }, () => fetchRequisitions()).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const fetchRequisitions = async () => {
     const { data } = await supabase.from("requisitions").select("*").order("created_at", { ascending: false });
@@ -51,28 +57,23 @@ const RequisitionsPage = () => {
     e.preventDefault();
     const totalAmount = lineItems.reduce((sum, li) => sum + (parseFloat(li.quantity) || 0) * (parseFloat(li.unit_price) || 0), 0);
     const reqNumber = generateReqNumber();
-
     const { data: req, error } = await supabase.from("requisitions").insert({
       requisition_number: reqNumber, department_id: form.department_id || null,
       requested_by: user?.id, priority: form.priority, justification: form.justification,
       notes: form.notes, total_amount: totalAmount, status: "pending",
     }).select().single();
-
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-
     const reqItems = lineItems.filter(li => li.item_name).map((li) => ({
       requisition_id: req.id, item_id: li.item_id || null, item_name: li.item_name,
       quantity: parseInt(li.quantity) || 1, unit_price: parseFloat(li.unit_price) || 0,
       total_price: (parseInt(li.quantity) || 1) * (parseFloat(li.unit_price) || 0),
     }));
     if (reqItems.length > 0) await supabase.from("requisition_items").insert(reqItems);
-
     logAudit(user?.id, profile?.full_name, "create", "requisitions", req.id, { number: reqNumber, amount: totalAmount });
-    toast({ title: "Requisition submitted", description: `Number: ${reqNumber}` });
+    toast({ title: "Requisition submitted", description: reqNumber });
     setDialogOpen(false);
     setForm({ department_id: "", priority: "normal", justification: "", notes: "" });
     setLineItems([{ item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
-    fetchRequisitions();
   };
 
   const viewDetail = async (req: any) => {
@@ -88,11 +89,10 @@ const RequisitionsPage = () => {
     }).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     logAudit(user?.id, profile?.full_name, status === "approved" ? "approve" : "reject", "requisitions", id, { status });
-    toast({ title: `Requisition ${status}` }); fetchRequisitions(); setDetailDialog(null);
+    toast({ title: `Requisition ${status}` }); setDetailDialog(null);
   };
 
   const addLineItem = () => setLineItems([...lineItems, { item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
-
   const updateLineItem = (index: number, field: string, value: string) => {
     const updated = [...lineItems];
     (updated[index] as any)[field] = value;
@@ -103,22 +103,19 @@ const RequisitionsPage = () => {
     setLineItems(updated);
   };
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "approved": return "bg-emerald-500/10 text-emerald-600";
-      case "pending": return "bg-amber-500/10 text-amber-600";
-      case "rejected": return "bg-red-500/10 text-red-600";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
+  const statusColor = (s: string) => s === "approved" ? "bg-emerald-500/10 text-emerald-600" : s === "rejected" ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600";
+
+  const filtered = requisitions.filter(r =>
+    r.requisition_number.toLowerCase().includes(search.toLowerCase()) ||
+    (r.status || "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">Requisitions</h1>
         <div className="flex gap-2 flex-wrap">
-          <Button size="sm" variant="outline" onClick={() => exportToExcel(requisitions, "requisitions")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
-          <Button size="sm" variant="outline" onClick={() => exportToPDF(requisitions, "Requisitions", ["requisition_number","status","priority","total_amount","created_at"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
+          <Button size="sm" variant="outline" onClick={() => exportToPDF(requisitions, "Requisitions Register", ["requisition_number","status","priority","total_amount"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Requisition</Button></DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -136,14 +133,14 @@ const RequisitionsPage = () => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="normal">Normal — Routine Stock</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
                         <SelectItem value="high">High</SelectItem>
                         <SelectItem value="urgent">Urgent — Emergency</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-2"><Label>Justification / Purpose</Label><Textarea value={form.justification} onChange={(e) => setForm({ ...form, justification: e.target.value })} placeholder="Mandatory for non-stock & emergency items" /></div>
+                <div className="space-y-2"><Label>Justification</Label><Textarea value={form.justification} onChange={(e) => setForm({ ...form, justification: e.target.value })} /></div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between"><Label>Items</Label><Button type="button" size="sm" variant="outline" onClick={addLineItem}><Plus className="w-3 h-3 mr-1" /> Add Line</Button></div>
                   <div className="border border-border rounded-lg overflow-auto">
@@ -152,7 +149,7 @@ const RequisitionsPage = () => {
                       <TableBody>
                         {lineItems.map((li, i) => (
                           <TableRow key={i}>
-                            <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                            <TableCell>{i + 1}</TableCell>
                             <TableCell>
                               <Select value={li.item_id} onValueChange={(v) => updateLineItem(i, "item_id", v)}>
                                 <SelectTrigger><SelectValue placeholder="Select item" /></SelectTrigger>
@@ -179,23 +176,26 @@ const RequisitionsPage = () => {
         </div>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input placeholder="Search requisitions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      </div>
+
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
             <TableHead>Req. Number</TableHead><TableHead>Priority</TableHead>
-            <TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Status</TableHead>
-            <TableHead>Submitted</TableHead><TableHead className="w-28">Actions</TableHead>
+            <TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Status</TableHead><TableHead className="w-28">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {requisitions.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No requisitions found</TableCell></TableRow>
-            ) : requisitions.map((req) => (
+            {filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No requisitions</TableCell></TableRow>
+            ) : filtered.map((req) => (
               <TableRow key={req.id} className="data-table-row">
-                <TableCell className="font-mono font-medium text-foreground">{req.requisition_number}</TableCell>
+                <TableCell className="font-mono font-medium">{req.requisition_number}</TableCell>
                 <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${req.priority === "urgent" ? "bg-red-500/10 text-red-600" : req.priority === "high" ? "bg-amber-500/10 text-amber-600" : "bg-muted text-muted-foreground"}`}>{req.priority}</span></TableCell>
                 <TableCell className="text-right font-medium">{Number(req.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
                 <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${statusColor(req.status)}`}>{req.status}</span></TableCell>
-                <TableCell className="text-xs text-muted-foreground">{new Date(req.created_at).toLocaleString()}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" onClick={() => viewDetail(req)}><Eye className="w-4 h-4" /></Button>
@@ -211,7 +211,6 @@ const RequisitionsPage = () => {
         </Table>
       </div>
 
-      {/* Detail dialog */}
       <Dialog open={!!detailDialog} onOpenChange={() => setDetailDialog(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Requisition: {detailDialog?.requisition_number}</DialogTitle></DialogHeader>
@@ -221,36 +220,22 @@ const RequisitionsPage = () => {
                 <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize font-medium ${statusColor(detailDialog.status)} px-2 py-0.5 rounded`}>{detailDialog.status}</span></div>
                 <div><span className="text-muted-foreground">Priority:</span> <span className="capitalize font-medium">{detailDialog.priority}</span></div>
                 <div><span className="text-muted-foreground">Total (KSH):</span> <span className="font-medium">{Number(detailDialog.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</span></div>
-                <div><span className="text-muted-foreground">Date:</span> <span>{new Date(detailDialog.created_at).toLocaleString()}</span></div>
               </div>
-              {detailDialog.justification && (
-                <div><Label className="text-muted-foreground">Justification</Label><p className="text-sm mt-1 bg-muted/50 p-2 rounded">{detailDialog.justification}</p></div>
-              )}
+              {detailDialog.justification && <div><Label className="text-muted-foreground">Justification</Label><p className="text-sm mt-1 bg-muted/50 p-2 rounded">{detailDialog.justification}</p></div>}
               <Table>
                 <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {detailItems.map((li, i) => (
-                    <TableRow key={li.id}>
-                      <TableCell>{i + 1}</TableCell><TableCell>{li.item_name}</TableCell>
-                      <TableCell className="text-right">{li.quantity}</TableCell>
-                      <TableCell className="text-right">{Number(li.unit_price).toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-medium">{Number(li.total_price).toFixed(2)}</TableCell>
-                    </TableRow>
+                    <TableRow key={li.id}><TableCell>{i + 1}</TableCell><TableCell>{li.item_name}</TableCell><TableCell className="text-right">{li.quantity}</TableCell><TableCell className="text-right">{Number(li.unit_price).toFixed(2)}</TableCell><TableCell className="text-right font-medium">{Number(li.total_price).toFixed(2)}</TableCell></TableRow>
                   ))}
                 </TableBody>
               </Table>
               <div className="flex gap-2 justify-end pt-2 border-t border-border">
-                <Button variant="outline" size="sm" onClick={() => generateRequisitionPDF(detailDialog, detailItems, departments)}>
-                  <FileDown className="w-4 h-4 mr-1" /> Download PDF
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => generateRequisitionPDF(detailDialog, detailItems, departments)}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>
                 {canApprove && detailDialog.status === "pending" && (
                   <>
-                    <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-red-600 hover:bg-red-500/10">
-                      <XCircle className="w-4 h-4 mr-1" /> Reject
-                    </Button>
-                    <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700">
-                      <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                    </Button>
+                    <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-destructive hover:bg-destructive/10"><XCircle className="w-4 h-4 mr-1" /> Reject</Button>
+                    <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700"><CheckCircle className="w-4 h-4 mr-1" /> Approve</Button>
                   </>
                 )}
               </div>
