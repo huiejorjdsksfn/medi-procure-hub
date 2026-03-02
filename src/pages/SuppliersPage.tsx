@@ -12,9 +12,8 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Download, Search, FileDown } from "lucide-react";
-import { exportToExcel } from "@/lib/export";
+import { exportToPDF, generateLPO_PDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
-import { generateLPO_PDF } from "@/lib/export";
 
 const SuppliersPage = () => {
   const { user, profile } = useAuth();
@@ -25,6 +24,11 @@ const SuppliersPage = () => {
   const [form, setForm] = useState({ name: "", contact_person: "", email: "", phone: "", address: "", tax_id: "", status: "active" });
 
   useEffect(() => { fetchSuppliers(); }, []);
+
+  useEffect(() => {
+    const ch = supabase.channel("suppliers-rt").on("postgres_changes", { event: "*", schema: "public", table: "suppliers" }, () => fetchSuppliers()).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const fetchSuppliers = async () => {
     const { data } = await supabase.from("suppliers").select("*").order("name");
@@ -47,7 +51,6 @@ const SuppliersPage = () => {
     setDialogOpen(false);
     setForm({ name: "", contact_person: "", email: "", phone: "", address: "", tax_id: "", status: "active" });
     setEditing(null);
-    fetchSuppliers();
   };
 
   const editSupplier = (s: any) => {
@@ -73,8 +76,8 @@ const SuppliersPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Suppliers</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportToExcel(suppliers, "suppliers")}><Download className="w-4 h-4 mr-1" /> Excel</Button>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); } }}>
+          <Button size="sm" variant="outline" onClick={() => exportToPDF(suppliers, "Suppliers Register", ["name","contact_person","email","phone","tax_id","status"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Add Supplier</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Supplier</DialogTitle></DialogHeader>
@@ -105,11 +108,11 @@ const SuppliersPage = () => {
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>Name</TableHead><TableHead>Contact</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Tax ID</TableHead><TableHead>Status</TableHead><TableHead className="w-24">Actions</TableHead>
+            <TableHead>Name</TableHead><TableHead>Contact</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Tax ID</TableHead><TableHead>Rating</TableHead><TableHead>Status</TableHead><TableHead className="w-24">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No suppliers</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No suppliers</TableCell></TableRow>
             ) : filtered.map((s) => (
               <TableRow key={s.id} className="data-table-row">
                 <TableCell className="font-medium">{s.name}</TableCell>
@@ -117,6 +120,7 @@ const SuppliersPage = () => {
                 <TableCell className="text-sm">{s.email || "—"}</TableCell>
                 <TableCell>{s.phone || "—"}</TableCell>
                 <TableCell className="font-mono text-xs">{s.tax_id || "—"}</TableCell>
+                <TableCell>{"⭐".repeat(Math.min(s.rating || 0, 5))}</TableCell>
                 <TableCell><span className={`text-xs px-2 py-1 rounded-full ${s.status === "active" ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}>{s.status}</span></TableCell>
                 <TableCell>
                   <div className="flex gap-1">
