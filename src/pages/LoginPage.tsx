@@ -45,7 +45,6 @@ const LoginPage = () => {
             <img src={logo} alt="MediProcure" className="w-12 h-12" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">MediProcure ERP</h1>
-          <p className="text-xs text-white/60 mt-1">Embu Level 5 Hospital — Procurement Suite v2.0</p>
         </div>
         <Card className="border-white/10 shadow-2xl bg-card/95 backdrop-blur-sm">
           <CardHeader className="pb-4">
@@ -65,7 +64,6 @@ const LoginPage = () => {
                 {loading ? "Please wait..." : "Sign In"}
               </Button>
             </form>
-            <p className="text-[10px] text-center text-muted-foreground mt-4">ISO 9001:2015 Certified • County Government of Embu</p>
           </CardContent>
         </Card>
       </div>
