@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search } from "lucide-react";
+import { Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search, Forward } from "lucide-react";
 import { exportToPDF, generateRequisitionPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
 
@@ -53,6 +53,14 @@ const RequisitionsPage = () => {
     return `RQQ/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
   };
 
+  const sendNotification = async (requisitionId: string, action: string) => {
+    try {
+      await supabase.functions.invoke("notify-requisition", {
+        body: { requisition_id: requisitionId, action, actor_name: profile?.full_name || "System" },
+      });
+    } catch (e) { console.error("Notification error:", e); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const totalAmount = lineItems.reduce((sum, li) => sum + (parseFloat(li.quantity) || 0) * (parseFloat(li.unit_price) || 0), 0);
@@ -70,6 +78,7 @@ const RequisitionsPage = () => {
     }));
     if (reqItems.length > 0) await supabase.from("requisition_items").insert(reqItems);
     logAudit(user?.id, profile?.full_name, "create", "requisitions", req.id, { number: reqNumber, amount: totalAmount });
+    sendNotification(req.id, "submitted");
     toast({ title: "Requisition submitted", description: reqNumber });
     setDialogOpen(false);
     setForm({ department_id: "", priority: "normal", justification: "", notes: "" });
@@ -88,7 +97,8 @@ const RequisitionsPage = () => {
       approved_at: status === "approved" ? new Date().toISOString() : null,
     }).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    logAudit(user?.id, profile?.full_name, status === "approved" ? "approve" : "reject", "requisitions", id, { status });
+    logAudit(user?.id, profile?.full_name, status === "approved" ? "approve" : status === "forwarded" ? "forward" : "reject", "requisitions", id, { status });
+    sendNotification(id, status);
     toast({ title: `Requisition ${status}` }); setDetailDialog(null);
   };
 
@@ -103,7 +113,7 @@ const RequisitionsPage = () => {
     setLineItems(updated);
   };
 
-  const statusColor = (s: string) => s === "approved" ? "bg-emerald-500/10 text-emerald-600" : s === "rejected" ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600";
+  const statusColor = (s: string) => s === "approved" ? "bg-emerald-500/10 text-emerald-600" : s === "rejected" ? "bg-red-500/10 text-red-600" : s === "forwarded" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600";
 
   const filtered = requisitions.filter(r =>
     r.requisition_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -234,6 +244,7 @@ const RequisitionsPage = () => {
                 <Button variant="outline" size="sm" onClick={() => generateRequisitionPDF(detailDialog, detailItems, departments)}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>
                 {canApprove && detailDialog.status === "pending" && (
                   <>
+                    <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "forwarded")} className="text-blue-600 hover:bg-blue-500/10"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
                     <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-destructive hover:bg-destructive/10"><XCircle className="w-4 h-4 mr-1" /> Reject</Button>
                     <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700"><CheckCircle className="w-4 h-4 mr-1" /> Approve</Button>
                   </>
