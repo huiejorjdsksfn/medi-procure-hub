@@ -1,0 +1,19 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "driver": "MySQL",
+            "name": "procudata",
+            "group": "data",
+            "database": "procudata",
+            "username": "HP",
+            "connectString": "Driver={ODBC Driver 17 for SQL Server};Server=192.168.8.174,1443;Database=procudata;Uid=HP;Pwd=admin;Encrypt=yes;TrustServerCertificate=yes;"
+        }
+    ]
+}
