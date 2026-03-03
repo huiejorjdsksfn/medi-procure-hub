@@ -11,16 +11,50 @@ const HOSPITAL_HEADER = {
   iso: "ISO 9001:2015 Certified",
 };
 
-const addLetterhead = (doc: jsPDF, title: string, docNo: string) => {
-  // Hospital logo placeholder (circle with cross)
-  doc.setFillColor(30, 58, 95);
-  doc.circle(20, 20, 8, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("+", 20, 22, { align: "center" });
-  doc.setTextColor(0, 0, 0);
+// Load Embu county logo as base64 for PDF
+let logoBase64: string | null = null;
+const loadLogo = async () => {
+  if (logoBase64) return logoBase64;
+  try {
+    const { default: logoUrl } = await import("@/assets/embu-county-logo.jpg");
+    const response = await fetch(logoUrl);
+    const blob = await response.blob();
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        logoBase64 = reader.result as string;
+        resolve(logoBase64);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
 
+const addLetterhead = async (doc: jsPDF, title: string, docNo: string) => {
+  const logo = await loadLogo();
+
+  // Hospital logo
+  if (logo) {
+    try { doc.addImage(logo, "JPEG", 14, 6, 16, 16); } catch { /* fallback */ }
+  } else {
+    doc.setFillColor(30, 58, 95);
+    doc.circle(22, 14, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("+", 22, 16, { align: "center" });
+  }
+
+  // Kenya coat of arms placeholder on right
+  doc.setFillColor(30, 58, 95);
+  doc.circle(190, 14, 6, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(7);
+  doc.text("KE", 190, 16, { align: "center" });
+
+  doc.setTextColor(0, 0, 0);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.text("REPUBLIC OF KENYA", 105, 10, { align: "center" });
@@ -79,9 +113,9 @@ const addFooter = (doc: jsPDF) => {
 // =============================================
 // GENERIC REPORT PDF
 // =============================================
-export const exportToPDF = (data: any[], title: string, columns: string[]) => {
+export const exportToPDF = async (data: any[], title: string, columns: string[]) => {
   const doc = new jsPDF();
-  const startY = addLetterhead(doc, title.toUpperCase(), "EL5H/RPT/GEN");
+  const startY = await addLetterhead(doc, title.toUpperCase(), "EL5H/RPT/GEN");
 
   doc.setFontSize(8);
   doc.text(`Records: ${data.length}`, 14, startY);
@@ -116,9 +150,9 @@ export const exportToPDF = (data: any[], title: string, columns: string[]) => {
 // =============================================
 // REQUISITION FORM (EL5H/SCM/FRM/001)
 // =============================================
-export const generateRequisitionPDF = (requisition: any, lineItems: any[], departments: any[]) => {
+export const generateRequisitionPDF = async (requisition: any, lineItems: any[], departments: any[]) => {
   const doc = new jsPDF();
-  const startY = addLetterhead(doc, "DEPARTMENTAL STORES REQUISITION", "EL5H/SCM/FRM/001");
+  const startY = await addLetterhead(doc, "DEPARTMENTAL STORES REQUISITION", "EL5H/SCM/FRM/001");
   const deptName = departments.find((d: any) => d.id === requisition.department_id)?.name || "—";
 
   let y = startY + 2;
@@ -173,9 +207,9 @@ export const generateRequisitionPDF = (requisition: any, lineItems: any[], depar
 // =============================================
 // LOCAL PURCHASE ORDER (EL5H/SCM/FRM/002)
 // =============================================
-export const generateLPO_PDF = (po: any, supplier: any, lineItems: any[]) => {
+export const generateLPO_PDF = async (po: any, supplier: any, lineItems: any[]) => {
   const doc = new jsPDF();
-  const startY = addLetterhead(doc, "LOCAL PURCHASE ORDER (LPO)", "EL5H/SCM/FRM/002");
+  const startY = await addLetterhead(doc, "LOCAL PURCHASE ORDER (LPO)", "EL5H/SCM/FRM/002");
 
   let y = startY + 2;
   doc.setFontSize(9);
@@ -250,9 +284,9 @@ export const generateLPO_PDF = (po: any, supplier: any, lineItems: any[]) => {
 // =============================================
 // GOODS RECEIVED NOTE (EL5H/SCM/FRM/003)
 // =============================================
-export const generateGRN_PDF = (grn: any, po: any, supplier: any) => {
+export const generateGRN_PDF = async (grn: any, po: any, supplier: any) => {
   const doc = new jsPDF();
-  const startY = addLetterhead(doc, "GOODS RECEIVED NOTE (GRN)", "EL5H/SCM/FRM/003");
+  const startY = await addLetterhead(doc, "GOODS RECEIVED NOTE (GRN)", "EL5H/SCM/FRM/003");
 
   let y = startY + 2;
   doc.setFontSize(9);

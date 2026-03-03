@@ -13,6 +13,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { Shield, UserCog, KeyRound, Search, Plus, Download, Trash2, UserCheck, UserX } from "lucide-react";
 import { exportToPDF } from "@/lib/export";
@@ -77,6 +81,16 @@ const UsersPage = () => {
     toast({ title: newStatus ? "User activated" : "User deactivated" }); fetchUsers();
   };
 
+  const deleteUser = async (u: any) => {
+    // Deactivate instead of hard delete for safety
+    const { error } = await supabase.from("profiles").update({ is_active: false } as any).eq("id", u.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    // Remove all roles
+    await db.from("user_roles").delete().eq("user_id", u.id);
+    logAudit(user?.id, profile?.full_name, "delete_user", "users", u.id, { target_user: u.full_name });
+    toast({ title: "User deleted (deactivated)" }); fetchUsers();
+  };
+
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.auth.signUp({
@@ -112,7 +126,7 @@ const UsersPage = () => {
       <div className="border border-border rounded-lg overflow-auto bg-card">
         <Table>
           <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>Name</TableHead><TableHead>Roles</TableHead><TableHead>Department</TableHead><TableHead>Phone</TableHead><TableHead>Status</TableHead><TableHead className="w-40">Actions</TableHead>
+            <TableHead>Name</TableHead><TableHead>Roles</TableHead><TableHead>Department</TableHead><TableHead>Phone</TableHead><TableHead>Status</TableHead><TableHead className="w-48">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {filtered.map((u) => (
@@ -142,6 +156,21 @@ const UsersPage = () => {
                     <Button variant="outline" size="sm" onClick={() => toggleUserActive(u)}>
                       {(u.is_active ?? true) ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10"><Trash2 className="w-3 h-3" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete User?</AlertDialogTitle>
+                          <AlertDialogDescription>This will deactivate {u.full_name} and remove all their roles. This action cannot be easily undone.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteUser(u)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </TableCell>
               </TableRow>
