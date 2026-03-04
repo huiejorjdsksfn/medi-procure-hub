@@ -11,7 +11,6 @@ const HOSPITAL_HEADER = {
   iso: "ISO 9001:2015 Certified",
 };
 
-// Load Embu county logo as base64 for PDF
 let logoBase64: string | null = null;
 const loadLogo = async () => {
   if (logoBase64) return logoBase64;
@@ -35,57 +34,49 @@ const loadLogo = async () => {
 const addLetterhead = async (doc: jsPDF, title: string, docNo: string) => {
   const logo = await loadLogo();
 
-  // Hospital logo
+  // Centered logo
   if (logo) {
-    try { doc.addImage(logo, "JPEG", 14, 6, 16, 16); } catch { /* fallback */ }
+    try { doc.addImage(logo, "JPEG", 90, 4, 20, 20); } catch { /* fallback */ }
   } else {
     doc.setFillColor(30, 58, 95);
-    doc.circle(22, 14, 8, "F");
+    doc.circle(105, 14, 10, "F");
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("+", 22, 16, { align: "center" });
+    doc.text("+", 105, 17, { align: "center" });
   }
 
-  // Kenya coat of arms placeholder on right
-  doc.setFillColor(30, 58, 95);
-  doc.circle(190, 14, 6, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(7);
-  doc.text("KE", 190, 16, { align: "center" });
-
   doc.setTextColor(0, 0, 0);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("REPUBLIC OF KENYA", 105, 10, { align: "center" });
-  doc.setFontSize(7);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(HOSPITAL_HEADER.ministry, 105, 15, { align: "center" });
-  doc.setFontSize(13);
+  doc.text("REPUBLIC OF KENYA", 105, 27, { align: "center" });
+  doc.setFontSize(7);
+  doc.text(HOSPITAL_HEADER.ministry, 105, 31, { align: "center" });
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text(HOSPITAL_HEADER.name, 105, 23, { align: "center" });
+  doc.text(HOSPITAL_HEADER.name, 105, 38, { align: "center" });
   doc.setFontSize(7);
   doc.setFont("helvetica", "italic");
-  doc.text(`"${HOSPITAL_HEADER.motto}"`, 105, 28, { align: "center" });
+  doc.text(`"${HOSPITAL_HEADER.motto}"`, 105, 43, { align: "center" });
   doc.setFont("helvetica", "normal");
-  doc.text(HOSPITAL_HEADER.address, 105, 33, { align: "center" });
-  doc.text(HOSPITAL_HEADER.phone, 105, 37, { align: "center" });
-  doc.text(`${HOSPITAL_HEADER.email} | ${HOSPITAL_HEADER.iso}`, 105, 41, { align: "center" });
+  doc.text(HOSPITAL_HEADER.address, 105, 47, { align: "center" });
+  doc.text(HOSPITAL_HEADER.phone, 105, 51, { align: "center" });
+  doc.text(`${HOSPITAL_HEADER.email} | ${HOSPITAL_HEADER.iso}`, 105, 55, { align: "center" });
 
   // Double line separator
   doc.setDrawColor(30, 58, 95);
   doc.setLineWidth(0.8);
-  doc.line(14, 44, 196, 44);
+  doc.line(14, 58, 196, 58);
   doc.setLineWidth(0.3);
-  doc.line(14, 45.5, 196, 45.5);
+  doc.line(14, 59.5, 196, 59.5);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(title, 105, 52, { align: "center" });
+  doc.text(title, 105, 66, { align: "center" });
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
-  doc.text(`Document No: ${docNo}  |  Rev: 01`, 105, 57, { align: "center" });
-  return 62;
+  doc.text(`Document No: ${docNo}  |  Rev: 01`, 105, 71, { align: "center" });
+  return 76;
 };
 
 const addStampBox = (doc: jsPDF, x: number, y: number, label: string) => {
@@ -110,9 +101,6 @@ const addFooter = (doc: jsPDF) => {
   }
 };
 
-// =============================================
-// GENERIC REPORT PDF
-// =============================================
 export const exportToPDF = async (data: any[], title: string, columns: string[]) => {
   const doc = new jsPDF();
   const startY = await addLetterhead(doc, title.toUpperCase(), "EL5H/RPT/GEN");
@@ -147,9 +135,6 @@ export const exportToPDF = async (data: any[], title: string, columns: string[])
   doc.save(`${title.toLowerCase().replace(/\s+/g, "-")}.pdf`);
 };
 
-// =============================================
-// REQUISITION FORM (EL5H/SCM/FRM/001)
-// =============================================
 export const generateRequisitionPDF = async (requisition: any, lineItems: any[], departments: any[]) => {
   const doc = new jsPDF();
   const startY = await addLetterhead(doc, "DEPARTMENTAL STORES REQUISITION", "EL5H/SCM/FRM/001");
@@ -204,9 +189,6 @@ export const generateRequisitionPDF = async (requisition: any, lineItems: any[],
   doc.save(`Requisition-${requisition.requisition_number}.pdf`);
 };
 
-// =============================================
-// LOCAL PURCHASE ORDER (EL5H/SCM/FRM/002)
-// =============================================
 export const generateLPO_PDF = async (po: any, supplier: any, lineItems: any[]) => {
   const doc = new jsPDF();
   const startY = await addLetterhead(doc, "LOCAL PURCHASE ORDER (LPO)", "EL5H/SCM/FRM/002");
@@ -281,9 +263,6 @@ export const generateLPO_PDF = async (po: any, supplier: any, lineItems: any[]) 
   doc.save(`LPO-${po.po_number}.pdf`);
 };
 
-// =============================================
-// GOODS RECEIVED NOTE (EL5H/SCM/FRM/003)
-// =============================================
 export const generateGRN_PDF = async (grn: any, po: any, supplier: any) => {
   const doc = new jsPDF();
   const startY = await addLetterhead(doc, "GOODS RECEIVED NOTE (GRN)", "EL5H/SCM/FRM/003");
