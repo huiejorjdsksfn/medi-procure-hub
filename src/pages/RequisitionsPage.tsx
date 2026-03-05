@@ -14,8 +14,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search, Forward } from "lucide-react";
+import { Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search, Forward, ClipboardEdit, Trash2 } from "lucide-react";
 import { exportToPDF, generateRequisitionPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
 
@@ -33,6 +34,15 @@ const RequisitionsPage = () => {
   const [lineItems, setLineItems] = useState<{ item_id: string; item_name: string; quantity: string; unit_price: string }[]>([
     { item_id: "", item_name: "", quantity: "1", unit_price: "0" },
   ]);
+  const [mainTab, setMainTab] = useState("list");
+
+  // Worksheet state
+  const [worksheetRows, setWorksheetRows] = useState<{ item_name: string; description: string; quantity: string; unit: string; unit_price: string; notes: string }[]>(
+    Array.from({ length: 15 }, () => ({ item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" }))
+  );
+  const [worksheetDept, setWorksheetDept] = useState("");
+  const [worksheetPriority, setWorksheetPriority] = useState("normal");
+  const [worksheetJustification, setWorksheetJustification] = useState("");
 
   useEffect(() => { fetchRequisitions(); fetchDepartments(); fetchItems(); }, []);
 
@@ -85,6 +95,42 @@ const RequisitionsPage = () => {
     setLineItems([{ item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
   };
 
+  // Submit worksheet as requisition
+  const submitWorksheet = async () => {
+    const validRows = worksheetRows.filter(r => r.item_name.trim());
+    if (validRows.length === 0) { toast({ title: "No items entered", variant: "destructive" }); return; }
+    const totalAmount = validRows.reduce((sum, r) => sum + (parseFloat(r.quantity) || 0) * (parseFloat(r.unit_price) || 0), 0);
+    const reqNumber = generateReqNumber();
+    const { data: req, error } = await supabase.from("requisitions").insert({
+      requisition_number: reqNumber, department_id: worksheetDept || null,
+      requested_by: user?.id, priority: worksheetPriority, justification: worksheetJustification,
+      notes: "Submitted via manual worksheet", total_amount: totalAmount, status: "pending",
+    }).select().single();
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    const reqItems = validRows.map(r => ({
+      requisition_id: req.id, item_name: r.item_name,
+      quantity: parseInt(r.quantity) || 1, unit_price: parseFloat(r.unit_price) || 0,
+      total_price: (parseInt(r.quantity) || 1) * (parseFloat(r.unit_price) || 0),
+      notes: r.notes || null,
+    }));
+    await supabase.from("requisition_items").insert(reqItems);
+    logAudit(user?.id, profile?.full_name, "create_worksheet", "requisitions", req.id, { number: reqNumber });
+    sendNotification(req.id, "submitted");
+    toast({ title: "Worksheet submitted", description: reqNumber });
+    setWorksheetRows(Array.from({ length: 15 }, () => ({ item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" })));
+    setWorksheetJustification("");
+    setMainTab("list");
+  };
+
+  const updateWorksheetRow = (i: number, field: string, value: string) => {
+    const rows = [...worksheetRows];
+    (rows[i] as any)[field] = value;
+    setWorksheetRows(rows);
+  };
+  const addWorksheetRows = () => {
+    setWorksheetRows([...worksheetRows, ...Array.from({ length: 5 }, () => ({ item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" }))]);
+  };
+
   const viewDetail = async (req: any) => {
     setDetailDialog(req);
     const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", req.id);
@@ -120,6 +166,8 @@ const RequisitionsPage = () => {
     (r.status || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const worksheetTotal = worksheetRows.reduce((s, r) => s + (parseFloat(r.quantity) || 0) * (parseFloat(r.unit_price) || 0), 0);
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -142,10 +190,8 @@ const RequisitionsPage = () => {
                     <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent — Emergency</SelectItem>
+                        <SelectItem value="low">Low</SelectItem><SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent — Emergency</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -186,41 +232,152 @@ const RequisitionsPage = () => {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search requisitions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-      </div>
+      {/* Main tabs: List vs Worksheet */}
+      <Tabs value={mainTab} onValueChange={setMainTab}>
+        <TabsList>
+          <TabsTrigger value="list" className="gap-1.5"><Search className="w-3.5 h-3.5" /> Requisitions List</TabsTrigger>
+          <TabsTrigger value="worksheet" className="gap-1.5"><ClipboardEdit className="w-3.5 h-3.5" /> Manual Worksheet</TabsTrigger>
+        </TabsList>
 
-      <div className="border border-border rounded-lg overflow-auto bg-card">
-        <Table>
-          <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>Req. Number</TableHead><TableHead>Priority</TableHead>
-            <TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Status</TableHead><TableHead className="w-28">Actions</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No requisitions</TableCell></TableRow>
-            ) : filtered.map((req) => (
-              <TableRow key={req.id} className="data-table-row">
-                <TableCell className="font-mono font-medium">{req.requisition_number}</TableCell>
-                <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${req.priority === "urgent" ? "bg-red-500/10 text-red-600" : req.priority === "high" ? "bg-amber-500/10 text-amber-600" : "bg-muted text-muted-foreground"}`}>{req.priority}</span></TableCell>
-                <TableCell className="text-right font-medium">{Number(req.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
-                <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${statusColor(req.status)}`}>{req.status}</span></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => viewDetail(req)}><Eye className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={async () => {
-                      const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", req.id);
-                      generateRequisitionPDF(req, data || [], departments);
-                    }}><FileDown className="w-4 h-4" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+        <TabsContent value="list" className="space-y-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search requisitions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
 
+          <div className="border border-border rounded-lg overflow-auto bg-card">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/50">
+                <TableHead>Req. Number</TableHead><TableHead>Priority</TableHead>
+                <TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Status</TableHead><TableHead className="w-28">Actions</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No requisitions</TableCell></TableRow>
+                ) : filtered.map((req) => (
+                  <TableRow key={req.id} className="data-table-row">
+                    <TableCell className="font-mono font-medium">{req.requisition_number}</TableCell>
+                    <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${req.priority === "urgent" ? "bg-red-500/10 text-red-600" : req.priority === "high" ? "bg-amber-500/10 text-amber-600" : "bg-muted text-muted-foreground"}`}>{req.priority}</span></TableCell>
+                    <TableCell className="text-right font-medium">{Number(req.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${statusColor(req.status)}`}>{req.status}</span></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => viewDetail(req)}><Eye className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={async () => {
+                          const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", req.id);
+                          generateRequisitionPDF(req, data || [], departments);
+                        }}><FileDown className="w-4 h-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        {/* MANUAL WORKSHEET TAB */}
+        <TabsContent value="worksheet" className="space-y-4">
+          <div className="border-2 border-border rounded-lg bg-card p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <ClipboardEdit className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-bold text-foreground">Manual Requisition Worksheet</h2>
+              <span className="text-xs text-muted-foreground ml-auto">EL5H/SCM/FRM/001</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Department</Label>
+                <Select value={worksheetDept} onValueChange={setWorksheetDept}>
+                  <SelectTrigger className="h-8"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Priority</Label>
+                <Select value={worksheetPriority} onValueChange={setWorksheetPriority}>
+                  <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem><SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Justification</Label>
+                <Input value={worksheetJustification} onChange={e => setWorksheetJustification(e.target.value)} className="h-8 text-sm" placeholder="Reason for request" />
+              </div>
+            </div>
+
+            {/* Worksheet grid */}
+            <div className="border border-border rounded overflow-auto max-h-[500px]">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-8 text-xs">#</TableHead>
+                    <TableHead className="text-xs min-w-[200px]">Item Name *</TableHead>
+                    <TableHead className="text-xs min-w-[150px]">Description</TableHead>
+                    <TableHead className="text-xs w-20">Qty</TableHead>
+                    <TableHead className="text-xs w-20">Unit</TableHead>
+                    <TableHead className="text-xs w-28">Unit Price</TableHead>
+                    <TableHead className="text-xs w-28">Total</TableHead>
+                    <TableHead className="text-xs min-w-[120px]">Notes</TableHead>
+                    <TableHead className="text-xs w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {worksheetRows.map((row, i) => {
+                    const total = (parseFloat(row.quantity) || 0) * (parseFloat(row.unit_price) || 0);
+                    return (
+                      <TableRow key={i} className={row.item_name ? "bg-primary/5" : ""}>
+                        <TableCell className="text-xs text-muted-foreground py-1">{i + 1}</TableCell>
+                        <TableCell className="py-1"><Input value={row.item_name} onChange={e => updateWorksheetRow(i, "item_name", e.target.value)} className="h-7 text-xs border-dashed" placeholder="Type item name..." /></TableCell>
+                        <TableCell className="py-1"><Input value={row.description} onChange={e => updateWorksheetRow(i, "description", e.target.value)} className="h-7 text-xs border-dashed" placeholder="Optional" /></TableCell>
+                        <TableCell className="py-1"><Input type="number" min="1" value={row.quantity} onChange={e => updateWorksheetRow(i, "quantity", e.target.value)} className="h-7 text-xs border-dashed" /></TableCell>
+                        <TableCell className="py-1">
+                          <Select value={row.unit} onValueChange={v => updateWorksheetRow(i, "unit", v)}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {["pcs", "box", "pack", "kg", "litre", "roll", "set", "pair", "bottle", "carton"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="py-1"><Input type="number" step="0.01" value={row.unit_price} onChange={e => updateWorksheetRow(i, "unit_price", e.target.value)} className="h-7 text-xs border-dashed" /></TableCell>
+                        <TableCell className="text-right text-xs font-medium py-1">{total > 0 ? total.toFixed(2) : ""}</TableCell>
+                        <TableCell className="py-1"><Input value={row.notes} onChange={e => updateWorksheetRow(i, "notes", e.target.value)} className="h-7 text-xs border-dashed" placeholder="Notes" /></TableCell>
+                        <TableCell className="py-1">
+                          {row.item_name && (
+                            <button onClick={() => { const rows = [...worksheetRows]; rows[i] = { item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" }; setWorksheetRows(rows); }} className="text-muted-foreground hover:text-destructive">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={addWorksheetRows}><Plus className="w-3 h-3 mr-1" /> Add 5 Rows</Button>
+                <span className="text-xs text-muted-foreground self-center">
+                  {worksheetRows.filter(r => r.item_name.trim()).length} items entered
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-bold">Total: KSH {worksheetTotal.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</span>
+                <Button onClick={submitWorksheet} disabled={worksheetRows.filter(r => r.item_name.trim()).length === 0}>
+                  <CheckCircle className="w-4 h-4 mr-1" /> Submit Worksheet
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Detail dialog */}
       <Dialog open={!!detailDialog} onOpenChange={() => setDetailDialog(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Requisition: {detailDialog?.requisition_number}</DialogTitle></DialogHeader>
