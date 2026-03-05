@@ -23,7 +23,7 @@ import { logAudit } from "@/lib/audit";
 const ITEM_TYPES = [
   { value: "all", label: "All Types", icon: Box },
   { value: "pharmaceutical", label: "Pharmaceuticals", icon: Pill },
-  { value: "consumable", label: "Consumables", icon: Package },
+  { value: "consumable", label: "Perishable", icon: Package },
   { value: "equipment", label: "Equipment", icon: Wrench },
   { value: "surgical", label: "Surgical", icon: Stethoscope },
   { value: "laboratory", label: "Laboratory", icon: Microscope },
