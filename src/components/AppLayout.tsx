@@ -47,18 +47,13 @@ const navGroups: NavGroup[] = [
     roles: [],
     items: [
       { path: "/requisitions", label: "Requisitions", icon: FileText, roles: [] },
-      { path: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, roles: ["admin", "procurement_officer", "procurement_manager"] },
-      { path: "/suppliers", label: "Suppliers", icon: Truck, roles: ["admin", "procurement_officer", "procurement_manager"] },
-      { path: "/contracts", label: "Contracts", icon: FileCheck, roles: ["admin", "procurement_officer", "procurement_manager"] },
-      { path: "/vouchers", label: "Vouchers (S11)", icon: FileText, roles: [] },
-    ],
-  },
-  {
-    label: "RECEIVING",
-    icon: ClipboardList,
-    roles: ["admin", "warehouse_officer", "procurement_officer", "procurement_manager"],
-    items: [
+      { path: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, roles: [] },
+      { path: "/suppliers", label: "Suppliers", icon: Truck, roles: [] },
       { path: "/goods-received", label: "Goods Received", icon: ClipboardList, roles: [] },
+      { path: "/contracts", label: "Contracts", icon: FileCheck, roles: [] },
+      { path: "/tenders", label: "Tenders", icon: FileText, roles: [] },
+      { path: "/bid-evaluations", label: "Bid Evaluations", icon: FileText, roles: [] },
+      { path: "/procurement-planning", label: "Procurement Plan", icon: FileText, roles: [] },
     ],
   },
   {
@@ -71,17 +66,18 @@ const navGroups: NavGroup[] = [
       { path: "/vouchers/journal", label: "Journal Vouchers", icon: FileText, roles: [] },
       { path: "/vouchers/purchase", label: "Purchase Vouchers", icon: FileText, roles: [] },
       { path: "/vouchers/sales", label: "Sales Vouchers", icon: FileText, roles: [] },
-      { path: "/vouchers", label: "Store Vouchers (S11)", icon: FileText, roles: [] },
+      { path: "/vouchers", label: "Store Issue (S11)", icon: FileText, roles: [] },
     ],
   },
   {
     label: "FINANCIALS",
     icon: BarChart3,
-    roles: ["admin", "procurement_manager"],
+    roles: [],
     items: [
       { path: "/financials/dashboard", label: "Finance Dashboard", icon: BarChart3, roles: [] },
       { path: "/financials/chart-of-accounts", label: "Chart of Accounts", icon: FileText, roles: [] },
       { path: "/financials/budgets", label: "Budgets", icon: BarChart3, roles: [] },
+      { path: "/financials/fixed-assets", label: "Fixed Assets", icon: Building2, roles: [] },
     ],
   },
   {
