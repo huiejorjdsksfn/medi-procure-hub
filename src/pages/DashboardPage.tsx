@@ -1,127 +1,134 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
-// ── icon imports ──────────────────────────────────────────────────────────────
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
-  Plus, ChevronRight, RefreshCw, ArrowRight, AlertTriangle,
-  TrendingUp, TrendingDown, Package, ShoppingCart, Users,
-  FileText, Truck, Gavel, ClipboardList, DollarSign,
-  CheckCircle, Shield, BarChart3, PiggyBank, Building2,
-  Activity, BookMarked, Receipt, Calendar, Bell, Star
+  Plus, RefreshCw, Search, ChevronRight, AlertTriangle,
+  Package, ShoppingCart, Truck, FileText, DollarSign,
+  CheckCircle, Shield, Gavel, ClipboardList, TrendingUp,
+  Building2, BookMarked, Receipt, PiggyBank, Calendar,
+  Users, Database, Activity, ArrowUp, ArrowDown, Eye
 } from "lucide-react";
 
-// ── types ─────────────────────────────────────────────────────────────────────
-interface KPI { [key: string]: number | string }
+const thisMonth = new Date().toISOString().slice(0, 7);
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  n >= 1_000_000 ? `KES ${(n/1_000_000).toFixed(1)}M`
-  : n >= 1_000   ? `KES ${(n/1_000).toFixed(0)}K`
-  : `KES ${n.toLocaleString()}`;
-
-const today = new Date().toISOString().split("T")[0];
-const thisMonth = today.slice(0, 7);
+const fmt = (n: number) => `KES ${Number(n || 0).toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
+const fmtSh = (n: number) =>
+  n >= 1_000_000 ? `KES ${(n / 1_000_000).toFixed(1)}M`
+  : n >= 1_000 ? `KES ${(n / 1_000).toFixed(0)}K`
+  : `KES ${n}`;
 
 export default function DashboardPage() {
   const { profile, roles } = useAuth();
   const navigate = useNavigate();
-  const [kpi, setKpi] = useState<KPI>({});
-  const [activity, setActivity] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [kpi, setKpi] = useState<any>({});
+  const [recentReqs, setRecentReqs] = useState<any[]>([]);
+  const [recentPOs, setRecentPOs] = useState<any[]>([]);
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [pendingItems, setPendingItems] = useState<any[]>([]);
+  const [searchActivity, setSearchActivity] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("home");
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const isAdmin = roles.includes("admin") || roles.includes("procurement_manager");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [reqs, pos, items, supp, pv, rv, ncr, insp, tenders, budgets, grn, contracts, log] =
+      const [reqs, pos, items, supp, pv, rv, ncr, insp, tenders, budgets, grn, log, contracts, plans] =
         await Promise.all([
-          (supabase as any).from("requisitions").select("status, created_at"),
-          (supabase as any).from("purchase_orders").select("status, total_amount, created_at"),
-          (supabase as any).from("items").select("quantity_in_stock, reorder_level, status"),
-          (supabase as any).from("suppliers").select("status, rating"),
-          (supabase as any).from("payment_vouchers").select("status, amount, voucher_date"),
-          (supabase as any).from("receipt_vouchers").select("amount, receipt_date"),
-          (supabase as any).from("non_conformance").select("status, severity"),
-          (supabase as any).from("inspections").select("result"),
-          (supabase as any).from("tenders").select("status"),
-          (supabase as any).from("budgets").select("allocated_amount, spent_amount, status"),
-          (supabase as any).from("goods_received").select("id, created_at"),
-          (supabase as any).from("contracts").select("status"),
-          (supabase as any).from("audit_log").select("action, module, user_name, entity_type, created_at").order("created_at", { ascending: false }).limit(10),
+          (supabase as any).from("requisitions").select("id,requisition_number,status,total_amount,priority,created_at").order("created_at", { ascending: false }),
+          (supabase as any).from("purchase_orders").select("id,po_number,status,total_amount,created_at").order("created_at", { ascending: false }),
+          (supabase as any).from("items").select("id,name,quantity_in_stock,reorder_level,status,unit_price"),
+          (supabase as any).from("suppliers").select("id,name,status,rating"),
+          (supabase as any).from("payment_vouchers").select("id,voucher_number,payee_name,amount,status,voucher_date,created_at").order("created_at", { ascending: false }),
+          (supabase as any).from("receipt_vouchers").select("id,receipt_number,received_from,amount,receipt_date,created_at").order("created_at", { ascending: false }),
+          (supabase as any).from("non_conformance").select("id,ncr_number,status,severity,supplier_name,created_at"),
+          (supabase as any).from("inspections").select("id,inspection_number,result,supplier_name,item_name,inspection_date"),
+          (supabase as any).from("tenders").select("id,tender_number,title,status,estimated_value,closing_date"),
+          (supabase as any).from("budgets").select("id,budget_name,allocated_amount,spent_amount,status,financial_year"),
+          (supabase as any).from("goods_received").select("id,grn_number,created_at").order("created_at", { ascending: false }),
+          (supabase as any).from("audit_log").select("id,action,module,user_name,entity_type,details,created_at").order("created_at", { ascending: false }).limit(50),
+          (supabase as any).from("contracts").select("id,status"),
+          (supabase as any).from("procurement_plans").select("id,status,estimated_total_cost"),
         ]);
 
-      const pvRows  = pv.data  || [];
-      const rvRows  = rv.data  || [];
-      const itemR   = items.data || [];
-      const reqR    = reqs.data  || [];
-      const posR    = pos.data   || [];
-      const ncrR    = ncr.data   || [];
+      const pvR = pv.data || []; const rvR = rv.data || [];
+      const reqR = reqs.data || []; const posR = pos.data || [];
+      const itemR = items.data || []; const ncrR = ncr.data || [];
+      const inspR = insp.data || []; const budR = budgets.data || [];
+      const tendR = tenders.data || [];
 
-      const pvMTD   = pvRows.filter((v: any) => v.voucher_date?.startsWith(thisMonth));
-      const rvMTD   = rvRows.filter((v: any) => v.receipt_date?.startsWith(thisMonth));
+      const pvMTD = pvR.filter((v: any) => v.voucher_date?.startsWith(thisMonth));
+      const rvMTD = rvR.filter((v: any) => v.receipt_date?.startsWith(thisMonth));
+      const lowStockItems = itemR.filter((i: any) => Number(i.quantity_in_stock) <= Number(i.reorder_level || 10));
 
       setKpi({
-        // Procurement
-        pendingReqs:   reqR.filter((r: any) => r.status === "pending").length,
-        approvedReqs:  reqR.filter((r: any) => r.status === "approved").length,
-        totalReqs:     reqR.length,
-        pendingPOs:    posR.filter((p: any) => ["draft","pending"].includes(p.status)).length,
-        approvedPOs:   posR.filter((p: any) => p.status === "approved").length,
-        issuedPOs:     posR.filter((p: any) => p.status === "issued").length,
-        totalPOs:      posR.length,
-        grnCount:      (grn.data||[]).length,
-        activeContracts:(contracts.data||[]).filter((c: any) => c.status === "active").length,
-        // Tenders
-        draftTenders:  (tenders.data||[]).filter((t: any) => t.status === "draft").length,
-        openTenders:   (tenders.data||[]).filter((t: any) => t.status === "published").length,
-        closedTenders: (tenders.data||[]).filter((t: any) => t.status === "closed").length,
-        awardedTenders:(tenders.data||[]).filter((t: any) => t.status === "awarded").length,
-        // Financials
-        pendingPayments: pvRows.filter((v: any) => v.status === "pending").length,
-        approvedPayments:pvRows.filter((v: any) => v.status === "approved").length,
-        paidPayments:    pvRows.filter((v: any) => v.status === "paid").length,
-        pendingPayAmt:   pvRows.filter((v: any) => ["pending","approved"].includes(v.status)).reduce((s: number, v: any) => s + Number(v.amount), 0),
-        receiptsMTD:     rvMTD.reduce((s: number, v: any) => s + Number(v.amount), 0),
-        paymentsMTD:     pvMTD.filter((v: any) => v.status === "paid").reduce((s: number, v: any) => s + Number(v.amount), 0),
-        totalReceipts:   rvRows.length,
-        totalPayments:   pvRows.length,
-        // Budget
-        totalBudget:     (budgets.data||[]).reduce((s: number, b: any) => s + Number(b.allocated_amount), 0),
-        spentBudget:     (budgets.data||[]).reduce((s: number, b: any) => s + Number(b.spent_amount), 0),
-        activeBudgets:   (budgets.data||[]).filter((b: any) => b.status === "active").length,
+        // Reqs
+        pendingReqs: reqR.filter((r: any) => r.status === "pending").length,
+        approvedReqs: reqR.filter((r: any) => r.status === "approved").length,
+        rejectedReqs: reqR.filter((r: any) => r.status === "rejected").length,
+        totalReqs: reqR.length,
+        // POs
+        draftPOs: posR.filter((p: any) => p.status === "draft").length,
+        approvedPOs: posR.filter((p: any) => p.status === "approved").length,
+        issuedPOs: posR.filter((p: any) => p.status === "issued").length,
+        totalPOsAmt: posR.reduce((s: number, p: any) => s + Number(p.total_amount || 0), 0),
+        // Payments
+        pendingPayments: pvR.filter((v: any) => v.status === "pending").length,
+        pendingPayAmt: pvR.filter((v: any) => ["pending","approved"].includes(v.status)).reduce((s: number, v: any) => s + Number(v.amount || 0), 0),
+        paidMTD: pvMTD.filter((v: any) => v.status === "paid").reduce((s: number, v: any) => s + Number(v.amount || 0), 0),
+        receivedMTD: rvMTD.reduce((s: number, v: any) => s + Number(v.amount || 0), 0),
+        totalReceipts: rvR.length,
         // Inventory
-        lowStock:   itemR.filter((i: any) => Number(i.quantity_in_stock) <= Number(i.reorder_level || 10)).length,
+        lowStock: lowStockItems.length,
         totalItems: itemR.length,
-        activeItems:itemR.filter((i: any) => i.status === "active").length,
-        activeSuppliers:(supp.data||[]).filter((s: any) => s.status === "active").length,
-        totalSuppliers: (supp.data||[]).length,
+        activeSuppliers: (supp.data || []).filter((s: any) => s.status === "active").length,
         // Quality
-        openNCRs:     ncrR.filter((n: any) => n.status === "open").length,
+        openNCRs: ncrR.filter((n: any) => n.status === "open").length,
         criticalNCRs: ncrR.filter((n: any) => n.severity === "critical").length,
-        passedInsp:   (insp.data||[]).filter((i: any) => i.result === "pass").length,
-        pendingInsp:  (insp.data||[]).filter((i: any) => i.result === "pending").length,
-        totalInsp:    (insp.data||[]).length,
+        pendingInspections: inspR.filter((i: any) => i.result === "pending").length,
+        passRate: inspR.length > 0 ? Math.round(inspR.filter((i: any) => i.result === "pass").length / inspR.length * 100) : 100,
+        // Tenders
+        openTenders: tendR.filter((t: any) => t.status === "published").length,
+        closingTenders: tendR.filter((t: any) => t.status === "published" && t.closing_date && new Date(t.closing_date) <= new Date(Date.now() + 7 * 86400000)).length,
+        // Budget
+        activeBudgets: budR.filter((b: any) => b.status === "active").length,
+        totalBudget: budR.reduce((s: number, b: any) => s + Number(b.allocated_amount || 0), 0),
+        spentBudget: budR.reduce((s: number, b: any) => s + Number(b.spent_amount || 0), 0),
+        // GRN
+        grnCount: (grn.data || []).length,
+        activeContracts: (contracts.data || []).filter((c: any) => c.status === "active").length,
+        // Plans
+        approvedPlans: (plans.data || []).filter((p: any) => p.status === "approved").length,
+        planBudget: (plans.data || []).reduce((s: number, p: any) => s + Number(p.estimated_total_cost || 0), 0),
       });
 
-      setActivity(log.data || []);
+      setRecentReqs(reqR.slice(0, 8));
+      setRecentPOs(posR.slice(0, 8));
+      setRecentPayments(pvR.slice(0, 8));
+      setRecentActivity(log.data || []);
 
-      // Build tasks list from pending items
-      const taskList: any[] = [];
+      // Build pending tasks
+      const tasks: any[] = [];
       if (reqR.filter((r: any) => r.status === "pending").length > 0)
-        taskList.push({ label: "Pending Requisitions to Approve", count: reqR.filter((r: any) => r.status === "pending").length, path: "/requisitions", color: "amber" });
-      if (pvRows.filter((v: any) => v.status === "pending").length > 0)
-        taskList.push({ label: "Payment Vouchers Awaiting Approval", count: pvRows.filter((v: any) => v.status === "pending").length, path: "/vouchers/payment", color: "orange" });
-      if (itemR.filter((i: any) => Number(i.quantity_in_stock) <= Number(i.reorder_level || 10)).length > 0)
-        taskList.push({ label: "Items Below Reorder Level", count: itemR.filter((i: any) => Number(i.quantity_in_stock) <= Number(i.reorder_level || 10)).length, path: "/items", color: "red" });
+        tasks.push({ type: "REQUISITION", label: "Pending Requisitions to Approve", count: reqR.filter((r: any) => r.status === "pending").length, path: "/requisitions", status: "Pending Approval", priority: "high" });
+      if (pvR.filter((v: any) => v.status === "pending").length > 0)
+        tasks.push({ type: "PAYMENT", label: "Payment Vouchers Awaiting Approval", count: pvR.filter((v: any) => v.status === "pending").length, path: "/vouchers/payment", status: "Pending Approval", priority: "high" });
+      if (lowStockItems.length > 0)
+        tasks.push({ type: "INVENTORY", label: "Items Below Reorder Level", count: lowStockItems.length, path: "/items", status: "Reorder Required", priority: "medium" });
       if (ncrR.filter((n: any) => n.status === "open").length > 0)
-        taskList.push({ label: "Open Non-Conformance Reports", count: ncrR.filter((n: any) => n.status === "open").length, path: "/quality/non-conformance", color: "rose" });
-      if ((insp.data||[]).filter((i: any) => i.result === "pending").length > 0)
-        taskList.push({ label: "Inspections Pending Results", count: (insp.data||[]).filter((i: any) => i.result === "pending").length, path: "/quality/inspections", color: "blue" });
-      setTasks(taskList);
+        tasks.push({ type: "QUALITY", label: "Open Non-Conformance Reports", count: ncrR.filter((n: any) => n.status === "open").length, path: "/quality/non-conformance", status: "Action Required", priority: "high" });
+      if (inspR.filter((i: any) => i.result === "pending").length > 0)
+        tasks.push({ type: "INSPECTION", label: "Inspections Pending Results", count: inspR.filter((i: any) => i.result === "pending").length, path: "/quality/inspections", status: "Pending", priority: "medium" });
+      if (tendR.filter((t: any) => t.status === "published" && t.closing_date && new Date(t.closing_date) <= new Date(Date.now() + 7 * 86400000)).length > 0)
+        tasks.push({ type: "TENDER", label: "Tenders Closing This Week", count: tendR.filter((t: any) => t.status === "published" && t.closing_date && new Date(t.closing_date) <= new Date(Date.now() + 7 * 86400000)).length, path: "/tenders", status: "Closing Soon", priority: "medium" });
+      setPendingItems(tasks);
+
+      setLastRefresh(new Date());
     } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
@@ -129,373 +136,454 @@ export default function DashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    const tables = ["requisitions","purchase_orders","items","suppliers","payment_vouchers","receipt_vouchers","non_conformance","inspections","tenders","audit_log","budgets"];
+    const tables = ["requisitions","purchase_orders","items","suppliers","payment_vouchers","receipt_vouchers","non_conformance","inspections","tenders","audit_log","budgets","goods_received"];
     const chs = tables.map(t =>
-      (supabase as any).channel(`bc-${t}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: t }, () => load())
-        .subscribe()
+      (supabase as any).channel(`crm-${t}`).on("postgres_changes", { event: "*", schema: "public", table: t }, () => load()).subscribe()
     );
     return () => { chs.forEach(c => supabase.removeChannel(c)); };
   }, [load]);
 
-  const isAdmin = roles.includes("admin") || roles.includes("procurement_manager");
+  const budgetPct = kpi.totalBudget ? Math.round(kpi.spentBudget / kpi.totalBudget * 100) : 0;
 
-  // ── Sub-nav tabs ─────────────────────────────────────────────────────────
-  const tabs = [
-    { id: "home", label: "Home" },
-    { id: "finance", label: "Finance" },
-    { id: "purchasing", label: "Purchasing" },
-    { id: "inventory", label: "Inventory" },
-    { id: "quality", label: "Quality" },
-    { id: "approvals", label: "Approvals" },
-    ...(isAdmin ? [{ id: "admin", label: "Setup & Admin" }] : []),
-  ];
+  const filteredActivity = recentActivity.filter(a =>
+    !searchActivity || a.action?.toLowerCase().includes(searchActivity.toLowerCase()) ||
+    a.module?.toLowerCase().includes(searchActivity.toLowerCase()) ||
+    a.user_name?.toLowerCase().includes(searchActivity.toLowerCase()) ||
+    a.entity_type?.toLowerCase().includes(searchActivity.toLowerCase())
+  );
 
-  // ── Quick links ──────────────────────────────────────────────────────────
-  const quickLinks = [
-    { label: "Suppliers", path: "/suppliers" },
-    { label: "Items", path: "/items" },
-    { label: "Purchase Orders", path: "/purchase-orders" },
-    { label: "Bank Accounts", path: "/financials/dashboard" },
-    { label: "Chart of Accounts", path: "/financials/chart-of-accounts" },
-    { label: "Tenders", path: "/tenders" },
-    { label: "Budgets", path: "/financials/budgets" },
-  ];
-
-  // ── Action panel ─────────────────────────────────────────────────────────
-  const actions = {
-    create: [
-      { label: "New Requisition", path: "/requisitions" },
-      { label: "New Purchase Order", path: "/purchase-orders" },
-      { label: "Payment Voucher", path: "/vouchers/payment" },
-      { label: "Receipt Voucher", path: "/vouchers/receipt" },
-      { label: "Sales Invoice", path: "/vouchers/sales" },
-      { label: "New Tender", path: "/tenders" },
-    ],
-    nav: [
-      { label: "Goods Received", path: "/goods-received" },
-      { label: "Suppliers", path: "/suppliers" },
-      { label: "Inspections", path: "/quality/inspections" },
-    ],
-    reports: [
-      { label: "Statement of Cash Flows", path: "/financials/dashboard" },
-      { label: "Balance Sheet", path: "/financials/chart-of-accounts" },
-      { label: "Income Statement", path: "/financials/dashboard" },
-      { label: "Procurement Report", path: "/reports" },
-    ],
+  const statusBadge = (s: string) => {
+    const map: any = {
+      pending: "bg-amber-100 text-amber-800 border-amber-200",
+      approved: "bg-green-100 text-green-800 border-green-200",
+      rejected: "bg-red-100 text-red-800 border-red-200",
+      draft: "bg-gray-100 text-gray-700 border-gray-200",
+      issued: "bg-blue-100 text-blue-800 border-blue-200",
+      paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      confirmed: "bg-teal-100 text-teal-800 border-teal-200",
+      open: "bg-red-100 text-red-700 border-red-200",
+      active: "bg-green-100 text-green-800 border-green-200",
+      published: "bg-blue-100 text-blue-800 border-blue-200",
+    };
+    return `text-[10px] font-semibold px-1.5 py-0.5 rounded border capitalize ${map[s] || "bg-gray-100 text-gray-600 border-gray-200"}`;
   };
 
-  // ── Tile sections ─────────────────────────────────────────────────────────
-  const procurementTiles = [
-    { label: "PENDING REQUISITIONS", val: kpi.pendingReqs, sub: "awaiting approval", path: "/requisitions", urgent: Number(kpi.pendingReqs) > 0 },
-    { label: "PURCHASE ORDERS", val: kpi.pendingPOs, sub: "draft / pending", path: "/purchase-orders" },
-    { label: "ISSUED POs", val: kpi.issuedPOs, sub: "to suppliers", path: "/purchase-orders" },
-    { label: "GOODS RECEIVED", val: kpi.grnCount, sub: "total GRNs", path: "/goods-received" },
-    { label: "OPEN TENDERS", val: kpi.openTenders, sub: "published", path: "/tenders" },
-    { label: "ACTIVE CONTRACTS", val: kpi.activeContracts, sub: "running", path: "/contracts" },
-  ];
-
-  const financialTiles = [
-    { label: "PENDING PAYMENTS", val: kpi.pendingPayments, sub: `${fmt(Number(kpi.pendingPayAmt))}`, path: "/vouchers/payment", urgent: Number(kpi.pendingPayments) > 0 },
-    { label: "PAYMENTS MTD", val: kpi.paidPayments, sub: fmt(Number(kpi.paymentsMTD)), path: "/vouchers/payment" },
-    { label: "RECEIPTS MTD", val: kpi.totalReceipts, sub: fmt(Number(kpi.receiptsMTD)), path: "/vouchers/receipt" },
-    { label: "JOURNAL VOUCHERS", val: "→", sub: "view all", path: "/vouchers/journal" },
-    { label: "ACTIVE BUDGETS", val: kpi.activeBudgets, sub: "financial year", path: "/financials/budgets" },
-    { label: "FIXED ASSETS", val: "→", sub: "asset register", path: "/financials/fixed-assets" },
-  ];
-
-  const qualityTiles = [
-    { label: "OPEN NCRs", val: kpi.openNCRs, sub: `${kpi.criticalNCRs} critical`, path: "/quality/non-conformance", urgent: Number(kpi.criticalNCRs) > 0 },
-    { label: "PENDING INSPECTIONS", val: kpi.pendingInsp, sub: "awaiting result", path: "/quality/inspections", urgent: Number(kpi.pendingInsp) > 0 },
-    { label: "PASSED THIS MONTH", val: kpi.passedInsp, sub: "inspections passed", path: "/quality/inspections" },
-  ];
-
-  const inventoryTiles = [
-    { label: "LOW STOCK ITEMS", val: kpi.lowStock, sub: "below reorder level", path: "/items", urgent: Number(kpi.lowStock) > 0 },
-    { label: "TOTAL ITEMS", val: kpi.activeItems, sub: "active in catalogue", path: "/items" },
-    { label: "ACTIVE SUPPLIERS", val: kpi.activeSuppliers, sub: `of ${kpi.totalSuppliers} total`, path: "/suppliers" },
-  ];
-
-  const budgetPct = kpi.totalBudget ? Math.round(Number(kpi.spentBudget) / Number(kpi.totalBudget) * 100) : 0;
-
   return (
-    <div className="min-h-screen bg-[#f3f2f1] font-sans">
-      {/* ── Top navigation bar ─────────────────────────────────────────── */}
-      <div className="bg-white border-b border-[#e1dfdd] sticky top-0 z-30 shadow-sm">
-        {/* Company row */}
-        <div className="flex items-center gap-4 px-6 py-2 border-b border-[#e1dfdd]">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden" style={{ fontFamily: "Segoe UI, system-ui, sans-serif", background: "#f0f0f0" }}>
+
+      {/* ── What's New / KPI Headline Row ─────────────────────────────── */}
+      <div className="shrink-0" style={{ background: "#fff", borderBottom: "1px solid #d9d9d9" }}>
+        <div className="flex items-center justify-between px-5 py-2 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0078d4] rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">EL5</span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[#323130] leading-none">Embu Level 5 Hospital</p>
-              <p className="text-xs text-[#605e5c]">MediProcure ERP</p>
-            </div>
+            <h1 className="text-sm font-semibold text-gray-800">
+              Embu Level 5 Hospital · MediProcure ERP
+            </h1>
+            <span className="text-gray-300">|</span>
+            <span className="text-xs text-gray-500">
+              {new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </span>
+            <span className="flex items-center gap-1 text-[10px] text-green-600 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />LIVE
+            </span>
           </div>
-          <div className="w-px h-6 bg-[#e1dfdd] mx-2" />
-          <nav className="flex items-center gap-0 flex-1 overflow-x-auto">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px
-                  ${activeTab === t.id
-                    ? "border-[#0078d4] text-[#0078d4]"
-                    : "border-transparent text-[#323130] hover:text-[#0078d4] hover:bg-[#f3f2f1]"}`}>
-                {t.label}
-              </button>
-            ))}
-          </nav>
-          <Button variant="ghost" size="sm" onClick={load} disabled={loading}
-            className="text-[#605e5c] hover:bg-[#f3f2f1] ml-2">
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Updated {lastRefresh.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</span>
+            <Button size="sm" variant="outline" onClick={load} disabled={loading} className="h-7 text-xs">
+              <RefreshCw className={`w-3 h-3 mr-1 ${loading ? "animate-spin" : ""}`} />Refresh
+            </Button>
+          </div>
         </div>
 
-        {/* Quick links row */}
-        <div className="flex items-center gap-0 px-6 py-0.5 overflow-x-auto">
-          {quickLinks.map(l => (
-            <button key={l.label} onClick={() => navigate(l.path)}
-              className="px-3 py-1.5 text-xs text-[#0078d4] hover:underline hover:bg-[#f3f2f1] rounded whitespace-nowrap transition-colors">
-              {l.label}
-            </button>
+        {/* Big 4 KPI summary cards */}
+        <div className="grid grid-cols-4 divide-x divide-gray-200">
+          {[
+            { label: "RECEIPTS THIS MONTH", val: fmtSh(kpi.receivedMTD || 0), sub: `${kpi.totalReceipts || 0} total receipts`, color: "#107c10", trend: "up" },
+            { label: "OUTSTANDING PAYABLES", val: fmtSh(kpi.pendingPayAmt || 0), sub: `${kpi.pendingPayments || 0} vouchers pending`, color: kpi.pendingPayments > 0 ? "#a4262c" : "#107c10", trend: kpi.pendingPayments > 0 ? "down" : "up" },
+            { label: "PAYMENTS MADE MTD", val: fmtSh(kpi.paidMTD || 0), sub: `Budget: ${budgetPct}% utilized`, color: "#0078d4", trend: "up" },
+            { label: "ACTIVE SUPPLIERS", val: kpi.activeSuppliers || 0, sub: `${kpi.totalItems || 0} items catalogued`, color: "#8764b8", trend: "up" },
+          ].map(k => (
+            <div key={k.label} className="px-5 py-3 hover:bg-gray-50 cursor-pointer group transition-colors" onClick={() => navigate("/financials/dashboard")}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{k.label}</span>
+                {k.trend === "up"
+                  ? <ArrowUp className="w-3 h-3 text-green-500 opacity-0 group-hover:opacity-100" />
+                  : <ArrowDown className="w-3 h-3 text-red-500 opacity-0 group-hover:opacity-100" />}
+              </div>
+              <p className="text-2xl font-bold" style={{ color: k.color }}>{k.val}</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[10px] text-gray-400">{k.sub}</p>
+                <button className="text-[10px] text-blue-600 hover:underline opacity-0 group-hover:opacity-100">› See more</button>
+              </div>
+              <div className="h-[2px] w-12 mt-1.5 rounded" style={{ backgroundColor: k.color }} />
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ── Main content ───────────────────────────────────────────────── */}
-      <div className="px-6 py-5 max-w-[1400px] mx-auto">
+      {/* ── Main 3-column layout ─────────────────────────────────────────── */}
+      <div className="flex-1 grid grid-cols-[280px_1fr_280px] gap-0 min-h-0 overflow-hidden">
 
-        {/* Hero row: headline + actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 mb-6">
-          {/* Headline */}
-          <div className="bg-white border border-[#e1dfdd] rounded p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#605e5c] mb-2">WELCOME</p>
-            <h1 className="text-3xl font-bold text-[#323130] leading-tight mb-1">
-              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"},
-            </h1>
-            <h2 className="text-2xl font-light text-[#0078d4] mb-4">
-              {profile?.full_name || "Administrator"}
-            </h2>
-            <p className="text-sm text-[#605e5c] mb-5">
-              {new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} &nbsp;·&nbsp; Embu Level 5 Hospital
-            </p>
-            {/* 3 big headline KPIs */}
-            <div className="grid grid-cols-3 gap-4 border-t border-[#e1dfdd] pt-5">
-              {[
-                { label: "RECEIPTS THIS MONTH", val: fmt(Number(kpi.receiptsMTD || 0)), color: "#107c10", urgent: false },
-                { label: "OVERDUE PAYMENTS", val: fmt(Number(kpi.pendingPayAmt || 0)), color: Number(kpi.pendingPayments) > 0 ? "#a4262c" : "#107c10", urgent: Number(kpi.pendingPayments) > 0 },
-                { label: "BUDGET UTILIZATION", val: `${budgetPct}%`, color: budgetPct > 90 ? "#a4262c" : budgetPct > 70 ? "#ca5010" : "#107c10", urgent: budgetPct > 90 },
-              ].map(k => (
-                <div key={k.label} className="group cursor-pointer">
-                  <p className="text-xs font-semibold text-[#605e5c] uppercase tracking-wide mb-1">{k.label}</p>
-                  <p className={`text-3xl font-bold`} style={{ color: k.color }}>{k.val}</p>
-                  <div className={`h-[3px] w-16 mt-2 rounded`} style={{ backgroundColor: k.color }} />
-                  <button onClick={() => navigate("/financials/dashboard")}
-                    className="text-xs text-[#0078d4] hover:underline mt-2 flex items-center gap-1">
-                    <ChevronRight className="w-3 h-3" />See more
-                  </button>
-                </div>
-              ))}
-            </div>
+        {/* ── LEFT: Activity tiles / Pipeline ──────────────────────────── */}
+        <div className="flex flex-col min-h-0 overflow-y-auto border-r border-gray-200 bg-white">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between z-10">
+            <span className="text-xs font-bold uppercase tracking-widest text-gray-600">PENDING TASKS</span>
+            <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-bold">{pendingItems.length}</span>
           </div>
 
-          {/* Actions panel */}
-          <div className="bg-white border border-[#e1dfdd] rounded shadow-sm p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#605e5c] mb-4">ACTIONS</p>
-            <div className="grid grid-cols-2 gap-x-6">
-              {/* Create actions */}
-              <div className="space-y-1.5">
-                {actions.create.map(a => (
-                  <button key={a.label} onClick={() => navigate(a.path)}
-                    className="flex items-center gap-2 text-sm text-[#0078d4] hover:underline w-full text-left group">
-                    <Plus className="w-3.5 h-3.5 shrink-0 text-[#0078d4]" />
-                    <span>{a.label}</span>
-                  </button>
-                ))}
-                <div className="border-t border-[#e1dfdd] my-2" />
-                {actions.nav.map(a => (
-                  <button key={a.label} onClick={() => navigate(a.path)}
-                    className="flex items-center gap-2 text-sm text-[#0078d4] hover:underline w-full text-left">
-                    <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-                    <span>{a.label}</span>
-                  </button>
-                ))}
-              </div>
-              {/* Report links */}
-              <div className="space-y-1.5">
-                {actions.reports.map(r => (
-                  <button key={r.label} onClick={() => navigate(r.path)}
-                    className="flex items-center gap-2 text-sm text-[#0078d4] hover:underline w-full text-left">
-                    <FileText className="w-3.5 h-3.5 shrink-0 text-[#605e5c]" />
-                    <span>{r.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Activities: big number KPIs ─────────────────────────────── */}
-        <div className="bg-white border border-[#e1dfdd] rounded shadow-sm mb-5">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#e1dfdd]">
-            <p className="text-sm font-bold text-[#323130] uppercase tracking-wide">Activities</p>
-            <button onClick={load} className="text-xs text-[#0078d4] hover:underline flex items-center gap-1">
-              <RefreshCw className="w-3 h-3" />Refresh
-            </button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#e1dfdd] px-0">
+          {/* Quick KPI tiles - 2 per row */}
+          <div className="grid grid-cols-2 gap-px bg-gray-200 border-b border-gray-200">
             {[
-              { label: "PENDING REQUISITIONS", val: kpi.pendingReqs || 0, color: Number(kpi.pendingReqs) > 0 ? "#ca5010" : "#107c10", path: "/requisitions" },
-              { label: "ACTIVE PURCHASE ORDERS", val: kpi.approvedPOs || 0, color: "#0078d4", path: "/purchase-orders" },
-              { label: "PENDING APPROVALS", val: Number(kpi.pendingPayments || 0) + Number(kpi.pendingReqs || 0), color: Number(kpi.pendingPayments) + Number(kpi.pendingReqs) > 0 ? "#a4262c" : "#107c10", path: "/vouchers/payment" },
-              { label: "LOW STOCK ALERTS", val: kpi.lowStock || 0, color: Number(kpi.lowStock) > 0 ? "#a4262c" : "#107c10", path: "/items" },
-            ].map(k => (
-              <div key={k.label} className="px-5 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c] mb-2">{k.label}</p>
-                <p className={`text-[42px] font-bold leading-none`} style={{ color: k.color }}>{k.val}</p>
-                <div className="h-[3px] w-10 mt-3 rounded" style={{ backgroundColor: k.color }} />
-                <button onClick={() => navigate(k.path)} className="text-xs text-[#0078d4] hover:underline mt-2 flex items-center gap-0.5">
-                  <ChevronRight className="w-3 h-3" />See more
-                </button>
-              </div>
+              { label: "Pending Reqs", val: kpi.pendingReqs || 0, path: "/requisitions", color: "#ca5010", urgent: kpi.pendingReqs > 0 },
+              { label: "Draft POs", val: kpi.draftPOs || 0, path: "/purchase-orders", color: "#0078d4" },
+              { label: "Low Stock", val: kpi.lowStock || 0, path: "/items", color: "#a4262c", urgent: kpi.lowStock > 0 },
+              { label: "Open NCRs", val: kpi.openNCRs || 0, path: "/quality/non-conformance", color: "#a4262c", urgent: kpi.openNCRs > 0 },
+              { label: "Open Tenders", val: kpi.openTenders || 0, path: "/tenders", color: "#00695C" },
+              { label: "Active Budgets", val: kpi.activeBudgets || 0, path: "/financials/budgets", color: "#5C2D91" },
+            ].map(t => (
+              <button key={t.label} onClick={() => navigate(t.path)}
+                className={`bg-white px-3 py-3 text-left hover:bg-gray-50 transition-colors group ${t.urgent ? "bg-red-50" : ""}`}>
+                <p className="text-[22px] font-bold leading-none" style={{ color: t.urgent && t.val > 0 ? t.color : t.color }}>{t.val}</p>
+                <p className="text-[9px] uppercase tracking-wide text-gray-500 mt-1 leading-tight">{t.label}</p>
+                <ChevronRight className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
+              </button>
             ))}
           </div>
-        </div>
 
-        {/* ── Tile grid rows ──────────────────────────────────────────── */}
-        {/* Procurement tiles */}
-        <TileSection label="PROCUREMENT" tiles={procurementTiles} navigate={navigate} />
-
-        {/* Financials + Quality row */}
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5 mb-5">
-          <TileSection label="FINANCIALS" tiles={financialTiles} navigate={navigate} inline />
-          <TileSection label="QUALITY" tiles={qualityTiles} navigate={navigate} inline />
-        </div>
-
-        {/* Inventory + Tasks row */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr] gap-5 mb-5">
-          <TileSection label="INVENTORY" tiles={inventoryTiles} navigate={navigate} inline />
-
-          {/* My Tasks */}
-          <div className="bg-white border border-[#e1dfdd] rounded shadow-sm">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1dfdd]">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#605e5c]">MY PENDING TASKS</p>
-            </div>
-            <div className="p-3">
-              {tasks.length === 0 ? (
-                <div className="py-6 text-center">
-                  <CheckCircle className="w-8 h-8 text-[#107c10] mx-auto mb-2" />
-                  <p className="text-sm text-[#605e5c]">All clear! No pending tasks.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {tasks.map((t, i) => (
-                    <button key={i} onClick={() => navigate(t.path)}
-                      className={`w-full flex items-center justify-between p-3 rounded text-left hover:bg-[#f3f2f1] border border-[#e1dfdd] transition-colors`}>
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className={`w-4 h-4 ${t.color === "red" || t.color === "rose" ? "text-red-500" : "text-amber-500"}`} />
-                        <span className="text-sm text-[#323130]">{t.label}</span>
-                      </div>
-                      <span className={`text-lg font-bold ${t.color === "red" || t.color === "rose" ? "text-red-600" : "text-amber-600"}`}>{t.count}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Quick START create panel */}
-          <div className="bg-white border border-[#e1dfdd] rounded shadow-sm">
-            <div className="px-4 py-3 border-b border-[#e1dfdd]">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#605e5c]">START</p>
-            </div>
-            <div className="p-3 grid grid-cols-3 gap-2">
-              {[
-                { label: "Requisition", path: "/requisitions", icon: ClipboardList },
-                { label: "Payment", path: "/vouchers/payment", icon: DollarSign },
-                { label: "Receipt", path: "/vouchers/receipt", icon: Receipt },
-                { label: "Purchase Inv.", path: "/vouchers/purchase", icon: FileText },
-                { label: "Sales Invoice", path: "/vouchers/sales", icon: TrendingUp },
-                { label: "Inspection", path: "/quality/inspections", icon: Shield },
-                { label: "Tender", path: "/tenders", icon: Gavel },
-                { label: "Plan Item", path: "/procurement-planning", icon: Calendar },
-                { label: "Journal", path: "/vouchers/journal", icon: BookMarked },
-              ].map(s => (
-                <button key={s.label} onClick={() => navigate(s.path)}
-                  className="flex flex-col items-center gap-1.5 p-2 border border-[#e1dfdd] rounded hover:border-[#0078d4] hover:bg-[#f0f6ff] transition-all group">
-                  <div className="w-8 h-8 bg-[#f0f6ff] group-hover:bg-[#0078d4] rounded flex items-center justify-center transition-colors">
-                    <s.icon className="w-4 h-4 text-[#0078d4] group-hover:text-white transition-colors" />
+          {/* Pending tasks list */}
+          <div className="flex-1 overflow-y-auto">
+            {pendingItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <CheckCircle className="w-8 h-8 text-green-400 mb-2" />
+                <p className="text-sm font-medium text-gray-600">All clear!</p>
+                <p className="text-xs text-gray-400">No pending tasks.</p>
+              </div>
+            ) : (
+              pendingItems.map((t, i) => (
+                <button key={i} onClick={() => navigate(t.path)}
+                  className="w-full flex items-start gap-3 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left group">
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${t.priority === "high" ? "bg-red-500" : "bg-amber-400"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-800 leading-snug">{t.label}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[9px] uppercase tracking-wide text-gray-400 font-semibold">{t.type}</span>
+                      <span className={statusBadge(t.priority === "high" ? "pending" : "draft")}>{t.status}</span>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-medium text-[#323130] text-center leading-tight">{s.label}</span>
+                  <span className={`text-sm font-bold shrink-0 ${t.priority === "high" ? "text-red-600" : "text-amber-600"}`}>{t.count}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Live Activity Feed ─────────────────────────────────────── */}
-        <div className="bg-white border border-[#e1dfdd] rounded shadow-sm mb-5">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#e1dfdd]">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#0078d4]" />
-              <p className="text-sm font-bold text-[#323130] uppercase tracking-wide">Live Activity Feed</p>
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            </div>
-            <button onClick={() => navigate("/audit-log")} className="text-xs text-[#0078d4] hover:underline flex items-center gap-1">
-              View All <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 divide-x divide-[#e1dfdd]">
-            {activity.slice(0, 5).map((a, i) => (
-              <div key={i} className="px-4 py-3 hover:bg-[#f3f2f1] transition-colors">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-[#0078d4]" />
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#605e5c]">{a.entity_type || a.module}</span>
-                </div>
-                <p className="text-sm font-medium text-[#323130] capitalize">{a.action?.replace(/_/g, " ")}</p>
-                <p className="text-xs text-[#605e5c] mt-0.5">{a.user_name || "System"}</p>
-                <p className="text-[10px] text-[#a19f9d] mt-0.5">{a.created_at ? new Date(a.created_at).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" }) : ""}</p>
-              </div>
-            ))}
-            {activity.length === 0 && (
-              <div className="col-span-5 py-8 text-center text-sm text-[#605e5c]">No recent activity</div>
+              ))
             )}
           </div>
+
+          {/* Quick START section */}
+          <div className="border-t border-gray-200 shrink-0">
+            <div className="px-4 py-2 border-b border-gray-100">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">QUICK START</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1 p-2">
+              {[
+                { label: "Requisition", path: "/requisitions", icon: ClipboardList, color: "#1a1a2e" },
+                { label: "Payment", path: "/vouchers/payment", icon: DollarSign, color: "#C45911" },
+                { label: "Receipt", path: "/vouchers/receipt", icon: Receipt, color: "#107c10" },
+                { label: "Purchase Inv", path: "/vouchers/purchase", icon: FileText, color: "#1F6090" },
+                { label: "Sales Inv", path: "/vouchers/sales", icon: TrendingUp, color: "#375623" },
+                { label: "Inspection", path: "/quality/inspections", icon: Shield, color: "#00695C" },
+                { label: "Tender", path: "/tenders", icon: Gavel, color: "#5C2D91" },
+                { label: "Journal", path: "/vouchers/journal", icon: BookMarked, color: "#8764b8" },
+                { label: "Plan Item", path: "/procurement-planning", icon: Calendar, color: "#038387" },
+              ].map(s => (
+                <button key={s.label} onClick={() => navigate(s.path)}
+                  className="flex flex-col items-center gap-1 p-2 rounded hover:bg-gray-100 transition-colors group text-center">
+                  <div className="w-7 h-7 rounded flex items-center justify-center group-hover:opacity-80 transition-opacity"
+                    style={{ backgroundColor: `${s.color}20` }}>
+                    <s.icon className="w-3.5 h-3.5" style={{ color: s.color }} />
+                  </div>
+                  <span className="text-[9px] font-medium text-gray-600 leading-tight">{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-[#a19f9d] pb-4">
-          <span>Embu Level 5 Hospital · MediProcure ERP · Kenya</span>
-          <span>Realtime sync active · {new Date().toLocaleTimeString("en-KE")}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+        {/* ── CENTER: Main data tables ──────────────────────────────────── */}
+        <div className="flex flex-col min-h-0 overflow-hidden bg-white">
+          {/* Tab row */}
+          {(() => {
+            const [tab, setTab] = useState("reqs");
+            const tabs = [
+              { id: "reqs", label: "Requisitions", count: kpi.totalReqs || 0 },
+              { id: "pos", label: "Purchase Orders", count: kpi.issuedPOs || 0 },
+              { id: "payments", label: "Payment Vouchers", count: kpi.totalReceipts || 0 },
+              { id: "activity", label: "All Activity", count: recentActivity.length },
+            ];
 
-// ── Tile Section component ────────────────────────────────────────────────────
-function TileSection({ label, tiles, navigate, inline = false }: {
-  label: string; tiles: any[]; navigate: Function; inline?: boolean;
-}) {
-  return (
-    <div className={`bg-white border border-[#e1dfdd] rounded shadow-sm ${inline ? "" : "mb-5"}`}>
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e1dfdd]">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c]">{label}</p>
-      </div>
-      <div className={`grid ${tiles.length <= 3 ? "grid-cols-3" : tiles.length <= 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-6"} gap-0 divide-x divide-y divide-[#e1dfdd]`}>
-        {tiles.map((t, i) => (
-          <button key={i} onClick={() => navigate(t.path)}
-            className={`p-3 text-left hover:bg-[#f3f2f1] transition-colors group relative overflow-hidden flex flex-col
-              ${t.urgent ? "bg-[#fdf6f6]" : ""}`}>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-[#605e5c] mb-2 leading-tight">{t.label}</p>
-            <p className={`text-3xl font-bold leading-none ${t.urgent ? "text-[#a4262c]" : "text-[#0078d4]"}`}>
-              {typeof t.val === "number" ? t.val : t.val || 0}
-            </p>
-            <p className="text-[10px] text-[#605e5c] mt-1 truncate">{t.sub}</p>
-            <ChevronRight className={`w-3.5 h-3.5 mt-auto self-end opacity-0 group-hover:opacity-100 transition-opacity ${t.urgent ? "text-[#a4262c]" : "text-[#0078d4]"}`} />
-            {t.urgent && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#a4262c]" />}
-          </button>
-        ))}
+            const tableData: any = {
+              reqs: {
+                headers: ["Req Number", "Status", "Priority", "Amount", "Date"],
+                rows: recentReqs.map(r => ({
+                  id: r.id, path: "/requisitions",
+                  cols: [
+                    <span key="n" className="font-mono text-xs font-bold text-blue-600">{r.requisition_number}</span>,
+                    <span key="s" className={statusBadge(r.status)}>{r.status}</span>,
+                    <span key="p" className={`text-[10px] font-semibold capitalize ${r.priority === "urgent" ? "text-red-600" : r.priority === "high" ? "text-orange-600" : "text-gray-600"}`}>{r.priority || "normal"}</span>,
+                    <span key="a" className="text-xs font-semibold">{r.total_amount ? fmt(Number(r.total_amount)) : "—"}</span>,
+                    <span key="d" className="text-[10px] text-gray-500">{r.created_at ? new Date(r.created_at).toLocaleDateString("en-KE") : "—"}</span>,
+                  ]
+                })),
+                action: { label: "New Requisition", path: "/requisitions" },
+              },
+              pos: {
+                headers: ["PO Number", "Status", "Total Amount", "Date"],
+                rows: recentPOs.map(p => ({
+                  id: p.id, path: "/purchase-orders",
+                  cols: [
+                    <span key="n" className="font-mono text-xs font-bold text-blue-600">{p.po_number}</span>,
+                    <span key="s" className={statusBadge(p.status)}>{p.status}</span>,
+                    <span key="a" className="text-xs font-semibold">{p.total_amount ? fmt(Number(p.total_amount)) : "—"}</span>,
+                    <span key="d" className="text-[10px] text-gray-500">{p.created_at ? new Date(p.created_at).toLocaleDateString("en-KE") : "—"}</span>,
+                  ]
+                })),
+                action: { label: "New Purchase Order", path: "/purchase-orders" },
+              },
+              payments: {
+                headers: ["Voucher No.", "Payee", "Amount", "Status", "Date"],
+                rows: recentPayments.map(v => ({
+                  id: v.id, path: "/vouchers/payment",
+                  cols: [
+                    <span key="n" className="font-mono text-xs font-bold text-orange-600">{v.voucher_number}</span>,
+                    <span key="p" className="text-xs text-gray-700 truncate max-w-[120px]">{v.payee_name}</span>,
+                    <span key="a" className="text-xs font-bold">{fmt(Number(v.amount || 0))}</span>,
+                    <span key="s" className={statusBadge(v.status)}>{v.status}</span>,
+                    <span key="d" className="text-[10px] text-gray-500">{v.voucher_date}</span>,
+                  ]
+                })),
+                action: { label: "New Payment Voucher", path: "/vouchers/payment" },
+              },
+              activity: {
+                headers: ["Action", "Module / Entity", "Performed By", "Time"],
+                rows: filteredActivity.slice(0, 20).map(a => ({
+                  id: a.id, path: "/audit-log",
+                  cols: [
+                    <span key="a" className="text-xs font-medium text-gray-800 capitalize">{a.action?.replace(/_/g, " ")}</span>,
+                    <div key="m" className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase text-gray-400">{a.module}</span>
+                      <span className="text-xs text-gray-600">{a.entity_type}</span>
+                    </div>,
+                    <div key="u" className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: "#0078d4" }}>
+                        {(a.user_name || "S")[0].toUpperCase()}
+                      </div>
+                      <span className="text-xs text-gray-700">{a.user_name || "System"}</span>
+                    </div>,
+                    <span key="t" className="text-[10px] text-gray-400">
+                      {a.created_at ? new Date(a.created_at).toLocaleString("en-KE", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                    </span>,
+                  ]
+                })),
+                action: { label: "View Full Audit Trail", path: "/audit-log" },
+              },
+            };
+
+            const current = tableData[tab];
+
+            return (
+              <>
+                {/* Tab bar + search + add button */}
+                <div className="border-b border-gray-200 shrink-0">
+                  <div className="flex items-center px-4 pt-2 gap-0">
+                    {tabs.map(t => (
+                      <button key={t.id} onClick={() => setTab(t.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-all -mb-px ${tab === t.id ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-800"}`}>
+                        {t.label}
+                        <span className={`text-[9px] px-1 py-0.5 rounded-full font-bold ${tab === t.id ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>{t.count}</span>
+                      </button>
+                    ))}
+                    <div className="flex-1" />
+                    <button onClick={() => navigate(current.action.path)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors border border-blue-200 mb-1">
+                      <Plus className="w-3 h-3" />{current.action.label}
+                    </button>
+                  </div>
+                  {tab === "activity" && (
+                    <div className="px-4 pb-2 flex items-center gap-2">
+                      <div className="relative flex-1 max-w-xs">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        <Input className="pl-7 h-7 text-xs" placeholder="Search records..." value={searchActivity} onChange={e => setSearchActivity(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Table */}
+                <div className="flex-1 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0">
+                      <tr style={{ background: "#f8f8f8", borderBottom: "1px solid #e0e0e0" }}>
+                        {current.headers.map((h: string) => (
+                          <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{h}</th>
+                        ))}
+                        <th className="px-4 py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {current.rows.length === 0 ? (
+                        <tr><td colSpan={current.headers.length + 1} className="py-16 text-center text-gray-400 text-sm">No records found. <button className="text-blue-600 hover:underline" onClick={() => navigate(current.action.path)}>Create the first one →</button></td></tr>
+                      ) : current.rows.map((row: any, i: number) => (
+                        <tr key={i} onClick={() => navigate(row.path)}
+                          className="border-b border-gray-100 hover:bg-blue-50/50 cursor-pointer transition-colors group">
+                          {row.cols.map((c: any, j: number) => <td key={j} className="px-4 py-2.5">{c}</td>)}
+                          <td className="px-4 py-2.5"><Eye className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400 transition-colors" /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="border-t border-gray-200 px-4 py-2 flex items-center justify-between bg-gray-50 shrink-0">
+                  <span className="text-[10px] text-gray-400">{current.rows.length} records shown</span>
+                  <button onClick={() => navigate(current.action.path)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                    View all <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        {/* ── RIGHT: KPI breakdown + Quick facts ───────────────────────── */}
+        <div className="flex flex-col min-h-0 overflow-y-auto border-l border-gray-200 bg-white">
+
+          {/* Procurement KPIs */}
+          <div className="border-b border-gray-200">
+            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">ONGOING PROCUREMENT</span>
+            </div>
+            <div className="grid grid-cols-2 gap-px bg-gray-200">
+              {[
+                { label: "REQUISITIONS", val: kpi.pendingReqs || 0, sub: "Pending", path: "/requisitions", color: "#ca5010" },
+                { label: "PURCHASE ORDERS", val: kpi.approvedPOs || 0, sub: "Approved", path: "/purchase-orders", color: "#0078d4" },
+                { label: "ISSUED POs", val: kpi.issuedPOs || 0, sub: "To suppliers", path: "/purchase-orders", color: "#107c10" },
+                { label: "GOODS RECEIVED", val: kpi.grnCount || 0, sub: "GRN total", path: "/goods-received", color: "#8764b8" },
+                { label: "OPEN TENDERS", val: kpi.openTenders || 0, sub: "Published", path: "/tenders", color: "#00695C" },
+                { label: "CONTRACTS", val: kpi.activeContracts || 0, sub: "Active", path: "/contracts", color: "#1F6090" },
+              ].map(t => (
+                <button key={t.label} onClick={() => navigate(t.path)}
+                  className="bg-white px-3 py-3 text-left hover:bg-gray-50 transition-colors group flex flex-col">
+                  <p className="text-[20px] font-bold leading-none" style={{ color: t.color }}>{t.val}</p>
+                  <p className="text-[8px] font-bold uppercase tracking-wide text-gray-500 mt-1 leading-tight">{t.label}</p>
+                  <p className="text-[9px] text-gray-400">{t.sub}</p>
+                  <ChevronRight className="w-3 h-3 text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity self-end mt-auto" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Payments section */}
+          <div className="border-b border-gray-200">
+            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">PAYMENTS</span>
+              <button onClick={() => navigate("/vouchers/payment")} className="text-[10px] text-blue-600 hover:underline">Manage</button>
+            </div>
+            <div className="grid grid-cols-3 gap-px bg-gray-200">
+              {[
+                { label: "UNPROCESSED", val: kpi.pendingPayments || 0, color: "#a4262c" },
+                { label: "APPROVED", val: kpi.approvedPOs || 0, color: "#ca5010" },
+                { label: "PAID MTD", val: "→", color: "#107c10", path: "/vouchers/payment" },
+              ].map(t => (
+                <button key={t.label} onClick={() => navigate("/vouchers/payment")}
+                  className="bg-white px-2 py-3 text-left hover:bg-gray-50 transition-colors group">
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-tight mb-1">{t.label}</p>
+                  <p className="text-[22px] font-bold leading-none" style={{ color: t.color }}>{t.val}</p>
+                  <ChevronRight className="w-3 h-3 text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quality */}
+          <div className="border-b border-gray-200">
+            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">QUALITY CONTROL</span>
+              <button onClick={() => navigate("/quality/dashboard")} className="text-[10px] text-blue-600 hover:underline">Dashboard</button>
+            </div>
+            <div className="grid grid-cols-3 gap-px bg-gray-200">
+              {[
+                { label: "OPEN NCRs", val: kpi.openNCRs || 0, color: kpi.openNCRs > 0 ? "#a4262c" : "#107c10" },
+                { label: "PENDING INSP.", val: kpi.pendingInspections || 0, color: kpi.pendingInspections > 0 ? "#ca5010" : "#107c10" },
+                { label: "PASS RATE", val: `${kpi.passRate || 100}%`, color: kpi.passRate >= 80 ? "#107c10" : "#ca5010" },
+              ].map(t => (
+                <button key={t.label} onClick={() => navigate("/quality/dashboard")}
+                  className="bg-white px-2 py-3 text-left hover:bg-gray-50 transition-colors group">
+                  <p className="text-[8px] font-bold uppercase tracking-wide text-gray-500 leading-tight mb-1">{t.label}</p>
+                  <p className="text-[22px] font-bold leading-none" style={{ color: t.color }}>{t.val}</p>
+                  <ChevronRight className="w-3 h-3 text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Budget utilization */}
+          <div className="border-b border-gray-200 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">BUDGET UTILIZATION</span>
+              <button onClick={() => navigate("/financials/budgets")} className="text-[10px] text-blue-600 hover:underline">Manage</button>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-xl font-bold" style={{ color: budgetPct > 90 ? "#a4262c" : budgetPct > 70 ? "#ca5010" : "#107c10" }}>{budgetPct}%</span>
+              <span className="text-xs text-gray-500">utilized</span>
+            </div>
+            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(budgetPct, 100)}%`, backgroundColor: budgetPct > 90 ? "#a4262c" : budgetPct > 70 ? "#ca5010" : "#0078d4" }} />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+              <span>Spent: {fmtSh(kpi.spentBudget || 0)}</span>
+              <span>Total: {fmtSh(kpi.totalBudget || 0)}</span>
+            </div>
+          </div>
+
+          {/* Incoming docs / Procurement plan */}
+          <div className="flex-1 border-b border-gray-200">
+            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">PROCUREMENT PLAN</span>
+              <button onClick={() => navigate("/procurement-planning")} className="text-[10px] text-blue-600 hover:underline">View Plan</button>
+            </div>
+            <div className="grid grid-cols-3 gap-px bg-gray-200">
+              {[
+                { label: "APPROVED ITEMS", val: kpi.approvedPlans || 0, color: "#107c10" },
+                { label: "PLAN BUDGET", val: fmtSh(kpi.planBudget || 0), color: "#0078d4" },
+                { label: "SUPPLIERS", val: kpi.activeSuppliers || 0, color: "#8764b8" },
+              ].map(t => (
+                <button key={t.label} onClick={() => navigate("/procurement-planning")}
+                  className="bg-white px-2 py-3 text-left hover:bg-gray-50 transition-colors group">
+                  <p className="text-[8px] font-bold uppercase tracking-wide text-gray-500 leading-tight mb-1">{t.label}</p>
+                  <p className="text-base font-bold leading-none" style={{ color: t.color }}>{t.val}</p>
+                  <ChevronRight className="w-3 h-3 text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Navigation shortcuts */}
+          <div className="shrink-0 p-3">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-2">NAVIGATE TO</p>
+            <div className="space-y-1">
+              {[
+                { label: "Financial Dashboard", path: "/financials/dashboard", color: "#1F6090" },
+                { label: "Chart of Accounts", path: "/financials/chart-of-accounts", color: "#1F6090" },
+                { label: "Fixed Assets Register", path: "/financials/fixed-assets", color: "#C45911" },
+                { label: "Tender Evaluations", path: "/bid-evaluations", color: "#00695C" },
+                ...(isAdmin ? [{ label: "Database Admin", path: "/admin/database", color: "#333" }] : []),
+              ].map(l => (
+                <button key={l.label} onClick={() => navigate(l.path)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left hover:bg-gray-100 transition-colors group">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
+                  <span className="text-gray-700 group-hover:text-blue-600 transition-colors">{l.label}</span>
+                  <ChevronRight className="w-3 h-3 text-gray-300 ml-auto opacity-0 group-hover:opacity-100" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

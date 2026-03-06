@@ -2,251 +2,282 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth, ProcurementRole } from "@/contexts/AuthContext";
 import {
-  Package, FileText, ShoppingCart, Truck, Users,
-  BarChart3, Settings, LogOut, ChevronDown, ChevronRight,
-  ClipboardList, Layers, Building2, Menu, X, Bell,
-  UserCircle, Shield, FileCheck, Database,
+  Package, FileText, ShoppingCart, Truck, Users, BarChart3,
+  Settings, LogOut, ChevronDown, Building2, Bell, UserCircle,
+  Shield, FileCheck, Database, Home, Gavel, DollarSign,
+  ClipboardList, BookOpen, PiggyBank, Layers, Receipt,
+  BookMarked, Calendar, Scale, Plus, Search, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import logo from "@/assets/logo.png";
-import procurementBg from "@/assets/procurement-bg.jpg";
-import { LucideIcon } from "lucide-react";
 
-interface NavItem { path: string; label: string; icon: LucideIcon; roles: ProcurementRole[]; }
-interface NavGroup { label: string; items: NavItem[]; roles: ProcurementRole[]; icon: LucideIcon; }
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrator",
+  procurement_manager: "Procurement Manager",
+  procurement_officer: "Procurement Officer",
+  inventory_manager: "Inventory Manager",
+  warehouse_officer: "Warehouse Officer",
+  requisitioner: "Requisitioner",
+};
 
-const navGroups: NavGroup[] = [
+// ─── Module definitions ────────────────────────────────────────────────────
+const MODULES = [
   {
-    label: "DASHBOARD",
-    icon: BarChart3,
-    roles: [],
-    items: [
-      { path: "/dashboard", label: "Cockpit", icon: BarChart3, roles: [] },
+    id: "home", label: "DASHBOARD", icon: Home,
+    bg: "#008B8B", hoverBg: "#007A7A",
+    path: "/dashboard",
+    sub: [],
+  },
+  {
+    id: "procurement", label: "PROCUREMENT", icon: ShoppingCart,
+    bg: "#1a1a2e", hoverBg: "#16213e",
+    path: "/requisitions",
+    sub: [
+      { label: "Requisitions", path: "/requisitions", icon: ClipboardList },
+      { label: "Purchase Orders", path: "/purchase-orders", icon: ShoppingCart },
+      { label: "Goods Received", path: "/goods-received", icon: Package },
+      { label: "Suppliers", path: "/suppliers", icon: Truck },
+      { label: "Contracts", path: "/contracts", icon: FileCheck },
+      { label: "Tenders", path: "/tenders", icon: Gavel },
+      { label: "Bid Evaluations", path: "/bid-evaluations", icon: Scale },
+      { label: "Procurement Plan", path: "/procurement-planning", icon: Calendar },
     ],
   },
   {
-    label: "INVENTORY",
-    icon: Package,
-    roles: ["admin", "inventory_manager", "warehouse_officer", "procurement_officer", "procurement_manager"],
-    items: [
-      { path: "/items", label: "Items", icon: Package, roles: [] },
-      { path: "/categories", label: "Categories", icon: Layers, roles: ["admin", "inventory_manager"] },
-      { path: "/departments", label: "Departments", icon: Building2, roles: ["admin", "inventory_manager"] },
+    id: "vouchers", label: "VOUCHERS", icon: FileText,
+    bg: "#C45911", hoverBg: "#A84D0E",
+    path: "/vouchers/payment",
+    sub: [
+      { label: "Payment Vouchers", path: "/vouchers/payment", icon: DollarSign },
+      { label: "Receipt Vouchers", path: "/vouchers/receipt", icon: Receipt },
+      { label: "Journal Vouchers", path: "/vouchers/journal", icon: BookMarked },
+      { label: "Purchase Vouchers", path: "/vouchers/purchase", icon: FileText },
+      { label: "Sales Vouchers", path: "/vouchers/sales", icon: BarChart3 },
+      { label: "Store Issue (S11)", path: "/vouchers", icon: Package },
     ],
   },
   {
-    label: "PURCHASING",
-    icon: ShoppingCart,
-    roles: [],
-    items: [
-      { path: "/requisitions", label: "Requisitions", icon: FileText, roles: [] },
-      { path: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, roles: [] },
-      { path: "/suppliers", label: "Suppliers", icon: Truck, roles: [] },
-      { path: "/goods-received", label: "Goods Received", icon: ClipboardList, roles: [] },
-      { path: "/contracts", label: "Contracts", icon: FileCheck, roles: [] },
-      { path: "/tenders", label: "Tenders", icon: FileText, roles: [] },
-      { path: "/bid-evaluations", label: "Bid Evaluations", icon: FileText, roles: [] },
-      { path: "/procurement-planning", label: "Procurement Plan", icon: FileText, roles: [] },
+    id: "financials", label: "FINANCIALS", icon: BarChart3,
+    bg: "#1F6090", hoverBg: "#195380",
+    path: "/financials/dashboard",
+    sub: [
+      { label: "Finance Dashboard", path: "/financials/dashboard", icon: BarChart3 },
+      { label: "Chart of Accounts", path: "/financials/chart-of-accounts", icon: BookOpen },
+      { label: "Budgets", path: "/financials/budgets", icon: PiggyBank },
+      { label: "Fixed Assets", path: "/financials/fixed-assets", icon: Building2 },
     ],
   },
   {
-    label: "VOUCHERS",
-    icon: FileText,
-    roles: [],
-    items: [
-      { path: "/vouchers/payment", label: "Payment Vouchers", icon: FileText, roles: [] },
-      { path: "/vouchers/receipt", label: "Receipt Vouchers", icon: FileText, roles: [] },
-      { path: "/vouchers/journal", label: "Journal Vouchers", icon: FileText, roles: [] },
-      { path: "/vouchers/purchase", label: "Purchase Vouchers", icon: FileText, roles: [] },
-      { path: "/vouchers/sales", label: "Sales Vouchers", icon: FileText, roles: [] },
-      { path: "/vouchers", label: "Store Issue (S11)", icon: FileText, roles: [] },
+    id: "inventory", label: "INVENTORY", icon: Package,
+    bg: "#375623", hoverBg: "#2D4A1C",
+    path: "/items",
+    sub: [
+      { label: "Items", path: "/items", icon: Package },
+      { label: "Categories", path: "/categories", icon: Layers },
+      { label: "Departments", path: "/departments", icon: Building2 },
+      { label: "Scanner", path: "/scanner", icon: Search },
     ],
   },
   {
-    label: "FINANCIALS",
-    icon: BarChart3,
-    roles: [],
-    items: [
-      { path: "/financials/dashboard", label: "Finance Dashboard", icon: BarChart3, roles: [] },
-      { path: "/financials/chart-of-accounts", label: "Chart of Accounts", icon: FileText, roles: [] },
-      { path: "/financials/budgets", label: "Budgets", icon: BarChart3, roles: [] },
-      { path: "/financials/fixed-assets", label: "Fixed Assets", icon: Building2, roles: [] },
+    id: "quality", label: "QUALITY", icon: Shield,
+    bg: "#00695C", hoverBg: "#005347",
+    path: "/quality/dashboard",
+    sub: [
+      { label: "QC Dashboard", path: "/quality/dashboard", icon: Shield },
+      { label: "Inspections", path: "/quality/inspections", icon: ClipboardList },
+      { label: "Non-Conformance", path: "/quality/non-conformance", icon: Shield },
     ],
   },
   {
-    label: "QUALITY",
-    icon: Shield,
-    roles: [],
-    items: [
-      { path: "/quality/dashboard", label: "QC Dashboard", icon: Shield, roles: [] },
-      { path: "/quality/inspections", label: "Inspections", icon: ClipboardList, roles: [] },
-      { path: "/quality/non-conformance", label: "Non-Conformance", icon: Shield, roles: [] },
+    id: "reports", label: "REPORTS", icon: BarChart3,
+    bg: "#5C2D91", hoverBg: "#4E2680",
+    path: "/reports",
+    sub: [
+      { label: "Reports", path: "/reports", icon: BarChart3 },
+      { label: "Audit Trail", path: "/audit-log", icon: FileText },
     ],
   },
   {
-    label: "ANALYTICS",
-    icon: BarChart3,
-    roles: ["admin", "procurement_manager", "inventory_manager"],
-    items: [
-      { path: "/reports", label: "Reports", icon: BarChart3, roles: [] },
-    ],
-  },
-  {
-    label: "ADMIN",
-    icon: Shield,
+    id: "admin", label: "ADMIN", icon: Database,
+    bg: "#333333", hoverBg: "#222222",
+    path: "/users",
     roles: ["admin"],
-    items: [
-      { path: "/users", label: "Users", icon: Users, roles: ["admin"] },
-      { path: "/audit-log", label: "Audit Trail", icon: ClipboardList, roles: ["admin"] },
-      { path: "/admin/database", label: "Database Admin", icon: Database, roles: ["admin"] },
-      { path: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
+    sub: [
+      { label: "Users", path: "/users", icon: Users },
+      { label: "Database Admin", path: "/admin/database", icon: Database },
+      { label: "Settings", path: "/settings", icon: Settings },
     ],
   },
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Administrator", requisitioner: "Requisitioner",
-  procurement_officer: "Procurement Officer", procurement_manager: "Procurement Manager",
-  warehouse_officer: "Warehouse Officer", inventory_manager: "Inventory Manager",
+// ─── Page headers per-path ─────────────────────────────────────────────────
+const PAGE_HEADERS: Record<string, { module: string; label: string }> = {
+  "/dashboard":                 { module: "DASHBOARD", label: "Home" },
+  "/requisitions":              { module: "PROCUREMENT", label: "Requisitions" },
+  "/purchase-orders":           { module: "PROCUREMENT", label: "Purchase Orders" },
+  "/goods-received":            { module: "PROCUREMENT", label: "Goods Received" },
+  "/suppliers":                 { module: "PROCUREMENT", label: "Suppliers" },
+  "/contracts":                 { module: "PROCUREMENT", label: "Contracts" },
+  "/tenders":                   { module: "PROCUREMENT", label: "Tenders" },
+  "/bid-evaluations":           { module: "PROCUREMENT", label: "Bid Evaluations" },
+  "/procurement-planning":      { module: "PROCUREMENT", label: "Annual Procurement Plan" },
+  "/vouchers":                  { module: "VOUCHERS", label: "Store Issue Vouchers" },
+  "/vouchers/payment":          { module: "VOUCHERS", label: "Payment Vouchers" },
+  "/vouchers/receipt":          { module: "VOUCHERS", label: "Receipt Vouchers" },
+  "/vouchers/journal":          { module: "VOUCHERS", label: "Journal Vouchers" },
+  "/vouchers/purchase":         { module: "VOUCHERS", label: "Purchase Vouchers" },
+  "/vouchers/sales":            { module: "VOUCHERS", label: "Sales Vouchers" },
+  "/financials/dashboard":      { module: "FINANCIALS", label: "Finance Dashboard" },
+  "/financials/chart-of-accounts":{ module: "FINANCIALS", label: "Chart of Accounts" },
+  "/financials/budgets":        { module: "FINANCIALS", label: "Budgets" },
+  "/financials/fixed-assets":   { module: "FINANCIALS", label: "Fixed Assets" },
+  "/items":                     { module: "INVENTORY", label: "Items" },
+  "/categories":                { module: "INVENTORY", label: "Categories" },
+  "/departments":               { module: "INVENTORY", label: "Departments" },
+  "/scanner":                   { module: "INVENTORY", label: "Barcode Scanner" },
+  "/quality/dashboard":         { module: "QUALITY", label: "Quality Dashboard" },
+  "/quality/inspections":       { module: "QUALITY", label: "Inspections" },
+  "/quality/non-conformance":   { module: "QUALITY", label: "Non-Conformance Reports" },
+  "/reports":                   { module: "REPORTS", label: "Reports" },
+  "/audit-log":                 { module: "REPORTS", label: "Audit Trail" },
+  "/users":                     { module: "ADMIN", label: "User Management" },
+  "/admin/database":            { module: "ADMIN", label: "Database Administration" },
+  "/settings":                  { module: "ADMIN", label: "Settings" },
 };
 
-const AppLayout = ({ children }: { children: React.ReactNode }) => {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(navGroups.map(g => g.label)));
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const { profile, roles, primaryRole, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, roles, signOut, primaryRole } = useAuth();
+  const [activeModule, setActiveModule] = useState<string | null>(null);
 
-  const canSeeGroup = (group: NavGroup) => group.roles.length === 0 || group.roles.some(r => roles.includes(r));
-  const canSeeItem = (item: NavItem) => item.roles.length === 0 || item.roles.some(r => roles.includes(r));
+  const currentPath = location.pathname;
+  const pageInfo = PAGE_HEADERS[currentPath] || { module: "DASHBOARD", label: "Page" };
+  const isAdmin = roles.includes("admin");
 
-  const toggleGroup = (label: string) => {
-    const next = new Set(expandedGroups);
-    if (next.has(label)) next.delete(label); else next.add(label);
-    setExpandedGroups(next);
-  };
+  const visibleModules = MODULES.filter(m =>
+    !m.roles || m.roles.every(r => roles.includes(r)) || !m.roles.length
+  );
 
-  const visibleGroups = navGroups.filter(canSeeGroup).map(group => ({
-    ...group, items: group.items.filter(canSeeItem),
-  })).filter(g => g.items.length > 0);
-
-  const renderSidebar = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
-        <img src={logo} alt="MediProcure" className="w-8 h-8 flex-shrink-0" />
-        {!collapsed && (
-          <div className="min-w-0">
-            <span className="text-base font-bold text-sidebar-foreground tracking-tight block">MediProcure</span>
-            <span className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">ERP Suite v2.0</span>
-          </div>
-        )}
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 pt-3">
-        {visibleGroups.map((group) => (
-          <Collapsible key={group.label} open={expandedGroups.has(group.label)} onOpenChange={() => toggleGroup(group.label)}>
-            {!collapsed ? (
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-[11px] font-semibold text-sidebar-foreground/60 uppercase tracking-wider hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50 rounded-md transition-colors">
-                <span className="flex items-center gap-2">
-                  <group.icon className="w-3.5 h-3.5" />
-                  {group.label}
-                </span>
-                {expandedGroups.has(group.label) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-              </CollapsibleTrigger>
-            ) : <div className="h-px bg-sidebar-border mx-2 my-1" />}
-            <CollapsibleContent>
-              <div className="space-y-0.5 ml-2 border-l border-sidebar-border/40 pl-2 mt-0.5">
-                {group.items.map((item) => {
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-all ${isActive ? "bg-primary/10 text-primary font-medium shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
-                      <item.icon className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-primary" : ""}`} />
-                      {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                  );
-                })}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        ))}
-      </nav>
-
-      <div className="border-t border-sidebar-border p-3">
-        {!collapsed && profile && (
-          <div className="mb-2 px-1">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{profile.full_name}</p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Shield className="w-3 h-3 text-primary" />
-              <p className="text-[11px] text-primary font-medium capitalize">{ROLE_LABELS[primaryRole] || primaryRole}</p>
-            </div>
-          </div>
-        )}
-        <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10">
-          <LogOut className="w-4 h-4 mr-2" />{!collapsed && "Sign Out"}
-        </Button>
-      </div>
-    </div>
+  const currentModule = MODULES.find(m =>
+    m.path === currentPath || m.sub.some(s => s.path === currentPath)
   );
 
   return (
-    <div className="min-h-screen flex relative">
-      {/* Background wallpaper for main content */}
-      <div className="absolute inset-0 z-0">
-        <img src={procurementBg} alt="" className="w-full h-full object-cover opacity-[0.03]" />
+    <div className="min-h-screen flex flex-col" style={{ fontFamily: "Segoe UI, system-ui, sans-serif" }}>
+
+      {/* ── Top system bar ──────────────────────────────────────────────── */}
+      <div className="h-10 flex items-center px-3 gap-0 shrink-0 z-50 relative"
+        style={{ background: "linear-gradient(to bottom, #1e3a5f, #16304f)" }}>
+        {/* App icon + name */}
+        <div className="flex items-center gap-2 pr-4 border-r border-white/20 mr-2">
+          <div className="w-5 h-5 bg-white/20 rounded flex items-center justify-center">
+            <span className="text-white text-[9px] font-black">EL5</span>
+          </div>
+          <span className="text-white text-xs font-semibold tracking-wide">MediProcure</span>
+          <ChevronDown className="w-3 h-3 text-white/60" />
+        </div>
+
+        {/* Module breadcrumb */}
+        <div className="flex items-center gap-1 text-white/70 text-xs">
+          <button className="hover:text-white px-2 py-1 rounded hover:bg-white/10 transition-colors font-semibold"
+            style={{ color: "#00b4d8" }} onClick={() => navigate("/dashboard")}>
+            {pageInfo.module}
+          </button>
+          {pageInfo.label !== "Home" && <>
+            <span className="text-white/40">›</span>
+            <span className="text-white/90 px-1">{pageInfo.label}</span>
+          </>}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Create button */}
+        <button onClick={() => navigate("/requisitions")}
+          className="flex items-center gap-1.5 px-3 py-1 rounded border border-white/30 text-white text-xs font-medium hover:bg-white/10 transition-colors mr-3">
+          <Plus className="w-3.5 h-3.5" />Create
+        </button>
+
+        {/* User info */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/10 transition-colors">
+              <div className="text-right hidden sm:block">
+                <p className="text-white text-[11px] font-semibold leading-none">{profile?.full_name || "User"}</p>
+                <p className="text-white/60 text-[10px] leading-none mt-0.5 capitalize">{ROLE_LABELS[primaryRole] || "Staff"}</p>
+              </div>
+              <div className="w-7 h-7 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-xs font-bold">
+                {(profile?.full_name || "U")[0].toUpperCase()}
+              </div>
+              <div className="flex flex-col gap-0.5 text-white/60 text-xs">
+                <Settings className="w-3.5 h-3.5" />
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 mt-1">
+            <div className="px-3 py-2 border-b">
+              <p className="font-semibold text-sm">{profile?.full_name}</p>
+              <p className="text-xs text-muted-foreground capitalize">{ROLE_LABELS[primaryRole]}</p>
+              <p className="text-xs text-muted-foreground">Embu Level 5 Hospital</p>
+            </div>
+            <DropdownMenuItem onClick={() => navigate("/settings")}><Settings className="w-4 h-4 mr-2" />Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/users")} className={isAdmin ? "" : "hidden"}><Users className="w-4 h-4 mr-2" />Manage Users</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOut} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />Sign Out</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      <aside className={`hidden md:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 relative z-10 ${collapsed ? "w-16" : "w-56"}`}>
-        {renderSidebar()}
-        <button onClick={() => setCollapsed(!collapsed)} className="absolute top-4 -right-3 bg-card border border-border rounded-full p-1 shadow-sm hover:bg-muted transition-colors z-10">
-          {collapsed ? <ChevronRight className="w-3 h-3" /> : <X className="w-3 h-3" />}
-        </button>
-      </aside>
-      {mobileOpen && <div className="md:hidden fixed inset-0 bg-foreground/50 z-40" onClick={() => setMobileOpen(false)} />}
-      <aside className={`md:hidden fixed top-0 left-0 h-full w-60 bg-sidebar z-50 flex flex-col transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        {renderSidebar()}
-      </aside>
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
-        <header className="h-12 bg-card/95 backdrop-blur-sm border-b border-border flex items-center px-4 gap-3 no-print">
-          <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMobileOpen(true)}><Menu className="w-5 h-5" /></Button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="relative"><Bell className="w-4 h-4" /><span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-destructive rounded-full" /></Button>
-            <span className="text-xs text-muted-foreground hidden lg:block">
-              {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <UserCircle className="w-5 h-5" />
-                  <span className="hidden sm:block text-sm font-medium truncate max-w-[120px]">{profile?.full_name || "User"}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2">
-                  <p className="font-medium text-sm">{profile?.full_name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{ROLE_LABELS[primaryRole]}</p>
+      {/* ── Module tile navigation ───────────────────────────────────────── */}
+      <div className="flex items-stretch shrink-0 z-40 relative overflow-x-auto"
+        style={{ background: "#1a1a2e", borderBottom: "2px solid #000" }}>
+        {visibleModules.map(mod => {
+          const isActive = currentModule?.id === mod.id;
+          return (
+            <div key={mod.id} className="relative group"
+              onMouseEnter={() => setActiveModule(mod.id)}
+              onMouseLeave={() => setActiveModule(null)}>
+              <button
+                onClick={() => { navigate(mod.path); setActiveModule(null); }}
+                className="flex flex-col items-start justify-between px-5 py-2.5 min-w-[110px] h-[62px] transition-all relative"
+                style={{
+                  backgroundColor: isActive ? mod.bg : activeModule === mod.id ? mod.hoverBg : mod.bg,
+                  opacity: 1,
+                }}>
+                {/* Active indicator bar at bottom */}
+                {isActive && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/80" />}
+                <div className="flex items-center gap-2">
+                  <mod.icon className="w-4 h-4 text-white/80" />
+                  {mod.sub.length > 0 && <ChevronDown className="w-3 h-3 text-white/50 ml-auto" />}
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/settings")}><Settings className="w-4 h-4 mr-2" /> Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="text-destructive"><LogOut className="w-4 h-4 mr-2" /> Sign Out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6 bg-background/80">{children}</main>
+                <span className="text-white text-[11px] font-bold tracking-wider leading-none">{mod.label}</span>
+              </button>
+
+              {/* Dropdown sub-menu */}
+              {mod.sub.length > 0 && activeModule === mod.id && (
+                <div className="absolute top-full left-0 w-52 bg-white shadow-2xl border border-gray-200 z-50 rounded-b"
+                  style={{ marginTop: "0px" }}>
+                  {mod.sub.map(s => (
+                    <button key={s.path} onClick={() => { navigate(s.path); setActiveModule(null); }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 ${currentPath === s.path ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700"}`}>
+                      <s.icon className="w-4 h-4 text-gray-400 shrink-0" />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* ── Page content ────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-auto bg-gray-50 min-h-0">
+        {children}
+      </main>
     </div>
   );
-};
-
-export default AppLayout;
+}
