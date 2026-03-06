@@ -6,7 +6,7 @@ import {
   Settings, LogOut, ChevronDown, Building2, Bell, UserCircle,
   Shield, FileCheck, Database, Home, Gavel, DollarSign,
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt,
-  BookMarked, Calendar, Scale, Plus, Search, X
+  BookMarked, Calendar, Scale, Plus, Search, X, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -108,6 +108,8 @@ const MODULES = [
     sub: [
       { label: "Users", path: "/users", icon: Users },
       { label: "Database Admin", path: "/admin/database", icon: Database },
+      { label: "System Explorer", path: "/webmaster", icon: Globe },
+      { label: "Audit Log", path: "/audit-log", icon: FileText },
       { label: "Settings", path: "/settings", icon: Settings },
     ],
   },
@@ -145,6 +147,8 @@ const PAGE_HEADERS: Record<string, { module: string; label: string }> = {
   "/audit-log":                 { module: "REPORTS", label: "Audit Trail" },
   "/users":                     { module: "ADMIN", label: "User Management" },
   "/admin/database":            { module: "ADMIN", label: "Database Administration" },
+  "/webmaster":                 { module: "ADMIN", label: "System Explorer" },
+  "/audit-log":                 { module: "ADMIN", label: "Audit Log" },
   "/settings":                  { module: "ADMIN", label: "Settings" },
 };
 

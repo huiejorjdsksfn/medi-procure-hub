@@ -45,6 +45,7 @@ import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AuditLogPage from "@/pages/AuditLogPage";
 import AdminDatabasePage from "@/pages/AdminDatabasePage";
+import WebmasterPage from "@/pages/WebmasterPage";
 
 const queryClient = new QueryClient();
 const P = ({ children }: { children: React.ReactNode }) => (
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/settings" element={<P><SettingsPage /></P>} />
             <Route path="/audit-log" element={<P><AuditLogPage /></P>} />
             <Route path="/admin/database" element={<P><AdminDatabasePage /></P>} />
+            <Route path="/webmaster" element={<P><WebmasterPage /></P>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
