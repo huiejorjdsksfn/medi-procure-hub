@@ -5,7 +5,7 @@ import {
   Package, FileText, ShoppingCart, Truck, Users,
   BarChart3, Settings, LogOut, ChevronDown, ChevronRight,
   ClipboardList, Layers, Building2, Menu, X, Bell,
-  UserCircle, Shield, FileCheck,
+  UserCircle, Shield, FileCheck, Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +62,39 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "VOUCHERS",
+    icon: FileText,
+    roles: [],
+    items: [
+      { path: "/vouchers/payment", label: "Payment Vouchers", icon: FileText, roles: [] },
+      { path: "/vouchers/receipt", label: "Receipt Vouchers", icon: FileText, roles: [] },
+      { path: "/vouchers/journal", label: "Journal Vouchers", icon: FileText, roles: [] },
+      { path: "/vouchers/purchase", label: "Purchase Vouchers", icon: FileText, roles: [] },
+      { path: "/vouchers/sales", label: "Sales Vouchers", icon: FileText, roles: [] },
+      { path: "/vouchers", label: "Store Vouchers (S11)", icon: FileText, roles: [] },
+    ],
+  },
+  {
+    label: "FINANCIALS",
+    icon: BarChart3,
+    roles: ["admin", "procurement_manager"],
+    items: [
+      { path: "/financials/dashboard", label: "Finance Dashboard", icon: BarChart3, roles: [] },
+      { path: "/financials/chart-of-accounts", label: "Chart of Accounts", icon: FileText, roles: [] },
+      { path: "/financials/budgets", label: "Budgets", icon: BarChart3, roles: [] },
+    ],
+  },
+  {
+    label: "QUALITY",
+    icon: Shield,
+    roles: [],
+    items: [
+      { path: "/quality/dashboard", label: "QC Dashboard", icon: Shield, roles: [] },
+      { path: "/quality/inspections", label: "Inspections", icon: ClipboardList, roles: [] },
+      { path: "/quality/non-conformance", label: "Non-Conformance", icon: Shield, roles: [] },
+    ],
+  },
+  {
     label: "ANALYTICS",
     icon: BarChart3,
     roles: ["admin", "procurement_manager", "inventory_manager"],
@@ -76,6 +109,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: "/users", label: "Users", icon: Users, roles: ["admin"] },
       { path: "/audit-log", label: "Audit Trail", icon: ClipboardList, roles: ["admin"] },
+      { path: "/admin/database", label: "Database Admin", icon: Database, roles: ["admin"] },
       { path: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
     ],
   },
