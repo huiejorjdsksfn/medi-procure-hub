@@ -24,6 +24,14 @@ interface NavGroup { label: string; items: NavItem[]; roles: ProcurementRole[]; 
 
 const navGroups: NavGroup[] = [
   {
+    label: "DASHBOARD",
+    icon: BarChart3,
+    roles: [],
+    items: [
+      { path: "/dashboard", label: "Cockpit", icon: BarChart3, roles: [] },
+    ],
+  },
+  {
     label: "INVENTORY",
     icon: Package,
     roles: ["admin", "inventory_manager", "warehouse_officer", "procurement_officer", "procurement_manager"],
@@ -42,6 +50,7 @@ const navGroups: NavGroup[] = [
       { path: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, roles: ["admin", "procurement_officer", "procurement_manager"] },
       { path: "/suppliers", label: "Suppliers", icon: Truck, roles: ["admin", "procurement_officer", "procurement_manager"] },
       { path: "/contracts", label: "Contracts", icon: FileCheck, roles: ["admin", "procurement_officer", "procurement_manager"] },
+      { path: "/vouchers", label: "Vouchers (S11)", icon: FileText, roles: [] },
     ],
   },
   {
