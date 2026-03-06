@@ -71,7 +71,7 @@ export default function ChartOfAccountsPage() {
           }</TableBody>
         </Table>
       </div>
-      <Dialog open={showNew} onOpenChange={v=>{setShowNew(v);if(!v){setEditing(null);setForm({account_code:"",account_name:"",account_type:"expense",category:"",description:"";}}}}> 
+      <Dialog open={showNew} onOpenChange={v=>{setShowNew(v);if(!v){setEditing(null);setForm({account_code:"",account_name:"",account_type:"expense",category:"",description:""});}}}> 
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>{editing?"Edit":"New"} Account</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Account Code *</Label><Input className="mt-1" value={form.account_code} onChange={e=>setForm(f=>({...f,account_code:e.target.value}))} /></div>
