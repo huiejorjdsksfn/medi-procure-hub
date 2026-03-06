@@ -1,0 +1,4 @@
+project_id = "yvjfehnzbzjliizjvuhq"
+
+[functions.notify-requisition]
+verify_jwt = false
