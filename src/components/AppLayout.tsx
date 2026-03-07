@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import ERPWheelButton from "@/components/ERPWheelButton";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -210,7 +211,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const pathHeader = PAGE_HEADERS[location.pathname] || { module:"EL5 MEDIPROCURE", label:"" };
+  const pathHeader = PAGE_HEADERS[location.pathname] || { module:"MEDIPROCURE", label:"" };
   const isSubActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
 
   const handleMenuEnter = (id: string) => {
@@ -237,7 +238,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             }
           </div>
           <div className="leading-none hidden sm:block">
-            <div className="text-[9px] font-black tracking-[0.3em] text-white/40 uppercase">Enterprise</div>
+            
             <div className="text-[13px] font-black text-white tracking-tight">{sysName}</div>
           </div>
         </Link>
@@ -409,9 +410,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 overflow-auto">{children}</main>
 
+      <ERPWheelButton />
+
       <footer className="px-4 py-1.5 text-center text-[9px] text-gray-400"
         style={{ background: "#fff", borderTop: "1px solid #e5e7eb" }}>
-        EL5 MediProcure Enterprise — Embu Level 5 Hospital © {new Date().getFullYear()} · All Rights Reserved
+        {hospitalName} © {new Date().getFullYear()} · All Rights Reserved
       </footer>
     </div>
   );
