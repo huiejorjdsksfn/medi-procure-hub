@@ -1,97 +1,97 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Edit, Search, Download } from "lucide-react";
-import { exportToPDF } from "@/lib/export";
+import { Plus, Search, RefreshCw, X, Save, Trash2, Edit, Tag } from "lucide-react";
 
-const CategoriesPage = () => {
-  const [categories, setCategories] = useState<any[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", description: "" });
+export default function CategoriesPage() {
+  const { user, profile, hasRole } = useAuth();
+  const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("inventory_manager");
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({name:"",description:"",parent_category:""});
 
-  useEffect(() => { fetchCategories(); }, []);
-
-  const fetchCategories = async () => {
-    const { data } = await supabase.from("item_categories").select("*").order("name");
-    setCategories(data || []);
+  const load = async () => {
+    setLoading(true);
+    const{data}=await(supabase as any).from("item_categories").select("*").order("name");
+    setRows(data||[]); setLoading(false);
   };
+  useEffect(()=>{ load(); },[]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editing) {
-      const { error } = await supabase.from("item_categories").update(form).eq("id", editing.id);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      toast({ title: "Category updated" });
+  const save = async () => {
+    if(!form.name){toast({title:"Name required",variant:"destructive"});return;}
+    setSaving(true);
+    const payload={...form,created_by:user?.id};
+    if(editing){
+      await(supabase as any).from("item_categories").update(payload).eq("id",editing.id);
+      toast({title:"Category updated ✓"});
     } else {
-      const { error } = await supabase.from("item_categories").insert(form);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      toast({ title: "Category added" });
+      await(supabase as any).from("item_categories").insert(payload);
+      toast({title:"Category created ✓"});
     }
-    setDialogOpen(false); setForm({ name: "", description: "" }); setEditing(null); fetchCategories();
+    setSaving(false); setShowNew(false); setEditing(null); load();
   };
 
-  const filtered = categories.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) || (c.description || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const deleteRow = async (id:string) => {
+    if(!confirm("Delete this category?")) return;
+    await(supabase as any).from("item_categories").delete().eq("id",id);
+    toast({title:"Deleted"}); load();
+  };
+
+  const filtered = search ? rows.filter(r=>(r.name||"").toLowerCase().includes(search.toLowerCase())) : rows;
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Categories</h1>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportToPDF(categories, "Item Categories", ["name","description"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ name: "", description: "" }); } }}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Add</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Category</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} required /></div>
-                <div className="space-y-2"><Label>Description</Label><Input value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} /></div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit">{editing ? "Update" : "Add"}</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
+      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#374151,#4b5563)"}}>
+        <div><h1 className="text-base font-black text-white">Item Categories</h1>
+          <p className="text-[10px] text-white/50">{rows.length} categories</p></div>
+        {canManage&&<button onClick={()=>{setEditing(null);setForm({name:"",description:"",parent_category:""});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#374151"}}><Plus className="w-3.5 h-3.5"/>New Category</button>}
       </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search categories..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-      </div>
-
-      <div className="border border-border rounded-lg overflow-auto bg-card">
-        <Table>
-          <TableHeader><TableRow className="bg-muted/50"><TableHead>Name</TableHead><TableHead>Description</TableHead><TableHead className="w-16">Edit</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No categories</TableCell></TableRow>
-            ) : filtered.map((c) => (
-              <TableRow key={c.id} className="data-table-row">
-                <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell className="text-muted-foreground">{c.description || "—"}</TableCell>
-                <TableCell><Button variant="ghost" size="sm" onClick={() => { setEditing(c); setForm({ name: c.name, description: c.description || "" }); setDialogOpen(true); }}><Edit className="w-4 h-4" /></Button></TableCell>
-              </TableRow>
+      <div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search categories…" className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <table className="w-full text-xs">
+          <thead><tr style={{background:"#374151"}}>
+            {["Category Name","Description","Parent Category","Actions"].map(h=><th key={h} className="px-4 py-3 text-left font-bold text-white/80 text-[10px] uppercase">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {loading?<tr><td colSpan={4} className="py-8 text-center"><RefreshCw className="w-4 h-4 animate-spin text-gray-300 mx-auto"/></td></tr>:
+            filtered.map((r,i)=>(
+              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
+                <td className="px-4 py-2.5 font-semibold text-gray-800">{r.name}</td>
+                <td className="px-4 py-2.5 text-gray-500">{r.description||"—"}</td>
+                <td className="px-4 py-2.5 text-gray-500">{r.parent_category||"—"}</td>
+                <td className="px-4 py-2.5"><div className="flex gap-1.5">
+                  {canManage&&<button onClick={()=>{setEditing(r);setForm({name:r.name,description:r.description||"",parent_category:r.parent_category||""});setShowNew(true);}} className="p-1.5 rounded-lg bg-blue-50"><Edit className="w-3 h-3 text-blue-600"/></button>}
+                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} className="p-1.5 rounded-lg bg-red-50"><Trash2 className="w-3 h-3 text-red-500"/></button>}
+                </div></td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
-      <p className="text-xs text-muted-foreground">{filtered.length} categor(ies)</p>
+      {showNew&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>{setShowNew(false);setEditing(null);}}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-3">
+            <div className="flex items-center justify-between"><h3 className="font-black text-gray-800">{editing?"Edit":"New"} Category</h3><button onClick={()=>{setShowNew(false);setEditing(null);}}><X className="w-5 h-5 text-gray-400"/></button></div>
+            {[["Category Name *","name"],["Description","description"],["Parent Category","parent_category"]].map(([l,k])=>(
+              <div key={k}><label className="block mb-1 text-xs font-semibold text-gray-500">{l}</label>
+                <input value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
+            ))}
+            <div className="flex gap-2 justify-end pt-1">
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} className="px-4 py-2 rounded-xl border text-sm">Cancel</button>
+              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold" style={{background:"#374151"}}>
+                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Save className="w-3.5 h-3.5"/>}{saving?"Saving…":editing?"Update":"Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default CategoriesPage;
+}

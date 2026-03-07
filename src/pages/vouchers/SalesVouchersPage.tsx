@@ -1,135 +1,228 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
-import { Plus, Search, Receipt, RefreshCw, Eye, Edit, Trash2 } from "lucide-react";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2 } from "lucide-react";
+import * as XLSX from "xlsx";
 
-const genNo = () => { const d=new Date(); return `SINV/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.floor(1000+Math.random()*9000)}`; };
-const statusColor = (s:string) => ({draft:"text-slate-600 border-slate-200 bg-slate-50",confirmed:"text-green-700 border-green-200 bg-green-50",paid:"text-blue-700 border-blue-200 bg-blue-50",cancelled:"text-red-700 border-red-200 bg-red-50"}[s] ?? "text-slate-600 border-slate-200");
-const INCOME_ACCOUNTS = ["4100 - Outpatient","4200 - Inpatient","4300 - Pharmacy","4400 - Laboratory","4500 - Theatre","4600 - Radiology","4800 - NHIF Reimbursements","4810 - MOH Allocations"];
-const emptyLine = () => ({ description:"", qty:1, unit_price:0, amount:0 });
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
+const genNo = () => `SV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
+const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancelled:"#dc2626"};
 
 export default function SalesVouchersPage() {
-  const { user, profile } = useAuth();
-  const { data: vouchers, refetch } = useRealtimeTable("sales_vouchers", { order:{ column:"created_at" } });
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [search, setSearch] = useState(""); const [statusFilter, setStatusFilter] = useState("all");
-  const [showNew, setShowNew] = useState(false); const [detail, setDetail] = useState<any>(null); const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ customer_name:"", customer_type:"walk_in", patient_number:"", payment_method:"Cash", voucher_date:new Date().toISOString().split("T")[0], income_account:"", department_id:"", tax_rate:"0" });
-  const [lines, setLines] = useState([emptyLine()]);
+  const { user, profile, hasRole } = useAuth();
+  const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
+  const [rows, setRows] = useState<any[]>([]);
+  const [depts, setDepts] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [detail, setDetail] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({customer_name:"",customer_type:"walk_in",patient_number:"",payment_method:"Cash",voucher_date:new Date().toISOString().slice(0,10),due_date:"",description:"",income_account:"",department_id:"",tax_rate:"16"});
+  const [lineItems, setLineItems] = useState<{item_id:string;item_name:string;qty:string;rate:string;amount:string}[]>([{item_id:"",item_name:"",qty:"1",rate:"",amount:""}]);
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [logoUrl, setLogoUrl] = useState<string|null>(null);
 
-  useEffect(()=>{(async()=>{const{data}=await(supabase as any).from("departments").select("id,name");setDepartments(data||[]);})();},[]);
+  const load = async () => {
+    setLoading(true);
+    const [{data:sv},{data:d},{data:it},{data:s}] = await Promise.all([
+      (supabase as any).from("sales_vouchers").select("*").order("created_at",{ascending:false}),
+      (supabase as any).from("departments").select("id,name").order("name"),
+      (supabase as any).from("items").select("id,name,unit_price").where ? (supabase as any).from("items").select("id,name,unit_price").order("name") : (supabase as any).from("items").select("id,name,unit_price").order("name"),
+      (supabase as any).from("system_settings").select("key,value").in("key",["hospital_name","system_logo_url"]),
+    ]);
+    setRows(sv||[]); setDepts(d||[]); setItems(it||[]);
+    const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
+    if(m.hospital_name) setHospitalName(m.hospital_name);
+    if(m.system_logo_url) setLogoUrl(m.system_logo_url);
+    setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
 
-  const updateLine=(i:number,k:string,v:any)=>setLines(ls=>{const n=[...ls];n[i]={...n[i],[k]:v};if(k==="qty"||k==="unit_price")n[i].amount=Number(n[i].qty)*Number(n[i].unit_price);return n;});
-  const subtotal=lines.reduce((s,l)=>s+Number(l.amount||0),0);
-  const taxAmt=subtotal*(Number(form.tax_rate||0)/100);
-  const total=subtotal+taxAmt;
-
-  const openNew=(v?:any)=>{
-    if(v){setEditing(v);setForm({customer_name:v.customer_name,customer_type:v.customer_type,patient_number:v.patient_number||"",payment_method:v.payment_method,voucher_date:v.voucher_date,income_account:v.income_account||"",department_id:v.department_id||"",tax_rate:String(v.tax_rate||0)});setLines(Array.isArray(v.line_items)&&v.line_items.length>0?v.line_items:[emptyLine()]);}
-    else{setEditing(null);setForm({customer_name:"",customer_type:"walk_in",patient_number:"",payment_method:"Cash",voucher_date:new Date().toISOString().split("T")[0],income_account:"",department_id:"",tax_rate:"0"});setLines([emptyLine()]);}
-    setShowNew(true);
+  const updateLine = (i:number,k:string,v:string) => {
+    setLineItems(p=>{const n=[...p];n[i]={...n[i],[k]:v};
+      if(k==="item_id"){const it=items.find(x=>x.id===v); if(it){n[i].item_name=it.name;n[i].rate=String(it.unit_price||0);}}
+      if(k==="qty"||k==="rate") n[i].amount=String(Number(n[i].qty||0)*Number(n[i].rate||0));
+      return n;
+    });
   };
 
-  const handleSave=async()=>{
-    if(!form.customer_name||total===0){toast({title:"Fill required fields",variant:"destructive"});return;}
-    const payload={customer_name:form.customer_name,customer_type:form.customer_type,patient_number:form.patient_number,payment_method:form.payment_method,voucher_date:form.voucher_date,income_account:form.income_account,department_id:form.department_id||null,tax_rate:Number(form.tax_rate),subtotal,tax_amount:taxAmt,amount:total,line_items:lines,created_by:user?.id,created_by_name:profile?.full_name};
-    if(editing){
-      const{error}=await(supabase as any).from("sales_vouchers").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
-      logAudit(user?.id,profile?.full_name,"update","sales_vouchers",editing.id,{});toast({title:"Voucher updated"});
-    } else {
-      const{data,error}=await(supabase as any).from("sales_vouchers").insert({...payload,voucher_number:genNo(),status:"confirmed"}).select().single();
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
-      logAudit(user?.id,profile?.full_name,"create","sales_vouchers",data?.id,{number:data?.voucher_number});toast({title:"Sales voucher created",description:data?.voucher_number});
-    }
-    setShowNew(false);setEditing(null);
+  const subtotal = lineItems.reduce((s,it)=>s+Number(it.amount||0),0);
+  const taxAmt = subtotal*Number(form.tax_rate||0)/100;
+  const total = subtotal+taxAmt;
+
+  const save = async () => {
+    if(!form.customer_name){toast({title:"Customer name required",variant:"destructive"});return;}
+    setSaving(true);
+    const payload={...form,voucher_number:genNo(),subtotal,tax_amount:taxAmt,amount:total,
+      department_id:form.department_id||null,line_items:lineItems,status:"confirmed",created_by:user?.id,created_by_name:profile?.full_name};
+    const{data,error}=await(supabase as any).from("sales_vouchers").insert(payload).select().single();
+    if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","sales_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Sales Voucher created ✓"});setShowNew(false);load();}
+    setSaving(false);
   };
 
-  const changeStatus=async(v:any,status:string)=>{
-    await(supabase as any).from("sales_vouchers").update({status}).eq("id",v.id);
-    logAudit(user?.id,profile?.full_name,status,"sales_vouchers",v.id,{});toast({title:`Voucher ${status}`});setDetail(null);
+  const deleteRow = async (id:string) => {
+    if(!confirm("Delete?")) return;
+    await(supabase as any).from("sales_vouchers").delete().eq("id",id);
+    toast({title:"Deleted"}); load();
   };
 
-  const filtered=(vouchers as any[]).filter(v=>(statusFilter==="all"||v.status===statusFilter)&&(v.voucher_number?.toLowerCase().includes(search.toLowerCase())||v.customer_name?.toLowerCase().includes(search.toLowerCase())));
-  const todayAmt=(vouchers as any[]).filter((v:any)=>v.voucher_date===new Date().toISOString().split("T")[0]).reduce((s:number,v:any)=>s+Number(v.amount),0);
+  const exportExcel = () => {
+    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb,ws,"Sales Vouchers");
+    XLSX.writeFile(wb,`sales_vouchers_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast({title:"Exported"});
+  };
+
+  const printVoucher = (v:any) => {
+    const w=window.open("","_blank","width=900,height=700");
+    if(!w) return;
+    const logo=logoUrl?`<img src="${logoUrl}" style="height:50px;object-fit:contain">`:""
+    const lh=(v.line_items||[]).map((it:any,i:number)=>`<tr><td>${i+1}</td><td>${it.item_name||it.description||""}</td><td style="text-align:right">${it.qty}</td><td style="text-align:right">${fmtKES(Number(it.rate||0))}</td><td style="text-align:right">${fmtKES(Number(it.amount||0))}</td></tr>`).join("");
+    w.document.write(`<html><head><title>Sales Voucher</title>
+    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:0;font-size:11px}
+    .lh{background:#065f46;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
+    .lh-info h2{margin:0;font-size:16px;font-weight:900}.body{padding:20px}
+    table{width:100%;border-collapse:collapse;font-size:10px}
+    th{background:#065f46;color:#fff;padding:7px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase}
+    td{padding:5px 10px;border-bottom:1px solid #f3f4f6}tr:nth-child(even) td{background:#f9fafb}
+    .total-row td{background:#d1fae5;font-weight:800}.meta td:first-child{font-weight:700;color:#6b7280;width:30%}
+    @media print{@page{margin:1cm}}</style></head><body>
+    <div class="lh">${logo}<div class="lh-info"><h2>${hospitalName}</h2><small>SALES VOUCHER — ${v.voucher_number}</small></div></div>
+    <div class="body">
+      <table class="meta" style="margin-bottom:16px;font-size:11px">
+        <tr><td>Customer</td><td style="font-weight:700;font-size:13px">${v.customer_name}</td><td style="font-weight:700;color:#6b7280">Type</td><td>${v.customer_type}</td></tr>
+        ${v.patient_number?`<tr><td>Patient No.</td><td>${v.patient_number}</td><td></td><td></td></tr>`:""}
+        <tr><td>Date</td><td>${new Date(v.voucher_date).toLocaleDateString("en-KE",{year:"numeric",month:"long",day:"numeric"})}</td><td style="font-weight:700;color:#6b7280">Payment</td><td>${v.payment_method}</td></tr>
+        <tr><td>Status</td><td>${v.status}</td><td style="font-weight:700;color:#6b7280">Created By</td><td>${v.created_by_name||"—"}</td></tr>
+      </table>
+      <table><thead><tr><th>#</th><th>Item / Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+      <tbody>${lh}
+        <tr><td colspan="4" style="text-align:right;font-weight:700">Subtotal</td><td>${fmtKES(v.subtotal)}</td></tr>
+        <tr><td colspan="4" style="text-align:right;font-weight:700">VAT ${v.tax_rate||16}%</td><td>${fmtKES(v.tax_amount)}</td></tr>
+        <tr class="total-row"><td colspan="4" style="text-align:right;font-size:13px">TOTAL</td><td style="font-size:13px">${fmtKES(v.amount)}</td></tr>
+      </tbody></table>
+    </div></body></html>`);
+    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+  };
+
+  const filtered = search ? rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))) : rows;
+  const totalAmt = filtered.reduce((s,r)=>s+Number(r.amount||0),0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Receipt className="w-6 h-6 text-emerald-600" />Sales / Revenue Vouchers</h1><p className="text-sm text-slate-500">Patient billing & revenue documentation · Realtime</p></div>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={()=>openNew()}><Plus className="w-4 h-4 mr-2" />New Sales Voucher</Button>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[{label:"Today's Revenue",val:`KES ${todayAmt.toLocaleString()}`},{label:"Total Invoices",val:(vouchers as any[]).length},{label:"Confirmed",val:(vouchers as any[]).filter((v:any)=>v.status==="confirmed").length},{label:"Paid",val:(vouchers as any[]).filter((v:any)=>v.status==="paid").length}].map(k=>(
-          <div key={k.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm"><p className="text-2xl font-bold text-slate-800">{k.val}</p><p className="text-xs text-slate-500 mt-1">{k.label}</p></div>
-        ))}
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="p-4 border-b border-slate-100 flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-48"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search..." className="pl-9" value={search} onChange={e=>setSearch(e.target.value)} /></div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent>{["all","draft","confirmed","paid","cancelled"].map(s=><SelectItem key={s} value={s} className="capitalize">{s==="all"?"All":s}</SelectItem>)}</SelectContent></Select>
-          <Button variant="outline" size="sm" onClick={refetch}><RefreshCw className="w-4 h-4" /></Button>
+    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
+      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#065f46,#0d9488)"}}>
+        <div><h1 className="text-base font-black text-white">Sales Vouchers</h1>
+          <p className="text-[10px] text-white/50">{rows.length} records · Total: {fmtKES(totalAmt)}</p></div>
+        <div className="flex gap-2">
+          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
+          {canCreate&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#065f46"}}><Plus className="w-3.5 h-3.5"/>New Sale</button>}
         </div>
-        <Table><TableHeader><TableRow className="bg-slate-50">{["Voucher No.","Customer","Type","Amount","Date","Method","Status","Actions"].map(h=><TableHead key={h} className="text-xs font-semibold uppercase">{h}</TableHead>)}</TableRow></TableHeader>
-          <TableBody>{filtered.length===0?<TableRow><TableCell colSpan={8} className="text-center text-slate-400 py-12">No sales vouchers yet.</TableCell></TableRow>
-            :filtered.map((v:any)=><TableRow key={v.id} className="hover:bg-slate-50">
-              <TableCell className="font-mono text-xs font-bold text-emerald-600">{v.voucher_number}</TableCell>
-              <TableCell><p className="font-medium">{v.customer_name}</p><p className="text-xs text-slate-400">{v.patient_number||""}</p></TableCell>
-              <TableCell className="capitalize text-slate-500">{v.customer_type?.replace("_"," ")}</TableCell>
-              <TableCell className="font-semibold">KES {Number(v.amount||0).toLocaleString(undefined,{minimumFractionDigits:2})}</TableCell>
-              <TableCell className="text-slate-500">{v.voucher_date}</TableCell>
-              <TableCell className="text-slate-500">{v.payment_method}</TableCell>
-              <TableCell><Badge variant="outline" className={`capitalize ${statusColor(v.status)}`}>{v.status}</Badge></TableCell>
-              <TableCell><div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={()=>setDetail(v)}><Eye className="w-3.5 h-3.5" /></Button>
-                {["draft","confirmed"].includes(v.status)&&<Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={()=>openNew(v)}><Edit className="w-3.5 h-3.5" /></Button>}
-              </div></TableCell>
-            </TableRow>)
-          }</TableBody>
-        </Table>
       </div>
-
-      <Dialog open={showNew} onOpenChange={v=>{setShowNew(v);if(!v)setEditing(null);}}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing?"Edit":"New"} Sales Voucher</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><Label>Customer / Patient Name *</Label><Input className="mt-1" value={form.customer_name} onChange={e=>setForm(f=>({...f,customer_name:e.target.value}))} /></div>
-            <div><Label>Customer Type</Label><Select value={form.customer_type} onValueChange={v=>setForm(f=>({...f,customer_type:v}))}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{["walk_in","nhif","moh","corporate","insurance","referral"].map(t=><SelectItem key={t} value={t} className="capitalize">{t.replace("_"," ")}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Patient No.</Label><Input className="mt-1" value={form.patient_number} onChange={e=>setForm(f=>({...f,patient_number:e.target.value}))} /></div>
-            <div><Label>Payment Method</Label><Select value={form.payment_method} onValueChange={v=>setForm(f=>({...f,payment_method:v}))}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{["Cash","NHIF","MOH","MPESA","Insurance","EFT","Cheque"].map(m=><SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Date</Label><Input type="date" className="mt-1" value={form.voucher_date} onChange={e=>setForm(f=>({...f,voucher_date:e.target.value}))} /></div>
-            <div><Label>Income Account</Label><Select value={form.income_account} onValueChange={v=>setForm(f=>({...f,income_account:v}))}><SelectTrigger className="mt-1"><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{INCOME_ACCOUNTS.map(a=><SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Department</Label><Select value={form.department_id} onValueChange={v=>setForm(f=>({...f,department_id:v}))}><SelectTrigger className="mt-1"><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{departments.map(d=><SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>VAT %</Label><Select value={form.tax_rate} onValueChange={v=>setForm(f=>({...f,tax_rate:v}))}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{["0","8","16"].map(r=><SelectItem key={r} value={r}>{r}%</SelectItem>)}</SelectContent></Select></div>
+      <div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <table className="w-full text-xs">
+          <thead><tr style={{background:"#ecfdf5"}}>
+            {["Voucher No.","Customer","Type","Date","Amount","Status","Actions"].map(h=>(
+              <th key={h} className="px-4 py-3 text-left font-bold text-gray-600 text-[10px] uppercase">{h}</th>))}
+          </tr></thead>
+          <tbody>
+            {loading?<tr><td colSpan={7} className="py-8 text-center"><RefreshCw className="w-4 h-4 animate-spin text-gray-300 mx-auto"/></td></tr>:
+            filtered.length===0?<tr><td colSpan={7} className="py-8 text-center text-gray-400 text-xs">No sales vouchers</td></tr>:
+            filtered.map((r,i)=>(
+              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
+                <td className="px-4 py-2.5 font-bold" style={{color:"#065f46"}}>{r.voucher_number}</td>
+                <td className="px-4 py-2.5 font-medium">{r.customer_name}</td>
+                <td className="px-4 py-2.5 text-gray-500 capitalize">{r.customer_type}</td>
+                <td className="px-4 py-2.5">{new Date(r.voucher_date).toLocaleDateString("en-KE")}</td>
+                <td className="px-4 py-2.5 font-bold">{fmtKES(r.amount)}</td>
+                <td className="px-4 py-2.5"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold" style={{background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
+                <td className="px-4 py-2.5"><div className="flex gap-1.5">
+                  <button onClick={()=>setDetail(r)} className="p-1.5 rounded-lg bg-blue-50"><Eye className="w-3 h-3 text-blue-600"/></button>
+                  <button onClick={()=>printVoucher(r)} className="p-1.5 rounded-lg bg-green-50"><Printer className="w-3 h-3 text-green-600"/></button>
+                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} className="p-1.5 rounded-lg bg-red-50"><Trash2 className="w-3 h-3 text-red-500"/></button>}
+                </div></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {showNew&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>setShowNew(false)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-5 overflow-y-auto max-h-[90vh] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-gray-800">New Sales Voucher</h3>
+              <button onClick={()=>setShowNew(false)}><X className="w-5 h-5 text-gray-400"/></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[["Customer Name *","customer_name"],["Patient No.","patient_number"],["Date","voucher_date","date"],["Due Date","due_date","date"],["Income Account","income_account"]].map(([l,k,t])=>(
+                <div key={k}><label className="block mb-1 text-xs font-semibold text-gray-500">{l}</label>
+                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
+              ))}
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Customer Type</label>
+                <select value={form.customer_type} onChange={e=>setForm(p=>({...p,customer_type:e.target.value}))}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  {["walk_in","inpatient","outpatient","insurance","government","corporate"].map(t=><option key={t} value={t} className="capitalize">{t.replace(/_/g," ")}</option>)}
+                </select></div>
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Payment Method</label>
+                <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  {["Cash","MPESA","Insurance","Cheque","EFT","Credit"].map(m=><option key={m}>{m}</option>)}
+                </select></div>
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Tax Rate (%)</label>
+                <input type="number" value={form.tax_rate} onChange={e=>setForm(p=>({...p,tax_rate:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Department</label>
+                <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  <option value="">— Select —</option>
+                  {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                </select></div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-gray-700 uppercase">Line Items</label>
+                <button onClick={()=>setLineItems(p=>[...p,{item_id:"",item_name:"",qty:"1",rate:"",amount:""}])} className="flex items-center gap-1 text-xs font-semibold text-teal-700"><Plus className="w-3 h-3"/>Add</button>
+              </div>
+              <table className="w-full text-xs" style={{borderCollapse:"collapse"}}>
+                <thead><tr style={{background:"#ecfdf5"}}>{["Item","Qty","Rate","Amount",""].map(h=><th key={h} className="px-2 py-2 text-left font-bold text-gray-600 text-[10px]">{h}</th>)}</tr></thead>
+                <tbody>
+                  {lineItems.map((it,i)=>(
+                    <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                      <td className="px-1 py-1">
+                        <select value={it.item_id} onChange={e=>updateLine(i,"item_id",e.target.value)} className="w-full px-2 py-1 rounded border border-gray-200 text-xs outline-none">
+                          <option value="">— Item —</option>
+                          {items.map(it2=><option key={it2.id} value={it2.id}>{it2.name}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-1 py-1"><input type="number" value={it.qty} onChange={e=>updateLine(i,"qty",e.target.value)} className="w-14 px-2 py-1 rounded border border-gray-200 text-xs outline-none"/></td>
+                      <td className="px-1 py-1"><input type="number" value={it.rate} onChange={e=>updateLine(i,"rate",e.target.value)} className="w-24 px-2 py-1 rounded border border-gray-200 text-xs outline-none"/></td>
+                      <td className="px-1 py-1 font-semibold">{fmtKES(Number(it.amount||0))}</td>
+                      <td><button onClick={()=>setLineItems(p=>p.filter((_,j)=>j!==i))} className="text-red-400"><X className="w-3 h-3"/></button></td>
+                    </tr>
+                  ))}
+                  <tr style={{background:"#d1fae5",fontWeight:900}}>
+                    <td colSpan={3} className="px-2 py-1.5 text-right text-sm font-black">TOTAL</td>
+                    <td className="px-2 py-1.5 text-sm font-black">{fmtKES(total)}</td><td/>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setShowNew(false)} className="px-4 py-2 rounded-xl border text-sm">Cancel</button>
+              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold" style={{background:"#065f46"}}>
+                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Save className="w-3.5 h-3.5"/>}
+                {saving?"Saving…":"Create Sale"}
+              </button>
+            </div>
           </div>
-          <div className="mt-3">
-            <div className="flex items-center justify-between mb-2"><Label>Services / Items</Label><Button size="sm" variant="outline" onClick={()=>setLines(ls=>[...ls,emptyLine()])}><Plus className="w-3.5 h-3.5 mr-1" />Add</Button></div>
-            <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
-              <thead className="bg-slate-50"><tr>{["Description","Qty","Unit Price","Amount"].map(h=><th key={h} className="px-2 py-2 text-left font-semibold">{h}</th>)}</tr></thead>
-              <tbody>{lines.map((l,i)=><tr key={i} className="border-t border-slate-100"><td className="px-2 py-1"><Input className="h-7 text-xs" value={l.description} onChange={e=>updateLine(i,"description",e.target.value)} /></td><td className="px-2 py-1 w-16"><Input type="number" className="h-7 text-xs" value={l.qty} onChange={e=>updateLine(i,"qty",Number(e.target.value))} min={1} /></td><td className="px-2 py-1 w-28"><Input type="number" className="h-7 text-xs" value={l.unit_price} onChange={e=>updateLine(i,"unit_price",Number(e.target.value))} min={0} /></td><td className="px-2 py-1 w-28 text-right pr-3 font-semibold">{Number(l.amount||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>)}</tbody>
-            </table>
-            <div className="text-right mt-2 text-xs space-y-1"><div>Subtotal: KES {subtotal.toLocaleString(undefined,{minimumFractionDigits:2})}</div>{Number(form.tax_rate)>0&&<div>VAT ({form.tax_rate}%): KES {taxAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</div>}<div className="text-base font-bold">Total: KES {total.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={()=>setShowNew(false)}>Cancel</Button><Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSave}><Receipt className="w-4 h-4 mr-2" />{editing?"Update":"Create"}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {detail&&<Dialog open={!!detail} onOpenChange={()=>setDetail(null)}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>{detail.voucher_number}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-2 text-sm">{[["Customer",detail.customer_name],["Type",detail.customer_type?.replace("_"," ")],["Amount",`KES ${Number(detail.amount||0).toLocaleString(undefined,{minimumFractionDigits:2})}`],["Date",detail.voucher_date],["Method",detail.payment_method],["Status",detail.status]].map(([l,v])=><div key={l} className="bg-slate-50 rounded p-2"><p className="text-xs text-slate-500">{l}</p><p className="font-medium text-slate-800 capitalize">{v}</p></div>)}</div>
-        {detail.status==="confirmed"&&<Button className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white" onClick={()=>changeStatus(detail,"paid")}>Mark as Paid</Button>}
-        {detail.status==="confirmed"&&<Button variant="outline" className="w-full mt-2 text-red-600 border-red-200" onClick={()=>changeStatus(detail,"cancelled")}>Cancel Voucher</Button>}
-        <DialogFooter className="mt-2"><Button variant="outline" onClick={()=>setDetail(null)}>Close</Button></DialogFooter>
-      </DialogContent></Dialog>}
+        </div>
+      )}
     </div>
   );
 }
