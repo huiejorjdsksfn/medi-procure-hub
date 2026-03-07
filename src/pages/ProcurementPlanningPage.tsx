@@ -62,7 +62,7 @@ export default function ProcurementPlanningPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><CalendarDays className="w-6 h-6 text-blue-600" />Annual Procurement Plan</h1><p className="text-sm text-slate-500">Strategic procurement planning · Realtime sync</p></div>
+        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><CalendarDays className="w-6 h-6 text-blue-600" />Annual Procurement Plan</h1><p className="text-sm text-slate-500"></p></div>
         <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={()=>openNew()}><Plus className="w-4 h-4 mr-2" />Add Plan Item</Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -68,7 +68,7 @@ export default function PurchaseVouchersPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><FileInput className="w-6 h-6 text-orange-600" />Purchase Vouchers</h1><p className="text-sm text-slate-500">Vendor invoices & payables · Realtime sync</p></div>
+        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><FileInput className="w-6 h-6 text-orange-600" />Purchase Vouchers</h1><p className="text-sm text-slate-500">Vendor invoices & payables · </p></div>
         <div className="flex gap-2"><Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={()=>openNew()}><Plus className="w-4 h-4 mr-2" />New Voucher</Button></div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

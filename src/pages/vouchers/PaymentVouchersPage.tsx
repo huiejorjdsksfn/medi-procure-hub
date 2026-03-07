@@ -148,7 +148,7 @@ export default function PaymentVouchersPage() {
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <FileMinus className="w-6 h-6 text-blue-600" />Payment Vouchers
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">Embu Level 5 Hospital · Real-time sync enabled</p>
+          
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-2" />Export</Button>
