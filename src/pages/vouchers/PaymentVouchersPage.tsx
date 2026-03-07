@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
+import ForwardEmailDialog from "@/components/ForwardEmailDialog";
+import { Forward } from "lucide-react";
 import { Plus, Search, Download, FileMinus, RefreshCw, Eye, Printer, CheckCircle, XCircle } from "lucide-react";
 
 const genVoucherNo = () => {
@@ -35,6 +37,7 @@ const statusColor = (s: string) => ({
 const emptyLine = () => ({ description:"", qty:1, unit_price:0, amount:0, account:"" });
 
 export default function PaymentVouchersPage() {
+  const [forwardDialog, setForwardDialog] = useState<any | null>(null);
   const { user, profile, hasRole } = useAuth();
   const canApprove = hasRole("admin") || hasRole("procurement_manager");
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -360,9 +363,25 @@ export default function PaymentVouchersPage() {
                 Mark as Paid
               </Button>
             )}
-            <DialogFooter><Button variant="outline" onClick={() => setDetail(null)}>Close</Button></DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => { setForwardDialog(detail); }} className="text-blue-600 hover:bg-blue-50"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
+              <Button variant="outline" onClick={() => setDetail(null)}>Close</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+      {forwardDialog && (
+        <ForwardEmailDialog
+          open={!!forwardDialog}
+          onClose={() => setForwardDialog(null)}
+          record={{
+            id: forwardDialog.id,
+            number: forwardDialog.voucher_number,
+            type: "voucher",
+            amount: forwardDialog.amount,
+            status: forwardDialog.status,
+          }}
+        />
       )}
     </div>
   );

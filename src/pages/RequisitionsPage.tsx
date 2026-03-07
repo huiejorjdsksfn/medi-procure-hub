@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,13 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search, Forward, ClipboardEdit, Trash2 } from "lucide-react";
+import {
+  Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search,
+  Forward, ClipboardEdit, Trash2,
+} from "lucide-react";
 import { exportToPDF, generateRequisitionPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
+import ForwardEmailDialog from "@/components/ForwardEmailDialog";
 
 const RequisitionsPage = () => {
   const { user, profile, hasRole } = useAuth();
@@ -28,6 +32,8 @@ const RequisitionsPage = () => {
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  // ── Forward Email dialog state ─────────────────────────────────
+  const [forwardDialog, setForwardDialog] = useState<any | null>(null);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [detailItems, setDetailItems] = useState<any[]>([]);
   const [form, setForm] = useState({ department_id: "", priority: "normal", justification: "", notes: "" });
@@ -70,6 +76,7 @@ const RequisitionsPage = () => {
       });
     } catch (e) { console.error("Notification error:", e); }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -401,7 +408,7 @@ const RequisitionsPage = () => {
                 <Button variant="outline" size="sm" onClick={() => generateRequisitionPDF(detailDialog, detailItems, departments)}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>
                 {canApprove && detailDialog.status === "pending" && (
                   <>
-                    <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "forwarded")} className="text-blue-600 hover:bg-blue-500/10"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
+                    <Button variant="outline" onClick={() => setForwardDialog(detailDialog)} className="text-blue-600 hover:bg-blue-500/10"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
                     <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-destructive hover:bg-destructive/10"><XCircle className="w-4 h-4 mr-1" /> Reject</Button>
                     <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700"><CheckCircle className="w-4 h-4 mr-1" /> Approve</Button>
                   </>
@@ -411,6 +418,28 @@ const RequisitionsPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      
+    {/* ── Forward Email Dialog ──────────────────────────────────── */}
+      {forwardDialog && (
+        <ForwardEmailDialog
+          open={!!forwardDialog}
+          onClose={() => setForwardDialog(null)}
+          record={{
+            id: forwardDialog.id,
+            number: forwardDialog.requisition_number,
+            type: "requisition",
+            amount: forwardDialog.total_amount,
+            priority: forwardDialog.priority,
+            status: forwardDialog.status,
+            justification: forwardDialog.justification,
+          }}
+          onForwardStatus={async (id) => {
+            await (supabase as any).from("requisitions").update({ status: "forwarded" }).eq("id", id);
+            fetchRequisitions();
+            setDetailDialog(null);
+          }}
+        />
+      )}
     </div>
   );
 };
