@@ -47,6 +47,7 @@ import AuditLogPage from "@/pages/AuditLogPage";
 import AdminDatabasePage from "@/pages/AdminDatabasePage";
 import WebmasterPage from "@/pages/WebmasterPage";
 import InboxPage from "@/pages/InboxPage";
+import EmailPage from "@/pages/EmailPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import BackupPage from "@/pages/BackupPage";
 import ODBCPage from "@/pages/ODBCPage";
@@ -117,6 +118,7 @@ const App = () => (
 
             {/* Inbox & Comms */}
             <Route path="/inbox" element={<P><InboxPage /></P>} />
+            <Route path="/email" element={<P><EmailPage /></P>} />
 
             {/* Admin */}
             <Route path="/users" element={<P><UsersPage /></P>} />

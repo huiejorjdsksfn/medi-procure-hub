@@ -33,10 +33,10 @@ const ROLE_MODULES: Record<string, string[]> = {
 const ROLE_SUBPATHS: Record<string, string[]> = {
   admin: [],
   procurement_manager: [],
-  procurement_officer: ["/requisitions","/purchase-orders","/goods-received","/suppliers","/contracts","/tenders","/bid-evaluations","/procurement-planning","/vouchers/payment","/vouchers/receipt","/vouchers/purchase","/items","/categories","/departments","/scanner","/quality/dashboard","/quality/inspections","/quality/non-conformance","/reports","/documents","/inbox"],
-  inventory_manager: ["/items","/categories","/departments","/scanner","/reports","/documents","/inbox"],
-  warehouse_officer: ["/items","/categories","/departments","/scanner","/quality/dashboard","/quality/inspections","/inbox"],
-  requisitioner: ["/requisitions","/inbox"],
+  procurement_officer: ["/requisitions","/purchase-orders","/goods-received","/suppliers","/contracts","/tenders","/bid-evaluations","/procurement-planning","/vouchers/payment","/vouchers/receipt","/vouchers/purchase","/items","/categories","/departments","/scanner","/quality/dashboard","/quality/inspections","/quality/non-conformance","/reports","/documents","/inbox","/email"],
+  inventory_manager: ["/items","/categories","/departments","/scanner","/reports","/documents","/inbox","/email"],
+  warehouse_officer: ["/items","/categories","/departments","/scanner","/quality/dashboard","/quality/inspections","/inbox","/email"],
+  requisitioner: ["/requisitions","/inbox","/email"],
 };
 
 const MODULES = [
@@ -142,6 +142,7 @@ const PAGE_HEADERS: Record<string, { module: string; label: string }> = {
   "/audit-log": { module:"REPORTS", label:"Audit Trail" },
   "/documents": { module:"REPORTS", label:"Documents" },
   "/inbox": { module:"DASHBOARD", label:"Inbox" },
+  "/email": { module:"COMMUNICATIONS", label:"Email" },
   "/users": { module:"ADMIN", label:"User Management" },
   "/admin/database": { module:"ADMIN", label:"Database Administration" },
   "/admin/panel": { module:"ADMIN", label:"Admin Panel" },
@@ -306,6 +307,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
+          </button>
+
+          <button onClick={() => navigate("/email")}
+            title="Email"
+            className="p-2 rounded-lg transition-all"
+            style={{ color: "rgba(255,255,255,0.65)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
           </button>
 
           <div className="relative" ref={userMenuRef}>
