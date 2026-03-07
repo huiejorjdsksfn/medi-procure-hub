@@ -1,250 +1,254 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, FileDown, Search, Eye } from "lucide-react";
-import { exportToPDF, generateLPO_PDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
-import ForwardEmailDialog from "@/components/ForwardEmailDialog";
-import { Forward } from "lucide-react";
+import { generateLPO_PDF } from "@/lib/export";
+import {
+  Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
+  CheckCircle, XCircle, ShoppingCart, Send, Download
+} from "lucide-react";
+import * as XLSX from "xlsx";
 
-const PurchaseOrdersPage = () => {
-  const { user, profile, hasRole } = useAuth();
-  const canCreate = hasRole("admin") || hasRole("procurement_officer");
+const STATUS_CFG: Record<string,{bg:string;color:string}> = {
+  draft:    {bg:"#f3f4f6",color:"#6b7280"},
+  pending:  {bg:"#fef3c7",color:"#92400e"},
+  approved: {bg:"#dcfce7",color:"#15803d"},
+  sent:     {bg:"#dbeafe",color:"#1d4ed8"},
+  partial:  {bg:"#e0f2fe",color:"#0369a1"},
+  received: {bg:"#d1fae5",color:"#065f46"},
+  cancelled:{bg:"#fee2e2",color:"#dc2626"},
+};
+
+export default function PurchaseOrdersPage() {
+  const { user, profile, roles } = useAuth();
+  const canApprove = roles.includes("admin") || roles.includes("procurement_manager");
   const [orders, setOrders] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [requisitions, setRequisitions] = useState<any[]>([]);
-  const [requisitionItems, setRequisitionItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [detailDialog, setDetailDialog] = useState<any>(null);
-  const [forwardDialog, setForwardDialog] = useState<any | null>(null);
-  const [detailItems, setDetailItems] = useState<any[]>([]);
-  const [form, setForm] = useState({ po_number: "", requisition_id: "", supplier_id: "", total_amount: "", delivery_date: "", status: "draft" });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [viewPO, setViewPO] = useState<any>(null);
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName, setSysName] = useState("EL5 MediProcure");
 
-  useEffect(() => { fetchOrders(); fetchSuppliers(); fetchRequisitions(); }, []);
-  useEffect(() => {
-    const ch = supabase.channel("po-rt").on("postgres_changes", { event: "*", schema: "public", table: "purchase_orders" }, () => fetchOrders()).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+  useEffect(()=>{
+    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
+      .then(({data}:any)=>{ if(!data) return; const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
+  },[]);
 
-  const fetchOrders = async () => {
-    const { data } = await supabase.from("purchase_orders").select("*, suppliers(name, contact_person, phone, email, address, tax_id), requisitions(requisition_number)").order("created_at", { ascending: false });
-    setOrders(data || []);
-  };
-  const fetchSuppliers = async () => { const { data } = await supabase.from("suppliers").select("*").order("name"); setSuppliers(data || []); };
-  const fetchRequisitions = async () => { const { data } = await supabase.from("requisitions").select("id, requisition_number, total_amount").eq("status", "approved"); setRequisitions(data || []); };
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await (supabase as any).from("purchase_orders")
+      .select("*,suppliers(name)")
+      .order("created_at",{ascending:false});
+    setOrders(data||[]);
+    setLoading(false);
+  },[]);
 
-  const loadRequisitionItems = async (reqId: string) => {
-    const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", reqId);
-    setRequisitionItems(data || []);
-    // Auto-fill total amount
-    const total = (data || []).reduce((s: number, li: any) => s + Number(li.total_price || 0), 0);
-    setForm(prev => ({ ...prev, total_amount: String(total), requisition_id: reqId }));
-  };
+  useEffect(()=>{ load(); },[load]);
 
-  const generatePONumber = () => {
-    const d = new Date();
-    return `LPO/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+  const approve = async (id:string) => {
+    await (supabase as any).from("purchase_orders").update({status:"approved",approved_by:user?.id}).eq("id",id);
+    logAudit(user?.id,profile?.full_name,"approve","purchase_orders",id,{});
+    toast({title:"Purchase Order Approved ✓"});
+    load();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const poNum = form.po_number || generatePONumber();
-    const { data, error } = await supabase.from("purchase_orders").insert({
-      po_number: poNum, requisition_id: form.requisition_id || null,
-      supplier_id: form.supplier_id || null, total_amount: parseFloat(form.total_amount) || 0,
-      delivery_date: form.delivery_date || null, status: form.status, created_by: user?.id,
-    }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    logAudit(user?.id, profile?.full_name, "create", "purchase_orders", data?.id, { po_number: poNum });
-    toast({ title: "LPO created" });
-    setDialogOpen(false);
-    setForm({ po_number: "", requisition_id: "", supplier_id: "", total_amount: "", delivery_date: "", status: "draft" });
-    setRequisitionItems([]);
+  const printLPO = (po:any) => {
+    const win = window.open("","_blank","width=900,height=700");
+    if(!win) return;
+    win.document.write(`<html><head><title>${po.po_number}</title>
+    <style>
+      body{font-family:'Segoe UI',Arial;margin:0;padding:20px;font-size:12px;color:#1f2937}
+      .header{background:#0a2558;color:#fff;padding:15px 20px;margin:-20px -20px 20px;display:flex;justify-content:space-between;align-items:center}
+      .header h2{margin:0;font-size:16px}.header small{opacity:0.6;font-size:10px}
+      .po-no{font-size:20px;font-weight:900;color:#1a3a6b;margin-bottom:5px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
+      .field .lbl{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}
+      .field .val{font-size:12px;color:#1f2937}
+      table{width:100%;border-collapse:collapse;font-size:11px}
+      thead tr{background:#1a3a6b;color:#fff}
+      th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase}
+      td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
+      .total-row{background:#f8fafc;font-weight:700}
+      .sig-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:40px}
+      .sig-box{border-top:1px solid #ccc;padding-top:6px;font-size:9px;color:#888}
+      @media print{@page{margin:1.2cm}body{margin:0}}
+    </style></head><body>
+    <div class="header">
+      <div><h2>${hospitalName}</h2><small>Official Local Purchase Order</small></div>
+      <div style="text-align:right"><div style="font-size:16px;font-weight:900">${po.po_number}</div><small>Issue Date: ${po.created_at?new Date(po.created_at).toLocaleDateString("en-KE"):""}</small></div>
+    </div>
+    <div class="grid">
+      <div class="field"><div class="lbl">Supplier</div><div class="val">${po.suppliers?.name||po.supplier_name||"—"}</div></div>
+      <div class="field"><div class="lbl">Status</div><div class="val" style="text-transform:capitalize">${po.status||"—"}</div></div>
+      <div class="field"><div class="lbl">Delivery Date</div><div class="val">${po.delivery_date||"—"}</div></div>
+      <div class="field"><div class="lbl">Payment Terms</div><div class="val">${po.payment_terms||"30 Days"}</div></div>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Item Description</th><th>Qty</th><th>UoM</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>
+        ${(po.items||[]).map((it:any,i:number)=>`<tr><td>${i+1}</td><td>${it.description||it.item_name||"—"}</td><td>${it.quantity||0}</td><td>${it.unit||"—"}</td><td style="text-align:right">KES ${Number(it.unit_price||0).toLocaleString()}</td><td style="text-align:right">KES ${Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td></tr>`).join("")||"<tr><td colspan='6' style='text-align:center;color:#9ca3af;padding:12px'>No line items</td></tr>"}
+      </tbody>
+      <tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding:8px 10px">TOTAL (KES)</td><td style="text-align:right;padding:8px 10px">KES ${Number(po.total_amount||0).toLocaleString()}</td></tr></tfoot>
+    </table>
+    ${po.notes?`<div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:6px"><strong style="font-size:10px;color:#888">NOTES:</strong> ${po.notes}</div>`:""}
+    <div class="sig-row">
+      ${["Prepared By","Authorized By","Supplier Acknowledgement"].map(s=>`<div class="sig-box">${s}<br><br><br></div>`).join("")}
+    </div>
+    <div style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:8px;font-size:9px;color:#aaa;text-align:center">${hospitalName} · ${sysName} · ${new Date().toLocaleDateString("en-KE")} · Official Document</div>
+    </body></html>`);
+    win.document.close();win.focus();setTimeout(()=>win.print(),400);
   };
 
-  const viewDetail = async (po: any) => {
-    setDetailDialog(po);
-    if (po.requisition_id) {
-      const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", po.requisition_id);
-      setDetailItems(data || []);
-    } else {
-      setDetailItems([]);
-    }
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const header = [[hospitalName],[sysName+" — Purchase Orders"],[`Exported: ${new Date().toLocaleString("en-KE")}`],[]];
+    const rows = filtered.map(po=>({
+      "PO Number":po.po_number,"Supplier":po.suppliers?.name||po.supplier_name||"",
+      "Status":po.status,"Total Amount":po.total_amount||0,
+      "Delivery Date":po.delivery_date||"","Created":po.created_at?new Date(po.created_at).toLocaleDateString("en-KE"):"",
+      "Notes":po.notes||"",
+    }));
+    const ws = XLSX.utils.aoa_to_sheet([...header,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
+    XLSX.utils.book_append_sheet(wb,ws,"Purchase Orders");
+    XLSX.writeFile(wb,`PurchaseOrders_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast({title:"Exported",description:`${filtered.length} records`});
   };
 
-  const downloadLPO = async (po: any) => {
-    const supplier = suppliers.find(s => s.id === po.supplier_id) || po.suppliers;
-    let items: any[] = [];
-    if (po.requisition_id) {
-      const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", po.requisition_id);
-      items = data || [];
-    }
-    generateLPO_PDF(po, supplier, items);
-  };
-
-  const filtered = orders.filter(o =>
-    o.po_number.toLowerCase().includes(search.toLowerCase()) ||
-    (o.suppliers?.name || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = orders.filter(po=>{
+    if(statusFilter!=="all"&&po.status!==statusFilter) return false;
+    if(search){const q=search.toLowerCase();return (po.po_number||"").toLowerCase().includes(q)||(po.suppliers?.name||"").toLowerCase().includes(q);}
+    return true;
+  });
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Purchase Orders</h1>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportToPDF(orders, "Purchase Orders", ["po_number","total_amount","delivery_date","status"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
-          {canCreate && (
-            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setRequisitionItems([]); }}>
-              <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> New LPO</Button></DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader><DialogTitle>Create Local Purchase Order (EL5H/SCM/FRM/002)</DialogTitle></DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2"><Label>LPO Number</Label><Input value={form.po_number} onChange={(e) => setForm({...form, po_number: e.target.value})} placeholder="Auto-generated" /></div>
-                  <div className="space-y-2"><Label>Requisition Reference</Label>
-                    <Select value={form.requisition_id} onValueChange={(v) => loadRequisitionItems(v)}>
-                      <SelectTrigger><SelectValue placeholder="Link to approved requisition" /></SelectTrigger>
-                      <SelectContent>{requisitions.map(r => <SelectItem key={r.id} value={r.id}>{r.requisition_number} — KSH {Number(r.total_amount).toLocaleString()}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  {/* Show attached items from requisition */}
-                  {requisitionItems.length > 0 && (
-                    <div className="border border-border rounded-lg overflow-auto">
-                      <Table>
-                        <TableHeader><TableRow className="bg-muted/50"><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                          {requisitionItems.map((li, i) => (
-                            <TableRow key={li.id}>
-                              <TableCell>{i+1}</TableCell>
-                              <TableCell className="font-medium">{li.item_name}</TableCell>
-                              <TableCell className="text-right">{li.quantity}</TableCell>
-                              <TableCell className="text-right">{Number(li.unit_price).toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-medium">{Number(li.total_price).toLocaleString()}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                  <div className="space-y-2"><Label>Supplier *</Label>
-                    <Select value={form.supplier_id} onValueChange={(v) => setForm({...form, supplier_id: v})}>
-                      <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
-                      <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Total Amount (KSH)</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm({...form, total_amount: e.target.value})} /></div>
-                  <div className="space-y-2"><Label>Delivery Date</Label><Input type="date" value={form.delivery_date} onChange={(e) => setForm({...form, delivery_date: e.target.value})} /></div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button type="submit">Create LPO</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
+    <div className="p-4 space-y-3" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      {/* Header */}
+      <div className="rounded-2xl px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+        style={{background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)"}}>
+        <div className="flex items-center gap-3">
+          <ShoppingCart className="w-5 h-5 text-white"/>
+          <div>
+            <h1 className="text-base font-black text-white">Purchase Orders</h1>
+            <p className="text-[10px] text-white/50">{filtered.length} of {orders.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={load} disabled={loading} className="p-2 rounded-lg bg-white/15 text-white hover:bg-white/25">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading?"animate-spin":""}`}/>
+          </button>
+          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/80 text-white text-xs font-semibold hover:bg-green-500">
+            <FileSpreadsheet className="w-3.5 h-3.5"/>Export
+          </button>
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search POs..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {["all","draft","pending","approved","sent","received","cancelled"].map(s=>(
+          <button key={s} onClick={()=>setStatusFilter(s)}
+            className="px-2.5 py-1 rounded-full text-[10px] font-semibold capitalize transition-all"
+            style={{background:statusFilter===s?"#C45911":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            {s}{s!=="all"&&<span className="ml-1 opacity-70">({orders.filter(o=>o.status===s).length})</span>}
+          </button>
+        ))}
+        <div className="relative ml-auto">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search POs…"
+            className="pl-8 pr-8 py-1.5 rounded-full border border-gray-200 text-xs outline-none focus:border-orange-400 w-48"/>
+          {search&&<button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+        </div>
       </div>
 
-      <div className="border border-border rounded-lg overflow-auto bg-card">
-        <Table>
-          <TableHeader><TableRow className="bg-muted/50">
-            <TableHead>LPO Number</TableHead><TableHead>Supplier</TableHead><TableHead>Requisition</TableHead><TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Delivery</TableHead><TableHead>Status</TableHead><TableHead className="w-24">Actions</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders</TableCell></TableRow>
-            ) : filtered.map((o) => (
-              <TableRow key={o.id} className="data-table-row">
-                <TableCell className="font-mono font-medium">{o.po_number}</TableCell>
-                <TableCell>{o.suppliers?.name || "—"}</TableCell>
-                <TableCell className="font-mono text-sm">{o.requisitions?.requisition_number || "—"}</TableCell>
-                <TableCell className="text-right">{Number(o.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
-                <TableCell>{o.delivery_date || "—"}</TableCell>
-                <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${o.status === "completed" ? "bg-emerald-500/10 text-emerald-600" : o.status === "draft" ? "bg-muted text-muted-foreground" : "bg-blue-500/10 text-blue-600"}`}>{o.status}</span></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => viewDetail(o)}><Eye className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => downloadLPO(o)}><FileDown className="w-4 h-4" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full" style={{fontSize:12}}>
+            <thead>
+              <tr style={{background:"#92400e"}}>
+                {["#","PO Number","Supplier","Status","Total Amount","Delivery Date","Created","Actions"].map(h=>(
+                  <th key={h} className="text-left px-3 py-2.5 text-white/70 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading?(
+                Array(5).fill(0).map((_,i)=>(
+                  <tr key={i}><td colSpan={8} className="px-4 py-3 animate-pulse"><div className="h-3 bg-gray-200 rounded w-full"/></td></tr>
+                ))
+              ):filtered.length===0?(
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">No purchase orders found</td></tr>
+              ):filtered.map((po,i)=>{
+                const s=STATUS_CFG[po.status]||{bg:"#f3f4f6",color:"#6b7280"};
+                return (
+                  <tr key={po.id} className="border-b border-gray-50 hover:bg-orange-50/20 transition-colors group">
+                    <td className="px-3 py-2.5 text-gray-400">{i+1}</td>
+                    <td className="px-3 py-2.5 font-mono text-xs font-bold text-orange-700">{po.po_number||"—"}</td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-800">{po.suppliers?.name||po.supplier_name||"—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize" style={{background:s.bg,color:s.color}}>{po.status||"—"}</span>
+                    </td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-800">KES {Number(po.total_amount||0).toLocaleString()}</td>
+                    <td className="px-3 py-2.5 text-gray-500 text-[10px]">{po.delivery_date||"—"}</td>
+                    <td className="px-3 py-2.5 text-gray-400 text-[10px] whitespace-nowrap">{po.created_at?new Date(po.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={()=>setViewPO(po)} className="p-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100"><Eye className="w-3 h-3"/></button>
+                        <button onClick={()=>printLPO(po)} className="p-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100"><Printer className="w-3 h-3"/></button>
+                        {canApprove&&po.status==="pending"&&(
+                          <button onClick={()=>approve(po.id)} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100"><CheckCircle className="w-3 h-3"/></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-4 py-2 bg-gray-50 border-t text-[10px] text-gray-400">
+          {filtered.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}
+        </div>
       </div>
 
-      {/* Detail Dialog */}
-      <Dialog open={!!detailDialog} onOpenChange={() => setDetailDialog(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>LPO: {detailDialog?.po_number}</DialogTitle></DialogHeader>
-          {detailDialog && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Supplier:</span> <span className="font-medium">{detailDialog.suppliers?.name || "—"}</span></div>
-                <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">KSH {Number(detailDialog.total_amount).toLocaleString()}</span></div>
-                <div><span className="text-muted-foreground">Status:</span> <span className="capitalize font-medium">{detailDialog.status}</span></div>
-                <div><span className="text-muted-foreground">Delivery:</span> <span>{detailDialog.delivery_date || "TBD"}</span></div>
-              </div>
-              {detailItems.length > 0 && (
-                <>
-                  <Label>Attached Items from Requisition</Label>
-                  <Table>
-                    <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {detailItems.map((li, i) => (
-                        <TableRow key={li.id}><TableCell>{i+1}</TableCell><TableCell>{li.item_name}</TableCell><TableCell className="text-right">{li.quantity}</TableCell><TableCell className="text-right">{Number(li.unit_price).toFixed(2)}</TableCell><TableCell className="text-right font-medium">{Number(li.total_price).toFixed(2)}</TableCell></TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => downloadLPO(detailDialog)}><FileDown className="w-4 h-4 mr-1" /> Download LPO</Button>
-                <Button variant="outline" size="sm" onClick={() => setForwardDialog(detailDialog)} className="text-blue-600 hover:bg-blue-50"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
+      {/* View Modal */}
+      {viewPO&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setViewPO(null)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-3 flex items-center justify-between" style={{background:"#92400e"}}>
+              <div><h3 className="text-sm font-black text-white">{viewPO.po_number}</h3><p className="text-[10px] text-white/40">Purchase Order</p></div>
+              <div className="flex gap-2">
+                <button onClick={()=>printLPO(viewPO)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 text-white text-xs"><Printer className="w-3 h-3"/>Print LPO</button>
+                <button onClick={()=>setViewPO(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-      {/* Forward Email Dialog */}
-      {forwardDialog && (
-        <ForwardEmailDialog
-          open={!!forwardDialog}
-          onClose={() => setForwardDialog(null)}
-          record={{
-            id: forwardDialog.id,
-            number: forwardDialog.po_number,
-            type: "purchase_order",
-            amount: forwardDialog.total_amount,
-            status: forwardDialog.status,
-          }}
-          onForwardStatus={async (id) => {
-            await (supabase as any).from("purchase_orders").update({ status: "sent" }).eq("id", id);
-            fetchOrders();
-            setDetailDialog(null);
-          }}
-        />
+            <div className="overflow-y-auto p-5">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {[
+                  {l:"Supplier",v:viewPO.suppliers?.name||viewPO.supplier_name},{l:"Status",v:viewPO.status},
+                  {l:"Total",v:`KES ${Number(viewPO.total_amount||0).toLocaleString()}`},{l:"Delivery Date",v:viewPO.delivery_date},
+                  {l:"Payment Terms",v:viewPO.payment_terms},{l:"Date",v:viewPO.created_at?new Date(viewPO.created_at).toLocaleDateString("en-KE"):"—"},
+                ].map(r=>(
+                  <div key={r.l}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{r.l}</div>
+                    <div className="text-sm text-gray-800 font-medium mt-0.5">{r.v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              {viewPO.notes&&<div className="mb-4 p-3 rounded-xl bg-gray-50"><p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Notes</p><p className="text-sm text-gray-700">{viewPO.notes}</p></div>}
+              {canApprove&&viewPO.status==="pending"&&(
+                <button onClick={()=>{approve(viewPO.id);setViewPO(null);}}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-bold text-sm mb-3"
+                  style={{background:"#15803d"}}>
+                  <CheckCircle className="w-4 h-4"/>Approve Purchase Order
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
-};
-
-export default PurchaseOrdersPage;
+}

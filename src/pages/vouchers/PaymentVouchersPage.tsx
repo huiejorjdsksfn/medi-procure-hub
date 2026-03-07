@@ -14,6 +14,7 @@ import { logAudit } from "@/lib/audit";
 import ForwardEmailDialog from "@/components/ForwardEmailDialog";
 import { Forward } from "lucide-react";
 import { Plus, Search, Download, FileMinus, RefreshCw, Eye, Printer, CheckCircle, XCircle } from "lucide-react";
+import * as XLSX from "xlsx";
 
 const genVoucherNo = () => {
   const d = new Date();
@@ -151,7 +152,7 @@ export default function PaymentVouchersPage() {
           
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-2" />Export</Button>
+          <Button variant="outline" size="sm" onClick={()=>{const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(vouchers.map((v:any)=>({'Voucher No':v.voucher_number,'Payee':v.payee_name||v.payee,'Amount':v.amount,'Date':v.voucher_date,'Status':v.status,'Description':v.description||''})));XLSX.utils.book_append_sheet(wb,ws,'Payment Vouchers');XLSX.writeFile(wb,`PaymentVouchers_${new Date().toISOString().slice(0,10)}.xlsx`);toast({title:'Exported'});}}><Download className="w-4 h-4 mr-2" />Export</Button>
           <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setShowNew(true)}>
             <Plus className="w-4 h-4 mr-2" />New Payment Voucher
           </Button>
