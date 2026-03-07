@@ -148,7 +148,6 @@ const PAGE_HEADERS: Record<string, { module: string; label: string }> = {
   "/users":                     { module: "ADMIN", label: "User Management" },
   "/admin/database":            { module: "ADMIN", label: "Database Administration" },
   "/webmaster":                 { module: "ADMIN", label: "System Explorer" },
-  "/audit-log":                 { module: "ADMIN", label: "Audit Log" },
   "/settings":                  { module: "ADMIN", label: "Settings" },
 };
 

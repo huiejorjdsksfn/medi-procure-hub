@@ -17,6 +17,8 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Download, FileDown, Search, Eye } from "lucide-react";
 import { exportToPDF, generateLPO_PDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
+import ForwardEmailDialog from "@/components/ForwardEmailDialog";
+import { Forward } from "lucide-react";
 
 const PurchaseOrdersPage = () => {
   const { user, profile, hasRole } = useAuth();
@@ -28,6 +30,7 @@ const PurchaseOrdersPage = () => {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any>(null);
+  const [forwardDialog, setForwardDialog] = useState<any | null>(null);
   const [detailItems, setDetailItems] = useState<any[]>([]);
   const [form, setForm] = useState({ po_number: "", requisition_id: "", supplier_id: "", total_amount: "", delivery_date: "", status: "draft" });
 
@@ -215,11 +218,31 @@ const PurchaseOrdersPage = () => {
               )}
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => downloadLPO(detailDialog)}><FileDown className="w-4 h-4 mr-1" /> Download LPO</Button>
+                <Button variant="outline" size="sm" onClick={() => setForwardDialog(detailDialog)} className="text-blue-600 hover:bg-blue-50"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+      {/* Forward Email Dialog */}
+      {forwardDialog && (
+        <ForwardEmailDialog
+          open={!!forwardDialog}
+          onClose={() => setForwardDialog(null)}
+          record={{
+            id: forwardDialog.id,
+            number: forwardDialog.po_number,
+            type: "purchase_order",
+            amount: forwardDialog.total_amount,
+            status: forwardDialog.status,
+          }}
+          onForwardStatus={async (id) => {
+            await (supabase as any).from("purchase_orders").update({ status: "sent" }).eq("id", id);
+            fetchOrders();
+            setDetailDialog(null);
+          }}
+        />
+      )}
     </div>
   );
 };
