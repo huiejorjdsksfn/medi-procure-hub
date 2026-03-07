@@ -84,7 +84,7 @@ export default function JournalVouchersPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><BookMarked className="w-6 h-6 text-indigo-600" />Journal Vouchers</h1><p className="text-sm text-slate-500">Double-entry journal entries · Realtime sync</p></div>
+        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><BookMarked className="w-6 h-6 text-indigo-600" />Journal Vouchers</h1><p className="text-sm text-slate-500">Double-entry journal entries · </p></div>
         <div className="flex gap-2">
           <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={()=>openNew()}><Plus className="w-4 h-4 mr-2" />New Journal</Button>
         </div>

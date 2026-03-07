@@ -34,7 +34,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) throw error;
-      toast({ title: "Welcome back!", description: "Redirecting to dashboard…" });
+      toast({ title: "Welcome back!", description: "Login successful" });
       navigate("/dashboard");
     } catch (err: any) {
       const msg = err.message || "Invalid credentials";

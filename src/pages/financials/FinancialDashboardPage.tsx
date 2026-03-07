@@ -61,7 +61,7 @@ export default function FinancialDashboardPage() {
             <BarChart3 className="w-5 h-5 text-[#0078d4]" />
             <div>
               <h1 className="text-base font-bold text-[#323130]">Finance Dashboard</h1>
-              <p className="text-xs text-[#605e5c]">Cash · Vouchers · Budgets · Realtime</p>
+              
             </div>
           </div>
           <div className="flex gap-2">
