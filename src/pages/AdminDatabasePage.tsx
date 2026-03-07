@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import RoleGuard from "@/components/RoleGuard";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,7 @@ const SKIP_COLS = ["id", "created_at", "updated_at", "created_by", "approved_by"
 const PAGE_SIZE = 25;
 const GROUPS = ["All", "Auth", "Setup", "Procurement", "Finance", "Quality", "Inventory", "System"];
 
-export default function AdminDatabasePage() {
+function AdminDatabasePageInner() {
   const { user, profile, roles } = useAuth();
   const navigate = useNavigate();
   const isAdmin = roles.includes("admin");
@@ -839,5 +840,13 @@ export default function AdminDatabasePage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function AdminDatabasePage() {
+  return (
+    <RoleGuard allowed={["admin"]}>
+      <AdminDatabasePageInner />
+    </RoleGuard>
   );
 }
