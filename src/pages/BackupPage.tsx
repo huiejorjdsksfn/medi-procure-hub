@@ -217,7 +217,7 @@ function BackupInner() {
 
 export default function BackupPage() {
   return (
-    <RoleGuard allowedRoles={["admin","procurement_manager"]}>
+    <RoleGuard allowed={["admin","procurement_manager"]}>
       <BackupInner />
     </RoleGuard>
   );

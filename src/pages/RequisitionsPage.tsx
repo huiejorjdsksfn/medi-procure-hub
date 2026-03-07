@@ -1,447 +1,362 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import {
-  Plus, Download, Eye, CheckCircle, XCircle, FileDown, Search,
-  Forward, ClipboardEdit, Trash2,
-} from "lucide-react";
-import { exportToPDF, generateRequisitionPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
-import ForwardEmailDialog from "@/components/ForwardEmailDialog";
+import {
+  Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
+  CheckCircle, XCircle, Clock, ClipboardList, ChevronDown, Send,
+  AlertTriangle, Download
+} from "lucide-react";
+import * as XLSX from "xlsx";
 
-const RequisitionsPage = () => {
-  const { user, profile, hasRole } = useAuth();
-  const canApprove = hasRole("admin") || hasRole("procurement_manager");
-  const [requisitions, setRequisitions] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [items, setItems] = useState<any[]>([]);
+const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
+  draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
+  submitted: {bg:"#dbeafe",color:"#1d4ed8",label:"Submitted"},
+  pending:   {bg:"#fef3c7",color:"#92400e",label:"Pending"},
+  approved:  {bg:"#dcfce7",color:"#15803d",label:"Approved"},
+  rejected:  {bg:"#fee2e2",color:"#dc2626",label:"Rejected"},
+  ordered:   {bg:"#e0f2fe",color:"#0369a1",label:"Ordered"},
+  received:  {bg:"#d1fae5",color:"#065f46",label:"Received"},
+};
+
+export default function RequisitionsPage() {
+  const { user, profile, roles } = useAuth();
+  const canApprove = roles.includes("admin") || roles.includes("procurement_manager");
+  const canCreate = !roles.includes("warehouse_officer") && !roles.includes("inventory_manager");
+  const [reqs, setReqs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  // ── Forward Email dialog state ─────────────────────────────────
-  const [forwardDialog, setForwardDialog] = useState<any | null>(null);
-  const [detailDialog, setDetailDialog] = useState<any | null>(null);
-  const [detailItems, setDetailItems] = useState<any[]>([]);
-  const [form, setForm] = useState({ department_id: "", priority: "normal", justification: "", notes: "" });
-  const [lineItems, setLineItems] = useState<{ item_id: string; item_name: string; quantity: string; unit_price: string }[]>([
-    { item_id: "", item_name: "", quantity: "1", unit_price: "0" },
-  ]);
-  const [mainTab, setMainTab] = useState("list");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [viewReq, setViewReq] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
+  const [saving, setSaving] = useState(false);
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName, setSysName] = useState("EL5 MediProcure");
 
-  // Worksheet state
-  const [worksheetRows, setWorksheetRows] = useState<{ item_name: string; description: string; quantity: string; unit: string; unit_price: string; notes: string }[]>(
-    Array.from({ length: 15 }, () => ({ item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" }))
-  );
-  const [worksheetDept, setWorksheetDept] = useState("");
-  const [worksheetPriority, setWorksheetPriority] = useState("normal");
-  const [worksheetJustification, setWorksheetJustification] = useState("");
+  useEffect(()=>{
+    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
+      .then(({data}:any)=>{ if(!data) return; const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
+  },[]);
 
-  useEffect(() => { fetchRequisitions(); fetchDepartments(); fetchItems(); }, []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await (supabase as any).from("requisitions")
+      .select("*,requisition_items(*)")
+      .order("created_at",{ascending:false});
+    setReqs(data||[]);
+    setLoading(false);
+  },[]);
 
-  useEffect(() => {
-    const ch = supabase.channel("req-rt").on("postgres_changes", { event: "*", schema: "public", table: "requisitions" }, () => fetchRequisitions()).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+  useEffect(()=>{ load(); },[load]);
 
-  const fetchRequisitions = async () => {
-    const { data } = await supabase.from("requisitions").select("*").order("created_at", { ascending: false });
-    setRequisitions(data || []);
+  const approve = async (id:string) => {
+    await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);
+    logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
+    toast({title:"Requisition Approved ✓"});
+    load();
   };
-  const fetchDepartments = async () => { const { data } = await (supabase as any).from("departments").select("*").order("name"); setDepartments(data || []); };
-  const fetchItems = async () => { const { data } = await supabase.from("items").select("id, name, unit_price").order("name"); setItems(data || []); };
-
-  const generateReqNumber = () => {
-    const d = new Date();
-    return `RQQ/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
-  };
-
-  const sendNotification = async (requisitionId: string, action: string) => {
-    try {
-      await supabase.functions.invoke("notify-requisition", {
-        body: { requisition_id: requisitionId, action, actor_name: profile?.full_name || "System" },
-      });
-    } catch (e) { console.error("Notification error:", e); }
+  const reject = async (id:string) => {
+    await (supabase as any).from("requisitions").update({status:"rejected"}).eq("id",id);
+    logAudit(user?.id,profile?.full_name,"reject","requisitions",id,{});
+    toast({title:"Requisition Rejected",variant:"destructive"});
+    load();
   };
 
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const totalAmount = lineItems.reduce((sum, li) => sum + (parseFloat(li.quantity) || 0) * (parseFloat(li.unit_price) || 0), 0);
-    const reqNumber = generateReqNumber();
-    const { data: req, error } = await supabase.from("requisitions").insert({
-      requisition_number: reqNumber, department_id: form.department_id || null,
-      requested_by: user?.id, priority: form.priority, justification: form.justification,
-      notes: form.notes, total_amount: totalAmount, status: "pending",
+  const save = async () => {
+    if(!form.title.trim()){toast({title:"Title required",variant:"destructive"});return;}
+    setSaving(true);
+    const prefix="RQQ/EL5H";
+    const num=`${prefix}/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;
+    const {data,error}=await (supabase as any).from("requisitions").insert({
+      ...form, requisition_number:num, status:"draft",
+      requested_by:user?.id, requester_name:profile?.full_name,
     }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    const reqItems = lineItems.filter(li => li.item_name).map((li) => ({
-      requisition_id: req.id, item_id: li.item_id || null, item_name: li.item_name,
-      quantity: parseInt(li.quantity) || 1, unit_price: parseFloat(li.unit_price) || 0,
-      total_price: (parseInt(li.quantity) || 1) * (parseFloat(li.unit_price) || 0),
+    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    logAudit(user?.id,profile?.full_name,"create","requisitions",data?.id,{title:form.title});
+    toast({title:"Requisition Created",description:num});
+    setShowForm(false);
+    setForm({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
+    load();
+    setSaving(false);
+  };
+
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const header = [[hospitalName],[sysName+" — Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const rows = filtered.map(r=>({
+      "Req No.":r.requisition_number,"Title":r.title,"Department":r.department,
+      "Priority":r.priority,"Status":r.status,"Requester":r.requester_name,
+      "Amount":r.total_amount||0,"Date":r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"",
+      "Approved By":r.approved_by||"","Notes":r.notes||"",
     }));
-    if (reqItems.length > 0) await supabase.from("requisition_items").insert(reqItems);
-    logAudit(user?.id, profile?.full_name, "create", "requisitions", req.id, { number: reqNumber, amount: totalAmount });
-    sendNotification(req.id, "submitted");
-    toast({ title: "Requisition submitted", description: reqNumber });
-    setDialogOpen(false);
-    setForm({ department_id: "", priority: "normal", justification: "", notes: "" });
-    setLineItems([{ item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
+    const ws = XLSX.utils.aoa_to_sheet([...header,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
+    ws["!cols"] = Object.keys(rows[0]||{}).map(()=>({wch:18}));
+    XLSX.utils.book_append_sheet(wb,ws,"Requisitions");
+    XLSX.writeFile(wb,`Requisitions_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast({title:"Exported",description:`${filtered.length} records`});
   };
 
-  // Submit worksheet as requisition
-  const submitWorksheet = async () => {
-    const validRows = worksheetRows.filter(r => r.item_name.trim());
-    if (validRows.length === 0) { toast({ title: "No items entered", variant: "destructive" }); return; }
-    const totalAmount = validRows.reduce((sum, r) => sum + (parseFloat(r.quantity) || 0) * (parseFloat(r.unit_price) || 0), 0);
-    const reqNumber = generateReqNumber();
-    const { data: req, error } = await supabase.from("requisitions").insert({
-      requisition_number: reqNumber, department_id: worksheetDept || null,
-      requested_by: user?.id, priority: worksheetPriority, justification: worksheetJustification,
-      notes: "Submitted via manual worksheet", total_amount: totalAmount, status: "pending",
-    }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    const reqItems = validRows.map(r => ({
-      requisition_id: req.id, item_name: r.item_name,
-      quantity: parseInt(r.quantity) || 1, unit_price: parseFloat(r.unit_price) || 0,
-      total_price: (parseInt(r.quantity) || 1) * (parseFloat(r.unit_price) || 0),
-      notes: r.notes || null,
-    }));
-    await supabase.from("requisition_items").insert(reqItems);
-    logAudit(user?.id, profile?.full_name, "create_worksheet", "requisitions", req.id, { number: reqNumber });
-    sendNotification(req.id, "submitted");
-    toast({ title: "Worksheet submitted", description: reqNumber });
-    setWorksheetRows(Array.from({ length: 15 }, () => ({ item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" })));
-    setWorksheetJustification("");
-    setMainTab("list");
+  const printReq = (r:any) => {
+    const win=window.open("","_blank","width=800,height=600");
+    if(!win) return;
+    const items = (r.requisition_items||[]).map((i:any)=>`<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6">${i.item_name||"—"}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">${i.quantity||0}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6">${i.unit_of_measure||"—"}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">KES ${Number(i.unit_price||0).toLocaleString()}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">KES ${Number((i.quantity||0)*(i.unit_price||0)).toLocaleString()}</td></tr>`).join("");
+    win.document.write(`<html><head><title>${r.requisition_number}</title>
+    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:20px;font-size:12px;color:#1f2937}.lh{background:#0a2558;color:#fff;padding:15px 20px;margin:-20px -20px 20px}.lh h2{margin:0;font-size:18px}.lh small{opacity:0.6;font-size:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}.field{}.lbl{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}.val{font-size:12px;color:#1f2937}table{width:100%;border-collapse:collapse}thead tr{background:#1a3a6b;color:#fff}th{padding:8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase}@media print{@page{margin:1cm}}</style>
+    </head><body>
+    <div class="lh"><h2>${hospitalName}</h2><small>${sysName} · Requisition Voucher</small></div>
+    <h3 style="color:#1a3a6b;margin-bottom:12px">${r.requisition_number}</h3>
+    <div class="grid">
+      <div class="field"><div class="lbl">Title</div><div class="val">${r.title||"—"}</div></div>
+      <div class="field"><div class="lbl">Department</div><div class="val">${r.department||"—"}</div></div>
+      <div class="field"><div class="lbl">Status</div><div class="val">${r.status||"—"}</div></div>
+      <div class="field"><div class="lbl">Priority</div><div class="val">${r.priority||"—"}</div></div>
+      <div class="field"><div class="lbl">Requester</div><div class="val">${r.requester_name||"—"}</div></div>
+      <div class="field"><div class="lbl">Date</div><div class="val">${r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</div></div>
+    </div>
+    <table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th>UoM</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>${items||"<tr><td colspan='5' style='text-align:center;padding:12px;color:#9ca3af'>No items</td></tr>"}</tbody></table>
+    <div style="margin-top:15px;border-top:2px solid #1a3a6b;padding-top:10px;text-align:right">
+      <strong>Total: KES ${Number(r.total_amount||0).toLocaleString()}</strong>
+    </div>
+    <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+      ${["Requested By","Recommended By","Approved By"].map(s=>`<div><div style="border-top:1px solid #ccc;margin-bottom:4px;padding-top:4px;font-size:9px;color:#888">${s}</div></div>`).join("")}
+    </div>
+    </body></html>`);
+    win.document.close();win.focus();setTimeout(()=>win.print(),400);
   };
 
-  const updateWorksheetRow = (i: number, field: string, value: string) => {
-    const rows = [...worksheetRows];
-    (rows[i] as any)[field] = value;
-    setWorksheetRows(rows);
-  };
-  const addWorksheetRows = () => {
-    setWorksheetRows([...worksheetRows, ...Array.from({ length: 5 }, () => ({ item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" }))]);
-  };
+  const filtered = reqs.filter(r=>{
+    if(statusFilter!=="all"&&r.status!==statusFilter) return false;
+    if(search){const q=search.toLowerCase();return (r.title||"").toLowerCase().includes(q)||(r.requisition_number||"").toLowerCase().includes(q)||(r.department||"").toLowerCase().includes(q)||(r.requester_name||"").toLowerCase().includes(q);}
+    return true;
+  });
 
-  const viewDetail = async (req: any) => {
-    setDetailDialog(req);
-    const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", req.id);
-    setDetailItems(data || []);
-  };
-
-  const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("requisitions").update({
-      status, approved_by: user?.id,
-      approved_at: status === "approved" ? new Date().toISOString() : null,
-    }).eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    logAudit(user?.id, profile?.full_name, status === "approved" ? "approve" : status === "forwarded" ? "forward" : "reject", "requisitions", id, { status });
-    sendNotification(id, status);
-    toast({ title: `Requisition ${status}` }); setDetailDialog(null);
-  };
-
-  const addLineItem = () => setLineItems([...lineItems, { item_id: "", item_name: "", quantity: "1", unit_price: "0" }]);
-  const updateLineItem = (index: number, field: string, value: string) => {
-    const updated = [...lineItems];
-    (updated[index] as any)[field] = value;
-    if (field === "item_id" && value) {
-      const item = items.find(i => i.id === value);
-      if (item) { updated[index].item_name = item.name; updated[index].unit_price = String(item.unit_price || 0); }
-    }
-    setLineItems(updated);
-  };
-
-  const statusColor = (s: string) => s === "approved" ? "bg-emerald-500/10 text-emerald-600" : s === "rejected" ? "bg-red-500/10 text-red-600" : s === "forwarded" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600";
-
-  const filtered = requisitions.filter(r =>
-    r.requisition_number.toLowerCase().includes(search.toLowerCase()) ||
-    (r.status || "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const worksheetTotal = worksheetRows.reduce((s, r) => s + (parseFloat(r.quantity) || 0) * (parseFloat(r.unit_price) || 0), 0);
+  const stats = {all:reqs.length,pending:reqs.filter(r=>r.status==="pending"||r.status==="submitted").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length};
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Requisitions</h1>
-        <div className="flex gap-2 flex-wrap">
-          <Button size="sm" variant="outline" onClick={() => exportToPDF(requisitions, "Requisitions Register", ["requisition_number","status","priority","total_amount"])}><Download className="w-4 h-4 mr-1" /> PDF</Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Requisition</Button></DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Create Stores Requisition (EL5H/SCM/FRM/001)</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Department *</Label>
-                    <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                      <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Priority</Label>
-                    <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem><SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent — Emergency</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2"><Label>Justification</Label><Textarea value={form.justification} onChange={(e) => setForm({ ...form, justification: e.target.value })} /></div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between"><Label>Items</Label><Button type="button" size="sm" variant="outline" onClick={addLineItem}><Plus className="w-3 h-3 mr-1" /> Add Line</Button></div>
-                  <div className="border border-border rounded-lg overflow-auto">
-                    <Table>
-                      <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="w-20">Qty</TableHead><TableHead className="w-28">Unit Cost</TableHead><TableHead className="w-28">Total</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {lineItems.map((li, i) => (
-                          <TableRow key={i}>
-                            <TableCell>{i + 1}</TableCell>
-                            <TableCell>
-                              <Select value={li.item_id} onValueChange={(v) => updateLineItem(i, "item_id", v)}>
-                                <SelectTrigger><SelectValue placeholder="Select item" /></SelectTrigger>
-                                <SelectContent>{items.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell><Input type="number" min="1" value={li.quantity} onChange={(e) => updateLineItem(i, "quantity", e.target.value)} /></TableCell>
-                            <TableCell><Input type="number" step="0.01" value={li.unit_price} onChange={(e) => updateLineItem(i, "unit_price", e.target.value)} /></TableCell>
-                            <TableCell className="text-right font-medium">{((parseInt(li.quantity) || 0) * (parseFloat(li.unit_price) || 0)).toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-                <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit">Submit Requisition</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+    <div className="p-4 space-y-3" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      {/* Header */}
+      <div className="rounded-2xl px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+        style={{background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)"}}>
+        <div className="flex items-center gap-3">
+          <ClipboardList className="w-5 h-5 text-white"/>
+          <div>
+            <h1 className="text-base font-black text-white">Requisitions</h1>
+            <p className="text-[10px] text-white/50">{filtered.length} of {reqs.length} records</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading?"animate-spin":""}`}/>
+          </button>
+          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/80 text-white text-xs font-semibold hover:bg-green-500">
+            <FileSpreadsheet className="w-3.5 h-3.5"/>Export
+          </button>
+          {canCreate && (
+            <button onClick={()=>setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-blue-900 text-xs font-bold hover:bg-blue-50">
+              <Plus className="w-3.5 h-3.5"/>New Requisition
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main tabs: List vs Worksheet */}
-      <Tabs value={mainTab} onValueChange={setMainTab}>
-        <TabsList>
-          <TabsTrigger value="list" className="gap-1.5"><Search className="w-3.5 h-3.5" /> Requisitions List</TabsTrigger>
-          <TabsTrigger value="worksheet" className="gap-1.5"><ClipboardEdit className="w-3.5 h-3.5" /> Manual Worksheet</TabsTrigger>
-        </TabsList>
+      {/* Stat chips */}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(stats).map(([k,v])=>(
+          <button key={k} onClick={()=>setStatusFilter(k==="all"?"all":k)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            style={{
+              background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",
+              color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"
+            }}>
+            {k==="pending"&&<Clock className="w-3 h-3"/>}
+            {k==="approved"&&<CheckCircle className="w-3 h-3"/>}
+            {k==="rejected"&&<XCircle className="w-3 h-3"/>}
+            <span className="capitalize">{k}</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold"
+              style={{background:statusFilter===(k==="all"?"all":k)?"rgba(255,255,255,0.25)":"#e5e7eb"}}>
+              {String(v)}
+            </span>
+          </button>
+        ))}
+        <div className="relative ml-auto">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions…"
+            className="pl-8 pr-8 py-1.5 rounded-full border border-gray-200 text-xs outline-none focus:border-blue-400 w-52"/>
+          {search&&<button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+        </div>
+      </div>
 
-        <TabsContent value="list" className="space-y-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search requisitions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-          </div>
-
-          <div className="border border-border rounded-lg overflow-auto bg-card">
-            <Table>
-              <TableHeader><TableRow className="bg-muted/50">
-                <TableHead>Req. Number</TableHead><TableHead>Priority</TableHead>
-                <TableHead className="text-right">Amount (KSH)</TableHead><TableHead>Status</TableHead><TableHead className="w-28">Actions</TableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No requisitions</TableCell></TableRow>
-                ) : filtered.map((req) => (
-                  <TableRow key={req.id} className="data-table-row">
-                    <TableCell className="font-mono font-medium">{req.requisition_number}</TableCell>
-                    <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${req.priority === "urgent" ? "bg-red-500/10 text-red-600" : req.priority === "high" ? "bg-amber-500/10 text-amber-600" : "bg-muted text-muted-foreground"}`}>{req.priority}</span></TableCell>
-                    <TableCell className="text-right font-medium">{Number(req.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell><span className={`text-xs px-2 py-1 rounded-full capitalize ${statusColor(req.status)}`}>{req.status}</span></TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => viewDetail(req)}><Eye className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={async () => {
-                          const { data } = await supabase.from("requisition_items").select("*").eq("requisition_id", req.id);
-                          generateRequisitionPDF(req, data || [], departments);
-                        }}><FileDown className="w-4 h-4" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full" style={{fontSize:12}}>
+            <thead>
+              <tr style={{background:"#0a2558"}}>
+                {["#","Req Number","Title","Department","Priority","Status","Requester","Amount","Date","Actions"].map(h=>(
+                  <th key={h} className="text-left px-3 py-2.5 text-white/70 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
-              </TableBody>
-            </Table>
+              </tr>
+            </thead>
+            <tbody>
+              {loading?(
+                Array(5).fill(0).map((_,i)=>(
+                  <tr key={i}><td colSpan={10} className="px-4 py-3 animate-pulse"><div className="h-3 bg-gray-200 rounded w-full"/></td></tr>
+                ))
+              ):filtered.length===0?(
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-gray-400">No requisitions found</td></tr>
+              ):filtered.map((r,i)=>{
+                const s=STATUS_CFG[r.status]||{bg:"#f3f4f6",color:"#6b7280",label:r.status};
+                const isPending = r.status==="submitted"||r.status==="pending";
+                return (
+                  <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-colors group">
+                    <td className="px-3 py-2.5 text-gray-400">{i+1}</td>
+                    <td className="px-3 py-2.5 font-mono text-xs font-bold text-blue-900">{r.requisition_number||"—"}</td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-800 max-w-[200px] truncate">{r.title||"—"}</td>
+                    <td className="px-3 py-2.5 text-gray-600">{r.department||"—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${r.priority==="urgent"||r.priority==="high"?"bg-red-100 text-red-700":r.priority==="normal"?"bg-blue-100 text-blue-700":"bg-gray-100 text-gray-500"}`}>
+                        {r.priority||"normal"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{background:s.bg,color:s.color}}>{s.label}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-600">{r.requester_name||"—"}</td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-800">{r.total_amount?`KES ${Number(r.total_amount).toLocaleString()}`:"—"}</td>
+                    <td className="px-3 py-2.5 text-gray-400 text-[10px] whitespace-nowrap">{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={()=>setViewReq(r)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"><Eye className="w-3 h-3"/></button>
+                        <button onClick={()=>printReq(r)} className="p-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100"><Printer className="w-3 h-3"/></button>
+                        {canApprove&&isPending&&(
+                          <>
+                            <button onClick={()=>approve(r.id)} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100"><CheckCircle className="w-3 h-3"/></button>
+                            <button onClick={()=>reject(r.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="w-3 h-3"/></button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400">
+          {filtered.length} requisition{filtered.length!==1?"s":""}
+          {filtered.length>0&&` · Total: KES ${filtered.reduce((s,r)=>s+Number(r.total_amount||0),0).toLocaleString()}`}
+        </div>
+      </div>
+
+      {/* Create form modal */}
+      {showForm&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowForm(false)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between" style={{background:"#0a2558"}}>
+              <h3 className="text-sm font-black text-white flex items-center gap-2"><ClipboardList className="w-4 h-4"/>New Requisition</h3>
+              <button onClick={()=>setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description…"}].map(f=>(
+                <div key={f.k}>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">{f.l}</label>
+                  {f.k==="notes"?(
+                    <textarea value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} rows={3} placeholder={f.ph}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 resize-none"/>
+                  ):(
+                    <input value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400"/>
+                  )}
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Priority</label>
+                  <select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400">
+                    {["low","normal","high","urgent"].map(v=><option key={v} value={v} className="capitalize">{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Delivery Date</label>
+                  <input type="date" value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400"/>
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t flex gap-2 justify-end">
+              <button onClick={()=>setShowForm(false)} className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={save} disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold"
+                style={{background:"#1a3a6b",opacity:saving?0.7:1}}>
+                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Send className="w-3.5 h-3.5"/>}
+                {saving?"Saving…":"Create Requisition"}
+              </button>
+            </div>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* MANUAL WORKSHEET TAB */}
-        <TabsContent value="worksheet" className="space-y-4">
-          <div className="border-2 border-border rounded-lg bg-card p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <ClipboardEdit className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-bold text-foreground">Manual Requisition Worksheet</h2>
-              <span className="text-xs text-muted-foreground ml-auto">EL5H/SCM/FRM/001</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Department</Label>
-                <Select value={worksheetDept} onValueChange={setWorksheetDept}>
-                  <SelectTrigger className="h-8"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Priority</Label>
-                <Select value={worksheetPriority} onValueChange={setWorksheetPriority}>
-                  <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem><SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Justification</Label>
-                <Input value={worksheetJustification} onChange={e => setWorksheetJustification(e.target.value)} className="h-8 text-sm" placeholder="Reason for request" />
-              </div>
-            </div>
-
-            {/* Worksheet grid */}
-            <div className="border border-border rounded overflow-auto max-h-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-8 text-xs">#</TableHead>
-                    <TableHead className="text-xs min-w-[200px]">Item Name *</TableHead>
-                    <TableHead className="text-xs min-w-[150px]">Description</TableHead>
-                    <TableHead className="text-xs w-20">Qty</TableHead>
-                    <TableHead className="text-xs w-20">Unit</TableHead>
-                    <TableHead className="text-xs w-28">Unit Price</TableHead>
-                    <TableHead className="text-xs w-28">Total</TableHead>
-                    <TableHead className="text-xs min-w-[120px]">Notes</TableHead>
-                    <TableHead className="text-xs w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {worksheetRows.map((row, i) => {
-                    const total = (parseFloat(row.quantity) || 0) * (parseFloat(row.unit_price) || 0);
-                    return (
-                      <TableRow key={i} className={row.item_name ? "bg-primary/5" : ""}>
-                        <TableCell className="text-xs text-muted-foreground py-1">{i + 1}</TableCell>
-                        <TableCell className="py-1"><Input value={row.item_name} onChange={e => updateWorksheetRow(i, "item_name", e.target.value)} className="h-7 text-xs border-dashed" placeholder="Type item name..." /></TableCell>
-                        <TableCell className="py-1"><Input value={row.description} onChange={e => updateWorksheetRow(i, "description", e.target.value)} className="h-7 text-xs border-dashed" placeholder="Optional" /></TableCell>
-                        <TableCell className="py-1"><Input type="number" min="1" value={row.quantity} onChange={e => updateWorksheetRow(i, "quantity", e.target.value)} className="h-7 text-xs border-dashed" /></TableCell>
-                        <TableCell className="py-1">
-                          <Select value={row.unit} onValueChange={v => updateWorksheetRow(i, "unit", v)}>
-                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {["pcs", "box", "pack", "kg", "litre", "roll", "set", "pair", "bottle", "carton"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="py-1"><Input type="number" step="0.01" value={row.unit_price} onChange={e => updateWorksheetRow(i, "unit_price", e.target.value)} className="h-7 text-xs border-dashed" /></TableCell>
-                        <TableCell className="text-right text-xs font-medium py-1">{total > 0 ? total.toFixed(2) : ""}</TableCell>
-                        <TableCell className="py-1"><Input value={row.notes} onChange={e => updateWorksheetRow(i, "notes", e.target.value)} className="h-7 text-xs border-dashed" placeholder="Notes" /></TableCell>
-                        <TableCell className="py-1">
-                          {row.item_name && (
-                            <button onClick={() => { const rows = [...worksheetRows]; rows[i] = { item_name: "", description: "", quantity: "", unit: "pcs", unit_price: "", notes: "" }; setWorksheetRows(rows); }} className="text-muted-foreground hover:text-destructive">
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="flex items-center justify-between mt-3">
+      {/* View modal */}
+      {viewReq&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setViewReq(null)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-3 flex items-center justify-between" style={{background:"#0a2558"}}>
+              <div><h3 className="text-sm font-black text-white">{viewReq.requisition_number}</h3><p className="text-[10px] text-white/40">{viewReq.title}</p></div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={addWorksheetRows}><Plus className="w-3 h-3 mr-1" /> Add 5 Rows</Button>
-                <span className="text-xs text-muted-foreground self-center">
-                  {worksheetRows.filter(r => r.item_name.trim()).length} items entered
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-bold">Total: KSH {worksheetTotal.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</span>
-                <Button onClick={submitWorksheet} disabled={worksheetRows.filter(r => r.item_name.trim()).length === 0}>
-                  <CheckCircle className="w-4 h-4 mr-1" /> Submit Worksheet
-                </Button>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Detail dialog */}
-      <Dialog open={!!detailDialog} onOpenChange={() => setDetailDialog(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Requisition: {detailDialog?.requisition_number}</DialogTitle></DialogHeader>
-          {detailDialog && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize font-medium ${statusColor(detailDialog.status)} px-2 py-0.5 rounded`}>{detailDialog.status}</span></div>
-                <div><span className="text-muted-foreground">Priority:</span> <span className="capitalize font-medium">{detailDialog.priority}</span></div>
-                <div><span className="text-muted-foreground">Total (KSH):</span> <span className="font-medium">{Number(detailDialog.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</span></div>
-              </div>
-              {detailDialog.justification && <div><Label className="text-muted-foreground">Justification</Label><p className="text-sm mt-1 bg-muted/50 p-2 rounded">{detailDialog.justification}</p></div>}
-              <Table>
-                <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Item</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {detailItems.map((li, i) => (
-                    <TableRow key={li.id}><TableCell>{i + 1}</TableCell><TableCell>{li.item_name}</TableCell><TableCell className="text-right">{li.quantity}</TableCell><TableCell className="text-right">{Number(li.unit_price).toFixed(2)}</TableCell><TableCell className="text-right font-medium">{Number(li.total_price).toFixed(2)}</TableCell></TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex gap-2 justify-end pt-2 border-t border-border">
-                <Button variant="outline" size="sm" onClick={() => generateRequisitionPDF(detailDialog, detailItems, departments)}><FileDown className="w-4 h-4 mr-1" /> PDF</Button>
-                {canApprove && detailDialog.status === "pending" && (
+                <button onClick={()=>printReq(viewReq)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 text-white text-xs"><Printer className="w-3 h-3"/>Print</button>
+                {canApprove&&(viewReq.status==="submitted"||viewReq.status==="pending")&&(
                   <>
-                    <Button variant="outline" onClick={() => setForwardDialog(detailDialog)} className="text-blue-600 hover:bg-blue-500/10"><Forward className="w-4 h-4 mr-1" /> Forward</Button>
-                    <Button variant="outline" onClick={() => updateStatus(detailDialog.id, "rejected")} className="text-destructive hover:bg-destructive/10"><XCircle className="w-4 h-4 mr-1" /> Reject</Button>
-                    <Button onClick={() => updateStatus(detailDialog.id, "approved")} className="bg-emerald-600 hover:bg-emerald-700"><CheckCircle className="w-4 h-4 mr-1" /> Approve</Button>
+                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-500 text-white text-xs"><CheckCircle className="w-3 h-3"/>Approve</button>
+                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500 text-white text-xs"><XCircle className="w-3 h-3"/>Reject</button>
                   </>
                 )}
+                <button onClick={()=>setViewReq(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-      
-    {/* ── Forward Email Dialog ──────────────────────────────────── */}
-      {forwardDialog && (
-        <ForwardEmailDialog
-          open={!!forwardDialog}
-          onClose={() => setForwardDialog(null)}
-          record={{
-            id: forwardDialog.id,
-            number: forwardDialog.requisition_number,
-            type: "requisition",
-            amount: forwardDialog.total_amount,
-            priority: forwardDialog.priority,
-            status: forwardDialog.status,
-            justification: forwardDialog.justification,
-          }}
-          onForwardStatus={async (id) => {
-            await (supabase as any).from("requisitions").update({ status: "forwarded" }).eq("id", id);
-            fetchRequisitions();
-            setDetailDialog(null);
-          }}
-        />
+            <div className="overflow-y-auto p-5">
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  {l:"Department",v:viewReq.department},{l:"Priority",v:viewReq.priority},
+                  {l:"Status",v:viewReq.status},{l:"Requester",v:viewReq.requester_name},
+                  {l:"Total",v:viewReq.total_amount?`KES ${Number(viewReq.total_amount).toLocaleString()}`:"—"},
+                  {l:"Date",v:viewReq.created_at?new Date(viewReq.created_at).toLocaleDateString("en-KE"):"—"},
+                ].map(r=>(
+                  <div key={r.l}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{r.l}</div>
+                    <div className="text-sm text-gray-800 font-medium mt-0.5">{r.v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              {viewReq.notes&&<div className="mb-4 p-3 rounded-xl bg-gray-50"><p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Notes</p><p className="text-sm text-gray-700">{viewReq.notes}</p></div>}
+              {(viewReq.requisition_items||[]).length>0&&(
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-gray-400 mb-2">Line Items ({viewReq.requisition_items.length})</p>
+                  <table className="w-full text-xs">
+                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} className="text-left px-3 py-2 text-white/80 text-[10px] uppercase font-bold">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {viewReq.requisition_items.map((it:any,i:number)=>(
+                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-3 py-2 font-medium">{it.item_name||"—"}</td>
+                          <td className="px-3 py-2">{it.quantity}</td>
+                          <td className="px-3 py-2 text-gray-500">{it.unit_of_measure||"—"}</td>
+                          <td className="px-3 py-2">KES {Number(it.unit_price||0).toLocaleString()}</td>
+                          <td className="px-3 py-2 font-semibold">KES {Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
-};
-
-export default RequisitionsPage;
+}
