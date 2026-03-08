@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
-import { Archive, RefreshCw, Download, CheckCircle, Clock, AlertTriangle, Database, FileSpreadsheet, Play, Trash2 } from "lucide-react";
+import { Archive, RefreshCw, Download, CheckCircle, Clock, AlertTriangle, Database, FileSpreadsheet, Play, Trash2, Shield, Zap, Settings, Calendar } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const BACKUP_TABLES = [
@@ -209,6 +209,79 @@ function BackupInner() {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Backup Options */}
+      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="px-5 py-3.5 border-b border-gray-100">
+          <h2 className="text-xs font-black uppercase tracking-widest text-gray-600">Backup Options & Schedule</h2>
+        </div>
+        <div className="p-5 grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-gray-700">Backup Format</h3>
+            {["Excel (XLSX)","CSV (per table)","JSON dump","SQL Script"].map(fmt=>(
+              <label key={fmt} className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="backup_fmt" defaultChecked={fmt==="Excel (XLSX)"} className="accent-blue-600"/>
+                <span className="text-xs text-gray-600">{fmt}</span>
+              </label>
+            ))}
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-gray-700">Auto-Schedule</h3>
+            {["Daily at midnight","Weekly (Sunday)","Monthly (1st)","Manual only"].map(sch=>(
+              <label key={sch} className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="backup_sch" defaultChecked={sch==="Weekly (Sunday)"} className="accent-blue-600"/>
+                <span className="text-xs text-gray-600">{sch}</span>
+              </label>
+            ))}
+          </div>
+          <div className="col-span-2 pt-3 border-t border-gray-100 space-y-2">
+            <h3 className="text-xs font-black text-gray-700 mb-2">Backup Scope</h3>
+            <div className="flex flex-wrap gap-2">
+              {["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"].map(scope=>(
+                <label key={scope} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer" style={{background:"#f0f9ff",border:"1px solid #bae6fd"}}>
+                  <input type="checkbox" defaultChecked className="accent-blue-600 w-3 h-3"/>
+                  <span className="text-xs text-blue-700 font-semibold">{scope}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button onClick={runBackup} disabled={running} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
+                <Download className="w-3.5 h-3.5"/> Full Backup Now
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold" style={{background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
+                <Shield className="w-3.5 h-3.5"/> Verify Last Backup
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold" style={{background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
+                <Settings className="w-3.5 h-3.5"/> Save Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Restore section */}
+      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="px-5 py-3.5 border-b border-gray-100">
+          <h2 className="text-xs font-black uppercase tracking-widest text-gray-600 flex items-center gap-2">
+            <Zap className="w-3.5 h-3.5 text-orange-500"/> Restore from Backup
+          </h2>
+        </div>
+        <div className="p-5">
+          <div className="p-4 rounded-xl mb-4" style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)"}}>
+            <p className="text-xs text-red-600 font-semibold">⚠️ Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer" style={{background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
+              <FileSpreadsheet className="w-4 h-4"/>
+              Upload Backup File (.xlsx)
+              <input type="file" accept=".xlsx,.csv,.json" className="hidden" onChange={()=>{}}/>
+            </label>
+            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold" style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={()=>alert("Select a backup file first")}>
+              <Play className="w-3.5 h-3.5"/> Restore
+            </button>
+          </div>
         </div>
       </div>
     </div>
