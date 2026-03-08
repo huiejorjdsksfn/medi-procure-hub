@@ -50,36 +50,41 @@ export default function TendersPage() {
 
   const filtered = tenders.filter(t=>(statusFilter==="all"||t.status===statusFilter)&&(t.title?.toLowerCase().includes(search.toLowerCase())||t.tender_number?.toLowerCase().includes(search.toLowerCase())));
 
+  const glassCard = { background:"rgba(8,20,55,0.78)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", border:"1px solid rgba(255,255,255,0.12)" } as React.CSSProperties;
+
   return (
-    <div className="p-6 space-y-6" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Gavel className="w-6 h-6 text-violet-600" />Tenders</h1><p className="text-sm text-slate-500 mt-0.5">Competitive tendering & procurement · Live sync</p></div>
+    <div className="p-4 space-y-4" style={{minHeight:"calc(100vh-100px)"}}>
+      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#3b1f73,#5b21b6,#7c3aed)",boxShadow:"0 4px 16px rgba(124,58,237,0.35)"}}>
+        <div className="flex items-center gap-3"><Gavel className="w-5 h-5 text-white" /><div><h1 className="text-base font-black text-white">Tenders</h1><p className="text-[10px] text-white/50">Competitive tendering & procurement · Live sync</p></div></div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-2" />Export</Button>
-          {canManage&&<Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={()=>setShowNew(true)}><Plus className="w-4 h-4 mr-2" />New Tender</Button>}
+          <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/20 hover:bg-white/20"><Download className="w-4 h-4 mr-2" />Export</Button>
+          {canManage&&<Button size="sm" className="bg-white text-violet-800 hover:bg-violet-50 font-bold" onClick={()=>setShowNew(true)}><Plus className="w-4 h-4 mr-2" />New Tender</Button>}
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[{label:"Published",val:tenders.filter(t=>t.status==="published").length,color:"blue"},{label:"Closed",val:tenders.filter(t=>t.status==="closed").length,color:"amber"},{label:"Awarded",val:tenders.filter(t=>t.status==="awarded").length,color:"green"},{label:"Total",val:tenders.length,color:"slate"}].map(k=>(
-          <div key={k.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm"><p className="text-2xl font-bold text-slate-800">{k.val}</p><p className="text-xs text-slate-500 mt-1">{k.label}</p></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[{label:"Published",val:tenders.filter(t=>t.status==="published").length,c:"#7c3aed"},{label:"Closed",val:tenders.filter(t=>t.status==="closed").length,c:"#f59e0b"},{label:"Awarded",val:tenders.filter(t=>t.status==="awarded").length,c:"#10b981"},{label:"Total",val:tenders.length,c:"#60a5fa"}].map(k=>(
+          <div key={k.label} style={{...glassCard,borderRadius:12,padding:"14px 18px"}}>
+            <p className="text-2xl font-black" style={{color:k.c}}>{k.val}</p>
+            <p className="text-xs mt-1" style={{color:"rgba(255,255,255,0.5)"}}>{k.label}</p>
+          </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="p-4 border-b border-slate-100 flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-48"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search tenders..." className="pl-9" value={search} onChange={e=>setSearch(e.target.value)} /></div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{["all","draft","published","closed","evaluated","awarded","cancelled"].map(s=><SelectItem key={s} value={s} className="capitalize">{s==="all"?"All Status":s}</SelectItem>)}</SelectContent></Select>
-          <Button variant="outline" size="sm" onClick={fetch}><RefreshCw className="w-4 h-4" /></Button>
+      <div style={{...glassCard,borderRadius:12,overflow:"hidden"}}>
+        <div className="p-3 flex gap-3 flex-wrap items-center" style={{borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+          <div className="relative flex-1 min-w-44"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{color:"rgba(255,255,255,0.3)"}} /><Input placeholder="Search tenders..." className="pl-9" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff"}} value={search} onChange={e=>setSearch(e.target.value)} /></div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-36" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff"}}><SelectValue /></SelectTrigger><SelectContent>{["all","draft","published","closed","evaluated","awarded","cancelled"].map(s=><SelectItem key={s} value={s} className="capitalize">{s==="all"?"All Status":s}</SelectItem>)}</SelectContent></Select>
+          <Button variant="outline" size="sm" onClick={fetch} className="bg-white/10 text-white border-white/15 hover:bg-white/20"><RefreshCw className="w-4 h-4" /></Button>
         </div>
-        <Table><TableHeader><TableRow className="bg-slate-50">{["Tender No.","Title","Category","Closing Date","Est. Value","Status","Actions"].map(h=><TableHead key={h} className="text-xs font-semibold uppercase">{h}</TableHead>)}</TableRow></TableHeader>
-          <TableBody>{filtered.length===0?<TableRow><TableCell colSpan={7} className="text-center text-slate-400 py-12">No tenders found. Create the first one.</TableCell></TableRow>
-            :filtered.map(t=><TableRow key={t.id} className="hover:bg-slate-50">
-              <TableCell className="font-mono text-xs font-semibold text-violet-600">{t.tender_number}</TableCell>
-              <TableCell><p className="font-medium text-slate-700">{t.title}</p><p className="text-xs text-slate-400 capitalize">{t.tender_type} tender</p></TableCell>
-              <TableCell className="text-slate-500">{t.category||"—"}</TableCell>
-              <TableCell className="text-slate-500">{t.closing_date}</TableCell>
-              <TableCell className="font-semibold">{t.estimated_value?`KES ${Number(t.estimated_value).toLocaleString()}`:"—"}</TableCell>
+        <Table><TableHeader><TableRow style={{background:"rgba(10,25,70,0.7)"}}>{["Tender No.","Title","Category","Closing Date","Est. Value","Status","Actions"].map(h=><TableHead key={h} style={{color:"rgba(255,255,255,0.45)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</TableHead>)}</TableRow></TableHeader>
+          <TableBody>{filtered.length===0?<TableRow><TableCell colSpan={7} style={{textAlign:"center",color:"rgba(255,255,255,0.4)",padding:"32px"}}>No tenders found. Create the first one.</TableCell></TableRow>
+            :filtered.map((t,i)=><TableRow key={t.id} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"rgba(255,255,255,0.02)":"transparent"}} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(124,58,237,0.1)"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
+              <TableCell className="font-mono text-xs font-semibold" style={{color:"#a78bfa"}}>{t.tender_number}</TableCell>
+              <TableCell><p className="font-medium" style={{color:"rgba(255,255,255,0.85)"}}>{t.title}</p><p className="text-xs capitalize" style={{color:"rgba(255,255,255,0.38)"}}>{t.tender_type} tender</p></TableCell>
+              <TableCell style={{color:"rgba(255,255,255,0.55)"}}>{t.category||"—"}</TableCell>
+              <TableCell style={{color:"rgba(255,255,255,0.55)"}}>{t.closing_date}</TableCell>
+              <TableCell className="font-semibold" style={{color:"rgba(255,255,255,0.8)"}}>{t.estimated_value?`KES ${Number(t.estimated_value).toLocaleString()}`:"—"}</TableCell>
               <TableCell><Badge variant="outline" className={`text-xs capitalize ${statusColor(t.status)}`}>{t.status}</Badge></TableCell>
-              <TableCell><Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={()=>setDetail(t)}><Eye className="w-3.5 h-3.5" /></Button></TableCell>
+              <TableCell><Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-violet-600/30" style={{color:"#a78bfa"}} onClick={()=>setDetail(t)}><Eye className="w-3.5 h-3.5" /></Button></TableCell>
             </TableRow>)
           }</TableBody>
         </Table>
@@ -102,8 +107,8 @@ export default function TendersPage() {
       </Dialog>
 
       {detail&&<Dialog open={!!detail} onOpenChange={()=>setDetail(null)}><DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>{detail.tender_number}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3 text-sm">{[["Title",detail.title],["Category",detail.category||"—"],["Type",detail.tender_type],["Closing",detail.closing_date],["Est. Value",detail.estimated_value?`KES ${Number(detail.estimated_value).toLocaleString()}`:"—"],["Status",detail.status]].map(([l,v])=><div key={l} className="bg-slate-50 rounded p-2"><p className="text-xs text-slate-500">{l}</p><p className="font-medium text-slate-800 capitalize">{v}</p></div>)}</div>
+        <DialogHeader><DialogTitle style={{color:"#a78bfa"}}>{detail.tender_number}</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3 text-sm">{[["Title",detail.title],["Category",detail.category||"—"],["Type",detail.tender_type],["Closing",detail.closing_date],["Est. Value",detail.estimated_value?`KES ${Number(detail.estimated_value).toLocaleString()}`:"—"],["Status",detail.status]].map(([l,v])=><div key={l} style={{background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:8,padding:"8px 12px"}}><p className="text-xs" style={{color:"rgba(255,255,255,0.4)"}}>{l}</p><p className="font-medium capitalize" style={{color:"rgba(255,255,255,0.9)"}}>{v}</p></div>)}</div>
         {canManage&&detail.status==="draft"&&<Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2" onClick={()=>updateStatus(detail.id,"published")}><CheckCircle className="w-4 h-4 mr-2" />Publish Tender</Button>}
         {canManage&&detail.status==="published"&&<Button className="w-full bg-amber-600 hover:bg-amber-700 text-white mt-2" onClick={()=>updateStatus(detail.id,"closed")}>Close Tender</Button>}
         {canManage&&detail.status==="closed"&&<Button className="w-full bg-green-600 hover:bg-green-700 text-white mt-2" onClick={()=>updateStatus(detail.id,"evaluated")}>Mark Evaluated</Button>}

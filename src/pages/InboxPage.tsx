@@ -152,9 +152,9 @@ export default function InboxPage() {
   return (
     <div className="flex h-[calc(100vh-120px)]" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       {/* Left panel */}
-      <div className="w-80 shrink-0 flex flex-col border-r border-gray-200 bg-white">
+      <div className="w-80 shrink-0 flex flex-col" style={{borderRight:"1px solid rgba(255,255,255,0.08)",background:"rgba(8,20,55,0.85)",backdropFilter:"blur(12px)"}}>
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-100" style={{background:"linear-gradient(90deg,#1a3a6b,#1d4a87)"}}>
+        <div className="px-4 py-3" style={{background:"linear-gradient(90deg,#1a3a6b,#1d4a87)",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-black text-white flex items-center gap-2">
               <Mail className="w-4 h-4" /> Inbox
@@ -177,18 +177,18 @@ export default function InboxPage() {
         </div>
 
         {/* Filters */}
-        <div className="p-2 border-b border-gray-100 space-y-2">
+        <div className="p-2 space-y-2" style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{color:"rgba(255,255,255,0.3)"}} />
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages…"
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-blue-400" />
-            {search && <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff"}} />
+            {search && <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3" style={{color:"rgba(255,255,255,0.4)"}}/></button>}
           </div>
           <div className="flex gap-1 flex-wrap">
             {["all","unread","read","replied","actioned"].map(f=>(
               <button key={f} onClick={()=>setFilter(f)}
                 className="px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize transition-all"
-                style={{background:filter===f?"#1a3a6b":"#f3f4f6",color:filter===f?"#fff":"#6b7280"}}>
+                style={{background:filter===f?"#1a3a6b":"rgba(255,255,255,0.08)",color:filter===f?"#fff":"rgba(255,255,255,0.5)"}}>
                 {f}
               </button>
             ))}
@@ -237,7 +237,7 @@ export default function InboxPage() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col" style={{background:"rgba(5,15,40,0.7)"}}>
         {!activeItem ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
             <Mail className="w-14 h-14 text-gray-200 mb-3" />
@@ -247,21 +247,21 @@ export default function InboxPage() {
         ) : (
           <>
             {/* Message header */}
-            <div className="px-5 py-4 bg-white border-b border-gray-200">
+            <div className="px-5 py-4" style={{background:"rgba(10,30,80,0.8)",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{TYPE_ICONS[activeItem.type]||"📩"}</span>
                   <div>
-                    <h3 className="text-sm font-black text-gray-800">{activeItem.subject}</h3>
+                    <h3 className="text-sm font-black" style={{color:"#fff"}}>{activeItem.subject}</h3>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px]" style={{color:"rgba(255,255,255,0.4)"}}>
                         {new Date(activeItem.created_at).toLocaleString("en-KE",{month:"long",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
                       </span>
                       {activeItem.record_number && (
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-semibold">{activeItem.record_number}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{background:"rgba(96,165,250,0.2)",color:"#93c5fd"}}>{activeItem.record_number}</span>
                       )}
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                        style={{background:PRIORITY_COLORS[activeItem.priority]+"18",color:PRIORITY_COLORS[activeItem.priority]}}>
+                        style={{background:PRIORITY_COLORS[activeItem.priority]+"25",color:PRIORITY_COLORS[activeItem.priority]}}>
                         {activeItem.priority} priority
                       </span>
                     </div>
@@ -269,7 +269,7 @@ export default function InboxPage() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={()=>archiveItem(activeItem)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-500 bg-gray-100 hover:bg-gray-200">
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs" style={{background:"rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.6)",border:"1px solid rgba(255,255,255,0.1)"}}>
                     <Archive className="w-3 h-3" /> Archive
                   </button>
                 </div>
@@ -278,28 +278,28 @@ export default function InboxPage() {
 
             {/* Message body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              <div className="rounded-2xl p-4 shadow-sm">
-                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{activeItem.body}</div>
+              <div className="rounded-2xl p-4" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)"}}>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{color:"rgba(255,255,255,0.8)"}}>{activeItem.body}</div>
               </div>
 
               {/* Previous reply */}
               {activeItem.reply_body && (
-                <div className="bg-green-50 rounded-2xl p-4 border border-green-200">
+                <div className="rounded-2xl p-4" style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)"}}>
                   <div className="flex items-center gap-2 mb-2">
-                    <CornerUpLeft className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-[11px] font-bold text-green-700">Your Reply</span>
-                    {activeItem.replied_at && <span className="text-[10px] text-green-500">{new Date(activeItem.replied_at).toLocaleString("en-KE")}</span>}
+                    <CornerUpLeft className="w-3.5 h-3.5" style={{color:"#34d399"}} />
+                    <span className="text-[11px] font-bold" style={{color:"#34d399"}}>Your Reply</span>
+                    {activeItem.replied_at && <span className="text-[10px]" style={{color:"rgba(52,211,153,0.6)"}}>{new Date(activeItem.replied_at).toLocaleString("en-KE")}</span>}
                   </div>
-                  <div className="text-sm text-green-800 whitespace-pre-wrap">{activeItem.reply_body}</div>
+                  <div className="text-sm whitespace-pre-wrap" style={{color:"rgba(255,255,255,0.75)"}}>{activeItem.reply_body}</div>
                 </div>
               )}
 
               {/* Action taken */}
               {activeItem.action_taken && (
-                <div className={`rounded-2xl p-4 border ${activeItem.action_taken==="approve"?"bg-green-50 border-green-200":"bg-red-50 border-red-200"}`}>
+                <div className="rounded-2xl p-4" style={{background:activeItem.action_taken==="approve"?"rgba(16,185,129,0.1)":"rgba(239,68,68,0.1)",border:`1px solid ${activeItem.action_taken==="approve"?"rgba(16,185,129,0.3)":"rgba(239,68,68,0.3)"}`}}>
                   <div className="flex items-center gap-2">
-                    {activeItem.action_taken==="approve" ? <CheckCircle className="w-4 h-4 text-green-600"/> : <XCircle className="w-4 h-4 text-red-600"/>}
-                    <span className="text-sm font-bold" style={{color:activeItem.action_taken==="approve"?"#16a34a":"#dc2626"}}>
+                    {activeItem.action_taken==="approve" ? <CheckCircle className="w-4 h-4" style={{color:"#34d399"}}/> : <XCircle className="w-4 h-4" style={{color:"#f87171"}}/>}
+                    <span className="text-sm font-bold" style={{color:activeItem.action_taken==="approve"?"#34d399":"#f87171"}}>
                       {activeItem.action_taken==="approve"?"Approved":"Rejected"} by {profile?.full_name}
                     </span>
                   </div>
@@ -309,11 +309,11 @@ export default function InboxPage() {
 
             {/* Reply / Action area */}
             {activeItem.status !== "actioned" && activeItem.status !== "archived" && tab==="inbox" && (
-              <div className="bg-white border-t border-gray-200 p-4 space-y-3">
+              <div className="p-4 space-y-3" style={{borderTop:"1px solid rgba(255,255,255,0.08)",background:"rgba(5,15,40,0.6)"}}>
                 <textarea value={replyText} onChange={e=>setReplyText(e.target.value)}
                   placeholder={activeItem.type==="forwarded_requisition"||activeItem.type==="approval"?"Add a note (optional)…":"Type your reply…"}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 resize-none" />
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff"}} />
                 <div className="flex items-center gap-2">
                   {/* Approve/Reject for forwarded items (admin/manager only) */}
                   {isAdmin && (activeItem.type==="forwarded_requisition"||activeItem.type==="forwarded_po"||activeItem.type==="approval") && (

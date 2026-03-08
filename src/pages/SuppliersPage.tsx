@@ -179,7 +179,7 @@ export default function SuppliersPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl px-4 py-3 flex flex-wrap gap-3 items-center shadow-sm">
+      <div className="rounded-xl px-4 py-3 flex flex-wrap gap-3 items-center" style={{background:"rgba(8,20,55,0.78)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)"}}>
         <div className="flex gap-1">
           {["all","active","inactive","suspended"].map(s=>(
             <button key={s} onClick={()=>setStatusFilter(s)}
