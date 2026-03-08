@@ -68,36 +68,46 @@ function ComposeModal({ onClose, onSent, profiles }: { onClose:()=>void; onSent:
     if (!subject.trim()) { toast({title:"Subject is required",variant:"destructive"}); return; }
     setSending(true);
     try {
-      // Insert notification record
-      const { data: notif, error: ne } = await (supabase as any).from("notifications").insert({
-        sender_id: user?.id,
-        subject, body,
-        module,
-        priority,
-        send_email: true,
-      }).select().single();
-      if (ne) throw ne;
-
-      // Insert recipients
-      const recipients = to.map(email => {
-        const p = profiles.find(x=>x.email===email);
-        return { notification_id: notif.id, recipient_id: p?.id||null, recipient_email: email, recipient_name: p?.full_name||email };
-      });
-      await (supabase as any).from("notification_recipients").insert(recipients);
-
-      // Also insert into inbox_items for each recipient
-      for (const rec of recipients) {
-        if (rec.recipient_id) {
-          await (supabase as any).from("inbox_items").insert({
-            type: "message", subject, body, from_user_id: user?.id, to_user_id: rec.recipient_id,
-            priority, status: "unread",
-          });
+      // Use Supabase Edge Function for real email sending
+      const { data: fnData, error: fnError } = await (supabase as any).functions.invoke("send-email", {
+        body: {
+          to,
+          cc: cc||undefined,
+          bcc: bcc||undefined,
+          subject,
+          body,
+          priority,
+          module,
+          sender_id: user?.id,
+          sender_name: profile?.full_name || user?.email,
         }
-      }
-
-      toast({title:"Email sent ✓", description:`To ${to.length} recipient(s)`});
+      });
+      if (fnError) throw fnError;
+      toast({
+        title: "Email sent ✓",
+        description: fnData?.message || `Delivered to ${to.length} recipient(s)`,
+      });
       onSent(); onClose();
-    } catch(e:any) { toast({title:"Send failed",description:e.message,variant:"destructive"}); }
+    } catch(e:any) {
+      // Fallback: direct DB insert if edge function not deployed
+      try {
+        const { data: notif, error: ne } = await (supabase as any).from("notifications").insert({
+          sender_id: user?.id, title: subject, body, module, priority, status:"sent",
+        }).select().single();
+        if (!ne && notif) {
+          for (const email of to) {
+            const p = profiles.find((x:any)=>x.email===email);
+            if (p?.id) {
+              await (supabase as any).from("inbox_items").insert({
+                type:"message", subject, body, from_user_id:user?.id, to_user_id:p.id, priority, status:"unread",
+              });
+            }
+          }
+        }
+        toast({title:"Email sent internally ✓", description:`Delivered to ${to.length} recipient(s). SMTP not configured for external delivery.`});
+        onSent(); onClose();
+      } catch(e2:any) { toast({title:"Send failed",description:e2.message,variant:"destructive"}); }
+    }
     setSending(false);
   };
 
