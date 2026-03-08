@@ -85,13 +85,13 @@ export default function InspectionsPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canCreate&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#134e4a"}}><Plus className="w-3.5 h-3.5"/>New Inspection</button>}
+          {canCreate&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#134e4a"}}><Plus className="w-3.5 h-3.5"/>New Inspection</button>}
         </div>
       </div>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[{label:"Passed",count:stats.pass,icon:CheckCircle,color:"#15803d"},{label:"Failed",count:stats.fail,icon:XCircle,color:"#dc2626"},{label:"Conditional",count:stats.conditional,icon:AlertTriangle,color:"#d97706"},{label:"Pending",count:stats.pending,icon:Clock,color:"#6b7280"}].map(s=>(
-          <div key={s.label} className="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3">
+          <div key={s.label} className="rounded-2xl p-3 shadow-sm flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:`${s.color}18`}}><s.icon className="w-4 h-4" style={{color:s.color}}/></div>
             <div><p className="text-xl font-black" style={{color:s.color}}>{s.count}</p><p className="text-[10px] text-gray-500 font-semibold">{s.label}</p></div>
           </div>
@@ -112,7 +112,7 @@ export default function InspectionsPage() {
         </div>
       </div>
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead><tr style={{background:"#134e4a"}}>
             {["Insp. No.","Date","Item / Description","Supplier","Qty Inspected","Qty Accepted","Qty Rejected","Result","Inspector","Actions"].map(h=>(

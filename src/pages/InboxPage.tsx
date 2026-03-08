@@ -278,7 +278,7 @@ export default function InboxPage() {
 
             {/* Message body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="rounded-2xl p-4 shadow-sm">
                 <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{activeItem.body}</div>
               </div>
 

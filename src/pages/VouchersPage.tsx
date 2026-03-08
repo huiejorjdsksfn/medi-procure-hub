@@ -124,7 +124,7 @@ const VouchersPage = () => {
   );
 
   return (
-    <div className="p-4 space-y-4" style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div className="p-4 space-y-4" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
       {/* Print preview - hidden until print */}
       {printPreview && (
         <div className="print-only fixed inset-0 bg-white z-[9999] p-8 text-black text-sm" style={{ fontFamily: "serif" }}>

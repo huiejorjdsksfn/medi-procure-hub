@@ -123,9 +123,9 @@ function BackupInner() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6" style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f3f2f1", minHeight:"calc(100vh-100px)" }}>
+    <div className="p-6 max-w-4xl mx-auto space-y-6" style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"calc(100vh-100px)" }}>
       {/* Header card */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-lg font-black text-gray-800 flex items-center gap-2">
@@ -158,7 +158,7 @@ function BackupInner() {
       </div>
 
       {/* Table list */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="px-5 py-3.5 border-b border-gray-100">
           <h2 className="text-xs font-black uppercase tracking-widest text-gray-600">Tables to Backup ({BACKUP_TABLES.length})</h2>
         </div>
@@ -174,7 +174,7 @@ function BackupInner() {
       </div>
 
       {/* Backup history */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-widest text-gray-600">Backup History</h2>
           <button onClick={loadJobs} className="p-1.5 rounded-lg hover:bg-gray-100 transition-all">

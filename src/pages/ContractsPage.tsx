@@ -106,7 +106,7 @@ const ContractsPage = () => {
   const totalValue = contracts.reduce((sum, c) => sum + Number(c.total_value || 0), 0);
 
   return (
-    <div className="p-4 space-y-4" style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div className="p-4 space-y-4" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><FileText className="w-6 h-6" /> Contract Management</h1>
         <div className="flex gap-2">

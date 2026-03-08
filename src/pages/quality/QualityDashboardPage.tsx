@@ -40,7 +40,7 @@ export default function QualityDashboardPage() {
   };
 
   return (
-    <div style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)",fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{background:"transparent",minHeight:"calc(100vh-100px)",fontFamily:"'Segoe UI',system-ui"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(90deg,#134e4a,#0f766e)",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div>
@@ -51,7 +51,7 @@ export default function QualityDashboardPage() {
           <button onClick={refetch} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer"}}>
             <RefreshCw style={{width:12,height:12,display:"inline",marginRight:6}}/>Refresh
           </button>
-          <button onClick={()=>navigate("/quality/inspections")} style={{background:"#fff",color:"#134e4a",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+          <button onClick={()=>navigate("/quality/inspections")} style={{background:"rgba(255,255,255,0.92)",color:"#134e4a",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
             <Plus style={{width:12,height:12,display:"inline",marginRight:4}}/>New Inspection
           </button>
           <button onClick={()=>navigate("/quality/non-conformance")} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
@@ -69,7 +69,7 @@ export default function QualityDashboardPage() {
             {label:"Pending QC",   value:String(pending),  color:"#d97706", icon:Clock,       sub:"awaiting inspection"},
             {label:"Open NCRs",    value:String(openNCR),  color:criticalNCR>0?"#dc2626":"#d97706", icon:AlertTriangle, sub:`${criticalNCR} critical`},
           ].map(k => (
-            <div key={k.label} style={{background:"#fff",borderRadius:10,padding:"14px 16px",border:"1px solid #edebe9",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div key={k.label} style={{background:"rgba(255,255,255,0.92)",borderRadius:10,padding:"14px 16px",border:"1px solid #edebe9",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                 <span style={{fontSize:10,fontWeight:700,color:"#605e5c",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</span>
                 <div style={{width:28,height:28,borderRadius:6,background:`${k.color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -85,7 +85,7 @@ export default function QualityDashboardPage() {
         {/* Two column layout */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:16}}>
           {/* Recent Inspections */}
-          <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div style={{background:"rgba(255,255,255,0.92)",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
             <div style={{padding:"10px 16px",background:"#134e4a",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{color:"#fff",fontWeight:800,fontSize:12}}>Recent Inspections</span>
               <button onClick={()=>navigate("/quality/inspections")} style={{color:"rgba(255,255,255,0.7)",background:"none",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
@@ -93,7 +93,7 @@ export default function QualityDashboardPage() {
               </button>
             </div>
             <table style={{width:"100%",fontSize:11,borderCollapse:"collapse"}}>
-              <thead><tr style={{background:"#f3f2f1"}}>
+              <thead><tr style={{background:"transparent"}}>
                 {["Insp. No.","Item","Supplier","Qty Accepted","Qty Rejected","Result"].map(h=>(
                   <th key={h} style={{padding:"8px 14px",textAlign:"left",fontWeight:700,color:"#605e5c",fontSize:10,borderBottom:"1px solid #edebe9"}}>{h}</th>
                 ))}
@@ -126,7 +126,7 @@ export default function QualityDashboardPage() {
           {/* NCR Sidebar */}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {/* NCR Stats */}
-            <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{background:"rgba(255,255,255,0.92)",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
               <div style={{padding:"10px 16px",background:"#92400e"}}>
                 <span style={{color:"#fff",fontWeight:800,fontSize:12}}>NCR Summary</span>
               </div>
@@ -150,7 +150,7 @@ export default function QualityDashboardPage() {
             </div>
 
             {/* Recent NCRs */}
-            <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",flex:1,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{background:"rgba(255,255,255,0.92)",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",flex:1,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
               <div style={{padding:"10px 16px",background:"#6b7280"}}>
                 <span style={{color:"#fff",fontWeight:800,fontSize:12}}>Recent NCRs</span>
               </div>

@@ -207,7 +207,7 @@ export default function DocumentsPage() {
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array(8).fill(0).map((_,i)=>(
-            <div key={i} className="bg-white rounded-2xl p-4 h-36 animate-pulse"><div className="h-8 bg-gray-200 rounded w-1/2 mb-2"/><div className="h-3 bg-gray-100 rounded"/></div>
+            <div key={i} className="rounded-2xl p-4 h-36 animate-pulse"><div className="h-8 bg-gray-200 rounded w-1/2 mb-2"/><div className="h-3 bg-gray-100 rounded"/></div>
           ))}
         </div>
       ) : filtered.length===0 ? (
@@ -219,7 +219,7 @@ export default function DocumentsPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map(doc=>(
-            <div key={doc.id} className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group flex flex-col">
+            <div key={doc.id} className="rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group flex flex-col">
               {/* Icon */}
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
                 style={{background:`${CATEGORY_COLORS[doc.category]||"#6b7280"}15`}}>

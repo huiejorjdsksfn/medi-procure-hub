@@ -167,7 +167,7 @@ const ScannerPage = () => {
   };
 
   return (
-    <div style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
     <div className="p-4 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">

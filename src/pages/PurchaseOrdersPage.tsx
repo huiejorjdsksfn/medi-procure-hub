@@ -162,7 +162,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full" style={{fontSize:12}}>
             <thead>

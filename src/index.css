@@ -122,3 +122,58 @@
   .no-print { display: none !important; }
   .print-only { display: block !important; }
 }
+
+/* ── Global Background & Glassmorphism ─────────────────────── */
+
+/* Semi-transparent white cards over the procurement background */
+.bg-white {
+  background: rgba(255, 255, 255, 0.93) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Shadcn Dialog / Modal overlays - keep opaque for readability */
+[data-radix-dialog-content],
+[role="dialog"] .bg-white,
+[role="dialog"] .bg-background {
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Cards with border */
+.border-border,
+.border-gray-200,
+.border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Semi-transparent table headers */
+thead tr:first-child > th {
+  background: rgba(10, 37, 88, 0.85) !important;
+  color: rgba(255,255,255,0.85) !important;
+}
+
+/* Shadcn Table header override to allow colored headers */
+thead tr[style] > th {
+  background: inherit !important;
+  color: inherit !important;
+}
+
+/* Page wrapper - all pages transparent */
+.min-h-screen {
+  background: transparent !important;
+}
+
+/* Shadcn select / dropdown content */
+[data-radix-select-content],
+[data-radix-dropdown-menu-content],
+[data-radix-popover-content] {
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* Toast notifications */
+[data-radix-toast-viewport] > li {
+  backdrop-filter: blur(12px);
+}

@@ -134,7 +134,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-10 text-center"><RefreshCw className="w-7 h-7 animate-spin mx-auto text-gray-300 mb-2"/><p className="text-xs text-gray-400">Loading audit trail…</p></div>
         ) : (

@@ -125,7 +125,7 @@ export default function ODBCPage() {
   );
 
   return (
-    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"calc(100vh-100px)"}}>
       {/* Header */}
       <div className="rounded-2xl px-5 py-3 flex items-center justify-between"
         style={{background:"linear-gradient(90deg,#1e3a5f,#0369a1,#0284c7)",boxShadow:"0 4px 16px rgba(3,105,161,0.35)"}}>
@@ -139,7 +139,7 @@ export default function ODBCPage() {
         {isAdmin && (
           <button onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
-            style={{background:"#fff",color:"#0369a1"}}>
+            style={{background:"rgba(255,255,255,0.92)",color:"#0369a1"}}>
             <Plus className="w-4 h-4"/>New Connection
           </button>
         )}
@@ -149,7 +149,7 @@ export default function ODBCPage() {
       {loading ? (
         <div className="flex items-center justify-center py-12"><RefreshCw className="w-6 h-6 animate-spin text-gray-300"/></div>
       ) : conns.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+        <div className="rounded-2xl p-12 text-center shadow-sm">
           <Database className="w-12 h-12 text-gray-200 mx-auto mb-3"/>
           <p className="text-gray-500 text-sm">No external connections configured.</p>
           <p className="text-gray-400 text-xs mt-1">Click "New Connection" to add a database or ODBC source.</p>
@@ -160,7 +160,7 @@ export default function ODBCPage() {
             const s = STATUS_CFG[c.status] || STATUS_CFG.inactive;
             const dbType = DB_TYPES.find(d=>d.value===c.type);
             return (
-              <div key={c.id} className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div key={c.id} className="rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="px-4 py-3 flex items-center gap-3" style={{background:"linear-gradient(90deg,#f8fafc,#f0f4ff)"}}>
                   <div className="text-2xl">{dbType?.icon||"🔌"}</div>
                   <div className="flex-1 min-w-0">
