@@ -80,7 +80,7 @@ export default function ChartOfAccountsPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#1e3a5f"}}><Plus className="w-3.5 h-3.5"/>New Account</button>}
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus className="w-3.5 h-3.5"/>New Account</button>}
         </div>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
@@ -96,7 +96,7 @@ export default function ChartOfAccountsPage() {
           ))}
         </div>
       </div>
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead><tr style={{background:"#0f172a"}}>
             {["Code","Account Name","Type","Category","Parent","Balance","Active","Actions"].map(h=>(

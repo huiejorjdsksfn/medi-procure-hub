@@ -100,7 +100,7 @@ function WebmasterInner() {
   ] as const;
 
   const MetricCard = ({icon:Icon, label, value, sub, color}:{icon:any,label:string,value:string|number,sub:string,color:string}) => (
-    <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4">
+    <div className="rounded-2xl p-4 shadow-sm flex items-center gap-4">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{background:`${color}18`}}>
         <Icon className="w-5 h-5" style={{color}}/>
       </div>
@@ -149,7 +149,7 @@ function WebmasterInner() {
             </div>
 
             {/* System log */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b flex items-center justify-between">
                 <div className="flex items-center gap-2"><Activity className="w-4 h-4 text-blue-600"/><span className="font-bold text-sm text-gray-800">Live System Log</span></div>
                 <button onClick={()=>setSysLog([])} className="text-[10px] text-gray-400 hover:text-red-500">Clear</button>
@@ -161,7 +161,7 @@ function WebmasterInner() {
             </div>
 
             {/* Quick recent audit */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b flex items-center justify-between">
                 <span className="font-bold text-sm text-gray-800">Recent Activity</span>
                 <button onClick={()=>setTab("audit")} className="text-xs text-blue-600 hover:underline">View all →</button>
@@ -184,7 +184,7 @@ function WebmasterInner() {
         )}
 
         {tab==="users" && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="rounded-2xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b flex items-center justify-between">
               <span className="font-bold text-sm text-gray-800">System Users ({users.length})</span>
               <button onClick={exportUsers} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"#dcfce7",color:"#15803d"}}>
@@ -226,7 +226,7 @@ function WebmasterInner() {
         )}
 
         {tab==="audit" && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="rounded-2xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b flex items-center justify-between">
               <span className="font-bold text-sm text-gray-800">Audit Log ({auditLog.length})</span>
               <button onClick={clearAuditLog} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"#fee2e2",color:"#dc2626"}}>
@@ -257,7 +257,7 @@ function WebmasterInner() {
 
         {tab==="system" && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+            <div className="rounded-2xl shadow-sm p-4 space-y-3">
               <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Server className="w-4 h-4 text-blue-600"/>System Information</h3>
               {[
                 {l:"System Name",   v:settings.system_name||"EL5 MediProcure"},
@@ -273,7 +273,7 @@ function WebmasterInner() {
                 </div>
               ))}
             </div>
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+            <div className="rounded-2xl shadow-sm p-4 space-y-3">
               <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Activity className="w-4 h-4 text-green-600"/>Health Status</h3>
               {[
                 {l:"Database",      v:"Connected",   ok:true},
@@ -297,7 +297,7 @@ function WebmasterInner() {
 
         {tab==="layout" && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+            <div className="rounded-2xl shadow-sm p-5 space-y-4">
               <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2"><Settings className="w-4 h-4 text-purple-600"/>Interface Layout Controls</h3>
               <div>
                 <label className="block mb-2" style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Navigation Position</label>
@@ -353,7 +353,7 @@ function WebmasterInner() {
               </div>
             </div>
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+              <div className="rounded-2xl shadow-sm p-5 space-y-4">
                 <h3 className="font-bold text-sm text-gray-800">Color Theme</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {[{label:"Primary Color",k:"primary",v:primaryColor,set:setPrimaryColor},{label:"Accent Color",k:"accent",v:accentColor,set:setAccentColor}].map(({label,v,set})=>(

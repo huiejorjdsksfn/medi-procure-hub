@@ -370,7 +370,7 @@ export default function EmailPage() {
       </div>
 
       {/* Message viewer */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{background:"#fff"}}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{background:"rgba(255,255,255,0.92)"}}>
         {!selected?(
           <div className="flex-1 flex flex-col items-center justify-center" style={{background:"#f8fafc"}}>
             <Mail className="w-16 h-16 text-gray-200 mb-4"/>

@@ -61,7 +61,7 @@ export default function BidEvaluationsPage() {
   const tenderOptions=[...new Set((evaluations as any[]).map((e:any)=>e.tender_id))].map(id=>({id,label:(evaluations as any[]).find((e:any)=>e.tender_id===id)?.tender_number||id}));
 
   return (
-    <div className="p-6 space-y-6" style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div className="p-6 space-y-6" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Scale className="w-6 h-6 text-pink-600" />Bid Evaluations</h1><p className="text-sm text-slate-500">Tender bid scoring & recommendation · Realtime</p></div>
         {canEvaluate&&<Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white" onClick={()=>openNew()}><Plus className="w-4 h-4 mr-2" />Evaluate Bid</Button>}

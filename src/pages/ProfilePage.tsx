@@ -103,7 +103,7 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Edit profile */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="rounded-2xl p-5 shadow-sm space-y-4">
           <h2 className="text-sm font-black text-gray-800 flex items-center gap-2">
             <User className="w-4 h-4 text-blue-500" /> Personal Information
           </h2>
@@ -137,7 +137,7 @@ export default function ProfilePage() {
 
         <div className="space-y-4">
           {/* Password Reset */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="rounded-2xl p-5 shadow-sm space-y-3">
             <h2 className="text-sm font-black text-gray-800 flex items-center gap-2">
               <Key className="w-4 h-4 text-amber-500" /> Password Reset
             </h2>
@@ -164,7 +164,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Account info */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="rounded-2xl p-5 shadow-sm space-y-3">
             <h2 className="text-sm font-black text-gray-800 flex items-center gap-2">
               <Shield className="w-4 h-4 text-green-500" /> Account Details
             </h2>
@@ -187,7 +187,7 @@ export default function ProfilePage() {
 
       {/* Recent activity */}
       {activityLog.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
+        <div className="rounded-2xl p-5 shadow-sm">
           <h2 className="text-sm font-black text-gray-800 mb-3 flex items-center gap-2">
             <Clock className="w-4 h-4 text-gray-400" /> Recent Activity
           </h2>

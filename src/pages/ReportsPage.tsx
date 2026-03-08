@@ -167,14 +167,14 @@ export default function ReportsPage() {
             </div>
             <div className="flex items-center gap-2">
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>Start Date</label>
-              <div style={{border:"2px inset #aaa",background:"#fff",padding:"2px 6px",borderRadius:2}}>
+              <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
                   style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>End Date</label>
-              <div style={{border:"2px inset #aaa",background:"#fff",padding:"2px 6px",borderRadius:2}}>
+              <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
                   style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
               </div>
@@ -195,7 +195,7 @@ export default function ReportsPage() {
               </button>
               {showDropdown && (
                 <div className="absolute top-full left-0 z-50 w-56 max-h-64 overflow-y-auto"
-                  style={{background:"#fff",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
+                  style={{background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
                   {REPORT_TYPES.map(rt=>(
                     <button key={rt.id} onClick={()=>{setReportType(rt);setShowDropdown(false);}}
                       className="block w-full text-left px-3 py-1.5 text-xs hover:bg-blue-600 hover:text-white transition-colors"
@@ -247,7 +247,7 @@ export default function ReportsPage() {
           </div>
           <div style={{padding:"4px 6px",borderBottom:"1px solid #aaa",background:"#d4d0c8"}}>
             <div style={{fontSize:10,color:"#555",marginBottom:2}}>Search</div>
-            <div style={{border:"2px inset #aaa",background:"#fff",padding:"1px 4px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
+            <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"1px 4px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
               <input value={stockSearch} onChange={e=>setStockSearch(e.target.value)} placeholder=""
                 style={{border:"none",background:"transparent",fontSize:10,outline:"none",flex:1,color:"#1a1a2e"}}/>
             </div>
@@ -287,7 +287,7 @@ export default function ReportsPage() {
             <div className="flex flex-wrap gap-3 items-end">
               <div className="flex items-center gap-2">
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
-                <div style={{border:"2px inset #aaa",background:"#fff",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
+                <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
                   <Search className="w-3 h-3" style={{color:"#888"}}/>
                   <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records…"
                     style={{border:"none",background:"transparent",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
@@ -296,7 +296,7 @@ export default function ReportsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Type</label>
-                <div style={{border:"2px inset #aaa",background:"#fff",borderRadius:2}}>
+                <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",borderRadius:2}}>
                   <select value={txFilter} onChange={e=>setTxFilter(e.target.value)}
                     style={{border:"none",background:"transparent",fontSize:10,padding:"2px 6px",outline:"none",color:"#1a1a2e"}}>
                     {TX_TYPE_FILTER.map(t=><option key={t}>{t}</option>)}
@@ -325,7 +325,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Transaction DATA TABLE — classic blue header */}
-          <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"#fff",overflow:"auto"}}>
+          <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",overflow:"auto"}}>
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <RefreshCw className="w-5 h-5 animate-spin" style={{color:"#888"}}/>

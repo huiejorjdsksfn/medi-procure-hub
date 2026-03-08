@@ -142,7 +142,7 @@ function AdminPanelInner() {
   );
 
   return (
-    <div className="flex h-full" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f0f2f5"}}>
+    <div className="flex h-full" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent"}}>
       {/* Left sidebar (WP Adminify style) */}
       <div className="w-56 shrink-0 flex flex-col" style={{background:"#1a2744",borderRight:"1px solid rgba(255,255,255,0.08)"}}>
         <div className="p-4 border-b border-white/10">
@@ -183,7 +183,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Organization Settings</h2>
               <p className="text-xs text-gray-400">Configure your hospital's identity and system preferences</p>
             </div>
-            <div className="bg-white rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="rounded-2xl p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Hospital Identity</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="System Name" k="system_name" help="Displayed in nav and reports" />
@@ -197,7 +197,7 @@ function AdminPanelInner() {
               </div>
               <SaveBtn keys={["system_name","hospital_name","org_short","org_county","org_phone","org_email","org_web","financial_year"]} />
             </div>
-            <div className="bg-white rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="rounded-2xl p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Regional Settings</h3>
               <div className="grid grid-cols-3 gap-4">
                 <F label="Currency" k="currency" help="KES, USD, EUR…" />
@@ -218,7 +218,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Branding & Logo</h2>
               <p className="text-xs text-gray-400">Upload your hospital logo and set theme colors</p>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-5">
+            <div className="rounded-2xl p-5 shadow-sm space-y-5">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">System Logo</h3>
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
@@ -240,7 +240,7 @@ function AdminPanelInner() {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Theme Colors</h3>
               <div className="grid grid-cols-3 gap-4">
                 {[
@@ -261,7 +261,7 @@ function AdminPanelInner() {
               </div>
               <SaveBtn keys={["primary_color","secondary_color","accent_color"]} />
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Letterhead Template (HTML)</h3>
               <p className="text-xs text-gray-400">This HTML appears at the top of all printed documents and reports</p>
               <textarea value={letterheadHtml} onChange={e=>setLetterheadHtml(e.target.value)} rows={8}
@@ -290,7 +290,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Module Settings</h2>
               <p className="text-xs text-gray-400">Configure document numbering and module-specific settings</p>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Auto-Numbering Prefixes</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Requisition Prefix" k="req_auto_number_prefix" help="e.g. REQ" />
@@ -302,7 +302,7 @@ function AdminPanelInner() {
               </div>
               <SaveBtn keys={["req_auto_number_prefix","po_auto_number_prefix","grn_prefix","pv_prefix","rv_prefix","insp_prefix"]} />
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="rounded-2xl p-5 shadow-sm space-y-3">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Module Toggles</h3>
               <Sw label="Enable Tenders Module" k="module_tenders" help="Show/hide tender management" />
               <Sw label="Enable Quality Control" k="module_quality" help="Inspections and NCR" />
@@ -321,7 +321,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Security Settings</h2>
               <p className="text-xs text-gray-400">Authentication, sessions and access control</p>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Authentication</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Max Login Attempts" k="max_login_attempts" type="number" />
@@ -343,7 +343,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Document Templates</h2>
               <p className="text-xs text-gray-400">Configure document templates and upload hospital letterhead</p>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="rounded-2xl p-5 shadow-sm space-y-3">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Document Policies</h3>
               <Sw label="Lock documents after creation" k="doc_lock_on_create" help="Documents can only be viewed, not edited after submission" />
               <Sw label="Require approval for templates" k="doc_require_approval" />
@@ -351,7 +351,7 @@ function AdminPanelInner() {
               <Sw label="Auto-embed letterhead on print" k="doc_auto_letterhead" />
               <SaveBtn keys={["doc_lock_on_create","doc_require_approval","doc_admin_can_edit","doc_auto_letterhead"]} />
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Export Settings</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -375,7 +375,7 @@ function AdminPanelInner() {
             <div>
               <h2 className="text-lg font-black text-gray-800 mb-1">Notification Settings</h2>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Email (SMTP)</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="SMTP Host" k="smtp_host" placeholder="smtp.gmail.com" />
@@ -398,7 +398,7 @@ function AdminPanelInner() {
             <div>
               <h2 className="text-lg font-black text-gray-800 mb-1">Integrations & APIs</h2>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Supabase Connection</h3>
               <div className="p-3 rounded-xl bg-green-50 border border-green-200 flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-green-400" />
@@ -415,7 +415,7 @@ function AdminPanelInner() {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">ODBC & External Sources</h3>
               <Sw label="Enable ODBC Connections" k="odbc_enabled" help="Connect to external databases (MSSQL, MySQL, etc)" />
               <div className="grid grid-cols-2 gap-4">
@@ -432,7 +432,7 @@ function AdminPanelInner() {
             <div>
               <h2 className="text-lg font-black text-gray-800 mb-1">Server & Database</h2>
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">System Information</h3>
               {[
                 {label:"Database",val:"PostgreSQL 17.4 · Supabase"},
@@ -447,7 +447,7 @@ function AdminPanelInner() {
                 </div>
               ))}
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Backup Settings</h3>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Backup Schedule</label>

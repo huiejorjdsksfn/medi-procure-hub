@@ -10,6 +10,7 @@ import {
   Mail, Archive, Wifi, Activity, ChevronRight, Menu, X, UserCircle, AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import procBg from "@/assets/procurement-bg.jpg";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrator",
@@ -225,9 +226,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#f0f2f5", fontFamily: "'Segoe UI',system-ui,sans-serif" }}>
+    <div className="flex flex-col min-h-screen" style={{ fontFamily: "'Segoe UI',system-ui,sans-serif", position:"relative" }}>
+      {/* Global background */}
+      <div style={{ position:"fixed", inset:0, zIndex:0, backgroundImage:`url(${procBg})`, backgroundSize:"cover", backgroundPosition:"center", backgroundAttachment:"fixed" }}/>
+      <div style={{ position:"fixed", inset:0, zIndex:1, background:"rgba(5,15,35,0.72)" }}/>
       {/* TOP NAVBAR */}
-      <header className="flex items-center h-14 px-3 gap-1 z-50 sticky top-0 shrink-0"
+      <header className="flex items-center h-14 px-3 gap-1 z-50 sticky top-0 shrink-0" style={{position:"relative",zIndex:50}}
         style={{ background: "linear-gradient(90deg,#0a2558 0%,#1a3a6b 50%,#1d4a87 100%)", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" }}>
         
         <Link to="/dashboard" className="flex items-center gap-2.5 mr-3 shrink-0 select-none">
@@ -410,21 +414,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Breadcrumb */}
-      <div className="px-4 py-1.5 flex items-center gap-1.5 shrink-0"
-        style={{ background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-        <span className="text-[10px] text-gray-400 font-medium">EL5 MediProcure</span>
+      <div className="px-4 py-1.5 flex items-center gap-1.5 shrink-0" style={{ background: "rgba(5,15,35,0.85)", borderBottom: "1px solid rgba(255,255,255,0.08)", position:"relative", zIndex:10 }}>
+        <span className="text-[10px] font-medium" style={{color:"rgba(255,255,255,0.45)"}}>EL5 MediProcure</span>
         <ChevronRight className="w-3 h-3 text-gray-300" />
-        <span className="text-[10px] font-bold" style={{ color: "#1a3a6b" }}>{pathHeader.module}</span>
+        <span className="text-[10px] font-bold" style={{ color: "#60a5fa" }}>{pathHeader.module}</span>
         {pathHeader.label && <>
           <ChevronRight className="w-3 h-3 text-gray-300" />
-          <span className="text-[10px] text-gray-600">{pathHeader.label}</span>
+          <span className="text-[10px]" style={{color:"rgba(255,255,255,0.6)"}}>{pathHeader.label}</span>
         </>}
       </div>
 
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto" style={{position:"relative",zIndex:5}}>{children}</main>
 
-      <footer className="px-4 py-1.5 text-center text-[9px] text-gray-400"
-        style={{ background: "#fff", borderTop: "1px solid #e5e7eb" }}>
+      <footer className="px-4 py-1.5 text-center text-[9px]" style={{ background: "rgba(5,15,35,0.9)", borderTop: "1px solid rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.4)", position:"relative", zIndex:10 }}>
         {hospitalName} © {new Date().getFullYear()} · All Rights Reserved
       </footer>
     </div>

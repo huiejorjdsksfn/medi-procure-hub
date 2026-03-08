@@ -88,13 +88,13 @@ export default function NonConformancePage() {
         </div>
         <div className="flex gap-2">
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canCreate&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#92400e"}}><Plus className="w-3.5 h-3.5"/>New NCR</button>}
+          {canCreate&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#92400e"}}><Plus className="w-3.5 h-3.5"/>New NCR</button>}
         </div>
       </div>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[{label:"Open",count:stats.open,color:"#dc2626"},{label:"Under Review",count:stats.under_review,color:"#d97706"},{label:"Closed",count:stats.closed,color:"#15803d"},{label:"Critical",count:stats.critical,color:"#7c3aed"}].map(s=>(
-          <div key={s.label} className="bg-white rounded-2xl p-3 shadow-sm">
+          <div key={s.label} className="rounded-2xl p-3 shadow-sm">
             <p className="text-xl font-black" style={{color:s.color}}>{s.count}</p>
             <p className="text-[10px] text-gray-500 font-semibold">{s.label}</p>
           </div>
@@ -114,7 +114,7 @@ export default function NonConformancePage() {
         </div>
       </div>
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead><tr style={{background:"#92400e"}}>
             {["NCR No.","Date","Title","Supplier","Item","Severity","Status","Responsible","Target","Actions"].map(h=>(

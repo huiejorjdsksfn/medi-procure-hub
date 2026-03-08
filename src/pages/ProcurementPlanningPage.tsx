@@ -82,12 +82,12 @@ export default function ProcurementPlanningPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#1e40af"}}><Plus className="w-3.5 h-3.5"/>New Plan</button>}
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#1e40af"}}><Plus className="w-3.5 h-3.5"/>New Plan</button>}
         </div>
       </div>
       <div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search plans…" className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead><tr style={{background:"#0f172a"}}>
             {["Plan No.","Title","Dept.","Category","Method","Budget","FY","Status","Actions"].map(h=>(

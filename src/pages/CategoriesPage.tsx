@@ -49,11 +49,11 @@ export default function CategoriesPage() {
       <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#374151,#4b5563)"}}>
         <div><h1 className="text-base font-black text-white">Item Categories</h1>
           <p className="text-[10px] text-white/50">{rows.length} categories</p></div>
-        {canManage&&<button onClick={()=>{setEditing(null);setForm({name:"",description:"",parent_category:""});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#374151"}}><Plus className="w-3.5 h-3.5"/>New Category</button>}
+        {canManage&&<button onClick={()=>{setEditing(null);setForm({name:"",description:"",parent_category:""});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#374151"}}><Plus className="w-3.5 h-3.5"/>New Category</button>}
       </div>
       <div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search categories…" className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead><tr style={{background:"#374151"}}>
             {["Category Name","Description","Parent Category","Actions"].map(h=><th key={h} className="px-4 py-3 text-left font-bold text-white/80 text-[10px] uppercase">{h}</th>)}

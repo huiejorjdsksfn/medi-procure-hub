@@ -51,7 +51,7 @@ export default function TendersPage() {
   const filtered = tenders.filter(t=>(statusFilter==="all"||t.status===statusFilter)&&(t.title?.toLowerCase().includes(search.toLowerCase())||t.tender_number?.toLowerCase().includes(search.toLowerCase())));
 
   return (
-    <div className="p-6 space-y-6" style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div className="p-6 space-y-6" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Gavel className="w-6 h-6 text-violet-600" />Tenders</h1><p className="text-sm text-slate-500 mt-0.5">Competitive tendering & procurement · Live sync</p></div>
         <div className="flex gap-2">

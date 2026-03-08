@@ -58,7 +58,7 @@ export default function FinancialDashboardPage() {
   const recentPV = pvRows.slice(0,8);
 
   return (
-    <div style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)",fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{background:"transparent",minHeight:"calc(100vh-100px)",fontFamily:"'Segoe UI',system-ui"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(90deg,#0a2558,#1F6090)",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div>
@@ -80,7 +80,7 @@ export default function FinancialDashboardPage() {
             {label:"Pending Approval",value:fmt(totalPending),  color:"#d97706", icon:DollarSign,  sub:`${pvRows.filter(v=>v.status==="pending").length} vouchers`},
             {label:"Budget Utilisation",value:`${budgetUtil}%`, color:budgetUtil>90?"#dc2626":budgetUtil>70?"#d97706":"#107c10",icon:BarChart3, sub:fmt(totalSpent)+" spent"},
           ].map(k => (
-            <div key={k.label} style={{background:"#fff",borderRadius:10,padding:"14px 16px",border:"1px solid #edebe9",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div key={k.label} style={{background:"rgba(255,255,255,0.92)",borderRadius:10,padding:"14px 16px",border:"1px solid #edebe9",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                 <span style={{fontSize:10,fontWeight:700,color:"#605e5c",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</span>
                 <div style={{width:28,height:28,borderRadius:6,background:`${k.color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -97,7 +97,7 @@ export default function FinancialDashboardPage() {
         <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
           {navCards.map(c => (
             <button key={c.path} onClick={()=>navigate(c.path)}
-              style={{background:"#fff",border:`1px solid ${c.color}30`,borderRadius:10,padding:"12px 14px",cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:8,transition:"all 0.15s",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}
+              style={{background:"rgba(255,255,255,0.92)",border:`1px solid ${c.color}30`,borderRadius:10,padding:"12px 14px",cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:8,transition:"all 0.15s",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}
               onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background=`${c.color}08`;(e.currentTarget as HTMLElement).style.borderColor=c.color;}}
               onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="#fff";(e.currentTarget as HTMLElement).style.borderColor=`${c.color}30`;}}>
               <div style={{width:32,height:32,borderRadius:8,background:`${c.color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -113,7 +113,7 @@ export default function FinancialDashboardPage() {
 
         {/* Budget Progress */}
         {budRows.length > 0 && (
-          <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div style={{background:"rgba(255,255,255,0.92)",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
             <div style={{padding:"10px 16px",background:"#C45911",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{color:"#fff",fontWeight:800,fontSize:12}}>Budget Utilisation by Department</span>
               <button onClick={()=>navigate("/financials/budgets")} style={{color:"rgba(255,255,255,0.7)",background:"none",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
@@ -127,7 +127,7 @@ export default function FinancialDashboardPage() {
                 return (
                   <div key={b.id} style={{display:"flex",alignItems:"center",gap:12}}>
                     <div style={{width:160,fontSize:11,fontWeight:600,color:"#323130",flexShrink:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{b.budget_name}</div>
-                    <div style={{flex:1,height:8,background:"#f3f2f1",borderRadius:4,overflow:"hidden"}}>
+                    <div style={{flex:1,height:8,background:"transparent",borderRadius:4,overflow:"hidden"}}>
                       <div style={{width:`${Math.min(util,100)}%`,height:"100%",background:barColor,borderRadius:4,transition:"width 0.5s"}}/>
                     </div>
                     <div style={{width:100,fontSize:10,textAlign:"right",color:barColor,fontWeight:700}}>{util}% · {fmt(Number(b.allocated_amount||0))}</div>
@@ -139,7 +139,7 @@ export default function FinancialDashboardPage() {
         )}
 
         {/* Recent Payment Vouchers Table */}
-        <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{background:"rgba(255,255,255,0.92)",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
           <div style={{padding:"10px 16px",background:"#0078d4",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <span style={{color:"#fff",fontWeight:800,fontSize:12}}>Recent Payment Vouchers</span>
             <button onClick={()=>navigate("/vouchers/payment")} style={{color:"rgba(255,255,255,0.7)",background:"none",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
@@ -148,7 +148,7 @@ export default function FinancialDashboardPage() {
           </div>
           <table style={{width:"100%",fontSize:11,borderCollapse:"collapse"}}>
             <thead>
-              <tr style={{background:"#f3f2f1"}}>
+              <tr style={{background:"transparent"}}>
                 {["Voucher No.","Date","Payee","Account","Amount","Status"].map(h=>(
                   <th key={h} style={{padding:"8px 16px",textAlign:"left",fontWeight:700,color:"#605e5c",fontSize:10,borderBottom:"1px solid #edebe9"}}>{h}</th>
                 ))}

@@ -109,7 +109,7 @@ export default function FixedAssetsPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({asset_number:"",asset_name:"",category:"",department_id:"",purchase_date:"",purchase_cost:"",useful_life:"",residual_value:"",depreciation_method:"Straight Line",location:"",serial_number:"",supplier_name:"",warranty_expiry:"",condition:"good",status:"active",description:""});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"#fff",color:"#1a3a6b"}}><Plus className="w-3.5 h-3.5"/>Register Asset</button>}
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({asset_number:"",asset_name:"",category:"",department_id:"",purchase_date:"",purchase_cost:"",useful_life:"",residual_value:"",depreciation_method:"Straight Line",location:"",serial_number:"",supplier_name:"",warranty_expiry:"",condition:"good",status:"active",description:""});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#1a3a6b"}}><Plus className="w-3.5 h-3.5"/>Register Asset</button>}
         </div>
       </div>
       {/* Filters */}
@@ -122,7 +122,7 @@ export default function FixedAssetsPage() {
         </select>
       </div>
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead><tr style={{background:"#1a3a6b"}}>
             {["Asset No.","Name","Category","Department","Purchase Cost","NBV","Status","Condition","Actions"].map(h=>(
