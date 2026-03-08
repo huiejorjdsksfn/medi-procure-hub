@@ -19,9 +19,6 @@ const TABS = [
   { id:"notifications", label:"Notifications", icon:Bell },
   { id:"integrations", label:"Integrations",  icon:Wifi },
   { id:"server",      label:"Server & DB",    icon:Server },
-  { id:"users_mgmt",  label:"User Management",icon:Users },
-  { id:"email_system",label:"Email System",    icon:Mail },
-  { id:"master",      label:"Master Controls", icon:Key },
 ];
 
 function AdminPanelInner() {
@@ -145,7 +142,7 @@ function AdminPanelInner() {
   );
 
   return (
-    <div className="flex h-full" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent"}}>
+    <div className="flex h-full" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f0f2f5"}}>
       {/* Left sidebar (WP Adminify style) */}
       <div className="w-56 shrink-0 flex flex-col" style={{background:"#1a2744",borderRight:"1px solid rgba(255,255,255,0.08)"}}>
         <div className="p-4 border-b border-white/10">
@@ -186,7 +183,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Organization Settings</h2>
               <p className="text-xs text-gray-400">Configure your hospital's identity and system preferences</p>
             </div>
-            <div className="rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Hospital Identity</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="System Name" k="system_name" help="Displayed in nav and reports" />
@@ -200,7 +197,7 @@ function AdminPanelInner() {
               </div>
               <SaveBtn keys={["system_name","hospital_name","org_short","org_county","org_phone","org_email","org_web","financial_year"]} />
             </div>
-            <div className="rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Regional Settings</h3>
               <div className="grid grid-cols-3 gap-4">
                 <F label="Currency" k="currency" help="KES, USD, EUR…" />
@@ -221,7 +218,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Branding & Logo</h2>
               <p className="text-xs text-gray-400">Upload your hospital logo and set theme colors</p>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-5">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-5">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">System Logo</h3>
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
@@ -243,7 +240,7 @@ function AdminPanelInner() {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Theme Colors</h3>
               <div className="grid grid-cols-3 gap-4">
                 {[
@@ -264,7 +261,7 @@ function AdminPanelInner() {
               </div>
               <SaveBtn keys={["primary_color","secondary_color","accent_color"]} />
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Letterhead Template (HTML)</h3>
               <p className="text-xs text-gray-400">This HTML appears at the top of all printed documents and reports</p>
               <textarea value={letterheadHtml} onChange={e=>setLetterheadHtml(e.target.value)} rows={8}
@@ -293,7 +290,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Module Settings</h2>
               <p className="text-xs text-gray-400">Configure document numbering and module-specific settings</p>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Auto-Numbering Prefixes</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Requisition Prefix" k="req_auto_number_prefix" help="e.g. REQ" />
@@ -305,7 +302,7 @@ function AdminPanelInner() {
               </div>
               <SaveBtn keys={["req_auto_number_prefix","po_auto_number_prefix","grn_prefix","pv_prefix","rv_prefix","insp_prefix"]} />
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Module Toggles</h3>
               <Sw label="Enable Tenders Module" k="module_tenders" help="Show/hide tender management" />
               <Sw label="Enable Quality Control" k="module_quality" help="Inspections and NCR" />
@@ -324,7 +321,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Security Settings</h2>
               <p className="text-xs text-gray-400">Authentication, sessions and access control</p>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Authentication</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Max Login Attempts" k="max_login_attempts" type="number" />
@@ -346,7 +343,7 @@ function AdminPanelInner() {
               <h2 className="text-lg font-black text-gray-800 mb-1">Document Templates</h2>
               <p className="text-xs text-gray-400">Configure document templates and upload hospital letterhead</p>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Document Policies</h3>
               <Sw label="Lock documents after creation" k="doc_lock_on_create" help="Documents can only be viewed, not edited after submission" />
               <Sw label="Require approval for templates" k="doc_require_approval" />
@@ -354,7 +351,7 @@ function AdminPanelInner() {
               <Sw label="Auto-embed letterhead on print" k="doc_auto_letterhead" />
               <SaveBtn keys={["doc_lock_on_create","doc_require_approval","doc_admin_can_edit","doc_auto_letterhead"]} />
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Export Settings</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -378,7 +375,7 @@ function AdminPanelInner() {
             <div>
               <h2 className="text-lg font-black text-gray-800 mb-1">Notification Settings</h2>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Email (SMTP)</h3>
               <div className="grid grid-cols-2 gap-4">
                 <F label="SMTP Host" k="smtp_host" placeholder="smtp.gmail.com" />
@@ -401,7 +398,7 @@ function AdminPanelInner() {
             <div>
               <h2 className="text-lg font-black text-gray-800 mb-1">Integrations & APIs</h2>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Supabase Connection</h3>
               <div className="p-3 rounded-xl bg-green-50 border border-green-200 flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-green-400" />
@@ -418,7 +415,7 @@ function AdminPanelInner() {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">ODBC & External Sources</h3>
               <Sw label="Enable ODBC Connections" k="odbc_enabled" help="Connect to external databases (MSSQL, MySQL, etc)" />
               <div className="grid grid-cols-2 gap-4">
@@ -435,7 +432,7 @@ function AdminPanelInner() {
             <div>
               <h2 className="text-lg font-black text-gray-800 mb-1">Server & Database</h2>
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">System Information</h3>
               {[
                 {label:"Database",val:"PostgreSQL 17.4 · Supabase"},
@@ -450,7 +447,7 @@ function AdminPanelInner() {
                 </div>
               ))}
             </div>
-            <div className="rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Backup Settings</h3>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Backup Schedule</label>
@@ -468,138 +465,6 @@ function AdminPanelInner() {
             </div>
           </div>
         )}
-
-        {/* Tab: User Management */}
-        {activeTab==="users_mgmt" && (
-          <div className="max-w-3xl space-y-5">
-            <div>
-              <h2 className="text-lg font-black text-gray-800 mb-1">User Management</h2>
-              <p className="text-xs text-gray-400">Manage users, roles, and access control</p>
-            </div>
-            <div className="rounded-2xl p-5 space-y-3 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Role Permissions</h3>
-              {[
-                {role:"admin",           label:"Administrator",     color:"#ef4444", perms:["Full Access","All Modules","Admin Panel","Database","Email"]},
-                {role:"procurement_manager",label:"Procurement Manager",color:"#f97316",perms:["Requisitions","POs","GRNs","Tenders","Contracts","Reports"]},
-                {role:"procurement_officer",label:"Procurement Officer",color:"#eab308",perms:["Requisitions","POs","GRNs","Suppliers","Quality"]},
-                {role:"inventory_manager",label:"Inventory Manager",  color:"#22c55e",perms:["Items","Categories","Departments","Scanner","Reports"]},
-                {role:"warehouse_officer",label:"Warehouse Officer",  color:"#14b8a6",perms:["Items","GRNs","Scanner","Quality"]},
-                {role:"requisitioner",    label:"Requisitioner",     color:"#8b5cf6",perms:["Requisitions","Inbox","Email"]},
-              ].map(r=>(
-                <div key={r.role} className="flex items-center justify-between p-3 rounded-xl" style={{background:"#f9fafb",border:"1px solid #e5e7eb"}}>
-                  <div className="flex items-center gap-3">
-                    <div style={{width:10,height:10,borderRadius:"50%",background:r.color}}/>
-                    <span className="text-xs font-bold text-gray-700">{r.label}</span>
-                  </div>
-                  <div className="flex gap-1 flex-wrap justify-end">
-                    {r.perms.map(p=>(
-                      <span key={p} className="px-2 py-0.5 rounded text-[9px] font-semibold" style={{background:`${r.color}15`,color:r.color}}>{p}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="rounded-2xl p-5 space-y-3 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Security Settings</h3>
-              <Sw label="Require two-factor authentication" k="require_2fa" />
-              <Sw label="Force password reset on first login" k="force_pw_reset" />
-              <Sw label="Lock account after failed attempts" k="lock_on_fail" />
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                <F label="Max login attempts" k="max_login_attempts" type="number" />
-                <F label="Session timeout (minutes)" k="session_timeout" type="number" />
-                <F label="Password min length" k="password_min_length" type="number" />
-              </div>
-              <SaveBtn keys={["require_2fa","force_pw_reset","lock_on_fail","max_login_attempts","session_timeout","password_min_length"]} />
-            </div>
-          </div>
-        )}
-
-        {/* Tab: Email System */}
-        {activeTab==="email_system" && (
-          <div className="max-w-2xl space-y-5">
-            <div>
-              <h2 className="text-lg font-black text-gray-800 mb-1">Email System Configuration</h2>
-              <p className="text-xs text-gray-400">Configure Supabase email sending, SMTP, and notification triggers</p>
-            </div>
-            <div className="rounded-2xl p-5 space-y-4 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">Supabase Email</h3>
-              <div className="p-3 rounded-xl" style={{background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)"}}>
-                <p className="text-xs text-blue-700 font-semibold">ℹ️ Supabase handles transactional emails (auth, invites) automatically. Configure SMTP below for custom business emails.</p>
-              </div>
-              <Sw label="Enable email notifications" k="email_notifications_enabled" />
-              <Sw label="Send email on PO approval" k="email_on_po_approve" />
-              <Sw label="Send email on requisition approval" k="email_on_req_approve" />
-              <Sw label="Send email on tender closing" k="email_on_tender_close" />
-              <Sw label="Send email on GRN received" k="email_on_grn" />
-            </div>
-            <div className="rounded-2xl p-5 space-y-4 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">SMTP Configuration</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <F label="SMTP Host" k="smtp_host" placeholder="smtp.gmail.com" />
-                <F label="SMTP Port" k="smtp_port" type="number" />
-                <F label="SMTP Username" k="smtp_user" placeholder="your@email.com" />
-                <F label="From Email" k="smtp_from" placeholder="noreply@hospital.go.ke" />
-                <F label="From Name" k="smtp_from_name" placeholder="EL5 MediProcure" />
-                <F label="SMTP Password" k="smtp_password" type="password" />
-              </div>
-              <Sw label="Use TLS/SSL" k="smtp_tls" />
-              <SaveBtn keys={["smtp_host","smtp_port","smtp_user","smtp_from","smtp_from_name","smtp_password","smtp_tls","email_notifications_enabled","email_on_po_approve","email_on_req_approve","email_on_tender_close","email_on_grn"]} />
-            </div>
-          </div>
-        )}
-
-        {/* Tab: Master Controls */}
-        {activeTab==="master" && (
-          <div className="max-w-3xl space-y-5">
-            <div>
-              <h2 className="text-lg font-black text-gray-800 mb-1">Master Admin Controls</h2>
-              <p className="text-xs text-gray-400">System-level controls — use with caution</p>
-            </div>
-            <div className="rounded-2xl p-5 space-y-3 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2">System Features</h3>
-              <Sw label="Maintenance mode (blocks all non-admin access)" k="maintenance_mode" />
-              <Sw label="Allow new user registration" k="allow_registration" />
-              <Sw label="Enable audit logging" k="audit_logging_enabled" />
-              <Sw label="Enable real-time notifications" k="realtime_notifications" />
-              <Sw label="Enable document attachments" k="enable_documents" />
-              <Sw label="Enable QR/barcode scanner" k="enable_scanner" />
-              <Sw label="Enable ODBC connections" k="odbc_enabled" />
-              <Sw label="Enable external API integrations" k="enable_api" />
-              <SaveBtn keys={["maintenance_mode","allow_registration","audit_logging_enabled","realtime_notifications","enable_documents","enable_scanner","odbc_enabled","enable_api"]} />
-            </div>
-            <div className="rounded-2xl p-5 space-y-3 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2 flex items-center gap-2">
-                <span>🔑</span> API Keys & Integrations
-              </h3>
-              <F label="External API Base URL" k="api_base_url" placeholder="https://api.yourservice.com" />
-              <F label="API Key (masked)" k="api_key" type="password" />
-              <F label="Webhook URL (for events)" k="webhook_url" placeholder="https://hooks.yourservice.com/..." />
-              <Sw label="Enable webhook notifications" k="webhooks_enabled" />
-              <SaveBtn keys={["api_base_url","api_key","webhook_url","webhooks_enabled"]} />
-            </div>
-            <div className="rounded-2xl p-5 space-y-3 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-black text-gray-700 border-b border-gray-100 pb-2 flex items-center gap-2">
-                <span style={{color:"#ef4444"}}>⚠️</span> Danger Zone
-              </h3>
-              <div className="p-3 rounded-xl" style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)"}}>
-                <p className="text-xs text-red-600 font-semibold mb-3">These actions are irreversible. Proceed with extreme caution.</p>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    {label:"Clear Audit Logs", color:"#f97316"},
-                    {label:"Reset Settings",   color:"#ef4444"},
-                    {label:"Export All Data",  color:"#3b82f6"},
-                    {label:"Purge Notifications",color:"#8b5cf6"},
-                  ].map(a=>(
-                    <button key={a.label} onClick={()=>{if(confirm("Are you sure? This cannot be undone."))toast({title:a.label+" executed",description:"Action logged to audit trail"});}}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{background:`${a.color}15`,color:a.color,border:`1px solid ${a.color}30`}}>
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -608,4 +473,3 @@ function AdminPanelInner() {
 export default function AdminPanelPage() {
   return <RoleGuard allowed={["admin"]}><AdminPanelInner /></RoleGuard>;
 }
-
