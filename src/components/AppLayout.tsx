@@ -231,8 +231,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{ position:"fixed", inset:0, zIndex:0, backgroundImage:`url(${procBg})`, backgroundSize:"cover", backgroundPosition:"center", backgroundAttachment:"fixed" }}/>
       <div style={{ position:"fixed", inset:0, zIndex:1, background:"rgba(5,15,35,0.72)" }}/>
       {/* TOP NAVBAR */}
-      <header className="flex items-center h-14 px-3 gap-1 z-50 sticky top-0 shrink-0" style={{position:"relative",zIndex:50}}
-        style={{ background: "linear-gradient(90deg,#0a2558 0%,#1a3a6b 50%,#1d4a87 100%)", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" }}>
+      <header className="flex items-center h-14 px-3 gap-1 z-50 sticky top-0 shrink-0" style={{ position:"relative", zIndex:50, background: "linear-gradient(90deg,#0a2558 0%,#1a3a6b 50%,#1d4a87 100%)", boxShadow: "0 2px 10px rgba(0,0,0,0.3)" }}>
         
         <Link to="/dashboard" className="flex items-center gap-2.5 mr-3 shrink-0 select-none">
           <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0"
