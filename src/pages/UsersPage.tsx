@@ -109,7 +109,7 @@ const UsersPage = () => {
   if (!isAdmin) return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground">Admin access required</p></div>;
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="p-4 space-y-4" style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><UserCog className="w-6 h-6" /> User Management</h1>
         <div className="flex gap-2">

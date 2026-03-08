@@ -1,147 +1,181 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Shield, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, Activity } from "lucide-react";
+import { Shield, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, ArrowRight, Plus, ClipboardCheck } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export default function QualityDashboardPage() {
   const navigate = useNavigate();
-  const { data: inspections, refetch: ri } = useRealtimeTable("inspections", { order: { column: "created_at" } });
-  const { data: ncrs, refetch: rn } = useRealtimeTable("non_conformance", { order: { column: "created_at" } });
+  const { data: inspections, refetch: ri } = useRealtimeTable("inspections",     { order: { column: "created_at" } });
+  const { data: ncrs,        refetch: rn } = useRealtimeTable("non_conformance", { order: { column: "created_at" } });
 
-  const insp = inspections as any[];
+  const insp    = inspections as any[];
   const ncrList = ncrs as any[];
 
-  const passed = insp.filter(i => i.result === "pass").length;
-  const failed = insp.filter(i => i.result === "fail").length;
-  const pending = insp.filter(i => i.result === "pending").length;
+  const passed      = insp.filter(i => i.result === "pass").length;
+  const failed      = insp.filter(i => i.result === "fail").length;
+  const pending     = insp.filter(i => i.result === "pending").length;
   const conditional = insp.filter(i => i.result === "conditional").length;
-  const passRate = insp.length > 0 ? Math.round(passed / insp.length * 100) : 0;
+  const passRate    = insp.length > 0 ? Math.round(passed / insp.length * 100) : 0;
 
-  const openNCR = ncrList.filter(n => n.status === "open").length;
-  const underReview = ncrList.filter(n => n.status === "under_review").length;
-  const resolved = ncrList.filter(n => n.status === "resolved").length;
-  const critical = ncrList.filter(n => n.severity === "critical").length;
-  const major = ncrList.filter(n => n.severity === "major").length;
+  const openNCR      = ncrList.filter(n => n.status === "open").length;
+  const reviewNCR    = ncrList.filter(n => n.status === "under_review").length;
+  const closedNCR    = ncrList.filter(n => n.status === "closed").length;
+  const criticalNCR  = ncrList.filter(n => n.severity === "critical").length;
 
   const refetch = () => { ri(); rn(); };
 
+  const recentInsp = insp.slice(0, 8);
+  const recentNCR  = ncrList.slice(0, 5);
+
+  const RC: Record<string,{bg:string,color:string}> = {
+    pass:        {bg:"#d1fae5",color:"#065f46"},
+    fail:        {bg:"#fee2e2",color:"#991b1b"},
+    conditional: {bg:"#fef3c7",color:"#92400e"},
+    pending:     {bg:"#f3f4f6",color:"#374151"},
+  };
+  const NS: Record<string,{bg:string,color:string}> = {
+    open:         {bg:"#fee2e2",color:"#991b1b"},
+    under_review: {bg:"#fef3c7",color:"#92400e"},
+    closed:       {bg:"#d1fae5",color:"#065f46"},
+    escalated:    {bg:"#ede9fe",color:"#5b21b6"},
+  };
+
   return (
-    <div className="min-h-screen bg-[#f3f2f1]">
-      <div className="bg-white border-b border-[#e1dfdd] px-6 py-3 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-[#0078d4]" />
-            <div>
-              <h1 className="text-base font-bold text-[#323130]">Quality Control Dashboard</h1>
-              
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={refetch}><RefreshCw className="w-3.5 h-3.5 mr-1" />Refresh</Button>
-            <Button size="sm" className="bg-[#0078d4] hover:bg-[#106ebe] text-white" onClick={() => navigate("/quality/inspections")}><Plus className="w-3.5 h-3.5 mr-1" />New Inspection</Button>
-            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => navigate("/quality/non-conformance")}><Plus className="w-3.5 h-3.5 mr-1" />Raise NCR</Button>
-          </div>
+    <div style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)",fontFamily:"'Segoe UI',system-ui"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(90deg,#134e4a,#0f766e)",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <h1 style={{color:"#fff",fontWeight:900,fontSize:15,margin:0}}>Quality Control Dashboard</h1>
+          <p style={{color:"rgba(255,255,255,0.5)",fontSize:10,margin:"2px 0 0"}}>{insp.length} inspections · {ncrList.length} NCRs</p>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={refetch} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+            <RefreshCw style={{width:12,height:12,display:"inline",marginRight:6}}/>Refresh
+          </button>
+          <button onClick={()=>navigate("/quality/inspections")} style={{background:"#fff",color:"#134e4a",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            <Plus style={{width:12,height:12,display:"inline",marginRight:4}}/>New Inspection
+          </button>
+          <button onClick={()=>navigate("/quality/non-conformance")} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            <Plus style={{width:12,height:12,display:"inline",marginRight:4}}/>Raise NCR
+          </button>
         </div>
       </div>
 
-      <div className="px-6 py-5 max-w-[1200px] mx-auto space-y-5">
-        {/* Big KPI row */}
-        <div className="bg-white border border-[#e1dfdd] rounded shadow-sm">
-          <div className="px-5 py-3 border-b border-[#e1dfdd]"><p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c]">QUALITY OVERVIEW</p></div>
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#e1dfdd]">
-            {[
-              { label: "PASS RATE", val: `${passRate}%`, color: passRate >= 80 ? "#107c10" : passRate >= 60 ? "#ca5010" : "#a4262c" },
-              { label: "TOTAL INSPECTIONS", val: insp.length, color: "#0078d4" },
-              { label: "OPEN NCRs", val: openNCR, color: openNCR > 0 ? "#a4262c" : "#107c10" },
-              { label: "CRITICAL ISSUES", val: critical, color: critical > 0 ? "#a4262c" : "#107c10" },
-            ].map(k => (
-              <div key={k.label} className="px-5 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c] mb-2">{k.label}</p>
-                <p className="text-[42px] font-bold leading-none" style={{ color: k.color }}>{k.val}</p>
-                <div className="h-[3px] w-10 mt-2 rounded" style={{ backgroundColor: k.color }} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Inspection tiles */}
-          <div className="bg-white border border-[#e1dfdd] rounded shadow-sm">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e1dfdd]">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c]">INSPECTIONS</p>
-              <button onClick={() => navigate("/quality/inspections")} className="text-xs text-[#0078d4] hover:underline flex items-center gap-1">View All <ChevronRight className="w-3 h-3" /></button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#e1dfdd]">
-              {[
-                { label: "PASSED", val: passed, color: "#107c10", icon: CheckCircle },
-                { label: "FAILED", val: failed, color: "#a4262c", icon: XCircle },
-                { label: "PENDING", val: pending, color: "#ca5010", icon: AlertTriangle },
-                { label: "CONDITIONAL", val: conditional, color: "#0078d4", icon: Shield },
-              ].map(t => (
-                <button key={t.label} onClick={() => navigate("/quality/inspections")}
-                  className="p-3 text-left hover:bg-[#f3f2f1] transition-colors group">
-                  <t.icon className="w-4 h-4 mb-2" style={{ color: t.color }} />
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#605e5c]">{t.label}</p>
-                  <p className="text-3xl font-bold leading-none mt-1" style={{ color: t.color }}>{t.val}</p>
-                  <ChevronRight className="w-3.5 h-3.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: t.color }} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* NCR tiles */}
-          <div className="bg-white border border-[#e1dfdd] rounded shadow-sm">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e1dfdd]">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c]">NON-CONFORMANCE</p>
-              <button onClick={() => navigate("/quality/non-conformance")} className="text-xs text-[#0078d4] hover:underline flex items-center gap-1">View All <ChevronRight className="w-3 h-3" /></button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-[#e1dfdd]">
-              {[
-                { label: "OPEN", val: openNCR, color: openNCR > 0 ? "#a4262c" : "#107c10" },
-                { label: "UNDER REVIEW", val: underReview, color: "#ca5010" },
-                { label: "RESOLVED", val: resolved, color: "#107c10" },
-              ].map(t => (
-                <button key={t.label} onClick={() => navigate("/quality/non-conformance")}
-                  className="p-3 text-left hover:bg-[#f3f2f1] transition-colors group">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#605e5c]">{t.label}</p>
-                  <p className="text-3xl font-bold leading-none mt-1" style={{ color: t.color }}>{t.val}</p>
-                  <ChevronRight className="w-3.5 h-3.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#0078d4]" />
-                </button>
-              ))}
-            </div>
-            <div className="px-4 py-3 border-t border-[#e1dfdd] flex items-center gap-4">
-              {[{ label: "Critical", val: critical, color: "bg-red-100 text-red-700" }, { label: "Major", val: major, color: "bg-amber-100 text-amber-700" }, { label: "Minor", val: ncrList.filter(n => n.severity === "minor").length, color: "bg-blue-100 text-blue-700" }].map(s => (
-                <div key={s.label} className="flex items-center gap-1.5">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.color}`}>{s.val} {s.label}</span>
+      <div style={{padding:16,display:"flex",flexDirection:"column",gap:16}}>
+        {/* KPI Row */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          {[
+            {label:"Pass Rate",    value:`${passRate}%`,   color:"#107c10", icon:CheckCircle, sub:`${passed} of ${insp.length} passed`},
+            {label:"Failed",       value:String(failed),   color:"#dc2626", icon:XCircle,     sub:`${conditional} conditional`},
+            {label:"Pending QC",   value:String(pending),  color:"#d97706", icon:Clock,       sub:"awaiting inspection"},
+            {label:"Open NCRs",    value:String(openNCR),  color:criticalNCR>0?"#dc2626":"#d97706", icon:AlertTriangle, sub:`${criticalNCR} critical`},
+          ].map(k => (
+            <div key={k.label} style={{background:"#fff",borderRadius:10,padding:"14px 16px",border:"1px solid #edebe9",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                <span style={{fontSize:10,fontWeight:700,color:"#605e5c",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</span>
+                <div style={{width:28,height:28,borderRadius:6,background:`${k.color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <k.icon style={{width:14,height:14,color:k.color}}/>
                 </div>
-              ))}
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:k.color,lineHeight:1}}>{k.value}</div>
+              <div style={{fontSize:10,color:"#a19f9d",marginTop:4}}>{k.sub}</div>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* Recent inspections */}
-        <div className="bg-white border border-[#e1dfdd] rounded shadow-sm">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#e1dfdd]">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#605e5c]">RECENT INSPECTIONS</p>
-            <button onClick={() => navigate("/quality/inspections")} className="text-xs text-[#0078d4] hover:underline">View All</button>
+        {/* Two column layout */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:16}}>
+          {/* Recent Inspections */}
+          <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{padding:"10px 16px",background:"#134e4a",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{color:"#fff",fontWeight:800,fontSize:12}}>Recent Inspections</span>
+              <button onClick={()=>navigate("/quality/inspections")} style={{color:"rgba(255,255,255,0.7)",background:"none",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                View all <ArrowRight style={{width:12,height:12}}/>
+              </button>
+            </div>
+            <table style={{width:"100%",fontSize:11,borderCollapse:"collapse"}}>
+              <thead><tr style={{background:"#f3f2f1"}}>
+                {["Insp. No.","Item","Supplier","Qty Accepted","Qty Rejected","Result"].map(h=>(
+                  <th key={h} style={{padding:"8px 14px",textAlign:"left",fontWeight:700,color:"#605e5c",fontSize:10,borderBottom:"1px solid #edebe9"}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {recentInsp.length===0 ? (
+                  <tr><td colSpan={6} style={{padding:"24px",textAlign:"center",color:"#a19f9d"}}>No inspections recorded</td></tr>
+                ) : recentInsp.map((r:any,i:number)=>{
+                  const rc = RC[r.result]||RC.pending;
+                  return (
+                    <tr key={r.id} style={{background:i%2===0?"#fff":"#f9fffe",borderBottom:"1px solid #f3f2f1",cursor:"pointer"}}
+                      onClick={()=>navigate("/quality/inspections")}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0fdf4"}
+                      onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#f9fffe"}>
+                      <td style={{padding:"8px 14px",fontWeight:700,color:"#134e4a"}}>{r.inspection_number}</td>
+                      <td style={{padding:"8px 14px",color:"#323130"}}>{r.item_name||"—"}</td>
+                      <td style={{padding:"8px 14px",color:"#605e5c"}}>{r.supplier_name||"—"}</td>
+                      <td style={{padding:"8px 14px",color:"#107c10",fontWeight:600}}>{r.quantity_accepted??0}</td>
+                      <td style={{padding:"8px 14px",color:"#dc2626",fontWeight:600}}>{r.quantity_rejected??0}</td>
+                      <td style={{padding:"8px 14px"}}>
+                        <span style={{background:rc.bg,color:rc.color,padding:"2px 8px",borderRadius:3,fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{r.result}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <table className="w-full text-sm">
-            <thead><tr className="bg-[#f3f2f1] border-b border-[#e1dfdd]">{["Inspection No.", "Supplier", "Item", "Qty Inspected", "Result", "Date"].map(h => <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-[#605e5c]">{h}</th>)}</tr></thead>
-            <tbody>
-              {insp.slice(0, 6).map((i: any) => <tr key={i.id} className="border-b border-[#f3f2f1] hover:bg-[#f3f2f1] transition-colors cursor-pointer" onClick={() => navigate("/quality/inspections")}>
-                <td className="px-4 py-2.5 font-mono text-xs font-bold text-[#0078d4]">{i.inspection_number}</td>
-                <td className="px-4 py-2.5 text-[#323130]">{i.supplier_name || "—"}</td>
-                <td className="px-4 py-2.5 text-[#605e5c]">{i.item_name || "—"}</td>
-                <td className="px-4 py-2.5">{i.quantity_inspected}</td>
-                <td className="px-4 py-2.5"><Badge variant="outline" className={`capitalize text-xs ${i.result === "pass" ? "text-green-700 border-green-200 bg-green-50" : i.result === "fail" ? "text-red-700 border-red-200 bg-red-50" : i.result === "conditional" ? "text-blue-700 border-blue-200 bg-blue-50" : "text-amber-700 border-amber-200 bg-amber-50"}`}>{i.result}</Badge></td>
-                <td className="px-4 py-2.5 text-[#605e5c]">{i.inspection_date}</td>
-              </tr>)}
-              {insp.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-[#605e5c]">No inspections recorded yet.</td></tr>}
-            </tbody>
-          </table>
+
+          {/* NCR Sidebar */}
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {/* NCR Stats */}
+            <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{padding:"10px 16px",background:"#92400e"}}>
+                <span style={{color:"#fff",fontWeight:800,fontSize:12}}>NCR Summary</span>
+              </div>
+              <div style={{padding:14,display:"flex",flexDirection:"column",gap:8}}>
+                {[
+                  {label:"Open",       count:openNCR,   color:"#dc2626"},
+                  {label:"Under Review",count:reviewNCR, color:"#d97706"},
+                  {label:"Closed",     count:closedNCR, color:"#107c10"},
+                  {label:"Critical",   count:criticalNCR,color:"#7c3aed"},
+                ].map(s=>(
+                  <div key={s.label} style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:11,color:"#605e5c"}}>{s.label}</span>
+                    <span style={{fontSize:13,fontWeight:800,color:s.color}}>{s.count}</span>
+                  </div>
+                ))}
+                <button onClick={()=>navigate("/quality/non-conformance")}
+                  style={{marginTop:4,background:"#92400e",color:"#fff",border:"none",borderRadius:7,padding:"7px",fontSize:11,fontWeight:700,cursor:"pointer",width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  Manage NCRs <ArrowRight style={{width:12,height:12}}/>
+                </button>
+              </div>
+            </div>
+
+            {/* Recent NCRs */}
+            <div style={{background:"#fff",borderRadius:10,border:"1px solid #edebe9",overflow:"hidden",flex:1,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{padding:"10px 16px",background:"#6b7280"}}>
+                <span style={{color:"#fff",fontWeight:800,fontSize:12}}>Recent NCRs</span>
+              </div>
+              <div style={{padding:"4px 0"}}>
+                {recentNCR.length===0 ? (
+                  <p style={{padding:"16px",color:"#a19f9d",fontSize:11,textAlign:"center"}}>No non-conformances raised</p>
+                ) : recentNCR.map((n:any)=>{
+                  const ns = NS[n.status]||NS.open;
+                  return (
+                    <div key={n.id} style={{padding:"10px 14px",borderBottom:"1px solid #f3f2f1",cursor:"pointer"}}
+                      onClick={()=>navigate("/quality/non-conformance")}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#faf9f8"}
+                      onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
+                        <span style={{fontSize:10,fontWeight:700,color:"#92400e"}}>{n.ncr_number}</span>
+                        <span style={{background:ns.bg,color:ns.color,padding:"1px 6px",borderRadius:3,fontSize:9,fontWeight:600,textTransform:"capitalize"}}>{n.status?.replace(/_/g," ")}</span>
+                      </div>
+                      <div style={{fontSize:11,color:"#323130",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.title}</div>
+                      <div style={{fontSize:10,color:"#a19f9d"}}>{n.severity} severity</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

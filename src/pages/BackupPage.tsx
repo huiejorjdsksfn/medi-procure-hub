@@ -123,7 +123,7 @@ function BackupInner() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6" style={{ fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
+    <div className="p-6 max-w-4xl mx-auto space-y-6" style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f3f2f1", minHeight:"calc(100vh-100px)" }}>
       {/* Header card */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-start justify-between">
