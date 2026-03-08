@@ -608,4 +608,4 @@ function AdminPanelInner() {
 export default function AdminPanelPage() {
   return <RoleGuard allowed={["admin"]}><AdminPanelInner /></RoleGuard>;
 }
-: additional tab content injected via append - see AdminPanelInner for context
+
