@@ -106,67 +106,67 @@ export default function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl px-4 py-3 flex flex-wrap items-center gap-3 shadow-sm">
+      <div className="rounded-xl px-4 py-3 flex flex-wrap items-center gap-3" style={{background:"rgba(8,20,55,0.78)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)"}}>
         <div className="flex items-center gap-2">
-          <label className="text-[10px] font-bold text-gray-500 uppercase">From</label>
+          <label className="text-[10px] font-bold uppercase" style={{color:"rgba(255,255,255,0.4)"}}>From</label>
           <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
-            className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-blue-400" />
-          <label className="text-[10px] font-bold text-gray-500 uppercase">To</label>
+            className="px-2 py-1.5 rounded-lg text-xs outline-none" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}} />
+          <label className="text-[10px] font-bold uppercase" style={{color:"rgba(255,255,255,0.4)"}}>To</label>
           <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
-            className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-blue-400" />
+            className="px-2 py-1.5 rounded-lg text-xs outline-none" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}} />
         </div>
         <select value={filterModule} onChange={e=>{setFilterModule(e.target.value);setPage(1);}}
-          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none">
+          className="px-2.5 py-1.5 rounded-lg text-xs outline-none" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}}>
           <option value="all">All Modules</option>
           {modules.map(m=><option key={m} value={m}>{m}</option>)}
         </select>
         <select value={filterAction} onChange={e=>{setFilterAction(e.target.value);setPage(1);}}
-          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none">
+          className="px-2.5 py-1.5 rounded-lg text-xs outline-none" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}}>
           <option value="all">All Actions</option>
           {actions.map(a=><option key={a} value={a}>{a}</option>)}
         </select>
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{color:"rgba(255,255,255,0.3)"}} />
           <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search user, module, record…"
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-blue-400" />
-          {search && <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}} />
+          {search && <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3" style={{color:"rgba(255,255,255,0.4)"}}/></button>}
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl shadow-sm overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{background:"rgba(8,20,55,0.78)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)"}}>
         {loading ? (
-          <div className="p-10 text-center"><RefreshCw className="w-7 h-7 animate-spin mx-auto text-gray-300 mb-2"/><p className="text-xs text-gray-400">Loading audit trail…</p></div>
+          <div className="p-10 text-center"><RefreshCw className="w-7 h-7 animate-spin mx-auto mb-2" style={{color:"rgba(255,255,255,0.3)"}}/><p className="text-xs" style={{color:"rgba(255,255,255,0.4)"}}>Loading audit trail…</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr style={{background:"#374151"}}>
+                <tr style={{background:"rgba(10,25,70,0.85)"}}>
                   {["#","Date & Time","User","Action","Module","Record ID","IP Address","Details"].map(h=>(
-                    <th key={h} className="text-left px-3 py-2.5 text-white/80 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-3 py-2.5 font-bold uppercase tracking-wider whitespace-nowrap" style={{color:"rgba(255,255,255,0.45)",fontSize:9}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {paged.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">No audit records found</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-10 text-center" style={{color:"rgba(255,255,255,0.35)"}}>No audit records found</td></tr>
                 ) : paged.map((l,i)=>{
                   const style = ACTION_STYLE[l.action] || ACTION_STYLE.default;
                   return (
-                    <tr key={l.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-2 text-gray-400">{(page-1)*PAGE_SIZE+i+1}</td>
-                      <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                    <tr key={l.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)",background:i%2===0?"rgba(255,255,255,0.02)":"transparent"}} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(96,165,250,0.07)"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
+                      <td className="px-3 py-2" style={{color:"rgba(255,255,255,0.3)"}}>{(page-1)*PAGE_SIZE+i+1}</td>
+                      <td className="px-3 py-2 whitespace-nowrap" style={{color:"rgba(255,255,255,0.6)"}}>
                         {l.created_at ? new Date(l.created_at).toLocaleString("en-KE",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "—"}
                       </td>
-                      <td className="px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">{l.user_name||"System"}</td>
+                      <td className="px-3 py-2 font-semibold whitespace-nowrap" style={{color:"rgba(255,255,255,0.85)"}}>{l.user_name||"System"}</td>
                       <td className="px-3 py-2">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize"
                           style={{background:style.bg,color:style.color}}>{l.action||"—"}</span>
                       </td>
-                      <td className="px-3 py-2 text-gray-600 capitalize">{l.module||"—"}</td>
-                      <td className="px-3 py-2 text-gray-400 font-mono text-[10px]">{l.record_id?l.record_id.slice(0,10)+"…":"—"}</td>
-                      <td className="px-3 py-2 text-gray-400 font-mono text-[10px]">{l.ip_address||"—"}</td>
-                      <td className="px-3 py-2 text-gray-400 max-w-[200px] truncate">
+                      <td className="px-3 py-2 capitalize" style={{color:"rgba(255,255,255,0.6)"}}>{l.module||"—"}</td>
+                      <td className="px-3 py-2 font-mono text-[10px]" style={{color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,10)+"…":"—"}</td>
+                      <td className="px-3 py-2 font-mono text-[10px]" style={{color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"—"}</td>
+                      <td className="px-3 py-2 max-w-[200px] truncate" style={{color:"rgba(255,255,255,0.4)"}}>
                         {l.details ? JSON.stringify(l.details).slice(0,60)+(JSON.stringify(l.details).length>60?"…":"") : "—"}
                       </td>
                     </tr>
@@ -178,14 +178,14 @@ export default function AuditLogPage() {
         )}
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs">
-            <span className="text-gray-400">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
+          <div className="flex items-center justify-between px-4 py-2 text-xs" style={{borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+            <span style={{color:"rgba(255,255,255,0.35)"}}>Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
             <div className="flex gap-1">
               <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-                className="px-2.5 py-1 rounded border text-gray-600 disabled:opacity-40 hover:bg-white">‹</button>
-              <span className="px-2.5 py-1 rounded border bg-white font-medium text-gray-700">{page}/{totalPages}</span>
+                className="px-2.5 py-1 rounded disabled:opacity-40" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)"}}>‹</button>
+              <span className="px-2.5 py-1 rounded font-medium" style={{background:"rgba(96,165,250,0.2)",border:"1px solid rgba(96,165,250,0.3)",color:"#93c5fd"}}>{page}/{totalPages}</span>
               <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-                className="px-2.5 py-1 rounded border text-gray-600 disabled:opacity-40 hover:bg-white">›</button>
+                className="px-2.5 py-1 rounded disabled:opacity-40" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)"}}>›</button>
             </div>
           </div>
         )}
