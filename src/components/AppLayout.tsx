@@ -162,6 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [sysName, setSysName] = useState("EL5 MediProcure");
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -188,6 +189,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         data.forEach((r: any) => { if (r.key && r.value) map[r.key] = r.value; });
         if (map.system_name) setSysName(map.system_name);
         else if (map.hospital_name) setSysName(map.hospital_name);
+        if (map.hospital_name) setHospitalName(map.hospital_name);
         if (map.system_logo_url) setLogoUrl(map.system_logo_url);
       });
   }, []);
