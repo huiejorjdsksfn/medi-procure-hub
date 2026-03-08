@@ -167,7 +167,8 @@ const ScannerPage = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+    <div style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
+    <div className="p-4 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <ScanBarcode className="w-6 h-6 text-primary" /> Barcode Scanner
@@ -363,6 +364,7 @@ const ScannerPage = () => {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   );
 };

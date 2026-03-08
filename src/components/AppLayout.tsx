@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import ERPWheelButton from "@/components/ERPWheelButton";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -62,6 +61,7 @@ const MODULES = [
       { label:"Journal Vouchers", path:"/vouchers/journal", icon:BookMarked },
       { label:"Purchase Vouchers", path:"/vouchers/purchase", icon:FileText },
       { label:"Store Issue Vouchers", path:"/vouchers", icon:Package },
+      { label:"Sales Vouchers", path:"/vouchers/sales", icon:FileText },
     ],
   },
   {
@@ -123,6 +123,7 @@ const PAGE_HEADERS: Record<string, { module: string; label: string }> = {
   "/bid-evaluations": { module:"PROCUREMENT", label:"Bid Evaluations" },
   "/procurement-planning": { module:"PROCUREMENT", label:"Annual Procurement Plan" },
   "/vouchers": { module:"VOUCHERS", label:"Store Issue Vouchers" },
+  "/vouchers/sales": { module:"VOUCHERS", label:"Sales Vouchers" },
   "/vouchers/payment": { module:"VOUCHERS", label:"Payment Vouchers" },
   "/vouchers/receipt": { module:"VOUCHERS", label:"Receipt Vouchers" },
   "/vouchers/journal": { module:"VOUCHERS", label:"Journal Vouchers" },
@@ -421,8 +422,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <main className="flex-1 overflow-auto">{children}</main>
-
-      <ERPWheelButton />
 
       <footer className="px-4 py-1.5 text-center text-[9px] text-gray-400"
         style={{ background: "#fff", borderTop: "1px solid #e5e7eb" }}>

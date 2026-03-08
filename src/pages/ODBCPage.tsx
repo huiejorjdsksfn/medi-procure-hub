@@ -125,7 +125,7 @@ export default function ODBCPage() {
   );
 
   return (
-    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
       {/* Header */}
       <div className="rounded-2xl px-5 py-3 flex items-center justify-between"
         style={{background:"linear-gradient(90deg,#1e3a5f,#0369a1,#0284c7)",boxShadow:"0 4px 16px rgba(3,105,161,0.35)"}}>

@@ -143,7 +143,7 @@ export default function PaymentVouchersPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" style={{background:"#f3f2f1",minHeight:"calc(100vh-100px)"}}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
