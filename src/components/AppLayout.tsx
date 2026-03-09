@@ -6,10 +6,11 @@ import {
   Settings, LogOut, ChevronDown, Building2, Shield, FileCheck,
   Database, Home, Gavel, DollarSign, ClipboardList, BookOpen,
   PiggyBank, Layers, Receipt, BookMarked, Calendar, Scale,
-  Search, Globe, Mail, Archive, Wifi, Activity, Bell,
+  Search, Globe, Mail, Archive, Wifi, Activity,
   Menu, X, UserCircle, AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/NotificationPopup";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrator",
@@ -299,13 +300,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {unreadCount>0 && <span style={{position:"absolute",top:-1,right:-1,width:14,height:14,borderRadius:"50%",background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadCount>9?"9+":unreadCount}</span>}
           </button>
 
-          {/* Notifications */}
-          <button onClick={()=>navigate("/inbox")} title="Notifications"
-            style={{padding:6,borderRadius:6,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)"}}
-            onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.1)"}
-            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-            <Bell style={{width:15,height:15}}/>
-          </button>
+          {/* Notifications popup */}
+          <NotificationBell logoUrl={logoUrl} sysName={sysName} hospitalName={hospitalName} />
 
           {/* User menu */}
           <div style={{position:"relative"}} ref={userMenuRef}>
