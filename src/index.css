@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,68 +6,125 @@
 
 @layer base {
   :root {
-    --background: 215 20% 16%;
-    --foreground: 210 15% 90%;
-    --card: 215 25% 20%;
-    --card-foreground: 210 15% 90%;
-    --popover: 215 30% 14%;
-    --popover-foreground: 210 15% 90%;
-    --primary: 210 70% 50%;
+    --background: 0 0% 97%;
+    --foreground: 220 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+    --primary: 215 85% 30%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 174 50% 40%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 215 20% 22%;
-    --muted-foreground: 215 12% 60%;
-    --accent: 210 70% 50%;
+    --secondary: 215 20% 92%;
+    --secondary-foreground: 215 85% 30%;
+    --muted: 215 15% 94%;
+    --muted-foreground: 215 12% 55%;
+    --accent: 215 85% 30%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 20% 28%;
-    --input: 215 20% 24%;
-    --ring: 210 70% 50%;
-    --radius: 0.5rem;
-
-    --sidebar-background: 215 30% 12%;
-    --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 174 50% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 18%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 215 20% 22%;
-    --sidebar-ring: 174 50% 50%;
-
-    font-family: 'Segoe UI', 'IBM Plex Sans', system-ui, sans-serif;
+    --border: 215 15% 88%;
+    --input: 215 15% 88%;
+    --ring: 215 85% 30%;
+    --radius: 0.4rem;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   }
 }
 
-/* Global reset - enterprise dark theme */
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
-  background: #f0f2f5;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f4f6f9;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #1a2332;
 }
 
-/* Scrollbars */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
+/* ─── Enterprise scrollbars ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #f0f2f5; }
+::-webkit-scrollbar-thumb { background: #c8d0dc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9faab8; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Animations */
+/* ─── Animations ─── */
 @keyframes spin { to { transform: rotate(360deg); } }
 .animate-spin { animation: spin 1s linear infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 .animate-pulse { animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-.animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.animate-fadeIn { animation: fadeIn 0.18s ease-out; }
+@keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+.animate-slideIn { animation: slideIn 0.2s ease-out; }
+@keyframes glow { 0%,100%{box-shadow:0 0 8px rgba(26,58,107,0.3)} 50%{box-shadow:0 0 18px rgba(26,58,107,0.6)} }
+.animate-glow { animation: glow 2s ease-in-out infinite; }
+@keyframes wheelSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
-/* Input overrides for dark theme */
-input, textarea, select {
-  font-family: 'Segoe UI', system-ui, sans-serif;
+/* ─── Enterprise card/panel ─── */
+.ent-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
+.ent-card-hover:hover {
+  box-shadow: 0 4px 16px rgba(26,58,107,0.12);
+  border-color: #c5d3e8;
+  transform: translateY(-1px);
+  transition: all 0.15s;
+}
+
+/* ─── Enterprise buttons ─── */
+.btn-primary {
+  background: linear-gradient(135deg,#1a3a6b,#1d4a87);
+  color: #fff; border: none; border-radius: 6px;
+  padding: 7px 16px; font-size: 12px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+  box-shadow: 0 2px 6px rgba(26,58,107,0.25);
+}
+.btn-primary:hover { background: linear-gradient(135deg,#0f2a52,#1a3a6b); box-shadow: 0 4px 12px rgba(26,58,107,0.35); }
+.btn-secondary {
+  background: #fff; color: #374151; border: 1px solid #d1d5db;
+  border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+}
+.btn-secondary:hover { background: #f9fafb; border-color: #9ca3af; }
+.btn-danger { background: #dc2626; color:#fff; border:none; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-danger:hover { background:#b91c1c; }
+
+/* ─── Enterprise inputs ─── */
+.ent-input {
+  width: 100%; padding: 8px 10px; font-size: 12px;
+  border: 1px solid #d1d5db; border-radius: 6px;
+  background: #fff; color: #1a2332; outline: none;
+  font-family: 'Inter','Segoe UI',sans-serif;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ent-input:focus { border-color: #1a3a6b; box-shadow: 0 0 0 3px rgba(26,58,107,0.08); }
+
+/* ─── Enterprise table ─── */
+.ent-table { width:100%; border-collapse:collapse; font-size:12px; }
+.ent-table th { background:#f8fafc; padding:9px 12px; text-align:left; font-size:10px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.04em; border-bottom:2px solid #e5e7eb; white-space:nowrap; }
+.ent-table td { padding:9px 12px; border-bottom:1px solid #f3f4f6; color:#374151; vertical-align:middle; }
+.ent-table tr:hover td { background:#f8fafc; }
+.ent-table tr:last-child td { border-bottom:none; }
+
+/* ─── Page header ─── */
+.page-header {
+  padding: 12px 20px;
+  background: linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(26,58,107,0.3);
+  margin-bottom: 16px;
+}
+
+/* ─── Status badges ─── */
+.badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-transform:capitalize; }
+
+/* ─── Wheel glow effects ─── */
+.wheel-node { transition: all 0.2s ease; cursor: pointer; }
+.wheel-node:hover { filter: drop-shadow(0 0 8px currentColor); }
+
+input, textarea, select { font-family: 'Inter','Segoe UI',sans-serif; }

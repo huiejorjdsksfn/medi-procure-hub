@@ -1,232 +1,185 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import {
   Mail, Send, RefreshCw, Plus, Trash2, X, Paperclip, Eye,
   Inbox, CheckCircle, Clock, AlertTriangle, Users, Search,
-  Star, Archive, Reply, Forward, Download, Filter, ChevronDown
+  Star, Archive, Reply, Forward, ChevronDown, Bell, Settings,
+  Edit3, Filter, FileText, Download, Upload
 } from "lucide-react";
-import * as XLSX from "xlsx";
 
-const STATUS_CFG: Record<string,{bg:string,color:string}> = {
-  sent:     {bg:"#dcfce7",color:"#15803d"},
-  pending:  {bg:"#fef3c7",color:"#92400e"},
-  failed:   {bg:"#fee2e2",color:"#dc2626"},
-  draft:    {bg:"#f3f4f6",color:"#6b7280"},
+const PRIORITY_CFG: Record<string,{bg:string;color:string;label:string}> = {
+  urgent: {bg:"#fee2e2",color:"#dc2626",label:"Urgent"},
+  high:   {bg:"#fef3c7",color:"#b45309",label:"High"},
+  normal: {bg:"#dbeafe",color:"#1d4ed8",label:"Normal"},
+  low:    {bg:"#f3f4f6",color:"#6b7280",label:"Low"},
 };
-
-const PRIORITY_CFG: Record<string,{bg:string,color:string}> = {
-  urgent: {bg:"#fee2e2",color:"#dc2626"},
-  high:   {bg:"#fef3c7",color:"#b45309"},
-  normal: {bg:"#e0f2fe",color:"#0369a1"},
-  low:    {bg:"#f3f4f6",color:"#6b7280"},
-};
-
-const MODULES = ["general","procurement","vouchers","inventory","quality","finance","reports","system"];
-
 const TEMPLATES = [
-  { id:"po_notice",    label:"Purchase Order Notice",   subject:"Purchase Order {ref} — Action Required",   body:"Dear {name},\n\nPlease find the attached Purchase Order {ref} for your review and approval.\n\nTotal Amount: KES {amount}\nDelivery Date: {date}\n\nKindly confirm receipt and processing timeline.\n\nRegards,\n{sender}\nProcurement Department\n{hospital}" },
-  { id:"req_approved", label:"Requisition Approved",    subject:"Requisition {ref} Approved",                body:"Dear {name},\n\nYour requisition {ref} has been approved by management.\n\nApproved Amount: KES {amount}\nApproved By: {approver}\nDate: {date}\n\nProceeding to procurement.\n\nRegards,\n{sender}\nProcurement Department" },
-  { id:"grn_notice",   label:"GRN Notification",        subject:"Goods Received — {ref}",                   body:"Dear {name},\n\nGoods for Order {ref} have been received and are undergoing inspection.\n\nReceived By: {receiver}\nDate: {date}\n\nYou will be notified upon inspection completion.\n\nRegards,\n{sender}\nWarehouse Department" },
-  { id:"tender_invite",label:"Tender Invitation",       subject:"Invitation to Tender — {ref}",              body:"Dear {name},\n\nYou are cordially invited to submit a bid for Tender {ref}.\n\nTender Description: {description}\nClosing Date: {date}\nEstimated Value: KES {amount}\n\nPlease submit your bid before the closing date.\n\nRegards,\n{sender}\nProcurement Department\n{hospital}" },
-  { id:"payment_done", label:"Payment Processed",       subject:"Payment Voucher {ref} Processed",           body:"Dear {name},\n\nPayment Voucher {ref} has been processed successfully.\n\nAmount: KES {amount}\nPayment Method: {method}\nDate: {date}\n\nPlease confirm receipt.\n\nRegards,\n{sender}\nFinance Department" },
-  { id:"reminder",     label:"Action Reminder",         subject:"Reminder: {subject} — Action Required",     body:"Dear {name},\n\nThis is a friendly reminder regarding {subject}.\n\nPlease take the necessary action at your earliest convenience.\n\nIf you have any questions, do not hesitate to contact us.\n\nRegards,\n{sender}" },
+  { id:"po",    label:"Purchase Order Notice",  subject:"Purchase Order {ref} — Action Required",   body:"Dear {name},\n\nPlease find attached Purchase Order {ref} for your review.\n\nTotal Amount: KES {amount}\nDelivery Date: {date}\n\nKindly confirm receipt and processing timeline.\n\nRegards,\n{sender}\nProcurement Department" },
+  { id:"req",   label:"Requisition Approved",   subject:"Requisition {ref} Approved",               body:"Dear {name},\n\nYour requisition {ref} has been approved.\n\nApproved Amount: KES {amount}\nApproved By: {approver}\nDate: {date}\n\nRegards,\n{sender}" },
+  { id:"grn",   label:"GRN Notification",       subject:"Goods Received — {ref}",                   body:"Dear {name},\n\nGoods for Order {ref} have been received.\n\nReceived By: {receiver}\nDate: {date}\n\nRegards,\n{sender}" },
+  { id:"tender",label:"Tender Invitation",      subject:"Invitation to Tender — {ref}",             body:"Dear {name},\n\nYou are invited to submit a bid for Tender {ref}.\n\nClosing Date: {date}\nEstimated Value: KES {amount}\n\nKindly submit before the closing date.\n\nRegards,\n{sender}" },
+  { id:"pay",   label:"Payment Processed",      subject:"Payment Voucher {ref} Processed",          body:"Dear {name},\n\nPayment {ref} has been processed successfully.\n\nAmount: KES {amount}\nDate: {date}\n\nPlease confirm receipt.\n\nRegards,\n{sender}" },
+  { id:"remind",label:"Action Reminder",        subject:"Reminder: {subject} — Action Required",    body:"Dear {name},\n\nThis is a friendly reminder regarding {subject}.\n\nPlease take the necessary action at your earliest convenience.\n\nRegards,\n{sender}" },
+];
+
+const FOLDERS = [
+  { id:"inbox",   label:"Inbox",     icon:Inbox,   color:"#0078d4" },
+  { id:"sent",    label:"Sent",      icon:Send,    color:"#107c10" },
+  { id:"drafts",  label:"Drafts",    icon:Edit3,   color:"#6b7280" },
+  { id:"starred", label:"Starred",   icon:Star,    color:"#f59e0b" },
+  { id:"archived",label:"Archived",  icon:Archive, color:"#9ca3af" },
 ];
 
 function ComposeModal({ onClose, onSent, profiles }: { onClose:()=>void; onSent:()=>void; profiles:any[] }) {
   const { user, profile } = useAuth();
-  const [to, setTo]         = useState<string[]>([]);
+  const [to, setTo]           = useState<string[]>([]);
   const [toInput, setToInput] = useState("");
-  const [cc, setCc]         = useState("");
-  const [bcc, setBcc]       = useState("");
+  const [cc, setCc]           = useState("");
   const [subject, setSubject] = useState("");
-  const [body, setBody]     = useState("");
+  const [body, setBody]       = useState("");
   const [priority, setPriority] = useState("normal");
-  const [module, setModule] = useState("general");
   const [template, setTemplate] = useState("");
-  const [sending, setSending]   = useState(false);
-  const [showCcBcc, setShowCcBcc] = useState(false);
-  const [showProfiles, setShowProfiles] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
 
   const applyTemplate = (tid: string) => {
-    const t = TEMPLATES.find(x=>x.id===tid);
-    if (!t) return;
+    const t = TEMPLATES.find(x=>x.id===tid); if(!t) return;
     setSubject(t.subject.replace(/{[^}]+}/g,v=>`[${v.slice(1,-1)}]`));
-    setBody(t.body.replace(/{hospital}/g, profile?.department||"Hospital").replace(/{sender}/g, profile?.full_name||"Staff"));
+    setBody(t.body.replace(/{sender}/g,profile?.full_name||"Staff").replace(/{hospital}/g,"Embu L5 Hospital"));
     setTemplate(tid);
   };
-
   const addTo = (email: string) => {
-    const e = email.trim();
-    if (e && !to.includes(e)) setTo(p=>[...p,e]);
-    setToInput(""); setShowProfiles(false);
+    if(email && !to.includes(email)){ setTo(p=>[...p,email]); setToInput(""); }
   };
-
   const send = async () => {
-    if (to.length===0) { toast({title:"Add at least one recipient",variant:"destructive"}); return; }
-    if (!subject.trim()) { toast({title:"Subject is required",variant:"destructive"}); return; }
+    if(!to.length){ toast({title:"Add at least one recipient",variant:"destructive"}); return; }
+    if(!subject.trim()){ toast({title:"Add a subject",variant:"destructive"}); return; }
     setSending(true);
     try {
-      // Use Supabase Edge Function for real email sending
-      const { data: fnData, error: fnError } = await (supabase as any).functions.invoke("send-email", {
-        body: {
-          to,
-          cc: cc||undefined,
-          bcc: bcc||undefined,
-          subject,
-          body,
-          priority,
-          module,
-          sender_id: user?.id,
-          sender_name: profile?.full_name || user?.email,
+      const { error } = await (supabase as any).from("inbox_items").insert({
+        from_user_id: user?.id, from_name: profile?.full_name,
+        from_email: profile?.email || user?.email,
+        to_emails: to.join(","), cc_emails: cc,
+        subject, body, priority,
+        status:"sent", message_type:"email",
+        sent_at: new Date().toISOString(),
+      });
+      if(error) throw error;
+      // Create inbox items for each recipient
+      for(const toEmail of to) {
+        const prof = profiles.find(p=>p.email===toEmail||p.full_name===toEmail);
+        if(prof) {
+          await (supabase as any).from("inbox_items").insert({
+            to_user_id: prof.id, to_name: prof.full_name, to_email: toEmail,
+            from_user_id: user?.id, from_name: profile?.full_name,
+            from_email: profile?.email || user?.email,
+            subject, body, priority,
+            status:"unread", message_type:"email",
+          });
         }
-      });
-      if (fnError) throw fnError;
-      toast({
-        title: "Email sent ✓",
-        description: fnData?.message || `Delivered to ${to.length} recipient(s)`,
-      });
+      }
+      toast({title:"Email sent ✓",description:`To: ${to.join(", ")}`});
       onSent(); onClose();
-    } catch(e:any) {
-      // Fallback: direct DB insert if edge function not deployed
-      try {
-        const { data: notif, error: ne } = await (supabase as any).from("notifications").insert({
-          sender_id: user?.id, title: subject, body, module, priority, status:"sent",
-        }).select().single();
-        if (!ne && notif) {
-          for (const email of to) {
-            const p = profiles.find((x:any)=>x.email===email);
-            if (p?.id) {
-              await (supabase as any).from("inbox_items").insert({
-                type:"message", subject, body, from_user_id:user?.id, to_user_id:p.id, priority, status:"unread",
-              });
-            }
-          }
-        }
-        toast({title:"Email sent internally ✓", description:`Delivered to ${to.length} recipient(s). SMTP not configured for external delivery.`});
-        onSent(); onClose();
-      } catch(e2:any) { toast({title:"Send failed",description:e2.message,variant:"destructive"}); }
-    }
+    } catch(e:any){ toast({title:"Send failed",description:e.message,variant:"destructive"}); }
     setSending(false);
   };
 
-  const filtered = toInput.length>=1 ? profiles.filter(p=>(p.email||"").includes(toInput)||(p.full_name||"").toLowerCase().includes(toInput.toLowerCase())) : [];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}/>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col overflow-hidden" style={{maxHeight:"92vh"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#fff",borderRadius:12,width:640,maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{background:"linear-gradient(90deg,#1a3a6b,#0369a1)"}}>
-          <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-white"/><span className="font-black text-sm text-white">New Email</span></div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+        <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
+          <Edit3 style={{width:14,height:14,color:"#fff"}}/>
+          <span style={{fontSize:13,fontWeight:700,color:"#fff",flex:1}}>New Email</span>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}>
+            <X style={{width:13,height:13}}/>
+          </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-5 space-y-3">
-          {/* Template */}
-          <div className="flex items-center gap-2">
-            <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",width:60}}>Template</label>
+        <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+          {/* Template picker */}
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{fontSize:11,color:"#9ca3af",whiteSpace:"nowrap"}}>Template:</span>
             <select value={template} onChange={e=>applyTemplate(e.target.value)}
-              className="flex-1 px-3 py-1.5 rounded-xl text-sm outline-none border border-gray-200 bg-gray-50">
-              <option value="">— Select template —</option>
+              style={{flex:1,fontSize:11,padding:"5px 8px",border:"1px solid #e5e7eb",borderRadius:6,outline:"none",color:"#374151"}}>
+              <option value="">Select template…</option>
               {TEMPLATES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
           </div>
 
-          {/* To */}
+          {/* To field */}
           <div>
-            <div className="flex items-start gap-2">
-              <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",paddingTop:8,width:60}}>To</label>
-              <div className="flex-1 relative">
-                <div className="flex flex-wrap gap-1.5 p-2 rounded-xl border border-gray-200 bg-white min-h-[38px]"
-                  onClick={()=>document.getElementById("toInput")?.focus()}>
-                  {to.map(email=>(
-                    <span key={email} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:"#dbeafe",color:"#1d4ed8"}}>
-                      {email}<button onClick={()=>setTo(p=>p.filter(e=>e!==email))}><X className="w-2.5 h-2.5"/></button>
-                    </span>
-                  ))}
-                  <input id="toInput" value={toInput} onChange={e=>{setToInput(e.target.value);setShowProfiles(true);}}
-                    onKeyDown={e=>{if(e.key==="Enter"||e.key===","){addTo(toInput);e.preventDefault();}}}
-                    placeholder={to.length===0?"Email or name — press Enter to add":""}
-                    className="flex-1 outline-none text-sm min-w-[120px]" style={{minWidth:120}}/>
-                </div>
-                {showProfiles && filtered.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-20 bg-white rounded-xl shadow-lg border border-gray-100 max-h-40 overflow-auto mt-1">
-                    {filtered.slice(0,8).map(p=>(
-                      <button key={p.id} onClick={()=>addTo(p.email||"")}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-blue-50 text-sm">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold">{(p.full_name||"?")[0]}</div>
-                        <div><p className="font-medium text-gray-800 text-xs">{p.full_name}</p><p className="text-gray-400 text-[10px]">{p.email}</p></div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button onClick={()=>setShowCcBcc(v=>!v)} className="px-3 py-1.5 rounded-xl text-xs text-gray-500 hover:bg-gray-100 whitespace-nowrap mt-0.5">CC/BCC</button>
+            <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>To</label>
+            <div style={{marginTop:4,border:"1px solid #e5e7eb",borderRadius:6,padding:"4px 8px",background:"#f9fafb",display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
+              {to.map(t=>(
+                <span key={t} style={{display:"inline-flex",alignItems:"center",gap:4,background:"#1a3a6b18",color:"#1a3a6b",padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:600}}>
+                  {t}<X style={{width:10,height:10,cursor:"pointer"}} onClick={()=>setTo(p=>p.filter(x=>x!==t))}/>
+                </span>
+              ))}
+              <input value={toInput} onChange={e=>{setToInput(e.target.value);setShowPeople(e.target.value.length>0);}}
+                onKeyDown={e=>{ if(e.key==="Enter"||e.key===","||e.key===" "){ addTo(toInput.trim()); } }}
+                placeholder={to.length?"":"Recipients (name or email)…"}
+                style={{flex:1,minWidth:120,border:"none",outline:"none",background:"transparent",fontSize:11,padding:"3px 0"}}/>
             </div>
+            {/* Autocomplete */}
+            {showPeople && toInput.length > 0 && (
+              <div style={{border:"1px solid #e5e7eb",borderRadius:6,background:"#fff",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",position:"relative",zIndex:10,maxHeight:140,overflowY:"auto"}}>
+                {profiles.filter(p=>(p.full_name||"").toLowerCase().includes(toInput.toLowerCase())||(p.email||"").toLowerCase().includes(toInput.toLowerCase())).slice(0,6).map(p=>(
+                  <button key={p.id} onClick={()=>{addTo(p.email||p.full_name);setShowPeople(false);}}
+                    style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"7px 12px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:11}}
+                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
+                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                    <div style={{width:22,height:22,borderRadius:"50%",background:"#1a3a6b",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,color:"#fff",fontWeight:700}}>{(p.full_name||"?")[0]}</span>
+                    </div>
+                    <div><div style={{fontWeight:600,color:"#374151"}}>{p.full_name}</div><div style={{fontSize:9,color:"#9ca3af"}}>{p.email}</div></div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {showCcBcc && (
-            <>
-              <div className="flex items-center gap-2">
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",width:60}}>CC</label>
-                <input value={cc} onChange={e=>setCc(e.target.value)} placeholder="cc@example.com" className="flex-1 px-3 py-2 rounded-xl text-sm outline-none border border-gray-200"/>
-              </div>
-              <div className="flex items-center gap-2">
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",width:60}}>BCC</label>
-                <input value={bcc} onChange={e=>setBcc(e.target.value)} placeholder="bcc@example.com" className="flex-1 px-3 py-2 rounded-xl text-sm outline-none border border-gray-200"/>
-              </div>
-            </>
-          )}
-
-          {/* Subject */}
-          <div className="flex items-center gap-2">
-            <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",width:60}}>Subject</label>
-            <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Subject…"
-              className="flex-1 px-3 py-2 rounded-xl text-sm outline-none border border-gray-200"/>
+          {/* CC */}
+          <div>
+            <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>CC</label>
+            <input value={cc} onChange={e=>setCc(e.target.value)} placeholder="CC recipients…"
+              style={{marginTop:4,width:"100%",padding:"6px 10px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
           </div>
 
-          {/* Priority + Module */}
-          <div className="flex gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",width:60}}>Priority</label>
+          {/* Subject + Priority */}
+          <div style={{display:"flex",gap:8}}>
+            <div style={{flex:1}}>
+              <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>Subject</label>
+              <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Email subject…"
+                style={{marginTop:4,width:"100%",padding:"6px 10px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>Priority</label>
               <select value={priority} onChange={e=>setPriority(e.target.value)}
-                className="flex-1 px-3 py-1.5 rounded-xl text-sm outline-none border border-gray-200 bg-gray-50">
-                <option value="low">Low</option><option value="normal">Normal</option>
-                <option value="high">High</option><option value="urgent">Urgent</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2 flex-1">
-              <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",width:60}}>Module</label>
-              <select value={module} onChange={e=>setModule(e.target.value)}
-                className="flex-1 px-3 py-1.5 rounded-xl text-sm outline-none border border-gray-200 bg-gray-50">
-                {MODULES.map(m=><option key={m} value={m} className="capitalize">{m}</option>)}
+                style={{marginTop:4,width:"100%",padding:"6px 8px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
+                {Object.entries(PRIORITY_CFG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
           </div>
 
           {/* Body */}
-          <div>
-            <label className="block mb-1" style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase"}}>Message</label>
-            <textarea value={body} onChange={e=>setBody(e.target.value)} rows={10} placeholder="Compose your message…"
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none border border-gray-200 resize-none"
-              style={{fontFamily:"'Segoe UI',system-ui",lineHeight:1.6}}/>
+          <div style={{flex:1}}>
+            <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>Message</label>
+            <textarea value={body} onChange={e=>setBody(e.target.value)} rows={10}
+              placeholder="Write your message here…"
+              style={{marginTop:4,width:"100%",padding:"10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",resize:"vertical",fontFamily:"inherit",lineHeight:1.6}}/>
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t flex items-center gap-2">
-          <button onClick={send} disabled={sending}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold"
-            style={{background:sending?"#6b7280":"#1a3a6b"}}>
-            {sending?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Send className="w-3.5 h-3.5"/>}
+        {/* Footer */}
+        <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+          <button onClick={send} disabled={sending} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(26,58,107,0.3)"}}>
+            {sending?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Send style={{width:13,height:13}}/>}
             {sending?"Sending…":"Send Email"}
           </button>
-          <div className="flex items-center gap-1.5 ml-2">
-            {to.length>0&&<span style={{fontSize:11,color:"#9ca3af"}}>{to.length} recipient{to.length>1?"s":""}</span>}
-            {priority!=="normal"&&<span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={PRIORITY_CFG[priority]}>{priority}</span>}
-          </div>
-          <button onClick={onClose} className="ml-auto px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">Cancel</button>
+          <button onClick={onClose} style={{padding:"8px 16px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:12,color:"#374151"}}>Cancel</button>
         </div>
       </div>
     </div>
@@ -234,144 +187,155 @@ function ComposeModal({ onClose, onSent, profiles }: { onClose:()=>void; onSent:
 }
 
 export default function EmailPage() {
-  const { user, profile } = useAuth();
-  const [msgs, setMsgs] = useState<any[]>([]);
-  const [inbox, setInbox] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"sent"|"inbox"|"notifications">("inbox");
-  const [search, setSearch] = useState("");
-  const [showCompose, setShowCompose] = useState(false);
-  const [selected, setSelected] = useState<any>(null);
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const { user, profile, roles } = useAuth();
+  const isAdmin = roles.includes("admin")||roles.includes("procurement_manager");
+  const [folder,     setFolder]     = useState("inbox");
+  const [emails,     setEmails]     = useState<any[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [selected,   setSelected]   = useState<any>(null);
+  const [search,     setSearch]     = useState("");
+  const [compose,    setCompose]    = useState(false);
+  const [profiles,   setProfiles]   = useState<any[]>([]);
+  const [unreadCt,   setUnreadCt]   = useState(0);
+  const [replying,   setReplying]   = useState(false);
+  const [replyBody,  setReplyBody]  = useState("");
 
-  const load = async () => {
+  const loadEmails = useCallback(async() => {
     setLoading(true);
-    const [sentRes, inboxRes, profRes] = await Promise.all([
-      (supabase as any).from("notifications").select("*,notification_recipients(*)").eq("sender_id", user?.id).order("created_at",{ascending:false}).limit(50),
-      (supabase as any).from("inbox_items").select("*").eq("to_user_id", user?.id).order("created_at",{ascending:false}).limit(100),
-      (supabase as any).from("profiles").select("id,full_name,email,department").order("full_name"),
-    ]);
-    setMsgs(sentRes.data||[]);
-    setInbox(inboxRes.data||[]);
-    setProfiles(profRes.data||[]);
+    let q = (supabase as any).from("inbox_items").select("*").order("created_at",{ascending:false}).limit(100);
+    if(folder==="inbox")   q=q.eq("to_user_id",user?.id).neq("status","sent");
+    if(folder==="sent")    q=q.eq("from_user_id",user?.id).eq("status","sent");
+    if(folder==="starred") q=q.eq("to_user_id",user?.id).eq("is_starred",true);
+    if(folder==="drafts")  q=q.eq("from_user_id",user?.id).eq("status","draft");
+    if(isAdmin && folder==="inbox") q=(supabase as any).from("inbox_items").select("*").order("created_at",{ascending:false}).limit(100);
+    const { data } = await q;
+    setEmails(data||[]);
+    // unread count
+    const { count } = await (supabase as any).from("inbox_items").select("id",{count:"exact",head:true}).eq("to_user_id",user?.id).eq("status","unread");
+    setUnreadCt(count||0);
     setLoading(false);
-  };
+  },[folder,user,isAdmin]);
 
-  useEffect(()=>{ load(); },[]);
-
-  // Realtime for inbox
   useEffect(()=>{
-    const ch = (supabase as any).channel("email-inbox-rt")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"inbox_items",filter:`to_user_id=eq.${user?.id}`},()=>load())
-      .subscribe();
-    return ()=>{supabase.removeChannel(ch);};
-  },[user?.id]);
+    (supabase as any).from("profiles").select("id,full_name,email,department").order("full_name").then(({data}:any)=>setProfiles(data||[]));
+  },[]);
+  useEffect(()=>{ loadEmails(); },[loadEmails]);
+  useEffect(()=>{
+    const ch=(supabase as any).channel("email-rt").on("postgres_changes",{event:"*",schema:"public",table:"inbox_items"},()=>loadEmails()).subscribe();
+    return()=>(supabase as any).removeChannel(ch);
+  },[loadEmails]);
 
-  const markRead = async (id: string) => {
-    await (supabase as any).from("inbox_items").update({status:"read"}).eq("id",id);
-    load();
+  const markRead = async(id:string) => {
+    await (supabase as any).from("inbox_items").update({status:"read",read_at:new Date().toISOString()}).eq("id",id);
+    loadEmails();
+  };
+  const deleteEmail = async(id:string) => {
+    await (supabase as any).from("inbox_items").delete().eq("id",id);
+    setSelected(null); loadEmails();
+  };
+  const sendReply = async() => {
+    if(!replyBody.trim()||!selected) return;
+    const { error } = await (supabase as any).from("inbox_items").insert({
+      from_user_id:user?.id, from_name:profile?.full_name,
+      from_email:profile?.email||user?.email,
+      to_user_id:selected.from_user_id, to_name:selected.from_name,
+      to_email:selected.from_email,
+      subject:`Re: ${selected.subject}`, body:replyBody,
+      priority:"normal", status:"sent", message_type:"email",
+      sent_at:new Date().toISOString(),
+    });
+    if(error){ toast({title:"Reply failed",description:error.message,variant:"destructive"}); return; }
+    toast({title:"Reply sent ✓"});
+    setReplying(false); setReplyBody("");
   };
 
-  const deleteMsg = async (id: string, table: string) => {
-    await (supabase as any).from(table).delete().eq("id",id);
-    toast({title:"Deleted"}); load(); if(selected?.id===id) setSelected(null);
-  };
-
-  const exportAll = () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(inbox.map(m=>({
-      Subject:m.subject, From:m.from_user_id, Body:m.body, Priority:m.priority, Status:m.status, Date:m.created_at
-    })));
-    XLSX.utils.book_append_sheet(wb,ws,"Inbox");
-    XLSX.writeFile(wb,`inbox_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported"});
-  };
-
-  const unread = inbox.filter(m=>m.status==="unread").length;
-  const curList = tab==="inbox" ? inbox : tab==="sent" ? msgs : [];
-  const filtered = curList.filter(m=>{
-    const matchSearch = !search || (m.subject||"").toLowerCase().includes(search.toLowerCase()) || (m.body||"").toLowerCase().includes(search.toLowerCase());
-    const matchPriority = priorityFilter==="all" || m.priority===priorityFilter;
-    return matchSearch && matchPriority;
-  });
+  const filtered = emails.filter(e=> !search||[e.subject,e.from_name,e.to_name,e.body].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase())));
 
   return (
-    <div className="flex h-[calc(100vh-90px)]" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-      {/* Sidebar */}
-      <div className="w-48 shrink-0 flex flex-col" style={{background:"#1a1a2e",borderRight:"1px solid #2e2e4e"}}>
-        <div className="p-3 border-b" style={{borderColor:"#2e2e4e"}}>
-          <button onClick={()=>setShowCompose(true)}
-            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-sm font-bold text-white"
-            style={{background:"linear-gradient(90deg,#1a3a6b,#0369a1)"}}>
-            <Plus className="w-4 h-4"/> Compose
+    <div style={{display:"flex",height:"calc(100vh - 57px)",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f4f6f9"}}>
+
+      {/* ── SIDEBAR ── */}
+      <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{padding:"12px",borderBottom:"1px solid #f3f4f6"}}>
+          <button onClick={()=>setCompose(true)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"9px 0",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(26,58,107,0.25)"}}>
+            <Edit3 style={{width:13,height:13}}/> Compose Email
           </button>
         </div>
-        {[
-          {id:"inbox",         label:"Inbox",          icon:Inbox,      badge:unread},
-          {id:"sent",          label:"Sent",           icon:Send,       badge:0},
-          {id:"notifications", label:"Notifications",  icon:CheckCircle,badge:0},
-        ].map(({id,label,icon:Icon,badge})=>(
-          <button key={id} onClick={()=>{setTab(id as any);setSelected(null);}}
-            className="flex items-center gap-2.5 px-3 py-2 w-full text-left hover:bg-white/5 transition-all"
-            style={{background:tab===id?"rgba(255,255,255,0.08)":"transparent"}}>
-            <Icon className="w-3.5 h-3.5 shrink-0" style={{color:tab===id?"#60a5fa":"#64748b"}}/>
-            <span style={{fontSize:11,color:tab===id?"#e2e8f0":"#94a3b8",fontWeight:tab===id?700:400,flex:1}}>{label}</span>
-            {badge>0&&<span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">{badge>9?"9+":badge}</span>}
-          </button>
-        ))}
-        <div className="mt-auto p-3 border-t" style={{borderColor:"#2e2e4e"}}>
-          <div style={{fontSize:9,color:"#475569"}}>{profile?.full_name}</div>
-          <div style={{fontSize:9,color:"#22c55e"}}>● Online</div>
+        <div style={{padding:"8px",flex:1,overflowY:"auto"}}>
+          {FOLDERS.map(f=>(
+            <button key={f.id} onClick={()=>{setFolder(f.id);setSelected(null);}}
+              style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 10px",border:"none",borderRadius:7,cursor:"pointer",textAlign:"left" as const,marginBottom:2,background:folder===f.id?`${f.color}15`:"transparent"}}>
+              <f.icon style={{width:14,height:14,color:f.id===folder?f.color:"#9ca3af"}}/>
+              <span style={{fontSize:12,fontWeight:folder===f.id?700:500,color:folder===f.id?f.color:"#6b7280",flex:1}}>{f.label}</span>
+              {f.id==="inbox"&&unreadCt>0&&<span style={{background:"#0078d4",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:10}}>{unreadCt}</span>}
+            </button>
+          ))}
+
+          {/* Admin: broadcast section */}
+          {isAdmin && (
+            <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #f3f4f6"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",letterSpacing:"0.08em",padding:"0 10px 6px",textTransform:"uppercase"}}>Admin</div>
+              <button onClick={()=>setFolder("all")} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 10px",border:"none",borderRadius:7,cursor:"pointer",textAlign:"left" as const,background:folder==="all"?"#1a3a6b15":"transparent"}}>
+                <Users style={{width:13,height:13,color:folder==="all"?"#1a3a6b":"#9ca3af"}}/>
+                <span style={{fontSize:12,fontWeight:folder==="all"?700:500,color:folder==="all"?"#1a3a6b":"#6b7280"}}>All Messages</span>
+              </button>
+              <button onClick={()=>setFolder("broadcast")} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 10px",border:"none",borderRadius:7,cursor:"pointer",textAlign:"left" as const,background:folder==="broadcast"?"#1a3a6b15":"transparent"}}>
+                <Bell style={{width:13,height:13,color:folder==="broadcast"?"#f59e0b":"#9ca3af"}}/>
+                <span style={{fontSize:12,fontWeight:folder==="broadcast"?700:500,color:folder==="broadcast"?"#1a3a6b":"#6b7280"}}>Broadcast</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Message list */}
-      <div className="w-72 shrink-0 flex flex-col border-r" style={{background:"#f8fafc",borderColor:"#e5e7eb"}}>
-        {/* Toolbar */}
-        <div className="px-3 py-2.5 border-b" style={{borderColor:"#e5e7eb"}}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400"/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
-                className="w-full pl-6 pr-2 py-1.5 rounded-xl text-xs outline-none border border-gray-200"/>
-            </div>
-            <button onClick={load} disabled={loading} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-100">
-              <RefreshCw className={`w-3 h-3 text-gray-500 ${loading?"animate-spin":""}`}/>
-            </button>
-            <button onClick={exportAll} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-100" title="Export">
-              <Download className="w-3 h-3 text-gray-500"/>
-            </button>
-          </div>
-          <div className="flex gap-1">
-            {["all","urgent","high","normal","low"].map(p=>(
-              <button key={p} onClick={()=>setPriorityFilter(p)}
-                className="flex-1 py-0.5 rounded-lg text-[9px] font-bold capitalize transition-all"
-                style={{background:priorityFilter===p?"#1a3a6b":"#f3f4f6",color:priorityFilter===p?"#fff":"#6b7280"}}>
-                {p}
-              </button>
-            ))}
-          </div>
+      {/* ── EMAIL LIST ── */}
+      <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>
+        {/* List header */}
+        <div style={{padding:"10px 12px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12,fontWeight:700,color:"#111827",flex:1,textTransform:"capitalize"}}>{folder}</span>
+          <button onClick={loadEmails} disabled={loading} style={{background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+            <RefreshCw style={{width:12,height:12}} className={loading?"animate-spin":""}/>
+          </button>
+        </div>
+        {/* Search */}
+        <div style={{padding:"8px 12px",borderBottom:"1px solid #f3f4f6",position:"relative"}}>
+          <Search style={{position:"absolute",left:19,top:"50%",transform:"translateY(-50%)",width:11,height:11,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search emails…"
+            style={{width:"100%",paddingLeft:24,paddingRight:8,paddingTop:5,paddingBottom:5,fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",background:"#f9fafb"}}/>
         </div>
         {/* List */}
-        <div className="flex-1 overflow-y-auto">
-          {loading?<div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-gray-300"/></div>:
-          filtered.length===0?<div className="px-4 py-8 text-center text-xs text-gray-400">No messages</div>:
-          filtered.map(msg=>{
-            const isUnread = msg.status==="unread";
-            const pc = PRIORITY_CFG[msg.priority]||PRIORITY_CFG.normal;
+        <div style={{flex:1,overflowY:"auto"}}>
+          {loading ? [1,2,3,4,5].map(i=>(
+            <div key={i} style={{padding:"12px",borderBottom:"1px solid #f9fafb",display:"flex",gap:8}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:"#f3f4f6"}} className="animate-pulse"/>
+              <div style={{flex:1}}><div style={{height:10,background:"#f3f4f6",borderRadius:4,marginBottom:6,width:"70%"}} className="animate-pulse"/><div style={{height:8,background:"#f3f4f6",borderRadius:4,width:"50%"}} className="animate-pulse"/></div>
+            </div>
+          )) : filtered.length===0 ? (
+            <div style={{padding:"30px",textAlign:"center",color:"#9ca3af",fontSize:12}}>No emails in {folder}</div>
+          ) : filtered.map(email=>{
+            const isUnread = email.status==="unread";
+            const isActive = selected?.id===email.id;
+            const pc = PRIORITY_CFG[email.priority||"normal"];
             return (
-              <div key={msg.id} onClick={()=>{setSelected(msg);if(isUnread&&tab==="inbox")markRead(msg.id);}}
-                className="px-3 py-2.5 border-b cursor-pointer hover:bg-white transition-all"
-                style={{borderColor:"#f3f4f6",background:selected?.id===msg.id?"#eff6ff":isUnread?"#fff":"#f8fafc"}}>
-                <div className="flex items-center justify-between mb-0.5">
-                  <span style={{fontSize:11,fontWeight:isUnread?800:600,color:"#1a1a2e"}} className="truncate flex-1">{msg.subject||"(No subject)"}</span>
-                  <span style={{fontSize:9,color:"#9ca3af",whiteSpace:"nowrap",marginLeft:4}}>{new Date(msg.created_at).toLocaleDateString("en-KE",{month:"short",day:"2-digit"})}</span>
+              <div key={email.id} onClick={()=>{setSelected(email);markRead(email.id);setReplying(false);}}
+                style={{padding:"11px 12px",borderBottom:"1px solid #f9fafb",cursor:"pointer",background:isActive?"#eff6ff":isUnread?"#fafbff":"transparent",borderLeft:isUnread?"3px solid #0078d4":isActive?"3px solid #93c5fd":"3px solid transparent",display:"flex",gap:8,alignItems:"flex-start"}}
+                onMouseEnter={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background="#f9fafb";}}
+                onMouseLeave={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background=isUnread?"#fafbff":"transparent";}}>
+                <div style={{width:30,height:30,borderRadius:"50%",background:isUnread?"#1a3a6b":"#e5e7eb",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <span style={{fontSize:11,fontWeight:700,color:isUnread?"#fff":"#6b7280"}}>{((email.from_name||email.to_name||"?")[0]).toUpperCase()}</span>
                 </div>
-                <p className="text-[10px] text-gray-400 truncate">{msg.body?.slice(0,60)||""}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold" style={pc}>{msg.priority}</span>
-                  {isUnread&&<span className="w-1.5 h-1.5 rounded-full bg-blue-500"/>}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4,marginBottom:2}}>
+                    <span style={{fontSize:12,fontWeight:isUnread?700:500,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {folder==="sent"?email.to_name:email.from_name||"System"}
+                    </span>
+                    <span style={{fontSize:9,color:"#9ca3af",whiteSpace:"nowrap"}}>
+                      {new Date(email.created_at||email.sent_at).toLocaleDateString("en-KE",{month:"short",day:"2-digit"})}
+                    </span>
+                  </div>
+                  <div style={{fontSize:11,fontWeight:isUnread?600:400,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2}}>{email.subject||"(no subject)"}</div>
+                  <div style={{fontSize:10,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(email.body||"").slice(0,60)}</div>
+                  {email.priority&&email.priority!=="normal"&&<span style={{display:"inline-block",marginTop:3,fontSize:8,fontWeight:700,padding:"1px 5px",borderRadius:3,background:pc.bg,color:pc.color}}>{pc.label}</span>}
                 </div>
               </div>
             );
@@ -379,66 +343,70 @@ export default function EmailPage() {
         </div>
       </div>
 
-      {/* Message viewer */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{background:"rgba(255,255,255,0.92)"}}>
-        {!selected?(
-          <div className="flex-1 flex flex-col items-center justify-center" style={{background:"#f8fafc"}}>
-            <Mail className="w-16 h-16 text-gray-200 mb-4"/>
-            <p className="text-gray-400 text-sm font-semibold">Select a message to read</p>
-            <p className="text-gray-300 text-xs mt-1">Or compose a new email</p>
-            <button onClick={()=>setShowCompose(true)}
-              className="mt-4 flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold"
-              style={{background:"linear-gradient(90deg,#1a3a6b,#0369a1)"}}>
-              <Plus className="w-4 h-4"/>Compose New Email
-            </button>
-          </div>
-        ):(
+      {/* ── EMAIL READER ── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff"}}>
+        {selected ? (
           <>
-            <div className="px-5 py-3 border-b flex items-center gap-3" style={{borderColor:"#f3f4f6"}}>
-              <div className="flex-1">
-                <h2 className="font-bold text-gray-800">{selected.subject||"(No subject)"}</h2>
-                <p className="text-xs text-gray-400">
-                  {tab==="inbox"?"From: Colleague":""} · {new Date(selected.created_at).toLocaleString("en-KE")}
-                  {" · "}<span className="font-semibold" style={{color:PRIORITY_CFG[selected.priority]?.color||"#6b7280"}}>{selected.priority} priority</span>
-                </p>
+            {/* Reader header */}
+            <div style={{padding:"12px 18px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:"#111827",marginBottom:2}}>{selected.subject||"(no subject)"}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>
+                  From: <strong>{selected.from_name}</strong> · To: <strong>{selected.to_name||selected.to_emails}</strong>
+                  {selected.cc_emails && <> · CC: {selected.cc_emails}</>}
+                  <span style={{marginLeft:8,color:"#9ca3af"}}>{new Date(selected.created_at).toLocaleString("en-KE")}</span>
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                {tab==="inbox"&&(
-                  <button onClick={()=>{setShowCompose(true);}} className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"#e0f2fe",color:"#0369a1"}}>
-                    <Reply className="w-3 h-3"/>Reply
-                  </button>
-                )}
-                <button onClick={()=>deleteMsg(selected.id, tab==="inbox"?"inbox_items":"notifications")}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"#fee2e2",color:"#dc2626"}}>
-                  <Trash2 className="w-3 h-3"/>Delete
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setReplying(r=>!r)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+                  <Reply style={{width:12,height:12}}/> Reply
+                </button>
+                <button onClick={()=>setCompose(true)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+                  <Forward style={{width:12,height:12}}/> Forward
+                </button>
+                <button onClick={()=>deleteEmail(selected.id)} style={{padding:"6px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",color:"#dc2626"}}>
+                  <Trash2 style={{width:12,height:12}}/>
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto p-5">
-              <div className="max-w-2xl">
-                <div className="p-4 rounded-2xl mb-4" style={{background:"#f8fafc",border:"1px solid #e5e7eb"}}>
-                  {[
-                    {l:"Module",   v:selected.module||selected.type||"general"},
-                    {l:"Priority", v:selected.priority||"normal"},
-                    {l:"Status",   v:selected.status||"—"},
-                  ].map(({l,v})=>(
-                    <div key={l} className="flex gap-4 text-xs">
-                      <span className="w-16 text-gray-400 font-semibold">{l}:</span>
-                      <span className="text-gray-700 font-medium capitalize">{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"
-                  style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                  {selected.body||"(No content)"}
+            {/* Priority badge */}
+            {selected.priority && selected.priority!=="normal" && (
+              <div style={{padding:"6px 18px",background:"#fffbeb",borderBottom:"1px solid #fef3c7",display:"flex",alignItems:"center",gap:6}}>
+                <AlertTriangle style={{width:12,height:12,color:"#f59e0b"}}/>
+                <span style={{fontSize:11,fontWeight:600,color:"#92400e"}}>{PRIORITY_CFG[selected.priority]?.label} Priority</span>
+              </div>
+            )}
+            {/* Email body */}
+            <div style={{flex:1,padding:"20px 24px",overflowY:"auto"}}>
+              <pre style={{fontFamily:"'Inter','Segoe UI',sans-serif",fontSize:13,lineHeight:1.75,color:"#374151",whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{selected.body}</pre>
+            </div>
+            {/* Reply box */}
+            {replying && (
+              <div style={{borderTop:"1px solid #e5e7eb",padding:"12px 16px",background:"#f9fafb"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:6}}>Reply to {selected.from_name}</div>
+                <textarea value={replyBody} onChange={e=>setReplyBody(e.target.value)} rows={4} placeholder="Write your reply…"
+                  style={{width:"100%",padding:"8px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"inherit",lineHeight:1.6,resize:"none"}}/>
+                <div style={{display:"flex",gap:6,marginTop:8}}>
+                  <button onClick={sendReply} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>
+                    <Send style={{width:11,height:11}}/> Send Reply
+                  </button>
+                  <button onClick={()=>setReplying(false)} style={{padding:"7px 12px",background:"#fff",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,color:"#6b7280"}}>Cancel</button>
                 </div>
               </div>
-            </div>
+            )}
           </>
+        ) : (
+          <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,color:"#9ca3af"}}>
+            <Mail style={{width:48,height:48,color:"#e5e7eb"}}/>
+            <div style={{fontSize:13,fontWeight:600}}>Select an email to read</div>
+            <button onClick={()=>setCompose(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+              <Edit3 style={{width:13,height:13}}/> Compose New Email
+            </button>
+          </div>
         )}
       </div>
 
-      {showCompose&&<ComposeModal onClose={()=>setShowCompose(false)} onSent={load} profiles={profiles}/>}
+      {compose && <ComposeModal onClose={()=>setCompose(false)} onSent={loadEmails} profiles={profiles}/>}
     </div>
   );
 }

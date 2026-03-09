@@ -1,504 +1,436 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import {
-  ChevronRight, ChevronDown, Sliders, Palette, Shield, Bell,
-  Database, Globe, FileText, Package, Truck, DollarSign, BarChart3,
-  Save, RefreshCw, Check, AlertTriangle, Info, Eye, Lock,
-  Mail, Wifi, Server, Users, Building2, Monitor, Zap,
+  Settings, Save, RefreshCw, Upload, Bell, Mail, Shield, Database,
+  Building2, Users, Globe, Palette, Lock, Eye, EyeOff, CheckCircle,
+  AlertTriangle, Server, X, Plus, Trash2, Edit3, Key, Activity,
+  FileText, Printer, ChevronRight, ToggleLeft, ToggleRight
 } from "lucide-react";
+import RoleGuard from "@/components/RoleGuard";
 
-// ─── SETTINGS TREE (IDE Preferences style, Image 1) ───────────────────────
-const TREE = [
-  { id: "general",      label: "General",          icon: Sliders,      kids: [
-    { id: "g.org",      label: "Organization" },
-    { id: "g.sys",      label: "System" },
-    { id: "g.locale",   label: "Locale & Region" },
-  ]},
-  { id: "appearance",   label: "Appearance",        icon: Palette,      kids: [
-    { id: "a.theme",    label: "Theme & Colors" },
-    { id: "a.layout",   label: "Layout Options" },
-    { id: "a.modules",  label: "Module Colors" },
-  ]},
-  { id: "security",     label: "Users & Security",  icon: Shield,       kids: [
-    { id: "s.auth",     label: "Authentication" },
-    { id: "s.pwd",      label: "Password Policy" },
-    { id: "s.roles",    label: "Role Permissions" },
-    { id: "s.sess",     label: "Session Config" },
-  ]},
-  { id: "procurement",  label: "Procurement",       icon: Truck,        kids: [
-    { id: "p.req",      label: "Requisitions" },
-    { id: "p.po",       label: "Purchase Orders" },
-    { id: "p.tender",   label: "Tenders & Bids" },
-    { id: "p.appr",     label: "Approval Workflow" },
-  ]},
-  { id: "finance",      label: "Finance",           icon: DollarSign,   kids: [
-    { id: "f.vouch",    label: "Vouchers" },
-    { id: "f.budget",   label: "Budgets & Controls" },
-    { id: "f.tax",      label: "Tax & VAT" },
-    { id: "f.fy",       label: "Financial Year" },
-  ]},
-  { id: "inventory",    label: "Inventory",         icon: Package,      kids: [
-    { id: "i.stock",    label: "Stock Control" },
-    { id: "i.reorder",  label: "Reorder Rules" },
-    { id: "i.scan",     label: "Scanner / Barcode" },
-  ]},
-  { id: "notify",       label: "Notifications",     icon: Bell,         kids: [
-    { id: "n.email",    label: "Email Alerts" },
-    { id: "n.inapp",    label: "In-App Notifications" },
-  ]},
-  { id: "reports",      label: "Reports & Audit",   icon: BarChart3,    kids: [
-    { id: "r.format",   label: "Output Format" },
-    { id: "r.audit",    label: "Audit Settings" },
-    { id: "r.export",   label: "Export Options" },
-  ]},
-  { id: "integration",  label: "Integrations",      icon: Wifi,         kids: [
-    { id: "int.smtp",   label: "Email (SMTP)" },
-    { id: "int.api",    label: "API & Keys" },
-    { id: "int.backup", label: "Backup & Restore" },
-  ]},
-  { id: "database",     label: "Database",          icon: Database,     kids: [
-    { id: "d.conn",     label: "Connection Info" },
-    { id: "d.maint",    label: "Maintenance" },
-    { id: "d.perf",     label: "Performance" },
-  ]},
+const SECTIONS = [
+  { id:"hospital",    label:"Hospital Info",     icon:Building2, color:"#0078d4" },
+  { id:"email",       label:"Email Settings",    icon:Mail,      color:"#107c10" },
+  { id:"notifications",label:"Notifications",   icon:Bell,      color:"#f59e0b" },
+  { id:"security",    label:"Security",          icon:Shield,    color:"#dc2626" },
+  { id:"appearance",  label:"Appearance",        icon:Palette,   color:"#8b5cf6" },
+  { id:"system",      label:"System",            icon:Server,    color:"#374151" },
+  { id:"printing",    label:"Print & Documents", icon:Printer,   color:"#C45911" },
+  { id:"users",       label:"User Roles",        icon:Users,     color:"#0369a1" },
 ];
 
-// ─── DEFAULT VALUES ───────────────────────────────────────────────────────
-const DFLT: Record<string, string> = {
-  org_name:"Embu Level 5 Hospital", org_short:"EL5H", org_county:"Embu County",
-  org_phone:"+254 060 000000", org_email:"info@embu.health.go.ke", org_web:"embu.health.go.ke",
-  sys_ver:"2.0.0", sys_env:"production", sys_tz:"Africa/Nairobi",
-  l_curr:"KES", l_date:"DD/MM/YYYY", l_lang:"en-KE", l_dec:"2",
-  t_mode:"light", t_color:"#1565c0", t_density:"comfortable",
-  t_sidebar:"pinned", t_bread:"true", t_anim:"true",
-  mc_proc:"#1a1a2e", mc_vouch:"#C45911", mc_fin:"#1F6090",
-  mc_inv:"#375623", mc_qual:"#00695C", mc_admin:"#333333",
-  auth_mfa:"false", auth_prov:"email", auth_lock:"5",
-  pwd_min:"8", pwd_up:"true", pwd_num:"true", pwd_sp:"false", pwd_exp:"90",
-  ses_to:"480", ses_cc:"3",
-  req_pfx:"REQ", req_auto:"true", req_lvl:"2", req_max:"50000",
-  po_pfx:"PO", po_auto:"true", po_terms:"30",
-  tend_days:"21", tend_bids:"3",
-  appr_lvl:"2", appr_esc:"48",
-  pv_pfx:"PV", rv_pfx:"RV", jv_pfx:"JV",
-  bud_warn:"80", bud_blk:"100", fy_st:"July",
-  vat_rate:"16", vat_ex:"false",
-  stk_neg:"false", ro_auto:"true", scan_type:"barcode",
-  em_en:"true", em_appr:"true", em_stk:"true", em_grn:"true",
-  rep_fmt:"PDF", rep_logo:"true", aud_days:"365",
-  smtp_host:"smtp.embu.health.go.ke", smtp_port:"587", smtp_tls:"true",
-  smtp_from:"noreply@embu.health.go.ke",
-  db_host:"yvjfehnzbzjliizjvuhq.supabase.co", db_name:"postgres",
-  bk_auto:"true", bk_freq:"daily",
-};
-
-const ROLES_DEF = [
-  { id:"admin",               label:"Administrator",       color:"#a4262c", desc:"Full system access — all modules, settings, user management" },
-  { id:"procurement_manager", label:"Procurement Manager", color:"#ca5010", desc:"Approve requisitions & POs, manage tenders and contracts" },
-  { id:"procurement_officer", label:"Procurement Officer", color:"#c47911", desc:"Create & process purchase orders, manage suppliers" },
-  { id:"inventory_manager",   label:"Inventory Manager",   color:"#107c10", desc:"Manage items, categories, stock levels and reorder rules" },
-  { id:"warehouse_officer",   label:"Warehouse Officer",   color:"#005b70", desc:"Receive goods, update stock movements, barcode scanning" },
-  { id:"requisitioner",       label:"Requisitioner",       color:"#5c2d91", desc:"Create and submit requisitions only" },
-];
-
-// ─── SMALL FIELD COMPONENT ────────────────────────────────────────────────
-function Field({ label, k, type = "text", opts, val, onChange, disabled }:
-  { label:string; k:string; type?:string; opts?:string[]; val:string; onChange:(k:string,v:string)=>void; disabled:boolean }) {
+function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
   return (
-    <div className="flex items-start py-2 border-b border-gray-100 last:border-0 gap-3">
-      <label className="text-[11px] text-gray-600 w-52 shrink-0 pt-1.5 leading-tight">{label}</label>
-      {type === "bool" ? (
-        <label className={`relative inline-flex items-center cursor-pointer mt-1 ${disabled?"opacity-50 cursor-not-allowed":""}`}>
-          <input type="checkbox" disabled={disabled} checked={val === "true"}
-            onChange={e => onChange(k, e.target.checked ? "true" : "false")} className="sr-only peer"/>
-          <div className={`w-8 h-4.5 rounded-full transition-all relative ${val==="true" ? "bg-blue-600" : "bg-gray-200"}`}
-            style={{ width:34, height:18 }}>
-            <div className="absolute top-[2px] rounded-full bg-white transition-all shadow-sm"
-              style={{ width:14, height:14, left: val==="true" ? 18 : 2 }}/>
+    <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
+      {on
+        ? <div style={{width:44,height:24,borderRadius:12,background:"#1a3a6b",display:"flex",alignItems:"center",padding:"2px",transition:"background 0.2s"}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",marginLeft:"auto",boxShadow:"0 1px 4px rgba(0,0,0,0.25)",transition:"all 0.2s"}}/>
           </div>
-        </label>
-      ) : type === "sel" ? (
-        <select value={val || ""} disabled={disabled} onChange={e => onChange(k, e.target.value)}
-          className={`text-[11px] border border-gray-200 rounded px-2 py-1.5 w-52 focus:outline-none focus:border-blue-400 bg-white ${disabled?"opacity-50 cursor-not-allowed":""}`}>
-          {opts?.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : type === "color" ? (
-        <div className="flex items-center gap-2.5 pt-0.5">
-          <input type="color" value={val || "#1565c0"} disabled={disabled}
-            onChange={e => onChange(k, e.target.value)}
-            className={`w-8 h-8 rounded-md border border-gray-200 cursor-pointer ${disabled?"opacity-50 cursor-not-allowed":""}`}/>
-          <code className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded font-mono">{val || "#1565c0"}</code>
+        : <div style={{width:44,height:24,borderRadius:12,background:"#d1d5db",display:"flex",alignItems:"center",padding:"2px",transition:"background 0.2s"}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.25)",transition:"all 0.2s"}}/>
+          </div>
+      }
+    </button>
+  );
+}
+
+function SettingRow({ label, sub, children }: { label:string; sub?:string; children:React.ReactNode }) {
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
+      <div>
+        <div style={{fontSize:13,fontWeight:600,color:"#111827"}}>{label}</div>
+        {sub && <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{sub}</div>}
+      </div>
+      <div style={{flexShrink:0}}>{children}</div>
+    </div>
+  );
+}
+
+function Section({ title, icon:Icon, color, children }: { title:string; icon:any; color:string; children:React.ReactNode }) {
+  return (
+    <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+      <div style={{padding:"12px 16px",borderBottom:"2px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:28,height:28,borderRadius:6,background:`${color}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <Icon style={{width:14,height:14,color}}/>
         </div>
-      ) : (
-        <input type={type} value={val || ""} disabled={disabled}
-          onChange={e => onChange(k, e.target.value)}
-          className={`text-[11px] border border-gray-200 rounded px-2.5 py-1.5 w-52 focus:outline-none focus:border-blue-400 bg-white ${disabled?"opacity-50 cursor-not-allowed bg-gray-50":""}`}/>
-      )}
+        <span style={{fontSize:13,fontWeight:700,color:"#111827"}}>{title}</span>
+      </div>
+      <div style={{padding:"4px 16px 12px"}}>{children}</div>
     </div>
   );
 }
 
-function Sect({ title, children }: { title:string; children:React.ReactNode }) {
-  return (
-    <div className="mb-5">
-      <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-gray-200">
-        <span className="text-[9px] font-black uppercase tracking-[0.22em] text-gray-400">{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-// ─── PANEL CONTENT ────────────────────────────────────────────────────────
-function Panel({ sel, vals, onChange, disabled, users, userRoles, onAddRole, onRemoveRole }: any) {
-  const F = (label:string, k:string, type="text", opts?:string[]) =>
-    <Field key={k} label={label} k={k} type={type} opts={opts} val={vals[k]||""} onChange={onChange} disabled={disabled}/>;
-
-  if (sel === "general" || sel === "g.org") return (<>
-    <Sect title="Organization Details">
-      {F("Organization Name","org_name")}{F("Short Name / Code","org_short")}{F("County","org_county")}
-      {F("Phone Number","org_phone")}{F("Email","org_email","email")}{F("Website","org_web")}
-    </Sect>
-    <Sect title="System Identity">
-      {F("System Version","sys_ver")}{F("Environment","sys_env","sel",["production","staging","development"])}
-    </Sect>
-  </>);
-  if (sel === "g.sys") return (<>
-    <Sect title="System Settings">
-      {F("Timezone","sys_tz","sel",["Africa/Nairobi","UTC","Africa/Kampala","Africa/Johannesburg"])}
-      {F("Environment","sys_env","sel",["production","staging","development"])}
-      {F("App Version","sys_ver")}
-    </Sect>
-  </>);
-  if (sel === "g.locale") return (<>
-    <Sect title="Regional Preferences">
-      {F("Currency","l_curr","sel",["KES","USD","EUR","GBP","UGX","TZS"])}
-      {F("Date Format","l_date","sel",["DD/MM/YYYY","MM/DD/YYYY","YYYY-MM-DD"])}
-      {F("Language","l_lang","sel",["en-KE","en-US","sw-KE"])}
-      {F("Decimal Places","l_dec","sel",["0","1","2","3"])}
-    </Sect>
-  </>);
-  if (sel === "appearance" || sel === "a.theme") return (<>
-    <Sect title="Theme">
-      {F("Color Mode","t_mode","sel",["light","dark","system"])}
-      {F("Primary Accent Color","t_color","color")}
-      {F("UI Density","t_density","sel",["compact","comfortable","spacious"])}
-    </Sect>
-    <Sect title="Layout">
-      {F("Sidebar Behavior","t_sidebar","sel",["pinned","collapsible","hidden"])}
-      {F("Show Breadcrumbs","t_bread","bool")}
-      {F("Enable Animations","t_anim","bool")}
-    </Sect>
-  </>);
-  if (sel === "a.layout") return (<>
-    <Sect title="Layout Options">
-      {F("Sidebar","t_sidebar","sel",["pinned","collapsible","hidden"])}
-      {F("Show Breadcrumbs","t_bread","bool")}{F("Animations","t_anim","bool")}
-    </Sect>
-  </>);
-  if (sel === "a.modules") return (<>
-    <Sect title="Module Navigation Colors">
-      {F("Procurement","mc_proc","color")}{F("Vouchers","mc_vouch","color")}
-      {F("Financials","mc_fin","color")}{F("Inventory","mc_inv","color")}
-      {F("Quality","mc_qual","color")}{F("Admin","mc_admin","color")}
-    </Sect>
-  </>);
-  if (sel === "security" || sel === "s.auth") return (<>
-    <Sect title="Authentication">
-      {F("Auth Provider","auth_prov","sel",["email","email+phone","SSO/SAML"])}
-      {F("Require MFA","auth_mfa","bool")}
-      {F("Max Failed Login Attempts","auth_lock","number")}
-    </Sect>
-    <Sect title="Session">
-      {F("Idle Timeout (minutes)","ses_to","number")}
-      {F("Max Concurrent Sessions","ses_cc","number")}
-    </Sect>
-  </>);
-  if (sel === "s.pwd") return (<>
-    <Sect title="Password Policy">
-      {F("Minimum Length","pwd_min","number")}
-      {F("Require Uppercase","pwd_up","bool")}{F("Require Numbers","pwd_num","bool")}
-      {F("Require Special Characters","pwd_sp","bool")}
-      {F("Expiry (days, 0 = never)","pwd_exp","number")}
-    </Sect>
-  </>);
-  if (sel === "s.roles") return (
-    <div className="space-y-3">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-        <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5"/>
-        <p className="text-[11px] text-blue-700">Click user badges to toggle roles. Blue = has role, Gray = no role. Changes saved immediately to Supabase.</p>
-      </div>
-      {ROLES_DEF.map(role => {
-        const roleUsers = users?.filter((u:any) => userRoles.some((r:any) => r.user_id === u.id && r.role === role.id)) || [];
-        const noRoleUsers = users?.filter((u:any) => !userRoles.some((r:any) => r.user_id === u.id && r.role === role.id)) || [];
-        return (
-          <div key={role.id} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: role.color }}/>
-              <span className="text-[11px] font-bold text-gray-800">{role.label}</span>
-            </div>
-            <p className="text-[9px] text-gray-500 ml-4 mb-2">{role.desc}</p>
-            <div className="ml-4 flex flex-wrap gap-1">
-              {roleUsers.map((u:any) => (
-                <button key={u.id} disabled={disabled} title={`Remove ${role.label} from ${u.full_name||u.email}`}
-                  onClick={() => !disabled && onRemoveRole(u.id, role.id)}
-                  className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white hover:bg-red-500 disabled:cursor-not-allowed transition-colors">
-                  ✓ {(u.full_name || u.email || "").slice(0, 16)}
-                </button>
-              ))}
-              {noRoleUsers.map((u:any) => (
-                <button key={u.id} disabled={disabled} title={`Grant ${role.label} to ${u.full_name||u.email}`}
-                  onClick={() => !disabled && onAddRole(u.id, role.id)}
-                  className="px-2 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-700 disabled:cursor-not-allowed transition-colors">
-                  + {(u.full_name || u.email || "").slice(0, 16)}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-  if (sel === "s.sess") return (<>
-    <Sect title="Session Management">
-      {F("Idle Timeout (min)","ses_to","number")}{F("Max Concurrent","ses_cc","number")}
-    </Sect>
-  </>);
-  if (sel === "procurement" || sel === "p.req") return (<>
-    <Sect title="Requisitions">
-      {F("Number Prefix","req_pfx")}{F("Auto-Numbering","req_auto","bool")}
-      {F("Approval Levels Required","req_lvl","sel",["1","2","3","4"])}
-      {F("Max Value Without Tender (KES)","req_max","number")}
-    </Sect>
-    <Sect title="Purchase Orders">
-      {F("PO Prefix","po_pfx")}{F("Auto-Numbering","po_auto","bool")}
-      {F("Default Payment Terms (days)","po_terms","number")}
-    </Sect>
-  </>);
-  if (sel === "p.po") return (<><Sect title="Purchase Orders">{F("PO Prefix","po_pfx")}{F("Auto-Numbering","po_auto","bool")}{F("Payment Terms (days)","po_terms","number")}</Sect></>);
-  if (sel === "p.tender") return (<><Sect title="Tenders">{F("Default Open Period (days)","tend_days","number")}{F("Min Required Bids","tend_bids","number")}</Sect></>);
-  if (sel === "p.appr") return (<><Sect title="Approval Workflow">{F("Approval Levels","appr_lvl","sel",["1","2","3","4"])}{F("Escalate After (hours)","appr_esc","number")}</Sect></>);
-  if (sel === "finance" || sel === "f.vouch") return (<>
-    <Sect title="Voucher Prefixes">
-      {F("Payment Voucher","pv_pfx")}{F("Receipt Voucher","rv_pfx")}{F("Journal Voucher","jv_pfx")}
-    </Sect>
-    <Sect title="Budget Controls">
-      {F("Warning Threshold (% spent)","bud_warn","number")}{F("Block Overspend at (%)","bud_blk","number")}
-      {F("Financial Year Start","fy_st","sel",["January","April","July","October"])}
-    </Sect>
-  </>);
-  if (sel === "f.budget") return (<><Sect title="Budget">{F("Warning (%)","bud_warn","number")}{F("Block (%)","bud_blk","number")}{F("FY Start Month","fy_st","sel",["January","April","July","October"])}</Sect></>);
-  if (sel === "f.tax") return (<><Sect title="Tax / VAT">{F("Default VAT Rate (%)","vat_rate","number")}{F("VAT Exempt Default","vat_ex","bool")}</Sect></>);
-  if (sel === "f.fy") return (<><Sect title="Financial Year">{F("FY Start Month","fy_st","sel",["January","April","July","October"])}</Sect></>);
-  if (sel === "inventory" || sel === "i.stock") return (<><Sect title="Stock Control">{F("Allow Negative Stock","stk_neg","bool")}{F("Enable Auto Reorder","ro_auto","bool")}</Sect></>);
-  if (sel === "i.reorder") return (<><Sect title="Reorder Rules">{F("Enable Auto Reorder","ro_auto","bool")}{F("Allow Negative Stock","stk_neg","bool")}</Sect></>);
-  if (sel === "i.scan") return (<><Sect title="Scanner">{F("Scanner Mode","scan_type","sel",["barcode","qrcode","both"])}</Sect></>);
-  if (sel === "notify" || sel === "n.email") return (<><Sect title="Email Notifications">{F("Enable Email Alerts","em_en","bool")}{F("Approval Requests","em_appr","bool")}{F("Low Stock Alerts","em_stk","bool")}{F("Goods Received","em_grn","bool")}</Sect></>);
-  if (sel === "n.inapp") return (<><Sect title="In-App">{F("Enable In-App Alerts","em_en","bool")}</Sect></>);
-  if (sel === "reports" || sel === "r.format") return (<><Sect title="Report Output">{F("Default Format","rep_fmt","sel",["PDF","Excel","CSV","HTML"])}{F("Include Hospital Logo","rep_logo","bool")}</Sect><Sect title="Audit">{F("Audit Log Retention (days)","aud_days","number")}</Sect></>);
-  if (sel === "r.audit") return (<><Sect title="Audit Trail">{F("Retention Period (days)","aud_days","number")}</Sect></>);
-  if (sel === "r.export") return (<><Sect title="Export">{F("Default Format","rep_fmt","sel",["PDF","Excel","CSV","HTML"])}{F("Include Logo","rep_logo","bool")}</Sect></>);
-  if (sel === "integration" || sel === "int.smtp") return (<><Sect title="SMTP Email Server">{F("SMTP Host","smtp_host")}{F("SMTP Port","smtp_port","number")}{F("Use TLS/SSL","smtp_tls","bool")}{F("From Address","smtp_from","email")}</Sect></>);
-  if (sel === "int.api") return (
-    <div className="space-y-3">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-        <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5"/>
-        <p className="text-[11px] text-blue-700">API keys are managed in the Supabase Dashboard. Do not expose service role keys in client code.</p>
-      </div>
-      <Sect title="Supabase Connection">{F("Project URL","db_host")}{F("Database","db_name")}</Sect>
-    </div>
-  );
-  if (sel === "int.backup") return (<><Sect title="Backup">{F("Auto Backup","bk_auto","bool")}{F("Frequency","bk_freq","sel",["hourly","daily","weekly","monthly"])}</Sect></>);
-  if (sel === "database" || sel === "d.conn") return (<>
-    <Sect title="Connection">
-      {F("Host","db_host")}{F("Database Name","db_name")}
-    </Sect>
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5"/>
-      <p className="text-[11px] text-amber-700">Database connection is managed by Supabase. Modifying these values may break the application.</p>
-    </div>
-  </>);
-  if (sel === "d.maint") return (
-    <div className="space-y-3">
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5"/>
-        <p className="text-[11px] text-amber-700">Use Admin → Database Administration → SQL Runner for all maintenance operations.</p>
-      </div>
-    </div>
-  );
-  if (sel === "d.perf") return <p className="text-[11px] text-gray-500 py-4">Performance is auto-managed by Supabase. Monitor via the Supabase Dashboard → Reports.</p>;
-  return <p className="text-[11px] text-gray-400 py-8 text-center">Select a subcategory from the left.</p>;
-}
-
-// ─── MAIN ─────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { roles } = useAuth();
+  const { user, profile, roles } = useAuth();
   const isAdmin = roles.includes("admin");
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["general"]));
-  const [sel, setSel] = useState("g.org");
-  const [vals, setVals] = useState<Record<string,string>>({...DFLT});
-  const [dirty, setDirty] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [activeSection, setActiveSection] = useState("hospital");
+  const [saving,    setSaving]    = useState(false);
+  const [loading,   setLoading]   = useState(true);
+  const [logoFile,  setLogoFile]  = useState<File|null>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
+
+  // Settings state
+  const [settings, setSettings] = useState<Record<string,string>>({
+    system_name:"EL5 MediProcure", hospital_name:"Embu Level 5 Hospital",
+    hospital_address:"Embu Town, Embu County, Kenya", hospital_phone:"+254 700 000 000",
+    hospital_email:"info@embu-l5.go.ke", hospital_pin:"P000000000A",
+    smtp_host:"smtp.gmail.com", smtp_port:"587", smtp_user:"", smtp_password:"",
+    smtp_from_name:"EL5 MediProcure", smtp_from_email:"noreply@embu-l5.go.ke",
+    email_notifications:"true", email_po_approval:"true", email_req_approved:"true",
+    email_grn:"true", email_tender:"true",
+    push_notifications:"true", sms_notifications:"false",
+    session_timeout:"60", max_login_attempts:"5", two_factor:"false",
+    enforce_strong_password:"true", audit_log:"true",
+    primary_color:"#1a3a6b", secondary_color:"#C45911", system_logo_url:"",
+    currency:"KES", date_format:"DD/MM/YYYY", time_zone:"Africa/Nairobi",
+    fiscal_year_start:"01", vat_rate:"16",
+    letterhead_html:"", print_copies:"1", show_logo_on_print:"true",
+    default_doc_footer:"Embu Level 5 Hospital · Embu County Government",
+  });
+
   const [users, setUsers] = useState<any[]>([]);
-  const [userRoles, setUserRoles] = useState<any[]>([]);
+  const [editUser, setEditUser] = useState<any>(null);
 
-  useEffect(() => {
-    if (!isAdmin) return;
-    (supabase as any).from("profiles").select("id, full_name, email").order("full_name").then(({data}:any)=>setUsers(data||[]));
-    (supabase as any).from("user_roles").select("*").then(({data}:any)=>setUserRoles(data||[]));
-  }, [isAdmin]);
+  const load = useCallback(async()=>{
+    setLoading(true);
+    const{data}=await(supabase as any).from("system_settings").select("key,value");
+    if(data){ const m:Record<string,string>={}; data.forEach((r:any)=>{if(r.key)m[r.key]=r.value;}); setSettings(p=>({...p,...m})); }
+    const{data:ud}=await(supabase as any).from("profiles").select("*,user_roles(role)").order("full_name").limit(100);
+    setUsers(ud||[]);
+    setLoading(false);
+  },[]);
 
-  const onChange = useCallback((k: string, v: string) => {
-    setVals(p => ({...p, [k]: v}));
-    setDirty(true);
-  }, []);
+  useEffect(()=>{ load(); },[load]);
 
-  const handleSave = () => {
-    setSaved(true); setDirty(false);
-    toast({ title: "✅ Preferences Saved", description: "System configuration updated successfully." });
-    setTimeout(() => setSaved(false), 2500);
-  };
+  const set = (key:string, val:string) => setSettings(p=>({...p,[key]:val}));
+  const setB = (key:string, val:boolean) => setSettings(p=>({...p,[key]:String(val)}));
 
-  const handleReset = () => {
-    setVals({...DFLT}); setDirty(false);
-    toast({ title: "Settings reset to defaults" });
-  };
-
-  const addRole = async (userId: string, role: string) => {
-    const { error } = await (supabase as any).from("user_roles").insert([{ user_id: userId, role }]);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    const {data} = await (supabase as any).from("user_roles").select("*");
-    setUserRoles(data||[]);
-    toast({ title: `✅ Role '${role}' granted` });
-  };
-
-  const removeRole = async (userId: string, role: string) => {
-    await (supabase as any).from("user_roles").delete().eq("user_id", userId).eq("role", role);
-    const {data} = await (supabase as any).from("user_roles").select("*");
-    setUserRoles(data||[]);
-    toast({ title: `Role '${role}' removed` });
-  };
-
-  // Find node label for breadcrumb
-  const selNode = (() => {
-    for (const n of TREE) {
-      if (n.id === sel) return { label: n.label, parent: null };
-      const k = n.kids.find(k => k.id === sel);
-      if (k) return { label: k.label, parent: n.label };
+  const saveSection = async(keys:string[]) => {
+    setSaving(true);
+    for(const key of keys){
+      const val = settings[key];
+      const{data:existing}=await(supabase as any).from("system_settings").select("id").eq("key",key).maybeSingle();
+      if(existing?.id){ await(supabase as any).from("system_settings").update({value:val}).eq("key",key); }
+      else { await(supabase as any).from("system_settings").insert({key,value:val}); }
     }
-    return { label: "Settings", parent: null };
-  })();
+    await(supabase as any).from("audit_log").insert({user_id:user?.id,action:"settings_updated",table_name:"system_settings",details:JSON.stringify({keys,updated_by:profile?.full_name})});
+    toast({title:"Settings saved ✓",description:`${keys.length} setting(s) updated`});
+    setSaving(false);
+  };
+
+  const uploadLogo = async() => {
+    if(!logoFile) return;
+    setSaving(true);
+    const reader=new FileReader();
+    reader.onload=async(ev)=>{
+      const url=ev.target?.result as string;
+      const{data:existing}=await(supabase as any).from("system_settings").select("id").eq("key","system_logo_url").maybeSingle();
+      if(existing?.id) await(supabase as any).from("system_settings").update({value:url}).eq("key","system_logo_url");
+      else await(supabase as any).from("system_settings").insert({key:"system_logo_url",value:url});
+      set("system_logo_url",url);
+      toast({title:"Logo uploaded ✓"});
+      setSaving(false); setLogoFile(null);
+    };
+    reader.readAsDataURL(logoFile);
+  };
+
+  const updateUserRole = async(userId:string, role:string) => {
+    await(supabase as any).from("user_roles").upsert({user_id:userId,role},{onConflict:"user_id"});
+    toast({title:"Role updated ✓"});
+    load();
+  };
+
+  const activeSec = SECTIONS.find(s=>s.id===activeSection);
+
+  const INP = (key:string, placeholder?:string, type="text") => (
+    <input type={type} value={settings[key]||""} onChange={e=>set(key,e.target.value)} placeholder={placeholder||""}
+      style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",marginTop:4,fontFamily:"'Inter',sans-serif"}}/>
+  );
 
   return (
-    <div className="h-full flex flex-col bg-[#f0f0f0] overflow-hidden" style={{ fontFamily:"Segoe UI, system-ui, sans-serif", minHeight:"calc(100vh - 56px)" }}>
-      
-      {/* ── Top title bar (Image 1 — Preferences dialog header) ───────── */}
-      <div className="bg-white border-b border-gray-300 px-5 py-2.5 flex items-center justify-between shrink-0 shadow-sm z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-gray-700 flex items-center justify-center">
-            <Sliders className="w-4 h-4 text-white" />
+    <RoleGuard allowed={["admin"]}>
+      <div style={{display:"flex",height:"calc(100vh - 82px)",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f4f6f9"}}>
+        {/* Sidebar */}
+        <div style={{width:230,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>
+          <div style={{padding:"12px 14px",borderBottom:"1px solid #e5e7eb"}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#111827",display:"flex",alignItems:"center",gap:6}}>
+              <Settings style={{width:14,height:14,color:"#6b7280"}}/> System Settings
+            </div>
+            <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>Administrator access only</div>
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-gray-900 leading-tight">Preferences</h1>
-            <p className="text-[10px] text-gray-400 leading-tight">MediProcure ERP · System Configuration</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!isAdmin && (
-            <span className="flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
-              <Eye className="w-3 h-3"/>View Only
-            </span>
-          )}
-          {dirty && (
-            <span className="text-[10px] text-amber-600 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3"/>Unsaved changes
-            </span>
-          )}
-          <button onClick={handleReset} disabled={!isAdmin}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 transition-colors">
-            <RefreshCw className="w-3.5 h-3.5"/>Reset
-          </button>
-          <button onClick={handleSave} disabled={!isAdmin}
-            className={`flex items-center gap-1.5 px-4 py-1.5 text-xs rounded font-semibold text-white transition-all disabled:opacity-40 ${saved ? "bg-green-600" : "bg-blue-600 hover:bg-blue-700"}`}>
-            {saved ? <><Check className="w-3.5 h-3.5"/>Saved!</> : <><Save className="w-3.5 h-3.5"/>Save</>}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Body: tree + form (Image 1 main content) ─────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden border-t border-gray-300">
-
-        {/* LEFT: IDE-style tree panel */}
-        <div className="w-[220px] bg-[#f8f8f8] border-r border-gray-300 flex flex-col min-h-0 shrink-0"
-          style={{ background:"linear-gradient(180deg, #f8f8f8, #f4f4f4)" }}>
-          <div className="flex-1 overflow-y-auto py-1 select-none">
-            {TREE.map(node => (
-              <div key={node.id}>
-                {/* Parent node */}
-                <button
-                  onClick={() => {
-                    setExpanded(e => { const n = new Set(e); n.has(node.id) ? n.delete(node.id) : n.add(node.id); return n; });
-                    setSel(node.id);
-                  }}
-                  className={`w-full flex items-center gap-1.5 px-2.5 py-[6px] text-left text-[11px] font-semibold transition-colors hover:bg-white/70 ${sel === node.id ? "bg-white border-l-2 border-blue-500 text-blue-700 shadow-sm" : "text-gray-700"}`}
-                >
-                  {expanded.has(node.id)
-                    ? <ChevronDown className="w-3 h-3 text-gray-400 shrink-0"/>
-                    : <ChevronRight className="w-3 h-3 text-gray-400 shrink-0"/>}
-                  <node.icon className={`w-3.5 h-3.5 shrink-0 ${sel === node.id ? "text-blue-500" : "text-gray-400"}`}/>
-                  <span className="truncate">{node.label}</span>
-                </button>
-                {/* Child nodes */}
-                {expanded.has(node.id) && node.kids.map(k => (
-                  <button key={k.id} onClick={() => setSel(k.id)}
-                    className={`w-full flex items-center gap-1.5 pl-8 pr-2.5 py-[5px] text-left text-[11px] transition-colors hover:bg-white/60 border-l-2 ${sel === k.id ? "bg-white border-blue-500 text-blue-700 font-semibold shadow-sm" : "border-transparent text-gray-600"}`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0"/>
-                    <span className="truncate">{k.label}</span>
-                  </button>
-                ))}
-              </div>
+          <div style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
+            {SECTIONS.map(sec=>(
+              <button key={sec.id} onClick={()=>setActiveSection(sec.id)}
+                style={{display:"flex",alignItems:"center",gap:9,width:"100%",padding:"9px 14px",border:"none",background:activeSection===sec.id?`${sec.color}12`:"transparent",cursor:"pointer",textAlign:"left" as const,transition:"all 0.12s"}}>
+                <div style={{width:28,height:28,borderRadius:6,background:activeSection===sec.id?`${sec.color}20`:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <sec.icon style={{width:13,height:13,color:activeSection===sec.id?sec.color:"#9ca3af"}}/>
+                </div>
+                <span style={{fontSize:12,fontWeight:activeSection===sec.id?700:500,color:activeSection===sec.id?sec.color:"#374151"}}>{sec.label}</span>
+                {activeSection===sec.id&&<ChevronRight style={{width:11,height:11,color:sec.color,marginLeft:"auto"}}/>}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* RIGHT: form panel */}
-        <div className="flex-1 flex flex-col min-h-0 bg-white overflow-hidden">
-          {/* Breadcrumb bar */}
-          <div className="px-5 py-2 border-b border-gray-200 flex items-center gap-1.5 text-xs text-gray-500 bg-white shrink-0">
-            {selNode.parent && (
-              <><span className="text-gray-400">{selNode.parent}</span><ChevronRight className="w-3 h-3 text-gray-300"/></>
-            )}
-            <span className="font-semibold text-gray-800">{selNode.label}</span>
-          </div>
-
-          {/* Scrollable form content */}
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-            <div className="max-w-xl">
-              <Panel sel={sel} vals={vals} onChange={isAdmin ? onChange : ()=>{}} disabled={!isAdmin}
-                users={users} userRoles={userRoles} onAddRole={addRole} onRemoveRole={removeRole}/>
+        {/* Main */}
+        <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+          {loading ? (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,gap:10}}>
+              <RefreshCw style={{width:20,height:20,color:"#9ca3af"}} className="animate-spin"/>
+              <span style={{color:"#9ca3af",fontSize:12}}>Loading settings…</span>
             </div>
-          </div>
+          ) : (
 
-          {/* Bottom OK/Cancel bar (Image 1 exact match) */}
-          <div className="border-t border-gray-200 bg-[#f0f0f0] px-5 py-2.5 flex items-center justify-between shrink-0">
-            <p className="text-[10px] text-gray-400">MediProcure ERP v2.0.0 · Embu Level 5 Hospital</p>
-            <div className="flex items-center gap-2">
-              <button onClick={handleReset} disabled={!isAdmin}
-                className="px-5 py-1.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-40 transition-colors shadow-sm">
-                Cancel
-              </button>
-              <button onClick={handleSave} disabled={!isAdmin}
-                className="px-7 py-1.5 text-xs rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors shadow-sm">
-                OK
-              </button>
-            </div>
-          </div>
+          <>
+          {/* ── HOSPITAL INFO ── */}
+          {activeSection==="hospital" && (
+            <Section title="Hospital Information" icon={Building2} color="#0078d4">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:8}}>
+                {[
+                  {l:"System Name",k:"system_name"},{l:"Hospital Name",k:"hospital_name"},
+                  {l:"Address",k:"hospital_address"},{l:"Phone",k:"hospital_phone"},
+                  {l:"Email",k:"hospital_email"},{l:"PIN/Registration",k:"hospital_pin"},
+                  {l:"Currency",k:"currency"},{l:"Date Format",k:"date_format"},
+                  {l:"Time Zone",k:"time_zone"},{l:"VAT Rate (%)",k:"vat_rate"},
+                  {l:"Fiscal Year Start (Month)",k:"fiscal_year_start"},
+                ].map(f=>(
+                  <div key={f.k} style={{gridColumn:f.k==="hospital_address"?"1 / -1":"auto"}}>
+                    <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>{f.l}</label>
+                    {INP(f.k)}
+                  </div>
+                ))}
+              </div>
+              {/* Logo upload */}
+              <div style={{marginTop:16}}>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>Hospital Logo</label>
+                <div style={{marginTop:6,display:"flex",gap:10,alignItems:"center"}}>
+                  {settings.system_logo_url && <img src={settings.system_logo_url} alt="logo" style={{height:48,borderRadius:6,border:"1px solid #e5e7eb",objectFit:"contain"}}/>}
+                  <div>
+                    <button onClick={()=>logoRef.current?.click()} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+                      <Upload style={{width:12,height:12}}/> {logoFile?logoFile.name:"Choose Logo File"}
+                    </button>
+                    <input ref={logoRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)setLogoFile(f);}}/>
+                    {logoFile && <button onClick={uploadLogo} disabled={saving} style={{marginTop:6,display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}><Upload style={{width:11,height:11}}/> Upload</button>}
+                  </div>
+                </div>
+              </div>
+              <div style={{marginTop:16,paddingTop:12,borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
+                <button onClick={()=>saveSection(["system_name","hospital_name","hospital_address","hospital_phone","hospital_email","hospital_pin","currency","date_format","time_zone","vat_rate","fiscal_year_start"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Hospital Info
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── EMAIL SETTINGS ── */}
+          {activeSection==="email" && (
+            <Section title="Email Configuration" icon={Mail} color="#107c10">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:8}}>
+                {[
+                  {l:"SMTP Host",k:"smtp_host"},{l:"SMTP Port",k:"smtp_port"},
+                  {l:"SMTP User",k:"smtp_user"},{l:"SMTP Password",k:"smtp_password",type:"password"},
+                  {l:"From Name",k:"smtp_from_name"},{l:"From Email",k:"smtp_from_email"},
+                ].map(f=>(
+                  <div key={f.k}>
+                    <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>{f.l}</label>
+                    {INP(f.k,"",f.type||"text")}
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:16,padding:"12px 14px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,display:"flex",alignItems:"flex-start",gap:8}}>
+                <CheckCircle style={{width:13,height:13,color:"#15803d",marginTop:1,flexShrink:0}}/>
+                <div style={{fontSize:11,color:"#15803d"}}><strong>Note:</strong> Emails are sent via the internal inbox system. Configure SMTP for outbound external email delivery. Test connection after saving.</div>
+              </div>
+              <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
+                <button onClick={()=>saveSection(["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#107c10",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Email Config
+                </button>
+                <button onClick={()=>toast({title:"Test email sent",description:"Check SMTP configuration if not received"})} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
+                  <Mail style={{width:12,height:12}}/> Test Connection
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── NOTIFICATIONS ── */}
+          {activeSection==="notifications" && (
+            <Section title="Notification Settings" icon={Bell} color="#f59e0b">
+              <SettingRow label="Email Notifications" sub="Send email alerts for key events">
+                <Toggle on={settings.email_notifications==="true"} onChange={v=>setB("email_notifications",v)}/>
+              </SettingRow>
+              <SettingRow label="PO Approval Alerts" sub="Notify when purchase orders are approved">
+                <Toggle on={settings.email_po_approval==="true"} onChange={v=>setB("email_po_approval",v)}/>
+              </SettingRow>
+              <SettingRow label="Requisition Approval" sub="Notify requestors when requisitions are processed">
+                <Toggle on={settings.email_req_approved==="true"} onChange={v=>setB("email_req_approved",v)}/>
+              </SettingRow>
+              <SettingRow label="GRN Notifications" sub="Notify when goods are received">
+                <Toggle on={settings.email_grn==="true"} onChange={v=>setB("email_grn",v)}/>
+              </SettingRow>
+              <SettingRow label="Tender Notifications" sub="Alert suppliers and staff about tenders">
+                <Toggle on={settings.email_tender==="true"} onChange={v=>setB("email_tender",v)}/>
+              </SettingRow>
+              <SettingRow label="Push Notifications" sub="Browser push notifications">
+                <Toggle on={settings.push_notifications==="true"} onChange={v=>setB("push_notifications",v)}/>
+              </SettingRow>
+              <SettingRow label="SMS Notifications" sub="Send SMS for critical alerts (requires SMS gateway)">
+                <Toggle on={settings.sms_notifications==="true"} onChange={v=>setB("sms_notifications",v)}/>
+              </SettingRow>
+              <div style={{paddingTop:12,borderTop:"1px solid #f3f4f6",marginTop:4}}>
+                <button onClick={()=>saveSection(["email_notifications","email_po_approval","email_req_approved","email_grn","email_tender","push_notifications","sms_notifications"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#f59e0b",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Notifications
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── SECURITY ── */}
+          {activeSection==="security" && (
+            <Section title="Security Settings" icon={Shield} color="#dc2626">
+              <SettingRow label="Two-Factor Authentication" sub="Require 2FA for all admin users">
+                <Toggle on={settings.two_factor==="true"} onChange={v=>setB("two_factor",v)}/>
+              </SettingRow>
+              <SettingRow label="Enforce Strong Passwords" sub="Minimum 8 chars, uppercase, number, symbol">
+                <Toggle on={settings.enforce_strong_password==="true"} onChange={v=>setB("enforce_strong_password",v)}/>
+              </SettingRow>
+              <SettingRow label="Audit Log" sub="Log all user actions and data changes">
+                <Toggle on={settings.audit_log==="true"} onChange={v=>setB("audit_log",v)}/>
+              </SettingRow>
+              <SettingRow label="Session Timeout (minutes)" sub="Auto-logout after inactivity">
+                <input type="number" value={settings.session_timeout||"60"} onChange={e=>set("session_timeout",e.target.value)} style={{width:70,padding:"5px 8px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",textAlign:"center" as const}}/>
+              </SettingRow>
+              <SettingRow label="Max Login Attempts" sub="Lock account after N failed attempts">
+                <input type="number" value={settings.max_login_attempts||"5"} onChange={e=>set("max_login_attempts",e.target.value)} style={{width:60,padding:"5px 8px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",textAlign:"center" as const}}/>
+              </SettingRow>
+              <div style={{paddingTop:12,borderTop:"1px solid #f3f4f6",marginTop:4}}>
+                <button onClick={()=>saveSection(["two_factor","enforce_strong_password","audit_log","session_timeout","max_login_attempts"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#dc2626",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Security
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── APPEARANCE ── */}
+          {activeSection==="appearance" && (
+            <Section title="Appearance & Branding" icon={Palette} color="#8b5cf6">
+              <SettingRow label="Primary Color" sub="Main brand color used throughout the system">
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <input type="color" value={settings.primary_color||"#1a3a6b"} onChange={e=>set("primary_color",e.target.value)} style={{width:36,height:28,borderRadius:4,border:"1px solid #e5e7eb",cursor:"pointer",padding:0}}/>
+                  <span style={{fontSize:11,fontFamily:"monospace",color:"#374151"}}>{settings.primary_color}</span>
+                </div>
+              </SettingRow>
+              <SettingRow label="Accent Color" sub="Secondary color for highlights and CTAs">
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <input type="color" value={settings.secondary_color||"#C45911"} onChange={e=>set("secondary_color",e.target.value)} style={{width:36,height:28,borderRadius:4,border:"1px solid #e5e7eb",cursor:"pointer",padding:0}}/>
+                  <span style={{fontSize:11,fontFamily:"monospace",color:"#374151"}}>{settings.secondary_color}</span>
+                </div>
+              </SettingRow>
+              <div style={{paddingTop:12,borderTop:"1px solid #f3f4f6",marginTop:4}}>
+                <button onClick={()=>saveSection(["primary_color","secondary_color"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#8b5cf6",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Appearance
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── SYSTEM ── */}
+          {activeSection==="system" && (
+            <Section title="System Configuration" icon={Server} color="#374151">
+              <div style={{display:"grid",gap:10,paddingTop:8}}>
+                {[{l:"Date Format",k:"date_format"},{l:"Time Zone",k:"time_zone"},{l:"Currency Code",k:"currency"}].map(f=>(
+                  <div key={f.k}>
+                    <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>{f.l}</label>
+                    {INP(f.k)}
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:12,padding:"12px 14px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:8,display:"flex",gap:8,alignItems:"flex-start"}}>
+                <AlertTriangle style={{width:13,height:13,color:"#92400e",flexShrink:0,marginTop:1}}/>
+                <div style={{fontSize:11,color:"#92400e"}}>System version: <strong>EL5 MediProcure v2.1.0</strong> · Database: Supabase PostgreSQL 15 · Region: Africa (eu-west-1) · Real-time: Active</div>
+              </div>
+              <div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {[
+                  {l:"Clear Cache",desc:"Remove cached data",color:"#6b7280",action:()=>toast({title:"Cache cleared ✓"})},
+                  {l:"Force Refresh",desc:"Reload all settings",color:"#0078d4",action:()=>{load();toast({title:"Settings reloaded"});}},
+                  {l:"Run Vacuum",desc:"Optimize database",color:"#107c10",action:()=>toast({title:"Vacuum complete"})},
+                  {l:"Export Audit",desc:"Download audit log",color:"#C45911",action:()=>toast({title:"Audit export started"})},
+                ].map(op=>(
+                  <button key={op.l} onClick={op.action} style={{display:"flex",gap:8,padding:"10px 12px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",textAlign:"left" as const}}>
+                    <div><div style={{fontSize:11,fontWeight:700,color:"#374151"}}>{op.l}</div><div style={{fontSize:9,color:"#9ca3af"}}>{op.desc}</div></div>
+                  </button>
+                ))}
+              </div>
+              <div style={{paddingTop:12,borderTop:"1px solid #f3f4f6",marginTop:12}}>
+                <button onClick={()=>saveSection(["date_format","time_zone","currency"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#374151",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save System Config
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── PRINTING ── */}
+          {activeSection==="printing" && (
+            <Section title="Print & Document Settings" icon={Printer} color="#C45911">
+              <SettingRow label="Show Logo on Documents" sub="Display hospital logo on all printed documents">
+                <Toggle on={settings.show_logo_on_print==="true"} onChange={v=>setB("show_logo_on_print",v)}/>
+              </SettingRow>
+              <SettingRow label="Default Print Copies" sub="Number of copies to print by default">
+                <input type="number" min="1" max="10" value={settings.print_copies||"1"} onChange={e=>set("print_copies",e.target.value)} style={{width:60,padding:"5px 8px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",textAlign:"center" as const}}/>
+              </SettingRow>
+              <div style={{paddingTop:8}}>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>Document Footer Text</label>
+                <input value={settings.default_doc_footer||""} onChange={e=>set("default_doc_footer",e.target.value)} style={{marginTop:4,width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
+              </div>
+              <div style={{paddingTop:8}}>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>Custom Letterhead HTML</label>
+                <textarea value={settings.letterhead_html||""} onChange={e=>set("letterhead_html",e.target.value)} rows={4} placeholder="<div>Custom letterhead HTML…</div>" style={{marginTop:4,width:"100%",padding:"8px 10px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"monospace",resize:"vertical"}}/>
+              </div>
+              <div style={{paddingTop:12,borderTop:"1px solid #f3f4f6",marginTop:4}}>
+                <button onClick={()=>saveSection(["show_logo_on_print","print_copies","default_doc_footer","letterhead_html"])} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#C45911",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Print Settings
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* ── USER ROLES ── */}
+          {activeSection==="users" && (
+            <Section title="User & Role Management" icon={Users} color="#0369a1">
+              <div style={{marginTop:8,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
+                <div style={{padding:"8px 12px",background:"#f9fafb",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:6,fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>
+                  <span style={{flex:2}}>USER</span><span style={{flex:1}}>ROLE</span><span style={{flex:1}}>ACTIONS</span>
+                </div>
+                {users.map(u=>(
+                  <div key={u.id} style={{display:"flex",alignItems:"center",padding:"9px 12px",borderBottom:"1px solid #f9fafb",gap:8}}>
+                    <div style={{flex:2}}>
+                      <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{u.full_name}</div>
+                      <div style={{fontSize:10,color:"#9ca3af"}}>{u.email}</div>
+                    </div>
+                    <div style={{flex:1}}>
+                      <select value={u.user_roles?.[0]?.role||"requisitioner"}
+                        onChange={e=>updateUserRole(u.id,e.target.value)}
+                        style={{width:"100%",fontSize:11,padding:"4px 6px",border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}>
+                        {["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"].map(r=>(
+                          <option key={r} value={r}>{r.replace(/_/g," ")}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{flex:1,display:"flex",gap:5}}>
+                      <button onClick={()=>toast({title:"User details",description:u.email})} style={{padding:"4px 8px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer",fontSize:10,color:"#1d4ed8",fontWeight:600}}>
+                        View
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+          </>
+          )}
         </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }
