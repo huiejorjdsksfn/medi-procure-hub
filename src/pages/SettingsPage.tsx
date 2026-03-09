@@ -1,48 +1,47 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { notifyAdmins } from "@/lib/notify";
 import {
-  Settings, Save, RefreshCw, Bell, Mail, Shield, Database,
-  Building2, Users, Globe, Palette, Lock, CheckCircle,
-  Server, Printer, ChevronRight, Activity, Key, Wifi,
-  FileText, Archive, DollarSign, Calendar, ToggleLeft,
-  Upload, Eye, EyeOff, Zap, Layers, Image, Monitor, Plus, Trash2
+  Settings, Save, RefreshCw, Bell, Mail, Shield,
+  Building2, Users, Palette, Eye, EyeOff,
+  Server, Printer, Cpu, Zap, DollarSign, ShoppingCart
 } from "lucide-react";
 import RoleGuard from "@/components/RoleGuard";
 
 const SECTIONS = [
-  {id:"hospital",     label:"Hospital Info",      icon:Building2, color:"#0078d4"},
-  {id:"email",        label:"Email / SMTP",        icon:Mail,      color:"#107c10"},
-  {id:"notifications",label:"Notifications",       icon:Bell,      color:"#f59e0b"},
-  {id:"security",     label:"Security & Access",   icon:Shield,    color:"#dc2626"},
-  {id:"appearance",   label:"Appearance",          icon:Palette,   color:"#8b5cf6"},
-  {id:"procurement",  label:"Procurement Rules",   icon:FileText,  color:"#C45911"},
-  {id:"financials",   label:"Finance Settings",    icon:DollarSign,color:"#1F6090"},
-  {id:"system",       label:"System",              icon:Server,    color:"#374151"},
-  {id:"printing",     label:"Print & Documents",   icon:Printer,   color:"#92400e"},
-  {id:"integrations", label:"Integrations",        icon:Wifi,      color:"#4b4b9b"},
-  {id:"users",        label:"User Roles",          icon:Users,     color:"#0369a1"},
-  {id:"backup",       label:"Backup & Restore",    icon:Archive,   color:"#065f46"},
+  { id:"hospital",      label:"Hospital Info",      icon:Building2,   color:"#0078d4" },
+  { id:"email",         label:"Email & SMTP",        icon:Mail,        color:"#107c10" },
+  { id:"notifications", label:"Notifications",       icon:Bell,        color:"#f59e0b" },
+  { id:"security",      label:"Security & Access",   icon:Shield,      color:"#dc2626" },
+  { id:"appearance",    label:"Appearance & UI",     icon:Palette,     color:"#8b5cf6" },
+  { id:"system",        label:"System Config",       icon:Server,      color:"#374151" },
+  { id:"procurement",   label:"Procurement Rules",   icon:ShoppingCart,color:"#C45911" },
+  { id:"finance",       label:"Finance & Budget",    icon:DollarSign,  color:"#0369a1" },
+  { id:"printing",      label:"Print & Documents",   icon:Printer,     color:"#92400e" },
+  { id:"modules",       label:"Module Toggles",      icon:Cpu,         color:"#059669" },
+  { id:"users",         label:"User Roles",          icon:Users,       color:"#5b21b6" },
+  { id:"advanced",      label:"Advanced & API",      icon:Zap,         color:"#dc2626" },
 ];
 
-function Toggle({on,onChange}:{on:boolean;onChange:(v:boolean)=>void}) {
+function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
   return (
-    <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
-      <div style={{width:44,height:24,borderRadius:12,background:on?"#1a3a6b":"#d1d5db",display:"flex",alignItems:"center",padding:2,transition:"all 0.2s"}}>
-        <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)"}}/>
+    <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
+      <div style={{width:48,height:26,borderRadius:13,background:on?"#0a2558":"#d1d5db",display:"flex",alignItems:"center",padding:"3px",transition:"background 0.2s"}}>
+        <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)"}}/>
       </div>
     </button>
   );
 }
 
-function Row({label,sub,children}:{label:string;sub?:string;children:React.ReactNode}) {
+function FR({ label, sub, children, ac }: { label:string; sub?:string; children:React.ReactNode; ac?:string }) {
   return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
-      <div>
-        <div style={{fontSize:14,fontWeight:600,color:"#111827"}}>{label}</div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
+      <div style={{flex:1}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          {ac&&<div style={{width:3,height:14,borderRadius:2,background:ac,flexShrink:0}}/>}
+          <div style={{fontSize:14,fontWeight:600,color:"#111827"}}>{label}</div>
+        </div>
         {sub&&<div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{sub}</div>}
       </div>
       <div style={{flexShrink:0}}>{children}</div>
@@ -50,559 +49,365 @@ function Row({label,sub,children}:{label:string;sub?:string;children:React.React
   );
 }
 
-function Card({title,icon:Icon,color,children}:{title:string;icon:any;color:string;children:React.ReactNode}) {
+function Card({ title, sub, color, icon:Icon, children, onSave, saving }: any) {
   return (
-    <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:16}}>
-      <div style={{padding:"11px 16px",borderBottom:"2px solid #f3f4f6",display:"flex",alignItems:"center",gap:9}}>
-        <div style={{width:28,height:28,borderRadius:6,background:`${color}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <Icon style={{width:14,height:14,color}}/>
+    <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:24,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+      <div style={{padding:"14px 20px",background:`linear-gradient(135deg,${color}14,${color}08)`,borderBottom:`2px solid ${color}30`,display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:38,height:38,borderRadius:10,background:color,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <Icon style={{width:18,height:18,color:"#fff"}}/>
         </div>
-        <span style={{fontSize:14,fontWeight:700,color:"#111827"}}>{title}</span>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:800,color:"#111827"}}>{title}</div>
+          {sub&&<div style={{fontSize:12,color:"#6b7280",marginTop:1}}>{sub}</div>}
+        </div>
+        <button onClick={onSave} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:color,color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
+          {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>} Save
+        </button>
       </div>
-      <div style={{padding:"4px 16px 16px"}}>{children}</div>
+      <div style={{padding:"4px 20px 16px"}}>{children}</div>
+    </div>
+  );
+}
+
+function Inp({ value, onChange, type="text", placeholder="" }: any) {
+  return (
+    <input type={type} value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",width:"100%",maxWidth:320,background:"#fafafa",fontFamily:"inherit"}}
+      onFocus={e=>(e.target as any).style.borderColor="#1a3a6b"}
+      onBlur={e=>(e.target as any).style.borderColor="#e5e7eb"}/>
+  );
+}
+
+function Sel({ value, onChange, opts }: { value:string; onChange:(v:string)=>void; opts:{v:string;l:string}[] }) {
+  return (
+    <select value={value||""} onChange={e=>onChange(e.target.value)}
+      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",minWidth:200,background:"#fafafa",cursor:"pointer",fontFamily:"inherit"}}>
+      {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+    </select>
+  );
+}
+
+function TA({ value, onChange, rows=3, placeholder="" }: any) {
+  return (
+    <textarea value={value||""} onChange={e=>onChange(e.target.value)} rows={rows} placeholder={placeholder}
+      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",width:"100%",maxWidth:420,resize:"none",background:"#fafafa",fontFamily:"inherit"}}
+      onFocus={e=>(e.target as any).style.borderColor="#1a3a6b"}
+      onBlur={e=>(e.target as any).style.borderColor="#e5e7eb"}/>
+  );
+}
+
+const ALL_KEYS = [
+  "hospital_name","system_name","hospital_address","hospital_phone","hospital_email","hospital_website","hospital_pin","hospital_county","hospital_type","system_logo_url","hospital_motto","hospital_reg_no","hospital_bed_capacity","hospital_director",
+  "smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_security","smtp_enabled","email_reply_to","email_signature",
+  "email_notifications","email_po_approval","email_req_approved","email_grn","email_tender","push_notifications","sms_notifications","realtime_notifications","notify_on_login","notify_on_grn","notify_on_payment","notify_on_contract","notify_budget_alert",
+  "two_factor","enforce_strong_password","audit_log","require_approval_grn","maintenance_mode","session_timeout","max_login_attempts","password_min_length","ip_whitelist","allow_registration","lock_inactive_users","require_email_verify","login_banner",
+  "primary_color","secondary_color","accent_color","font_size","ui_density","dark_mode","sidebar_style","show_breadcrumb","show_live_indicator",
+  "currency","currency_symbol","vat_rate","fiscal_year","date_format","time_zone","req_prefix","po_prefix","grn_prefix","pv_prefix","debug_mode","log_level","default_language",
+  "req_approval_threshold","po_approval_threshold","enable_multi_approval","tender_min_value","allow_direct_purchase","direct_purchase_limit","enable_bid_evaluation","grn_auto_approve","req_auto_number","po_auto_number","grn_auto_number",
+  "budget_warning_threshold","enable_budget_control","default_payment_terms","payment_cycle","withholding_tax_rate","enable_withholding","fiscal_year_start","bank_name","bank_account_no","bank_branch",
+  "show_logo_print","show_watermark","print_copies","doc_footer","letterhead_html","print_font","print_font_size","paper_size","show_stamp",
+  "enable_scanner","enable_documents","enable_odbc","enable_api","enable_quality","enable_fixed_assets","enable_vouchers","enable_financials","enable_tenders","enable_contracts_module",
+  "api_key","webhook_url","backup_schedule","backup_retention","export_format","enable_sse","rate_limit","cors_origins","jwt_expiry",
+];
+
+function SettingsInner() {
+  const { user, profile } = useAuth();
+  const [S, setS]       = useState<Record<string,string>>({});
+  const [users, setUsers] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [sec, setSec]   = useState("hospital");
+  const [showPass, setShowPass] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const set = (k:string,v:string) => { setS(p=>({...p,[k]:v})); setDirty(true); };
+
+  const load = useCallback(async()=>{
+    const [sRes, uRes] = await Promise.all([
+      (supabase as any).from("system_settings").select("key,value").limit(300),
+      (supabase as any).from("profiles").select("*,user_roles(role)").order("full_name").limit(300),
+    ]);
+    const m:Record<string,string>={};
+    (sRes.data||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
+    setS(m); setUsers(uRes.data||[]); setDirty(false);
+  },[]);
+
+  useEffect(()=>{ load(); },[load]);
+
+  const save = async(keys:string[]) => {
+    setSaving(true);
+    let ok=0;
+    for(const k of keys){
+      const val=S[k]??"";
+      try{
+        const{data:ex}=await (supabase as any).from("system_settings").select("id").eq("key",k).maybeSingle();
+        if(ex?.id) await (supabase as any).from("system_settings").update({value:val}).eq("key",k);
+        else       await (supabase as any).from("system_settings").insert({key:k,value:val,category:sec,label:k.replace(/_/g," ")});
+        ok++;
+      }catch{}
+    }
+    await (supabase as any).from("audit_log").insert({user_id:user?.id,action:"settings_updated",table_name:"system_settings",details:JSON.stringify({section:sec,count:ok,by:profile?.full_name})}).catch(()=>{});
+    toast({title:`✓ ${ok} settings saved globally`});
+    setDirty(false); setSaving(false);
+  };
+
+  const s  = (k:string, fb="") => S[k]??fb;
+  const b  = (k:string)        => s(k)==="true";
+
+  const updateUserRole = async(uid:string,role:string)=>{
+    const{data:ex}=await (supabase as any).from("user_roles").select("id").eq("user_id",uid).maybeSingle();
+    if(ex?.id) await (supabase as any).from("user_roles").update({role}).eq("id",ex.id);
+    else       await (supabase as any).from("user_roles").insert({user_id:uid,role});
+    toast({title:"Role updated ✓"}); load();
+  };
+
+  const toggleActive = async(u:any)=>{
+    await (supabase as any).from("profiles").update({is_active:!u.is_active}).eq("id",u.id);
+    toast({title:`User ${!u.is_active?"activated":"deactivated"} ✓`}); load();
+  };
+
+  return (
+    <div style={{minHeight:"100%",background:"#f0f2f5",fontSize:14,fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      {/* Top bar */}
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100}}>
+        <Settings style={{width:18,height:18,color:"#fff"}}/>
+        <div style={{flex:1}}>
+          <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>System Settings</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>All changes save globally to the database</div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {dirty&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:700,background:"rgba(251,191,36,0.15)",padding:"3px 10px",borderRadius:20}}>● Unsaved changes</span>}
+          <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.7)",lineHeight:0}}>
+            <RefreshCw style={{width:13,height:13}}/>
+          </button>
+          <button onClick={()=>save(ALL_KEYS)} disabled={saving} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 20px",background:"#C45911",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:800}}>
+            {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>} Save All Settings
+          </button>
+        </div>
+      </div>
+
+      <div style={{display:"flex",minHeight:"calc(100vh - 82px)"}}>
+        {/* Sidebar */}
+        <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",padding:"12px 0",flexShrink:0,position:"sticky",top:82,height:"calc(100vh - 82px)",overflowY:"auto"}}>
+          {SECTIONS.map(x=>(
+            <button key={x.id} onClick={()=>setSec(x.id)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",border:"none",background:sec===x.id?`${x.color}12`:"transparent",cursor:"pointer",textAlign:"left" as const,borderLeft:sec===x.id?`3px solid ${x.color}`:"3px solid transparent",transition:"all 0.1s"}}>
+              <x.icon style={{width:15,height:15,color:sec===x.id?x.color:"#9ca3af",flexShrink:0}}/>
+              <span style={{fontSize:13,fontWeight:sec===x.id?700:500,color:sec===x.id?x.color:"#374151"}}>{x.label}</span>
+            </button>
+          ))}
+          <div style={{margin:"14px 12px 0",padding:"10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#0369a1"}}>💡 Tip</div>
+            <div style={{fontSize:11,color:"#0369a1",marginTop:2,lineHeight:1.4}}>"Save All Settings" updates every config value globally in one click.</div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div style={{flex:1,padding:"24px",overflowY:"auto"}}>
+
+          {sec==="hospital"&&(
+            <Card title="Hospital Information" sub="Identity used across all documents and modules" color="#0078d4" icon={Building2} onSave={()=>save(["hospital_name","system_name","hospital_address","hospital_phone","hospital_email","hospital_website","hospital_pin","hospital_county","hospital_type","system_logo_url","hospital_motto","hospital_reg_no","hospital_bed_capacity","hospital_director"])} saving={saving}>
+              {[{k:"hospital_name",l:"Hospital Name",s:"Official name"},{k:"system_name",l:"System Name",s:"Nav bar name"},{k:"hospital_director",l:"Director / CEO",s:"Current director"},{k:"hospital_address",l:"Physical Address"},{k:"hospital_phone",l:"Phone Number"},{k:"hospital_email",l:"Email",s:"Official email"},{k:"hospital_website",l:"Website URL"},{k:"hospital_pin",l:"KRA PIN"},{k:"hospital_reg_no",l:"Registration No."},{k:"hospital_county",l:"County"},{k:"hospital_bed_capacity",l:"Bed Capacity"},{k:"hospital_motto",l:"Motto / Tagline"},{k:"system_logo_url",l:"Logo URL / Path",s:"/src/assets/embu-county-logo.jpg"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#0078d4"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)}/></FR>
+              ))}
+              <FR label="Hospital Type" ac="#0078d4">
+                <Sel value={s("hospital_type","level5")} onChange={v=>set("hospital_type",v)} opts={[{v:"level5",l:"Level 5 — County Referral"},{v:"level6",l:"National Referral"},{v:"level4",l:"Sub-County Hospital"},{v:"level3",l:"Health Centre"},{v:"private",l:"Private Hospital"}]}/>
+              </FR>
+            </Card>
+          )}
+
+          {sec==="email"&&(
+            <Card title="Email & SMTP Configuration" sub="Configure the mail server for outgoing emails" color="#107c10" icon={Mail} onSave={()=>save(["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_security","smtp_enabled","email_reply_to","email_signature"])} saving={saving}>
+              <FR label="Enable Email Sending" sub="Turn on/off all outgoing system emails" ac="#107c10"><Toggle on={b("smtp_enabled")} onChange={v=>set("smtp_enabled",String(v))}/></FR>
+              {[{k:"smtp_host",l:"SMTP Host",s:"e.g. smtp.gmail.com"},{k:"smtp_port",l:"SMTP Port",s:"587 TLS / 465 SSL"},{k:"smtp_user",l:"SMTP Username"},{k:"smtp_from_name",l:"From Name"},{k:"smtp_from_email",l:"From Email",s:"Sender address"},{k:"email_reply_to",l:"Reply-To Email"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#107c10"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)}/></FR>
+              ))}
+              <FR label="SMTP Password" sub="Stored securely" ac="#107c10">
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <Inp value={s("smtp_password")} onChange={(v:string)=>set("smtp_password",v)} type={showPass?"text":"password"}/>
+                  <button onClick={()=>setShowPass(p=>!p)} style={{padding:9,background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",lineHeight:0}}>
+                    {showPass?<EyeOff style={{width:14,height:14,color:"#6b7280"}}/>:<Eye style={{width:14,height:14,color:"#6b7280"}}/>}
+                  </button>
+                </div>
+              </FR>
+              <FR label="SMTP Security" ac="#107c10"><Sel value={s("smtp_security","tls")} onChange={v=>set("smtp_security",v)} opts={[{v:"tls",l:"TLS (STARTTLS)"},{v:"ssl",l:"SSL"},{v:"none",l:"None"}]}/></FR>
+              <FR label="Email Signature" sub="Appended to outgoing emails" ac="#107c10"><TA value={s("email_signature")} onChange={(v:string)=>set("email_signature",v)} placeholder="Best regards,&#10;Procurement Dept"/></FR>
+            </Card>
+          )}
+
+          {sec==="notifications"&&(
+            <Card title="Notification Settings" sub="Control which events trigger notifications and via which channels" color="#f59e0b" icon={Bell} onSave={()=>save(["email_notifications","email_po_approval","email_req_approved","email_grn","email_tender","push_notifications","sms_notifications","realtime_notifications","notify_on_login","notify_on_grn","notify_on_payment","notify_on_contract","notify_budget_alert"])} saving={saving}>
+              {[{k:"email_notifications",l:"Email Notifications",s:"Send emails for system events"},{k:"email_po_approval",l:"PO Approval Emails",s:"Email when POs need approval"},{k:"email_req_approved",l:"Requisition Approved Emails",s:"Notify when requisitions approved"},{k:"email_grn",l:"GRN Notification Emails"},{k:"email_tender",l:"Tender Emails"},{k:"push_notifications",l:"Browser Push Notifications"},{k:"sms_notifications",l:"SMS Notifications",s:"Via configured SMS gateway"},{k:"realtime_notifications",l:"Real-time In-App Alerts",s:"Live notification bell"},{k:"notify_on_login",l:"Login Alerts"},{k:"notify_on_grn",l:"GRN Real-time Alerts"},{k:"notify_on_payment",l:"Payment Notifications"},{k:"notify_on_contract",l:"Contract Notifications"},{k:"notify_budget_alert",l:"Budget Threshold Alerts",s:"Alert near budget limit"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#f59e0b"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+            </Card>
+          )}
+
+          {sec==="security"&&(
+            <Card title="Security & Access Control" sub="Authentication, sessions, and access policies" color="#dc2626" icon={Shield} onSave={()=>save(["two_factor","enforce_strong_password","audit_log","require_approval_grn","maintenance_mode","session_timeout","max_login_attempts","password_min_length","ip_whitelist","allow_registration","lock_inactive_users","require_email_verify","login_banner"])} saving={saving}>
+              {[{k:"two_factor",l:"Two-Factor Authentication",s:"Require 2FA for admin users"},{k:"enforce_strong_password",l:"Enforce Strong Password",s:"Min 8 chars, numbers and symbols"},{k:"audit_log",l:"Enable Audit Logging",s:"Record all user actions"},{k:"require_approval_grn",l:"Require GRN Approval",s:"GRNs must be approved before processing"},{k:"maintenance_mode",l:"Maintenance Mode",s:"Block non-admin access"},{k:"allow_registration",l:"Allow Self-Registration"},{k:"lock_inactive_users",l:"Lock Inactive Accounts",s:"Auto-disable after 90 days"},{k:"require_email_verify",l:"Email Verification Required"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#dc2626"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+              {[{k:"session_timeout",l:"Session Timeout (min)"},{k:"max_login_attempts",l:"Max Login Attempts"},{k:"password_min_length",l:"Min Password Length"}].map(f=>(
+                <FR key={f.k} label={f.l} ac="#dc2626"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} type="number"/></FR>
+              ))}
+              <FR label="IP Whitelist" sub="Comma-separated allowed IPs (empty = all)" ac="#dc2626"><Inp value={s("ip_whitelist")} onChange={(v:string)=>set("ip_whitelist",v)} placeholder="192.168.1.1,10.0.0.0/24"/></FR>
+              <FR label="Login Banner" sub="Message on login page" ac="#dc2626"><TA value={s("login_banner")} onChange={(v:string)=>set("login_banner",v)} placeholder="Authorised users only."/></FR>
+            </Card>
+          )}
+
+          {sec==="appearance"&&(
+            <Card title="Appearance & UI" sub="Colours, fonts, layout density and branding" color="#8b5cf6" icon={Palette} onSave={()=>save(["primary_color","secondary_color","accent_color","font_size","ui_density","dark_mode","sidebar_style","show_breadcrumb","show_live_indicator"])} saving={saving}>
+              {[{k:"primary_color",l:"Primary Color",s:"Nav and buttons"},{k:"secondary_color",l:"Secondary Color"},{k:"accent_color",l:"Accent Color",s:"Orange highlight"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#8b5cf6">
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <input type="color" value={s(f.k,"#1a3a6b")} onChange={e=>set(f.k,e.target.value)} style={{width:44,height:36,border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",padding:2}}/>
+                    <Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} placeholder="#1a3a6b"/>
+                  </div>
+                </FR>
+              ))}
+              <FR label="Font Size" ac="#8b5cf6"><Sel value={s("font_size","medium")} onChange={v=>set("font_size",v)} opts={[{v:"small",l:"Small (12px)"},{v:"medium",l:"Medium (14px)"},{v:"large",l:"Large (16px)"},{v:"xlarge",l:"X-Large (18px)"}]}/></FR>
+              <FR label="UI Density" ac="#8b5cf6"><Sel value={s("ui_density","normal")} onChange={v=>set("ui_density",v)} opts={[{v:"compact",l:"Compact"},{v:"normal",l:"Normal"},{v:"comfortable",l:"Comfortable"}]}/></FR>
+              <FR label="Sidebar Style" ac="#8b5cf6"><Sel value={s("sidebar_style","dark")} onChange={v=>set("sidebar_style",v)} opts={[{v:"dark",l:"Dark Navy"},{v:"light",l:"Light"},{v:"colored",l:"Colored"}]}/></FR>
+              {[{k:"dark_mode",l:"Dark Mode"},{k:"show_breadcrumb",l:"Show Breadcrumb"},{k:"show_live_indicator",l:"Live Dot Indicator"}].map(f=>(
+                <FR key={f.k} label={f.l} ac="#8b5cf6"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+            </Card>
+          )}
+
+          {sec==="system"&&(
+            <Card title="System Configuration" sub="Locale, numbering, time zone, and operational settings" color="#374151" icon={Server} onSave={()=>save(["currency","currency_symbol","vat_rate","fiscal_year","date_format","time_zone","req_prefix","po_prefix","grn_prefix","pv_prefix","debug_mode","log_level","default_language"])} saving={saving}>
+              <FR label="Currency" ac="#374151"><Sel value={s("currency","KES")} onChange={v=>set("currency",v)} opts={[{v:"KES",l:"KES — Kenyan Shilling"},{v:"USD",l:"USD"},{v:"EUR",l:"EUR"},{v:"GBP",l:"GBP"}]}/></FR>
+              <FR label="Currency Symbol" ac="#374151"><Inp value={s("currency_symbol","KES")} onChange={(v:string)=>set("currency_symbol",v)}/></FR>
+              <FR label="VAT Rate (%)" ac="#374151"><Inp value={s("vat_rate","16")} onChange={(v:string)=>set("vat_rate",v)} type="number"/></FR>
+              <FR label="Fiscal Year" sub="Format: YYYY/YYYY" ac="#374151"><Inp value={s("fiscal_year")} onChange={(v:string)=>set("fiscal_year",v)} placeholder="2025/2026"/></FR>
+              <FR label="Date Format" ac="#374151"><Sel value={s("date_format","DD/MM/YYYY")} onChange={v=>set("date_format",v)} opts={[{v:"DD/MM/YYYY",l:"DD/MM/YYYY"},{v:"MM/DD/YYYY",l:"MM/DD/YYYY"},{v:"YYYY-MM-DD",l:"YYYY-MM-DD"}]}/></FR>
+              <FR label="Time Zone" ac="#374151"><Sel value={s("time_zone","Africa/Nairobi")} onChange={v=>set("time_zone",v)} opts={[{v:"Africa/Nairobi",l:"Africa/Nairobi (EAT)"},{v:"UTC",l:"UTC"},{v:"Africa/Lagos",l:"Africa/Lagos"},{v:"Africa/Cairo",l:"Africa/Cairo"}]}/></FR>
+              <FR label="Language" ac="#374151"><Sel value={s("default_language","en")} onChange={v=>set("default_language",v)} opts={[{v:"en",l:"English"},{v:"sw",l:"Swahili"},{v:"fr",l:"French"}]}/></FR>
+              <div style={{fontWeight:700,fontSize:13,color:"#374151",borderTop:"1px solid #f3f4f6",padding:"16px 0 4px"}}>Document Number Prefixes</div>
+              {[{k:"req_prefix",l:"Requisition Prefix",pl:"REQ-"},{k:"po_prefix",l:"Purchase Order Prefix",pl:"PO-"},{k:"grn_prefix",l:"GRN Prefix",pl:"GRN-"},{k:"pv_prefix",l:"Payment Voucher Prefix",pl:"PV-"}].map(f=>(
+                <FR key={f.k} label={f.l} ac="#374151"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} placeholder={f.pl}/></FR>
+              ))}
+              <FR label="Debug Mode" sub="Verbose errors (disable in production)" ac="#374151"><Toggle on={b("debug_mode")} onChange={v=>set("debug_mode",String(v))}/></FR>
+              <FR label="Log Level" ac="#374151"><Sel value={s("log_level","info")} onChange={v=>set("log_level",v)} opts={[{v:"error",l:"Error only"},{v:"warn",l:"Warnings"},{v:"info",l:"Info"},{v:"debug",l:"Debug (verbose)"}]}/></FR>
+            </Card>
+          )}
+
+          {sec==="procurement"&&(
+            <Card title="Procurement Rules & Thresholds" sub="Approval workflows, limits, and automatic numbering" color="#C45911" icon={ShoppingCart} onSave={()=>save(["req_approval_threshold","po_approval_threshold","enable_multi_approval","tender_min_value","allow_direct_purchase","direct_purchase_limit","enable_bid_evaluation","grn_auto_approve","req_auto_number","po_auto_number","grn_auto_number"])} saving={saving}>
+              {[{k:"req_approval_threshold",l:"Requisition Approval Threshold (KES)",s:"Above this requires manager approval"},{k:"po_approval_threshold",l:"PO Approval Threshold (KES)",s:"Above this needs director approval"},{k:"tender_min_value",l:"Minimum Tender Value (KES)",s:"Orders above this must go to tender"},{k:"direct_purchase_limit",l:"Direct Purchase Limit (KES)"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#C45911"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} type="number"/></FR>
+              ))}
+              {[{k:"enable_multi_approval",l:"Multi-Level Approval",s:"Sequential approval chain"},{k:"allow_direct_purchase",l:"Allow Direct Purchase"},{k:"enable_bid_evaluation",l:"Bid Evaluation Module"},{k:"grn_auto_approve",l:"Auto-Approve Low-Value GRNs"},{k:"req_auto_number",l:"Auto-Number Requisitions"},{k:"po_auto_number",l:"Auto-Number POs"},{k:"grn_auto_number",l:"Auto-Number GRNs"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#C45911"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+            </Card>
+          )}
+
+          {sec==="finance"&&(
+            <Card title="Finance & Budget Settings" sub="Budget controls, payment terms, and banking details" color="#0369a1" icon={DollarSign} onSave={()=>save(["budget_warning_threshold","enable_budget_control","default_payment_terms","payment_cycle","withholding_tax_rate","enable_withholding","fiscal_year_start","bank_name","bank_account_no","bank_branch"])} saving={saving}>
+              {[{k:"budget_warning_threshold",l:"Budget Warning Threshold (%)",s:"Alert when this % spent"},{k:"withholding_tax_rate",l:"Withholding Tax Rate (%)"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#0369a1"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} type="number"/></FR>
+              ))}
+              {[{k:"enable_budget_control",l:"Enable Budget Control",s:"Block purchases over budget"},{k:"enable_withholding",l:"Enable Withholding Tax"},{k:"bank_reconciliation",l:"Bank Reconciliation Module"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#0369a1"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+              <FR label="Default Payment Terms" ac="#0369a1"><Sel value={s("default_payment_terms","30days")} onChange={v=>set("default_payment_terms",v)} opts={[{v:"immediate",l:"Immediate"},{v:"7days",l:"Net 7"},{v:"14days",l:"Net 14"},{v:"30days",l:"Net 30"},{v:"60days",l:"Net 60"}]}/></FR>
+              <FR label="Fiscal Year Start" ac="#0369a1"><Sel value={s("fiscal_year_start","july")} onChange={v=>set("fiscal_year_start",v)} opts={[{v:"january",l:"January"},{v:"april",l:"April"},{v:"july",l:"July (Kenya Govt.)"},{v:"october",l:"October"}]}/></FR>
+              {[{k:"bank_name",l:"Bank Name"},{k:"bank_account_no",l:"Account Number"},{k:"bank_branch",l:"Bank Branch"}].map(f=>(
+                <FR key={f.k} label={f.l} ac="#0369a1"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)}/></FR>
+              ))}
+            </Card>
+          )}
+
+          {sec==="printing"&&(
+            <Card title="Print & Document Settings" sub="Letterheads, watermarks, and print layout" color="#92400e" icon={Printer} onSave={()=>save(["show_logo_print","show_watermark","print_copies","doc_footer","letterhead_html","print_font","print_font_size","paper_size","show_stamp"])} saving={saving}>
+              {[{k:"show_logo_print",l:"Show Logo on Printed Docs"},{k:"show_watermark",l:"Show Document Watermark"},{k:"show_stamp",l:"Show Official Stamp"}].map(f=>(
+                <FR key={f.k} label={f.l} ac="#92400e"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+              <FR label="Copies per Print" ac="#92400e"><Inp value={s("print_copies","1")} onChange={(v:string)=>set("print_copies",v)} type="number"/></FR>
+              <FR label="Paper Size" ac="#92400e"><Sel value={s("paper_size","A4")} onChange={v=>set("paper_size",v)} opts={[{v:"A4",l:"A4 (210×297mm)"},{v:"Letter",l:"Letter (8.5×11in)"},{v:"A3",l:"A3 (297×420mm)"}]}/></FR>
+              <FR label="Print Font" ac="#92400e"><Sel value={s("print_font","Times New Roman")} onChange={v=>set("print_font",v)} opts={[{v:"Times New Roman",l:"Times New Roman"},{v:"Arial",l:"Arial"},{v:"Calibri",l:"Calibri"}]}/></FR>
+              <FR label="Print Font Size (pt)" ac="#92400e"><Inp value={s("print_font_size","11")} onChange={(v:string)=>set("print_font_size",v)} type="number"/></FR>
+              <FR label="Document Footer" sub="Text at bottom of all documents" ac="#92400e"><TA value={s("doc_footer")} onChange={(v:string)=>set("doc_footer",v)} placeholder="Official document of Embu Level 5 Hospital."/></FR>
+              <FR label="Letterhead HTML" sub="Custom HTML for document headers" ac="#92400e"><TA value={s("letterhead_html")} onChange={(v:string)=>set("letterhead_html",v)} rows={4} placeholder="<div>Custom letterhead HTML…</div>"/></FR>
+            </Card>
+          )}
+
+          {sec==="modules"&&(
+            <Card title="Module Toggles" sub="Enable or disable system modules for all users" color="#059669" icon={Cpu} onSave={()=>save(["enable_scanner","enable_documents","enable_odbc","enable_api","enable_quality","enable_fixed_assets","enable_vouchers","enable_financials","enable_tenders","enable_contracts_module"])} saving={saving}>
+              {[{k:"enable_scanner",l:"Barcode / QR Scanner",s:"Item scanning for inventory"},{k:"enable_documents",l:"Documents & Templates",s:"Document management and printing"},{k:"enable_quality",l:"Quality Control Module",s:"Inspections and non-conformance"},{k:"enable_fixed_assets",l:"Fixed Assets Register"},{k:"enable_vouchers",l:"Vouchers Module",s:"Payment, receipt, journal vouchers"},{k:"enable_financials",l:"Financials / Accounts",s:"Chart of accounts, budgets, GL"},{k:"enable_tenders",l:"Tender Management"},{k:"enable_contracts_module",l:"Contract Management"},{k:"enable_odbc",l:"ODBC Connections",s:"External database connectivity"},{k:"enable_api",l:"REST API Access",s:"Third-party integration"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#059669"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+            </Card>
+          )}
+
+          {sec==="users"&&(
+            <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:24,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+              <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#5b21b614,#5b21b608)",borderBottom:"2px solid #5b21b630",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:38,height:38,borderRadius:10,background:"#5b21b6",display:"flex",alignItems:"center",justifyContent:"center"}}><Users style={{width:18,height:18,color:"#fff"}}/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:15,fontWeight:800,color:"#111827"}}>User Roles & Access</div>
+                  <div style={{fontSize:12,color:"#6b7280"}}>{users.length} users — click role dropdown to update instantly</div>
+                </div>
+              </div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+                  <thead><tr style={{background:"#f9fafb"}}>
+                    {["Name","Email","Department","Role","Status","Action"].map(h=>(
+                      <th key={h} style={{padding:"11px 16px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:"#6b7280",borderBottom:"1px solid #f3f4f6",textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {users.map((u,i)=>(
+                      <tr key={u.id} style={{borderBottom:"1px solid #f9fafb",background:i%2===0?"#fff":"#fafafa"}}>
+                        <td style={{padding:"11px 16px",fontWeight:600,color:"#111827"}}>{u.full_name||"—"}</td>
+                        <td style={{padding:"11px 16px",color:"#6b7280",fontSize:12}}>{u.email}</td>
+                        <td style={{padding:"11px 16px",color:"#6b7280",fontSize:12}}>{u.department||"—"}</td>
+                        <td style={{padding:"11px 16px"}}>
+                          <select value={u.user_roles?.[0]?.role||"requisitioner"} onChange={e=>updateUserRole(u.id,e.target.value)}
+                            style={{padding:"6px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"inherit",cursor:"pointer",fontWeight:600,color:"#1a3a6b",background:"#eff6ff"}}>
+                            {["admin","procurement_manager","procurement_officer","finance_officer","inventory_manager","warehouse_officer","requisitioner","quality_officer","viewer"].map(r=>(
+                              <option key={r} value={r}>{r.replace(/_/g," ")}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={{padding:"11px 16px"}}>
+                          <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:u.is_active!==false?"#dcfce7":"#fee2e2",color:u.is_active!==false?"#15803d":"#dc2626"}}>
+                            {u.is_active!==false?"Active":"Inactive"}
+                          </span>
+                        </td>
+                        <td style={{padding:"11px 16px"}}>
+                          <button onClick={()=>toggleActive(u)} style={{padding:"5px 12px",fontSize:11,fontWeight:700,borderRadius:6,border:"1px solid #e5e7eb",cursor:"pointer",background:u.is_active!==false?"#fee2e2":"#dcfce7",color:u.is_active!==false?"#dc2626":"#15803d"}}>
+                            {u.is_active!==false?"Deactivate":"Activate"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {sec==="advanced"&&(
+            <Card title="Advanced & API Configuration" sub="Webhooks, API keys, CORS, backup, and developer settings" color="#dc2626" icon={Zap} onSave={()=>save(["api_key","webhook_url","backup_schedule","backup_retention","export_format","enable_sse","rate_limit","cors_origins","jwt_expiry","odbc_enabled"])} saving={saving}>
+              {[{k:"api_key",l:"API Key",s:"Secret key for REST API"},{k:"webhook_url",l:"Webhook URL",s:"POST endpoint for system events"},{k:"cors_origins",l:"CORS Origins",s:"Comma-separated allowed origins"},{k:"jwt_expiry",l:"JWT Expiry (hours)"},{k:"rate_limit",l:"Rate Limit (req/min)"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#dc2626"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)}/></FR>
+              ))}
+              {[{k:"odbc_enabled",l:"ODBC / External DB"},{k:"enable_sse",l:"Server-Sent Events (SSE)",s:"Real-time event streaming"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#dc2626"><Toggle on={b(f.k)} onChange={v=>set(f.k,String(v))}/></FR>
+              ))}
+              <FR label="Backup Schedule" ac="#dc2626"><Sel value={s("backup_schedule","daily")} onChange={v=>set("backup_schedule",v)} opts={[{v:"hourly",l:"Hourly"},{v:"daily",l:"Daily"},{v:"weekly",l:"Weekly"},{v:"monthly",l:"Monthly"}]}/></FR>
+              <FR label="Backup Retention (days)" ac="#dc2626"><Inp value={s("backup_retention","30")} onChange={(v:string)=>set("backup_retention",v)} type="number"/></FR>
+              <FR label="Export Format" ac="#dc2626"><Sel value={s("export_format","xlsx")} onChange={v=>set("export_format",v)} opts={[{v:"xlsx",l:"Excel (.xlsx)"},{v:"csv",l:"CSV"},{v:"pdf",l:"PDF"},{v:"json",l:"JSON"}]}/></FR>
+            </Card>
+          )}
+
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function SettingsPage() {
-  const {user, profile, roles} = useAuth();
-  const navigate = useNavigate();
-  const [section, setSection] = useState("hospital");
-  const [saving,  setSaving]  = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [pwVis,   setPwVis]   = useState(false);
-  const [users,   setUsers]   = useState<any[]>([]);
-  const [logoFile,setLogoFile]= useState<File|null>(null);
-
-  const [S, setS] = useState<Record<string,string>>({
-    /* Hospital */
-    system_name:"EL5 MediProcure", hospital_name:"Embu Level 5 Hospital",
-    hospital_address:"Embu Town, Embu County, Kenya", hospital_email:"info@embu.health.go.ke",
-    hospital_phone:"+254 060 000000", hospital_pin:"P000000000A",
-    hospital_website:"embu.health.go.ke", hospital_county:"Embu County",
-    org_ceo:"", org_cfo:"", org_procurement_head:"",
-    /* Procurement */
-    currency:"KES", date_format:"DD/MM/YYYY", timezone:"Africa/Nairobi",
-    fiscal_year:"2025/26", vat_rate:"16",
-    req_prefix:"REQ", po_prefix:"PO", grn_prefix:"GRN", pv_prefix:"PV",
-    req_auto_approve_below:"10000",
-    po_approval_level1:"10000", po_approval_level2:"500000", po_approval_level3:"5000000",
-    /* Finance */
-    default_bank:"Kenya Commercial Bank", default_account_name:"EL5H Procurement Account",
-    budget_year:"2025/26", withholding_tax_rate:"3", vat_registered:"true",
-    /* Email */
-    smtp_host:"smtp.gmail.com", smtp_port:"587", smtp_user:"", smtp_password:"",
-    smtp_from_name:"EL5 MediProcure", smtp_from_email:"noreply@embu-l5.go.ke",
-    smtp_encryption:"tls",
-    /* Notifications */
-    email_notifications:"true", push_notifications:"true", sms_notifications:"false",
-    email_po_created:"true", email_po_approved:"true", email_req_submitted:"true",
-    email_req_approved:"true", email_req_rejected:"true", email_grn:"true",
-    email_tender_close:"true", email_payment_done:"true",
-    notif_frequency:"realtime", sms_gateway:"",
-    /* Security */
-    two_factor:"false", enforce_strong_password:"true",
-    audit_log:"true", session_timeout:"60", max_login_attempts:"5",
-    password_min_length:"8", password_expiry_days:"90",
-    require_upper:"true", require_numbers:"true", require_symbols:"true",
-    ip_whitelist:"",
-    /* Appearance */
-    primary_color:"#1a3a6b", secondary_color:"#C45911", font:"Inter",
-    theme_mode:"light", card_style:"shadow",
-    /* System */
-    maintenance_mode:"false", allow_registration:"true", enable_api:"false",
-    realtime_notifications:"true", enable_scanner:"true",
-    backup_schedule:"daily", backup_retention:"30",
-    export_format:"xlsx",
-    /* Print */
-    print_copies:"1", show_logo_print:"true", show_stamp_print:"true",
-    doc_footer:"Embu Level 5 Hospital · Embu County Government",
-    letterhead_html:"",
-    /* Integrations */
-    odbc_enabled:"false", external_api_url:"", webhook_url:"",
-    system_logo_url:"",
-  });
-
-  const set = (k:string,v:string) => setS(p=>({...p,[k]:v}));
-  const setB = (k:string,v:boolean) => setS(p=>({...p,[k]:String(v)}));
-
-  const load = useCallback(async()=>{
-    setLoading(true);
-    const [{data:settings},{data:ud}] = await Promise.all([
-      (supabase as any).from("system_settings").select("key,value").limit(200),
-      (supabase as any).from("profiles").select("*,user_roles(role)").order("full_name").limit(200),
-    ]);
-    const m:Record<string,string>={};
-    (settings||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value; });
-    setS(p=>({...p,...m}));
-    setUsers(ud||[]);
-    setLoading(false);
-  },[]);
-
-  useEffect(()=>{ load(); },[load]);
-
-  const save = async(keys:string[], label?:string)=>{
-    setSaving(true);
-    try {
-      await Promise.all(keys.map(async k=>{
-        const val=S[k]??"";
-        const{data:ex}=await(supabase as any).from("system_settings").select("id").eq("key",k).maybeSingle();
-        if(ex?.id) await(supabase as any).from("system_settings").update({value:val,updated_by:user?.id,updated_at:new Date().toISOString()}).eq("key",k);
-        else await(supabase as any).from("system_settings").insert({key:k,value:val,category:section,label:k,updated_by:user?.id});
-      }));
-      await(supabase as any).from("audit_log").insert({user_id:user?.id,action:"settings_updated",table_name:"system_settings",details:JSON.stringify({section,keys})});
-      // Notify admins of key setting changes
-      if(keys.some(k=>["maintenance_mode","two_factor","smtp_host"].includes(k))){
-        await notifyAdmins({
-          title:"System Settings Updated",
-          message:`${profile?.full_name||"Admin"} updated ${label||section} settings`,
-          type:"system", module:"Settings", actionUrl:"/settings",
-        });
-      }
-      toast({title:"Settings saved ✓",description:`${label||section}: ${keys.length} values updated globally`});
-    } catch(e:any){
-      toast({title:"Save failed",description:e.message,variant:"destructive"});
-    }
-    setSaving(false);
-  };
-
-  const uploadLogo = async()=>{
-    if(!logoFile) return;
-    setSaving(true);
-    const reader=new FileReader();
-    reader.onload=async(ev)=>{
-      const url=ev.target?.result as string;
-      set("system_logo_url",url);
-      await save(["system_logo_url"],"Logo");
-      setLogoFile(null); setSaving(false);
-    };
-    reader.readAsDataURL(logoFile);
-  };
-
-  const updateUserRole = async(userId:string,role:string)=>{
-    const{data:ex}=await(supabase as any).from("user_roles").select("id").eq("user_id",userId).maybeSingle();
-    if(ex?.id) await(supabase as any).from("user_roles").update({role}).eq("id",ex.id);
-    else await(supabase as any).from("user_roles").insert({user_id:userId,role});
-    toast({title:"Role updated ✓"}); load();
-  };
-
-  const testSmtp = async()=>{
-    toast({title:"Testing SMTP connection…",description:"Please wait"});
-    await new Promise(r=>setTimeout(r,1500));
-    toast({title:S.smtp_host?"SMTP configured ✓ (test mode)":"No SMTP host set",variant:S.smtp_host?undefined:"destructive"});
-  };
-
-  const INP = (k:string,ph?:string,type="text")=>(
-    <input type={type} value={S[k]||""} onChange={e=>set(k,e.target.value)} placeholder={ph||""}
-      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"inherit"}}/>
-  );
-
-  const SaveBtn = ({keys,label,color="#1a3a6b"}:{keys:string[];label?:string;color?:string})=>(
-    <button onClick={()=>save(keys,label)} disabled={saving}
-      style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:color,color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,marginTop:14,opacity:saving?0.8:1}}>
-      {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>}
-      {saving?"Saving…":`Save ${label||""}`}
-    </button>
-  );
-
-  const sec = SECTIONS.find(s=>s.id===section);
-
-  return (
-    <RoleGuard allowed={["admin","procurement_manager"]}>
-      <div style={{display:"flex",minHeight:"calc(100vh - 82px)",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f0f2f5"}}>
-
-        {/* ── SIDEBAR ── */}
-        <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0,boxShadow:"1px 0 4px rgba(0,0,0,0.04)"}}>
-          <div style={{padding:"12px 14px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
-            <div style={{fontSize:13,fontWeight:800,color:"#fff",display:"flex",alignItems:"center",gap:6}}><Settings style={{width:13,height:13}}/> Settings</div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.45)",marginTop:1}}>Global System Configuration</div>
-          </div>
-          <div style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
-            {SECTIONS.map(s=>(
-              <button key={s.id} onClick={()=>setSection(s.id)}
-                style={{display:"flex",alignItems:"center",gap:9,width:"100%",padding:"9px 14px",border:"none",background:section===s.id?`${s.color}10`:"transparent",cursor:"pointer",textAlign:"left" as const,borderLeft:section===s.id?`3px solid ${s.color}`:"3px solid transparent",transition:"all 0.1s"}}>
-                <div style={{width:24,height:24,borderRadius:5,background:section===s.id?`${s.color}18`:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <s.icon style={{width:12,height:12,color:section===s.id?s.color:"#9ca3af"}}/>
-                </div>
-                <span style={{fontSize:13,fontWeight:section===s.id?700:500,color:section===s.id?s.color:"#374151"}}>{s.label}</span>
-                {section===s.id&&<ChevronRight style={{width:10,height:10,color:s.color,marginLeft:"auto"}}/>}
-              </button>
-            ))}
-          </div>
-          <div style={{padding:"8px 14px",borderTop:"1px solid #f3f4f6",background:"#f9fafb"}}>
-            <div style={{fontSize:10,color:"#9ca3af",fontWeight:600}}>EL5 MediProcure v2.1</div>
-            <div style={{fontSize:9,color:"#d1d5db"}}>Changes apply globally</div>
-          </div>
-        </div>
-
-        {/* ── CONTENT ── */}
-        <div style={{flex:1,overflowY:"auto",padding:16}}>
-          {loading?(
-            <div style={{display:"flex",alignItems:"center",gap:10,padding:24,color:"#9ca3af",fontSize:13}}>
-              <RefreshCw style={{width:18,height:18}} className="animate-spin"/> Loading settings…
-            </div>
-          ):(
-            <>
-
-            {/* ── HOSPITAL ── */}
-            {section==="hospital"&&(
-              <>
-                <Card title="Organization Details" icon={Building2} color="#0078d4">
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:10}}>
-                    {[
-                      {l:"System Name",k:"system_name"},{l:"Hospital Name",k:"hospital_name"},
-                      {l:"Phone",k:"hospital_phone"},{l:"Email",k:"hospital_email"},
-                      {l:"Website",k:"hospital_website"},{l:"County",k:"hospital_county"},
-                      {l:"KRA PIN",k:"hospital_pin"},{l:"CEO / Director",k:"org_ceo"},
-                      {l:"CFO",k:"org_cfo"},{l:"Procurement Head",k:"org_procurement_head"},
-                    ].map(f=>(<div key={f.k}><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>{INP(f.k)}</div>))}
-                    <div style={{gridColumn:"1/-1"}}><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Physical Address</label>{INP("hospital_address")}</div>
-                  </div>
-                  <SaveBtn keys={["system_name","hospital_name","hospital_address","hospital_email","hospital_phone","hospital_pin","hospital_website","hospital_county","org_ceo","org_cfo","org_procurement_head"]} label="Hospital Info" color="#0078d4"/>
-                </Card>
-                <Card title="Logo & Branding" icon={Image} color="#0078d4">
-                  <div style={{paddingTop:10}}>
-                    <div style={{display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap" as const}}>
-                      {S.system_logo_url&&<img src={S.system_logo_url} alt="logo" style={{height:60,objectFit:"contain",borderRadius:8,background:"#f9fafb",border:"1px solid #e5e7eb",padding:6}}/>}
-                      <div>
-                        <label style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>
-                          <Upload style={{width:13,height:13}}/>{logoFile?logoFile.name:"Choose Logo File"}
-                          <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>setLogoFile(e.target.files?.[0]||null)}/>
-                        </label>
-                        {logoFile&&<button onClick={uploadLogo} disabled={saving}
-                          style={{display:"flex",alignItems:"center",gap:5,marginTop:8,padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                          <Upload style={{width:12,height:12}}/> Upload Logo
-                        </button>}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </>
-            )}
-
-            {/* ── EMAIL ── */}
-            {section==="email"&&(
-              <Card title="Email / SMTP Configuration" icon={Mail} color="#107c10">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:10}}>
-                  <div><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>SMTP Host</label>{INP("smtp_host","smtp.gmail.com")}</div>
-                  <div><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>SMTP Port</label>{INP("smtp_port","587")}</div>
-                  <div><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>SMTP Username</label>{INP("smtp_user")}</div>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>SMTP Password</label>
-                    <div style={{position:"relative"}}>
-                      <input type={pwVis?"text":"password"} value={S.smtp_password||""} onChange={e=>set("smtp_password",e.target.value)} style={{width:"100%",padding:"9px 36px 9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                      <button onClick={()=>setPwVis(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
-                        {pwVis?<EyeOff style={{width:14,height:14}}/>:<Eye style={{width:14,height:14}}/>}
-                      </button>
-                    </div>
-                  </div>
-                  <div><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>From Name</label>{INP("smtp_from_name")}</div>
-                  <div><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>From Email</label>{INP("smtp_from_email","noreply@embu-l5.go.ke")}</div>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Encryption</label>
-                    <select value={S.smtp_encryption||"tls"} onChange={e=>set("smtp_encryption",e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                      {["tls","ssl","none"].map(o=><option key={o} value={o}>{o.toUpperCase()}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{display:"flex",gap:8,marginTop:14}}>
-                  <SaveBtn keys={["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_encryption"]} label="Email Config" color="#107c10"/>
-                  <button onClick={testSmtp} style={{display:"flex",alignItems:"center",gap:5,padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:14}}>
-                    <Zap style={{width:13,height:13,color:"#f59e0b"}}/> Test Connection
-                  </button>
-                  <button onClick={()=>navigate("/email")} style={{display:"flex",alignItems:"center",gap:5,padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:14}}>
-                    <Mail style={{width:13,height:13}}/> Open Email System
-                  </button>
-                </div>
-              </Card>
-            )}
-
-            {/* ── NOTIFICATIONS ── */}
-            {section==="notifications"&&(
-              <Card title="Notification Settings" icon={Bell} color="#f59e0b">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
-                  {[
-                    ["Email Notifications","email_notifications","Global email notification system"],
-                    ["Push Notifications","push_notifications","Browser in-app notifications"],
-                    ["SMS Notifications","sms_notifications","SMS via gateway (requires config)"],
-                    ["PO Created Alert","email_po_created","Notify managers on new POs"],
-                    ["PO Approval Alert","email_po_approved","Notify on PO approval/rejection"],
-                    ["Requisition Submitted","email_req_submitted","Alert on new requisition"],
-                    ["Requisition Approved","email_req_approved","Alert requestor when approved"],
-                    ["Requisition Rejected","email_req_rejected","Alert requestor when rejected"],
-                    ["Goods Received","email_grn","Alert on GRN creation"],
-                    ["Tender Closing","email_tender_close","Alert before tender closes"],
-                    ["Payment Done","email_payment_done","Alert on payment processing"],
-                    ["Real-time Updates","realtime_notifications","Live database change tracking"],
-                  ].map(([label,key,sub])=>(
-                    <div key={key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid #f3f4f6",gap:12}}>
-                      <div>
-                        <div style={{fontSize:14,fontWeight:600,color:"#111827"}}>{label}</div>
-                        <div style={{fontSize:11,color:"#9ca3af"}}>{sub}</div>
-                      </div>
-                      <Toggle on={S[key]==="true"} onChange={v=>setB(key,v)}/>
-                    </div>
-                  ))}
-                </div>
-                <div style={{paddingTop:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>SMS Gateway URL (optional)</label>
-                  {INP("sms_gateway","https://api.smsprovider.co.ke/send")}
-                </div>
-                <div style={{paddingTop:8}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Notification Frequency</label>
-                  <select value={S.notif_frequency||"realtime"} onChange={e=>set("notif_frequency",e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                    <option value="realtime">Real-time (instant)</option>
-                    <option value="hourly">Hourly digest</option>
-                    <option value="daily">Daily digest</option>
-                  </select>
-                </div>
-                <SaveBtn keys={["email_notifications","push_notifications","sms_notifications","email_po_created","email_po_approved","email_req_submitted","email_req_approved","email_req_rejected","email_grn","email_tender_close","email_payment_done","realtime_notifications","sms_gateway","notif_frequency"]} label="Notifications" color="#f59e0b"/>
-              </Card>
-            )}
-
-            {/* ── SECURITY ── */}
-            {section==="security"&&(
-              <Card title="Security & Access Control" icon={Shield} color="#dc2626">
-                {[
-                  ["Two-Factor Authentication","two_factor","Require 2FA for all users"],
-                  ["Strong Password Policy","enforce_strong_password","Enforce complexity requirements"],
-                  ["Audit All Actions","audit_log","Log every user action and change"],
-                  ["Require Uppercase","require_upper","Password must include uppercase letters"],
-                  ["Require Numbers","require_numbers","Password must include numbers"],
-                  ["Require Symbols","require_symbols","Password must include special symbols"],
-                ].map(([l,k,s])=>(<Row key={k} label={l} sub={s}><Toggle on={S[k]==="true"} onChange={v=>setB(k,v)}/></Row>))}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,paddingTop:10}}>
-                  {[{l:"Session Timeout (min)",k:"session_timeout"},{l:"Max Login Attempts",k:"max_login_attempts"},{l:"Min Password Length",k:"password_min_length"},{l:"Password Expiry (days)",k:"password_expiry_days"}].map(f=>(
-                    <div key={f.k}>
-                      <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>
-                      <input type="number" value={S[f.k]||""} onChange={e=>set(f.k,e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                    </div>
-                  ))}
-                </div>
-                <div style={{paddingTop:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>IP Whitelist (comma-separated, leave blank for all)</label>
-                  {INP("ip_whitelist","192.168.1.0/24, 10.0.0.1")}
-                </div>
-                <SaveBtn keys={["two_factor","enforce_strong_password","audit_log","require_upper","require_numbers","require_symbols","session_timeout","max_login_attempts","password_min_length","password_expiry_days","ip_whitelist"]} label="Security" color="#dc2626"/>
-              </Card>
-            )}
-
-            {/* ── APPEARANCE ── */}
-            {section==="appearance"&&(
-              <Card title="Appearance & Branding" icon={Palette} color="#8b5cf6">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:10}}>
-                  {[["Primary Color","primary_color","#1a3a6b"],["Accent Color","secondary_color","#C45911"]].map(([l,k,def])=>(
-                    <div key={k}>
-                      <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:6,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{l}</label>
-                      <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                        <input type="color" value={S[k]||def} onChange={e=>set(k,e.target.value)} style={{width:44,height:36,borderRadius:6,border:"1px solid #e5e7eb",cursor:"pointer",padding:2}}/>
-                        <input value={S[k]||def} onChange={e=>set(k,e.target.value)} style={{flex:1,padding:"9px 12px",fontSize:12,fontFamily:"monospace",border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                      </div>
-                    </div>
-                  ))}
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Font Family</label>
-                    <select value={S.font||"Inter"} onChange={e=>set("font",e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:S.font||"Inter"}}>
-                      {["Inter","Segoe UI","Roboto","Open Sans","Lato","Nunito","Georgia"].map(f=><option key={f} value={f} style={{fontFamily:f}}>{f}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Card Style</label>
-                    <select value={S.card_style||"shadow"} onChange={e=>set("card_style",e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                      <option value="shadow">Shadow</option>
-                      <option value="border">Bordered</option>
-                      <option value="flat">Flat</option>
-                    </select>
-                  </div>
-                </div>
-                {/* Preview bar */}
-                <div style={{marginTop:14,padding:"12px 16px",background:"#f9fafb",borderRadius:8,border:"1px solid #e5e7eb",display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center"}}>
-                  <span style={{fontSize:11,color:"#9ca3af",fontWeight:700}}>PREVIEW:</span>
-                  <button style={{padding:"7px 16px",background:S.primary_color||"#1a3a6b",color:"#fff",border:"none",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:S.font||"Inter"}}>Primary</button>
-                  <button style={{padding:"7px 16px",background:S.secondary_color||"#C45911",color:"#fff",border:"none",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:S.font||"Inter"}}>Accent</button>
-                  <span style={{padding:"3px 10px",background:`${S.primary_color||"#1a3a6b"}18`,color:S.primary_color||"#1a3a6b",borderRadius:4,fontSize:12,fontWeight:700,fontFamily:S.font||"Inter"}}>Badge</span>
-                  <span style={{fontSize:13,color:"#374151",fontFamily:S.font||"Inter"}}>Sample text in {S.font||"Inter"}</span>
-                </div>
-                <SaveBtn keys={["primary_color","secondary_color","font","theme_mode","card_style"]} label="Appearance" color="#8b5cf6"/>
-              </Card>
-            )}
-
-            {/* ── PROCUREMENT ── */}
-            {section==="procurement"&&(
-              <Card title="Procurement Rules & Numbering" icon={FileText} color="#C45911">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:10}}>
-                  {[
-                    {l:"Currency",k:"currency"},{l:"Date Format",k:"date_format"},
-                    {l:"Time Zone",k:"timezone"},{l:"Fiscal Year",k:"fiscal_year"},
-                    {l:"VAT Rate (%)",k:"vat_rate"},{l:"Requisition Prefix",k:"req_prefix"},
-                    {l:"PO Number Prefix",k:"po_prefix"},{l:"GRN Prefix",k:"grn_prefix"},
-                    {l:"Payment Voucher Prefix",k:"pv_prefix"},
-                    {l:"Auto-approve Reqs below (KES)",k:"req_auto_approve_below"},
-                    {l:"PO Level 1 Limit (KES)",k:"po_approval_level1"},
-                    {l:"PO Level 2 Limit (KES)",k:"po_approval_level2"},
-                    {l:"PO Level 3 Limit (KES)",k:"po_approval_level3"},
-                  ].map(f=>(<div key={f.k}><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>{INP(f.k)}</div>))}
-                </div>
-                <SaveBtn keys={["currency","date_format","timezone","fiscal_year","vat_rate","req_prefix","po_prefix","grn_prefix","pv_prefix","req_auto_approve_below","po_approval_level1","po_approval_level2","po_approval_level3"]} label="Procurement Rules" color="#C45911"/>
-              </Card>
-            )}
-
-            {/* ── FINANCIALS ── */}
-            {section==="financials"&&(
-              <Card title="Finance & Accounting Settings" icon={DollarSign} color="#1F6090">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:10}}>
-                  {[
-                    {l:"Default Bank",k:"default_bank"},{l:"Account Name",k:"default_account_name"},
-                    {l:"Budget Year",k:"budget_year"},{l:"Withholding Tax (%)",k:"withholding_tax_rate"},
-                  ].map(f=>(<div key={f.k}><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>{INP(f.k)}</div>))}
-                </div>
-                <Row label="VAT Registered" sub="EL5H is registered for VAT with KRA">
-                  <Toggle on={S.vat_registered==="true"} onChange={v=>setB("vat_registered",v)}/>
-                </Row>
-                <SaveBtn keys={["default_bank","default_account_name","budget_year","withholding_tax_rate","vat_registered"]} label="Finance Settings" color="#1F6090"/>
-              </Card>
-            )}
-
-            {/* ── SYSTEM ── */}
-            {section==="system"&&(
-              <Card title="System Configuration" icon={Server} color="#374151">
-                {[
-                  ["Maintenance Mode","maintenance_mode","Locks out all non-admin users"],
-                  ["Allow User Registration","allow_registration","Let users self-register"],
-                  ["External API Access","enable_api","Allow external API integrations"],
-                  ["Real-time Notifications","realtime_notifications","Live DB event streaming"],
-                  ["Barcode Scanner","enable_scanner","Enable scanner module"],
-                ].map(([l,k,s])=>(<Row key={k} label={l} sub={s}><Toggle on={S[k]==="true"} onChange={v=>setB(k,v)}/></Row>))}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:10}}>
-                  {[{l:"Backup Schedule",k:"backup_schedule",opts:["hourly","daily","weekly","monthly"]},{l:"Export Format",k:"export_format",opts:["xlsx","csv","pdf"]}].map(f=>(
-                    <div key={f.k}>
-                      <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>
-                      <select value={S[f.k]||f.opts[0]} onChange={e=>set(f.k,e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                        {f.opts.map(o=><option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                <SaveBtn keys={["maintenance_mode","allow_registration","enable_api","realtime_notifications","enable_scanner","backup_schedule","export_format"]} label="System Config" color="#374151"/>
-              </Card>
-            )}
-
-            {/* ── PRINT ── */}
-            {section==="printing"&&(
-              <Card title="Print & Document Settings" icon={Printer} color="#92400e">
-                {[
-                  ["Show Logo on Prints","show_logo_print","Display hospital logo on all documents"],
-                  ["Show Official Stamp","show_stamp_print","Include official stamp placeholder"],
-                ].map(([l,k,s])=>(<Row key={k} label={l} sub={s}><Toggle on={S[k]==="true"} onChange={v=>setB(k,v)}/></Row>))}
-                <div style={{paddingTop:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Default Print Copies</label>
-                  <input type="number" min="1" max="10" value={S.print_copies||"1"} onChange={e=>set("print_copies",e.target.value)} style={{width:80,padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",textAlign:"center" as const}}/>
-                </div>
-                <div style={{paddingTop:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Document Footer</label>
-                  <input value={S.doc_footer||""} onChange={e=>set("doc_footer",e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                </div>
-                <div style={{paddingTop:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Custom Letterhead HTML (optional)</label>
-                  <textarea value={S.letterhead_html||""} onChange={e=>set("letterhead_html",e.target.value)} rows={5} style={{width:"100%",padding:"9px 12px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"monospace",resize:"vertical" as const}} placeholder="Paste HTML letterhead template…"/>
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  <SaveBtn keys={["show_logo_print","show_stamp_print","print_copies","doc_footer","letterhead_html"]} label="Print Settings" color="#92400e"/>
-                  <button onClick={()=>navigate("/documents")} style={{display:"flex",alignItems:"center",gap:5,padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:14}}>
-                    <FileText style={{width:13,height:13}}/> Documents Manager
-                  </button>
-                </div>
-              </Card>
-            )}
-
-            {/* ── INTEGRATIONS ── */}
-            {section==="integrations"&&(
-              <Card title="External Integrations" icon={Wifi} color="#4b4b9b">
-                {[
-                  ["ODBC Connections","odbc_enabled","Enable external database connections"],
-                  ["External API","enable_api","Allow third-party API integrations"],
-                ].map(([l,k,s])=>(<Row key={k} label={l} sub={s}><Toggle on={S[k]==="true"} onChange={v=>setB(k,v)}/></Row>))}
-                <div style={{display:"grid",gap:12,paddingTop:10}}>
-                  {[{l:"External API URL",k:"external_api_url"},{l:"Webhook URL",k:"webhook_url"}].map(f=>(
-                    <div key={f.k}><label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>{INP(f.k,"https://")}</div>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  <SaveBtn keys={["odbc_enabled","enable_api","external_api_url","webhook_url"]} label="Integrations" color="#4b4b9b"/>
-                  <button onClick={()=>navigate("/odbc")} style={{display:"flex",alignItems:"center",gap:5,padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:14}}>
-                    <Wifi style={{width:13,height:13}}/> ODBC Manager
-                  </button>
-                </div>
-              </Card>
-            )}
-
-            {/* ── USERS ── */}
-            {section==="users"&&(
-              <Card title="User & Role Management" icon={Users} color="#0369a1">
-                <div style={{display:"flex",justifyContent:"flex-end",gap:8,paddingTop:8,paddingBottom:10}}>
-                  <button onClick={()=>navigate("/users")} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"#0369a1",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                    <Users style={{width:13,height:13}}/> Full User Manager
-                  </button>
-                </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                    <thead>
-                      <tr style={{background:"#f9fafb",borderBottom:"2px solid #e5e7eb"}}>
-                        {["Name","Email","Role","Actions"].map(h=>(
-                          <th key={h} style={{padding:"9px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.slice(0,20).map(u=>(
-                        <tr key={u.id} style={{borderBottom:"1px solid #f9fafb"}}
-                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                          <td style={{padding:"9px 12px",fontWeight:700,color:"#111827"}}>{u.full_name}</td>
-                          <td style={{padding:"9px 12px",color:"#6b7280",fontSize:12}}>{u.email}</td>
-                          <td style={{padding:"9px 12px"}}>
-                            <select value={u.user_roles?.[0]?.role||"requisitioner"} onChange={e=>updateUserRole(u.id,e.target.value)}
-                              style={{fontSize:11,padding:"4px 8px",border:"1px solid #e5e7eb",borderRadius:5,outline:"none",background:"#f9fafb"}}>
-                              {["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"].map(r=>(
-                                <option key={r} value={r}>{r.replace(/_/g," ")}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td style={{padding:"9px 12px"}}>
-                            <button onClick={()=>navigate("/users")} style={{fontSize:11,padding:"3px 10px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer",color:"#1d4ed8",fontWeight:700}}>Edit</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
-
-            {/* ── BACKUP ── */}
-            {section==="backup"&&(
-              <Card title="Backup & Restore Configuration" icon={Archive} color="#065f46">
-                {[{l:"Backup Schedule",k:"backup_schedule",opts:["hourly","daily","weekly","monthly"]},{l:"Backup Retention (days)",k:"backup_retention",opts:null},{l:"Export Format",k:"export_format",opts:["xlsx","csv","json"]}].map(f=>(
-                  <div key={f.k} style={{paddingTop:10}}>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>
-                    {f.opts?<select value={S[f.k]||f.opts[0]} onChange={e=>set(f.k,e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                      {f.opts.map(o=><option key={o} value={o}>{o}</option>)}
-                    </select>:<input type="number" value={S[f.k]||"30"} onChange={e=>set(f.k,e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>}
-                  </div>
-                ))}
-                <div style={{display:"flex",gap:8}}>
-                  <SaveBtn keys={["backup_schedule","backup_retention","export_format"]} label="Backup Config" color="#065f46"/>
-                  <button onClick={()=>navigate("/backup")} style={{display:"flex",alignItems:"center",gap:5,padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:14}}>
-                    <Archive style={{width:13,height:13}}/> Backup Manager
-                  </button>
-                </div>
-              </Card>
-            )}
-
-            </>
-          )}
-        </div>
-      </div>
-    </RoleGuard>
-  );
+  return <RoleGuard roles={["admin"]}><SettingsInner/></RoleGuard>;
 }

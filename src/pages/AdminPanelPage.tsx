@@ -177,16 +177,6 @@ function AdminPanelInner() {
               <div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>MediProcure ERP — Admin Dashboard</div>
             </div>
 
-            {/* Stats */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10,marginBottom:18}}>
-              <StatCard label="Total Users"    value={stats.users}     icon={Users}        color="#5C2D91"/>
-              <StatCard label="Requisitions"   value={stats.reqs}      icon={ClipboardList} color="#0078d4"/>
-              <StatCard label="Purchase Orders"value={stats.pos}       icon={ShoppingCart} color="#C45911"/>
-              <StatCard label="Stock Items"    value={stats.items}     icon={Package}      color="#107c10"/>
-              <StatCard label="Suppliers"      value={stats.suppliers} icon={Truck}        color="#374151"/>
-              <StatCard label="Tenders"        value={stats.tenders}   icon={Gavel}        color="#1F6090"/>
-            </div>
-
             {/* System status */}
             <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",padding:"14px 16px",marginBottom:18}}>
               <div style={{fontSize:12,fontWeight:700,color:"#111827",marginBottom:12}}>System Status</div>
