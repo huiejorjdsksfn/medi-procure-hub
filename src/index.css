@@ -442,3 +442,128 @@ button { font-family: inherit; }
   background-image: linear-gradient(to bottom right, #f4f6f9, #eef2f7);
   min-height: 100%;
 }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE REFORM — Full breakpoint system
+   ══════════════════════════════════════════════════════ */
+
+/* ── Base layout helpers ── */
+.page-wrap {
+  padding: 16px 18px;
+  max-width: 100%;
+}
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  padding: 14px 18px; background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 10px 10px 0 0;
+}
+.page-header-title { font-size: 15px; font-weight: 800; color: #111827; margin: 0; }
+.card { background: #fff; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.card-pad { padding: 16px; }
+
+/* ── Table ── */
+.ent-table { width: 100%; border-collapse: collapse; }
+.ent-table thead tr { background: #f9fafb; }
+.ent-table thead th { padding: 9px 12px; font-size: 10px; font-weight: 700; color: #6b7280; text-align: left; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+.ent-table tbody td { padding: 10px 12px; font-size: 12px; color: #374151; border-bottom: 1px solid #f9fafb; }
+.ent-table tbody tr:hover td { background: #fafafa; }
+
+/* ── Form inputs ── */
+.ent-input {
+  width: 100%; padding: 8px 10px; font-size: 12px; font-family: inherit;
+  border: 1px solid #e5e7eb; border-radius: 6px; outline: none;
+  transition: border-color 0.15s;
+}
+.ent-input:focus { border-color: #1a3a6b; box-shadow: 0 0 0 3px rgba(26,58,107,0.08); }
+
+/* ── Buttons ── */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: linear-gradient(135deg,#0a2558,#1a3a6b);
+  color: #fff; border: none; border-radius: 7px; cursor: pointer;
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; background: #f9fafb;
+  color: #374151; border: 1px solid #e5e7eb; border-radius: 7px; cursor: pointer;
+  font-size: 12px; font-weight: 600; font-family: inherit; transition: background 0.12s;
+}
+.btn-secondary:hover { background: #f3f4f6; }
+
+/* ── Badges ── */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+.badge-green  { background: #dcfce7; color: #166534; }
+.badge-orange { background: #fed7aa; color: #9a3412; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-gray   { background: #f3f4f6; color: #6b7280; }
+
+/* ═══ RESPONSIVE BREAKPOINTS ═══ */
+
+/* Tablet: 768–1199px */
+@media (max-width: 1199px) {
+  .page-wrap { padding: 12px 14px; }
+  .hide-tablet { display: none !important; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Mobile: <768px */
+@media (max-width: 767px) {
+  .page-wrap { padding: 8px 10px; }
+  .hide-mobile { display: none !important; }
+  .page-header { padding: 10px 12px; flex-direction: column; align-items: flex-start; }
+  .page-header-title { font-size: 13px; }
+  .ent-table thead th, .ent-table tbody td { padding: 7px 8px; font-size: 11px; }
+  .grid-auto { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .grid-2 { grid-template-columns: 1fr !important; }
+  .btn-primary, .btn-secondary { font-size: 11px; padding: 7px 12px; }
+  .card-pad { padding: 12px; }
+}
+
+/* Small mobile: <480px */
+@media (max-width: 479px) {
+  .page-wrap { padding: 6px 8px; }
+  .grid-auto { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .grid-3 { grid-template-columns: 1fr !important; }
+  .grid-4 { grid-template-columns: 1fr 1fr !important; }
+  .ent-table { font-size: 10px; }
+  .ent-table thead th, .ent-table tbody td { padding: 6px; }
+}
+
+/* ── Table scroll wrapper for mobile ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll::-webkit-scrollbar { height: 4px; }
+.table-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+
+/* ── Stat cards grid ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+@media (max-width: 479px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+/* ── Action grid ── */
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+@media (max-width: 479px) {
+  .action-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+}
+
+/* ── Sidebar overlay scroll fix ── */
+@media (max-width: 899px) {
+  main { padding-bottom: env(safe-area-inset-bottom); }
+}
