@@ -2,459 +2,403 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import ERPWheelButton from "@/components/ERPWheelButton";
 import {
   ShoppingCart, FileText, Package, Truck, Gavel, DollarSign, BarChart3,
   ClipboardList, Shield, Plus, Calendar, FileCheck, BookMarked,
-  Building2, Home, Search, Mail, Settings, ChevronDown, RefreshCw, Grid2x2,
+  Building2, Home, Search, Mail, Settings, ChevronDown, RefreshCw,
+  Grid2x2, Bell, TrendingUp, TrendingDown, AlertCircle, CheckCircle,
+  Users, Activity, Zap
 } from "lucide-react";
 
 const fmtKES = (n: number) =>
   n >= 1_000_000 ? `KES ${(n/1_000_000).toFixed(1)}M`
-  : n >= 1000    ? `KES ${(n/1000).toFixed(0)}K`
+  : n >= 1000    ? `KES ${(n/1000).toFixed(1)}K`
   : `KES ${n.toFixed(0)}`;
-
-/* ─── CRM TILES ─── */
-const GROUPS = ["My Work","Procurement","Finance","Operations","Admin"];
-const GROUP_TILES: Record<string,string[]> = {
-  "My Work":     ["DASHBOARD","REQUISITIONS","INBOX"],
-  "Procurement": ["PURCHASE ORDERS","GOODS RECEIVED","SUPPLIERS","TENDERS","CONTRACTS"],
-  "Finance":     ["VOUCHERS","FINANCIALS","INVENTORY"],
-  "Operations":  ["QUALITY","PLANNING","REPORTS"],
-  "Admin":       ["DOCUMENTS","ADMIN"],
-};
-const ALL_TILES = [
-  { label:"DASHBOARD",       path:"/dashboard",            icon:Home,          bg:"#008B8B" },
-  { label:"REQUISITIONS",    path:"/requisitions",         icon:ClipboardList, bg:"#0078d4" },
-  { label:"INBOX",           path:"/inbox",                icon:Mail,          bg:"#363636" },
-  { label:"PURCHASE ORDERS", path:"/purchase-orders",      icon:ShoppingCart,  bg:"#C45911" },
-  { label:"GOODS RECEIVED",  path:"/goods-received",       icon:Package,       bg:"#5C2D91" },
-  { label:"SUPPLIERS",       path:"/suppliers",            icon:Truck,         bg:"#1F6090" },
-  { label:"TENDERS",         path:"/tenders",              icon:Gavel,         bg:"#107c10" },
-  { label:"CONTRACTS",       path:"/contracts",            icon:FileCheck,     bg:"#004E8C" },
-  { label:"VOUCHERS",        path:"/vouchers/payment",     icon:DollarSign,    bg:"#7B3F00" },
-  { label:"FINANCIALS",      path:"/financials/dashboard", icon:BarChart3,     bg:"#1a3a6b" },
-  { label:"INVENTORY",       path:"/items",                icon:Building2,     bg:"#375623" },
-  { label:"QUALITY",         path:"/quality/dashboard",    icon:Shield,        bg:"#603913" },
-  { label:"PLANNING",        path:"/procurement-planning", icon:Calendar,      bg:"#4b4b9b" },
-  { label:"REPORTS",         path:"/reports",              icon:FileText,      bg:"#444" },
-  { label:"DOCUMENTS",       path:"/documents",            icon:BookMarked,    bg:"#2d6a4f" },
-  { label:"ADMIN",           path:"/admin/panel",          icon:Settings,      bg:"#1a1a2e" },
-];
 
 const STATUS: Record<string,{bg:string;color:string}> = {
   pending:   {bg:"#fef3c7",color:"#92400e"},
-  approved:  {bg:"#d1fae5",color:"#065f46"},
-  rejected:  {bg:"#fee2e2",color:"#991b1b"},
-  draft:     {bg:"#f3f4f6",color:"#374151"},
-  active:    {bg:"#dbeafe",color:"#1e40af"},
-  sent:      {bg:"#ede9fe",color:"#5b21b6"},
-  paid:      {bg:"#d1fae5",color:"#065f46"},
-  open:      {bg:"#fef3c7",color:"#92400e"},
-  issued:    {bg:"#dbeafe",color:"#1e40af"},
-  received:  {bg:"#d1fae5",color:"#065f46"},
-  completed: {bg:"#d1fae5",color:"#065f46"},
+  approved:  {bg:"#dcfce7",color:"#15803d"},
+  rejected:  {bg:"#fee2e2",color:"#dc2626"},
+  draft:     {bg:"#f3f4f6",color:"#6b7280"},
   submitted: {bg:"#dbeafe",color:"#1d4ed8"},
+  active:    {bg:"#dbeafe",color:"#1e40af"},
+  issued:    {bg:"#ede9fe",color:"#5b21b6"},
+  received:  {bg:"#dcfce7",color:"#15803d"},
+  completed: {bg:"#dcfce7",color:"#15803d"},
+  paid:      {bg:"#dcfce7",color:"#15803d"},
 };
 
-/* ─── FUNNEL CHART ─── */
-function FunnelChart({ data }: { data:{label:string;value:number;color:string}[] }) {
-  if (!data.length) return (
-    <div style={{height:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
-      <FileText style={{width:28,height:28,color:"#d1d5db"}}/>
-      <p style={{color:"#9ca3af",fontSize:12,margin:0}}>No pipeline data yet</p>
-    </div>
-  );
-  const sorted = [...data].sort((a,b)=>b.value-a.value);
-  const n = sorted.length;
-  const W = 280;
-  const rowH = Math.max(32, Math.min(48, Math.floor(180/n)));
-  return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 0 0"}}>
-      <svg width={W} height={n*rowH+4}>
-        {sorted.map((d,i)=>{
-          const topPct = 1 - (i/n)*0.8;
-          const botPct = 1 - ((i+1)/n)*0.8;
-          const topW = W*topPct;
-          const botW = W*botPct;
-          const xTop = (W-topW)/2;
-          const xBot = (W-botW)/2;
-          const y = i*rowH;
-          return (
-            <g key={d.label}>
-              <polygon
-                points={`${xTop},${y} ${xTop+topW},${y} ${xBot+botW},${y+rowH} ${xBot},${y+rowH}`}
-                fill={d.color} stroke="#fff" strokeWidth={1.5}
-              />
-              <text x={W/2} y={y+rowH/2+1} textAnchor="middle" dominantBaseline="middle"
-                style={{fontSize:10,fill:"#fff",fontWeight:700,fontFamily:"Segoe UI,sans-serif",pointerEvents:"none"}}>
-                {fmtKES(d.value)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:8,marginTop:8}}>
-        {sorted.map(d=>(
-          <div key={d.label} style={{display:"flex",alignItems:"center",gap:4}}>
-            <div style={{width:10,height:10,background:d.color,borderRadius:2,flexShrink:0}}/>
-            <span style={{fontSize:10,color:"#6b7280"}}>{d.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+/* ── QUICK ACTIONS (role-filtered) ── */
+const QUICK_ACTIONS_BY_ROLE: Record<string,{label:string;path:string;icon:any;color:string}[]> = {
+  admin: [
+    {label:"New Requisition",    path:"/requisitions",         icon:ClipboardList, color:"#0078d4"},
+    {label:"New Purchase Order", path:"/purchase-orders",      icon:ShoppingCart,  color:"#C45911"},
+    {label:"Receive Goods",      path:"/goods-received",       icon:Package,       color:"#107c10"},
+    {label:"Payment Voucher",    path:"/vouchers/payment",     icon:DollarSign,    color:"#5C2D91"},
+    {label:"New Tender",         path:"/tenders",              icon:Gavel,         color:"#1F6090"},
+    {label:"Admin Panel",        path:"/admin/panel",          icon:Settings,      color:"#374151"},
+    {label:"Send Email",         path:"/email",                icon:Mail,          color:"#c0185a"},
+    {label:"User Management",    path:"/users",                icon:Users,         color:"#4b4b9b"},
+  ],
+  procurement_manager: [
+    {label:"New Requisition",    path:"/requisitions",         icon:ClipboardList, color:"#0078d4"},
+    {label:"Approve POs",        path:"/purchase-orders",      icon:ShoppingCart,  color:"#C45911"},
+    {label:"Receive Goods",      path:"/goods-received",       icon:Package,       color:"#107c10"},
+    {label:"Payment Voucher",    path:"/vouchers/payment",     icon:DollarSign,    color:"#5C2D91"},
+    {label:"New Tender",         path:"/tenders",              icon:Gavel,         color:"#1F6090"},
+    {label:"Suppliers",          path:"/suppliers",            icon:Truck,         color:"#374151"},
+    {label:"Contracts",          path:"/contracts",            icon:FileCheck,     color:"#00695C"},
+    {label:"Send Email",         path:"/email",                icon:Mail,          color:"#c0185a"},
+  ],
+  procurement_officer: [
+    {label:"New Requisition",    path:"/requisitions",         icon:ClipboardList, color:"#0078d4"},
+    {label:"Purchase Orders",    path:"/purchase-orders",      icon:ShoppingCart,  color:"#C45911"},
+    {label:"Receive Goods",      path:"/goods-received",       icon:Package,       color:"#107c10"},
+    {label:"Suppliers",          path:"/suppliers",            icon:Truck,         color:"#374151"},
+    {label:"Send Email",         path:"/email",                icon:Mail,          color:"#c0185a"},
+    {label:"Documents",          path:"/documents",            icon:FileText,      color:"#2d6a4f"},
+  ],
+  inventory_manager: [
+    {label:"Manage Items",       path:"/items",                icon:Package,       color:"#107c10"},
+    {label:"Categories",         path:"/categories",           icon:Building2,     color:"#374151"},
+    {label:"Departments",        path:"/departments",          icon:Building2,     color:"#0078d4"},
+    {label:"Barcode Scanner",    path:"/scanner",              icon:Search,        color:"#C45911"},
+    {label:"Reports",            path:"/reports",              icon:BarChart3,     color:"#5C2D91"},
+  ],
+  warehouse_officer: [
+    {label:"Receive Goods",      path:"/goods-received",       icon:Package,       color:"#107c10"},
+    {label:"Barcode Scanner",    path:"/scanner",              icon:Search,        color:"#C45911"},
+    {label:"Items",              path:"/items",                icon:Package,       color:"#374151"},
+    {label:"Quality Check",      path:"/quality/inspections",  icon:Shield,        color:"#00695C"},
+  ],
+  requisitioner: [
+    {label:"New Requisition",    path:"/requisitions",         icon:ClipboardList, color:"#0078d4"},
+    {label:"My Requisitions",    path:"/requisitions",         icon:ClipboardList, color:"#374151"},
+    {label:"Inbox",              path:"/inbox",                icon:Mail,          color:"#c0185a"},
+  ],
+};
 
-/* ─── H-BAR CHART ─── */
-function HBarChart({ data }: { data:{label:string;value:number}[] }) {
-  if (!data.length) return (
-    <div style={{height:200,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <p style={{color:"#9ca3af",fontSize:12}}>No department data yet</p>
-    </div>
-  );
-  const max = Math.max(...data.map(d=>d.value),1);
+/* ── MINI BAR CHART ── */
+function MiniBar({ data }: { data:{label:string;value:number;color:string}[] }) {
+  const max = Math.max(...data.map(d=>d.value), 1);
   return (
-    <div style={{padding:"4px 0"}}>
+    <div style={{display:"flex",alignItems:"flex-end",gap:4,height:50,paddingTop:4}}>
       {data.map((d,i)=>(
-        <div key={i} style={{display:"flex",alignItems:"center",gap:4,marginBottom:8}}>
-          <div style={{width:120,textAlign:"right",paddingRight:6,fontSize:10,color:"#6b7280",flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-            {d.label}
-          </div>
-          <div style={{flex:1,height:18,background:"#f3f4f6",overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${(d.value/max)*100}%`,background:"#1F6090",display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:4,minWidth:18,transition:"width 0.5s ease"}}>
-              <span style={{fontSize:9,color:"#fff",fontWeight:700}}>{d.value}</span>
-            </div>
-          </div>
+        <div key={i} title={`${d.label}: ${d.value}`} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <div style={{width:"100%",height:`${(d.value/max)*44}px`,background:d.color,borderRadius:"2px 2px 0 0",minHeight:3,transition:"height 0.5s"}}/>
+          <span style={{fontSize:8,color:"#9ca3af",textAlign:"center",lineHeight:1}}>{d.label.slice(0,5)}</span>
         </div>
       ))}
-      <div style={{borderTop:"1px solid #e5e7eb",marginTop:4,paddingTop:4,textAlign:"right"}}>
-        <span style={{fontSize:9,color:"#9ca3af"}}>Count (Records)</span>
-      </div>
     </div>
   );
 }
 
-/* ─── STACKED BAR CHART ─── */
-function StackedBarChart({ data }: { data:{owner:string;low:number;normal:number;high:number}[] }) {
-  if (!data.length) return (
-    <div style={{height:200,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <p style={{color:"#9ca3af",fontSize:12}}>No PO data yet</p>
-    </div>
-  );
-  const maxVal = Math.max(...data.map(d=>d.low+d.normal+d.high),1);
-  const CH = 140;
+/* ── STAT CARD ── */
+function StatCard({label,value,sub,color,icon:Icon,trend}:{label:string;value:string;sub:string;color:string;icon:any;trend?:number}) {
   return (
-    <div style={{padding:"4px 0 0"}}>
-      <div style={{display:"flex",gap:4,alignItems:"flex-end",height:CH+24}}>
-        <div style={{width:22,height:CH,display:"flex",flexDirection:"column-reverse",justifyContent:"space-between"}}>
-          {[0,10,20,30,40,50].filter(t=>t<=Math.ceil(maxVal/10)*10).map(t=>(
-            <span key={t} style={{fontSize:8,color:"#9ca3af",textAlign:"right",display:"block"}}>{t}</span>
-          ))}
-        </div>
-        <div style={{width:1,height:CH,background:"#e5e7eb",flexShrink:0}}/>
-        <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"space-around",height:CH,borderBottom:"1px solid #e5e7eb"}}>
-          {data.map((d,i)=>{
-            const scale=(v:number)=>(v/maxVal)*CH;
-            return (
-              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                <div style={{width:28,display:"flex",flexDirection:"column",justifyContent:"flex-end",height:CH}}>
-                  {d.high>0   && <div title={`High: ${d.high}`}   style={{height:scale(d.high),   background:"#1F6090",width:"100%"}}/>}
-                  {d.normal>0 && <div title={`Normal: ${d.normal}`} style={{height:scale(d.normal), background:"#C45911",width:"100%"}}/>}
-                  {d.low>0    && <div title={`Low: ${d.low}`}     style={{height:scale(d.low),    background:"#5C2D91",width:"100%"}}/>}
-                </div>
-                <span style={{fontSize:8,color:"#6b7280",marginTop:3,textAlign:"center",maxWidth:36,wordBreak:"break-word",lineHeight:1.2}}>
-                  {d.owner.split(" ")[0]}
-                </span>
-              </div>
-            );
-          })}
+    <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:8,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>{label}</span>
+        <div style={{width:30,height:30,borderRadius:6,background:`${color}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <Icon style={{width:15,height:15,color}}/>
         </div>
       </div>
-      <div style={{display:"flex",gap:12,justifyContent:"center",marginTop:7,borderTop:"1px solid #e5e7eb",paddingTop:7}}>
-        {[["Low","#5C2D91"],["Normal","#C45911"],["High","#1F6090"]].map(([l,c])=>(
-          <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
-            <div style={{width:11,height:11,background:c}}/>
-            <span style={{fontSize:10,color:"#6b7280"}}>{l}</span>
-          </div>
-        ))}
+      <div style={{fontSize:22,fontWeight:800,color:"#111827",lineHeight:1}}>{value}</div>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        {trend!==undefined && (
+          trend >= 0
+            ? <span style={{display:"flex",alignItems:"center",gap:2,fontSize:10,color:"#15803d",fontWeight:700}}><TrendingUp style={{width:10,height:10}}/>+{trend}%</span>
+            : <span style={{display:"flex",alignItems:"center",gap:2,fontSize:10,color:"#dc2626",fontWeight:700}}><TrendingDown style={{width:10,height:10}}/>{trend}%</span>
+        )}
+        <span style={{fontSize:10,color:"#9ca3af"}}>{sub}</span>
       </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════
-   MAIN DASHBOARD
-═══════════════════════════════════ */
 export default function DashboardPage() {
   const { profile, roles } = useAuth();
   const navigate = useNavigate();
 
-  const [loading,     setLoading]     = useState(true);
-  const [activities,  setActivities]  = useState<any[]>([]);
-  const [funnelData,  setFunnelData]  = useState<{label:string;value:number;color:string}[]>([]);
-  const [deptData,    setDeptData]    = useState<{label:string;value:number}[]>([]);
-  const [ownerData,   setOwnerData]   = useState<{owner:string;low:number;normal:number;high:number}[]>([]);
-  const [activeGroup, setActiveGroup] = useState("My Work");
-  const [actTab,      setActTab]      = useState<"reqs"|"pos"|"grns">("reqs");
-  const [search,      setSearch]      = useState("");
-  const [hovTile,     setHovTile]     = useState<string|null>(null);
+  const primaryRole = (
+    roles.includes("admin")               ? "admin" :
+    roles.includes("procurement_manager") ? "procurement_manager" :
+    roles.includes("procurement_officer") ? "procurement_officer" :
+    roles.includes("inventory_manager")   ? "inventory_manager" :
+    roles.includes("warehouse_officer")   ? "warehouse_officer" : "requisitioner"
+  ) as keyof typeof QUICK_ACTIONS_BY_ROLE;
 
-  /* ── LOAD ── */
+  const [loading,    setLoading]    = useState(true);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [stats,      setStats]      = useState({ reqs:0, pos:0, grns:0, pendingAmt:0, approvedAmt:0, suppliers:0 });
+  const [chartData,  setChartData]  = useState<{label:string;value:number;color:string}[]>([]);
+  const [actTab,     setActTab]     = useState<"reqs"|"pos"|"grns">("reqs");
+  const [search,     setSearch]     = useState("");
+  const [logoUrl,    setLogoUrl]    = useState<string|null>(null);
+  const [sysName,    setSysName]    = useState("EL5 MediProcure");
+  const [notifs,     setNotifs]     = useState<any[]>([]);
+
+  const quickActions = QUICK_ACTIONS_BY_ROLE[primaryRole] || QUICK_ACTIONS_BY_ROLE.requisitioner;
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [rData, pData, rr, rp, rg] = await Promise.all([
-        (supabase as any).from("requisitions").select("status,total_amount,department_name").limit(200),
-        (supabase as any).from("purchase_orders").select("status,total_amount,created_by_name").limit(200),
-        (supabase as any).from("requisitions").select("requisition_number,status,total_amount,requested_by_name,department_name,created_at").order("created_at",{ascending:false}).limit(25),
-        (supabase as any).from("purchase_orders").select("po_number,status,total_amount,supplier_name,created_by_name,created_at").order("created_at",{ascending:false}).limit(25),
-        (supabase as any).from("goods_received").select("grn_number,po_number,received_by_name,status,created_at").order("created_at",{ascending:false}).limit(25),
+      const [rD, pD, gD, supD, rr, rp, rg, notifD, settD] = await Promise.all([
+        (supabase as any).from("requisitions").select("status,total_amount").limit(200),
+        (supabase as any).from("purchase_orders").select("status,total_amount").limit(200),
+        (supabase as any).from("goods_received").select("id",{count:"exact",head:true}).limit(1),
+        (supabase as any).from("suppliers").select("id",{count:"exact",head:true}).limit(1),
+        (supabase as any).from("requisitions").select("requisition_number,status,total_amount,requested_by_name,department_name,created_at").order("created_at",{ascending:false}).limit(20),
+        (supabase as any).from("purchase_orders").select("po_number,status,total_amount,supplier_name,created_by_name,created_at").order("created_at",{ascending:false}).limit(20),
+        (supabase as any).from("goods_received").select("grn_number,po_number,received_by_name,status,created_at").order("created_at",{ascending:false}).limit(20),
+        (supabase as any).from("notifications").select("*").eq("is_read",false).order("created_at",{ascending:false}).limit(5),
+        (supabase as any).from("system_settings").select("key,value").in("key",["system_name","system_logo_url"]),
       ]);
 
-      /* funnel */
-      const stTot: Record<string,number>={};
-      (rData.data||[]).forEach((r:any)=>{ const s=r.status||"draft"; stTot[s]=(stTot[s]||0)+Number(r.total_amount||0); });
-      const fC: Record<string,string>={draft:"#e05a00",pending:"#ef4444",approved:"#8b5cf6",submitted:"#1F6090",issued:"#d4a017",received:"#107c10",rejected:"#374151"};
-      setFunnelData(Object.entries(stTot).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,5)
-        .map(([s,v])=>({label:s.charAt(0).toUpperCase()+s.slice(1),value:v as number,color:fC[s]||"#64748b"})));
-
-      /* dept */
-      const dC: Record<string,number>={};
-      (rData.data||[]).forEach((r:any)=>{ const d=r.department_name||"General"; dC[d]=(dC[d]||0)+1; });
-      setDeptData(Object.entries(dC).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([label,value])=>({label,value:value as number})));
-
-      /* stacked */
-      const oMap: Record<string,{low:number;normal:number;high:number}>={};
-      (pData.data||[]).forEach((p:any)=>{
-        const o=(p.created_by_name||"Unknown").split(" ").slice(0,2).join(" ");
-        if(!oMap[o]) oMap[o]={low:0,normal:0,high:0};
-        const a=Number(p.total_amount||0);
-        if(a<50000) oMap[o].low++; else if(a<200000) oMap[o].normal++; else oMap[o].high++;
+      // Stats
+      const allReqs = rD.data||[];
+      const allPos  = pD.data||[];
+      const pendingAmt = allReqs.filter((r:any)=>r.status==="pending").reduce((s:number,r:any)=>s+Number(r.total_amount||0),0);
+      const approvedAmt= allPos.filter((p:any)=>p.status==="approved"||p.status==="issued").reduce((s:number,p:any)=>s+Number(p.total_amount||0),0);
+      setStats({
+        reqs: allReqs.length, pos: allPos.length,
+        grns: gD.count||0, suppliers: supD.count||0,
+        pendingAmt, approvedAmt,
       });
-      setOwnerData(Object.entries(oMap).slice(0,6).map(([owner,v])=>({owner,...v})));
 
-      /* activities */
+      // Chart
+      const stC: Record<string,{v:number;c:string}> = {
+        draft:{v:0,c:"#9ca3af"}, pending:{v:0,c:"#f59e0b"},
+        approved:{v:0,c:"#22c55e"}, rejected:{v:0,c:"#ef4444"},
+        issued:{v:0,c:"#60a5fa"}, received:{v:0,c:"#10b981"},
+      };
+      allReqs.forEach((r:any)=>{ if(stC[r.status]) stC[r.status].v++; });
+      setChartData(Object.entries(stC).filter(([,d])=>d.v>0).map(([l,d])=>({label:l,value:d.v,color:d.c})));
+
+      // Activities
       setActivities([
-        ...(rr.data||[]).map((r:any)=>({_tab:"reqs",subject:r.requisition_number||"—",regarding:r.department_name||"Procurement",type:"Requisition",status:r.status||"draft",owner:r.requested_by_name||"—",amount:r.total_amount,date:r.created_at})),
-        ...(rp.data||[]).map((r:any)=>({_tab:"pos",subject:r.po_number||"—",regarding:r.supplier_name||"Supplier",type:"Purchase Order",status:r.status||"draft",owner:r.created_by_name||"—",amount:r.total_amount,date:r.created_at})),
-        ...(rg.data||[]).map((r:any)=>({_tab:"grns",subject:r.grn_number||"—",regarding:r.po_number||"PO",type:"GRN",status:r.status||"draft",owner:r.received_by_name||"—",amount:null,date:r.created_at})),
+        ...(rr.data||[]).map((r:any)=>({_tab:"reqs",subject:r.requisition_number||"—",regarding:r.department_name||"—",type:"Requisition",status:r.status||"draft",owner:r.requested_by_name||"—",amount:r.total_amount,date:r.created_at})),
+        ...(rp.data||[]).map((r:any)=>({_tab:"pos",subject:r.po_number||"—",regarding:r.supplier_name||"—",type:"Purchase Order",status:r.status||"draft",owner:r.created_by_name||"—",amount:r.total_amount,date:r.created_at})),
+        ...(rg.data||[]).map((r:any)=>({_tab:"grns",subject:r.grn_number||"—",regarding:r.po_number||"—",type:"GRN",status:r.status||"draft",owner:r.received_by_name||"—",amount:null,date:r.created_at})),
       ]);
+      setNotifs(notifD.data||[]);
+
+      // Settings
+      const m: Record<string,string> = {};
+      (settD.data||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value; });
+      if(m.system_name) setSysName(m.system_name);
+      if(m.system_logo_url) setLogoUrl(m.system_logo_url);
     } catch(e){ console.error("Dashboard error:",e); }
     setLoading(false);
   }, []);
 
   useEffect(()=>{ load(); },[load]);
-
-  /* real-time */
   useEffect(()=>{
-    const ch=(supabase as any).channel("dash-rt")
+    const ch=(supabase as any).channel("dash-rt2")
       .on("postgres_changes",{event:"*",schema:"public",table:"requisitions"},()=>load())
       .on("postgres_changes",{event:"*",schema:"public",table:"purchase_orders"},()=>load())
-      .on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load())
       .subscribe();
-    return()=>{ (supabase as any).removeChannel(ch); };
+    return()=>(supabase as any).removeChannel(ch);
   },[load]);
 
-  const visibleActs = activities.filter(r=>{
-    const t=actTab==="reqs"?r._tab==="reqs":actTab==="pos"?r._tab==="pos":r._tab==="grns";
-    const s=!search||Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()));
-    return t&&s;
+  const visActs = activities.filter(r=>{
+    const ok = actTab==="reqs"?r._tab==="reqs":actTab==="pos"?r._tab==="pos":r._tab==="grns";
+    const s  = !search||Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()));
+    return ok&&s;
   });
-
-  const groupTiles = GROUP_TILES[activeGroup]||[];
-  const tilesToShow = ALL_TILES.filter(t=>groupTiles.includes(t.label));
   const actPath = actTab==="reqs"?"/requisitions":actTab==="pos"?"/purchase-orders":"/goods-received";
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f3f2f1",minHeight:"calc(100vh - 57px)"}}>
+    <div style={{fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f4f6f9",minHeight:"calc(100vh - 57px)",padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
 
-      {/* ══ GROUP NAV BAR ══ */}
-      <div style={{background:"#fff",borderBottom:"1px solid #edebe9",padding:"0 8px"}}>
-        <div style={{display:"flex",alignItems:"center"}}>
-          {GROUPS.map(g=>(
-            <button key={g} onClick={()=>setActiveGroup(g)} style={{
-              padding:"9px 16px",fontSize:12,fontWeight:600,border:"none",background:"transparent",cursor:"pointer",
-              color:activeGroup===g?"#0078d4":"#605e5c",
-              borderBottom:activeGroup===g?"2px solid #0078d4":"2px solid transparent",
-              whiteSpace:"nowrap",
-            }}>{g}</button>
-          ))}
-          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,paddingRight:8}}>
-            <span style={{fontSize:12,fontWeight:600,color:"#0078d4",cursor:"pointer"}}>Dashboards</span>
-            <ChevronDown style={{width:11,height:11,color:"#0078d4"}}/>
-          </div>
+      {/* ══ WELCOME BANNER ══ */}
+      <div style={{background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderRadius:10,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 4px 20px rgba(26,58,107,0.3)"}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.6)",marginBottom:3,letterSpacing:"0.04em"}}>WELCOME BACK</div>
+          <div style={{fontSize:20,fontWeight:900,color:"#fff"}}>{profile?.full_name || "User"}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{sysName} · {new Date().toLocaleDateString("en-KE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
-      </div>
-
-      {/* ══ CRM TILE ROW ══ */}
-      <div style={{background:"#fff",borderBottom:"2px solid #d2d0ce",overflowX:"auto"}}>
-        <div style={{display:"flex",alignItems:"stretch",minHeight:82}}>
-          {tilesToShow.map(tile=>{
-            const isH=hovTile===tile.label;
-            return (
-              <button key={tile.label} onClick={()=>navigate(tile.path)}
-                onMouseEnter={()=>setHovTile(tile.label)}
-                onMouseLeave={()=>setHovTile(null)}
-                style={{
-                  display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-                  gap:5,padding:"10px 8px 7px",minWidth:96,flexShrink:0,
-                  background:isH?`${tile.bg}cc`:tile.bg,
-                  border:"none",borderRight:"1px solid rgba(255,255,255,0.2)",
-                  cursor:"pointer",position:"relative",
-                  filter:isH?"brightness(0.88)":"none",transition:"filter 0.12s",
-                }}>
-                <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.12)",borderRadius:4}}>
-                  <tile.icon style={{width:20,height:20,color:"rgba(255,255,255,0.92)"}}/>
-                </div>
-                <span style={{fontSize:9,fontWeight:800,color:"#fff",letterSpacing:"0.05em",textAlign:"center",lineHeight:1.2,textTransform:"uppercase" as const}}>
-                  {tile.label}
-                </span>
-                <div style={{position:"absolute",bottom:3,right:3,width:13,height:13,background:"rgba(255,255,255,0.2)",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <ChevronDown style={{width:8,height:8,color:"rgba(255,255,255,0.9)"}}/>
-                </div>
-              </button>
-            );
-          })}
-          <div style={{display:"flex",alignItems:"center",padding:"0 8px",background:"#fff",borderLeft:"1px solid #edebe9"}}>
-            <span style={{fontSize:18,color:"#605e5c"}}>›</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ══ MAIN CONTENT ══ */}
-      <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:10}}>
-
-        {/* THREE CHARTS ROW */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-          {[
-            {title:"Pipeline by Procurement Stage",sub:"Open Requisitions",content:<FunnelChart data={funnelData}/>},
-            {title:"Requisitions by Department",sub:"Open Requisitions",content:<HBarChart data={deptData}/>},
-            {title:"PO Value Tier Per Creator",sub:"Active Purchase Orders",content:<StackedBarChart data={ownerData}/>},
-          ].map(chart=>(
-            <div key={chart.title} style={{background:"#fff",border:"1px solid #edebe9",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-              <div style={{padding:"9px 13px 5px",borderBottom:"1px solid #edebe9"}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#323130"}}>{chart.title}</div>
-                <div style={{fontSize:11,color:"#a19f9d",marginTop:1}}>{chart.sub}</div>
-              </div>
-              <div style={{padding:"6px 12px 10px",minHeight:200}}>
-                {loading
-                  ? <div style={{height:180,display:"flex",alignItems:"center",justifyContent:"center"}}><RefreshCw style={{width:18,height:18,color:"#d2d0ce"}} className="animate-spin"/></div>
-                  : chart.content
-                }
-              </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {notifs.length > 0 && (
+            <div style={{background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"6px 12px",display:"flex",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>navigate("/inbox")}>
+              <Bell style={{width:14,height:14,color:"#fbbf24"}}/>
+              <span style={{fontSize:11,color:"#fff",fontWeight:700}}>{notifs.length} alerts</span>
             </div>
-          ))}
+          )}
+          <button onClick={load} disabled={loading} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"8px",cursor:"pointer",color:"rgba(255,255,255,0.7)"}}>
+            <RefreshCw style={{width:14,height:14}} className={loading?"animate-spin":""}/>
+          </button>
         </div>
+      </div>
 
-        {/* ALL ACTIVITIES TABLE */}
-        <div style={{background:"#fff",border:"1px solid #edebe9",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+      {/* ══ STAT CARDS ══ */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10}}>
+        <StatCard label="Requisitions" value={String(stats.reqs)} sub="total records" color="#0078d4" icon={ClipboardList} trend={5}/>
+        <StatCard label="Purchase Orders" value={String(stats.pos)} sub="total records" color="#C45911" icon={ShoppingCart}/>
+        <StatCard label="GRNs" value={String(stats.grns)} sub="received" color="#107c10" icon={Package} trend={2}/>
+        <StatCard label="Suppliers" value={String(stats.suppliers)} sub="registered" color="#5C2D91" icon={Truck}/>
+        <StatCard label="Pending Amount" value={fmtKES(stats.pendingAmt)} sub="awaiting approval" color="#f59e0b" icon={AlertCircle}/>
+        <StatCard label="Approved PO Value" value={fmtKES(stats.approvedAmt)} sub="this period" color="#22c55e" icon={CheckCircle} trend={8}/>
+      </div>
 
-          {/* Header */}
-          <div style={{padding:"7px 13px",borderBottom:"1px solid #edebe9",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{display:"flex",alignItems:"center",gap:5}}>
-              <span style={{fontSize:13,fontWeight:600,color:"#323130"}}>All Activities</span>
-              <ChevronDown style={{width:12,height:12,color:"#605e5c"}}/>
-              <div style={{marginLeft:10,display:"flex"}}>
-                {([["reqs","Requisitions"],["pos","Purchase Orders"],["grns","GRN"]] as const).map(([tab,label])=>(
+      {/* ══ MAIN BODY: Left content + Right Wheel ══ */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 460px",gap:12,alignItems:"start"}}>
+
+        {/* LEFT COLUMN */}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* Quick Actions */}
+          <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+              <Zap style={{width:14,height:14,color:"#f59e0b"}}/>
+              <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Quick Actions</span>
+              <span style={{fontSize:10,color:"#9ca3af",marginLeft:4}}>Role: {primaryRole.replace(/_/g," ")}</span>
+            </div>
+            <div style={{padding:"12px 14px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:8}}>
+              {quickActions.map((qa,i)=>(
+                <button key={i} onClick={()=>navigate(qa.path)}
+                  style={{
+                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                    gap:7,padding:"12px 8px",borderRadius:8,border:"1px solid #f3f4f6",
+                    background:"#fafafa",cursor:"pointer",transition:"all 0.15s",
+                  }}
+                  onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background=`${qa.color}10`;(e.currentTarget as HTMLElement).style.borderColor=`${qa.color}40`;(e.currentTarget as HTMLElement).style.transform="translateY(-2px)";(e.currentTarget as HTMLElement).style.boxShadow=`0 4px 12px ${qa.color}20`;}}
+                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="#fafafa";(e.currentTarget as HTMLElement).style.borderColor="#f3f4f6";(e.currentTarget as HTMLElement).style.transform="";(e.currentTarget as HTMLElement).style.boxShadow="";}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:`${qa.color}18`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <qa.icon style={{width:18,height:18,color:qa.color}}/>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:600,color:"#374151",textAlign:"center",lineHeight:1.3}}>{qa.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Requisition status chart */}
+          <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <BarChart3 style={{width:13,height:13,color:"#6b7280"}}/>
+                <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Requisition Status</span>
+              </div>
+              <span style={{fontSize:10,color:"#9ca3af"}}>by count</span>
+            </div>
+            {loading ? <div style={{height:60,display:"flex",alignItems:"center",justifyContent:"center"}}><RefreshCw style={{width:16,height:16,color:"#d1d5db"}} className="animate-spin"/></div>
+              : <MiniBar data={chartData}/>}
+          </div>
+
+          {/* All Activities */}
+          <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            {/* Header */}
+            <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+              <Activity style={{width:13,height:13,color:"#6b7280"}}/>
+              <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>All Activities</span>
+              <div style={{display:"flex",marginLeft:8}}>
+                {([["reqs","Requisitions"],["pos","Purchase Orders"],["grns","GRN"]] as const).map(([tab,lbl])=>(
                   <button key={tab} onClick={()=>setActTab(tab)} style={{
-                    padding:"2px 11px",fontSize:11,fontWeight:600,border:"none",background:"transparent",cursor:"pointer",
-                    color:actTab===tab?"#0078d4":"#605e5c",
+                    padding:"3px 10px",fontSize:11,fontWeight:600,border:"none",background:"transparent",cursor:"pointer",
+                    color:actTab===tab?"#0078d4":"#9ca3af",
                     borderBottom:actTab===tab?"2px solid #0078d4":"2px solid transparent",
-                  }}>{label}</button>
+                  }}>{lbl}</button>
                 ))}
               </div>
+              <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
+                <div style={{position:"relative"}}>
+                  <Search style={{position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",width:11,height:11,color:"#9ca3af"}}/>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
+                    style={{paddingLeft:24,paddingRight:8,paddingTop:4,paddingBottom:4,fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,width:140,outline:"none",background:"#f9fafb"}}/>
+                </div>
+                <button onClick={()=>navigate(actPath)} style={{background:"#0078d4",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
+                  <Plus style={{width:11,height:11}}/> New
+                </button>
+                <button onClick={load} disabled={loading} style={{background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+                  <RefreshCw style={{width:12,height:12}} className={loading?"animate-spin":""}/>
+                </button>
+              </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <button onClick={load} disabled={loading} style={{background:"none",border:"none",cursor:"pointer",color:"#0078d4"}}>
-                <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/>
-              </button>
-              <button onClick={()=>navigate(actPath)} style={{background:"none",border:"none",cursor:"pointer",color:"#605e5c"}}>
-                <Plus style={{width:16,height:16}}/>
-              </button>
-              <Grid2x2 style={{width:14,height:14,color:"#605e5c",cursor:"pointer"}}/>
-            </div>
-          </div>
-
-          {/* Search */}
-          <div style={{padding:"5px 13px",borderBottom:"1px solid #edebe9",background:"#faf9f8"}}>
-            <div style={{position:"relative",maxWidth:260}}>
-              <Search style={{position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#a19f9d"}}/>
-              <input type="text" placeholder="Search for records" value={search} onChange={e=>setSearch(e.target.value)}
-                style={{width:"100%",paddingLeft:26,paddingRight:8,paddingTop:4,paddingBottom:4,fontSize:11,color:"#323130",border:"1px solid #c8c6c4",background:"#fff",outline:"none",fontFamily:"'Segoe UI',sans-serif"}}/>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-              <thead>
-                <tr style={{background:"#faf9f8",borderBottom:"1px solid #edebe9"}}>
-                  {["Subject","Regarding","Activity Type","Activity Status","Owner","Amount","Date"].map(col=>(
-                    <th key={col} style={{padding:"7px 12px",textAlign:"left",fontWeight:600,color:"#605e5c",fontSize:11,whiteSpace:"nowrap",borderRight:"1px solid #f3f2f1"}}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? [1,2,3,4,5].map(i=>(
-                      <tr key={i} style={{borderBottom:"1px solid #f3f2f1"}}>
-                        {[1,2,3,4,5,6,7].map(j=>(
-                          <td key={j} style={{padding:"9px 12px"}}>
-                            <div style={{height:9,borderRadius:2,background:"#f3f2f1",width:j===1?"72%":"52%"}} className="animate-pulse"/>
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  : visibleActs.length===0
-                  ? <tr><td colSpan={7} style={{padding:"28px",textAlign:"center",color:"#a19f9d",fontSize:12}}>
-                      No records found.{" "}
-                      <button onClick={()=>navigate(actPath)} style={{color:"#0078d4",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Create one →</button>
-                    </td></tr>
-                  : visibleActs.map((row,i)=>{
-                      const sc=STATUS[row.status]||{bg:"#f3f4f6",color:"#6b7280"};
-                      return (
-                        <tr key={i} onClick={()=>navigate(actPath)}
-                          style={{borderBottom:"1px solid #f3f2f1",cursor:"pointer"}}
-                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f3"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                          <td style={{padding:"7px 12px",color:"#0078d4",fontWeight:600}}>{row.subject}</td>
-                          <td style={{padding:"7px 12px",color:"#323130"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:5}}>
-                              <div style={{width:18,height:18,background:"#e1dfdd",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                <FileText style={{width:9,height:9,color:"#605e5c"}}/>
-                              </div>
-                              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{row.regarding}</span>
-                            </div>
-                          </td>
-                          <td style={{padding:"7px 12px",color:"#323130"}}>{row.type}</td>
-                          <td style={{padding:"7px 12px"}}>
-                            <span style={{background:sc.bg,color:sc.color,padding:"2px 7px",borderRadius:2,fontSize:10,fontWeight:600,textTransform:"capitalize" as const}}>
-                              {row.status}
-                            </span>
-                          </td>
-                          <td style={{padding:"7px 12px",color:"#323130"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:5}}>
-                              <div style={{width:17,height:17,borderRadius:"50%",background:"#e1dfdd",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                <span style={{fontSize:8,color:"#605e5c",fontWeight:700}}>{(row.owner||"?")[0].toUpperCase()}</span>
-                              </div>
-                              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{row.owner}</span>
-                            </div>
-                          </td>
-                          <td style={{padding:"7px 12px",color:"#323130"}}>{row.amount?fmtKES(Number(row.amount)):"—"}</td>
-                          <td style={{padding:"7px 12px",color:"#a19f9d",whiteSpace:"nowrap",fontSize:11}}>
-                            {new Date(row.date).toLocaleDateString("en-KE",{month:"short",day:"2-digit",year:"numeric"})}
-                          </td>
+            {/* Table */}
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:11,borderCollapse:"collapse"}}>
+                <thead>
+                  <tr style={{background:"#f9fafb",borderBottom:"2px solid #f3f4f6"}}>
+                    {["Subject","Regarding","Type","Status","Owner","Amount","Date"].map(c=>(
+                      <th key={c} style={{padding:"7px 12px",textAlign:"left",fontWeight:700,color:"#9ca3af",fontSize:10,textTransform:"uppercase",letterSpacing:"0.04em",whiteSpace:"nowrap"}}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading
+                    ? [1,2,3,4].map(i=>(
+                        <tr key={i} style={{borderBottom:"1px solid #f9fafb"}}>
+                          {[1,2,3,4,5,6,7].map(j=>(
+                            <td key={j} style={{padding:"10px 12px"}}>
+                              <div style={{height:10,borderRadius:4,background:"#f3f4f6",width:j===1?"70%":"50%"}} className="animate-pulse"/>
+                            </td>
+                          ))}
                         </tr>
-                      );
-                    })
-                }
-              </tbody>
-            </table>
+                      ))
+                    : visActs.length===0
+                    ? <tr><td colSpan={7} style={{padding:"24px",textAlign:"center",color:"#9ca3af",fontSize:12}}>
+                        No records yet. <button onClick={()=>navigate(actPath)} style={{color:"#0078d4",background:"none",border:"none",cursor:"pointer",fontWeight:700}}>Create one →</button>
+                      </td></tr>
+                    : visActs.map((row,i)=>{
+                        const sc = STATUS[row.status]||{bg:"#f3f4f6",color:"#6b7280"};
+                        return (
+                          <tr key={i} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
+                            onClick={()=>navigate(actPath)}
+                            onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"}
+                            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
+                            <td style={{padding:"8px 12px",color:"#0078d4",fontWeight:700}}>{row.subject}</td>
+                            <td style={{padding:"8px 12px",color:"#374151",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.regarding}</td>
+                            <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.type}</td>
+                            <td style={{padding:"8px 12px"}}>
+                              <span style={{background:sc.bg,color:sc.color,padding:"2px 7px",borderRadius:4,fontSize:10,fontWeight:700,textTransform:"capitalize" as const}}>{row.status}</span>
+                            </td>
+                            <td style={{padding:"8px 12px",color:"#374151",maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.owner}</td>
+                            <td style={{padding:"8px 12px",color:"#374151",fontWeight:600}}>{row.amount?fmtKES(Number(row.amount)):"—"}</td>
+                            <td style={{padding:"8px 12px",color:"#9ca3af",whiteSpace:"nowrap"}}>
+                              {new Date(row.date).toLocaleDateString("en-KE",{day:"2-digit",month:"short"})}
+                            </td>
+                          </tr>
+                        );
+                      })
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
+        {/* RIGHT COLUMN — ERP WHEEL */}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{textAlign:"center",marginBottom:8}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>ERP Ecosystem</div>
+              <div style={{fontSize:10,color:"#9ca3af"}}>Click any node to navigate</div>
+            </div>
+            <ERPWheelButton logoUrl={logoUrl}/>
+          </div>
+
+          {/* Notifications panel */}
+          {notifs.length > 0 && (
+            <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:6}}>
+                <Bell style={{width:12,height:12,color:"#f59e0b"}}/>
+                <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Notifications</span>
+                <span style={{marginLeft:"auto",fontSize:10,color:"#0078d4",cursor:"pointer"}} onClick={()=>navigate("/inbox")}>View all</span>
+              </div>
+              {notifs.map((n,i)=>(
+                <div key={i} style={{padding:"10px 14px",borderBottom:i<notifs.length-1?"1px solid #f9fafb":"none",display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:"#0078d4",marginTop:4,flexShrink:0}}/>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:"#374151"}}>{n.title||"Notification"}</div>
+                    <div style={{fontSize:10,color:"#9ca3af"}}>{n.message?.slice(0,60)||""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

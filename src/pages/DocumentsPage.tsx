@@ -2,46 +2,309 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { FileText, Upload, Eye, Lock, Download, Search, X, Plus, Filter, Printer, RefreshCw, ChevronDown, Edit, Trash2, FileCheck } from "lucide-react";
+import {
+  FileText, Upload, Eye, Lock, Download, Search, X, Plus, Filter,
+  Printer, RefreshCw, Edit3, Trash2, FileCheck, Settings, Pen,
+  ChevronDown, Users, Shield, Save, Image, CheckCircle, AlertTriangle
+} from "lucide-react";
 
-const CATEGORIES = ["general","policy","template","contract","report","letter","form","procedure","other"];
-const CATEGORY_COLORS: Record<string,string> = {
-  general:"#6b7280",policy:"#1a3a6b",template:"#C45911",contract:"#00695C",
-  report:"#5C2D91",letter:"#c0185a",form:"#0891b2",procedure:"#375623",other:"#374151",
+const CATS = ["general","policy","template","contract","report","letter","form","procedure","other"];
+const CAT_COLORS: Record<string,{bg:string;color:string}> = {
+  general:{bg:"#f3f4f6",color:"#6b7280"}, policy:{bg:"#dbeafe",color:"#1d4ed8"},
+  template:{bg:"#fef3c7",color:"#92400e"}, contract:{bg:"#dcfce7",color:"#15803d"},
+  report:{bg:"#ede9fe",color:"#5b21b6"}, letter:{bg:"#fce7f3",color:"#9d174d"},
+  form:{bg:"#e0f2fe",color:"#0369a1"}, procedure:{bg:"#f0fdf4",color:"#166534"},
+  other:{bg:"#f9fafb",color:"#374151"},
 };
+
+/* System document templates */
+const SYSTEM_TEMPLATES = [
+  {
+    id:"lpo",
+    name:"Local Purchase Order (LPO)",
+    category:"template",
+    description:"Standard LPO template for procurement",
+    html:`<div class="doc-page">
+<div class="doc-header">
+  <div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" style="height:60px" onerror="this.style.display='none'"/></div>
+  <div class="header-text">
+    <h2>EMBU LEVEL 5 HOSPITAL</h2>
+    <h3>LOCAL PURCHASE ORDER</h3>
+    <p>LPO No: <strong>{{LPO_NUMBER}}</strong></p>
+  </div>
+</div>
+<table class="info-table">
+  <tr><td><strong>Supplier:</strong></td><td>{{SUPPLIER_NAME}}</td><td><strong>Date:</strong></td><td>{{DATE}}</td></tr>
+  <tr><td><strong>Address:</strong></td><td>{{SUPPLIER_ADDRESS}}</td><td><strong>Delivery Date:</strong></td><td>{{DELIVERY_DATE}}</td></tr>
+  <tr><td><strong>Contact:</strong></td><td>{{SUPPLIER_CONTACT}}</td><td><strong>Department:</strong></td><td>{{DEPARTMENT}}</td></tr>
+</table>
+<table class="items-table">
+  <thead><tr><th>#</th><th>Description</th><th>Unit</th><th>Qty</th><th>Unit Price (KES)</th><th>Total (KES)</th></tr></thead>
+  <tbody>{{ITEMS_ROWS}}</tbody>
+  <tfoot>
+    <tr class="subtotal"><td colspan="5"><strong>Subtotal</strong></td><td>{{SUBTOTAL}}</td></tr>
+    <tr class="tax"><td colspan="5">VAT (16%)</td><td>{{VAT}}</td></tr>
+    <tr class="total"><td colspan="5"><strong>TOTAL</strong></td><td><strong>{{TOTAL}}</strong></td></tr>
+  </tfoot>
+</table>
+<div class="terms"><h4>Terms & Conditions</h4><p>{{TERMS}}</p></div>
+<div class="signatures">
+  <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p>Authorized Signatory</p><p>{{SIG_DATE_1}}</p></div>
+  <div class="sig-box"><div class="sig-line">{{SIG_SUPPLIER}}</div><p>Supplier Representative</p><p>{{SIG_DATE_2}}</p></div>
+  <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p>Approved By</p><p>{{SIG_DATE_3}}</p></div>
+</div>
+<div class="doc-stamp">OFFICIAL DOCUMENT — EMBU LEVEL 5 HOSPITAL</div>
+</div>`,
+  },
+  {
+    id:"grn",
+    name:"Goods Received Note (GRN)",
+    category:"template",
+    description:"GRN template for goods receipt",
+    html:`<div class="doc-page">
+<div class="doc-header">
+  <div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" style="height:60px" onerror="this.style.display='none'"/></div>
+  <div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>GOODS RECEIVED NOTE</h3><p>GRN No: <strong>{{GRN_NUMBER}}</strong></p></div>
+</div>
+<table class="info-table">
+  <tr><td><strong>Supplier:</strong></td><td>{{SUPPLIER_NAME}}</td><td><strong>Date Received:</strong></td><td>{{DATE}}</td></tr>
+  <tr><td><strong>LPO/PO Ref:</strong></td><td>{{PO_NUMBER}}</td><td><strong>Received By:</strong></td><td>{{RECEIVED_BY}}</td></tr>
+  <tr><td><strong>Store Location:</strong></td><td>{{STORE}}</td><td><strong>Department:</strong></td><td>{{DEPARTMENT}}</td></tr>
+</table>
+<table class="items-table">
+  <thead><tr><th>#</th><th>Item Description</th><th>Unit</th><th>Qty Ordered</th><th>Qty Received</th><th>Condition</th><th>Remarks</th></tr></thead>
+  <tbody>{{ITEMS_ROWS}}</tbody>
+</table>
+<div class="signatures">
+  <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p>Receiving Officer</p><p>{{SIG_DATE_1}}</p></div>
+  <div class="sig-box"><div class="sig-line">{{SIG_SUPPLIER}}</div><p>Supplier / Delivery Person</p><p>{{SIG_DATE_2}}</p></div>
+  <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p>Store Manager</p><p>{{SIG_DATE_3}}</p></div>
+</div>
+</div>`,
+  },
+  {
+    id:"pv",
+    name:"Payment Voucher",
+    category:"template",
+    description:"Payment voucher template",
+    html:`<div class="doc-page">
+<div class="doc-header">
+  <div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" style="height:60px" onerror="this.style.display='none'"/></div>
+  <div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>PAYMENT VOUCHER</h3><p>Voucher No: <strong>{{VOUCHER_NUMBER}}</strong></p></div>
+</div>
+<table class="info-table">
+  <tr><td><strong>Pay To:</strong></td><td colspan="3">{{PAYEE_NAME}}</td></tr>
+  <tr><td><strong>Bank / Account:</strong></td><td>{{BANK_ACCOUNT}}</td><td><strong>Date:</strong></td><td>{{DATE}}</td></tr>
+  <tr><td><strong>Amount (KES):</strong></td><td><strong>{{AMOUNT}}</strong></td><td><strong>Vote Head:</strong></td><td>{{VOTE_HEAD}}</td></tr>
+</table>
+<div class="description-box"><h4>Purpose of Payment</h4><p>{{DESCRIPTION}}</p></div>
+<table class="items-table">
+  <thead><tr><th>Description</th><th>Vote Head</th><th>Amount (KES)</th></tr></thead>
+  <tbody>{{ITEMS_ROWS}}</tbody>
+  <tfoot><tr><td colspan="2"><strong>TOTAL</strong></td><td><strong>{{TOTAL}}</strong></td></tr></tfoot>
+</table>
+<div class="amount-words"><strong>Amount in Words:</strong> {{AMOUNT_WORDS}}</div>
+<div class="signatures">
+  <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p>Prepared By</p><p>{{SIG_DATE_1}}</p></div>
+  <div class="sig-box"><div class="sig-line">{{SIG_SUPPLIER}}</div><p>Finance Officer</p><p>{{SIG_DATE_2}}</p></div>
+  <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p>Approved By</p><p>{{SIG_DATE_3}}</p></div>
+</div>
+</div>`,
+  },
+];
+
+const DOC_PRINT_CSS = `
+  body{font-family:'Times New Roman',serif;margin:0;padding:20px;background:#fff;color:#000}
+  .doc-page{max-width:800px;margin:0 auto;padding:20px;border:1px solid #ccc}
+  .doc-header{display:flex;align-items:center;gap:20px;border-bottom:3px double #1a3a6b;padding-bottom:12px;margin-bottom:16px}
+  .header-text h2{margin:0;font-size:16px;color:#1a3a6b;text-transform:uppercase}
+  .header-text h3{margin:4px 0;font-size:13px;color:#C45911}
+  .header-text p{margin:2px 0;font-size:11px}
+  .info-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+  .info-table td{padding:4px 8px;border:1px solid #d1d5db}
+  .items-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+  .items-table th{background:#1a3a6b;color:#fff;padding:6px 8px;text-align:left;font-size:10px}
+  .items-table td{padding:5px 8px;border:1px solid #e5e7eb}
+  .items-table tr:nth-child(even) td{background:#f9fafb}
+  .subtotal td,.tax td,.total td{padding:5px 8px;border-top:1px solid #1a3a6b}
+  .total{font-weight:bold;background:#f0f4ff}
+  .signatures{display:flex;gap:20px;margin-top:30px;justify-content:space-between}
+  .sig-box{flex:1;text-align:center;font-size:10px}
+  .sig-line{border-top:1px solid #000;margin:0 10px 4px;min-height:50px;display:flex;align-items:flex-end;justify-content:center}
+  .sig-line img{max-height:48px;max-width:120px}
+  .doc-stamp{text-align:center;margin-top:20px;padding:8px;border:2px solid #1a3a6b;color:#1a3a6b;font-size:10px;font-weight:bold;letter-spacing:0.1em}
+  .terms{background:#f9fafb;padding:10px;border:1px solid #e5e7eb;margin-bottom:14px;font-size:10px}
+  .description-box{background:#f9fafb;padding:10px;border:1px solid #e5e7eb;margin-bottom:14px;font-size:11px}
+  .amount-words{font-size:11px;font-style:italic;margin-bottom:14px;padding:8px;border:1px dashed #d1d5db}
+  @media print{.doc-page{border:none;padding:0} @page{margin:1.5cm} button{display:none!important}}
+`;
+
+function TemplateEditor({ doc, onSave, onClose }: { doc:any; onSave:(d:any)=>void; onClose:()=>void }) {
+  const { user, profile, roles } = useAuth();
+  const isAdmin = roles.includes("admin")||roles.includes("procurement_manager");
+  const [name,         setName]         = useState(doc.name||"");
+  const [description,  setDescription]  = useState(doc.description||"");
+  const [category,     setCategory]     = useState(doc.category||"template");
+  const [htmlContent,  setHtmlContent]  = useState(doc.html||doc.content||"");
+  const [sigSlots,     setSigSlots]     = useState<{label:string;sig:string|null}[]>([
+    {label:"Authorized Signatory",sig:null},
+    {label:"Finance Officer",sig:null},
+    {label:"Approved By",sig:null},
+  ]);
+  const [tab,         setTab]           = useState<"edit"|"preview"|"signatures">("edit");
+  const [saving,      setSaving]        = useState(false);
+  const sigRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  const uploadSig = async(idx: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const url = e.target?.result as string;
+      setSigSlots(p=>p.map((s,i)=>i===idx?{...s,sig:url}:s));
+      toast({title:`Signature ${idx+1} uploaded ✓`});
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const buildPreview = () => {
+    let h = htmlContent;
+    sigSlots.forEach((s,i) => {
+      if(s.sig) h = h.replace(`{{SIG_DATE_${i+1}}}`, `<img src="${s.sig}" style="max-height:48px;max-width:120px"/><br/>`);
+    });
+    return h;
+  };
+
+  const printDocument = () => {
+    const w = window.open("","_blank");
+    if(!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>${name}</title><style>${DOC_PRINT_CSS}</style></head><body>${buildPreview()}</body></html>`);
+    w.document.close(); w.focus(); setTimeout(()=>{w.print();},400);
+  };
+
+  const save = async() => {
+    setSaving(true);
+    const payload = { name, description, category, content:htmlContent, html:htmlContent, is_template:true, updated_by:user?.id, updated_at:new Date().toISOString(), signature_data:JSON.stringify(sigSlots) };
+    let error: any;
+    if(doc.id) {
+      ({error} = await (supabase as any).from("documents").update(payload).eq("id",doc.id));
+    } else {
+      ({error} = await (supabase as any).from("documents").insert({...payload,created_by:user?.id,created_by_name:profile?.full_name,status:"active"}));
+    }
+    if(error){ toast({title:"Save failed",description:error.message,variant:"destructive"}); }
+    else { toast({title:"Template saved ✓"}); onSave(payload); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:20,overflowY:"auto"}}>
+      <div style={{background:"#fff",borderRadius:12,width:"95vw",maxWidth:1100,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        {/* Header */}
+        <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+          <FileText style={{width:15,height:15,color:"#fff"}}/>
+          <input value={name} onChange={e=>setName(e.target.value)} style={{flex:1,background:"transparent",border:"none",outline:"none",fontSize:14,fontWeight:700,color:"#fff"}} placeholder="Document name…"/>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={printDocument} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:6,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+              <Printer style={{width:12,height:12}}/> Print
+            </button>
+            <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"#22c55e",border:"none",borderRadius:6,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>
+              {saving?<RefreshCw style={{width:11,height:11}} className="animate-spin"/>:<Save style={{width:11,height:11}}/>} Save
+            </button>
+            <button onClick={onClose} style={{padding:"5px 8px",background:"rgba(255,255,255,0.12)",border:"none",borderRadius:6,cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",borderBottom:"1px solid #e5e7eb",background:"#f9fafb",flexShrink:0}}>
+          {([["edit","✏ Edit HTML"],["preview","👁 Preview"],["signatures","✍ Signatures"]] as const).map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"9px 16px",border:"none",background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,color:tab===t?"#1a3a6b":"#6b7280",borderBottom:tab===t?"2px solid #1a3a6b":"2px solid transparent"}}>
+              {l}
+            </button>
+          ))}
+          <div style={{marginLeft:"auto",padding:"7px 14px",display:"flex",gap:8,alignItems:"center"}}>
+            <select value={category} onChange={e=>setCategory(e.target.value)} style={{fontSize:11,border:"1px solid #e5e7eb",borderRadius:5,padding:"3px 6px",outline:"none"}}>
+              {CATS.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{flex:1,overflow:"auto",display:"flex"}}>
+          {tab==="edit" && (
+            <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+              <div style={{padding:"8px 12px",background:"#fffbeb",borderBottom:"1px solid #fef3c7",fontSize:10,color:"#92400e"}}>
+                💡 Use placeholders like <code>{"{{SUPPLIER_NAME}}"}</code>, <code>{"{{DATE}}"}</code>, <code>{"{{TOTAL}}"}</code>, <code>{"{{SIG_AUTHORIZED}}"}</code> etc. They will be replaced at print time.
+              </div>
+              <div style={{padding:"8px 12px",borderBottom:"1px solid #e5e7eb",display:"flex",gap:6,flexWrap:"wrap" as const}}>
+                {["{{LPO_NUMBER}}","{{DATE}}","{{SUPPLIER_NAME}}","{{TOTAL}}","{{ITEMS_ROWS}}","{{SIG_AUTHORIZED}}","{{SIG_DATE_1}}"].map(ph=>(
+                  <button key={ph} onClick={()=>setHtmlContent(p=>p+ph)} style={{fontSize:9,padding:"2px 7px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:4,cursor:"pointer",fontFamily:"monospace",color:"#374151"}}>{ph}</button>
+                ))}
+              </div>
+              <textarea value={htmlContent} onChange={e=>setHtmlContent(e.target.value)} style={{flex:1,padding:"12px",fontSize:11,fontFamily:"'Cascadia Code','Fira Code',monospace",border:"none",outline:"none",resize:"none",lineHeight:1.7,color:"#1a2332"}} spellCheck={false}/>
+            </div>
+          )}
+          {tab==="preview" && (
+            <div style={{flex:1,overflow:"auto",padding:"20px",background:"#f9fafb"}}>
+              <style>{DOC_PRINT_CSS}</style>
+              <div style={{background:"#fff",padding:"20px",boxShadow:"0 2px 12px rgba(0,0,0,0.08)",borderRadius:6,maxWidth:800,margin:"0 auto"}} dangerouslySetInnerHTML={{__html:buildPreview()}}/>
+            </div>
+          )}
+          {tab==="signatures" && (
+            <div style={{flex:1,padding:"20px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16,alignContent:"start"}}>
+              {sigSlots.map((slot,i)=>(
+                <div key={i} style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+                    <Pen style={{width:13,height:13,color:"#6b7280"}}/>
+                    <input value={slot.label} onChange={e=>setSigSlots(p=>p.map((s,j)=>j===i?{...s,label:e.target.value}:s))}
+                      style={{flex:1,fontSize:12,fontWeight:600,border:"none",outline:"none",color:"#111827"}}/>
+                  </div>
+                  {slot.sig
+                    ? <div style={{textAlign:"center",position:"relative"}}>
+                        <img src={slot.sig} alt="Signature" style={{maxHeight:60,maxWidth:"100%",border:"1px dashed #e5e7eb",borderRadius:4,padding:4}}/>
+                        <button onClick={()=>setSigSlots(p=>p.map((s,j)=>j===i?{...s,sig:null}:s))} style={{position:"absolute",top:-6,right:-6,width:18,height:18,borderRadius:"50%",background:"#ef4444",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><X style={{width:10,height:10,color:"#fff"}}/></button>
+                      </div>
+                    : <div>
+                        <button onClick={()=>sigRefs[i].current?.click()} style={{width:"100%",padding:"12px",border:"2px dashed #e5e7eb",borderRadius:8,background:"#f9fafb",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6,color:"#9ca3af",fontSize:11}}>
+                          <Upload style={{width:18,height:18}}/>
+                          Upload Signature / Stamp
+                        </button>
+                        <input ref={sigRefs[i]} type="file" accept="image/*" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&uploadSig(i,e.target.files[0])}/>
+                        <div style={{marginTop:6,textAlign:"center",fontSize:9,color:"#9ca3af"}}>PNG or JPG with transparent background recommended</div>
+                      </div>
+                  }
+                </div>
+              ))}
+              <button onClick={()=>setSigSlots(p=>[...p,{label:"New Signatory",sig:null}])} style={{border:"2px dashed #e5e7eb",borderRadius:10,padding:"20px",cursor:"pointer",background:"transparent",color:"#9ca3af",fontSize:12,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                <Plus style={{width:20,height:20}}/> Add Signatory
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Description bar */}
+        <div style={{padding:"8px 16px",borderTop:"1px solid #e5e7eb",background:"#f9fafb",flexShrink:0}}>
+          <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Document description…" style={{width:"100%",fontSize:11,border:"none",outline:"none",background:"transparent",color:"#6b7280"}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DocumentsPage() {
   const { user, profile, roles } = useAuth();
-  const isAdmin = roles.includes("admin") || roles.includes("procurement_manager");
-  const [docs, setDocs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [catFilter, setCatFilter] = useState("all");
-  const [showUpload, setShowUpload] = useState(false);
-  const [viewDoc, setViewDoc] = useState<any>(null);
-  const [editTemplate, setEditTemplate] = useState<any>(null);
-  const [uploading, setUploading] = useState(false);
+  const isAdmin = roles.includes("admin")||roles.includes("procurement_manager");
+  const [docs,         setDocs]         = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
+  const [catFilter,    setCatFilter]    = useState("all");
+  const [editDoc,      setEditDoc]      = useState<any|null>(null);
+  const [viewDoc,      setViewDoc]      = useState<any|null>(null);
+  const [showUpload,   setShowUpload]   = useState(false);
+  const [uploading,    setUploading]    = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState({name:"",description:"",category:"general",is_template:false,is_locked:true});
+  const [form, setForm] = useState({name:"",description:"",category:"general",is_template:false});
   const [file, setFile] = useState<File|null>(null);
-  const [sysName, setSysName] = useState("EL5 MediProcure");
-  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
-  const [letterheadHtml, setLetterheadHtml] = useState<string|null>(null);
+  const [activeTab, setActiveTab] = useState<"all"|"templates"|"system">("all");
 
-  useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value")
-      .in("key",["system_name","hospital_name","letterhead_html"])
-      .then(({data}:any)=>{
-        if(!data) return;
-        const m:Record<string,string>={};
-        data.forEach((r:any)=>{ if(r.key&&r.value) m[r.key]=r.value; });
-        if(m.system_name) setSysName(m.system_name);
-        if(m.hospital_name) setHospitalName(m.hospital_name);
-        if(m.letterhead_html) setLetterheadHtml(m.letterhead_html);
-      });
-  },[]);
-
-  const loadDocs = useCallback(async ()=>{
+  const loadDocs = useCallback(async() => {
     setLoading(true);
     const { data } = await (supabase as any).from("documents").select("*").order("created_at",{ascending:false});
     setDocs(data||[]);
@@ -50,372 +313,213 @@ export default function DocumentsPage() {
 
   useEffect(()=>{ loadDocs(); },[loadDocs]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]; if(!f) return;
-    setFile(f);
-    if(!form.name) setForm(p=>({...p,name:f.name.replace(/\.[^.]+$/,"")}));
-  };
+  // Real-time
+  useEffect(()=>{
+    const ch=(supabase as any).channel("docs-rt").on("postgres_changes",{event:"*",schema:"public",table:"documents"},()=>loadDocs()).subscribe();
+    return()=>(supabase as any).removeChannel(ch);
+  },[]);
 
-  const uploadDoc = async () => {
-    if (!user) return;
-    if (!file && !form.is_template) { toast({title:"Select a file",variant:"destructive"}); return; }
-    if (!form.name.trim()) { toast({title:"Enter document name",variant:"destructive"}); return; }
+  const uploadDoc = async() => {
+    if(!form.name.trim()){ toast({title:"Enter document name",variant:"destructive"}); return; }
     setUploading(true);
-    try {
-      let fileUrl = "";
-      let fileName = "";
-      let fileSize = 0;
-      let mimeType = "";
-      if (file) {
-        // Convert file to base64 for storage (no bucket needed)
-        fileUrl = await new Promise<string>((res,rej)=>{
-          const r = new FileReader();
-          r.onload = ev => res(ev.target?.result as string);
-          r.onerror = rej;
-          r.readAsDataURL(file);
-        });
-        fileName = file.name;
-        fileSize = file.size;
-        mimeType = file.type;
-      }
-      const { error } = await (supabase as any).from("documents").insert({
-        name: form.name.trim(),
-        description: form.description,
-        category: form.category,
-        is_template: form.is_template,
-        is_locked: form.is_locked,
-        file_url: fileUrl,
-        file_name: fileName,
-        file_size: fileSize,
-        mime_type: mimeType,
-        uploaded_by: user.id,
-        template_html: form.is_template ? `<div>${form.name}</div>` : null,
-      });
-      if (error) throw error;
-      toast({title:"Document uploaded",description:form.name});
-      setShowUpload(false);
-      setFile(null);
-      setForm({name:"",description:"",category:"general",is_template:false,is_locked:true});
-      loadDocs();
-    } catch(e:any){ toast({title:"Error",description:e.message,variant:"destructive"}); }
+    let fileUrl="", fileName="", fileSize=0, mimeType="";
+    if(file){
+      fileUrl = await new Promise<string>((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res(ev.target?.result as string); r.onerror=rej; r.readAsDataURL(file); });
+      fileName=file.name; fileSize=file.size; mimeType=file.type;
+    }
+    const{error}=await(supabase as any).from("documents").insert({
+      name:form.name, description:form.description, category:form.category,
+      is_template:form.is_template, is_locked:false, file_url:fileUrl,
+      file_name:fileName, file_size:fileSize, mime_type:mimeType,
+      created_by:user?.id, created_by_name:profile?.full_name, status:"active",
+    });
+    if(error){ toast({title:"Upload failed",description:error.message,variant:"destructive"}); }
+    else{ toast({title:"Document uploaded ✓"}); setShowUpload(false); setFile(null); setForm({name:"",description:"",category:"general",is_template:false}); loadDocs(); }
     setUploading(false);
   };
 
-  const deleteDoc = async (doc: any) => {
-    if (!isAdmin) { toast({title:"Access denied",description:"Only admins can delete documents",variant:"destructive"}); return; }
-    if (!confirm(`Delete "${doc.name}"?`)) return;
-    await (supabase as any).from("documents").delete().eq("id",doc.id);
-    setDocs(prev=>prev.filter(d=>d.id!==doc.id));
-    toast({title:"Deleted"});
+  const deleteDoc = async(id:string) => {
+    if(!confirm("Delete this document?")) return;
+    await(supabase as any).from("documents").delete().eq("id",id);
+    toast({title:"Deleted"}); loadDocs();
   };
 
-  const toggleLock = async (doc: any) => {
-    if (!isAdmin) return;
-    await (supabase as any).from("documents").update({is_locked:!doc.is_locked}).eq("id",doc.id);
-    setDocs(prev=>prev.map(d=>d.id===doc.id?{...d,is_locked:!d.is_locked}:d));
-    toast({title:doc.is_locked?"Document unlocked":"Document locked"});
+  const printTemplate = (doc:any) => {
+    const html = doc.html||doc.content||`<div class="doc-page"><h2>${doc.name}</h2><p>${doc.description||""}</p></div>`;
+    const w = window.open("","_blank");
+    if(!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>${doc.name}</title><style>${DOC_PRINT_CSS}</style></head><body>${html}</body></html>`);
+    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
   };
 
-  const printDoc = (doc: any) => {
-    const win = window.open("","_blank","width=900,height=700");
-    if(!win) return;
-    const content = doc.template_html || `<p style="font-size:14px;color:#374151;">${doc.name}</p><p style="color:#6b7280;">${doc.description||""}</p>`;
-    win.document.write(`<html><head><title>${doc.name} — ${hospitalName}</title>
-    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:20px;}.letterhead{border-bottom:3px solid #1a3a6b;margin-bottom:20px;padding-bottom:12px;}@media print{@page{margin:1.5cm;}}</style>
-    </head><body>
-    <div class="letterhead">${letterheadHtml||`<h2 style="color:#1a3a6b;margin:0;">${hospitalName}</h2><p style="margin:0;color:#888;font-size:12px;">${sysName}</p>`}</div>
-    ${content}
-    <div style="margin-top:30px;border-top:1px solid #e5e7eb;padding-top:10px;font-size:10px;color:#aaa;text-align:center;">${hospitalName} — ${sysName} · ${new Date().toLocaleDateString("en-KE")}</div>
-    </body></html>`);
-    win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
-  };
+  const allDocs = [
+    ...SYSTEM_TEMPLATES.map(t=>({...t,_system:true})),
+    ...docs,
+  ];
 
-  const viewFile = (doc: any) => {
-    if (!doc.file_url) { setViewDoc(doc); return; }
-    if (doc.mime_type?.startsWith("image/")) { setViewDoc(doc); return; }
-    if (doc.mime_type==="application/pdf"||doc.file_url.startsWith("data:application/pdf")) {
-      const win = window.open("","_blank");
-      if(win) { win.document.write(`<html><body style="margin:0;"><iframe src="${doc.file_url}" width="100%" height="100%" style="border:0;position:fixed;top:0;left:0;width:100%;height:100%;"></iframe></body></html>`); win.document.close(); }
-      return;
-    }
-    setViewDoc(doc);
-  };
-
-  const downloadDoc = (doc: any) => {
-    if (!doc.file_url) return;
-    const a = document.createElement("a");
-    a.href = doc.file_url;
-    a.download = doc.file_name||doc.name;
-    a.click();
-  };
-
-  const saveTemplate = async () => {
-    if(!editTemplate) return;
-    await (supabase as any).from("documents").update({template_html:editTemplate.template_html,name:editTemplate.name,description:editTemplate.description}).eq("id",editTemplate.id);
-    toast({title:"Template saved"});
-    setEditTemplate(null);
-    loadDocs();
-  };
-
-  const filtered = docs.filter(d=>{
-    if(catFilter!=="all"&&d.category!==catFilter) return false;
-    if(search) { const s=search.toLowerCase(); return (d.name||"").toLowerCase().includes(s)||(d.description||"").toLowerCase().includes(s); }
-    return true;
+  const filtered = allDocs.filter(d=>{
+    const matchSearch = !search || [d.name,d.description,d.category].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()));
+    const matchCat = catFilter==="all"||d.category===catFilter;
+    const matchTab = activeTab==="all" || (activeTab==="templates"&&d.is_template) || (activeTab==="system"&&d._system);
+    return matchSearch && matchCat && matchTab;
   });
 
-  const fmtSize = (b:number) => b>1048576?`${(b/1048576).toFixed(1)} MB`:b>1024?`${(b/1024).toFixed(0)} KB`:`${b} B`;
-
   return (
-    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-      {/* Header */}
-      <div className="rounded-2xl px-5 py-4 flex items-center justify-between"
-        style={{background:"linear-gradient(90deg,#374151,#4b5563)",boxShadow:"0 4px 16px rgba(55,65,81,0.3)"}}>
-        <div className="flex items-center gap-3">
-          <FileCheck className="w-5 h-5 text-white" />
-          <div>
-            <h1 className="text-base font-black text-white">Document Management</h1>
-            <p className="text-[10px] text-white/50">{hospitalName}</p>
-          </div>
+    <div style={{background:"#f4f6f9",minHeight:"calc(100vh - 57px)",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      {/* Page header */}
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
+        <FileCheck style={{width:18,height:18,color:"#fff"}}/>
+        <div>
+          <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Documents & Templates</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>Manage, edit and print official documents with e-signatures</div>
         </div>
-        <button onClick={()=>setShowUpload(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-white text-gray-800 hover:bg-gray-50 transition-all">
-          <Upload className="w-4 h-4" /> Upload Document
-        </button>
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          {isAdmin && (
+            <button onClick={()=>setEditDoc({name:"New Template",html:"",category:"template",is_template:true})} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>
+              <Plus style={{width:12,height:12}}/> New Template
+            </button>
+          )}
+          <button onClick={()=>setShowUpload(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#fff",border:"none",borderRadius:7,cursor:"pointer",color:"#1a3a6b",fontSize:11,fontWeight:700}}>
+            <Upload style={{width:12,height:12}}/> Upload File
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap bg-white rounded-xl px-4 py-3 shadow-sm">
-        <div className="flex gap-1 flex-wrap">
-          {["all",...CATEGORIES].map(c=>(
-            <button key={c} onClick={()=>setCatFilter(c)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize transition-all"
-              style={{background:catFilter===c?(CATEGORY_COLORS[c]||"#1a3a6b"):"#f3f4f6",color:catFilter===c?"#fff":"#6b7280"}}>
-              {c}
+      <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"10px 14px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
+        <div style={{display:"flex"}}>
+          {([["all","All"],["templates","Templates"],["system","System"]] as const).map(([t,l])=>(
+            <button key={t} onClick={()=>setActiveTab(t)} style={{padding:"5px 14px",border:"none",background:"transparent",cursor:"pointer",fontSize:11,fontWeight:700,color:activeTab===t?"#1a3a6b":"#6b7280",borderBottom:activeTab===t?"2px solid #1a3a6b":"2px solid transparent"}}>
+              {l}
             </button>
           ))}
         </div>
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents…"
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-blue-400" />
-          {search && <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+        <div style={{position:"relative",marginLeft:8}}>
+          <Search style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",width:11,height:11,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents…" style={{paddingLeft:26,paddingRight:10,paddingTop:6,paddingBottom:6,fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",width:200}}/>
         </div>
-        <span className="text-xs text-gray-400">{filtered.length} document{filtered.length!==1?"s":""}</span>
+        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,padding:"6px 10px",outline:"none"}}>
+          <option value="all">All Categories</option>
+          {CATS.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+        <span style={{marginLeft:"auto",fontSize:11,color:"#9ca3af"}}>{filtered.length} documents</span>
+        <button onClick={loadDocs} style={{background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}><RefreshCw style={{width:12,height:12}} className={loading?"animate-spin":""}/></button>
       </div>
 
       {/* Grid */}
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {Array(8).fill(0).map((_,i)=>(
-            <div key={i} className="rounded-2xl p-4 h-36 animate-pulse"><div className="h-8 bg-gray-200 rounded w-1/2 mb-2"/><div className="h-3 bg-gray-100 rounded"/></div>
-          ))}
-        </div>
-      ) : filtered.length===0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FileText className="w-14 h-14 text-gray-200 mb-3" />
-          <p className="text-sm text-gray-400">No documents found</p>
-          <p className="text-xs text-gray-300 mt-1">Upload your first document using the button above</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map(doc=>(
-            <div key={doc.id} className="rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group flex flex-col">
-              {/* Icon */}
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-                style={{background:`${CATEGORY_COLORS[doc.category]||"#6b7280"}15`}}>
-                {doc.mime_type?.startsWith("image/") ? "🖼️" :
-                 doc.mime_type==="application/pdf" ? "📄" :
-                 doc.is_template ? "📝" : "📁"}
-              </div>
-              {/* Name */}
-              <div className="flex-1">
-                <div className="text-xs font-bold text-gray-800 truncate mb-1">{doc.name}</div>
-                {doc.description && <div className="text-[10px] text-gray-400 truncate">{doc.description}</div>}
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold capitalize"
-                    style={{background:`${CATEGORY_COLORS[doc.category]||"#6b7280"}15`,color:CATEGORY_COLORS[doc.category]||"#6b7280"}}>
-                    {doc.category}
-                  </span>
-                  {doc.is_locked && <Lock className="w-2.5 h-2.5 text-amber-500" title="Locked" />}
-                  {doc.is_template && <span className="px-1 py-0.5 rounded text-[9px] bg-purple-50 text-purple-600 font-bold">TPL</span>}
-                  {doc.file_size>0 && <span className="text-[9px] text-gray-300">{fmtSize(doc.file_size)}</span>}
+      <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:12}}>
+        {loading ? [1,2,3,4,5,6].map(i=>(
+          <div key={i} style={{background:"#fff",borderRadius:10,height:140,border:"1px solid #e5e7eb"}} className="animate-pulse"/>
+        )) : filtered.map((doc,i)=>{
+          const cc = CAT_COLORS[doc.category]||CAT_COLORS.other;
+          return (
+            <div key={doc.id||doc.name||i} style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",display:"flex",flexDirection:"column",overflow:"hidden",transition:"all 0.15s"}}
+              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.boxShadow="0 4px 16px rgba(26,58,107,0.12)";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)";}}
+              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.boxShadow="0 1px 4px rgba(0,0,0,0.05)";(e.currentTarget as HTMLElement).style.transform="";}}>
+              {/* Card header */}
+              <div style={{padding:"12px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"flex-start",gap:10}}>
+                <div style={{width:38,height:38,borderRadius:8,background:cc.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <FileText style={{width:18,height:18,color:cc.color}}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.name}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:cc.bg,color:cc.color,textTransform:"capitalize" as const}}>{doc.category}</span>
+                    {doc.is_template&&<span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:"#fef3c7",color:"#92400e"}}>TEMPLATE</span>}
+                    {doc._system&&<span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:"#dbeafe",color:"#1d4ed8"}}>SYSTEM</span>}
+                  </div>
                 </div>
               </div>
+              {/* Description */}
+              {doc.description && (
+                <div style={{padding:"8px 14px",fontSize:10,color:"#6b7280",borderBottom:"1px solid #f9fafb",lineHeight:1.5}}>{doc.description.slice(0,80)}{doc.description.length>80?"…":""}</div>
+              )}
               {/* Actions */}
-              <div className="flex gap-1 mt-3 pt-2.5 border-t border-gray-100">
-                <button onClick={()=>viewFile(doc)} title="View"
-                  className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all">
-                  <Eye className="w-3 h-3" />
+              <div style={{padding:"8px 10px",display:"flex",gap:5,marginTop:"auto"}}>
+                <button onClick={()=>printTemplate(doc)} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,color:"#374151"}}>
+                  <Printer style={{width:10,height:10}}/> Print
                 </button>
+                {(doc.is_template||doc._system) && isAdmin && (
+                  <button onClick={()=>setEditDoc(doc)} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,color:"#1d4ed8"}}>
+                    <Edit3 style={{width:10,height:10}}/> Edit
+                  </button>
+                )}
                 {doc.file_url && (
-                  <button onClick={()=>downloadDoc(doc)} title="Download"
-                    className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all">
-                    <Download className="w-3 h-3" />
+                  <button onClick={()=>setViewDoc(doc)} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,color:"#374151"}}>
+                    <Eye style={{width:10,height:10}}/> View
                   </button>
                 )}
-                <button onClick={()=>printDoc(doc)} title="Print"
-                  className="p-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all">
-                  <Printer className="w-3 h-3" />
-                </button>
-                {isAdmin && doc.is_template && (
-                  <button onClick={()=>setEditTemplate({...doc})} title="Edit Template"
-                    className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-all">
-                    <Edit className="w-3 h-3" />
+                {!doc._system && isAdmin && (
+                  <button onClick={()=>deleteDoc(doc.id)} style={{marginLeft:"auto",padding:"5px 7px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",color:"#dc2626"}}>
+                    <Trash2 style={{width:10,height:10}}/>
                   </button>
-                )}
-                {isAdmin && (
-                  <>
-                    <button onClick={()=>toggleLock(doc)} title={doc.is_locked?"Unlock":"Lock"}
-                      className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all">
-                      <Lock className="w-3 h-3" />
-                    </button>
-                    <button onClick={()=>deleteDoc(doc)} title="Delete"
-                      className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-all ml-auto">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </>
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {/* Upload modal */}
       {showUpload && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowUpload(false)} />
-          <div className="relative rounded-2xl overflow-hidden w-full max-w-md bg-white shadow-2xl">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between" style={{background:"#374151"}}>
-              <h3 className="text-sm font-black text-white">Upload Document</h3>
-              <button onClick={()=>setShowUpload(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70">
-                <X className="w-4 h-4" />
-              </button>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:"#fff",borderRadius:12,width:480,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
+              <Upload style={{width:14,height:14,color:"#fff"}}/>
+              <span style={{fontSize:13,fontWeight:700,color:"#fff",flex:1}}>Upload Document</span>
+              <button onClick={()=>setShowUpload(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
             </div>
-            <div className="p-5 space-y-4">
-              {/* File picker */}
-              <div onClick={()=>fileRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all">
-                {file ? (
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl">📄</div>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-700">{file.name}</div>
-                      <div className="text-xs text-gray-400">{fmtSize(file.size)}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 font-medium">Click to select file</p>
-                    <p className="text-xs text-gray-400 mt-1">PDF, Word, Excel, Images, etc.</p>
-                  </>
-                )}
-                <input ref={fileRef} type="file" onChange={handleFileChange} className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.ppt,.pptx,.txt" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Document Name *</label>
-                <input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Description</label>
-                <input value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Category</label>
-                  <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none capitalize">
-                    {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                  </select>
+            <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
+              <input onClick={()=>fileRef.current?.click()} readOnly value={file?.name||""} placeholder="Click to select file…" style={{width:"100%",padding:"8px 10px",border:"2px dashed #e5e7eb",borderRadius:8,outline:"none",fontSize:12,cursor:"pointer",background:"#f9fafb"}}/>
+              <input ref={fileRef} type="file" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){setFile(f);if(!form.name)setForm(p=>({...p,name:f.name.replace(/\.[^.]+$/,"")}));}}}/>
+              {[{label:"Document Name",key:"name"},{label:"Description",key:"description"}].map(f=>(
+                <div key={f.key}>
+                  <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>{f.label}</label>
+                  <input value={(form as any)[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
                 </div>
-                <div className="space-y-2 pt-4">
-                  <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                    <input type="checkbox" checked={form.is_locked} onChange={e=>setForm(p=>({...p,is_locked:e.target.checked}))} />
-                    Lock document
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                    <input type="checkbox" checked={form.is_template} onChange={e=>setForm(p=>({...p,is_template:e.target.checked}))} />
-                    Is a template
-                  </label>
-                </div>
+              ))}
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Category</label>
+                <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
+                  {CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
+              <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,cursor:"pointer"}}>
+                <input type="checkbox" checked={form.is_template} onChange={e=>setForm(p=>({...p,is_template:e.target.checked}))} style={{accentColor:"#1a3a6b",width:14,height:14}}/>
+                Mark as template (reusable)
+              </label>
             </div>
-            <div className="px-5 py-3 border-t border-gray-100 flex gap-2 justify-end">
-              <button onClick={()=>setShowUpload(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50">Cancel</button>
-              <button onClick={uploadDoc} disabled={uploading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-700 text-white text-sm font-bold hover:bg-gray-800 disabled:opacity-60">
-                <Upload className="w-3.5 h-3.5" />
-                {uploading?"Uploading…":"Upload"}
+            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
+              <button onClick={uploadDoc} disabled={uploading} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                {uploading?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Upload style={{width:13,height:13}}/>} Upload
               </button>
+              <button onClick={()=>setShowUpload(false)} style={{padding:"9px 16px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:12}}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* View/Preview modal */}
+      {/* Template editor */}
+      {editDoc && <TemplateEditor doc={editDoc} onSave={()=>loadDocs()} onClose={()=>setEditDoc(null)}/>}
+
+      {/* View doc */}
       {viewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60" onClick={()=>setViewDoc(null)} />
-          <div className="relative rounded-2xl overflow-hidden w-full max-w-2xl bg-white shadow-2xl max-h-[80vh] flex flex-col">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <div className="flex items-center gap-2">
-                <Lock className={`w-4 h-4 ${viewDoc.is_locked?"text-amber-500":"text-gray-300"}`} />
-                <h3 className="text-sm font-bold text-gray-700">{viewDoc.name}</h3>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={()=>printDoc(viewDoc)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs hover:bg-gray-200">
-                  <Printer className="w-3 h-3"/> Print
-                </button>
-                {viewDoc.file_url && <button onClick={()=>downloadDoc(viewDoc)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs hover:bg-green-200">
-                  <Download className="w-3 h-3"/> Download
-                </button>}
-                <button onClick={()=>setViewDoc(null)} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500"><X className="w-4 h-4"/></button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-auto p-5">
-              {viewDoc.file_url?.startsWith("data:image/") ? (
-                <img src={viewDoc.file_url} alt={viewDoc.name} className="max-w-full rounded-xl" />
-              ) : viewDoc.template_html ? (
-                <div dangerouslySetInnerHTML={{__html:viewDoc.template_html}} className="prose prose-sm max-w-none" />
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">{viewDoc.name}</p>
-                  <p className="text-xs text-gray-400 mt-1">{viewDoc.description}</p>
-                  <p className="text-xs text-gray-300 mt-4">Preview not available — use Download or Print</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Template editor (admin only) */}
-      {editTemplate && isAdmin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60" onClick={()=>setEditTemplate(null)} />
-          <div className="relative rounded-2xl overflow-hidden w-full max-w-2xl bg-white shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between" style={{background:"#5C2D91"}}>
-              <h3 className="text-sm font-black text-white flex items-center gap-2"><Edit className="w-4 h-4"/> Edit Template</h3>
-              <button onClick={()=>setEditTemplate(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
-            </div>
-            <div className="flex-1 p-4 overflow-auto space-y-3">
-              <input value={editTemplate.name} onChange={e=>setEditTemplate((p:any)=>({...p,name:e.target.value}))}
-                placeholder="Template name"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none" />
-              <textarea value={editTemplate.template_html||""} onChange={e=>setEditTemplate((p:any)=>({...p,template_html:e.target.value}))}
-                placeholder="HTML template content…" rows={12}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs font-mono outline-none focus:border-purple-400 resize-y" />
-            </div>
-            <div className="px-4 py-3 border-t flex gap-2 justify-end">
-              <button onClick={()=>setEditTemplate(null)} className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={saveTemplate} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-700 text-white text-sm font-bold hover:bg-purple-800">
-                <FileCheck className="w-3.5 h-3.5"/> Save Template
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:"#fff",borderRadius:12,width:"90vw",maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:8}}>
+              <span style={{flex:1,fontWeight:700,fontSize:13}}>{viewDoc.name}</span>
+              <button onClick={()=>printTemplate(viewDoc)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>
+                <Printer style={{width:11,height:11}}/> Print
               </button>
+              <button onClick={()=>setViewDoc(null)} style={{padding:"5px 8px",background:"#f3f4f6",border:"none",borderRadius:6,cursor:"pointer"}}><X style={{width:12,height:12}}/></button>
+            </div>
+            <div style={{flex:1,overflow:"auto",padding:"20px",background:"#f9fafb"}}>
+              {viewDoc.mime_type?.startsWith("image/")||viewDoc.file_url?.startsWith("data:image/")
+                ? <img src={viewDoc.file_url} alt={viewDoc.name} style={{maxWidth:"100%",borderRadius:8}}/>
+                : viewDoc.html||viewDoc.content
+                  ? <><style>{DOC_PRINT_CSS}</style><div dangerouslySetInnerHTML={{__html:viewDoc.html||viewDoc.content}}/></>
+                  : <div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}><FileText style={{width:40,height:40,margin:"0 auto 12px"}}/><div>Preview not available for this file type.</div></div>
+              }
             </div>
           </div>
         </div>
