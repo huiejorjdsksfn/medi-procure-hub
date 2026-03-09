@@ -102,21 +102,12 @@ export default function DashboardPage() {
   const primaryRole = roles[0] || "requisitioner";
   const actions   = QUICK[primaryRole] || QUICK.requisitioner;
 
-  const [stats, setStats]   = useState({reqs:0,pos:0,grns:0,tenders:0});
   const [sysName, setSysName] = useState("EL5 MediProcure");
   const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
   const [search, setSearch] = useState("");
   const today = new Date().toLocaleDateString("en-KE", DATE_OPT);
 
   useEffect(()=>{
-    Promise.all([
-      (supabase as any).from("requisitions").select("id",{count:"exact",head:true}),
-      (supabase as any).from("purchase_orders").select("id",{count:"exact",head:true}),
-      (supabase as any).from("goods_received").select("id",{count:"exact",head:true}),
-      (supabase as any).from("tenders").select("id",{count:"exact",head:true}),
-    ]).then(([r,p,g,t])=>{
-      setStats({reqs:r.count||0,pos:p.count||0,grns:g.count||0,tenders:t.count||0});
-    });
     (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
       .then(({data}:any)=>{
         data?.forEach((r:any)=>{
@@ -158,23 +149,7 @@ export default function DashboardPage() {
             <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:4}}>{today}</div>
           </div>
 
-          {/* Quick stat pills */}
-          <div style={{display:"flex",flexWrap:"wrap" as const,gap:8}}>
-            {[
-              {label:"Requisitions", val:stats.reqs,   color:"#60a5fa", path:"/requisitions"},
-              {label:"POs",          val:stats.pos,    color:"#fb923c", path:"/purchase-orders"},
-              {label:"GRNs",         val:stats.grns,   color:"#4ade80", path:"/goods-received"},
-              {label:"Tenders",      val:stats.tenders,color:"#f472b6", path:"/tenders"},
-            ].map(s=>(
-              <button key={s.path} onClick={()=>navigate(s.path)}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.12)",border:`1px solid rgba(255,255,255,0.15)`,borderRadius:99,cursor:"pointer",backdropFilter:"blur(4px)",transition:"all 0.15s"}}
-                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.2)"}
-                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.12)"}>
-                <span style={{fontSize:15,fontWeight:800,color:s.color}}>{s.val}</span>
-                <span style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontWeight:600}}>{s.label}</span>
-              </button>
-            ))}
-          </div>
+
         </div>
 
         {/* Search bar */}

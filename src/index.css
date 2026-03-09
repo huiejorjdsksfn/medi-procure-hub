@@ -567,3 +567,40 @@ button { font-family: inherit; }
 @media (max-width: 899px) {
   main { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* ── UPGRADED FONT SIZES ── */
+body { font-size: 14px; }
+.ent-table { font-size: 13px; }
+.ent-table thead th { font-size: 11px; }
+.ent-table tbody td { font-size: 13px; padding: 10px 13px; }
+.btn-primary, .btn-secondary, .btn-danger { font-size: 13px; padding: 9px 18px; }
+.ent-input { font-size: 13px; padding: 9px 12px; }
+.badge { font-size: 11px; padding: 3px 9px; }
+.page-header-title { font-size: 15px; }
+.stat-card .stat-val { font-size: 26px; }
+.stat-card .stat-label { font-size: 11px; }
+.tab-item { font-size: 12px; padding: 11px 18px; }
+.sidebar-item { font-size: 13px; }
+
+/* ── PRINT STYLES ── */
+@media print {
+  .no-print, nav, header, footer, .sidebar-nav, .modal-overlay { display: none !important; }
+  body { background: #fff !important; font-size: 12pt; }
+  .print-page { page-break-after: always; }
+  .doc-page { max-width: 210mm; margin: 0 auto; padding: 20mm; font-family: 'Times New Roman', serif; }
+  .doc-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; border-bottom: 2px solid #0a2558; padding-bottom: 12px; }
+  .doc-header h2 { font-size: 16pt; color: #0a2558; margin: 0 0 4px; }
+  .doc-header h3 { font-size: 13pt; color: #C45911; margin: 0 0 4px; }
+  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10pt; }
+  .info-table td { padding: 4px 8px; border: 1px solid #d1d5db; }
+  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10pt; }
+  .items-table th { background: #0a2558; color: #fff; padding: 6px 8px; text-align: left; }
+  .items-table td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+  .items-table .total td { font-weight: bold; border-top: 2px solid #0a2558; }
+  .signatures { display: flex; gap: 20px; margin-top: 30px; }
+  .sig-box { flex: 1; text-align: center; }
+  .sig-line { border-top: 1px solid #374151; margin-bottom: 4px; padding-top: 40px; font-size: 9pt; color: #6b7280; }
+  .doc-stamp { text-align: center; margin-top: 20px; font-size: 8pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+  .terms { font-size: 9pt; color: #6b7280; border: 1px solid #e5e7eb; padding: 8px; margin: 12px 0; border-radius: 4px; }
+  .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-45deg); font-size: 80pt; color: rgba(10,37,88,0.04); font-weight: 900; z-index: -1; }
+}
