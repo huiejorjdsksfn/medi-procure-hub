@@ -3,32 +3,50 @@ import { supabase } from "@/integrations/supabase/client";
 export type NotifType = "info"|"success"|"warning"|"error"|"email"|"procurement"|"voucher"|"grn"|"tender"|"quality"|"inventory"|"system";
 
 export interface NotifyPayload {
-  userId?: string;        // target user (null = all admins)
+  userId?: string;
   title: string;
   message: string;
   type?: NotifType;
   module?: string;
   actionUrl?: string;
   senderId?: string;
+  alsoInbox?: boolean;   // if true, also inserts an inbox_item
+  subject?: string;      // for inbox subject
 }
 
-/** Insert a notification record into the notifications table */
+/** Insert a notification + optionally an inbox_item */
 export async function sendNotification(payload: NotifyPayload): Promise<void> {
   try {
-    const row: any = {
+    const notifRow: any = {
       title: payload.title,
       message: payload.message,
       type: payload.type || "info",
       module: payload.module || "system",
       action_url: payload.actionUrl || null,
       is_read: false,
-      sender_id: payload.senderId || null,
       status: "delivered",
+      sender_id: payload.senderId || null,
     };
-    if (payload.userId) row.user_id = payload.userId;
+    if (payload.userId) notifRow.user_id = payload.userId;
 
-    const { error } = await (supabase as any).from("notifications").insert(row);
-    if (error) console.error("Notification insert failed:", error.message);
+    const { data: notif, error } = await (supabase as any)
+      .from("notifications").insert(notifRow).select("id").single();
+    if (error) console.error("Notification insert:", error.message);
+
+    if (payload.alsoInbox && payload.userId) {
+      await (supabase as any).from("inbox_items").insert({
+        type: payload.type || "info",
+        subject: payload.subject || payload.title,
+        body: payload.message,
+        from_user_id: payload.senderId || null,
+        to_user_id: payload.userId,
+        priority: "normal",
+        status: "unread",
+        notification_id: notif?.id || null,
+        module: payload.module || "system",
+        record_type: payload.module || "system",
+      });
+    }
   } catch (e) {
     console.error("sendNotification error:", e);
   }
