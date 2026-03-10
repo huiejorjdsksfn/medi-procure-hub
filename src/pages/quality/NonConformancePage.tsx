@@ -1,40 +1,41 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
-import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Eye, AlertTriangle, CheckCircle, Clock, Edit } from "lucide-react";
+import { Plus, RefreshCw, Download, X, Save, Trash2, Eye, AlertTriangle, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const genNo = () => `NCR/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
-const SC: Record<string,{bg:string,color:string}> = {
-  open:      {bg:"#fee2e2",color:"#dc2626"},
+const genNo = ()=>`NCR/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
+const SC: Record<string,{bg:string;color:string}> = {
+  open:{bg:"#fee2e2",color:"#dc2626"},
   under_review:{bg:"#fef3c7",color:"#92400e"},
-  closed:    {bg:"#dcfce7",color:"#15803d"},
-  escalated: {bg:"#f3e8ff",color:"#7c3aed"},
+  closed:{bg:"#dcfce7",color:"#15803d"},
+  escalated:{bg:"#f3e8ff",color:"#7c3aed"},
 };
 const SEV: Record<string,string> = {critical:"#dc2626",major:"#d97706",minor:"#6b7280"};
 
 export default function NonConformancePage() {
   const { user, profile, hasRole } = useAuth();
   const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [rows, setRows]         = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showNew, setShowNew] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
+  const [showNew, setShowNew]   = useState(false);
+  const [detail, setDetail]     = useState<any>(null);
+  const [saving, setSaving]     = useState(false);
   const [form, setForm] = useState({ncr_date:new Date().toISOString().slice(0,10),title:"",description:"",severity:"minor",source:"Inspection",supplier_name:"",item_name:"",grn_reference:"",root_cause:"",corrective_action:"",preventive_action:"",responsible_person:"",target_date:"",status:"open"});
 
-  const load = async () => {
+  const load = async()=>{
     setLoading(true);
     const{data}=await(supabase as any).from("non_conformance").select("*").order("created_at",{ascending:false});
     setRows(data||[]); setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
 
-  const save = async () => {
+  const save = async()=>{
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,ncr_number:genNo(),created_by:user?.id,created_by_name:profile?.full_name};
@@ -44,164 +45,139 @@ export default function NonConformancePage() {
     setSaving(false);
   };
 
-  const updateStatus = async (id:string, status:string) => {
+  const updateStatus = async(id:string,status:string)=>{
     await(supabase as any).from("non_conformance").update({status,closed_by:status==="closed"?user?.id:null,closed_at:status==="closed"?new Date().toISOString():null}).eq("id",id);
-    toast({title:`Status updated to ${status}`}); load();
+    toast({title:`Status → ${status}`}); load();
   };
 
-  const deleteRow = async (id:string) => {
-    if(!confirm("Delete this NCR?")) return;
-    await(supabase as any).from("non_conformance").delete().eq("id",id);
-    toast({title:"Deleted"}); load();
-  };
+  const del = async(id:string)=>{ if(!confirm("Delete this NCR?")) return; await(supabase as any).from("non_conformance").delete().eq("id",id); toast({title:"Deleted"}); load(); };
 
-  const exportExcel = () => {
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb,ws,"NCRs");
-    XLSX.writeFile(wb,`ncr_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported"});
-  };
+  const exportExcel=()=>{ const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"NCRs"); XLSX.writeFile(wb,`ncr_${new Date().toISOString().slice(0,10)}.xlsx`); toast({title:"Exported"}); };
 
-  const filtered = rows.filter(r=>{
-    const ms = !search||(r.title||"").toLowerCase().includes(search.toLowerCase())||(r.ncr_number||"").includes(search)||(r.supplier_name||"").toLowerCase().includes(search.toLowerCase());
-    const ms2 = statusFilter==="all"||r.status===statusFilter;
-    return ms&&ms2;
-  });
-
-  const stats = {open:rows.filter(r=>r.status==="open").length,under_review:rows.filter(r=>r.status==="under_review").length,closed:rows.filter(r=>r.status==="closed").length,critical:rows.filter(r=>r.severity==="critical").length};
-
-  const F = ({label,k,type="text"}:{label:string;k:string;type?:string}) => (
-    <div><label className="block mb-1 text-xs font-semibold text-gray-500">{label}</label>
-      <input type={type} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
-  );
-  const TA = ({label,k}:{label:string;k:string}) => (
-    <div><label className="block mb-1 text-xs font-semibold text-gray-500">{label}</label>
-      <textarea value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none resize-none"/></div>
-  );
+  const filtered = rows.filter(r=>{ const ms=!search||(r.title||"").toLowerCase().includes(search.toLowerCase())||(r.ncr_number||"").includes(search)||(r.supplier_name||"").toLowerCase().includes(search.toLowerCase()); return ms&&(statusFilter==="all"||r.status===statusFilter); });
+  const stats={open:rows.filter(r=>r.status==="open").length,under_review:rows.filter(r=>r.status==="under_review").length,closed:rows.filter(r=>r.status==="closed").length,critical:rows.filter(r=>r.severity==="critical").length};
+  const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
 
   return (
-    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
-      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#92400e,#d97706)"}}>
-        <div>
-          <h1 className="text-base font-black text-white">Non-Conformance Reports</h1>
-          <p className="text-[10px] text-white/50">{rows.length} total · {stats.open} open · {stats.critical} critical</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canCreate&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#92400e"}}><Plus className="w-3.5 h-3.5"/>New NCR</button>}
-        </div>
-      </div>
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
-        {[{label:"Open",count:stats.open,color:"#dc2626"},{label:"Under Review",count:stats.under_review,color:"#d97706"},{label:"Closed",count:stats.closed,color:"#15803d"},{label:"Critical",count:stats.critical,color:"#7c3aed"}].map(s=>(
-          <div key={s.label} className="rounded-2xl p-3 shadow-sm">
-            <p className="text-xl font-black" style={{color:s.color}}>{s.count}</p>
-            <p className="text-[10px] text-gray-500 font-semibold">{s.label}</p>
+    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui",minHeight:"calc(100vh - 60px)"}}>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      <div style={{background:"linear-gradient(90deg,#7c2d12,#c2410c)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <AlertTriangle style={{width:20,height:20,color:"#fff"}}/>
+          <div>
+            <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Non-Conformance Reports</h1>
+            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{stats.open} open · {stats.critical} critical · {stats.closed} closed</p>
           </div>
-        ))}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}><Download style={{width:13,height:13}}/>Export</button>
+          {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.92)",color:"#7c2d12",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}><Plus style={{width:13,height:13}}/>New NCR</button>}
+        </div>
       </div>
       {/* Filters */}
-      <div className="flex gap-3">
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search NCRs…" className="pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none w-52"/></div>
-        <div className="flex gap-1">
-          {["all","open","under_review","closed","escalated"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} className="px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all"
-              style={{background:statusFilter===s?(SC[s]?.bg||"#1a3a6b"):"#f3f4f6",color:statusFilter===s?(SC[s]?.color||"#fff"):"#6b7280"}}>
-              {s.replace(/_/g," ")}
-            </button>
-          ))}
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,alignItems:"center"}}>
+        {[{id:"all",label:`All (${rows.length})`},{id:"open",label:`Open (${stats.open})`},{id:"under_review",label:`Under Review (${stats.under_review})`},{id:"closed",label:`Closed (${stats.closed})`}].map(f=>(
+          <button key={f.id} onClick={()=>setStatusFilter(f.id)}
+            style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${statusFilter===f.id?"#c2410c":"#e5e7eb"}`,background:statusFilter===f.id?"#c2410c":"#fff",color:statusFilter===f.id?"#fff":"#374151",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            {f.label}
+          </button>
+        ))}
+        <div style={{position:"relative",marginLeft:"auto"}}>
+          <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search NCRs…" style={{padding:"6px 12px 6px 26px",border:"1.5px solid #e5e7eb",borderRadius:20,fontSize:12,outline:"none",width:200}}/>
         </div>
       </div>
       {/* Table */}
-      <div className="rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-xs">
-          <thead><tr style={{background:"#92400e"}}>
-            {["NCR No.","Date","Title","Supplier","Item","Severity","Status","Responsible","Target","Actions"].map(h=>(
-              <th key={h} className="px-4 py-3 text-left font-bold text-white/80 text-[10px] uppercase">{h}</th>))}
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead><tr style={{background:"linear-gradient(90deg,#7c2d12,#c2410c)"}}>
+            {["NCR No.","Title","Severity","Supplier","Item","Status","Date","Actions"].map(h=>(
+              <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
+            ))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={10} className="py-8 text-center"><RefreshCw className="w-4 h-4 animate-spin text-gray-300 mx-auto"/></td></tr>:
-            filtered.length===0?<tr><td colSpan={10} className="py-8 text-center text-gray-400 text-xs">No non-conformance reports</td></tr>:
+            {loading?(<tr><td colSpan={8} style={{padding:24,textAlign:"center"}}><RefreshCw style={{width:16,height:16,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/></td></tr>):
+            filtered.length===0?(<tr><td colSpan={8} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>No NCRs found</td></tr>):
             filtered.map((r,i)=>{
-              const sc=SC[r.status]||SC.open;
-              return(
-                <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fffbf0"}}>
-                  <td className="px-4 py-2.5 font-mono text-[10px]" style={{color:"#92400e"}}>{r.ncr_number}</td>
-                  <td className="px-4 py-2.5">{new Date(r.ncr_date).toLocaleDateString("en-KE")}</td>
-                  <td className="px-4 py-2.5 font-semibold text-gray-800 max-w-[160px] truncate">{r.title}</td>
-                  <td className="px-4 py-2.5 text-gray-500">{r.supplier_name||"—"}</td>
-                  <td className="px-4 py-2.5 text-gray-500">{r.item_name||"—"}</td>
-                  <td className="px-4 py-2.5"><span className="text-[9px] font-bold capitalize" style={{color:SEV[r.severity]||"#6b7280"}}>{r.severity}</span></td>
-                  <td className="px-4 py-2.5"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold capitalize" style={sc}>{r.status?.replace(/_/g," ")}</span></td>
-                  <td className="px-4 py-2.5 text-gray-500">{r.responsible_person||"—"}</td>
-                  <td className="px-4 py-2.5 text-gray-400">{r.target_date?new Date(r.target_date).toLocaleDateString("en-KE"):"—"}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex gap-1.5">
-                      <button onClick={()=>setDetail(r)} className="p-1.5 rounded-lg bg-orange-50"><Eye className="w-3 h-3 text-orange-600"/></button>
-                      {r.status!=="closed"&&canCreate&&<button onClick={()=>updateStatus(r.id,"closed")} className="p-1.5 rounded-lg bg-green-50" title="Close NCR"><CheckCircle className="w-3 h-3 text-green-600"/></button>}
-                      {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} className="p-1.5 rounded-lg bg-red-50"><Trash2 className="w-3 h-3 text-red-500"/></button>}
-                    </div>
-                  </td>
-                </tr>
-              );
+              const sc=SC[r.status]||{bg:"#f3f4f6",color:"#6b7280"};
+              return(<tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fff7ed"}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}>
+                <td style={{padding:"9px 12px",fontWeight:700,color:"#c2410c",fontFamily:"monospace",fontSize:11}}>{r.ncr_number||"—"}</td>
+                <td style={{padding:"9px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:`${SEV[r.severity]||"#6b7280"}18`,color:SEV[r.severity]||"#6b7280"}}>{r.severity||"minor"}</span></td>
+                <td style={{padding:"9px 12px",color:"#374151"}}>{r.supplier_name||"—"}</td>
+                <td style={{padding:"9px 12px",color:"#374151"}}>{r.item_name||"—"}</td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,textTransform:"capitalize"}}>{r.status?.replace("_"," ")||"—"}</span></td>
+                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.ncr_date?new Date(r.ncr_date).toLocaleDateString("en-KE"):"—"}</td>
+                <td style={{padding:"9px 12px"}}>
+                  <div style={{display:"flex",gap:4}}>
+                    <button onClick={()=>setDetail(r)} style={{padding:"4px 8px",background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#c2410c"}}/></button>
+                    {r.status!=="closed"&&hasRole("admin")&&<button onClick={()=>updateStatus(r.id,"closed")} style={{padding:"3px 8px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",fontSize:9,fontWeight:700,color:"#15803d"}}>Close</button>}
+                    {hasRole("admin")&&<button onClick={()=>del(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
+                  </div>
+                </td>
+              </tr>);
             })}
           </tbody>
         </table>
       </div>
-      {showNew&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>setShowNew(false)}/>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 overflow-y-auto max-h-[92vh] space-y-3">
-            <div className="flex items-center justify-between"><h3 className="font-black text-gray-800">New Non-Conformance Report</h3><button onClick={()=>setShowNew(false)}><X className="w-5 h-5 text-gray-400"/></button></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><F label="NCR Title *" k="title"/></div>
-              <F label="NCR Date" k="ncr_date" type="date"/>
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Source</label>
-                <select value={form.source} onChange={e=>setForm(p=>({...p,source:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  {["Inspection","Supplier","Internal Audit","Customer Complaint","Process Review"].map(s=><option key={s}>{s}</option>)}
-                </select></div>
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Severity</label>
-                <select value={form.severity} onChange={e=>setForm(p=>({...p,severity:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  {["minor","major","critical"].map(s=><option key={s} className="capitalize">{s}</option>)}
-                </select></div>
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Status</label>
-                <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  {["open","under_review","closed","escalated"].map(s=><option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
-                </select></div>
-              <F label="Supplier Name" k="supplier_name"/>
-              <F label="Item Name" k="item_name"/>
-              <F label="GRN Reference" k="grn_reference"/>
-              <F label="Responsible Person" k="responsible_person"/>
-              <F label="Target Date" k="target_date" type="date"/>
-              <div className="col-span-2"><TA label="Description" k="description"/></div>
-              <div className="col-span-2"><TA label="Root Cause" k="root_cause"/></div>
-              <div className="col-span-2"><TA label="Corrective Action" k="corrective_action"/></div>
-              <div className="col-span-2"><TA label="Preventive Action" k="preventive_action"/></div>
+      {/* Detail side panel */}
+      {detail&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:50,display:"flex",justifyContent:"flex-end"}} onClick={()=>setDetail(null)}>
+          <div style={{width:"min(440px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(90deg,#7c2d12,#c2410c)",display:"flex",alignItems:"center",gap:8}}>
+              <AlertTriangle style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>{detail.ncr_number}</span>
+              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={()=>setShowNew(false)} className="px-4 py-2 rounded-xl border text-sm">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold" style={{background:"#92400e"}}>
-                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Save className="w-3.5 h-3.5"/>}
-                {saving?"Saving…":"Create NCR"}
-              </button>
+            <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{fontSize:14,fontWeight:800,color:"#1f2937"}}>{detail.title}</div>
+              {[["Severity",detail.severity],["Status",detail.status?.replace("_"," ")],["Source",detail.source],["Supplier",detail.supplier_name||"—"],["Item",detail.item_name||"—"],["GRN Ref",detail.grn_reference||"—"],["Responsible",detail.responsible_person||"—"],["Target Date",detail.target_date||"—"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f3f4f6"}}>
+                  <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize"}}>{v||"—"}</span>
+                </div>
+              ))}
+              {detail.description&&<div style={{padding:10,background:"#fef2f2",borderRadius:8,fontSize:12,color:"#374151"}}><b>Description:</b> {detail.description}</div>}
+              {detail.root_cause&&<div style={{padding:10,background:"#fef3c7",borderRadius:8,fontSize:12,color:"#92400e"}}><b>Root Cause:</b> {detail.root_cause}</div>}
+              {detail.corrective_action&&<div style={{padding:10,background:"#f0fdf4",borderRadius:8,fontSize:12,color:"#15803d"}}><b>Corrective Action:</b> {detail.corrective_action}</div>}
+              {detail.preventive_action&&<div style={{padding:10,background:"#eff6ff",borderRadius:8,fontSize:12,color:"#1d4ed8"}}><b>Preventive Action:</b> {detail.preventive_action}</div>}
+              {detail.status!=="closed"&&hasRole("admin")&&<button onClick={()=>{updateStatus(detail.id,"closed");setDetail(null);}} style={{padding:"9px",background:"#dcfce7",color:"#15803d",border:"1.5px solid #bbf7d0",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700}}>Mark as Closed</button>}
             </div>
           </div>
         </div>
       )}
-      {detail&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setDetail(null)}/>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between mb-3"><h3 className="font-black text-gray-800">{detail.ncr_number}</h3><button onClick={()=>setDetail(null)}><X className="w-5 h-5 text-gray-400"/></button></div>
-            <h4 className="font-bold text-gray-700 mb-3">{detail.title}</h4>
-            <div className="space-y-1.5">
-              {[["Date",new Date(detail.ncr_date).toLocaleDateString("en-KE")],["Severity",detail.severity],["Status",detail.status?.replace(/_/g," ")],["Source",detail.source],["Supplier",detail.supplier_name],["Item",detail.item_name],["GRN Ref.",detail.grn_reference],["Description",detail.description],["Root Cause",detail.root_cause],["Corrective Action",detail.corrective_action],["Preventive Action",detail.preventive_action],["Responsible",detail.responsible_person],["Target Date",detail.target_date?new Date(detail.target_date).toLocaleDateString("en-KE"):""],["Raised By",detail.created_by_name]].filter(([,v])=>v).map(([l,v])=>(
-                <div key={l} className="py-1.5" style={{borderBottom:"1px solid #f3f4f6"}}>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">{l}</span>
-                  <p className="text-xs text-gray-700 mt-0.5">{v}</p>
+      {/* New NCR form */}
+      {showNew&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,width:"min(620px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.2)"}}>
+            <div style={{padding:"14px 18px",background:"linear-gradient(90deg,#7c2d12,#c2410c)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
+              <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>New Non-Conformance Report</span>
+              <button onClick={()=>setShowNew(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+            </div>
+            <div style={{padding:18,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Title *</label><input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={inp}/></div>
+              {[["NCR Date","ncr_date","date"],["Source","source","text"],["Supplier Name","supplier_name","text"],["Item Name","item_name","text"],["GRN Reference","grn_reference","text"],["Responsible Person","responsible_person","text"],["Target Date","target_date","date"]].map(([l,k,t])=>(
+                <div key={k}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
+                  {t==="date"?<input type="date" value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>:<input value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>}
                 </div>
               ))}
+              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Severity</label>
+                <select value={form.severity} onChange={e=>setForm(p=>({...p,severity:e.target.value}))} style={inp}>
+                  {["minor","major","critical"].map(v=><option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              {[["Description","description"],["Root Cause","root_cause"],["Corrective Action","corrective_action"],["Preventive Action","preventive_action"]].map(([l,k])=>(
+                <div key={k} style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
+                  <textarea value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} rows={2} style={{...inp,resize:"vertical" as const,fontFamily:"inherit"}}/>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"12px 18px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowNew(false)} style={{padding:"8px 16px",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#c2410c",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}{saving?"Saving…":"Create NCR"}
+              </button>
             </div>
           </div>
         </div>

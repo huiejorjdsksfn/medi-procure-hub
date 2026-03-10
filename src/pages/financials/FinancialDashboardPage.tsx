@@ -1,528 +1,451 @@
-import { useState } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import procBg from "@/assets/procurement-bg.jpg";
+import { supabase } from "@/integrations/supabase/client";
 import logoImg from "@/assets/logo.png";
+import * as XLSX from "xlsx";
 import {
-  TrendingUp, TrendingDown, DollarSign, PiggyBank, Building2, BookMarked,
-  BarChart3, RefreshCw, ArrowRight, Printer, Download, Search,
-  CheckCircle, Clock, AlertCircle, XCircle, FileText, CreditCard,
-  Landmark, Receipt, BookOpen, Wallet, Activity,
-  Plus, Send, Check, X, Archive,
+  RefreshCw, Printer, Save, Search, DollarSign, TrendingUp,
+  TrendingDown, BookOpen, BarChart3, Filter, Download, Plus,
+  ChevronDown, Activity, Wallet
 } from "lucide-react";
 
-const fmt = (n: number) =>
+/* ── helpers ─────────────────────────────────────────────── */
+const fmtAmt = (n: number) =>
   n >= 1_000_000 ? `KES ${(n / 1_000_000).toFixed(2)}M`
-    : n >= 1000 ? `KES ${(n / 1000).toFixed(1)}K`
-      : `KES ${n.toLocaleString()}`;
+  : n >= 1_000   ? `KES ${(n / 1_000).toFixed(2)}K`
+  : `KES ${n.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`;
 
 const today = new Date().toISOString().split("T")[0];
-const thisMonth = today.slice(0, 7);
+const thisMonthStart = today.slice(0, 7) + "-01";
 
-const STATUS_META: Record<string, { bg: string; text: string; icon: any; label: string }> = {
-  pending:  { bg:"rgba(251,191,36,0.25)",  text:"#fbbf24", icon:Clock,        label:"Pending" },
-  approved: { bg:"rgba(52,211,153,0.25)",  text:"#34d399", icon:CheckCircle,  label:"Approved" },
-  paid:     { bg:"rgba(96,165,250,0.25)",  text:"#60a5fa", icon:Check,        label:"Paid" },
-  draft:    { bg:"rgba(148,163,184,0.25)", text:"#94a3b8", icon:FileText,     label:"Draft" },
-  rejected: { bg:"rgba(248,113,113,0.25)", text:"#f87171", icon:XCircle,      label:"Rejected" },
-  posted:   { bg:"rgba(167,139,250,0.25)", text:"#a78bfa", icon:Send,         label:"Posted" },
-  reversed: { bg:"rgba(251,146,60,0.25)",  text:"#fb923c", icon:X,            label:"Reversed" },
-  active:   { bg:"rgba(52,211,153,0.25)",  text:"#34d399", icon:CheckCircle,  label:"Active" },
-  disposed: { bg:"rgba(248,113,113,0.25)", text:"#f87171", icon:Archive,      label:"Disposed" },
-  under_maintenance:{ bg:"rgba(251,191,36,0.25)", text:"#fbbf24", icon:AlertCircle, label:"Maintenance" },
+/* ── status badge colours ─────────────────────────────────── */
+const SC: Record<string, { bg: string; color: string }> = {
+  pending:  { bg: "#fef3c7", color: "#92400e" },
+  approved: { bg: "#dcfce7", color: "#15803d" },
+  paid:     { bg: "#dbeafe", color: "#1d4ed8" },
+  draft:    { bg: "#f3f4f6", color: "#6b7280" },
+  rejected: { bg: "#fee2e2", color: "#dc2626" },
+  posted:   { bg: "#ede9fe", color: "#6d28d9" },
+  reversed: { bg: "#ffedd5", color: "#c2410c" },
+  confirmed:{ bg: "#dcfce7", color: "#15803d" },
+  active:   { bg: "#dcfce7", color: "#15803d" },
+  draft_jv: { bg: "#f3f4f6", color: "#6b7280" },
 };
 
-function StatusPill({ status }: { status: string }) {
-  const m = STATUS_META[status] ?? { bg:"rgba(148,163,184,0.2)", text:"#94a3b8", icon:FileText, label:status };
-  const Icon = m.icon;
-  return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:m.bg, color:m.text, padding:"3px 10px", borderRadius:20, fontSize:10, fontWeight:700, textTransform:"capitalize", border:`1px solid ${m.text}40` }}>
-      <Icon style={{ width:10, height:10 }} />{m.label}
-    </span>
-  );
-}
+type RecordFilter = "ALL" | "LATEST100" | "THISMONTH";
+type ActiveModule = "payment_vouchers" | "receipt_vouchers" | "journal_vouchers";
 
-const glass: React.CSSProperties = {
-  background:"rgba(10,22,50,0.72)",
-  backdropFilter:"blur(16px)",
-  WebkitBackdropFilter:"blur(16px)",
-  border:"1px solid rgba(255,255,255,0.12)",
-  borderRadius:14,
+const MODULE_LABELS: Record<ActiveModule, string> = {
+  payment_vouchers: "Payment Vouchers",
+  receipt_vouchers: "Receipt Vouchers",
+  journal_vouchers: "Journal Vouchers",
 };
 
-type Tab = "overview"|"payments"|"receipts"|"journals"|"budgets"|"assets"|"accounts";
-
-const TABS: { id:Tab; label:string; icon:any; color:string }[] = [
-  { id:"overview",  label:"Overview",         icon:BarChart3,  color:"#38bdf8" },
-  { id:"payments",  label:"Payment Vouchers", icon:CreditCard, color:"#f87171" },
-  { id:"receipts",  label:"Receipt Vouchers", icon:Receipt,    color:"#34d399" },
-  { id:"journals",  label:"Journal Entries",  icon:BookOpen,   color:"#a78bfa" },
-  { id:"budgets",   label:"Budgets",          icon:PiggyBank,  color:"#fb923c" },
-  { id:"assets",    label:"Fixed Assets",     icon:Building2,  color:"#fbbf24" },
-  { id:"accounts",  label:"Chart of Accounts",icon:BookMarked, color:"#60a5fa" },
-];
-
-function exportCSV(rows: any[], filename: string) {
-  if (!rows.length) return;
-  const keys = Object.keys(rows[0]);
-  const lines = [keys.join(","), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? "")).join(","))];
-  const blob = new Blob([lines.join("\n")], { type:"text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
-function printTable(title: string, rows: any[]) {
-  if (!rows.length) { alert("No records to print."); return; }
-  const keys = Object.keys(rows[0]);
-  const html = `<html><head><title>${title}</title><style>
-    body{font-family:'Segoe UI',sans-serif;font-size:11px;margin:20px}
-    h2{color:#0a2558}table{width:100%;border-collapse:collapse}
-    th{background:#0a2558;color:#fff;padding:6px 10px;text-align:left}
-    td{padding:5px 10px;border-bottom:1px solid #ddd}tr:nth-child(even){background:#f5f5f5}
-  </style></head><body>
-    <h2>Embu Level 5 Hospital — ${title}</h2>
-    <p>Printed: ${new Date().toLocaleString("en-KE")}</p>
-    <table><thead><tr>${keys.map(k=>`<th>${k}</th>`).join("")}</tr></thead>
-    <tbody>${rows.map(r=>`<tr>${keys.map(k=>`<td>${r[k]??""}</td>`).join("")}</tr>`).join("")}</tbody>
-    </table></body></html>`;
-  const w = window.open("","_blank")!;
-  w.document.write(html); w.document.close(); w.print();
-}
-
+/* ═══════════════════════════════════════════════════════════ */
 export default function FinancialDashboardPage() {
   const navigate = useNavigate();
-  const [tab, setTab]               = useState<Tab>("overview");
-  const [search, setSearch]         = useState("");
-  const [startDate, setStartDate]   = useState("2025-01-01");
-  const [endDate, setEndDate]       = useState(today);
-  const [recordFilter, setRecordFilter] = useState<"all"|"month"|"latest100">("all");
-  const [typeFilter, setTypeFilter] = useState("ALL");
 
-  const { data:pv,  refetch:rpv } = useRealtimeTable("payment_vouchers",  { order:{column:"created_at"} });
-  const { data:rv,  refetch:rrv } = useRealtimeTable("receipt_vouchers",  { order:{column:"created_at"} });
-  const { data:jv,  refetch:rjv } = useRealtimeTable("journal_vouchers",  { order:{column:"created_at"} });
-  const { data:bud, refetch:rb  } = useRealtimeTable("budgets",            { order:{column:"created_at"} });
-  const { data:coa, refetch:rca } = useRealtimeTable("chart_of_accounts");
-  const { data:banks, refetch:rba } = useRealtimeTable("bank_accounts");
-  const { data:assets, refetch:ras } = useRealtimeTable("fixed_assets",   { order:{column:"created_at"} });
+  /* date range */
+  const [startDate, setStartDate]       = useState("2025-12-31");
+  const [endDate, setEndDate]           = useState(today);
+  const [recordFilter, setRecordFilter] = useState<RecordFilter>("ALL");
+  const [typeFilter, setTypeFilter]     = useState("ALL");
+  const [search, setSearch]             = useState("");
+  const [activeModule, setActiveModule] = useState<ActiveModule>("payment_vouchers");
+  const [showModuleMenu, setShowModuleMenu] = useState(false);
 
-  const pvRows    = pv    as any[];
-  const rvRows    = rv    as any[];
-  const jvRows    = jv    as any[];
-  const budRows   = bud   as any[];
-  const coaRows   = coa   as any[];
-  const bankRows  = banks as any[];
-  const assetRows = assets as any[];
+  /* data */
+  const [payments,  setPayments]    = useState<any[]>([]);
+  const [receipts,  setReceipts]    = useState<any[]>([]);
+  const [journals,  setJournals]    = useState<any[]>([]);
+  const [budgets,   setBudgets]     = useState<any[]>([]);
+  const [coa,       setCoa]         = useState<any[]>([]);
+  const [loading,   setLoading]     = useState(true);
+  const [coaSearch, setCoaSearch]   = useState("");
 
-  const refetchAll = () => { rpv(); rrv(); rjv(); rb(); rca(); rba(); ras(); };
+  const refetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [p, r, j, b, c] = await Promise.all([
+        (supabase as any).from("payment_vouchers").select("*").order("created_at", { ascending: false }),
+        (supabase as any).from("receipt_vouchers").select("*").order("created_at", { ascending: false }),
+        (supabase as any).from("journal_vouchers").select("*").order("created_at", { ascending: false }),
+        (supabase as any).from("budgets").select("*").order("budget_name"),
+        (supabase as any).from("chart_of_accounts").select("*").order("account_code"),
+      ]);
+      setPayments(p.data || []);
+      setReceipts(r.data || []);
+      setJournals(j.data || []);
+      setBudgets(b.data || []);
+      setCoa(c.data || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, []);
 
-  const pvMTD    = pvRows.filter(v => v.voucher_date?.startsWith(thisMonth));
-  const rvMTD    = rvRows.filter(v => v.receipt_date?.startsWith(thisMonth));
-  const totalPaid         = pvMTD.filter(v => v.status==="paid").reduce((s,v)=>s+Number(v.amount||0),0);
-  const totalPending      = pvRows.filter(v=>["pending","approved"].includes(v.status)).reduce((s,v)=>s+Number(v.amount||0),0);
-  const totalReceived     = rvRows.reduce((s,v)=>s+Number(v.amount||0),0);
-  const totalReceivedMTD  = rvMTD.reduce((s,v)=>s+Number(v.amount||0),0);
-  const cashBalance       = bankRows.reduce((s,b)=>s+Number(b.balance||0),0);
-  const totalAllocated    = budRows.reduce((s,b)=>s+Number(b.allocated_amount||0),0);
-  const totalSpent        = budRows.reduce((s,b)=>s+Number(b.spent_amount||0),0);
-  const budgetUtil        = totalAllocated>0 ? Math.round(totalSpent/totalAllocated*100) : 0;
-  const assetValue        = assetRows.reduce((s,a)=>s+Number(a.current_value||0),0);
+  useEffect(() => { refetchAll(); }, [refetchAll]);
 
-  function applyFilters(rows: any[], dateField: string) {
-    let r = [...rows];
-    if (recordFilter==="latest100") r = r.slice(0,100);
-    if (recordFilter==="month") r = r.filter(x=>x[dateField]?.startsWith(thisMonth));
-    if (startDate) r = r.filter(x=>!x[dateField]||x[dateField]>=startDate);
-    if (endDate)   r = r.filter(x=>!x[dateField]||x[dateField]<=endDate);
-    if (typeFilter!=="ALL") r = r.filter(x=>x.status===typeFilter.toLowerCase()||x.type===typeFilter.toLowerCase());
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      r = r.filter(x=>Object.values(x).some(v=>String(v).toLowerCase().includes(q)));
-    }
-    return r;
-  }
+  /* ── KPI computations ─────────────────────────────── */
+  const totalPayments  = payments.reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const totalReceipts  = receipts.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const netBalance     = totalReceipts - totalPayments;
+  const totalAllocated = budgets.reduce((s, b) => s + Number(b.allocated_amount || 0), 0);
+  const pendingCount   = payments.filter(p => p.status === "pending").length
+                       + receipts.filter(r => r.status === "pending").length;
 
-  const filteredPV     = applyFilters(pvRows, "voucher_date");
-  const filteredRV     = applyFilters(rvRows, "receipt_date");
-  const filteredJV     = applyFilters(jvRows, "journal_date");
-  const filteredBud    = budRows.filter(b=>!search||b.budget_name?.toLowerCase().includes(search.toLowerCase()));
-  const filteredAssets = assetRows.filter(a=>!search||a.name?.toLowerCase().includes(search.toLowerCase())||a.asset_code?.toLowerCase().includes(search.toLowerCase()));
-  const filteredCOA    = coaRows.filter(c=>!search||c.name?.toLowerCase().includes(search.toLowerCase())||c.code?.toLowerCase().includes(search.toLowerCase()));
+  /* ── active table rows ───────────────────────────── */
+  const activeRows: any[] =
+    activeModule === "payment_vouchers" ? payments :
+    activeModule === "receipt_vouchers" ? receipts : journals;
 
-  const currentRows = () => {
-    switch(tab){
-      case "payments":  return filteredPV;
-      case "receipts":  return filteredRV;
-      case "journals":  return filteredJV;
-      case "budgets":   return filteredBud;
-      case "assets":    return filteredAssets;
-      case "accounts":  return filteredCOA;
-      default:          return pvRows;
+  const dateFiltered = activeRows.filter(r => {
+    const d = (r.voucher_date || r.receipt_date || r.journal_date || r.created_at || "").slice(0, 10);
+    if (recordFilter === "THISMONTH") return d >= thisMonthStart;
+    if (recordFilter === "LATEST100") return true;
+    const inRange = (!startDate || d >= startDate) && (!endDate || d <= endDate);
+    return inRange;
+  });
+
+  const statusFiltered = typeFilter === "ALL" ? dateFiltered
+    : dateFiltered.filter(r => r.status === typeFilter.toLowerCase());
+
+  const filtered = search
+    ? statusFiltered.filter(r => {
+        const q = search.toLowerCase();
+        return Object.values(r).some(v => String(v || "").toLowerCase().includes(q));
+      })
+    : statusFiltered;
+
+  const displayed = recordFilter === "LATEST100" ? filtered.slice(0, 100) : filtered;
+
+  /* ── COA sidebar ─────────────────────────────────── */
+  const filteredCoa = coaSearch
+    ? coa.filter(c => (c.account_name || "").toLowerCase().includes(coaSearch.toLowerCase()) || (c.account_code || "").includes(coaSearch))
+    : coa.slice(0, 60);
+
+  /* ── export ──────────────────────────────────────── */
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(displayed);
+    ws["!cols"] = Object.keys(displayed[0] || {}).map(() => ({ wch: 18 }));
+    XLSX.utils.book_append_sheet(wb, ws, MODULE_LABELS[activeModule]);
+    XLSX.writeFile(wb, `${activeModule}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const printReport = () => {
+    if (!displayed.length) return;
+    const keys = ["voucher_number","receipt_number","journal_number","payee_name","received_from","description","payment_method","status","total_amount","amount","voucher_date","receipt_date","journal_date"].filter(k => displayed[0]?.[k] !== undefined);
+    const w = window.open("", "_blank", "width=1000,height=700")!;
+    w.document.write(`<html><head><title>${MODULE_LABELS[activeModule]}</title>
+    <style>body{font-family:'Segoe UI',sans-serif;font-size:11px;margin:20px}
+    .hdr{display:flex;align-items:center;gap:12px;border-bottom:2px solid #0a2558;padding-bottom:10px;margin-bottom:14px}
+    h2{color:#0a2558;margin:0;font-size:14px}table{width:100%;border-collapse:collapse}
+    th{background:#0a2558;color:#fff;padding:6px 10px;text-align:left;font-size:10px}
+    td{padding:5px 10px;border-bottom:1px solid #e5e7eb;font-size:10px}
+    tr:nth-child(even){background:#f9fafb}
+    @media print{@page{margin:1cm}}</style></head><body>
+    <div class="hdr"><img src="${logoImg}" style="width:52px;height:52px;object-fit:contain"/>
+    <div><h2>Embu Level 5 Hospital</h2><div style="font-size:10px;color:#6b7280">Reports &amp; Data Extraction — ${MODULE_LABELS[activeModule]}</div>
+    <div style="font-size:9px;color:#9ca3af">Date range: ${startDate} to ${endDate} · Printed: ${new Date().toLocaleString("en-KE")}</div></div></div>
+    <table><thead><tr>${keys.map(k => `<th>${k.replace(/_/g, " ").toUpperCase()}</th>`).join("")}</tr></thead>
+    <tbody>${displayed.map(r => `<tr>${keys.map(k => `<td>${r[k] ?? "—"}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table><div style="margin-top:12px;font-size:10px;color:#6b7280">${displayed.length} records · ${startDate} to ${endDate}</div>
+    </body></html>`);
+    w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
+  };
+
+  /* ── column configs per module ───────────────────── */
+  const COLS: Record<ActiveModule, string[]> = {
+    payment_vouchers: ["Voucher No", "Payee", "Method", "Expense Account", "Status", "Total Amount", "Date", "Approved By"],
+    receipt_vouchers: ["Receipt No", "Received From", "Method", "Amount", "Status", "Receipt Date", "Dept", "Created By"],
+    journal_vouchers: ["Journal No", "Narration", "Reference", "Debit", "Credit", "Status", "Date", "Created By"],
+  };
+
+  const getCell = (row: any, col: string) => {
+    switch (col) {
+      case "Voucher No":   return <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#0f766e" }}>{row.voucher_number || "—"}</span>;
+      case "Receipt No":   return <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#1d4ed8" }}>{row.receipt_number || "—"}</span>;
+      case "Journal No":   return <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#7c3aed" }}>{row.journal_number || "—"}</span>;
+      case "Payee":        return row.payee_name || "—";
+      case "Received From":return row.received_from || "—";
+      case "Narration":    return <span style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{row.narration || "—"}</span>;
+      case "Method":       return row.payment_method || row.payment_method || "—";
+      case "Expense Account": return <span style={{ fontSize: 11, color: "#6b7280" }}>{row.expense_account || "—"}</span>;
+      case "Status": {
+        const s = SC[row.status] || { bg: "#f3f4f6", color: "#6b7280" };
+        return <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: s.bg, color: s.color, textTransform: "capitalize" }}>{row.status || "—"}</span>;
+      }
+      case "Total Amount": return <span style={{ fontWeight: 700, color: "#111827" }}>{row.total_amount != null ? fmtAmt(Number(row.total_amount)) : "—"}</span>;
+      case "Amount":       return <span style={{ fontWeight: 700, color: "#111827" }}>{row.amount != null ? fmtAmt(Number(row.amount)) : "—"}</span>;
+      case "Debit":        return <span style={{ fontWeight: 700, color: "#1d4ed8" }}>{row.total_debit != null ? fmtAmt(Number(row.total_debit)) : "—"}</span>;
+      case "Credit":       return <span style={{ fontWeight: 700, color: "#15803d" }}>{row.total_credit != null ? fmtAmt(Number(row.total_credit)) : "—"}</span>;
+      case "Date":         return row.voucher_date || row.journal_date ? new Date(row.voucher_date || row.journal_date).toLocaleDateString("en-KE") : "—";
+      case "Receipt Date": return row.receipt_date ? new Date(row.receipt_date).toLocaleDateString("en-KE") : "—";
+      case "Dept":         return row.department_name || "—";
+      case "Reference":    return row.reference || "—";
+      case "Approved By":  return row.approved_by_name || "—";
+      case "Created By":   return row.created_by_name || row.prepared_by_name || "—";
+      default:             return "—";
     }
   };
-  const currentTitle = TABS.find(t=>t.id===tab)?.label ?? "Finance";
-  const activeColor  = TABS.find(t=>t.id===tab)?.color ?? "#38bdf8";
 
-  const kpis = [
-    { label:"Cash Balance",      value:fmt(cashBalance),      color:"#38bdf8", icon:Landmark,    sub:`${bankRows.length} bank account(s)`,             path:"/financials/chart-of-accounts" },
-    { label:"MTD Payments",      value:fmt(totalPaid),        color:"#f87171", icon:TrendingDown, sub:`${pvMTD.filter(v=>v.status==="paid").length} paid this month`, path:"/vouchers/payment" },
-    { label:"MTD Receipts",      value:fmt(totalReceivedMTD), color:"#34d399", icon:TrendingUp,   sub:`${rvMTD.length} receipts`,                      path:"/vouchers/receipt" },
-    { label:"Pending Approval",  value:fmt(totalPending),     color:"#fbbf24", icon:Clock,        sub:`${pvRows.filter(v=>v.status==="pending").length} awaiting`, path:"/vouchers/payment" },
-    { label:"Budget Utilised",   value:`${budgetUtil}%`,      color:budgetUtil>90?"#f87171":budgetUtil>70?"#fb923c":"#34d399", icon:PiggyBank, sub:`${fmt(totalSpent)} spent`, path:"/financials/budgets" },
-    { label:"Total Receipts",    value:fmt(totalReceived),    color:"#a78bfa", icon:Receipt,      sub:`${rvRows.length} all-time`,                      path:"/vouchers/receipt" },
-    { label:"Fixed Assets",      value:fmt(assetValue),       color:"#fb923c", icon:Building2,    sub:`${assetRows.length} registered`,                 path:"/financials/fixed-assets" },
-    { label:"Journal Entries",   value:String(jvRows.length), color:"#60a5fa", icon:BookOpen,     sub:`${coaRows.length} accounts`,                     path:"/vouchers/journal" },
-  ];
+  /* ── all unique statuses in current table ──────── */
+  const allStatuses = [...new Set(activeRows.map(r => r.status).filter(Boolean))];
 
-  const modules = [
-    { label:"Payment Vouchers",   icon:CreditCard, path:"/vouchers/payment",              color:"#f87171", count:pvRows.length },
-    { label:"Receipt Vouchers",   icon:Receipt,    path:"/vouchers/receipt",              color:"#34d399", count:rvRows.length },
-    { label:"Journal Entries",    icon:BookOpen,   path:"/vouchers/journal",              color:"#a78bfa", count:jvRows.length },
-    { label:"Chart of Accounts",  icon:BookMarked, path:"/financials/chart-of-accounts", color:"#60a5fa", count:coaRows.length },
-    { label:"Budgets",            icon:PiggyBank,  path:"/financials/budgets",           color:"#fb923c", count:budRows.length },
-    { label:"Fixed Assets",       icon:Building2,  path:"/financials/fixed-assets",      color:"#fbbf24", count:assetRows.length },
-    { label:"Bank Accounts",      icon:Landmark,   path:"/financials/chart-of-accounts", color:"#38bdf8", count:bankRows.length },
-    { label:"Purchase Vouchers",  icon:Wallet,     path:"/vouchers/purchase",            color:"#f472b6", count:0 },
-  ];
-
-  function renderTableRows(rows: any[], cols: string[], navPath?: string) {
-    return (
-      <div style={{ overflowX:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-          <thead>
-            <tr style={{ background:"rgba(255,255,255,0.06)" }}>
-              {cols.map(c=>(
-                <th key={c} style={{ padding:"10px 14px", textAlign:"left", fontWeight:800, color:"#94a3b8", fontSize:10, textTransform:"uppercase", letterSpacing:"0.07em", borderBottom:"1px solid rgba(255,255,255,0.1)", whiteSpace:"nowrap" }}>
-                  {c.replace(/_/g," ")}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length===0 ? (
-              <tr><td colSpan={cols.length} style={{ padding:30, textAlign:"center", color:"#64748b", fontStyle:"italic" }}>No records found</td></tr>
-            ) : rows.map((row,i)=>(
-              <tr key={row.id??i}
-                onClick={()=>navPath&&navigate(navPath)}
-                style={{ borderBottom:"1px solid rgba(255,255,255,0.05)", cursor:navPath?"pointer":"default", transition:"background 0.15s" }}
-                onMouseEnter={e=>{ if(navPath)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                {cols.map((c,ci)=>{
-                  const val = row[c];
-                  if(c==="status") return <td key={c} style={{ padding:"9px 14px" }}><StatusPill status={String(val??"draft")} /></td>;
-                  if(c==="is_active") return <td key={c} style={{ padding:"9px 14px" }}><StatusPill status={val?"active":"disposed"} /></td>;
-                  if(["amount","purchase_cost","current_value","allocated_amount","spent_amount","remaining_amount","balance"].includes(c)){
-                    const num=Number(val||0);
-                    return <td key={c} style={{ padding:"9px 14px", fontWeight:700, color:num<0?"#f87171":"#e2e8f0", fontVariantNumeric:"tabular-nums" }}>
-                      {val!==undefined&&val!==null ? `KES ${num.toLocaleString()}` : "—"}
-                    </td>;
-                  }
-                  if(c.includes("date")&&val){
-                    return <td key={c} style={{ padding:"9px 14px", color:"#94a3b8" }}>{new Date(val).toLocaleDateString("en-KE",{day:"2-digit",month:"short",year:"numeric"})}</td>;
-                  }
-                  if(ci===0) return <td key={c} style={{ padding:"9px 14px", fontWeight:700, color:activeColor }}>{String(val??"—")}</td>;
-                  return <td key={c} style={{ padding:"9px 14px", color:"#cbd5e1", maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{String(val??"—")}</td>;
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  function renderBudgets() {
-    if(filteredBud.length===0) return <p style={{ padding:30, textAlign:"center", color:"#64748b", fontStyle:"italic" }}>No budgets found</p>;
-    return (
-      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-        {filteredBud.map((b:any)=>{
-          const alloc=Number(b.allocated_amount||0), spent=Number(b.spent_amount||0);
-          const util=alloc>0?Math.round(spent/alloc*100):0;
-          const bar=util>90?"#f87171":util>70?"#fb923c":"#34d399";
-          return (
-            <div key={b.id} onClick={()=>navigate("/financials/budgets")}
-              style={{ background:"rgba(255,255,255,0.04)", borderRadius:10, padding:"14px 16px", cursor:"pointer", border:"1px solid rgba(255,255,255,0.07)", transition:"background 0.15s" }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.08)"}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)"}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-                <span style={{ fontSize:12, fontWeight:800, color:"#e2e8f0" }}>{b.budget_name} <span style={{ fontSize:10, color:"#64748b", marginLeft:6 }}>{b.fiscal_year}</span></span>
-                <div style={{ display:"flex", gap:10, alignItems:"center" }}><StatusPill status={b.status??"draft"} /><span style={{ fontSize:11, fontWeight:700, color:bar }}>{util}%</span></div>
-              </div>
-              <div style={{ height:8, background:"rgba(255,255,255,0.08)", borderRadius:4, overflow:"hidden" }}>
-                <div style={{ width:`${Math.min(util,100)}%`, height:"100%", background:bar, borderRadius:4, transition:"width 0.8s" }} />
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between", marginTop:6 }}>
-                <span style={{ fontSize:10, color:"#64748b" }}>Spent: <b style={{ color:"#e2e8f0" }}>{fmt(spent)}</b></span>
-                <span style={{ fontSize:10, color:"#64748b" }}>Allocated: <b style={{ color:"#e2e8f0" }}>{fmt(alloc)}</b></span>
-                <span style={{ fontSize:10, color:"#64748b" }}>Remaining: <b style={{ color:bar }}>{fmt(Number(b.remaining_amount||alloc-spent))}</b></span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  function renderOverview() {
-    const recentPV=pvRows.slice(0,6), recentRV=rvRows.slice(0,6);
-    return (
-      <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
-        <div>
-          <h3 style={{ margin:"0 0 12px", fontSize:11, fontWeight:800, color:"#64748b", textTransform:"uppercase", letterSpacing:"0.08em" }}>Finance Modules</h3>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(8,1fr)", gap:8 }}>
-            {modules.map(m=>(
-              <button key={m.path+m.label} onClick={()=>navigate(m.path)}
-                style={{ background:"rgba(255,255,255,0.04)", border:`1px solid ${m.color}30`, borderRadius:12, padding:"14px 8px", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8, transition:"all 0.2s" }}
-                onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background=`${m.color}15`; (e.currentTarget as HTMLElement).style.borderColor=m.color; (e.currentTarget as HTMLElement).style.transform="translateY(-2px)"; }}
-                onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)"; (e.currentTarget as HTMLElement).style.borderColor=`${m.color}30`; (e.currentTarget as HTMLElement).style.transform="none"; }}>
-                <div style={{ width:34, height:34, borderRadius:9, background:`${m.color}20`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  <m.icon style={{ width:17, height:17, color:m.color }} />
-                </div>
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:9, fontWeight:800, color:"#e2e8f0", lineHeight:1.3 }}>{m.label}</div>
-                  {m.count>0 && <div style={{ fontSize:9, color:m.color, marginTop:2 }}>{m.count} records</div>}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {bankRows.length>0&&(
-          <div>
-            <h3 style={{ margin:"0 0 10px", fontSize:11, fontWeight:800, color:"#64748b", textTransform:"uppercase", letterSpacing:"0.08em" }}>Bank Accounts</h3>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
-              {bankRows.map((b:any)=>(
-                <div key={b.id} style={{ background:"rgba(56,189,248,0.07)", border:"1px solid rgba(56,189,248,0.2)", borderRadius:12, padding:"14px 16px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                    <div>
-                      <div style={{ fontSize:11, fontWeight:800, color:"#e2e8f0" }}>{b.bank_name}</div>
-                      <div style={{ fontSize:9, color:"#64748b", marginTop:2 }}>{b.account_number} · {b.currency}</div>
-                      <div style={{ fontSize:9, color:"#94a3b8", marginTop:1 }}>{b.branch}</div>
-                    </div>
-                    <Landmark style={{ width:18, height:18, color:"#38bdf8" }} />
-                  </div>
-                  <div style={{ marginTop:10, fontSize:18, fontWeight:900, color:"#38bdf8" }}>{fmt(Number(b.balance||0))}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          {[
-            { label:"Recent Payments", rows:recentPV, color:"#f87171", path:"/vouchers/payment", numField:"amount", nameField:"payee_name", codeField:"voucher_number" },
-            { label:"Recent Receipts", rows:recentRV, color:"#34d399", path:"/vouchers/receipt", numField:"amount", nameField:"received_from", codeField:"receipt_number" },
-          ].map(panel=>(
-            <div key={panel.label} style={{ ...glass, overflow:"hidden" }}>
-              <div style={{ padding:"10px 16px", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:11, fontWeight:800, color:panel.color }}>{panel.label}</span>
-                <button onClick={()=>navigate(panel.path)} style={{ background:"none", border:"none", color:"#64748b", cursor:"pointer", fontSize:10, display:"flex", alignItems:"center", gap:3 }}>View all <ArrowRight style={{ width:10, height:10 }} /></button>
-              </div>
-              {panel.rows.length===0 ? <p style={{ padding:20, color:"#64748b", fontSize:11, textAlign:"center", fontStyle:"italic" }}>No records yet</p> :
-                panel.rows.map((v:any)=>(
-                  <div key={v.id} onClick={()=>navigate(panel.path)}
-                    style={{ padding:"8px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid rgba(255,255,255,0.04)", cursor:"pointer" }}
-                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=`${panel.color}08`}
-                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                    <div>
-                      <div style={{ fontSize:10, fontWeight:700, color:panel.color }}>{v[panel.codeField]||"—"}</div>
-                      <div style={{ fontSize:9, color:"#64748b" }}>{v[panel.nameField]||"—"}</div>
-                    </div>
-                    <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:11, fontWeight:800, color:"#e2e8f0" }}>KES {Number(v[panel.numField]||0).toLocaleString()}</div>
-                      <StatusPill status={v.status??"draft"} />
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ))}
-        </div>
-
-        {budRows.length>0&&(
-          <div>
-            <h3 style={{ margin:"0 0 10px", fontSize:11, fontWeight:800, color:"#64748b", textTransform:"uppercase", letterSpacing:"0.08em" }}>Budget Utilisation</h3>
-            {renderBudgets()}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function renderTabContent() {
-    const c = (n:number)=>`${n} record${n!==1?"s":""}`;
-    switch(tab){
-      case "overview":  return renderOverview();
-      case "payments":  return <div><div style={{ marginBottom:8, fontSize:10, color:"#64748b" }}>{c(filteredPV.length)} · {startDate} to {endDate}</div>{renderTableRows(filteredPV,["voucher_number","voucher_date","payee_name","account_name","amount","status"],"/vouchers/payment")}</div>;
-      case "receipts":  return <div><div style={{ marginBottom:8, fontSize:10, color:"#64748b" }}>{c(filteredRV.length)} · {startDate} to {endDate}</div>{renderTableRows(filteredRV,["receipt_number","receipt_date","received_from","account_name","amount","status"],"/vouchers/receipt")}</div>;
-      case "journals":  return <div><div style={{ marginBottom:8, fontSize:10, color:"#64748b" }}>{c(filteredJV.length)}</div>{renderTableRows(filteredJV,["voucher_number","journal_date","description","debit_account","credit_account","amount","status"],"/vouchers/journal")}</div>;
-      case "budgets":   return <div><div style={{ marginBottom:12, fontSize:10, color:"#64748b" }}>{c(filteredBud.length)}</div>{renderBudgets()}</div>;
-      case "assets":    return <div><div style={{ marginBottom:8, fontSize:10, color:"#64748b" }}>{c(filteredAssets.length)} · Total value: {fmt(assetValue)}</div>{renderTableRows(filteredAssets,["asset_code","name","purchase_date","purchase_cost","current_value","depreciation_method","status"],"/financials/fixed-assets")}</div>;
-      case "accounts":  return <div><div style={{ marginBottom:8, fontSize:10, color:"#64748b" }}>{c(filteredCOA.length)}</div>{renderTableRows(filteredCOA,["code","name","type","balance","is_active"],"/financials/chart-of-accounts")}</div>;
-      default: return null;
-    }
-  }
-
-  const statusOptions = ["ALL","PENDING","APPROVED","PAID","DRAFT","REJECTED","POSTED","REVERSED","ACTIVE","DISPOSED"];
+  /* ── styles ──────────────────────────────────────── */
+  const btnBase: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 5, padding: "5px 13px",
+    border: "1.5px solid #c9cdd4", borderRadius: 4, cursor: "pointer",
+    fontSize: 13, fontWeight: 600, background: "#f5f5f5", color: "#222",
+    fontFamily: "'Segoe UI',system-ui",
+  };
 
   return (
-    <div style={{ minHeight:"calc(100vh - 60px)", fontFamily:"'Segoe UI',system-ui,sans-serif", backgroundImage:`url(${procBg})`, backgroundSize:"cover", backgroundPosition:"center", backgroundAttachment:"fixed", position:"relative" }}>
-      <div style={{ position:"absolute", inset:0, background:"rgba(4,10,25,0.82)", zIndex:0 }} />
+    <div style={{ fontFamily: "'Segoe UI',system-ui,sans-serif", background: "#e8e9eb", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .fin-row:hover td { background: #d8eaf7 !important; }
+        .coa-row:hover { background: #e8f4fd !important; cursor: pointer; }
+        select option { background: #fff; color: #222; }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+        .mod-btn { transition: background 0.15s; }
+        .mod-btn:hover { background: rgba(255,255,255,0.2) !important; }
+      `}</style>
 
-      <div style={{ position:"relative", zIndex:1 }}>
-
-        {/* ── HEADER ── */}
-        <div style={{ background:"rgba(6,14,35,0.92)", borderBottom:"1px solid rgba(255,255,255,0.1)", backdropFilter:"blur(20px)", padding:"8px 20px", display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginRight:8 }}>
-            <img src={logoImg} alt="Logo" style={{ width:36, height:36, borderRadius:8, objectFit:"contain" }} />
-            <div>
-              <div style={{ fontSize:13, fontWeight:900, color:"#f8fafc", letterSpacing:"-0.01em" }}>Embu Level 5 Hospital</div>
-              <div style={{ fontSize:9, color:"#64748b", letterSpacing:"0.06em", textTransform:"uppercase" }}>Finance & Accounts — Reports & Data Extraction</div>
-            </div>
-          </div>
-
-          <span style={{ fontSize:10, color:"#94a3b8", fontWeight:700, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, padding:"4px 10px" }}>Date Range</span>
-          <label style={{ fontSize:10, color:"#94a3b8" }}>Start Date</label>
-          <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
-            style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, color:"#f8fafc", padding:"4px 8px", fontSize:11, outline:"none" }} />
-          <label style={{ fontSize:10, color:"#94a3b8" }}>End Date</label>
-          <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
-            style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, color:"#f8fafc", padding:"4px 8px", fontSize:11, outline:"none" }} />
-
-          <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
-            <button onClick={refetchAll}
-              style={{ background:"rgba(56,189,248,0.15)", color:"#38bdf8", border:"1px solid rgba(56,189,248,0.3)", borderRadius:8, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(56,189,248,0.28)"}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="rgba(56,189,248,0.15)"}>
-              <RefreshCw style={{ width:12, height:12 }} />Refresh
-            </button>
-            <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}
-              style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:8, color:"#f8fafc", padding:"6px 10px", fontSize:11, outline:"none", cursor:"pointer" }}>
-              {statusOptions.map(s=><option key={s} value={s} style={{ background:"#0f172a" }}>{s}</option>)}
-            </select>
-            <button onClick={()=>printTable(currentTitle,currentRows())}
-              style={{ background:"rgba(248,113,113,0.15)", color:"#f87171", border:"1px solid rgba(248,113,113,0.3)", borderRadius:8, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(248,113,113,0.28)"}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="rgba(248,113,113,0.15)"}>
-              <Printer style={{ width:12, height:12 }} />Print
-            </button>
-            <button onClick={()=>exportCSV(currentRows(),`${currentTitle.replace(/ /g,"_")}_${today}.csv`)}
-              style={{ background:"rgba(52,211,153,0.15)", color:"#34d399", border:"1px solid rgba(52,211,153,0.3)", borderRadius:8, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(52,211,153,0.28)"}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="rgba(52,211,153,0.15)"}>
-              <Download style={{ width:12, height:12 }} />Save
-            </button>
+      {/* ── TOP HEADER BAR ─────────────────────────────────── */}
+      <div style={{ background: "#f0f0f0", borderBottom: "1px solid #c4c4c4", padding: "7px 16px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        {/* Logo + Title */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 240 }}>
+          <img src={logoImg} alt="logo" style={{ width: 46, height: 46, objectFit: "contain" }}/>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#111", lineHeight: 1.2 }}>Embu Level 5 Hospital</div>
+            <div style={{ fontSize: 10.5, color: "#666" }}>Reports &amp; Data Extraction — {MODULE_LABELS[activeModule]}</div>
           </div>
         </div>
 
-        {/* ── KPI TILE STRIP ── */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(8,1fr)", borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
-          {kpis.map((k,i)=>(
-            <button key={k.label} onClick={()=>navigate(k.path)}
-              style={{ background:i%2===0?`${k.color}22`:`${k.color}18`, border:"none", borderRight:"1px solid rgba(255,255,255,0.07)", padding:"14px 12px", cursor:"pointer", textAlign:"left", transition:"all 0.15s" }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=`${k.color}38`}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?`${k.color}22`:`${k.color}18`}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
-                <span style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.07em" }}>{k.label}</span>
-                <k.icon style={{ width:14, height:14, color:k.color }} />
-              </div>
-              <div style={{ fontSize:17, fontWeight:900, color:k.color, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{k.value}</div>
-              <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", marginTop:4 }}>{k.sub}</div>
-            </button>
-          ))}
+        {/* Date Range */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1.5px solid #c4c4c4", borderRadius: 4, padding: "4px 10px" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#444" }}>Date Range</span>
+          <span style={{ fontSize: 12, color: "#666" }}>Start Date</span>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+            style={{ border: "1px solid #bbb", borderRadius: 3, padding: "3px 6px", fontSize: 12, outline: "none" }}/>
+          <span style={{ fontSize: 12, color: "#666" }}>End Date</span>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+            style={{ border: "1px solid #bbb", borderRadius: 3, padding: "3px 6px", fontSize: 12, outline: "none" }}/>
         </div>
 
-        {/* ── MAIN BODY ── */}
-        <div style={{ padding:"14px 18px", display:"flex", gap:14 }}>
+        {/* Refresh */}
+        <button onClick={refetchAll} disabled={loading} style={{ ...btnBase, minWidth: 80 }}>
+          <RefreshCw style={{ width: 13, height: 13, ...(loading ? { animation: "spin 1s linear infinite" } : {}) }}/>
+          Refresh
+        </button>
 
-          {/* Sidebar */}
-          <div style={{ width:196, flexShrink:0 }}>
-            <div style={{ ...glass, padding:8, display:"flex", flexDirection:"column", gap:2 }}>
-              <div style={{ padding:"7px 10px", fontSize:9, fontWeight:800, color:"#64748b", textTransform:"uppercase", letterSpacing:"0.08em", borderBottom:"1px solid rgba(255,255,255,0.06)", marginBottom:4 }}>Finance Modules</div>
-              {TABS.map(t=>(
-                <button key={t.id} onClick={()=>setTab(t.id)}
-                  style={{ background:tab===t.id?`${t.color}18`:"transparent", border:tab===t.id?`1px solid ${t.color}40`:"1px solid transparent", borderRadius:8, padding:"9px 12px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:8, transition:"all 0.15s", color:tab===t.id?t.color:"#94a3b8", fontWeight:tab===t.id?800:600, fontSize:11 }}
-                  onMouseEnter={e=>{ if(tab!==t.id)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)"; }}
-                  onMouseLeave={e=>{ if(tab!==t.id)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
-                  <t.icon style={{ width:14, height:14, flexShrink:0 }} />{t.label}
-                </button>
+        <div style={{ flex: 1 }}/>
+
+        {/* Module Selector */}
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setShowModuleMenu(m => !m)}
+            style={{ ...btnBase, minWidth: 180, justifyContent: "space-between", background: "#fff", border: "1.5px solid #adb5bd" }}>
+            <span style={{ fontWeight: 700 }}>{MODULE_LABELS[activeModule]}</span>
+            <ChevronDown style={{ width: 13, height: 13, color: "#666" }}/>
+          </button>
+          {showModuleMenu && (
+            <div style={{ position: "absolute", top: "100%", right: 0, zIndex: 100, background: "#fff", border: "1.5px solid #adb5bd", borderRadius: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.15)", minWidth: 200 }}>
+              {(Object.keys(MODULE_LABELS) as ActiveModule[]).map(m => (
+                <div key={m} onClick={() => { setActiveModule(m); setShowModuleMenu(false); setSearch(""); setTypeFilter("ALL"); }}
+                  style={{ padding: "9px 14px", cursor: "pointer", fontSize: 13, fontWeight: activeModule === m ? 700 : 500, color: activeModule === m ? "#0f766e" : "#222", background: activeModule === m ? "#f0fdf4" : "#fff" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f5f5f5"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = activeModule === m ? "#f0fdf4" : "#fff"}>
+                  {MODULE_LABELS[m]}
+                </div>
               ))}
-
-              <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", marginTop:8, paddingTop:8, display:"flex", flexDirection:"column", gap:3 }}>
-                <div style={{ fontSize:9, fontWeight:800, color:"#64748b", textTransform:"uppercase", letterSpacing:"0.08em", padding:"4px 10px" }}>Quick Actions</div>
-                {[
-                  { label:"New Payment", path:"/vouchers/payment", color:"#f87171" },
-                  { label:"New Receipt", path:"/vouchers/receipt", color:"#34d399" },
-                  { label:"New Journal", path:"/vouchers/journal", color:"#a78bfa" },
-                  { label:"View Reports", path:"/reports",         color:"#60a5fa" },
-                ].map(a=>(
-                  <button key={a.path+a.label} onClick={()=>navigate(a.path)}
-                    style={{ background:"transparent", border:"none", color:a.color, cursor:"pointer", fontSize:10, fontWeight:700, padding:"6px 10px", textAlign:"left", borderRadius:6, display:"flex", alignItems:"center", gap:6, transition:"background 0.12s" }}
-                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=`${a.color}15`}
-                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                    <Plus style={{ width:11, height:11 }} />{a.label}
-                  </button>
-                ))}
-              </div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Right panel */}
-          <div style={{ flex:1, minWidth:0 }}>
-            {/* Sub-header */}
-            <div style={{ ...glass, padding:"10px 16px", marginBottom:12, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-              <span style={{ fontSize:12, fontWeight:900, color:activeColor }}>{TABS.find(t=>t.id===tab)?.label}</span>
-              <span style={{ color:"rgba(255,255,255,0.15)", fontSize:14 }}>|</span>
-              <div style={{ display:"flex", alignItems:"center", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"4px 10px", gap:6, flex:1, maxWidth:280 }}>
-                <Search style={{ width:12, height:12, color:"#64748b" }} />
-                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records..."
-                  style={{ background:"none", border:"none", outline:"none", color:"#f8fafc", fontSize:11, width:"100%" }} />
+        {/* Print */}
+        <button onClick={printReport} style={{ ...btnBase, background: "#fff" }}>
+          <Printer style={{ width: 13, height: 13 }}/>Print
+        </button>
+
+        {/* Save / Export */}
+        <button onClick={exportExcel} style={{ ...btnBase, background: "#fff" }}>
+          <Save style={{ width: 13, height: 13 }}/>Save
+        </button>
+      </div>
+
+      {/* ── KPI TILES ──────────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 0 }}>
+        {/* Tile 1 – Total Payments */}
+        <div style={{ background: "#c0392b", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 82, borderRight: "2px solid rgba(0,0,0,0.15)" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", letterSpacing: 0.5 }}>{fmtAmt(totalPayments)}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>Total Payments</div>
+        </div>
+        {/* Tile 2 – Total Receipts */}
+        <div style={{ background: "#7d6608", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 82, borderRight: "2px solid rgba(0,0,0,0.15)" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", letterSpacing: 0.5 }}>{fmtAmt(totalReceipts)}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>Total Receipts</div>
+        </div>
+        {/* Tile 3 – Net Balance */}
+        <div style={{ background: "#1a6b5a", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 82, borderRight: "2px solid rgba(0,0,0,0.15)" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", letterSpacing: 0.5 }}>{fmtAmt(Math.abs(netBalance))}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>Net Balance</div>
+        </div>
+        {/* Tile 4 – Record Count */}
+        <div style={{ background: "#6c3483", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 82, borderRight: "2px solid rgba(0,0,0,0.15)" }}>
+          <div style={{ fontSize: 36, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{displayed.length}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>Record Count</div>
+        </div>
+        {/* Tile 5 – Budget Allocated */}
+        <div style={{ background: "#1a1a2e", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 82 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", letterSpacing: 0.5 }}>{fmtAmt(totalAllocated)}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>Budget Allocated</div>
+        </div>
+      </div>
+
+      {/* ── BODY (sidebar + main) ──────────────────────────────── */}
+      <div style={{ display: "flex", flex: 1, gap: 0 }}>
+        {/* Left sidebar – Chart of Accounts */}
+        <div style={{ width: 234, minWidth: 234, background: "#f5f5f5", borderRight: "1px solid #c4c4c4", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "10px 12px", background: "#e8e9eb", borderBottom: "1px solid #c4c4c4" }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#222", marginBottom: 8 }}>Chart of Accounts</div>
+            <input value={coaSearch} onChange={e => setCoaSearch(e.target.value)} placeholder="Search"
+              style={{ width: "100%", padding: "5px 8px", border: "1px solid #bbb", borderRadius: 3, fontSize: 12, outline: "none", background: "#fff", boxSizing: "border-box" as const }}/>
+          </div>
+          {/* Header row */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", padding: "5px 10px", background: "#003399", borderBottom: "1px solid #0022aa" }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase" }}>ACCOUNT NAME</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase" }}>TYPE</span>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {filteredCoa.length === 0 ? (
+              <div style={{ padding: "20px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No accounts</div>
+            ) : filteredCoa.map((c, i) => (
+              <div key={c.id || i} className="coa-row"
+                style={{ display: "grid", gridTemplateColumns: "1fr auto", padding: "5px 10px", borderBottom: "1px solid #e5e7eb", background: i % 2 === 0 ? "#fff" : "#f9f9f9" }}
+                onClick={() => navigate("/financials/chart-of-accounts")}>
+                <span style={{ fontSize: 11.5, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 6 }} title={c.account_name}>{c.account_name || "—"}</span>
+                <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, whiteSpace: "nowrap" }}>{c.account_type?.slice(0, 3) || "—"}</span>
               </div>
-              <div style={{ display:"flex", gap:4 }}>
-                {(["all","latest100","month"] as const).map(f=>(
-                  <button key={f} onClick={()=>setRecordFilter(f)}
-                    style={{ background:recordFilter===f?`${activeColor}20`:"transparent", color:recordFilter===f?activeColor:"#64748b", border:`1px solid ${recordFilter===f?activeColor+"50":"rgba(255,255,255,0.1)"}`, borderRadius:6, padding:"4px 10px", fontSize:10, fontWeight:700, cursor:"pointer" }}>
-                    {f==="all"?"ALL":f==="latest100"?"Latest 100":"This Month"}
-                  </button>
-                ))}
+            ))}
+          </div>
+        </div>
+
+        {/* ── MAIN CONTENT ──────────────────────────── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Sub-header panel */}
+          <div style={{ background: "#f5f5f5", border: "1px solid #d4d4d4", margin: "10px 10px 0", borderRadius: 3 }}>
+            <div style={{ padding: "7px 12px", borderBottom: "1px solid #d4d4d4", fontSize: 12, fontWeight: 800, color: "#333" }}>
+              {MODULE_LABELS[activeModule]} — Add / Extract
+            </div>
+            <div style={{ padding: "7px 12px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              {/* Search */}
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#444" }}>Search</span>
+              <div style={{ position: "relative" }}>
+                <Search style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", width: 11, height: 11, color: "#999" }}/>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter records…"
+                  style={{ paddingLeft: 26, paddingRight: 8, paddingTop: 5, paddingBottom: 5, border: "1.5px solid #bbb", borderRadius: 3, fontSize: 12, outline: "none", width: 200 }}/>
               </div>
-              <button onClick={()=>exportCSV(currentRows(),`${currentTitle.replace(/ /g,"_")}_Extract_${today}.csv`)}
-                style={{ marginLeft:"auto", background:`${activeColor}20`, color:activeColor, border:`1px solid ${activeColor}40`, borderRadius:8, padding:"6px 16px", fontSize:11, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}
-                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=`${activeColor}35`}
-                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=`${activeColor}20`}>
-                <Download style={{ width:12, height:12 }} />Extract
+              {/* Type filter */}
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#444" }}>Type</span>
+              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+                style={{ padding: "4px 8px", border: "1.5px solid #bbb", borderRadius: 3, fontSize: 12, outline: "none" }}>
+                <option value="ALL">ALL</option>
+                {allStatuses.map(s => <option key={s} value={s.toUpperCase()}>{s.toUpperCase()}</option>)}
+              </select>
+
+              <div style={{ flex: 1 }}/>
+
+              {/* Extract button */}
+              <button onClick={exportExcel}
+                style={{ padding: "5px 16px", background: "#fff", border: "1.5px solid #c4c4c4", borderRadius: 4, cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#333" }}>
+                Extract
               </button>
             </div>
-
-            {/* Content */}
-            <div style={{ ...glass, padding:16, minHeight:400 }}>{renderTabContent()}</div>
-
-            {/* Bottom action bar */}
-            <div style={{ ...glass, marginTop:10, padding:"8px 16px", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-              {[
-                { label:"Refresh",         fn:refetchAll,                                        color:"#38bdf8", icon:RefreshCw },
-                { label:"Export Excel",    fn:()=>exportCSV(currentRows(),`${currentTitle.replace(/ /g,"_")}_${today}.csv`), color:"#60a5fa", icon:Download },
-                { label:"Print Report",    fn:()=>printTable(currentTitle,currentRows()),         color:"#a78bfa", icon:Printer },
-                { label:"Full Reports",    fn:()=>navigate("/reports"),                           color:"#fb923c", icon:BarChart3 },
-                { label:"Chart of Accounts",fn:()=>navigate("/financials/chart-of-accounts"),   color:"#34d399", icon:BookMarked },
-                { label:"Budgets",         fn:()=>navigate("/financials/budgets"),               color:"#fbbf24", icon:PiggyBank },
-                { label:"Fixed Assets",    fn:()=>navigate("/financials/fixed-assets"),          color:"#f87171", icon:Building2 },
-                { label:"Audit Log",       fn:()=>navigate("/audit-log"),                        color:"#94a3b8", icon:Activity },
-              ].map(b=>(
-                <button key={b.label} onClick={b.fn}
-                  style={{ background:`${b.color}12`, color:b.color, border:`1px solid ${b.color}25`, borderRadius:7, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:5, transition:"background 0.15s" }}
-                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=`${b.color}25`}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=`${b.color}12`}>
-                  <b.icon style={{ width:11, height:11 }} />{b.label}
-                </button>
+            {/* Show Records radio */}
+            <div style={{ padding: "6px 12px", borderTop: "1px solid #eee", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#444", marginRight: 4 }}>Show Records:</span>
+              {([["ALL", "ALL"], ["LATEST100", "Latest 100"], ["THISMONTH", "This Month"]] as [RecordFilter, string][]).map(([val, label]) => (
+                <label key={val} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, color: "#333" }}>
+                  <input type="radio" name="recFilter" value={val} checked={recordFilter === val} onChange={() => setRecordFilter(val)} style={{ cursor: "pointer" }}/>
+                  {label}
+                </label>
               ))}
-              <div style={{ marginLeft:"auto", fontSize:10, color:"#64748b" }}>
-                {currentRows().length} records · {startDate} to {endDate}
-              </div>
+              <div style={{ flex: 1 }}/>
+              <span style={{ fontSize: 12, color: "#666" }}>{displayed.length} records</span>
             </div>
+          </div>
+
+          {/* Data table */}
+          <div style={{ flex: 1, overflow: "auto", margin: "0 10px", border: "1px solid #d4d4d4", borderTop: "none", background: "#fff" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "#003399", position: "sticky", top: 0, zIndex: 2 }}>
+                  {COLS[activeModule].map(col => (
+                    <th key={col} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.15)" }}>
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={COLS[activeModule].length} style={{ padding: 40, textAlign: "center" }}>
+                    <RefreshCw style={{ width: 18, height: 18, color: "#9ca3af", animation: "spin 1s linear infinite", display: "block", margin: "0 auto 8px" }}/>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading…</span>
+                  </td></tr>
+                ) : displayed.length === 0 ? (
+                  <tr><td colSpan={COLS[activeModule].length} style={{ padding: 50, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                    No records found for the selected filters
+                  </td></tr>
+                ) : displayed.map((row, i) => (
+                  <tr key={row.id || i} className="fin-row">
+                    {COLS[activeModule].map(col => (
+                      <td key={col} style={{ padding: "6px 12px", borderBottom: "1px solid #e8e8e8", color: "#1a1a1a", background: i % 2 === 0 ? "#fff" : "#f4f8fb", whiteSpace: "nowrap", borderRight: "1px solid #ececec" }}>
+                        {getCell(row, col)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── BOTTOM ACTION BAR ─────────────────────── */}
+          <div style={{ background: "#e8e9eb", borderTop: "2px solid #bbb", padding: "7px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={refetchAll} disabled={loading}
+              style={{ ...btnBase, gap: 5, minWidth: 80 }}>
+              <RefreshCw style={{ width: 13, height: 13, ...(loading ? { animation: "spin 1s linear infinite" } : {}) }}/>
+              Refresh
+            </button>
+            <button onClick={exportExcel}
+              style={{ ...btnBase, minWidth: 80 }}>
+              <Download style={{ width: 13, height: 13 }}/>
+              Extract
+            </button>
+            <div style={{ width: 1, height: 24, background: "#bbb", margin: "0 4px" }}/>
+            <button onClick={printReport}
+              style={{ ...btnBase, minWidth: 110 }}>
+              <Printer style={{ width: 13, height: 13 }}/>
+              Print Report
+            </button>
+            <button onClick={exportExcel}
+              style={{ ...btnBase, minWidth: 120 }}>
+              <BarChart3 style={{ width: 13, height: 13 }}/>
+              Export Excel
+            </button>
+            <div style={{ flex: 1 }}/>
+            <span style={{ fontSize: 12, color: "#555" }}>
+              {displayed.length} records · {startDate} to {endDate}
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Click-away for module menu */}
+      {showModuleMenu && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onClick={() => setShowModuleMenu(false)}/>
+      )}
     </div>
   );
 }
