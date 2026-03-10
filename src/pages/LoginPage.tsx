@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, Mail, RefreshCw, ShoppingCart } from "lucide-react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import procurementBg from "@/assets/procurement-bg.jpg";
 import embuLogo from "@/assets/embu-county-logo.jpg";
 
@@ -12,135 +12,372 @@ export default function LoginPage() {
   const [loading,  setLoading]  = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [mounted,  setMounted]  = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => { setTimeout(() => setMounted(true), 80); }, []);
+  useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(!email.trim() || !password) { toast({title:"Fill in all fields",variant:"destructive"}); return; }
+    if (!email.trim() || !password) {
+      toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if(error) throw error;
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
       navigate("/dashboard");
-    } catch(err: any) {
-      toast({ title:"Login failed", description:err.message, variant:"destructive" });
-    } finally { setLoading(false); }
+    } catch (err: any) {
+      toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast({ title: "Enter your email address first", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin + "/dashboard",
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
+    } else {
+      setForgotSent(true);
+    }
+  };
+
+  const TEAL   = "#0e7490";
+  const TEAL_D = "#0c6380";
+
   return (
-    <div style={{ display:"flex", minHeight:"100vh", fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
-
-      {/* ── LEFT: Procurement wallpaper ── */}
+    <div style={{
+      position: "fixed", inset: 0,
+      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+      overflow: "hidden",
+    }}>
+      {/* ── Full-screen background photo ── */}
       <div style={{
-        flex:1, position:"relative", overflow:"hidden",
-        backgroundImage:`url(${procurementBg})`,
-        backgroundSize:"cover", backgroundPosition:"center",
-        display:"flex", flexDirection:"column",
-      }}>
-        <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg,rgba(10,37,88,0.9) 0%,rgba(26,58,107,0.85) 50%,rgba(0,105,92,0.75) 100%)" }}/>
+        position: "absolute", inset: 0,
+        backgroundImage: `url(${procurementBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center 40%",
+        filter: "brightness(0.88) saturate(1.1)",
+      }}/>
 
-        <div style={{ position:"relative", zIndex:1, flex:1, display:"flex", flexDirection:"column", padding:"36px 40px" }}>
-          {/* Logo + name */}
-          <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:"auto" }}>
-            <img src={embuLogo} alt="Embu County" style={{ height:52, width:52, borderRadius:12, objectFit:"contain", background:"rgba(255,255,255,0.15)", border:"2px solid rgba(255,255,255,0.25)", padding:4 }} onError={e=>{(e.target as HTMLImageElement).style.display="none";}}/>
+      {/* Subtle dark gradient overlay — lighter than before */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.55) 100%)",
+      }}/>
+
+      {/* ── Centered card ── */}
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "20px",
+      }}>
+        <div style={{
+          background: "rgba(255,255,255,0.97)",
+          borderRadius: 4,
+          width: "100%", maxWidth: 380,
+          padding: "40px 36px 32px",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.12)",
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? "translateY(0) scale(1)" : "translateY(12px) scale(0.98)",
+          transition: "opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)",
+        }}>
+
+          {/* ── Logo area ── */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            gap: 10, marginBottom: 6,
+          }}>
+            <img
+              src={embuLogo}
+              alt="EL5H"
+              style={{
+                height: 36, width: 36, borderRadius: 6,
+                objectFit: "contain",
+                background: "#f0f9ff",
+                border: "1.5px solid #e0f2fe",
+                padding: 3,
+              }}
+              onError={e => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
             <div>
-              <div style={{ fontSize:18, fontWeight:900, color:"#fff", letterSpacing:"-0.02em" }}>EL5 MediProcure</div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", marginTop:2 }}>Embu Level 5 Hospital</div>
+              <div style={{
+                fontSize: 20, fontWeight: 900, color: "#0e2a4a",
+                letterSpacing: "-0.03em", lineHeight: 1,
+              }}>
+                EL5 MediProcure
+              </div>
+              <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                Embu Level 5 Hospital
+              </div>
             </div>
           </div>
 
-          {/* Center content */}
-          <div style={{ marginBottom:"auto", marginTop:40 }}>
-            <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:8, padding:"6px 14px", marginBottom:20 }}>
-              <ShoppingCart style={{ width:13, height:13, color:"#60a5fa" }}/>
-              <span style={{ fontSize:11, color:"rgba(255,255,255,0.8)", fontWeight:600 }}>Procurement Management System</span>
-            </div>
-            <div style={{ fontSize:32, fontWeight:900, color:"#fff", lineHeight:1.15, letterSpacing:"-0.03em", marginBottom:16 }}>
-              Smarter Hospital<br/><span style={{ color:"#60a5fa" }}>Procurement.</span>
-            </div>
-            <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", lineHeight:1.7, maxWidth:360 }}>
-              Manage requisitions, purchase orders, supplier contracts, inventory and financial vouchers — all in one integrated platform built for Embu County health facilities.
-            </p>
-
-            {/* Feature tags */}
-            <div style={{ display:"flex", flexWrap:"wrap" as const, gap:8, marginTop:24 }}>
-              {["Requisitions","Purchase Orders","Tenders","Inventory","Vouchers","Reports","Quality Control","E-Signatures"].map(f=>(
-                <span key={f} style={{ fontSize:10, fontWeight:600, padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.75)" }}>{f}</span>
-              ))}
-            </div>
+          {/* ── SIGN IN heading ── */}
+          <div style={{
+            textAlign: "center" as const,
+            fontSize: 13, fontWeight: 700,
+            color: TEAL,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase" as const,
+            marginBottom: 26, marginTop: 12,
+          }}>
+            {forgotMode ? "RESET PASSWORD" : "SIGN IN"}
           </div>
 
-          {/* Bottom note */}
-          <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)" }}>
-            © 2025 Embu County Government · Embu Level 5 Hospital · Health Procurement Division
-          </div>
-        </div>
-      </div>
-
-      {/* ── RIGHT: Login form ── */}
-      <div style={{
-        width:"100%", maxWidth:420,
-        display:"flex", flexDirection:"column", justifyContent:"center",
-        padding:"40px 36px", background:"#fff",
-        opacity: mounted ? 1 : 0, transform: mounted ? "translateX(0)" : "translateX(20px)",
-        transition:"all 0.5s cubic-bezier(0.4,0,0.2,1)",
-      }}>
-        <div style={{ marginBottom:32 }}>
-          <div style={{ fontSize:24, fontWeight:900, color:"#111827", letterSpacing:"-0.02em", marginBottom:6 }}>Sign In</div>
-          <div style={{ fontSize:13, color:"#6b7280" }}>Access your EL5 MediProcure account</div>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          <div>
-            <label style={{ fontSize:11, fontWeight:700, color:"#374151", display:"block", marginBottom:6, textTransform:"uppercase" as const, letterSpacing:"0.04em" }}>Email Address</label>
-            <div style={{ position:"relative" }}>
-              <Mail style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", width:14, height:14, color:"#9ca3af" }}/>
-              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} autoFocus
-                placeholder="your@email.go.ke" required
-                style={{ width:"100%", paddingLeft:38, paddingRight:14, paddingTop:11, paddingBottom:11, fontSize:13, border:"1.5px solid #e5e7eb", borderRadius:9, outline:"none", background:"#f9fafb", transition:"border-color 0.15s" }}
-                onFocus={e=>(e.target as HTMLElement).style.borderColor="#1a3a6b"}
-                onBlur={e=>(e.target as HTMLElement).style.borderColor="#e5e7eb"}/>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize:11, fontWeight:700, color:"#374151", display:"block", marginBottom:6, textTransform:"uppercase" as const, letterSpacing:"0.04em" }}>Password</label>
-            <div style={{ position:"relative" }}>
-              <Lock style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", width:14, height:14, color:"#9ca3af" }}/>
-              <input type={showPass?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
-                placeholder="••••••••" required
-                style={{ width:"100%", paddingLeft:38, paddingRight:44, paddingTop:11, paddingBottom:11, fontSize:13, border:"1.5px solid #e5e7eb", borderRadius:9, outline:"none", background:"#f9fafb", transition:"border-color 0.15s" }}
-                onFocus={e=>(e.target as HTMLElement).style.borderColor="#1a3a6b"}
-                onBlur={e=>(e.target as HTMLElement).style.borderColor="#e5e7eb"}/>
-              <button type="button" onClick={()=>setShowPass(v=>!v)} style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"transparent", border:"none", cursor:"pointer", color:"#9ca3af", lineHeight:0 }}>
-                {showPass?<EyeOff style={{width:14,height:14}}/>:<Eye style={{width:14,height:14}}/>}
+          {/* ── Form ── */}
+          {forgotSent ? (
+            <div style={{ textAlign: "center" as const, padding: "16px 0" }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>✉️</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0e2a4a", marginBottom: 6 }}>
+                Check your email
+              </div>
+              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>
+                A password reset link has been sent to<br/>
+                <strong style={{ color: "#374151" }}>{email}</strong>
+              </div>
+              <button
+                onClick={() => { setForgotMode(false); setForgotSent(false); }}
+                style={{
+                  marginTop: 18, fontSize: 12, fontWeight: 700,
+                  color: TEAL, background: "none", border: "none",
+                  cursor: "pointer", textDecoration: "underline",
+                }}
+              >
+                Back to Sign In
               </button>
             </div>
+          ) : (
+            <form onSubmit={forgotMode ? handleForgot : handleSubmit}
+              style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
+
+              {/* Email / Username field */}
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="USERNAME"
+                required
+                autoFocus
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: "0.04em",
+                  border: "1px solid #d1d5db",
+                  borderBottom: "none",
+                  borderRadius: "3px 3px 0 0",
+                  outline: "none",
+                  background: "#fff",
+                  color: "#374151",
+                  transition: "border-color 0.15s",
+                  boxSizing: "border-box" as const,
+                }}
+                onFocus={e => {
+                  e.target.style.borderColor = TEAL;
+                  e.target.style.borderBottomColor = "#d1d5db";
+                  e.target.style.background = "#f0fdff";
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = "#d1d5db";
+                  e.target.style.borderBottomColor = "none";
+                  e.target.style.background = "#fff";
+                }}
+              />
+
+              {/* Password field (hidden in forgot mode) */}
+              {!forgotMode && (
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPass ? "text" : "password"}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="PASSWORD"
+                    required={!forgotMode}
+                    style={{
+                      width: "100%",
+                      padding: "10px 36px 10px 12px",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      letterSpacing: showPass ? "0.04em" : "0.16em",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "0 0 3px 3px",
+                      outline: "none",
+                      background: "#fff",
+                      color: "#374151",
+                      transition: "border-color 0.15s, background 0.15s",
+                      boxSizing: "border-box" as const,
+                    }}
+                    onFocus={e => {
+                      e.target.style.borderColor = TEAL;
+                      e.target.style.background = "#f0fdff";
+                    }}
+                    onBlur={e => {
+                      e.target.style.borderColor = "#d1d5db";
+                      e.target.style.background = "#fff";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(v => !v)}
+                    style={{
+                      position: "absolute", right: 10, top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent", border: "none",
+                      cursor: "pointer", color: "#9ca3af", lineHeight: 0,
+                      padding: 2,
+                    }}
+                  >
+                    {showPass
+                      ? <EyeOff style={{ width: 13, height: 13 }} />
+                      : <Eye    style={{ width: 13, height: 13 }} />
+                    }
+                  </button>
+                </div>
+              )}
+
+              {/* Forgot password + Submit row */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 12,
+              }}>
+                {!forgotMode ? (
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(true)}
+                    style={{
+                      fontSize: 11, fontWeight: 600, color: TEAL,
+                      background: "none", border: "none", cursor: "pointer",
+                      padding: 0, letterSpacing: "0.01em",
+                    }}
+                  >
+                    Forgot password
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(false)}
+                    style={{
+                      fontSize: 11, fontWeight: 600, color: "#9ca3af",
+                      background: "none", border: "none", cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    ← Back
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    fontSize: 12, fontWeight: 800,
+                    color: loading ? "#9ca3af" : TEAL,
+                    background: "none", border: "none",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase" as const,
+                    padding: 0,
+                    display: "flex", alignItems: "center", gap: 6,
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={e => { if(!loading) (e.currentTarget as HTMLElement).style.color = TEAL_D; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = loading ? "#9ca3af" : TEAL; }}
+                >
+                  {loading && <RefreshCw style={{ width: 12, height: 12 }} className="animate-spin" />}
+                  {loading
+                    ? (forgotMode ? "Sending…" : "Signing in…")
+                    : (forgotMode ? "SEND RESET" : "SUBMIT")
+                  }
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Divider */}
+          <div style={{ borderTop: "1px solid #f3f4f6", marginTop: 24, paddingTop: 14 }}>
+            <div style={{ fontSize: 10, color: "#c4c9d4", textAlign: "center" as const, lineHeight: 1.6 }}>
+              For account creation or access issues,<br/>
+              contact ICT — Embu Level 5 Hospital
+            </div>
           </div>
-
-          <button type="submit" disabled={loading}
-            style={{ padding:"13px", background:"linear-gradient(135deg,#0a2558,#1a3a6b)", color:"#fff", border:"none", borderRadius:9, cursor:loading?"not-allowed":"pointer", fontSize:14, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow:"0 4px 16px rgba(26,58,107,0.35)", opacity:loading?0.8:1, transition:"all 0.15s", marginTop:4 }}>
-            {loading ? <><RefreshCw style={{width:15,height:15}} className="animate-spin"/> Signing in…</> : "Sign In to EL5 MediProcure"}
-          </button>
-        </form>
-
-        <div style={{ marginTop:20, padding:"12px 14px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:8 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:"#92400e", marginBottom:3 }}>Need Access?</div>
-          <div style={{ fontSize:11, color:"#78350f" }}>Contact the ICT department at Embu Level 5 Hospital for account creation and password reset.</div>
-        </div>
-
-        <div style={{ marginTop:"auto", paddingTop:32, fontSize:10, color:"#d1d5db", textAlign:"center" as const }}>
-          Embu Level 5 Hospital · Embu County Government
         </div>
       </div>
 
-      {/* Responsive: hide left panel on small screens */}
+      {/* ── Bottom footer bar (like BackOffice bar in template) ── */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0,
+        background: "rgba(10,20,40,0.82)",
+        backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: 10, padding: "10px 20px",
+        opacity: mounted ? 1 : 0,
+        transition: "opacity 0.8s 0.3s",
+      }}>
+        <img
+          src={embuLogo}
+          alt="Embu"
+          style={{
+            height: 22, width: 22, borderRadius: 3,
+            objectFit: "contain", opacity: 0.85,
+          }}
+          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          color: "rgba(255,255,255,0.75)",
+          letterSpacing: "0.04em",
+        }}>
+          Embu County Government
+        </span>
+        <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>·</span>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.03em" }}>
+          Health Procurement Division · v2.1
+        </span>
+      </div>
+
+      {/* ── Subtle UI corner decorations (like the template's faint grid marks) ── */}
+      {[
+        { top: 18, left: 18 }, { top: 18, right: 18 },
+        { bottom: 52, left: 18 }, { bottom: 52, right: 18 },
+      ].map((pos, i) => (
+        <div key={i} style={{
+          position: "absolute", ...pos,
+          width: 18, height: 18,
+          border: "1.5px solid rgba(255,255,255,0.22)",
+          borderRadius: 2,
+          opacity: mounted ? 0.7 : 0,
+          transition: "opacity 1s 0.5s",
+          pointerEvents: "none",
+        }}/>
+      ))}
+
       <style>{`
-        @media (max-width: 640px) { 
-          div[style*="procurement-bg"] { display: none; }
-          div[style*="max-width: 420px"] { max-width: 100% !important; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input::placeholder { color: #aab0bb; font-weight: 600; letter-spacing: 0.08em; font-size: 11px; }
+        input:focus::placeholder { color: #b0c8d4; }
+        @media (max-width: 480px) {
+          div[style*="max-width: 380px"] { padding: 28px 20px 24px !important; }
         }
       `}</style>
     </div>
