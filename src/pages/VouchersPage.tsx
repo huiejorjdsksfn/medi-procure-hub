@@ -18,6 +18,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Search, FileText } from "lucide-react";
 import { logAudit } from "@/lib/audit";
+import { notifyProcurement } from "@/lib/notify";
 import logo from "@/assets/embu-county-logo.jpg";
 
 interface VoucherItem {
@@ -108,6 +109,7 @@ const VouchersPage = () => {
     saveVouchers([voucher, ...vouchers]);
     logAudit(user?.id, profile?.full_name, "create_voucher", "vouchers", voucher.id, { number: voucher.voucher_number });
     toast({ title: "Voucher created", description: `#${voucher.voucher_number}` });
+    notifyProcurement({title:"New Voucher Created",message:`Voucher ${voucher.voucher_number} created by ${profile?.full_name||"Staff"}`,type:"voucher",module:"Vouchers",actionUrl:"/vouchers"});
     setDialogOpen(false);
     setForm({ ...form, point_of_use: "", voucher_number: "", account_no: "", requisitioning_officer: "", designation_req: "", issued_by: "", signature_issued: "", received_by: "", designation_recv: "" });
     setItems(Array.from({ length: 10 }, () => ({ ...EMPTY_ROW })));

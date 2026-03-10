@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Package, Plus, Search, RefreshCw, X, CheckCircle, Clock, AlertTriangle, Eye, Printer } from "lucide-react";
+import { notifyProcurement } from "@/lib/notify";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   pending:   {bg:"#fef3c7",color:"#92400e",label:"Pending"},
@@ -45,6 +46,7 @@ export default function GoodsReceivedPage() {
     if(error) { toast({title:"Error",description:error.message,variant:"destructive"}); return; }
     await (supabase as any).from("audit_log").insert({user_id:user?.id,user_name:profile?.full_name,action:"GRN_CREATED",module:"inventory",details:JSON.stringify({grn_number})});
     toast({title:"GRN created ✓", description:grn_number});
+    await notifyProcurement({title:"Goods Received Note Created",message:`GRN ${grn_number} created by ${profile?.full_name||"Staff"} - inspection ${form.inspection_status}`,type:"grn",module:"GRN",actionUrl:"/goods-received"});
     setShowNew(false); setForm({po_id:"",notes:"",inspection_status:"pending",received_at:new Date().toISOString().slice(0,10)});
     load();
   };

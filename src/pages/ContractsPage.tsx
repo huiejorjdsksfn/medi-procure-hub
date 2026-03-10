@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Download, Edit, FileText, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { exportToPDF } from "@/lib/export";
 import { logAudit } from "@/lib/audit";
+import { notifyProcurement } from "@/lib/notify";
 
 const ContractsPage = () => {
   const { user, profile } = useAuth();
