@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationPopup";
+import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
 import procBg from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/logo.png";
 import {
@@ -262,6 +263,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
+        <SystemBroadcastBanner/>
 
         {/* Topbar */}
         <header style={{height:50,flexShrink:0,background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",padding:"0 14px",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,0.2)",zIndex:90,position:"relative"}}>
