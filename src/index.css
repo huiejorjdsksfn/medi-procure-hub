@@ -604,3 +604,30 @@ body { font-size: 14px; }
   .terms { font-size: 9pt; color: #6b7280; border: 1px solid #e5e7eb; padding: 8px; margin: 12px 0; border-radius: 4px; }
   .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-45deg); font-size: 80pt; color: rgba(10,37,88,0.04); font-weight: 900; z-index: -1; }
 }
+
+/* ── SESSION 5: GLOBAL FONT & SPACING UPGRADES ── */
+body, #root {
+  font-size: 14px !important;
+}
+button, input, select, textarea {
+  font-family: 'Inter', 'Segoe UI', sans-serif !important;
+}
+.ent-table { font-size: 13px !important; }
+.ent-table thead th { font-size: 11px !important; }
+.ent-table tbody td { font-size: 13px !important; padding: 10px 12px !important; }
+.btn-primary, .btn-secondary { font-size: 13px !important; padding: 9px 18px !important; }
+.badge, .status-badge { font-size: 11px !important; }
+input, select, textarea { font-size: 13px !important; }
+.page-header-title { font-size: 15px !important; }
+
+/* ── SESSION 5: NOTIFICATION IMPROVEMENTS ── */
+.notification-panel-overlay { animation: fadeIn 0.18s ease; }
+.toast-item { animation: slideInRight 0.25s ease; }
+@keyframes slideInRight {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

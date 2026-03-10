@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
+import { notifyProcurement } from "@/lib/notify";
 import { Plus, Search, Download, Gavel, RefreshCw, Eye, CheckCircle } from "lucide-react";
 
 const genNo = () => { const d=new Date(); return `T/EL5H/${d.getFullYear()}/${Math.floor(100+Math.random()*900)}`; };
@@ -39,6 +40,7 @@ export default function TendersPage() {
     if (error) { toast({title:"Error",description:error.message,variant:"destructive"}); return; }
     logAudit(user?.id,profile?.full_name,"create","tenders",data?.id,{title:form.title});
     toast({title:"Tender created",description:data?.tender_number});
+    if(data) notifyProcurement({title:"New Tender Published",message:`Tender ${data.tender_number}: ${form.title}`,type:"tender",module:"Tenders",actionUrl:"/tenders"});
     setShowNew(false); setForm({title:"",description:"",category:"",tender_type:"open",estimated_value:"",opening_date:"",closing_date:""});
   };
 

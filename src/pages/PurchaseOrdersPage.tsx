@@ -9,6 +9,7 @@ import {
   CheckCircle, XCircle, ShoppingCart, Send, Download
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { notifyProcurement, sendNotification } from "@/lib/notify";
 
 const STATUS_CFG: Record<string,{bg:string;color:string}> = {
   draft:    {bg:"#f3f4f6",color:"#6b7280"},
@@ -48,9 +49,11 @@ export default function PurchaseOrdersPage() {
   useEffect(()=>{ load(); },[load]);
 
   const approve = async (id:string) => {
-    await (supabase as any).from("purchase_orders").update({status:"approved",approved_by:user?.id}).eq("id",id);
+    const po = orders.find(o=>o.id===id);
+    await (supabase as any).from("purchase_orders").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);
     logAudit(user?.id,profile?.full_name,"approve","purchase_orders",id,{});
     toast({title:"Purchase Order Approved ✓"});
+    await notifyProcurement({title:"PO Approved ✓",message:`Purchase Order ${po?.po_number||id.slice(0,8)} approved by ${profile?.full_name||"Manager"}`,type:"procurement",module:"PO",actionUrl:"/purchase-orders"});
     load();
   };
 

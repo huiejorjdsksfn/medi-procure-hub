@@ -9,6 +9,7 @@ import {
   AlertTriangle, Download
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { notifyProcurement, sendNotification } from "@/lib/notify";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
@@ -52,15 +53,21 @@ export default function RequisitionsPage() {
   useEffect(()=>{ load(); },[load]);
 
   const approve = async (id:string) => {
+    const req = reqs.find(r=>r.id===id);
     await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);
     logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
     toast({title:"Requisition Approved ✓"});
+    // Notify the requester
+    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Approved ✓",message:`Your requisition "${req.title||req.requisition_number}" has been approved.`,type:"success",module:"Procurement",actionUrl:"/requisitions"});
+    await notifyProcurement({title:"Requisition Approved",message:`${profile?.full_name||"Manager"} approved requisition ${req?.requisition_number||id.slice(0,8)}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
     load();
   };
   const reject = async (id:string) => {
+    const req = reqs.find(r=>r.id===id);
     await (supabase as any).from("requisitions").update({status:"rejected"}).eq("id",id);
     logAudit(user?.id,profile?.full_name,"reject","requisitions",id,{});
     toast({title:"Requisition Rejected",variant:"destructive"});
+    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Rejected",message:`Your requisition "${req.title||req.requisition_number}" was not approved.`,type:"warning",module:"Procurement",actionUrl:"/requisitions"});
     load();
   };
 
@@ -76,6 +83,7 @@ export default function RequisitionsPage() {
     if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
     logAudit(user?.id,profile?.full_name,"create","requisitions",data?.id,{title:form.title});
     toast({title:"Requisition Created",description:num});
+    await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted requisition ${num}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
     setShowForm(false);
     setForm({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
     load();
