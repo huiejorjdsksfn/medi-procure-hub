@@ -302,11 +302,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div style={{display:"flex",alignItems:"center",gap:3,marginLeft:"auto",flexShrink:0}}>
-            <button onClick={()=>navigate("/email")} title="Email"
-              style={{padding:6,borderRadius:5,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}
+            <button onClick={()=>navigate("/email")} title="Mail & Inbox"
+              style={{padding:"4px 8px",borderRadius:5,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0,display:"flex",alignItems:"center",gap:4}}
               onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.1)"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <Mail style={{width:14,height:14}}/>
+              <span style={{fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.55)"}}>Mail</span>
             </button>
 
             <NotificationBell logoUrl={logoUrl} sysName={sysName} hospitalName={hospitalName}/>
@@ -335,7 +336,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   {[
                     {label:"My Profile",   path:"/profile",     icon:UserCircle},
-                    {label:"Email",        path:"/email",       icon:Mail},
+                    {label:"Mail & Inbox",  path:"/email",       icon:Mail},
                     ...(isAdmin?[
                       {label:"Admin Panel",path:"/admin/panel", icon:Sliders},
                       {label:"Users",      path:"/users",       icon:Users},
