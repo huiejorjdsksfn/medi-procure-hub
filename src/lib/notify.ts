@@ -10,11 +10,61 @@ export interface NotifyPayload {
   module?: string;
   actionUrl?: string;
   senderId?: string;
-  alsoInbox?: boolean;   // if true, also inserts an inbox_item
-  subject?: string;      // for inbox subject
+  alsoInbox?: boolean;
+  subject?: string;
+  sendEmail?: boolean;   // also send real email via edge function
+  toEmail?: string;      // external email to deliver to
 }
 
-/** Insert a notification + optionally an inbox_item */
+/** Resolve email address from user profile */
+async function getUserEmail(userId: string): Promise<string|null> {
+  try {
+    const {data} = await (supabase as any).from("profiles").select("email").eq("id",userId).maybeSingle();
+    return data?.email || null;
+  } catch { return null; }
+}
+
+/** Send email via Edge Function */
+async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
+  try {
+    const smtpCfg = await (supabase as any).from("smtp_configs").select("*").eq("is_default",true).eq("is_active",true).maybeSingle();
+    const smtp = smtpCfg?.data;
+    const { error, data } = await supabase.functions.invoke("send-email", {
+      body: {
+        to, subject, body,
+        from: smtp?.from_email,
+        from_name: smtp?.from_name || "EL5 MediProcure",
+        smtp: smtp ? {
+          host: smtp.host, port: smtp.port,
+          username: smtp.username, password: smtp.password,
+          from_email: smtp.from_email, from_name: smtp.from_name,
+          encryption: smtp.encryption,
+        } : undefined,
+      }
+    });
+    // Log to email_logs
+    await (supabase as any).from("email_logs").insert({
+      to_email: to, subject,
+      body, from_name: smtp?.from_name || "EL5 MediProcure",
+      from_email: smtp?.from_email || "",
+      status: !error && data?.success ? "sent" : "failed",
+      module: "notify",
+      sent_at: new Date().toISOString(),
+      error_message: error?.message || data?.results?.[0]?.error || null,
+    }).catch(()=>{});
+    return !error && (data?.success !== false);
+  } catch(e) { console.error("sendEmail error:", e); return false; }
+}
+
+/** Check if email notifications are enabled in settings */
+async function emailEnabled(): Promise<boolean> {
+  try {
+    const {data} = await (supabase as any).from("system_settings").select("value").eq("key","email_notifications_enabled").maybeSingle();
+    return data?.value === "true";
+  } catch { return false; }
+}
+
+/** Insert a notification + optionally an inbox_item + optional real email */
 export async function sendNotification(payload: NotifyPayload): Promise<void> {
   try {
     const notifRow: any = {
@@ -26,6 +76,7 @@ export async function sendNotification(payload: NotifyPayload): Promise<void> {
       is_read: false,
       status: "delivered",
       sender_id: payload.senderId || null,
+      subject: payload.subject || payload.title,
     };
     if (payload.userId) notifRow.user_id = payload.userId;
 
@@ -33,6 +84,7 @@ export async function sendNotification(payload: NotifyPayload): Promise<void> {
       .from("notifications").insert(notifRow).select("id").single();
     if (error) console.error("Notification insert:", error.message);
 
+    // Inbox item
     if (payload.alsoInbox && payload.userId) {
       await (supabase as any).from("inbox_items").insert({
         type: payload.type || "info",
@@ -47,6 +99,19 @@ export async function sendNotification(payload: NotifyPayload): Promise<void> {
         record_type: payload.module || "system",
       });
     }
+
+    // Real email delivery
+    const shouldEmail = payload.sendEmail || payload.toEmail;
+    if (shouldEmail) {
+      const emailOk = await emailEnabled();
+      if (emailOk) {
+        const toEmail = payload.toEmail || (payload.userId ? await getUserEmail(payload.userId) : null);
+        if (toEmail) {
+          const body = `${payload.message}\n\n—\nEL5 MediProcure · Embu Level 5 Hospital\n${payload.actionUrl ? `View: ${window.location.origin}${payload.actionUrl}` : ""}`;
+          await sendEmail(toEmail, payload.subject || payload.title, body);
+        }
+      }
+    }
   } catch (e) {
     console.error("sendNotification error:", e);
   }
@@ -59,9 +124,7 @@ export async function notifyAdmins(payload: Omit<NotifyPayload,"userId">): Promi
       .from("user_roles").select("user_id").eq("role","admin").limit(20);
     if (!admins?.length) return;
     await Promise.all(admins.map((a: any) => sendNotification({ ...payload, userId: a.user_id })));
-  } catch (e) {
-    console.error("notifyAdmins error:", e);
-  }
+  } catch (e) { console.error("notifyAdmins error:", e); }
 }
 
 /** Send notification to procurement managers + admins */
@@ -73,7 +136,20 @@ export async function notifyProcurement(payload: Omit<NotifyPayload,"userId">): 
     if (!roles?.length) return;
     const unique = [...new Set(roles.map((r: any) => r.user_id))] as string[];
     await Promise.all(unique.map(uid => sendNotification({ ...payload, userId: uid })));
-  } catch (e) {
-    console.error("notifyProcurement error:", e);
+  } catch (e) { console.error("notifyProcurement error:", e); }
+}
+
+/** Send email notification to a specific external email + log it */
+export async function sendExternalEmail(
+  toEmail: string,
+  subject: string,
+  body: string,
+  options?: { module?: string; senderId?: string }
+): Promise<boolean> {
+  const ok = await emailEnabled();
+  if (!ok) {
+    console.warn("Email notifications disabled in settings");
+    return false;
   }
+  return sendEmail(toEmail, subject, body);
 }

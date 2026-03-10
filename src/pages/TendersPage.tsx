@@ -1,121 +1,275 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement } from "@/lib/notify";
-import { Plus, Search, Download, Gavel, RefreshCw, Eye, CheckCircle } from "lucide-react";
+import { Plus, Search, RefreshCw, Eye, CheckCircle, Gavel, X, Save, Download, Mail } from "lucide-react";
+import * as XLSX from "xlsx";
 
-const genNo = () => { const d=new Date(); return `T/EL5H/${d.getFullYear()}/${Math.floor(100+Math.random()*900)}`; };
-const statusColor = (s:string)=>({draft:"text-slate-600 border-slate-200 bg-slate-50",published:"text-blue-700 border-blue-200 bg-blue-50",closed:"text-amber-700 border-amber-200 bg-amber-50",evaluated:"text-purple-700 border-purple-200 bg-purple-50",awarded:"text-green-700 border-green-200 bg-green-50",cancelled:"text-red-700 border-red-200 bg-red-50"}[s]??"text-slate-600 border-slate-200");
-const CATEGORIES = ["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction & Renovation","ICT","General Supplies","Services"];
+const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
+const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}) : "—";
+
+const STATUS_CFG:Record<string,{bg:string;color:string;label:string}> = {
+  draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
+  published: {bg:"#dbeafe",color:"#1d4ed8",label:"Published"},
+  closed:    {bg:"#fef3c7",color:"#92400e",label:"Closed"},
+  evaluated: {bg:"#ede9fe",color:"#5b21b6",label:"Evaluated"},
+  awarded:   {bg:"#dcfce7",color:"#15803d",label:"Awarded"},
+  cancelled: {bg:"#fee2e2",color:"#dc2626",label:"Cancelled"},
+};
+const sc = (s:string) => STATUS_CFG[s]||STATUS_CFG.draft;
+const CATEGORIES = ["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction & Renovation","ICT","General Supplies","Services","Utilities","Food & Nutrition"];
+const TYPES = ["Open Tender","Restricted Tender","Direct Procurement","Request for Quotation","Framework Agreement"];
+
+const INP = (v:any,cb:any,p="",t="text") => (
+  <input type={t} value={v} onChange={e=>cb(e.target.value)} placeholder={p}
+    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
+);
+const LBL = ({c,children}:{c?:string;children:any}) => <div style={{fontSize:12,fontWeight:700,color:c||"#374151",marginBottom:5,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{children}</div>;
 
 export default function TendersPage() {
   const { user, profile, hasRole } = useAuth();
-  const canManage = hasRole("admin") || hasRole("procurement_manager") || hasRole("procurement_officer");
-  const [tenders, setTenders] = useState<any[]>([]);
-  const [search, setSearch] = useState(""); const [statusFilter, setStatusFilter] = useState("all");
-  const [showNew, setShowNew] = useState(false); const [detail, setDetail] = useState<any>(null);
-  const [form, setForm] = useState({title:"",description:"",category:"",tender_type:"open",estimated_value:"",opening_date:"",closing_date:""});
+  const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
 
-  useEffect(()=>{fetch();},[]);
-  useEffect(()=>{
-    const ch=(supabase as any).channel("tenders-rt").on("postgres_changes",{event:"*",schema:"public",table:"tenders"},()=>fetch()).subscribe();
-    return ()=>{supabase.removeChannel(ch);};
+  const [rows,     setRows]     = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [search,   setSearch]   = useState("");
+  const [stFilter, setStFilter] = useState("all");
+  const [showNew,  setShowNew]  = useState(false);
+  const [detail,   setDetail]   = useState<any>(null);
+  const [editing,  setEditing]  = useState<any>(null);
+  const [saving,   setSaving]   = useState(false);
+  const [form, setForm] = useState({title:"",description:"",category:"",tender_type:"Open Tender",estimated_value:"",opening_date:"",closing_date:"",evaluation_criteria:"",contact_person:""});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const{data}=await(supabase as any).from("tenders").select("*").order("created_at",{ascending:false});
+    setRows(data||[]); setLoading(false);
   },[]);
+  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{
+    const ch=(supabase as any).channel("tenders-rt").on("postgres_changes",{event:"*",schema:"public",table:"tenders"},load).subscribe();
+    return ()=>(supabase as any).removeChannel(ch);
+  },[load]);
 
-  const fetch = async () => { const {data}=await (supabase as any).from("tenders").select("*").order("created_at",{ascending:false}); setTenders(data||[]); };
-
-  const handleCreate = async () => {
-    if (!form.title||!form.closing_date) { toast({title:"Fill required fields",variant:"destructive"}); return; }
-    const payload = {tender_number:genNo(),title:form.title,description:form.description,category:form.category,tender_type:form.tender_type,estimated_value:form.estimated_value?Number(form.estimated_value):null,opening_date:form.opening_date||null,closing_date:form.closing_date,status:"draft",created_by:user?.id,created_by_name:profile?.full_name};
-    const {data,error} = await (supabase as any).from("tenders").insert(payload).select().single();
-    if (error) { toast({title:"Error",description:error.message,variant:"destructive"}); return; }
-    logAudit(user?.id,profile?.full_name,"create","tenders",data?.id,{title:form.title});
-    toast({title:"Tender created",description:data?.tender_number});
-    if(data) notifyProcurement({title:"New Tender Published",message:`Tender ${data.tender_number}: ${form.title}`,type:"tender",module:"Tenders",actionUrl:"/tenders"});
-    setShowNew(false); setForm({title:"",description:"",category:"",tender_type:"open",estimated_value:"",opening_date:"",closing_date:""});
+  const openNew = (v?:any) => {
+    if(v){ setEditing(v); setForm({title:v.title||"",description:v.description||"",category:v.category||"",tender_type:v.tender_type||"Open Tender",estimated_value:String(v.estimated_value||""),opening_date:v.opening_date||"",closing_date:v.closing_date||"",evaluation_criteria:v.evaluation_criteria||"",contact_person:v.contact_person||""}); }
+    else { setEditing(null); setForm({title:"",description:"",category:"",tender_type:"Open Tender",estimated_value:"",opening_date:"",closing_date:"",evaluation_criteria:"",contact_person:""}); }
+    setShowNew(true);
   };
 
-  const updateStatus = async (id:string, status:string) => {
-    await (supabase as any).from("tenders").update({status}).eq("id",id);
-    logAudit(user?.id,profile?.full_name,`tender_${status}`,"tenders",id,{status});
-    toast({title:`Tender ${status}`}); setDetail(null);
+  const save = async () => {
+    if(!form.title||!form.closing_date){ toast({title:"Title and closing date required",variant:"destructive"}); return; }
+    setSaving(true);
+    const payload={...form,estimated_value:form.estimated_value?Number(form.estimated_value):null,created_by:user?.id,created_by_name:profile?.full_name};
+    if(editing){
+      await(supabase as any).from("tenders").update(payload).eq("id",editing.id);
+      toast({title:"Tender updated ✓"});
+    } else {
+      const{data,error}=await(supabase as any).from("tenders").insert({...payload,tender_number:genNo(),status:"draft"}).select().single();
+      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      logAudit(user?.id,profile?.full_name,"create","tenders",data?.id,{});
+      await notifyProcurement({title:"New Tender Created",message:`${form.title} — Closing: ${fmtDate(form.closing_date)}`,type:"tender",module:"Tenders",senderId:user?.id});
+      toast({title:"Tender created ✓"});
+    }
+    setShowNew(false); setEditing(null); load(); setSaving(false);
   };
 
-  const filtered = tenders.filter(t=>(statusFilter==="all"||t.status===statusFilter)&&(t.title?.toLowerCase().includes(search.toLowerCase())||t.tender_number?.toLowerCase().includes(search.toLowerCase())));
+  const publish = async (t:any) => {
+    await(supabase as any).from("tenders").update({status:"published"}).eq("id",t.id);
+    await notifyProcurement({title:"Tender Published",message:`${t.tender_number}: ${t.title}`,type:"tender",module:"Tenders",senderId:user?.id});
+    toast({title:"Published ✓"}); load();
+  };
+  const close_ = async (t:any) => {
+    await(supabase as any).from("tenders").update({status:"closed"}).eq("id",t.id);
+    toast({title:"Tender closed"}); load();
+  };
 
-  const glassCard = { background:"rgba(8,20,55,0.78)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", border:"1px solid rgba(255,255,255,0.12)" } as React.CSSProperties;
+  const exportXLSX = () => {
+    const ws = XLSX.utils.json_to_sheet(filtered.map(r=>({Number:r.tender_number,Title:r.title,Category:r.category,Type:r.tender_type,Value:r.estimated_value,Opening:r.opening_date,Closing:r.closing_date,Status:r.status})));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Tenders");
+    XLSX.writeFile(wb,`Tenders_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
+
+  const filtered = rows.filter(r=>(stFilter==="all"||r.status===stFilter)&&(!search||[r.tender_number,r.title,r.category].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()))));
+
+  // Summary counts
+  const counts:Record<string,number> = {};
+  rows.forEach(r=>{ counts[r.status]=(counts[r.status]||0)+1; });
 
   return (
-    <div className="p-4 space-y-4" style={{minHeight:"calc(100vh-100px)"}}>
-      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#3b1f73,#5b21b6,#7c3aed)",boxShadow:"0 4px 16px rgba(124,58,237,0.35)"}}>
-        <div className="flex items-center gap-3"><Gavel className="w-5 h-5 text-white" /><div><h1 className="text-base font-black text-white">Tenders</h1><p className="text-[10px] text-white/50">Competitive tendering & procurement · Live sync</p></div></div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/20 hover:bg-white/20"><Download className="w-4 h-4 mr-2" />Export</Button>
-          {canManage&&<Button size="sm" className="bg-white text-violet-800 hover:bg-violet-50 font-bold" onClick={()=>setShowNew(true)}><Plus className="w-4 h-4 mr-2" />New Tender</Button>}
+    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#1F6090,#2980b9)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <Gavel style={{width:21,height:21,color:"#fff"}}/>
+          </div>
+          <div>
+            <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Tenders</h1>
+            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Public procurement · {rows.length} total tenders</p>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>
+            <Download style={{width:13,height:13}}/> Export
+          </button>
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
+            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/> Refresh
+          </button>
+          {canManage&&<button onClick={()=>openNew()} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#1F6090,#2980b9)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(31,96,144,0.3)"}}>
+            <Plus style={{width:14,height:14}}/> New Tender
+          </button>}
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[{label:"Published",val:tenders.filter(t=>t.status==="published").length,c:"#7c3aed"},{label:"Closed",val:tenders.filter(t=>t.status==="closed").length,c:"#f59e0b"},{label:"Awarded",val:tenders.filter(t=>t.status==="awarded").length,c:"#10b981"},{label:"Total",val:tenders.length,c:"#60a5fa"}].map(k=>(
-          <div key={k.label} style={{...glassCard,borderRadius:12,padding:"14px 18px"}}>
-            <p className="text-2xl font-black" style={{color:k.c}}>{k.val}</p>
-            <p className="text-xs mt-1" style={{color:"rgba(255,255,255,0.5)"}}>{k.label}</p>
-          </div>
+
+      {/* Status chips */}
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        {[{id:"all",label:"All",cnt:rows.length},
+          ...Object.entries(STATUS_CFG).map(([id,c])=>({id,label:c.label,cnt:counts[id]||0}))].map(f=>(
+          <button key={f.id} onClick={()=>setStFilter(f.id)} style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${stFilter===f.id?"#1a3a6b":"#e5e7eb"}`,background:stFilter===f.id?"#1a3a6b":"#fff",color:stFilter===f.id?"#fff":"#374151",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            {f.label} <span style={{opacity:0.7}}>({f.cnt})</span>
+          </button>
         ))}
       </div>
-      <div style={{...glassCard,borderRadius:12,overflow:"hidden"}}>
-        <div className="p-3 flex gap-3 flex-wrap items-center" style={{borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-          <div className="relative flex-1 min-w-44"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{color:"rgba(255,255,255,0.3)"}} /><Input placeholder="Search tenders..." className="pl-9" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff"}} value={search} onChange={e=>setSearch(e.target.value)} /></div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-36" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff"}}><SelectValue /></SelectTrigger><SelectContent>{["all","draft","published","closed","evaluated","awarded","cancelled"].map(s=><SelectItem key={s} value={s} className="capitalize">{s==="all"?"All Status":s}</SelectItem>)}</SelectContent></Select>
-          <Button variant="outline" size="sm" onClick={fetch} className="bg-white/10 text-white border-white/15 hover:bg-white/20"><RefreshCw className="w-4 h-4" /></Button>
-        </div>
-        <Table><TableHeader><TableRow style={{background:"rgba(10,25,70,0.7)"}}>{["Tender No.","Title","Category","Closing Date","Est. Value","Status","Actions"].map(h=><TableHead key={h} style={{color:"rgba(255,255,255,0.45)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</TableHead>)}</TableRow></TableHeader>
-          <TableBody>{filtered.length===0?<TableRow><TableCell colSpan={7} style={{textAlign:"center",color:"rgba(255,255,255,0.4)",padding:"32px"}}>No tenders found. Create the first one.</TableCell></TableRow>
-            :filtered.map((t,i)=><TableRow key={t.id} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"rgba(255,255,255,0.02)":"transparent"}} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(124,58,237,0.1)"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
-              <TableCell className="font-mono text-xs font-semibold" style={{color:"#a78bfa"}}>{t.tender_number}</TableCell>
-              <TableCell><p className="font-medium" style={{color:"rgba(255,255,255,0.85)"}}>{t.title}</p><p className="text-xs capitalize" style={{color:"rgba(255,255,255,0.38)"}}>{t.tender_type} tender</p></TableCell>
-              <TableCell style={{color:"rgba(255,255,255,0.55)"}}>{t.category||"—"}</TableCell>
-              <TableCell style={{color:"rgba(255,255,255,0.55)"}}>{t.closing_date}</TableCell>
-              <TableCell className="font-semibold" style={{color:"rgba(255,255,255,0.8)"}}>{t.estimated_value?`KES ${Number(t.estimated_value).toLocaleString()}`:"—"}</TableCell>
-              <TableCell><Badge variant="outline" className={`text-xs capitalize ${statusColor(t.status)}`}>{t.status}</Badge></TableCell>
-              <TableCell><Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-violet-600/30" style={{color:"#a78bfa"}} onClick={()=>setDetail(t)}><Eye className="w-3.5 h-3.5" /></Button></TableCell>
-            </TableRow>)
-          }</TableBody>
-        </Table>
+
+      {/* Search */}
+      <div style={{position:"relative",marginBottom:14}}>
+        <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tender number, title, category…"
+          style={{width:"100%",padding:"10px 12px 10px 34px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:9,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
       </div>
 
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Gavel className="w-5 h-5 text-violet-600" />New Tender</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><Label>Tender Title *</Label><Input className="mt-1" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="e.g. Supply of Pharmaceuticals FY 2026/27" /></div>
-            <div><Label>Category</Label><Select value={form.category} onValueChange={v=>setForm(f=>({...f,category:v}))}><SelectTrigger className="mt-1"><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{CATEGORIES.map(c=><SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Tender Type</Label><Select value={form.tender_type} onValueChange={v=>setForm(f=>({...f,tender_type:v}))}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{["open","restricted","direct","framework"].map(t=><SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Estimated Value (KES)</Label><Input type="number" className="mt-1" value={form.estimated_value} onChange={e=>setForm(f=>({...f,estimated_value:e.target.value}))} /></div>
-            <div><Label>Opening Date</Label><Input type="date" className="mt-1" value={form.opening_date} onChange={e=>setForm(f=>({...f,opening_date:e.target.value}))} /></div>
-            <div className="col-span-2"><Label>Closing Date *</Label><Input type="date" className="mt-1" value={form.closing_date} onChange={e=>setForm(f=>({...f,closing_date:e.target.value}))} /></div>
-            <div className="col-span-2"><Label>Description</Label><textarea className="w-full mt-1 border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 min-h-[80px]" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} /></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={()=>setShowNew(false)}>Cancel</Button><Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={handleCreate}><Gavel className="w-4 h-4 mr-2" />Create Tender</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Table */}
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
+              {["Tender No","Title","Category","Type","Est. Value","Opening","Closing","Status","Actions"].map(h=>(
+                <th key={h} style={{padding:"11px 14px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase" as const,letterSpacing:"0.06em",whiteSpace:"nowrap" as const}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading?[1,2,3,4].map(i=>(
+              <tr key={i}>{[...Array(9)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}</tr>
+            )):filtered.length===0?(
+              <tr><td colSpan={9} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
+                <Gavel style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
+                <div style={{fontWeight:600}}>No tenders found</div>
+              </td></tr>
+            ):filtered.map(r=>{
+              const cfg=sc(r.status);
+              const closing = r.closing_date ? new Date(r.closing_date) : null;
+              const expired = closing && closing < new Date();
+              return(
+                <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
+                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#1F6090",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.tender_number}</td>
+                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#111827",maxWidth:200}} onClick={()=>setDetail(r)}>{r.title}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.category||"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.tender_type||"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#374151"}} onClick={()=>setDetail(r)}>{r.estimated_value?fmtKES(r.estimated_value):"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{fmtDate(r.opening_date)}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:expired?"#dc2626":"#374151",fontWeight:expired?700:400}} onClick={()=>setDetail(r)}>{fmtDate(r.closing_date)}</td>
+                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
+                  <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      <button onClick={()=>setDetail(r)} style={{padding:"4px 9px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}><Eye style={{width:10,height:10,display:"inline"}}/></button>
+                      {canManage&&<button onClick={()=>openNew(r)} style={{padding:"4px 9px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:700,color:"#1d4ed8"}}>Edit</button>}
+                      {canManage&&r.status==="draft"&&<button onClick={()=>publish(r)} style={{display:"flex",alignItems:"center",gap:3,padding:"4px 9px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:700,color:"#15803d"}}>
+                        <CheckCircle style={{width:9,height:9}}/> Publish
+                      </button>}
+                      {canManage&&r.status==="published"&&<button onClick={()=>close_(r)} style={{padding:"4px 9px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:700,color:"#92400e"}}>Close</button>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-      {detail&&<Dialog open={!!detail} onOpenChange={()=>setDetail(null)}><DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle style={{color:"#a78bfa"}}>{detail.tender_number}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3 text-sm">{[["Title",detail.title],["Category",detail.category||"—"],["Type",detail.tender_type],["Closing",detail.closing_date],["Est. Value",detail.estimated_value?`KES ${Number(detail.estimated_value).toLocaleString()}`:"—"],["Status",detail.status]].map(([l,v])=><div key={l} style={{background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:8,padding:"8px 12px"}}><p className="text-xs" style={{color:"rgba(255,255,255,0.4)"}}>{l}</p><p className="font-medium capitalize" style={{color:"rgba(255,255,255,0.9)"}}>{v}</p></div>)}</div>
-        {canManage&&detail.status==="draft"&&<Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2" onClick={()=>updateStatus(detail.id,"published")}><CheckCircle className="w-4 h-4 mr-2" />Publish Tender</Button>}
-        {canManage&&detail.status==="published"&&<Button className="w-full bg-amber-600 hover:bg-amber-700 text-white mt-2" onClick={()=>updateStatus(detail.id,"closed")}>Close Tender</Button>}
-        {canManage&&detail.status==="closed"&&<Button className="w-full bg-green-600 hover:bg-green-700 text-white mt-2" onClick={()=>updateStatus(detail.id,"evaluated")}>Mark Evaluated</Button>}
-        <DialogFooter><Button variant="outline" onClick={()=>setDetail(null)}>Close</Button></DialogFooter>
-      </DialogContent></Dialog>}
+      {/* Create/Edit Modal */}
+      {showNew&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(680px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
+              <Gavel style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Tender</span>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+            </div>
+            <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                <div style={{gridColumn:"span 2"}}><LBL>Title *</LBL>{INP(form.title,v=>setForm(p=>({...p,title:v})),"e.g. Supply of Pharmaceutical Drugs Q1 2025/26")}</div>
+                <div><LBL>Category</LBL>
+                  <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
+                    <option value="">Select category…</option>
+                    {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div><LBL>Tender Type</LBL>
+                  <select value={form.tender_type} onChange={e=>setForm(p=>({...p,tender_type:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
+                    {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div><LBL>Estimated Value (KES)</LBL>{INP(form.estimated_value,v=>setForm(p=>({...p,estimated_value:v})),"0","number")}</div>
+                <div><LBL>Contact Person</LBL>{INP(form.contact_person,v=>setForm(p=>({...p,contact_person:v})),"Name")}</div>
+                <div><LBL>Opening Date</LBL>{INP(form.opening_date,v=>setForm(p=>({...p,opening_date:v})),"","date")}</div>
+                <div><LBL>Closing Date *</LBL>{INP(form.closing_date,v=>setForm(p=>({...p,closing_date:v})),"","date")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Description</LBL>
+                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3} placeholder="Scope of work, items required…"
+                    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit",boxSizing:"border-box" as const}}/>
+                </div>
+                <div style={{gridColumn:"span 2"}}><LBL>Evaluation Criteria</LBL>
+                  <textarea value={form.evaluation_criteria} onChange={e=>setForm(p=>({...p,evaluation_criteria:e.target.value}))} rows={2} placeholder="How bids will be evaluated…"
+                    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit",boxSizing:"border-box" as const}}/>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
+                <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
+                <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#1F6090,#2980b9)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Create Tender"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail */}
+      {detail&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",justifyContent:"flex-end"}} onClick={()=>setDetail(null)}>
+          <div style={{width:"min(460px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",gap:8,alignItems:"center"}}>
+              <Gavel style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.tender_number}</span>
+              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+            </div>
+            <div style={{padding:18,display:"flex",flexDirection:"column" as const,gap:14}}>
+              <div><div style={{fontSize:18,fontWeight:800,color:"#111827",lineHeight:1.3}}>{detail.title}</div>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,marginTop:6,display:"inline-block"}}>{sc(detail.status).label}</span>
+              </div>
+              {[["Category",detail.category||"—"],["Type",detail.tender_type||"—"],["Estimated Value",detail.estimated_value?fmtKES(detail.estimated_value):"—"],["Opening Date",fmtDate(detail.opening_date)],["Closing Date",fmtDate(detail.closing_date)],["Contact",detail.contact_person||"—"],["Created By",detail.created_by_name||"—"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f9fafb"}}>
+                  <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textAlign:"right" as const,maxWidth:"60%"}}>{v}</span>
+                </div>
+              ))}
+              {detail.description&&<div><div style={{fontSize:12,fontWeight:700,color:"#9ca3af",marginBottom:5,textTransform:"uppercase" as const}}>Description</div>
+                <p style={{fontSize:14,color:"#374151",lineHeight:1.7,margin:0}}>{detail.description}</p>
+              </div>}
+              {detail.evaluation_criteria&&<div><div style={{fontSize:12,fontWeight:700,color:"#9ca3af",marginBottom:5,textTransform:"uppercase" as const}}>Evaluation Criteria</div>
+                <p style={{fontSize:14,color:"#374151",lineHeight:1.7,margin:0}}>{detail.evaluation_criteria}</p>
+              </div>}
+              {canManage&&detail.status==="draft"&&<button onClick={()=>{publish(detail);setDetail(null);}} style={{width:"100%",padding:"11px",background:"#15803d",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <CheckCircle style={{width:14,height:14}}/> Publish Tender
+              </button>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,412 +1,341 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, Printer, Search, FileText } from "lucide-react";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement } from "@/lib/notify";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, RefreshCw, Eye, Printer, Download, FileText, DollarSign, X, Save, CheckCircle, XCircle, Clock } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
+import * as XLSX from "xlsx";
 
-interface VoucherItem {
-  code_no: string;
-  item_description: string;
-  unit_of_issue: string;
-  quantity_required: string;
-  quantity_issued: string;
-  value: string;
-  remarks: string;
-}
+const genNo = () => { const d=new Date(); return `SRV/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.floor(1000+Math.random()*9000)}`; };
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
 
-const EMPTY_ROW: VoucherItem = { code_no: "", item_description: "", unit_of_issue: "pcs", quantity_required: "", quantity_issued: "", value: "", remarks: "" };
-
-const VouchersPage = () => {
-  const { user, profile, hasRole } = useAuth();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [printPreview, setPrintPreview] = useState<any>(null);
-  const [search, setSearch] = useState("");
-
-  // Form state matching Form S 11
-  const [form, setForm] = useState({
-    ministry: "Medical Service",
-    department: "Health",
-    unit: "Hospital",
-    issue_point: "Embu Level 5",
-    point_of_use: "",
-    voucher_number: "",
-    copy_type: "ORIGINAL",
-    account_no: "",
-    requisitioning_officer: "",
-    designation_req: "",
-    issued_by: "",
-    signature_issued: "",
-    received_by: "",
-    designation_recv: "",
-  });
-
-  const [items, setItems] = useState<VoucherItem[]>(
-    Array.from({ length: 10 }, () => ({ ...EMPTY_ROW }))
-  );
-
-  // Local storage for submitted vouchers (since no DB table yet)
-  const [vouchers, setVouchers] = useState<any[]>([]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("erp_vouchers");
-    if (saved) setVouchers(JSON.parse(saved));
-  }, []);
-
-  const saveVouchers = (list: any[]) => {
-    setVouchers(list);
-    localStorage.setItem("erp_vouchers", JSON.stringify(list));
-  };
-
-  const generateVoucherNumber = () => {
-    return `${Math.floor(5000000 + Math.random() * 5000000)}`;
-  };
-
-  const updateItem = (i: number, field: keyof VoucherItem, value: string) => {
-    const updated = [...items];
-    updated[i] = { ...updated[i], [field]: value };
-    // Auto-calc value
-    if (field === "quantity_issued" || field === "quantity_required") {
-      const qty = parseFloat(updated[i].quantity_issued || updated[i].quantity_required) || 0;
-      // value can be calculated if we had unit price - for now leave manual
-    }
-    setItems(updated);
-  };
-
-  const addRows = () => setItems([...items, ...Array.from({ length: 5 }, () => ({ ...EMPTY_ROW }))]);
-
-  const handleSubmit = () => {
-    const validItems = items.filter(i => i.item_description.trim());
-    if (validItems.length === 0) {
-      toast({ title: "Add at least one item", variant: "destructive" });
-      return;
-    }
-    const voucher = {
-      id: crypto.randomUUID(),
-      ...form,
-      voucher_number: form.voucher_number || generateVoucherNumber(),
-      items: validItems,
-      created_at: new Date().toISOString(),
-      created_by: profile?.full_name,
-      status: "issued",
-    };
-    saveVouchers([voucher, ...vouchers]);
-    logAudit(user?.id, profile?.full_name, "create_voucher", "vouchers", voucher.id, { number: voucher.voucher_number });
-    toast({ title: "Voucher created", description: `#${voucher.voucher_number}` });
-    notifyProcurement({title:"New Voucher Created",message:`Voucher ${voucher.voucher_number} created by ${profile?.full_name||"Staff"}`,type:"voucher",module:"Vouchers",actionUrl:"/vouchers"});
-    setDialogOpen(false);
-    setForm({ ...form, point_of_use: "", voucher_number: "", account_no: "", requisitioning_officer: "", designation_req: "", issued_by: "", signature_issued: "", received_by: "", designation_recv: "" });
-    setItems(Array.from({ length: 10 }, () => ({ ...EMPTY_ROW })));
-  };
-
-  const printVoucher = (v: any) => {
-    setPrintPreview(v);
-    setTimeout(() => window.print(), 500);
-  };
-
-  const filtered = vouchers.filter(v =>
-    (v.voucher_number || "").includes(search) ||
-    (v.point_of_use || "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div className="p-4 space-y-4" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
-      {/* Print preview - hidden until print */}
-      {printPreview && (
-        <div className="print-only fixed inset-0 bg-white z-[9999] p-8 text-black text-sm" style={{ fontFamily: "serif" }}>
-          <VoucherPrintLayout voucher={printPreview} />
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 no-print">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Counter Requisition & Issue Vouchers</h1>
-          <p className="text-xs text-muted-foreground">Form S 11 — Republic of Kenya</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Voucher</Button></DialogTrigger>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Counter Requisition and Issue Voucher (Form S 11)
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* Header fields matching the form */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Copy Type</Label>
-                  <Select value={form.copy_type} onValueChange={v => setForm({ ...form, copy_type: v })}>
-                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ORIGINAL">Original</SelectItem>
-                      <SelectItem value="DUPLICATE">Duplicate</SelectItem>
-                      <SelectItem value="TRIPLICATE">Triplicate</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Voucher No.</Label>
-                  <Input className="h-8" placeholder="Auto-generated" value={form.voucher_number} onChange={e => setForm({ ...form, voucher_number: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Ministry</Label>
-                  <Input className="h-8" value={form.ministry} onChange={e => setForm({ ...form, ministry: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Dept/Branch</Label>
-                  <Input className="h-8" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Unit</Label>
-                  <Input className="h-8" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">To (Issue Point)</Label>
-                  <Input className="h-8" value={form.issue_point} onChange={e => setForm({ ...form, issue_point: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Point of Use</Label>
-                  <Input className="h-8" placeholder="e.g. Ishiara Sub County Hospital" value={form.point_of_use} onChange={e => setForm({ ...form, point_of_use: e.target.value })} />
-                </div>
-              </div>
-
-              {/* Items table - matching the form columns */}
-              <div className="border border-border rounded-lg overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-20 text-xs">Code No.</TableHead>
-                      <TableHead className="text-xs">Item Description</TableHead>
-                      <TableHead className="w-20 text-xs">Unit of Issue</TableHead>
-                      <TableHead className="w-24 text-xs">Qty Required</TableHead>
-                      <TableHead className="w-24 text-xs">Qty Issued</TableHead>
-                      <TableHead className="w-24 text-xs">Value</TableHead>
-                      <TableHead className="w-32 text-xs">Remarks/Purpose</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Input className="h-7 text-xs" value={item.code_no} onChange={e => updateItem(i, "code_no", e.target.value)} /></TableCell>
-                        <TableCell><Input className="h-7 text-xs" value={item.item_description} onChange={e => updateItem(i, "item_description", e.target.value)} /></TableCell>
-                        <TableCell><Input className="h-7 text-xs" value={item.unit_of_issue} onChange={e => updateItem(i, "unit_of_issue", e.target.value)} /></TableCell>
-                        <TableCell><Input className="h-7 text-xs" type="number" value={item.quantity_required} onChange={e => updateItem(i, "quantity_required", e.target.value)} /></TableCell>
-                        <TableCell><Input className="h-7 text-xs" type="number" value={item.quantity_issued} onChange={e => updateItem(i, "quantity_issued", e.target.value)} /></TableCell>
-                        <TableCell><Input className="h-7 text-xs" type="number" value={item.value} onChange={e => updateItem(i, "value", e.target.value)} /></TableCell>
-                        <TableCell><Input className="h-7 text-xs" value={item.remarks} onChange={e => updateItem(i, "remarks", e.target.value)} /></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addRows}><Plus className="w-3 h-3 mr-1" /> Add Rows</Button>
-
-              {/* Signature fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Account No.</Label>
-                  <Input className="h-8" value={form.account_no} onChange={e => setForm({ ...form, account_no: e.target.value })} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Requisitioning Officer</Label>
-                  <Input className="h-8" value={form.requisitioning_officer} onChange={e => setForm({ ...form, requisitioning_officer: e.target.value })} />
-                  <Label className="text-xs">Designation</Label>
-                  <Input className="h-8" value={form.designation_req} onChange={e => setForm({ ...form, designation_req: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Issued by</Label>
-                  <Input className="h-8" value={form.issued_by} onChange={e => setForm({ ...form, issued_by: e.target.value })} />
-                  <Label className="text-xs">Signature</Label>
-                  <Input className="h-8" value={form.signature_issued} onChange={e => setForm({ ...form, signature_issued: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Received by</Label>
-                  <Input className="h-8" value={form.received_by} onChange={e => setForm({ ...form, received_by: e.target.value })} />
-                  <Label className="text-xs">Designation</Label>
-                  <Input className="h-8" value={form.designation_recv} onChange={e => setForm({ ...form, designation_recv: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSubmit}>Issue Voucher</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Voucher list */}
-      <div className="no-print space-y-3">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search vouchers..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-        </div>
-
-        <div className="border border-border rounded-lg overflow-auto bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Voucher No.</TableHead>
-                <TableHead>Copy</TableHead>
-                <TableHead>Point of Use</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>By</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No vouchers created yet</TableCell></TableRow>
-              ) : filtered.map(v => (
-                <TableRow key={v.id}>
-                  <TableCell className="font-mono font-medium">{v.voucher_number}</TableCell>
-                  <TableCell><span className="text-xs bg-muted px-2 py-0.5 rounded">{v.copy_type}</span></TableCell>
-                  <TableCell className="text-sm">{v.point_of_use || "—"}</TableCell>
-                  <TableCell>{(v.items || []).length}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{new Date(v.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-xs">{v.created_by}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setPrintPreview(v)}><Eye className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => printVoucher(v)}><Printer className="w-4 h-4" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {/* Print preview dialog */}
-      {printPreview && (
-        <Dialog open={!!printPreview} onOpenChange={() => setPrintPreview(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Voucher Preview — #{printPreview.voucher_number}</DialogTitle></DialogHeader>
-            <div className="border border-border rounded p-6 bg-white text-black" style={{ fontFamily: "serif" }}>
-              <VoucherPrintLayout voucher={printPreview} />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setPrintPreview(null)}>Close</Button>
-              <Button onClick={() => window.print()}><Printer className="w-4 h-4 mr-1" /> Print</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
+const S_CFG:Record<string,{bg:string;color:string;label:string}> = {
+  draft:    {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
+  pending:  {bg:"#fef3c7",color:"#92400e",label:"Pending"},
+  approved: {bg:"#dcfce7",color:"#15803d",label:"Approved"},
+  issued:   {bg:"#dbeafe",color:"#1d4ed8",label:"Issued"},
+  rejected: {bg:"#fee2e2",color:"#dc2626",label:"Rejected"},
 };
+const sc = (s:string) => S_CFG[s]||S_CFG.draft;
 
-// Print layout matching Form S 11
-const VoucherPrintLayout = ({ voucher }: { voucher: any }) => (
-  <div className="text-black text-xs leading-relaxed" style={{ fontFamily: "serif" }}>
-    <div className="flex justify-between items-start mb-1">
-      <span className="text-[10px]">Form S 11</span>
-      <div className="text-right">
-        <span className="text-[10px] font-bold uppercase">{voucher.copy_type}</span>
-        <p className="text-sm font-bold">{voucher.voucher_number}</p>
-      </div>
-    </div>
+const UNITS=["pcs","box","litres","kg","mg","tablets","ampoules","vials","sachets","rolls"];
 
-    <div className="text-center mb-3">
-      <img src="/assets/embu-county-logo.jpg" alt="Coat of Arms" className="w-12 h-12 mx-auto mb-1 object-contain" />
-      <p className="text-[10px] font-bold">REPUBLIC OF KENYA</p>
-      <p className="text-sm font-bold tracking-wide">COUNTER REQUISITION AND ISSUE VOUCHER</p>
-    </div>
+interface VItem { code_no:string; item_description:string; unit_of_issue:string; quantity_required:string; quantity_issued:string; value:string; remarks:string; }
+const EMPTY:VItem = {code_no:"",item_description:"",unit_of_issue:"pcs",quantity_required:"",quantity_issued:"",value:"",remarks:""};
 
-    <div className="text-[11px] mb-2 space-y-0.5">
-      <p>Ministry: <span className="border-b border-black font-semibold">{voucher.ministry}</span> Dept./Branch: <span className="border-b border-black font-semibold">{voucher.department}</span> Unit: <span className="border-b border-black font-semibold">{voucher.unit}</span></p>
-      <p>To (issue point): <span className="border-b border-black font-semibold">{voucher.issue_point}</span></p>
-      <p>Please issue the stores listed below to (point of use): <span className="border-b border-black font-semibold">{voucher.point_of_use}</span></p>
-    </div>
-
-    <table className="w-full border-collapse border border-black text-[10px] mb-3">
-      <thead>
-        <tr className="border border-black">
-          <th className="border border-black p-1 text-left">Code No.</th>
-          <th className="border border-black p-1 text-left">Item Description</th>
-          <th className="border border-black p-1 text-center">Unit of Issue</th>
-          <th className="border border-black p-1 text-center">Quantity Required</th>
-          <th className="border border-black p-1 text-center">Quantity Issued</th>
-          <th className="border border-black p-1 text-center">Value</th>
-          <th className="border border-black p-1 text-left">Remarks Purpose</th>
-        </tr>
-      </thead>
-      <tbody>
-        {(voucher.items || []).map((item: any, i: number) => (
-          <tr key={i} className="border border-black">
-            <td className="border border-black p-1">{item.code_no}</td>
-            <td className="border border-black p-1">{item.item_description}</td>
-            <td className="border border-black p-1 text-center">{item.unit_of_issue}</td>
-            <td className="border border-black p-1 text-center">{item.quantity_required}</td>
-            <td className="border border-black p-1 text-center">{item.quantity_issued}</td>
-            <td className="border border-black p-1 text-center">{item.value}</td>
-            <td className="border border-black p-1">{item.remarks}</td>
-          </tr>
-        ))}
-        {/* Empty rows to fill the form */}
-        {Array.from({ length: Math.max(0, 8 - (voucher.items || []).length) }).map((_, i) => (
-          <tr key={`e${i}`} className="border border-black">
-            <td className="border border-black p-1">&nbsp;</td>
-            <td className="border border-black p-1">&nbsp;</td>
-            <td className="border border-black p-1">&nbsp;</td>
-            <td className="border border-black p-1">&nbsp;</td>
-            <td className="border border-black p-1">&nbsp;</td>
-            <td className="border border-black p-1">&nbsp;</td>
-            <td className="border border-black p-1">&nbsp;</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-
-    <div className="text-[10px] space-y-1.5 border-t border-black pt-2">
-      <p>Account No.: <span className="border-b border-black">{voucher.account_no || "_______________"}</span></p>
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <p>Requisitioning Officer: <span className="border-b border-black font-semibold">{voucher.requisitioning_officer}</span></p>
-          <p>Designation: <span className="border-b border-black">{voucher.designation_req}</span></p>
-          <p>Date: _____________ Signature: _____________</p>
-        </div>
-        <div>
-          <p>Issued by: <span className="border-b border-black font-semibold">{voucher.issued_by}</span></p>
-          <p>Signature: <span className="border-b border-black">{voucher.signature_issued}</span></p>
-          <p>Date: _____________</p>
-        </div>
-        <div>
-          <p>Received by: <span className="border-b border-black font-semibold">{voucher.received_by}</span></p>
-          <p>Designation: <span className="border-b border-black">{voucher.designation_recv}</span></p>
-          <p>Signature: _____________</p>
-        </div>
-      </div>
-    </div>
-
-    <p className="text-[8px] text-gray-500 mt-3">G.P.K. 5134—50m Bks.—3/2009</p>
-  </div>
+const LBL = ({children}:{children:any}) => <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:5,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{children}</div>;
+const INP = (v:any,cb:any,p="",t="text") => (
+  <input type={t} value={v} onChange={e=>cb(e.target.value)} placeholder={p}
+    style={{width:"100%",padding:"8px 11px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:7,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
 );
 
-export default VouchersPage;
+export default function VouchersPage() {
+  const { user, profile, hasRole } = useAuth();
+  const navigate = useNavigate();
+  const canApprove = hasRole("admin")||hasRole("procurement_manager");
+
+  const [rows,    setRows]    = useState<any[]>([]);
+  const [depts,   setDepts]   = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState("");
+  const [stFilter,setStFilter]= useState("all");
+  const [showNew, setShowNew] = useState(false);
+  const [detail,  setDetail]  = useState<any>(null);
+  const [print,   setPrint]   = useState<any>(null);
+  const [saving,  setSaving]  = useState(false);
+  const [form,setForm] = useState({voucher_number:"",requested_by:profile?.full_name||"",department_id:"",purpose:"",date:new Date().toISOString().split("T")[0],items:[{...EMPTY}]});
+
+  const load = useCallback(async()=>{
+    setLoading(true);
+    const [{data:v},{data:d}] = await Promise.all([
+      (supabase as any).from("vouchers").select("*,departments(name)").order("created_at",{ascending:false}),
+      (supabase as any).from("departments").select("id,name").order("name"),
+    ]);
+    setRows(v||[]); setDepts(d||[]); setLoading(false);
+  },[]);
+  useEffect(()=>{load();},[load]);
+  useEffect(()=>{
+    const ch=(supabase as any).channel("vouchers-store-rt").on("postgres_changes",{event:"*",schema:"public",table:"vouchers"},load).subscribe();
+    return ()=>(supabase as any).removeChannel(ch);
+  },[load]);
+
+  const total=(items:VItem[])=>items.reduce((s,it)=>s+Number(it.value||0)*Number(it.quantity_issued||it.quantity_required||1),0);
+
+  const save=async()=>{
+    if(!form.purpose){toast({title:"Purpose is required",variant:"destructive"});return;}
+    const validItems=form.items.filter(it=>it.item_description.trim());
+    if(!validItems.length){toast({title:"Add at least one item",variant:"destructive"});return;}
+    setSaving(true);
+    const dept=depts.find(d=>d.id===form.department_id);
+    const payload={voucher_number:form.voucher_number||genNo(),requested_by:form.requested_by||profile?.full_name,department_id:form.department_id||null,department_name:dept?.name,purpose:form.purpose,date:form.date,items:validItems,total_value:total(validItems),status:"pending",created_by:user?.id};
+    const{data,error}=await(supabase as any).from("vouchers").insert(payload).select().single();
+    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    logAudit(user?.id,profile?.full_name,"create","vouchers",data?.id,{});
+    await notifyProcurement({title:"New Store Voucher",message:`${payload.voucher_number} — ${form.purpose.slice(0,60)}`,type:"voucher",module:"Vouchers",senderId:user?.id});
+    toast({title:"Voucher submitted ✓"});
+    setShowNew(false); setForm({voucher_number:"",requested_by:profile?.full_name||"",department_id:"",purpose:"",date:new Date().toISOString().split("T")[0],items:[{...EMPTY}]});
+    load(); setSaving(false);
+  };
+
+  const approve=async(v:any)=>{
+    await(supabase as any).from("vouchers").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",v.id);
+    toast({title:"Voucher approved ✓"}); load();
+  };
+  const reject_=async(v:any)=>{
+    await(supabase as any).from("vouchers").update({status:"rejected"}).eq("id",v.id);
+    toast({title:"Rejected"}); load();
+  };
+  const issue=async(v:any)=>{
+    await(supabase as any).from("vouchers").update({status:"issued",issued_by:profile?.full_name,issued_at:new Date().toISOString()}).eq("id",v.id);
+    toast({title:"Issued ✓"}); load();
+  };
+
+  const addItem=()=>setForm(p=>({...p,items:[...p.items,{...EMPTY}]}));
+  const rmItem=(i:number)=>setForm(p=>({...p,items:p.items.filter((_,j)=>j!==i)}));
+  const updItem=(i:number,k:keyof VItem,v:string)=>setForm(p=>({...p,items:p.items.map((it,j)=>j===i?{...it,[k]:v}:it)}));
+
+  const filtered=rows.filter(r=>(stFilter==="all"||r.status===stFilter)&&(!search||[r.voucher_number,r.purpose,r.requested_by,r.departments?.name||r.department_name].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()))));
+
+  const exportXLSX=()=>{
+    const ws=XLSX.utils.json_to_sheet(filtered.map(r=>({No:r.voucher_number,Purpose:r.purpose,"Requested By":r.requested_by,Department:r.departments?.name||r.department_name,Total:r.total_value,Date:r.date,Status:r.status})));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Store Vouchers");XLSX.writeFile(wb,`StoreVouchers_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
+
+  return (
+    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#5C2D91,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <FileText style={{width:21,height:21,color:"#fff"}}/>
+          </div>
+          <div>
+            <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Store Vouchers</h1>
+            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Issue vouchers · {rows.length} total</p>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {/* Quick links to voucher types */}
+          {[{label:"Payment",path:"/vouchers/payment"},{label:"Receipt",path:"/vouchers/receipt"},{label:"Journal",path:"/vouchers/journal"}].map(l=>(
+            <button key={l.path} onClick={()=>navigate(l.path)} style={{padding:"7px 12px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0369a1"}}>{l.label} Vouchers →</button>
+          ))}
+          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}><Download style={{width:13,height:13}}/> Export</button>
+          <button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(92,45,145,0.3)"}}>
+            <Plus style={{width:14,height:14}}/> New Voucher
+          </button>
+        </div>
+      </div>
+
+      {/* Status tabs */}
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+        {[{id:"all",label:"All"},{id:"pending",label:"Pending"},{id:"approved",label:"Approved"},{id:"issued",label:"Issued"},{id:"rejected",label:"Rejected"}].map(f=>(
+          <button key={f.id} onClick={()=>setStFilter(f.id)} style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${stFilter===f.id?"#5C2D91":"#e5e7eb"}`,background:stFilter===f.id?"#5C2D91":"#fff",color:stFilter===f.id?"#fff":"#374151",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            {f.label} ({rows.filter(r=>f.id==="all"||r.status===f.id).length})
+          </button>
+        ))}
+      </div>
+
+      <div style={{position:"relative",marginBottom:14}}>
+        <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search voucher number, purpose, department…"
+          style={{width:"100%",padding:"10px 12px 10px 34px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:9,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
+      </div>
+
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
+              {["Voucher No","Purpose","Requested By","Department","Total","Date","Status","Actions"].map(h=>(
+                <th key={h} style={{padding:"11px 14px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase" as const,letterSpacing:"0.06em",whiteSpace:"nowrap" as const}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading?[1,2,3].map(i=>(
+              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}</tr>
+            )):filtered.length===0?(
+              <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
+                <FileText style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
+                <div style={{fontWeight:600}}>No vouchers yet</div>
+              </td></tr>
+            ):filtered.map(r=>{
+              const cfg=sc(r.status);
+              return(
+                <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
+                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#5C2D91",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.voucher_number}</td>
+                  <td style={{padding:"12px 14px",fontSize:13,color:"#111827",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}} onClick={()=>setDetail(r)}>{r.purpose}</td>
+                  <td style={{padding:"12px 14px",fontSize:13,color:"#374151"}} onClick={()=>setDetail(r)}>{r.requested_by}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.departments?.name||r.department_name||"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"#111827"}} onClick={()=>setDetail(r)}>{fmtKES(r.total_value||0)}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.date?new Date(r.date).toLocaleDateString("en-KE"):"—"}</td>
+                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
+                  <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      <button onClick={()=>setPrint(r)} title="Print" style={{padding:"4px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",lineHeight:0}}><Printer style={{width:11,height:11,color:"#6b7280"}}/></button>
+                      {canApprove&&r.status==="pending"&&<>
+                        <button onClick={()=>approve(r)} style={{padding:"4px 8px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:5,cursor:"pointer",lineHeight:0}}><CheckCircle style={{width:11,height:11,color:"#15803d"}}/></button>
+                        <button onClick={()=>reject_(r)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:5,cursor:"pointer",lineHeight:0}}><XCircle style={{width:11,height:11,color:"#dc2626"}}/></button>
+                      </>}
+                      {canApprove&&r.status==="approved"&&<button onClick={()=>issue(r)} style={{padding:"4px 9px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700,color:"#1d4ed8"}}>Issue</button>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* New Voucher Modal */}
+      {showNew&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(800px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
+              <FileText style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>New Store Requisition Voucher</span>
+              <button onClick={()=>setShowNew(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+            </div>
+            <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                <div><LBL>Voucher No</LBL>{INP(form.voucher_number,v=>setForm(p=>({...p,voucher_number:v})),"Auto-generated")}</div>
+                <div><LBL>Requested By</LBL>{INP(form.requested_by,v=>setForm(p=>({...p,requested_by:v})),profile?.full_name||"")}</div>
+                <div><LBL>Date</LBL>{INP(form.date,v=>setForm(p=>({...p,date:v})),"","date")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Department</LBL>
+                  <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 11px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:7,outline:"none"}}>
+                    <option value="">Select department…</option>
+                    {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div><LBL>Purpose / Nature of Issue</LBL>{INP(form.purpose,v=>setForm(p=>({...p,purpose:v})),"e.g. Ward supplies — April")}</div>
+              </div>
+
+              {/* Items table */}
+              <div>
+                <div style={{fontSize:12,fontWeight:800,color:"#374151",marginBottom:8,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Items</div>
+                <div style={{border:"1.5px solid #e5e7eb",borderRadius:9,overflow:"hidden"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"#f9fafb"}}>
+                        {["Code No","Item Description","Unit","Qty Required","Qty Issued","Value (KES)","Remarks",""].map(h=>(
+                          <th key={h} style={{padding:"8px 10px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",borderBottom:"1px solid #e5e7eb"}}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {form.items.map((it,i)=>(
+                        <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                          <td style={{padding:"4px 6px"}}><input value={it.code_no} onChange={e=>updItem(i,"code_no",e.target.value)} style={{width:70,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}><input value={it.item_description} onChange={e=>updItem(i,"item_description",e.target.value)} placeholder="Item name…" style={{width:180,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}>
+                            <select value={it.unit_of_issue} onChange={e=>updItem(i,"unit_of_issue",e.target.value)} style={{padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}>
+                              {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+                            </select>
+                          </td>
+                          <td style={{padding:"4px 6px"}}><input type="number" value={it.quantity_required} onChange={e=>updItem(i,"quantity_required",e.target.value)} style={{width:70,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}><input type="number" value={it.quantity_issued} onChange={e=>updItem(i,"quantity_issued",e.target.value)} style={{width:70,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}><input type="number" value={it.value} onChange={e=>updItem(i,"value",e.target.value)} style={{width:90,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}><input value={it.remarks} onChange={e=>updItem(i,"remarks",e.target.value)} style={{width:100,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}>{form.items.length>1&&<button onClick={()=>rmItem(i)} style={{background:"#fee2e2",border:"1px solid #fecaca",borderRadius:5,cursor:"pointer",padding:"4px 6px",lineHeight:0}}><X style={{width:10,height:10,color:"#dc2626"}}/></button>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#f9fafb",borderTop:"1px solid #e5e7eb"}}>
+                    <button onClick={addItem} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:700,color:"#1d4ed8"}}>
+                      <Plus style={{width:11,height:11}}/> Add Item
+                    </button>
+                    <span style={{fontSize:14,fontWeight:800,color:"#111827"}}>Total: {fmtKES(total(form.items))}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
+                <button onClick={()=>setShowNew(false)} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
+                <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":"Submit Voucher"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print modal */}
+      {print&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:12,width:"min(700px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e5e7eb"}}>
+              <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Store Requisition Voucher</span>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>window.print()} style={{padding:"6px 14px",background:"#15803d",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><Printer style={{width:11,height:11}}/> Print</button>
+                <button onClick={()=>setPrint(null)} style={{background:"#f3f4f6",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              </div>
+            </div>
+            <div id="print-area" style={{padding:24,fontFamily:"serif"}}>
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:8,paddingBottom:8,borderBottom:"2px solid #111"}}>
+                <img src={logo} alt="logo" style={{width:70,height:70,objectFit:"contain"}}/>
+                <div>
+                  <div style={{fontSize:15,fontWeight:900,textTransform:"uppercase" as const}}>Embu County Government</div>
+                  <div style={{fontSize:13,fontWeight:700}}>Embu Level 5 Hospital</div>
+                  <div style={{fontSize:11}}>P.O. Box 1 – 60100, Embu, Kenya</div>
+                </div>
+                <div style={{marginLeft:"auto",textAlign:"right" as const}}>
+                  <div style={{fontSize:16,fontWeight:900,textTransform:"uppercase" as const}}>STORE REQUISITION VOUCHER</div>
+                  <div style={{fontSize:13,fontWeight:700,marginTop:4}}>No: {print.voucher_number}</div>
+                  <div style={{fontSize:11}}>Date: {print.date?new Date(print.date).toLocaleDateString("en-KE",{dateStyle:"long"}):"—"}</div>
+                </div>
+              </div>
+              <table style={{width:"100%",borderCollapse:"collapse",marginBottom:8,fontSize:12}}>
+                <tbody>
+                  {[["Requested by",print.requested_by||"—"],["Department",print.departments?.name||print.department_name||"—"],["Purpose / Nature",print.purpose||"—"]].map(([l,v])=>(
+                    <tr key={l}><td style={{padding:"4px 8px",border:"1px solid #999",fontWeight:700,width:180}}>{l}:</td><td style={{padding:"4px 8px",border:"1px solid #999"}}>{v}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                <thead>
+                  <tr style={{background:"#f3f4f6"}}>
+                    {["#","Code No","Item Description","Unit","Qty Required","Qty Issued","Value (KES)","Remarks"].map(h=>(
+                      <th key={h} style={{padding:"6px 8px",border:"1px solid #999",textAlign:"left" as const,fontWeight:700}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(print.items||[]).map((it:any,i:number)=>(
+                    <tr key={i}>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"center" as const}}>{i+1}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.code_no||"—"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.item_description}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"center" as const}}>{it.unit_of_issue}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right" as const}}>{it.quantity_required}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right" as const}}>{it.quantity_issued||"—"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right" as const}}>{it.value?Number(it.value).toLocaleString():"—"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.remarks||"—"}</td>
+                    </tr>
+                  ))}
+                  <tr style={{fontWeight:800,background:"#f3f4f6"}}>
+                    <td colSpan={6} style={{padding:"6px 8px",border:"1px solid #999",textAlign:"right" as const}}>TOTAL:</td>
+                    <td style={{padding:"6px 8px",border:"1px solid #999",textAlign:"right" as const}}>{fmtKES(print.total_value||0)}</td>
+                    <td style={{border:"1px solid #999"}}/>
+                  </tr>
+                </tbody>
+              </table>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:20,marginTop:20}}>
+                {[["Requested by","",""],["Stores Officer","",""],["Authorized by","",""]].map(([l])=>(
+                  <div key={l} style={{textAlign:"center" as const}}>
+                    <div style={{height:48,borderBottom:"1px solid #000",marginBottom:4}}/>
+                    <div style={{fontSize:10,fontWeight:700}}>{l}</div>
+                    <div style={{fontSize:10,color:"#6b7280"}}>Name / Signature / Date</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

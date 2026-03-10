@@ -1,112 +1,304 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
-import { Plus, Search, Scale, RefreshCw, Star, Edit } from "lucide-react";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { Plus, Search, Scale, RefreshCw, Star, Edit, X, Save, Trophy, TrendingUp, Award } from "lucide-react";
+
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
+const totalScore = (t:number,f:number) => Math.round((t*0.7 + f*0.3)*100)/100;
+
+const S_CFG:Record<string,{bg:string;color:string;label:string}> = {
+  evaluated:   {bg:"#dbeafe",color:"#1d4ed8",label:"Evaluated"},
+  recommended: {bg:"#dcfce7",color:"#15803d",label:"Recommended"},
+  awarded:     {bg:"#fef3c7",color:"#92400e",label:"Awarded"},
+  rejected:    {bg:"#fee2e2",color:"#dc2626",label:"Rejected"},
+};
+const sc = (s:string) => S_CFG[s]||{bg:"#f3f4f6",color:"#6b7280",label:s||"Draft"};
+
+const INP = (v:any,cb:any,p="",t="text",min?:any,max?:any) => (
+  <input type={t} value={v} onChange={e=>cb(e.target.value)} placeholder={p} min={min} max={max}
+    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",background:"#fff"}}
+    onFocus={e=>(e.target as HTMLInputElement).style.borderColor="#1a3a6b"}
+    onBlur={e=>(e.target as HTMLInputElement).style.borderColor="#e5e7eb"}/>
+);
+const SEL = (v:any,cb:any,opts:{value:string;label:string}[],p="Select…") => (
+  <select value={v} onChange={e=>cb(e.target.value)}
+    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",background:"#fff"}}>
+    <option value="">{p}</option>
+    {opts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+  </select>
+);
+const LBL = ({children}:{children:any}) => <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:5,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{children}</div>;
 
 export default function BidEvaluationsPage() {
   const { user, profile, hasRole } = useAuth();
-  const canEvaluate = hasRole("admin") || hasRole("procurement_manager") || hasRole("procurement_officer");
-  const { data: evaluations, refetch } = useRealtimeTable("bid_evaluations", { order:{ column:"created_at" } });
-  const [tenders, setTenders] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [search, setSearch] = useState(""); const [tenderFilter, setTenderFilter] = useState("all");
-  const [showNew, setShowNew] = useState(false); const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ tender_id:"", supplier_id:"", bid_amount:"", technical_score:"", financial_score:"", recommendation:"", notes:"" });
+  const canEvaluate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
 
+  const [rows,      setRows]      = useState<any[]>([]);
+  const [tenders,   setTenders]   = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [search,    setSearch]    = useState("");
+  const [tFilter,   setTFilter]   = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [editing,   setEditing]   = useState<any>(null);
+  const [saving,    setSaving]    = useState(false);
+  const [detail,    setDetail]    = useState<any>(null);
+  const [form,setForm] = useState({tender_id:"",supplier_id:"",bid_amount:"",technical_score:"",financial_score:"",recommendation:"",notes:""});
+
+  const load = async () => {
+    setLoading(true);
+    const [e,t,s] = await Promise.all([
+      (supabase as any).from("bid_evaluations").select("*").order("created_at",{ascending:false}),
+      (supabase as any).from("tenders").select("id,tender_number,title").order("tender_number"),
+      (supabase as any).from("suppliers").select("id,name").order("name"),
+    ]);
+    setRows(e.data||[]); setTenders(t.data||[]); setSuppliers(s.data||[]); setLoading(false);
+  };
+  useEffect(()=>{ load(); },[]);
   useEffect(()=>{
-    Promise.all([(supabase as any).from("tenders").select("id,tender_number,title,status"),supabase.from("suppliers").select("id,name")]).then(([t,s])=>{setTenders(t.data||[]);setSuppliers(s.data||[]);});
+    const ch=(supabase as any).channel("bid-eval-rt").on("postgres_changes",{event:"*",schema:"public",table:"bid_evaluations"},load).subscribe();
+    return ()=>(supabase as any).removeChannel(ch);
   },[]);
 
-  const totalScore=(t:number,f:number)=>Math.round(t*0.7+f*0.3*100)/100;
-
-  const openNew=(v?:any)=>{
-    if(v){setEditing(v);setForm({tender_id:v.tender_id||"",supplier_id:v.supplier_id||"",bid_amount:String(v.bid_amount||""),technical_score:String(v.technical_score||""),financial_score:String(v.financial_score||""),recommendation:v.recommendation||"",notes:v.notes||""});}
-    else{setEditing(null);setForm({tender_id:"",supplier_id:"",bid_amount:"",technical_score:"",financial_score:"",recommendation:"",notes:""});}
-    setShowNew(true);
+  const openNew = (v?:any) => {
+    if(v){ setEditing(v); setForm({tender_id:v.tender_id||"",supplier_id:v.supplier_id||"",bid_amount:String(v.bid_amount||""),technical_score:String(v.technical_score||""),financial_score:String(v.financial_score||""),recommendation:v.recommendation||"",notes:v.notes||""}); }
+    else { setEditing(null); setForm({tender_id:"",supplier_id:"",bid_amount:"",technical_score:"",financial_score:"",recommendation:"",notes:""}); }
+    setShowModal(true);
   };
-
-  const handleSave=async()=>{
-    if(!form.tender_id||!form.supplier_id){toast({title:"Fill required fields",variant:"destructive"});return;}
-    const tender=tenders.find(t=>t.id===form.tender_id); const supplier=suppliers.find(s=>s.id===form.supplier_id);
-    const ts=Number(form.technical_score||0); const fs=Number(form.financial_score||0); const total=totalScore(ts,fs);
-    const payload={tender_id:form.tender_id,tender_number:tender?.tender_number,supplier_id:form.supplier_id,supplier_name:supplier?.name,bid_amount:Number(form.bid_amount||0),technical_score:ts,financial_score:fs,total_score:total,recommendation:form.recommendation,notes:form.notes,evaluated_by:user?.id,evaluated_by_name:profile?.full_name,evaluated_at:new Date().toISOString(),status:"evaluated"};
+  const save = async () => {
+    if(!form.tender_id||!form.supplier_id){ toast({title:"Select tender and supplier",variant:"destructive"}); return; }
+    setSaving(true);
+    const t=tenders.find(x=>x.id===form.tender_id), s=suppliers.find(x=>x.id===form.supplier_id);
+    const ts=Number(form.technical_score||0), fs=Number(form.financial_score||0);
+    const payload = {tender_id:form.tender_id,tender_number:t?.tender_number,supplier_id:form.supplier_id,supplier_name:s?.name,
+      bid_amount:Number(form.bid_amount||0),technical_score:ts,financial_score:fs,total_score:totalScore(ts,fs),
+      recommendation:form.recommendation,notes:form.notes,evaluated_by:user?.id,evaluated_by_name:profile?.full_name,
+      evaluated_at:new Date().toISOString(),status:"evaluated"};
     if(editing){
       const{error}=await(supabase as any).from("bid_evaluations").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
-      toast({title:"Evaluation updated"});
+      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      toast({title:"Evaluation updated ✓"});
     } else {
       const{data,error}=await(supabase as any).from("bid_evaluations").insert(payload).select().single();
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
-      logAudit(user?.id,profile?.full_name,"create","bid_evaluations",data?.id,{});toast({title:"Bid evaluated"});
+      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      logAudit(user?.id,profile?.full_name,"create","bid_evaluations",data?.id,{});
+      toast({title:"Bid evaluated ✓"});
     }
-    setShowNew(false);setEditing(null);
+    setShowModal(false); setEditing(null); load(); setSaving(false);
   };
-
-  const recommend=async(v:any)=>{
+  const recommend = async (v:any) => {
     await(supabase as any).from("bid_evaluations").update({status:"recommended"}).eq("id",v.id);
-    toast({title:"Supplier recommended for award"});
+    toast({title:"Recommended for award ✓"}); load();
   };
 
-  const filtered=(evaluations as any[]).filter(v=>(tenderFilter==="all"||v.tender_id===tenderFilter)&&(v.supplier_name?.toLowerCase().includes(search.toLowerCase())||v.tender_number?.toLowerCase().includes(search.toLowerCase())));
-  const tenderOptions=[...new Set((evaluations as any[]).map((e:any)=>e.tender_id))].map(id=>({id,label:(evaluations as any[]).find((e:any)=>e.tender_id===id)?.tender_number||id}));
+  const tOpts = tenders.map(t=>({value:t.id,label:`${t.tender_number} — ${t.title?.slice(0,30)}`}));
+  const sOpts = suppliers.map(s=>({value:s.id,label:s.name}));
+  const tFilterOpts = [{value:"all",label:"All Tenders"},...[...new Set(rows.map(r=>r.tender_id))].map(id=>({value:id,label:rows.find(r=>r.tender_id===id)?.tender_number||id}))];
+  const filtered = rows.filter(r=>(tFilter==="all"||r.tender_id===tFilter)&&(!search||[r.supplier_name,r.tender_number].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()))));
+
+  const ts=Number(form.technical_score||0), fs=Number(form.financial_score||0);
+  const previewScore = form.technical_score&&form.financial_score ? totalScore(ts,fs) : null;
+
+  // Stats
+  const avg = rows.length ? (rows.reduce((s,r)=>s+Number(r.total_score||0),0)/rows.length).toFixed(1) : "—";
+  const recommended = rows.filter(r=>r.status==="recommended").length;
+  const highest = rows.length ? Math.max(...rows.map(r=>Number(r.total_score||0))).toFixed(1) : "—";
 
   return (
-    <div className="p-6 space-y-6" style={{background:"transparent",minHeight:"calc(100vh-100px)"}}>
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Scale className="w-6 h-6 text-pink-600" />Bid Evaluations</h1><p className="text-sm text-slate-500">Tender bid scoring & recommendation · Realtime</p></div>
-        {canEvaluate&&<Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white" onClick={()=>openNew()}><Plus className="w-4 h-4 mr-2" />Evaluate Bid</Button>}
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="p-4 border-b border-slate-100 flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-48"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search..." className="pl-9" value={search} onChange={e=>setSearch(e.target.value)} /></div>
-          <Select value={tenderFilter} onValueChange={setTenderFilter}><SelectTrigger className="w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Tenders</SelectItem>{tenderOptions.map(t=><SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}</SelectContent></Select>
-          <Button variant="outline" size="sm" onClick={refetch}><RefreshCw className="w-4 h-4" /></Button>
+    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:42,height:42,borderRadius:10,background:"linear-gradient(135deg,#c0185a,#e91e8c)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <Scale style={{width:20,height:20,color:"#fff"}}/>
+            </div>
+            <div>
+              <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Bid Evaluations</h1>
+              <p style={{fontSize:13,color:"#6b7280",margin:0}}>Tender scoring · 70% technical / 30% financial</p>
+            </div>
+          </div>
         </div>
-        <Table><TableHeader><TableRow className="bg-slate-50">{["Tender","Supplier","Bid Amount","Technical","Financial","Total Score","Status","Actions"].map(h=><TableHead key={h} className="text-xs font-semibold uppercase">{h}</TableHead>)}</TableRow></TableHeader>
-          <TableBody>{filtered.length===0?<TableRow><TableCell colSpan={8} className="text-center text-slate-400 py-12">No bid evaluations yet.</TableCell></TableRow>
-            :filtered.map((v:any)=><TableRow key={v.id} className="hover:bg-slate-50">
-              <TableCell className="font-mono text-xs font-bold text-pink-600">{v.tender_number}</TableCell>
-              <TableCell className="font-medium">{v.supplier_name}</TableCell>
-              <TableCell>KES {Number(v.bid_amount||0).toLocaleString()}</TableCell>
-              <TableCell><div className="flex items-center gap-1"><span className="font-semibold">{v.technical_score||0}</span><span className="text-slate-400 text-xs">/100</span></div></TableCell>
-              <TableCell><div className="flex items-center gap-1"><span className="font-semibold">{v.financial_score||0}</span><span className="text-slate-400 text-xs">/100</span></div></TableCell>
-              <TableCell><span className={`font-bold text-lg ${Number(v.total_score||0)>=70?"text-green-600":Number(v.total_score||0)>=50?"text-amber-600":"text-red-600"}`}>{Number(v.total_score||0).toFixed(1)}</span></TableCell>
-              <TableCell><Badge variant="outline" className={`capitalize ${v.status==="recommended"?"text-green-700 border-green-200 bg-green-50":v.status==="awarded"?"text-blue-700 border-blue-200 bg-blue-50":"text-slate-600 border-slate-200"}`}>{v.status}</Badge></TableCell>
-              <TableCell><div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={()=>openNew(v)}><Edit className="w-3.5 h-3.5" /></Button>
-                {canEvaluate&&v.status==="evaluated"&&<Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-green-600" onClick={()=>recommend(v)}><Star className="w-3.5 h-3.5 mr-1" />Recommend</Button>}
-              </div></TableCell>
-            </TableRow>)
-          }</TableBody>
-        </Table>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
+            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/> Refresh
+          </button>
+          {canEvaluate&&<button onClick={()=>openNew()} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(192,24,90,0.3)"}}>
+            <Plus style={{width:14,height:14}}/> Evaluate Bid
+          </button>}
+        </div>
       </div>
 
-      <Dialog open={showNew} onOpenChange={v=>{setShowNew(v);if(!v)setEditing(null);}}>
-        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{editing?"Edit":"Evaluate"} Bid</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Tender *</Label><Select value={form.tender_id} onValueChange={v=>setForm(f=>({...f,tender_id:v}))}><SelectTrigger className="mt-1"><SelectValue placeholder="Select tender..." /></SelectTrigger><SelectContent>{tenders.map(t=><SelectItem key={t.id} value={t.id}>{t.tender_number} — {t.title?.substring(0,30)}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Supplier *</Label><Select value={form.supplier_id} onValueChange={v=>setForm(f=>({...f,supplier_id:v}))}><SelectTrigger className="mt-1"><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{suppliers.map(s=><SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Bid Amount (KES)</Label><Input type="number" className="mt-1" value={form.bid_amount} onChange={e=>setForm(f=>({...f,bid_amount:e.target.value}))} min={0} /></div>
-            <div className="col-span-2 grid grid-cols-2 gap-3">
-              <div><Label>Technical Score (0-100) — 70%</Label><Input type="number" className="mt-1" value={form.technical_score} onChange={e=>setForm(f=>({...f,technical_score:e.target.value}))} min={0} max={100} /></div>
-              <div><Label>Financial Score (0-100) — 30%</Label><Input type="number" className="mt-1" value={form.financial_score} onChange={e=>setForm(f=>({...f,financial_score:e.target.value}))} min={0} max={100} /></div>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:14,marginBottom:20}}>
+        {[{label:"Total Evaluations",value:rows.length,icon:Scale,color:"#c0185a"},{label:"Recommended",value:recommended,icon:Trophy,color:"#15803d"},{label:"Average Score",value:avg,icon:TrendingUp,color:"#1d4ed8"},{label:"Highest Score",value:highest,icon:Award,color:"#92400e"}].map(s=>(
+          <div key={s.label} style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"16px",boxShadow:"0 2px 6px rgba(0,0,0,0.04)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <div style={{width:32,height:32,borderRadius:8,background:`${s.color}14`,display:"flex",alignItems:"center",justifyContent:"center"}}><s.icon style={{width:15,height:15,color:s.color}}/></div>
+              <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{s.label}</span>
             </div>
-            {form.technical_score&&form.financial_score&&<div className="col-span-2 bg-blue-50 rounded-lg p-3 text-center"><p className="text-sm text-blue-700">Weighted Score: <span className="text-2xl font-bold">{totalScore(Number(form.technical_score),Number(form.financial_score)).toFixed(2)}</span>/100</p></div>}
-            <div className="col-span-2"><Label>Recommendation</Label><textarea className="w-full mt-1 border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 min-h-[60px]" value={form.recommendation} onChange={e=>setForm(f=>({...f,recommendation:e.target.value}))} /></div>
+            <div style={{fontSize:28,fontWeight:900,color:"#111827"}}>{s.value}</div>
           </div>
-          <DialogFooter className="mt-4"><Button variant="outline" onClick={()=>setShowNew(false)}>Cancel</Button><Button className="bg-pink-600 hover:bg-pink-700 text-white" onClick={handleSave}><Scale className="w-4 h-4 mr-2" />{editing?"Update":"Submit Evaluation"}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{position:"relative",flex:1,minWidth:200}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search supplier, tender…"
+            style={{width:"100%",padding:"8px 10px 8px 30px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}/>
+        </div>
+        <select value={tFilter} onChange={e=>setTFilter(e.target.value)} style={{padding:"8px 12px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",minWidth:200}}>
+          {tFilterOpts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+
+      {/* Table */}
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
+              {["Tender Ref","Supplier","Bid Amount","Technical","Financial","Total Score","Status","Actions"].map(h=>(
+                <th key={h} style={{padding:"11px 14px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase" as const,letterSpacing:"0.06em",whiteSpace:"nowrap" as const}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading?[1,2,3].map(i=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                {[1,2,3,4,5,6,7,8].map(j=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}
+              </tr>
+            )):filtered.length===0?(
+              <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
+                <Scale style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
+                <div style={{fontWeight:600}}>No evaluations yet</div>
+                <div style={{fontSize:12,marginTop:4}}>Evaluate bids from tenders above</div>
+              </td></tr>
+            ):filtered.map(r=>{
+              const cfg=sc(r.status); const score=Number(r.total_score||0);
+              return (
+                <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
+                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}
+                  onClick={()=>setDetail(r)}>
+                  <td style={{padding:"13px 14px",fontSize:13,fontWeight:800,color:"#c0185a",fontFamily:"monospace"}}>{r.tender_number}</td>
+                  <td style={{padding:"13px 14px",fontSize:13,fontWeight:600,color:"#111827"}}>{r.supplier_name}</td>
+                  <td style={{padding:"13px 14px",fontSize:13,color:"#374151"}}>{fmtKES(r.bid_amount)}</td>
+                  <td style={{padding:"13px 14px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{width:48,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}>
+                        <div style={{width:`${r.technical_score||0}%`,height:"100%",background:"#3b82f6",borderRadius:3}}/>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:700,color:"#1d4ed8"}}>{r.technical_score||0}</span>
+                    </div>
+                  </td>
+                  <td style={{padding:"13px 14px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{width:48,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}>
+                        <div style={{width:`${r.financial_score||0}%`,height:"100%",background:"#10b981",borderRadius:3}}/>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:700,color:"#059669"}}>{r.financial_score||0}</span>
+                    </div>
+                  </td>
+                  <td style={{padding:"13px 14px"}}>
+                    <span style={{fontSize:20,fontWeight:900,color:score>=70?"#15803d":score>=50?"#d97706":"#dc2626"}}>{score.toFixed(1)}</span>
+                    <span style={{fontSize:11,color:"#9ca3af"}}>/100</span>
+                  </td>
+                  <td style={{padding:"13px 14px"}}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
+                  <td style={{padding:"13px 14px"}} onClick={e=>e.stopPropagation()}>
+                    <div style={{display:"flex",gap:5}}>
+                      {canEvaluate&&<button onClick={()=>openNew(r)} style={{padding:"5px 10px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700,color:"#1d4ed8"}}>Edit</button>}
+                      {canEvaluate&&r.status==="evaluated"&&<button onClick={()=>recommend(r)} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 10px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700,color:"#15803d"}}>
+                        <Star style={{width:10,height:10}}/> Recommend
+                      </button>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal */}
+      {showModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",alignItems:"center",gap:10}}>
+              <Scale style={{width:16,height:16,color:"#fff"}}/>
+              <span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Bid Evaluation</span>
+              <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+            </div>
+            <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                <div style={{gridColumn:"span 2"}}><LBL>Tender *</LBL>{SEL(form.tender_id,v=>setForm(p=>({...p,tender_id:v})),tOpts,"Select tender…")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Supplier *</LBL>{SEL(form.supplier_id,v=>setForm(p=>({...p,supplier_id:v})),sOpts,"Select supplier…")}</div>
+                <div><LBL>Bid Amount (KES)</LBL>{INP(form.bid_amount,v=>setForm(p=>({...p,bid_amount:v})),"0","number",0)}</div>
+                <div/>
+                <div>
+                  <LBL>Technical Score (0-100) — 70% weight</LBL>
+                  {INP(form.technical_score,v=>setForm(p=>({...p,technical_score:v})),"0-100","number",0,100)}
+                  {form.technical_score&&<div style={{marginTop:4,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}><div style={{width:`${Math.min(100,Number(form.technical_score))}%`,height:"100%",background:"#3b82f6",transition:"width 0.3s",borderRadius:3}}/></div>}
+                </div>
+                <div>
+                  <LBL>Financial Score (0-100) — 30% weight</LBL>
+                  {INP(form.financial_score,v=>setForm(p=>({...p,financial_score:v})),"0-100","number",0,100)}
+                  {form.financial_score&&<div style={{marginTop:4,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}><div style={{width:`${Math.min(100,Number(form.financial_score))}%`,height:"100%",background:"#10b981",transition:"width 0.3s",borderRadius:3}}/></div>}
+                </div>
+                {previewScore!==null&&(
+                  <div style={{gridColumn:"span 2",padding:"14px",background:"linear-gradient(135deg,#1a3a6b14,#0078d414)",border:"2px solid #1a3a6b30",borderRadius:10,textAlign:"center" as const}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:4}}>Weighted Total Score</div>
+                    <div style={{fontSize:40,fontWeight:900,color:previewScore>=70?"#15803d":previewScore>=50?"#d97706":"#dc2626"}}>{previewScore.toFixed(2)}</div>
+                    <div style={{fontSize:12,color:"#9ca3af"}}>out of 100 · {previewScore>=70?"Meets threshold":"Below 70% threshold"}</div>
+                  </div>
+                )}
+                <div style={{gridColumn:"span 2"}}><LBL>Recommendation</LBL>
+                  <textarea value={form.recommendation} onChange={e=>setForm(p=>({...p,recommendation:e.target.value}))} rows={2} placeholder="Evaluator's recommendation…"
+                    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit"}}/>
+                </div>
+                <div style={{gridColumn:"span 2"}}><LBL>Notes</LBL>
+                  <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} placeholder="Additional notes…"
+                    style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit"}}/>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:6,borderTop:"1px solid #f3f4f6"}}>
+                <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
+                <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
+                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Submit"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail drawer */}
+      {detail&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",justifyContent:"flex-end"}} onClick={()=>setDetail(null)}>
+          <div style={{width:"min(420px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",alignItems:"center",gap:8}}>
+              <Scale style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>Evaluation Detail</span>
+              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+            </div>
+            <div style={{padding:18,display:"flex",flexDirection:"column" as const,gap:12}}>
+              <div style={{textAlign:"center" as const,padding:"20px",background:"linear-gradient(135deg,#f0f9ff,#eff6ff)",borderRadius:12}}>
+                <div style={{fontSize:14,fontWeight:700,color:"#9ca3af",marginBottom:4}}>TOTAL SCORE</div>
+                <div style={{fontSize:56,fontWeight:900,color:Number(detail.total_score||0)>=70?"#15803d":Number(detail.total_score||0)>=50?"#d97706":"#dc2626"}}>{Number(detail.total_score||0).toFixed(1)}</div>
+                <div style={{fontSize:12,color:"#9ca3af"}}>/100</div>
+              </div>
+              {[["Tender",detail.tender_number],["Supplier",detail.supplier_name],["Bid Amount",fmtKES(detail.bid_amount)],["Technical Score",`${detail.technical_score||0}/100 (70% weight)`],["Financial Score",`${detail.financial_score||0}/100 (30% weight)`],["Status",detail.status],["Evaluated By",detail.evaluated_by_name],["Evaluated At",detail.evaluated_at?new Date(detail.evaluated_at).toLocaleString("en-KE"):"—"],["Recommendation",detail.recommendation||"—"],["Notes",detail.notes||"—"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",flexDirection:"column" as const,gap:2}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.06em"}}>{l}</div>
+                  <div style={{fontSize:14,fontWeight:600,color:"#111827"}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

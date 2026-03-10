@@ -631,3 +631,159 @@ input, select, textarea { font-size: 13px !important; }
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL FONT & TYPOGRAPHY SYSTEM v3.0 — EL5 MediProcure
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 13px;
+  --font-md: 14px;
+  --font-lg: 15px;
+  --font-xl: 16px;
+  --font-2xl: 18px;
+  --font-3xl: 22px;
+  --font-4xl: 28px;
+}
+
+html { font-size: 14px; }
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+  font-size: var(--font-base) !important;
+  line-height: 1.5;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Page headers */
+h1 { font-size: var(--font-xl) !important; font-weight: 900 !important; }
+h2 { font-size: var(--font-lg) !important; font-weight: 800 !important; }
+h3 { font-size: var(--font-md) !important; font-weight: 700 !important; }
+h4 { font-size: var(--font-base) !important; font-weight: 700 !important; }
+
+/* Tables — readable */
+table { font-size: var(--font-sm) !important; }
+thead th { font-size: 10px !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: 0.05em; }
+tbody td { font-size: var(--font-sm) !important; }
+
+/* Inputs */
+input, select, textarea, button {
+  font-family: inherit !important;
+  font-size: var(--font-sm) !important;
+}
+
+/* Sidebar nav */
+.nav-item { font-size: var(--font-sm) !important; font-weight: 600 !important; }
+.nav-section { font-size: 10px !important; font-weight: 800 !important; }
+
+/* Badges & pills */
+.badge, [class*="badge"] { font-size: 10px !important; font-weight: 700 !important; }
+
+/* Cards */
+.card-value { font-size: var(--font-4xl) !important; font-weight: 900 !important; }
+.card-label { font-size: 10px !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Modals */
+.modal-title { font-size: var(--font-md) !important; font-weight: 800 !important; }
+.modal-body  { font-size: var(--font-base) !important; }
+
+/* Section headings */
+.section-head { font-size: var(--font-sm) !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; }
+
+/* Form labels */
+label { font-size: 11px !important; font-weight: 700 !important; }
+
+/* Status badges */
+.status-badge {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 2px 9px;
+  border-radius: 12px;
+  letter-spacing: 0.03em;
+}
+
+/* Full page live broadcast banner */
+@keyframes broadcastSlide {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+.broadcast-banner {
+  animation: broadcastSlide 0.4s ease;
+}
+
+/* Pulse animation for live indicators */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.3); }
+}
+.live-dot { animation: livePulse 1.8s ease infinite; }
+
+/* Full page action buttons */
+.full-action-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.full-action-btn:hover { filter: brightness(0.93); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+.full-action-btn:active { transform: translateY(0); }
+
+/* Placeholder boxes */
+.placeholder-box {
+  border: 2px dashed #e5e7eb;
+  border-radius: 10px;
+  padding: 32px 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+}
+.placeholder-box:hover {
+  border-color: #1a3a6b;
+  color: #1a3a6b;
+  background: #f0f6ff;
+  cursor: pointer;
+}
+
+/* Tailwind Safelist — prevent purge of dynamic classes */
+.text-\[10px\] { font-size: 10px; }
+.text-\[11px\] { font-size: 11px; }
+.text-\[12px\] { font-size: 12px; }
+.text-\[13px\] { font-size: 13px; }
+.text-\[14px\] { font-size: 14px; }
+.text-xs { font-size: 12px !important; }
+.text-sm { font-size: 13px !important; }
+.text-base { font-size: 14px !important; }
+
+/* Webmaster control panel specifics */
+.wm-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.15s;
+}
+.wm-btn:hover { filter: brightness(0.9); }
+
+/* Print improvements */
+@media print {
+  .no-print { display: none !important; }
+  body { font-size: 11px; }
+  h1,h2,h3,h4 { page-break-after: avoid; }
+}
