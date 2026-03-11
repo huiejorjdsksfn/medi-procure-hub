@@ -154,7 +154,7 @@ export default function VouchersPage() {
           </thead>
           <tbody>
             {loading?[1,2,3].map(i=>(
-              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}</tr>
+              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4,animation:"pulse 1.5s infinite"}}/></td>)}</tr>
             )):filtered.length===0?(
               <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
                 <FileText style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
@@ -255,7 +255,7 @@ export default function VouchersPage() {
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>setShowNew(false)} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":"Submit Voucher"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":"Submit Voucher"}
                 </button>
               </div>
             </div>

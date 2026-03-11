@@ -166,7 +166,7 @@ export default function SuppliersPage() {
       `}</style>
 
       {/* Header */}
-      <div className="sup-header" style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
+      <div  style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Truck style={{width:22,height:22,color:"#fff"}}/>
           <div>
@@ -191,7 +191,7 @@ export default function SuppliersPage() {
       </div>
 
       {/* Filters */}
-      <div className="sup-filters" style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
         <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
           <option value="all">All Categories</option>
           {CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
@@ -233,7 +233,7 @@ export default function SuppliersPage() {
               ):filtered.map((s,i)=>{
                 const st=SS[s.status]||{bg:"#f3f4f6",color:"#6b7280"};
                 return (
-                  <tr key={s.id} className="sup-row">
+                  <tr key={s.id} >
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
                     <td style={{padding:"7px 12px",fontWeight:700,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{s.name}</td>
                     <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"—"}</td>

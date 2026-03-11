@@ -368,7 +368,7 @@ function ComposeModal({onClose,onSent,profiles,contacts,templates,user,profile}:
         <div style={{padding:"10px 16px",borderTop:"2px solid #f3f4f6",display:"flex",gap:8,alignItems:"center",background:"#f9fafb",borderRadius:"0 0 12px 12px",flexWrap:"wrap"}}>
           <button onClick={send} disabled={sending}
             style={{display:"flex",alignItems:"center",gap:7,padding:"9px 22px",background:sending?"#9ca3af":"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:sending?"not-allowed":"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(26,58,107,0.3)"}}>
-            {sending?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
+            {sending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
             {sending?"Sending…":"Send"}
           </button>
           {hasExternal&&(
@@ -448,7 +448,7 @@ function ReplyModal({msg,onClose,onSent,user,profile}:{msg:Msg;onClose:()=>void;
           style={{width:"100%",border:"none",outline:"none",padding:"14px 16px",fontSize:13,lineHeight:1.8,fontFamily:"'Inter','Segoe UI',sans-serif",resize:"none",boxSizing:"border-box",color:"#374151"}}/>
         <div style={{padding:"10px 14px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,background:"#f9fafb",borderRadius:"0 0 12px 12px"}}>
           <button onClick={send} disabled={sending} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-            {sending?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Send style={{width:12,height:12}}/>} {sending?"Sending…":"Send Reply"}
+            {sending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Send style={{width:12,height:12}}/>} {sending?"Sending…":"Send Reply"}
           </button>
           <button onClick={onClose} style={{padding:"8px 14px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13}}>Cancel</button>
         </div>
@@ -560,7 +560,7 @@ function SmtpTestPanel({onClose}:{onClose:()=>void}) {
               <input value={testTo} onChange={e=>setTestTo(e.target.value)} placeholder="recipient@email.com"
                 style={{flex:1,padding:"8px 11px",fontSize:12,border:"1px solid #bbf7d0",borderRadius:6,outline:"none",background:"#fff"}}/>
               <button onClick={test} disabled={testing} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:testing?"#9ca3af":"#15803d",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>
-                {testing?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Send style={{width:12,height:12}}/>} {testing?"Testing…":"Send Test"}
+                {testing?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Send style={{width:12,height:12}}/>} {testing?"Testing…":"Send Test"}
               </button>
             </div>
           </div>
@@ -584,7 +584,7 @@ function SmtpTestPanel({onClose}:{onClose:()=>void}) {
           )}
           <div style={{display:"flex",gap:8}}>
             <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-              {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<CheckCircle style={{width:12,height:12}}/>} Save SMTP Config
+              {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<CheckCircle style={{width:12,height:12}}/>} Save SMTP Config
             </button>
             <button onClick={onClose} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13}}>Close</button>
           </div>
@@ -752,7 +752,7 @@ function EmailLogsPanel({onClose}:{onClose:()=>void}) {
           ))}
           <button onClick={()=>setLoading(true)||(supabase as any).from("email_logs").select("*").order("created_at",{ascending:false}).limit(100).then(({data}:any)=>{setLogs(data||[]);setLoading(false);})}
             style={{marginLeft:"auto",padding:"4px 8px",background:"transparent",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",lineHeight:0,color:"#9ca3af"}}>
-            <RefreshCw style={{width:11,height:11}} className={loading?"animate-spin":""}/>
+            <RefreshCw style={{width:11,height:11}}/>
           </button>
         </div>
         <div style={{flex:1,overflowY:"auto"}}>
@@ -991,7 +991,7 @@ export default function EmailPage() {
             <CheckCheck style={{width:9,height:9}}/> All read
           </button>}
           <button onClick={load} style={{background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0,padding:3}}>
-            <RefreshCw style={{width:11,height:11}} className={loading?"animate-spin":""}/>
+            <RefreshCw style={{width:11,height:11}}/>
           </button>
         </div>
         {/* Search */}
@@ -1006,8 +1006,8 @@ export default function EmailPage() {
         <div style={{flex:1,overflowY:"auto"}}>
           {loading?[1,2,3,4,5].map(i=>(
             <div key={i} style={{padding:"9px 10px",borderBottom:"1px solid #f9fafb",display:"flex",gap:7}}>
-              <div style={{width:32,height:32,borderRadius:7,background:"#f3f4f6",flexShrink:0}} className="animate-pulse"/>
-              <div style={{flex:1}}><div style={{height:10,background:"#f3f4f6",borderRadius:4,marginBottom:4,width:"60%"}} className="animate-pulse"/><div style={{height:8,background:"#f3f4f6",borderRadius:4,width:"40%"}} className="animate-pulse"/></div>
+              <div style={{width:32,height:32,borderRadius:7,background:"#f3f4f6",flexShrink:0,animation:"pulse 1.5s infinite"}}/>
+              <div style={{flex:1}}><div style={{height:10,background:"#f3f4f6",borderRadius:4,marginBottom:4,width:"60%",animation:"pulse 1.5s infinite"}}/><div style={{height:8,background:"#f3f4f6",borderRadius:4,width:"40%",animation:"pulse 1.5s infinite"}}/></div>
             </div>
           )):filtered.length===0?(
             <div style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af"}}>

@@ -307,7 +307,7 @@ export default function FinancialDashboardPage() {
               <div
                 onClick={() => setMenuOpen(menuOpen === key ? null : key)}
                 style={{ padding: "3px 10px", cursor: "default", background: menuOpen === key ? "#000082" : "transparent", color: menuOpen === key ? "#fff" : "#000" }}
-                className="win-menu-item"
+                
               >
                 {key}
               </div>
@@ -317,7 +317,7 @@ export default function FinancialDashboardPage() {
                     item.label.startsWith("─") ? (
                       <div key={i} style={{ height: 1, background: "#808080", margin: "2px 0" }}/>
                     ) : (
-                      <div key={i} className="win-menu-item"
+                      <div key={i} 
                         onClick={() => { item.action?.(); setMenuOpen(null); }}
                         style={{ padding: "3px 20px 3px 28px", cursor: "default", fontSize: 11, whiteSpace: "nowrap" }}>
                         {item.label}
@@ -409,7 +409,7 @@ export default function FinancialDashboardPage() {
               {filtCoa.length === 0 ? (
                 <div style={{ padding: 16, textAlign: "center", color: "#808080", fontSize: 11 }}>No accounts found</div>
               ) : filtCoa.map((c, i) => (
-                <div key={c.id || i} className="coa-item"
+                <div key={c.id || i} 
                   onClick={() => navigate("/financials/chart-of-accounts")}
                   style={{ display: "grid", gridTemplateColumns: "1fr 38px", borderBottom: "1px solid #d4d0c8", background: i % 2 === 0 ? "#fff" : "#f0f0f0", cursor: "default" }}>
                   <span style={{ padding: "3px 6px", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.account_name}>{c.account_name || "—"}</span>

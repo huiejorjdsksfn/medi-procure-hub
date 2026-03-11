@@ -145,7 +145,7 @@ function Panel({ onClose, notifs, onMarkAll, onMarkOne, loading, logoUrl, sysNam
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             {unread>0&&<span style={{background:"#ef4444",color:"#fff",fontSize:11,fontWeight:800,padding:"2px 8px",borderRadius:12}}>{unread} new</span>}
             <button onClick={onRefresh} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:5,cursor:"pointer",color:"#fff",lineHeight:0}}>
-              <RefreshCw style={{width:12,height:12}} className={loading?"animate-spin":""}/>
+              <RefreshCw style={{width:12,height:12}}/>
             </button>
             <button onClick={onClose} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:5,cursor:"pointer",color:"#fff",lineHeight:0}}>
               <X style={{width:13,height:13}}/>

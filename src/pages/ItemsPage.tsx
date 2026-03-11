@@ -145,7 +145,7 @@ export default function ItemsPage() {
       `}</style>
 
       {/* Header */}
-      <div className="items-header" style={{background:"linear-gradient(90deg,#1a3d12,#375623,#4d7c30)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(55,86,35,0.35)"}}>
+      <div  style={{background:"linear-gradient(90deg,#1a3d12,#375623,#4d7c30)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(55,86,35,0.35)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Package style={{width:22,height:22,color:"#fff"}}/>
           <div>
@@ -155,7 +155,7 @@ export default function ItemsPage() {
             </div>
           </div>
         </div>
-        <div className="items-header-btns" style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <div  style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
@@ -174,7 +174,7 @@ export default function ItemsPage() {
       </div>
 
       {/* Filters */}
-      <div className="items-filters" style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
         <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...sel,width:"auto",padding:"5px 10px",fontSize:12}}>
           <option value="all">All Types</option>
           {TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}
@@ -200,7 +200,7 @@ export default function ItemsPage() {
       {/* Table */}
       <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
-          <table className="items-table" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <table  style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:"#1a3d12"}}>
                 {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
@@ -220,7 +220,7 @@ export default function ItemsPage() {
                 const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
                 const s=SC[it.status]||{bg:"#f3f4f6",color:"#6b7280"};
                 return (
-                  <tr key={it.id} className="item-row">
+                  <tr key={it.id} >
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{it.name}</td>
                     <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.sku||"—"}</td>
