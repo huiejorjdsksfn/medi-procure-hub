@@ -107,6 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const primaryRole = roles[0] || "requisitioner";
   const isAdmin = roles.includes("admin");
+  const isDashboard = location.pathname === "/dashboard" || location.pathname === "/";
 
   useEffect(()=>{
     const handle = ()=>{
@@ -242,7 +243,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Desktop sidebar */}
-      {!isMobile&&(
+      {!isMobile&&!isDashboard&&(
         <div style={{width:sidebarW,flexShrink:0,height:"100vh",transition:"width 0.2s cubic-bezier(0.4,0,0.2,1)",overflow:"hidden",boxShadow:"2px 0 14px rgba(0,0,0,0.18)",zIndex:100,position:"relative"}}>
           <SidebarContent/>
           {/* Collapse toggle */}
@@ -254,7 +255,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Mobile drawer */}
-      {isMobile&&mobileOpen&&(
+      {isMobile&&mobileOpen&&!isDashboard&&(
         <div style={{position:"fixed",inset:0,zIndex:500,display:"flex"}}>
           <div><SidebarContent forMobile/></div>
           <div onClick={()=>setMobileOpen(false)} style={{flex:1,background:"rgba(0,0,0,0.5)"}}/>
@@ -267,7 +268,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Topbar */}
         <header style={{height:50,flexShrink:0,background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",padding:"0 14px",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,0.2)",zIndex:90,position:"relative"}}>
-          {isMobile&&(
+          {isMobile&&!isDashboard&&(
             <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:7,cursor:"pointer",color:"#fff",lineHeight:0,flexShrink:0}}>
               <Menu style={{width:15,height:15}}/>
             </button>
@@ -367,7 +368,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Breadcrumb */}
-        <div style={{height:28,flexShrink:0,background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",padding:"0 14px",gap:5,fontSize:10,color:"#9ca3af"}}>
+        {!isDashboard&&<div style={{height:28,flexShrink:0,background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",padding:"0 14px",gap:5,fontSize:10,color:"#9ca3af"}}>
           <Home style={{width:10,height:10}}/><span style={{color:"#e5e7eb"}}>/</span>
           {(()=>{
             const active = MODULES.find(m=>m.sub.some(s=>location.pathname.startsWith(s.path))||location.pathname===m.path);
@@ -382,7 +383,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}}/>
             <span style={{fontSize:9,color:"#9ca3af"}}>{hospitalName}</span>
           </div>
-        </div>
+        </div>}
 
         {/* Content */}
         <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f0f2f5"}}>
