@@ -304,7 +304,7 @@ export default function LoginPage() {
                   onMouseEnter={e => { if(!loading) (e.currentTarget as HTMLElement).style.color = TEAL_D; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = loading ? "#9ca3af" : TEAL; }}
                 >
-                  {loading && <RefreshCw style={{ width: 12, height: 12 }} style={{animation:"spin 1s linear infinite"}} />}
+                  {loading && <RefreshCw style={{ width: 12, height: 12, animation:"spin 1s linear infinite" }} />}
                   {loading
                     ? (forgotMode ? "Sending…" : "Signing in…")
                     : (forgotMode ? "SEND RESET" : "SUBMIT")

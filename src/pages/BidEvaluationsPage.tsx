@@ -123,7 +123,7 @@ export default function BidEvaluationsPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
-            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/> Refresh
+            <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canEvaluate&&<button onClick={()=>openNew()} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(192,24,90,0.3)"}}>
             <Plus style={{width:14,height:14}}/> Evaluate Bid
@@ -169,7 +169,7 @@ export default function BidEvaluationsPage() {
           <tbody>
             {loading?[1,2,3].map(i=>(
               <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                {[1,2,3,4,5,6,7,8].map(j=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}
+                {[1,2,3,4,5,6,7,8].map(j=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4,animation:"pulse 1.5s infinite"}}/></td>)}
               </tr>
             )):filtered.length===0?(
               <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
@@ -267,7 +267,7 @@ export default function BidEvaluationsPage() {
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:6,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Submit"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Submit"}
                 </button>
               </div>
             </div>

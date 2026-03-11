@@ -171,7 +171,7 @@ function UsersInner() {
             <Plus style={{width:13,height:13}}/> New User
           </button>
           <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
-            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/>
+            <RefreshCw style={{width:13,height:13}}/>
           </button>
         </div>
       </div>
@@ -212,7 +212,7 @@ function UsersInner() {
               {loading?[1,2,3,4].map(i=>(
                 <tr key={i}>
                   {[1,2,3,4,5,6,7].map(j=>(
-                    <td key={j} style={{padding:"11px 14px"}}><div style={{height:13,background:"#f3f4f6",borderRadius:4,width:j===7?80:j===3?70:120}} className="animate-pulse"/></td>
+                    <td key={j} style={{padding:"11px 14px"}}><div style={{height:13,background:"#f3f4f6",borderRadius:4,width:j===7?80:j===3?70:120,animation:"pulse 1.5s infinite"}}/></td>
                   ))}
                 </tr>
               )):filtered.map(u=>(
@@ -316,7 +316,7 @@ function UsersInner() {
             </div>
             <div style={{display:"flex",gap:8,paddingTop:4}}>
               <button onClick={createUser} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center",padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700}}>
-                {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Plus style={{width:13,height:13}}/>}
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Plus style={{width:13,height:13}}/>}
                 {saving?"Creating…":"Create User"}
               </button>
               <button onClick={()=>setCreateModal(false)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
@@ -365,7 +365,7 @@ function UsersInner() {
             </div>
             <div style={{display:"flex",gap:8,paddingTop:4}}>
               <button onClick={saveEdit} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center",padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
                 Save Changes
               </button>
               <button onClick={()=>setEditUser(null)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>

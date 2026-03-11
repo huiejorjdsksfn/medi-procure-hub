@@ -213,7 +213,7 @@ export default function ScannerPage() {
               <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
                 <Camera style={{width:14,height:14,color:"#6b7280"}}/>
                 <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Camera Scanner</span>
-                {scanning && <span style={{display:"flex",alignItems:"center",gap:4,marginLeft:"auto",fontSize:10,color:"#22c55e",fontWeight:700}}><div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e"}} className="animate-pulse"/>LIVE</span>}
+                {scanning && <span style={{display:"flex",alignItems:"center",gap:4,marginLeft:"auto",fontSize:10,color:"#22c55e",fontWeight:700}}><div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",animation:"pulse 1.5s infinite"}}/>LIVE</span>}
               </div>
               <div id={scanDivId} style={{width:"100%",minHeight:scanning?260:0,background:"#000"}}/>
               <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:8}}>
@@ -247,7 +247,7 @@ export default function ScannerPage() {
             {(lookingUp||foundItem||onlineInfo||barcode) && (
               <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
-                  {lookingUp ? <RefreshCw style={{width:13,height:13,color:"#6b7280"}} style={{animation:"spin 1s linear infinite"}}/> : foundItem ? <CheckCircle style={{width:13,height:13,color:"#22c55e"}}/> : onlineInfo ? <Globe style={{width:13,height:13,color:"#0078d4"}}/> : <AlertTriangle style={{width:13,height:13,color:"#f59e0b"}}/>}
+                  {lookingUp ? <RefreshCw style={{width:13,height:13,color:"#6b7280",animation:"spin 1s linear infinite"}}/> : foundItem ? <CheckCircle style={{width:13,height:13,color:"#22c55e"}}/> : onlineInfo ? <Globe style={{width:13,height:13,color:"#0078d4"}}/> : <AlertTriangle style={{width:13,height:13,color:"#f59e0b"}}/>}
                   <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>
                     {lookingUp?"Looking up…":foundItem?"Found in Inventory":onlineInfo?"Found Online":"Not Found"}
                   </span>
@@ -258,7 +258,7 @@ export default function ScannerPage() {
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {["Checking local inventory…","Searching Open Food Facts…","Searching UPC database…"].map((s,i)=>(
                         <div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:"#6b7280"}}>
-                          <RefreshCw style={{width:10,height:10}} style={{animation:"spin 1s linear infinite"}}/> {s}
+                          <RefreshCw style={{width:10,height:10,animation:"spin 1s linear infinite"}}/> {s}
                         </div>
                       ))}
                     </div>
@@ -511,7 +511,7 @@ export default function ScannerPage() {
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
               <button onClick={saveItem} disabled={saving} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
                 {saving?"Saving…":"Save to Inventory"}
               </button>
               <button onClick={()=>setShowAdd(false)} style={{padding:"9px 16px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:12}}>Cancel</button>

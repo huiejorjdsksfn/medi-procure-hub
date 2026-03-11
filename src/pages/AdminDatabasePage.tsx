@@ -113,7 +113,7 @@ function SqlPanel({ table, onClose }: { table:string; onClose:()=>void }) {
             background:"#1a3a6b",color:"#fff",border:"none",borderRadius:4,
             cursor:"pointer",fontSize:11,fontWeight:700,
           }}>
-            {running ? <RefreshCw style={{width:11,height:11}} style={{animation:"spin 1s linear infinite"}}/> : <Play style={{width:11,height:11}}/>}
+            {running ? <RefreshCw style={{width:11,height:11,animation:"spin 1s linear infinite"}}/> : <Play style={{width:11,height:11}}/>}
             Run (F5)
           </button>
           <button onClick={()=>setSql(`SELECT * FROM ${table} LIMIT 50;`)} style={{padding:"3px 10px",background:"#2e3248",color:"#94a3b8",border:"none",borderRadius:4,cursor:"pointer",fontSize:11}}>Reset</button>
@@ -822,7 +822,7 @@ function TableBrowser() {
               </div>
               {/* Refresh */}
               <button onClick={()=>loadTable(activeTable,page)} disabled={loading} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",background:"#2e3248",border:"none",borderRadius:3,cursor:"pointer",color:"#60a5fa",fontSize:11,fontWeight:700}}>
-                <RefreshCw style={{width:11,height:11}} className={loading?"animate-spin":""}/> Refresh
+                <RefreshCw style={{width:11,height:11}}/> Refresh
               </button>
             </div>
           </div>
@@ -856,7 +856,7 @@ function TableBrowser() {
             <div style={{flex:1,overflow:"auto",position:"relative"}}>
               {loading ? (
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,gap:10}}>
-                  <RefreshCw style={{width:20,height:20,color:"#475569"}} style={{animation:"spin 1s linear infinite"}}/>
+                  <RefreshCw style={{width:20,height:20,color:"#475569",animation:"spin 1s linear infinite"}}/>
                   <span style={{color:"#475569",fontSize:12}}>Loading {activeTable}…</span>
                 </div>
               ) : (

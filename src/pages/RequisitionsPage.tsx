@@ -144,105 +144,99 @@ export default function RequisitionsPage() {
   const stats = {all:reqs.length,pending:reqs.filter(r=>r.status==="pending"||r.status==="submitted").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length};
 
   return (
-    <div className="p-4 space-y-3" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <><style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style><div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       {/* Header */}
-      <div className="rounded-2xl px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-        style={{background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)"}}>
-        <div className="flex items-center gap-3">
-          <ClipboardList className="w-5 h-5 text-white"/>
+      <div style={{borderRadius:16,background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <ClipboardList style={{width:20,height:20,color:"#fff"}}/>
           <div>
-            <h1 className="text-base font-black text-white">Requisitions</h1>
-            <p className="text-[10px] text-white/50">{filtered.length} of {reqs.length} records</p>
+            <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Requisitions</h1>
+            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{filtered.length} of {reqs.length} records</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25">
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          <button onClick={load} disabled={loading} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.18)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
-          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/80 text-white text-xs font-semibold hover:bg-green-500">
-            <FileSpreadsheet className="w-3.5 h-3.5"/>Export
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.9)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
+            <FileSpreadsheet style={{width:14,height:14}}/>Export
           </button>
           {canCreate && (
-            <button onClick={()=>setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-blue-900 text-xs font-bold hover:bg-blue-50">
-              <Plus className="w-3.5 h-3.5"/>New Requisition
+            <button onClick={()=>setShowForm(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"#fff",color:"#1e3a8a",border:"none",cursor:"pointer",fontSize:12,fontWeight:700}}>
+              <Plus style={{width:14,height:14}}/>New Requisition
             </button>
           )}
         </div>
       </div>
 
       {/* Stat chips */}
-      <div className="flex flex-wrap gap-2">
+      <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
         {Object.entries(stats).map(([k,v])=>(
           <button key={k} onClick={()=>setStatusFilter(k==="all"?"all":k)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-            style={{
-              background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",
-              color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"
-            }}>
-            {k==="pending"&&<Clock className="w-3 h-3"/>}
-            {k==="approved"&&<CheckCircle className="w-3 h-3"/>}
-            {k==="rejected"&&<XCircle className="w-3 h-3"/>}
-            <span className="capitalize">{k}</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold"
-              style={{background:statusFilter===(k==="all"?"all":k)?"rgba(255,255,255,0.25)":"#e5e7eb"}}>
+            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"}}>
+            {k==="pending"&&<Clock style={{width:12,height:12}}/>}
+            {k==="approved"&&<CheckCircle style={{width:12,height:12}}/>}
+            {k==="rejected"&&<XCircle style={{width:12,height:12}}/>}
+            <span style={{textTransform:"capitalize"}}>{k}</span>
+            <span style={{padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:statusFilter===(k==="all"?"all":k)?"rgba(255,255,255,0.25)":"#e5e7eb"}}>
               {String(v)}
             </span>
           </button>
         ))}
-        <div className="relative ml-auto">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+        <div style={{position:"relative",marginLeft:"auto"}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions…"
-            className="pl-8 pr-8 py-1.5 rounded-full border border-gray-200 text-xs outline-none focus:border-blue-400 w-52"/>
-          {search&&<button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+            style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full" style={{fontSize:12}}>
+      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",fontSize:12}}>
             <thead>
               <tr style={{background:"#0a2558"}}>
                 {["#","Req Number","Title","Department","Priority","Status","Requester","Amount","Date","Actions"].map(h=>(
-                  <th key={h} className="text-left px-3 py-2.5 text-white/70 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.8)",fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading?(
                 Array(5).fill(0).map((_,i)=>(
-                  <tr key={i}><td colSpan={10} className="px-4 py-3 animate-pulse"><div className="h-3 bg-gray-200 rounded w-full"/></td></tr>
+                  <tr key={i}><td colSpan={10} style={{animation:"pulse 1.5s infinite"}}><div style={{height:12,background:"#e5e7eb",borderRadius:6,width:"100%"}}/></td></tr>
                 ))
               ):filtered.length===0?(
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-gray-400">No requisitions found</td></tr>
+                <tr><td colSpan={10} style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af"}}>No requisitions found</td></tr>
               ):filtered.map((r,i)=>{
                 const s=STATUS_CFG[r.status]||{bg:"#f3f4f6",color:"#6b7280",label:r.status};
                 const isPending = r.status==="submitted"||r.status==="pending";
                 return (
-                  <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-colors group">
-                    <td className="px-3 py-2.5 text-gray-400">{i+1}</td>
-                    <td className="px-3 py-2.5 font-mono text-xs font-bold text-blue-900">{r.requisition_number||"—"}</td>
-                    <td className="px-3 py-2.5 font-semibold text-gray-800 max-w-[200px] truncate">{r.title||"—"}</td>
-                    <td className="px-3 py-2.5 text-gray-600">{r.department||"—"}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${r.priority==="urgent"||r.priority==="high"?"bg-red-100 text-red-700":r.priority==="normal"?"bg-blue-100 text-blue-700":"bg-gray-100 text-gray-500"}`}>
+                  <tr key={r.id} style={{borderBottom:"1px solid #f9fafb"}}>
+                    <td style={{padding:"10px 12px",color:"#9ca3af"}}>{i+1}</td>
+                    <td style={{padding:"10px 12px",fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#1e3a5f"}}>{r.requisition_number||"—"}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title||"—"}</td>
+                    <td style={{padding:"10px 12px",color:"#4b5563"}}>{r.department||"—"}</td>
+                    <td style={{padding:"10px 12px"}}>
+                      <span style={{padding:"1px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:r.priority==="urgent"||r.priority==="high"?"#fee2e2":r.priority==="normal"?"#dbeafe":"#f3f4f6",color:r.priority==="urgent"||r.priority==="high"?"#b91c1c":r.priority==="normal"?"#1d4ed8":"#6b7280"}}>
                         {r.priority||"normal"}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{background:s.bg,color:s.color}}>{s.label}</span>
+                    <td style={{padding:"10px 12px"}}>
+                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-gray-600">{r.requester_name||"—"}</td>
-                    <td className="px-3 py-2.5 font-semibold text-gray-800">{r.total_amount?`KES ${Number(r.total_amount).toLocaleString()}`:"—"}</td>
-                    <td className="px-3 py-2.5 text-gray-400 text-[10px] whitespace-nowrap">{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={()=>setViewReq(r)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"><Eye className="w-3 h-3"/></button>
-                        <button onClick={()=>printReq(r)} className="p-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100"><Printer className="w-3 h-3"/></button>
+                    <td style={{padding:"10px 12px",color:"#4b5563"}}>{r.requester_name||"—"}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937"}}>{r.total_amount?`KES ${Number(r.total_amount).toLocaleString()}`:"—"}</td>
+                    <td style={{padding:"10px 12px",color:"#9ca3af",fontSize:10,whiteSpace:"nowrap"}}>{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td style={{padding:"10px 12px"}}>
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>setViewReq(r)} style={{padding:"5px",borderRadius:6,background:"#dbeafe",color:"#1d4ed8",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
+                        <button onClick={()=>printReq(r)} style={{padding:"5px",borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
                         {canApprove&&isPending&&(
                           <>
-                            <button onClick={()=>approve(r.id)} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100"><CheckCircle className="w-3 h-3"/></button>
-                            <button onClick={()=>reject(r.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="w-3 h-3"/></button>
+                            <button onClick={()=>approve(r.id)} style={{padding:"5px",borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/></button>
+                            <button onClick={()=>reject(r.id)} style={{padding:"5px",borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/></button>
                           </>
                         )}
                       </div>
@@ -253,7 +247,7 @@ export default function RequisitionsPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400">
+        <div style={{padding:"8px 16px",background:"#f9fafb",borderTop:"1px solid #e5e7eb"}}>
           {filtered.length} requisition{filtered.length!==1?"s":""}
           {filtered.length>0&&` · Total: KES ${filtered.reduce((s,r)=>s+Number(r.total_amount||0),0).toLocaleString()}`}
         </div>
@@ -261,47 +255,46 @@ export default function RequisitionsPage() {
 
       {/* Create form modal */}
       {showForm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setShowForm(false)}/>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="px-5 py-4 flex items-center justify-between" style={{background:"#0a2558"}}>
-              <h3 className="text-sm font-black text-white flex items-center gap-2"><ClipboardList className="w-4 h-4"/>New Requisition</h3>
-              <button onClick={()=>setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(520px,100%)",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a2558"}}>
+              <h3 style={{fontSize:14,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",gap:8}}><ClipboardList style={{width:16,height:16}}/>New Requisition</h3>
+              <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
             </div>
-            <div className="p-5 space-y-4">
+            <div style={{padding:20}}>
               {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description…"}].map(f=>(
                 <div key={f.k}>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">{f.l}</label>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>{f.l}</label>
                   {f.k==="notes"?(
                     <textarea value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} rows={3} placeholder={f.ph}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 resize-none"/>
+                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   ):(
                     <input value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400"/>
+                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   )}
                 </div>
               ))}
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Priority</label>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Priority</label>
                   <select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400">
-                    {["low","normal","high","urgent"].map(v=><option key={v} value={v} className="capitalize">{v}</option>)}
+                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                    {["low","normal","high","urgent"].map(v=><option key={v} value={v} style={{textTransform:"capitalize"}}>{v}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Delivery Date</label>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Delivery Date</label>
                   <input type="date" value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400"/>
+                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                 </div>
               </div>
             </div>
-            <div className="px-5 py-3 border-t flex gap-2 justify-end">
-              <button onClick={()=>setShowForm(false)} className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">Cancel</button>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13}}>Cancel</button>
               <button onClick={save} disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold"
-                style={{background:"#1a3a6b",opacity:saving?0.7:1}}>
-                {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send className="w-3.5 h-3.5"/>}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#1a3a6b",opacity:saving?0.7:1}}>
+                {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send style={{width:14,height:14}}/>}
                 {saving?"Saving…":"Create Requisition"}
               </button>
             </div>
@@ -311,24 +304,24 @@ export default function RequisitionsPage() {
 
       {/* View modal */}
       {viewReq&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setViewReq(null)}/>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="px-5 py-3 flex items-center justify-between" style={{background:"#0a2558"}}>
-              <div><h3 className="text-sm font-black text-white">{viewReq.requisition_number}</h3><p className="text-[10px] text-white/40">{viewReq.title}</p></div>
-              <div className="flex gap-2">
-                <button onClick={()=>printReq(viewReq)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 text-white text-xs"><Printer className="w-3 h-3"/>Print</button>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a2558"}}>
+              <div><h3 style={{fontSize:14,fontWeight:900,color:"#fff"}}>{viewReq.requisition_number}</h3><p style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>{viewReq.title}</p></div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>printReq(viewReq)} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/>Print</button>
                 {canApprove&&(viewReq.status==="submitted"||viewReq.status==="pending")&&(
                   <>
-                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-500 text-white text-xs"><CheckCircle className="w-3 h-3"/>Approve</button>
-                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500 text-white text-xs"><XCircle className="w-3 h-3"/>Reject</button>
+                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/>Approve</button>
+                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/>Reject</button>
                   </>
                 )}
-                <button onClick={()=>setViewReq(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+                <button onClick={()=>setViewReq(null)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
               </div>
             </div>
-            <div className="overflow-y-auto p-5">
-              <div className="grid grid-cols-3 gap-3 mb-4">
+            <div style={{overflowY:"auto",padding:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
                 {[
                   {l:"Department",v:viewReq.department},{l:"Priority",v:viewReq.priority},
                   {l:"Status",v:viewReq.status},{l:"Requester",v:viewReq.requester_name},
@@ -336,25 +329,25 @@ export default function RequisitionsPage() {
                   {l:"Date",v:viewReq.created_at?new Date(viewReq.created_at).toLocaleDateString("en-KE"):"—"},
                 ].map(r=>(
                   <div key={r.l}>
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{r.l}</div>
-                    <div className="text-sm text-gray-800 font-medium mt-0.5">{r.v||"—"}</div>
+                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
+                    <div style={{fontSize:14,color:"#1f2937",fontWeight:500,marginTop:2}}>{r.v||"—"}</div>
                   </div>
                 ))}
               </div>
-              {viewReq.notes&&<div className="mb-4 p-3 rounded-xl bg-gray-50"><p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Notes</p><p className="text-sm text-gray-700">{viewReq.notes}</p></div>}
+              {viewReq.notes&&<div style={{marginBottom:16,padding:12,borderRadius:12,background:"#f9fafb"}}><p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:4}}>Notes</p><p style={{fontSize:14,color:"#374151"}}>{viewReq.notes}</p></div>}
               {(viewReq.requisition_items||[]).length>0&&(
                 <div>
-                  <p className="text-[10px] font-bold uppercase text-gray-400 mb-2">Line Items ({viewReq.requisition_items.length})</p>
-                  <table className="w-full text-xs">
-                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} className="text-left px-3 py-2 text-white/80 text-[10px] uppercase font-bold">{h}</th>)}</tr></thead>
+                  <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:8}}>Line Items ({viewReq.requisition_items.length})</p>
+                  <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} style={{textAlign:"left",padding:"8px 12px",color:"rgba(255,255,255,0.85)",fontSize:10,textTransform:"uppercase",fontWeight:700}}>{h}</th>)}</tr></thead>
                     <tbody>
                       {viewReq.requisition_items.map((it:any,i:number)=>(
-                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-3 py-2 font-medium">{it.item_name||"—"}</td>
-                          <td className="px-3 py-2">{it.quantity}</td>
-                          <td className="px-3 py-2 text-gray-500">{it.unit_of_measure||"—"}</td>
-                          <td className="px-3 py-2">KES {Number(it.unit_price||0).toLocaleString()}</td>
-                          <td className="px-3 py-2 font-semibold">KES {Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td>
+                        <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                          <td style={{padding:"8px 12px",fontWeight:500}}>{it.item_name||"—"}</td>
+                          <td style={{padding:"8px 12px"}}>{it.quantity}</td>
+                          <td style={{padding:"8px 12px",color:"#6b7280"}}>{it.unit_of_measure||"—"}</td>
+                          <td style={{padding:"8px 12px"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
+                          <td style={{padding:"8px 12px",fontWeight:600}}>KES {Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -366,5 +359,6 @@ export default function RequisitionsPage() {
         </div>
       )}
     </div>
+  </>
   );
 }

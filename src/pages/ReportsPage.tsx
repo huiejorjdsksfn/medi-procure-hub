@@ -151,9 +151,9 @@ export default function ReportsPage() {
     <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"calc(100vh-80px)"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
           {/* Logo + Title */}
-          <div className="flex items-center gap-3">
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
             {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain"}} alt=""/>}
             <div>
               <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
@@ -165,14 +165,14 @@ export default function ReportsPage() {
             <div style={{border:"1px solid #aaa",padding:"2px 4px",borderRadius:3}}>
               <span style={{fontSize:10,color:"#555",fontWeight:700}}>Date Range</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>Start Date</label>
               <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
                   style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>End Date</label>
               <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
@@ -185,21 +185,18 @@ export default function ReportsPage() {
             </button>
           </div>
           {/* Action buttons */}
-          <div className="flex gap-2">
+          <div style={{display:"flex",gap:8}}>
             {/* Report type selector */}
-            <div className="relative">
+            <div style={{position:"relative"}}>
               <button onClick={()=>setShowDropdown(v=>!v)}
-                className="flex items-center gap-2"
-                style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 12px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",minWidth:160}}>
-                {reportType.label} <ChevronDown className="w-3.5 h-3.5 ml-auto"/>
+                style={{display:"flex",alignItems:"center",gap:8,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 12px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",minWidth:160}}>
+                {reportType.label} <ChevronDown style={{width:14,height:14,marginLeft:"auto"}}/>
               </button>
               {showDropdown && (
-                <div className="absolute top-full left-0 z-50 w-56 max-h-64 overflow-y-auto"
-                  style={{background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
+                <div style={{position:"absolute",top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto",background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
                   {REPORT_TYPES.map(rt=>(
                     <button key={rt.id} onClick={()=>{setReportType(rt);setShowDropdown(false);}}
-                      className="block w-full text-left px-3 py-1.5 text-xs hover:bg-blue-600 hover:text-white transition-colors"
-                      style={{color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
+                      style={{display:"block",width:"100%",textAlign:"left",padding:"6px 12px",fontSize:12,background:"none",border:"none",cursor:"pointer",color:"#374151",color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
                       {rt.label}
                     </button>
                   ))}
@@ -220,7 +217,7 @@ export default function ReportsPage() {
 
       {/* ── KPI TILES (colored boxes like Inventory Management System V2.0) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"8px 12px"}}>
-        <div className="grid grid-cols-5 gap-2">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
           {[
             { label:"Total Value",    value:fmtKES(kpi.purchase), bg:"#c0392b" },
             { label:"Received Amt.",  value:fmtKES(kpi.received), bg:"#7d6608" },
@@ -228,8 +225,7 @@ export default function ReportsPage() {
             { label:"Record Count",   value:filteredRows.length.toLocaleString(), bg:"#6c3483" },
             { label:"Inventory Amt.", value:fmtKES(kpi.invAmt),   bg:"#1a252f" },
           ].map(k => (
-            <div key={k.label} className="rounded-md p-3 text-white text-center"
-              style={{background:k.bg,border:`3px outset ${k.bg}`}}>
+            <div key={k.label} style={{borderRadius:8,padding:12,color:"#fff",textAlign:"center",background:k.bg,border:`3px outset ${k.bg}`}}>
               <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.value}</div>
               <div style={{fontSize:10,fontWeight:700,marginTop:4,opacity:0.9,letterSpacing:"0.05em"}}>{k.label}</div>
             </div>
@@ -238,7 +234,7 @@ export default function ReportsPage() {
       </div>
 
       {/* ── MAIN LAYOUT: Left stock panel + Right transaction grid ── */}
-      <div className="flex gap-0" style={{height:"calc(100vh - 230px)"}}>
+      <div style={{display:"flex",gap:0,height:"calc(100vh - 230px)"}}>
 
         {/* LEFT PANEL — Available Stocks (like original image) */}
         <div style={{width:200,background:"#d4d0c8",borderRight:"2px solid #999",display:"flex",flexDirection:"column",flexShrink:0}}>
@@ -253,7 +249,7 @@ export default function ReportsPage() {
             </div>
           </div>
           {/* Stock table */}
-          <div className="overflow-auto flex-1">
+          <div style={{overflow:"auto",flex:1}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
               <thead>
                 <tr style={{background:"#4472C4",color:"#fff"}}>
@@ -284,17 +280,17 @@ export default function ReportsPage() {
           {/* Transaction controls (Add/Update row) */}
           <div style={{background:"#d4d0c8",border:"2px inset #aaa",margin:"6px 8px 4px",padding:"6px 10px",borderRadius:3}}>
             <div style={{fontSize:11,fontWeight:700,color:"#1a1a2e",marginBottom:6}}>{reportType.label} — Add / Extract</div>
-            <div className="flex flex-wrap gap-3 items-end">
-              <div className="flex items-center gap-2">
+            <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"flex-end"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
-                  <Search className="w-3 h-3" style={{color:"#888"}}/>
+                  <Search style={{width:12,height:12,color:"#888"}}/>
                   <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records…"
                     style={{border:"none",background:"transparent",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
-                  {search&&<button onClick={()=>setSearch("")}><X className="w-2.5 h-2.5" style={{color:"#888"}}/></button>}
+                  {search&&<button onClick={()=>setSearch("")}><X style={{width:10,height:10,color:"#888"}}/></button>}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Type</label>
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",borderRadius:2}}>
                   <select value={txFilter} onChange={e=>setTxFilter(e.target.value)}
@@ -303,7 +299,7 @@ export default function ReportsPage() {
                   </select>
                 </div>
               </div>
-              <div className="ml-auto flex gap-2">
+              <div style={{marginLeft:"auto",display:"flex",gap:8}}>
                 <button onClick={loadReport} disabled={loading}
                   style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
                   {loading?"Loading…":"Extract"}
@@ -316,7 +312,7 @@ export default function ReportsPage() {
           <div style={{padding:"2px 12px 4px",display:"flex",gap:16,alignItems:"center"}}>
             <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Show Records:</span>
             {["ALL","Latest 100","This Month"].map(v=>(
-              <label key={v} className="flex items-center gap-1 cursor-pointer" style={{fontSize:11}}>
+              <label key={v} style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:11}}>
                 <input type="radio" name="txview" value={v} defaultChecked={v==="ALL"} style={{accentColor:"#1a3a6b"}}/>
                 {v}
               </label>
@@ -327,12 +323,12 @@ export default function ReportsPage() {
           {/* Transaction DATA TABLE — classic blue header */}
           <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",overflow:"auto"}}>
             {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <RefreshCw className="w-5 h-5 animate-spin" style={{color:"#888"}}/>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128}}>
+                <RefreshCw style={{animation:"spin 1s linear infinite",color:"#888"}}/>
                 <span style={{fontSize:11,color:"#888",marginLeft:8}}>Loading…</span>
               </div>
             ) : filteredRows.length === 0 ? (
-              <div className="flex items-center justify-center h-32" style={{fontSize:11,color:"#888"}}>No data. Select a report and click Extract.</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128,fontSize:11,color:"#888"}}>No data. Select a report and click Extract.</div>
             ) : (
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,minWidth:"max-content"}}>
                 <thead>

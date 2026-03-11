@@ -350,7 +350,7 @@ function WebmasterInner() {
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(16,185,129,0.2)",border:"1px solid rgba(16,185,129,0.35)",borderRadius:20}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:"#10b981"}} className="live-dot"/>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#10b981"}} />
             <span style={{fontSize:11,fontWeight:700,color:"#6ee7b7"}}>LIVE</span>
           </div>
           {settings.maintenance_mode==="true"&&(
@@ -359,7 +359,7 @@ function WebmasterInner() {
             </div>
           )}
           <button onClick={load} style={{padding:"7px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer",color:"#fff",lineHeight:0}}>
-            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/>
+            <RefreshCw style={{width:13,height:13}}/>
           </button>
         </div>
       </div>
@@ -393,7 +393,7 @@ function WebmasterInner() {
               <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
                 <div style={{padding:"11px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
                   <Server style={{width:14,height:14,color:"#374151"}}/><span style={{fontSize:14,fontWeight:800,color:"#111827"}}>System Status</span>
-                  <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,fontSize:11,fontWeight:700,color:"#10b981"}}><div style={{width:6,height:6,borderRadius:"50%",background:"#10b981"}} className="live-dot"/>All Systems Operational</div>
+                  <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,fontSize:11,fontWeight:700,color:"#10b981"}}><div style={{width:6,height:6,borderRadius:"50%",background:"#10b981"}} />All Systems Operational</div>
                 </div>
                 <div style={{padding:"0 16px"}}>
                   {[
@@ -470,7 +470,7 @@ function WebmasterInner() {
                 <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#dc2626,#b91c1c)",display:"flex",alignItems:"center",gap:8}}>
                   <Radio style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:900,color:"#fff",flex:1}}>Send Live Broadcast</span>
                   <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"rgba(255,255,255,0.7)"}}>
-                    <div style={{width:5,height:5,borderRadius:"50%",background:"#fff"}} className="live-dot"/> Realtime to all users
+                    <div style={{width:5,height:5,borderRadius:"50%",background:"#fff"}} /> Realtime to all users
                   </div>
                 </div>
                 <div style={{padding:18,display:"flex",flexDirection:"column",gap:13}}>
@@ -515,7 +515,7 @@ function WebmasterInner() {
                   </div>
                   <button onClick={sendBroadcast} disabled={bcSending}
                     style={{display:"flex",alignItems:"center",gap:8,padding:"11px 22px",background:bcSending?"#9ca3af":"#dc2626",color:"#fff",border:"none",borderRadius:8,cursor:bcSending?"not-allowed":"pointer",fontSize:13,fontWeight:800,justifyContent:"center"}}>
-                    {bcSending?<RefreshCw style={{width:14,height:14}} style={{animation:"spin 1s linear infinite"}}/>:<Megaphone style={{width:14,height:14}}/>}
+                    {bcSending?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Megaphone style={{width:14,height:14}}/>}
                     {bcSending?"Sending…":"Send Broadcast to All Users"}
                   </button>
                 </div>
@@ -551,7 +551,7 @@ function WebmasterInner() {
                 <Clock style={{width:13,height:13,color:"#6b7280"}}/><span style={{fontSize:13,fontWeight:800,color:"#111827"}}>Recent Broadcasts</span>
               </div>
               {bcHistory.length===0?(
-                <div className="placeholder-box" style={{margin:14}}>
+                <div  style={{margin:14}}>
                   <Megaphone style={{width:28,height:28,color:"#e5e7eb",margin:"0 auto 8px"}}/>
                   <div style={{fontSize:12}}>No broadcasts sent yet</div>
                   <div style={{fontSize:11,color:"#d1d5db",marginTop:4}}>Broadcasts you send will appear here</div>
@@ -624,7 +624,7 @@ function WebmasterInner() {
                   {label:"💰 Payment Vouchers",  color:"#0078d4",  bg:"#eff6ff",  path:"/vouchers/payment"},
                   {label:"🏥 Dashboard",         color:"#0a2558",  bg:"#eff6ff",  path:"/dashboard"},
                 ].map(btn=>(
-                  <button key={btn.path} onClick={()=>navigate(btn.path)} className="full-action-btn"
+                  <button key={btn.path} onClick={()=>navigate(btn.path)} 
                     style={{background:btn.bg,color:btn.color,border:`1px solid ${btn.color}20`}}>
                     <span style={{fontSize:14}}>{btn.label.split(" ")[0]}</span>
                     <span style={{fontWeight:800,fontSize:12}}>{btn.label.slice(btn.label.indexOf(" ")+1)}</span>
@@ -741,7 +741,7 @@ function WebmasterInner() {
                   ))}
                   <button onClick={()=>saveSettings(Object.fromEntries([["smtp_host","smtp_port","smtp_from","smtp_from_name","api_base_url","webhook_url","backup_schedule"].map(k=>[k,settings[k]||""])]))} disabled={saving}
                     style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"#0a2558",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:800,marginTop:6}}>
-                    {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} Save Config
+                    {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} Save Config
                   </button>
                 </div>
               </div>
@@ -757,7 +757,7 @@ function WebmasterInner() {
                     {label:"📢 Announcement",    msg:"System update scheduled for tonight.",                     type:"announcement"},
                   ].map(b=>(
                     <button key={b.label} onClick={()=>sendSystemBroadcast({title:b.label.slice(3),message:b.msg,type:b.type as any,expiresIn:45,senderId:user?.id}).then(()=>toast({title:"Broadcast sent ✓"}))}
-                      className="full-action-btn"
+                      
                       style={{background:"#fff",color:"#dc2626",border:"1px solid #fecaca",marginBottom:6,fontSize:11}}>
                       <span>{b.label}</span>
                     </button>
@@ -800,7 +800,7 @@ function WebmasterInner() {
                 </div>
               </div>
               <button onClick={saveTheme} disabled={saving} style={{display:"flex",alignItems:"center",gap:7,padding:"10px 22px",background:"#8b5cf6",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,marginTop:18}}>
-                {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>}
+                {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>}
                 Save & Broadcast Theme
               </button>
               <div style={{marginTop:10,fontSize:11,color:"#9ca3af"}}>Saving theme will also send a live notification to all online users.</div>
@@ -882,7 +882,7 @@ function WebmasterInner() {
                   {label:"⚙️ Full Settings Panel",     path:"/settings",           color:"#6b7280"},
                   {label:"👥 User Administration",     path:"/users",              color:"#4b4b9b"},
                 ].map(a=>(
-                  <button key={a.path} onClick={()=>navigate(a.path)} className="full-action-btn"
+                  <button key={a.path} onClick={()=>navigate(a.path)} 
                     style={{background:"#f9fafb",color:a.color,border:"1px solid #e5e7eb",marginBottom:6,fontSize:12}}>
                     {a.label}
                     <ArrowRight style={{width:12,height:12,marginLeft:"auto",opacity:0.4}}/>
