@@ -61,7 +61,7 @@ function Card({ title, sub, color, icon:Icon, children, onSave, saving }: any) {
           {sub&&<div style={{fontSize:12,color:"#6b7280",marginTop:1}}>{sub}</div>}
         </div>
         <button onClick={onSave} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:color,color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
-          {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>} Save
+          {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save
         </button>
       </div>
       <div style={{padding:"4px 20px 16px"}}>{children}</div>
@@ -180,7 +180,7 @@ function SettingsInner() {
             <RefreshCw style={{width:13,height:13}}/>
           </button>
           <button onClick={()=>save(ALL_KEYS)} disabled={saving} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 20px",background:"#C45911",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:800}}>
-            {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>} Save All Settings
+            {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save All Settings
           </button>
         </div>
       </div>

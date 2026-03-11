@@ -622,7 +622,7 @@ export default function DocumentsPage() {
             <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
               <button onClick={saveDoc} disabled={saving}
                 style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
-                {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>} Save Document
+                {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save Document
               </button>
               {(editDoc.html)&&<button onClick={()=>printDoc(editDoc.html,editDoc.name)}
                 style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:"#107c10",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
@@ -673,7 +673,7 @@ export default function DocumentsPage() {
             </div>
             <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
               <button onClick={uploadFile} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Upload style={{width:13,height:13}}/>} Upload
+                {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Upload style={{width:13,height:13}}/>} Upload
               </button>
               <button onClick={()=>setUploadModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
             </div>

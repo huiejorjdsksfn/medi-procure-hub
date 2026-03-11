@@ -117,7 +117,7 @@ export default function ProcurementPlanningPage() {
       </div>
       {showNew&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>{setShowNew(false);setEditing(null);}}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 overflow-y-auto max-h-[92vh] space-y-4">
             <div className="flex items-center justify-between"><h3 className="font-black text-gray-800">{editing?"Edit Plan":"New Procurement Plan"}</h3><button onClick={()=>{setShowNew(false);setEditing(null);}}><X className="w-5 h-5 text-gray-400"/></button></div>
             <div className="grid grid-cols-2 gap-3">

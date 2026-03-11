@@ -188,7 +188,7 @@ function AdminInner() {
   const SB=({keys,label,color="#1a3a6b"}:{keys:string[];label?:string;color?:string})=>(
     <button onClick={()=>saveSection(keys)} disabled={saving}
       style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:color,color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,marginTop:14,opacity:saving?0.8:1}}>
-      {saving?<RefreshCw style={{width:13,height:13}} className="animate-spin"/>:<Save style={{width:13,height:13}}/>}
+      {saving?<RefreshCw style={{width:13,height:13}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
       {saving?"Saving…":`Save ${label||""}`}
     </button>
   );

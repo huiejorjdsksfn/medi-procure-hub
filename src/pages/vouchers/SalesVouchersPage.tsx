@@ -114,6 +114,14 @@ export default function SalesVouchersPage() {
   const totalAmt = filtered.reduce((s,r)=>s+Number(r.amount||0),0);
 
   return (
+    <div
+      style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}
+    >
+    <style>{`
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}.vpage-filters{flex-wrap:wrap!important}.vpage-table{font-size:11px!important}}
+        @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
+      `}</style>
     <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
       <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#065f46,#0d9488)"}}>
         <div><h1 className="text-base font-black text-white">Sales Vouchers</h1>
@@ -154,7 +162,7 @@ export default function SalesVouchersPage() {
       </div>
       {showNew&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>setShowNew(false)}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>setShowNew(false)}/>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-5 overflow-y-auto max-h-[90vh] space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-gray-800">New Sales Voucher</h3>

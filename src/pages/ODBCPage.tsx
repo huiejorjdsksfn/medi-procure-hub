@@ -224,7 +224,7 @@ export default function ODBCPage() {
       {/* ── FORM MODAL ── */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={()=>setShowForm(false)}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)"}} onClick={()=>setShowForm(false)}/>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
             {/* Header */}
             <div className="px-5 py-4 flex items-center justify-between" style={{background:"linear-gradient(90deg,#1e3a5f,#0369a1)"}}>

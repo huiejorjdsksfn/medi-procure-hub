@@ -122,6 +122,21 @@ function BackupInner() {
     loadJobs();
   };
 
+
+  const handleRestore = async () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json,.sql,.gz,.zip,.backup";
+    fileInput.onchange = async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      if (!confirm(`Restore from "${file.name}"? This will overwrite current data.`)) return;
+      toast({ title: "Restore initiated", description: `Processing ${file.name} — manual DB restore required via Supabase dashboard.` });
+      logAudit(user?.id, profile?.full_name, "restore", "backup", undefined, { file: file.name });
+    };
+    fileInput.click();
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6" style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"calc(100vh-100px)" }}>
       {/* Header card */}
@@ -278,7 +293,7 @@ function BackupInner() {
               Upload Backup File (.xlsx)
               <input type="file" accept=".xlsx,.csv,.json" className="hidden" onChange={()=>{}}/>
             </label>
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold" style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={()=>alert("Select a backup file first")}>
+            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold" style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={handleRestore}>
               <Play className="w-3.5 h-3.5"/> Restore
             </button>
           </div>

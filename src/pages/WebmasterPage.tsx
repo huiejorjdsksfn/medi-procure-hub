@@ -515,7 +515,7 @@ function WebmasterInner() {
                   </div>
                   <button onClick={sendBroadcast} disabled={bcSending}
                     style={{display:"flex",alignItems:"center",gap:8,padding:"11px 22px",background:bcSending?"#9ca3af":"#dc2626",color:"#fff",border:"none",borderRadius:8,cursor:bcSending?"not-allowed":"pointer",fontSize:13,fontWeight:800,justifyContent:"center"}}>
-                    {bcSending?<RefreshCw style={{width:14,height:14}} className="animate-spin"/>:<Megaphone style={{width:14,height:14}}/>}
+                    {bcSending?<RefreshCw style={{width:14,height:14}} style={{animation:"spin 1s linear infinite"}}/>:<Megaphone style={{width:14,height:14}}/>}
                     {bcSending?"Sending…":"Send Broadcast to All Users"}
                   </button>
                 </div>
@@ -741,7 +741,7 @@ function WebmasterInner() {
                   ))}
                   <button onClick={()=>saveSettings(Object.fromEntries([["smtp_host","smtp_port","smtp_from","smtp_from_name","api_base_url","webhook_url","backup_schedule"].map(k=>[k,settings[k]||""])]))} disabled={saving}
                     style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"#0a2558",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:800,marginTop:6}}>
-                    {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} Save Config
+                    {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} Save Config
                   </button>
                 </div>
               </div>
@@ -800,7 +800,7 @@ function WebmasterInner() {
                 </div>
               </div>
               <button onClick={saveTheme} disabled={saving} style={{display:"flex",alignItems:"center",gap:7,padding:"10px 22px",background:"#8b5cf6",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,marginTop:18}}>
-                {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>}
+                {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>}
                 Save & Broadcast Theme
               </button>
               <div style={{marginTop:10,fontSize:11,color:"#9ca3af"}}>Saving theme will also send a live notification to all online users.</div>
