@@ -139,7 +139,7 @@ export default function PurchaseOrdersPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={load} disabled={loading} className="p-2 rounded-lg bg-white/15 text-white hover:bg-white/25">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading?"animate-spin":""}`}/>
+            <RefreshCw className={""}/>
           </button>
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/80 text-white text-xs font-semibold hover:bg-green-500">
             <FileSpreadsheet className="w-3.5 h-3.5"/>Export
@@ -218,7 +218,7 @@ export default function PurchaseOrdersPage() {
       {/* View Modal */}
       {viewPO&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setViewPO(null)}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:999}} onClick={()=>setViewPO(null)}/>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
             <div className="px-5 py-3 flex items-center justify-between" style={{background:"#92400e"}}>
               <div><h3 className="text-sm font-black text-white">{viewPO.po_number}</h3><p className="text-[10px] text-white/40">Purchase Order</p></div>

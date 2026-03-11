@@ -1,341 +1,323 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
-import { Plus, Edit, Search, X, RefreshCw, Download, Printer, FileSpreadsheet, Star, Truck, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Plus, Edit, Search, X, RefreshCw, Download, Printer, FileSpreadsheet, Star, Truck, CheckCircle, XCircle, Eye, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const STATUS_STYLE: Record<string,{bg:string;color:string}> = {
-  active:    {bg:"#dcfce7",color:"#15803d"},
-  inactive:  {bg:"#fee2e2",color:"#dc2626"},
-  suspended: {bg:"#fef3c7",color:"#92400e"},
+const SS: Record<string,{bg:string;color:string}> = {
+  active:   {bg:"#dcfce7",color:"#15803d"},
+  inactive: {bg:"#fee2e2",color:"#dc2626"},
+  suspended:{bg:"#fef3c7",color:"#92400e"},
 };
-
-const CATEGORIES = ["pharmaceutical","medical_equipment","consumables","reagents","laboratory","surgical","general","other"];
+const CATS = ["pharmaceutical","medical_equipment","consumables","reagents","laboratory","surgical","general","other"];
+const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
 
 export default function SuppliersPage() {
   const { user, profile, roles } = useAuth();
-  const isAdmin = roles.includes("admin") || roles.includes("procurement_manager") || roles.includes("procurement_officer");
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const isAdmin = roles.includes("admin")||roles.includes("procurement_manager")||roles.includes("procurement_officer");
+
+  const [suppliers,    setSuppliers]    = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [catFilter, setCatFilter] = useState("all");
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  const [catFilter,    setCatFilter]    = useState("all");
+  const [showForm,     setShowForm]     = useState(false);
+  const [editing,      setEditing]      = useState<any>(null);
   const [viewSupplier, setViewSupplier] = useState<any>(null);
-  const [form, setForm] = useState({
-    name:"", contact_person:"", email:"", phone:"", address:"", tax_id:"",
-    kra_pin:"", category:"pharmaceutical", status:"active", bank_name:"",
-    bank_account:"", bank_branch:"", rating:"3", website:"", notes:"",
-  });
-  const [saving, setSaving] = useState(false);
+  const [saving,       setSaving]       = useState(false);
   const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
-  const [sysName, setSysName] = useState("EL5 MediProcure");
+  const [sysName,      setSysName]      = useState("EL5 MediProcure");
+  const [form, setForm] = useState({
+    name:"",contact_person:"",email:"",phone:"",address:"",
+    tax_id:"",kra_pin:"",category:"pharmaceutical",status:"active",
+    bank_name:"",bank_account:"",bank_branch:"",rating:"3",website:"",notes:"",
+  });
 
   useEffect(()=>{
     (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
-      .then(({data}:any)=>{ if(!data) return; const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
+      .then(({data}:any)=>{if(!data)return;const m:any={};data.forEach((r:any)=>{if(r.key)m[r.key]=r.value;});if(m.system_name)setSysName(m.system_name);if(m.hospital_name)setHospitalName(m.hospital_name);});
   },[]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async()=>{
     setLoading(true);
-    const { data } = await supabase.from("suppliers").select("*").order("name");
-    setSuppliers(data||[]);
-    setLoading(false);
+    const{data}=await supabase.from("suppliers").select("*").order("name");
+    setSuppliers(data||[]); setLoading(false);
   },[]);
 
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{
-    const ch = supabase.channel("suppliers-rt").on("postgres_changes",{event:"*",schema:"public",table:"suppliers"},()=>load()).subscribe();
-    return ()=>{ supabase.removeChannel(ch); };
+    const ch=supabase.channel("supp-rt").on("postgres_changes",{event:"*",schema:"public",table:"suppliers"},()=>load()).subscribe();
+    return ()=>{supabase.removeChannel(ch);};
   },[load]);
 
-  const openCreate = () => {
+  const openCreate=()=>{
     setEditing(null);
     setForm({name:"",contact_person:"",email:"",phone:"",address:"",tax_id:"",kra_pin:"",category:"pharmaceutical",status:"active",bank_name:"",bank_account:"",bank_branch:"",rating:"3",website:"",notes:""});
     setShowForm(true);
   };
-  const openEdit = (s: any) => {
+  const openEdit=(s:any)=>{
     setEditing(s);
     setForm({name:s.name||"",contact_person:s.contact_person||"",email:s.email||"",phone:s.phone||"",address:s.address||"",tax_id:s.tax_id||"",kra_pin:s.kra_pin||"",category:s.category||"pharmaceutical",status:s.status||"active",bank_name:s.bank_name||"",bank_account:s.bank_account||"",bank_branch:s.bank_branch||"",rating:String(s.rating||3),website:s.website||"",notes:s.notes||""});
     setShowForm(true);
   };
 
-  const save = async () => {
-    if (!form.name.trim()) { toast({title:"Supplier name required",variant:"destructive"}); return; }
+  const save=async()=>{
+    if(!form.name.trim()){toast({title:"Supplier name required",variant:"destructive"});return;}
     setSaving(true);
-    try {
-      const payload = {...form, rating: Number(form.rating)||3};
-      if (editing) {
-        const { error } = await supabase.from("suppliers").update(payload).eq("id",editing.id);
-        if (error) throw error;
+    try{
+      const payload={...form,rating:Number(form.rating)||3};
+      if(editing){
+        const{error}=await supabase.from("suppliers").update(payload).eq("id",editing.id);
+        if(error)throw error;
         logAudit(user?.id,profile?.full_name,"update","suppliers",editing.id,{name:form.name});
         toast({title:"Supplier updated"});
-      } else {
-        const { data, error } = await supabase.from("suppliers").insert(payload).select().single();
-        if (error) throw error;
+      }else{
+        const{data,error}=await supabase.from("suppliers").insert(payload).select().single();
+        if(error)throw error;
         logAudit(user?.id,profile?.full_name,"create","suppliers",data?.id,{name:form.name});
         toast({title:"Supplier added",description:form.name});
       }
       setShowForm(false); load();
-    } catch(e:any){ toast({title:"Error",description:e.message,variant:"destructive"}); }
+    }catch(e:any){toast({title:"Error",description:e.message,variant:"destructive"});}
     setSaving(false);
   };
 
-  const filtered = suppliers.filter(s=>{
-    if (statusFilter!=="all"&&s.status!==statusFilter) return false;
-    if (catFilter!=="all"&&s.category!==catFilter) return false;
-    if (search) { const q=search.toLowerCase(); return (s.name||"").toLowerCase().includes(q)||(s.contact_person||"").toLowerCase().includes(q)||(s.email||"").toLowerCase().includes(q)||(s.kra_pin||"").toLowerCase().includes(q); }
+  const deleteSupplier=async(s:any)=>{
+    if(!confirm(`Delete supplier "${s.name}"?`)) return;
+    const{error}=await supabase.from("suppliers").delete().eq("id",s.id);
+    if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
+    logAudit(user?.id,profile?.full_name,"delete","suppliers",s.id,{name:s.name});
+    toast({title:"Supplier deleted"}); load();
+  };
+
+  const toggleStatus=async(s:any)=>{
+    const next=s.status==="active"?"inactive":"active";
+    await supabase.from("suppliers").update({status:next}).eq("id",s.id);
+    logAudit(user?.id,profile?.full_name,"update","suppliers",s.id,{status:next});
+    toast({title:`Supplier ${next}`}); load();
+  };
+
+  const filtered=suppliers.filter(s=>{
+    if(statusFilter!=="all"&&s.status!==statusFilter) return false;
+    if(catFilter!=="all"&&s.category!==catFilter) return false;
+    if(search){const q=search.toLowerCase();return (s.name||"").toLowerCase().includes(q)||(s.contact_person||"").toLowerCase().includes(q)||(s.email||"").toLowerCase().includes(q)||(s.kra_pin||"").toLowerCase().includes(q);}
     return true;
   });
 
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const headerRows = [[hospitalName],[sysName,"Supplier Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
-    const dataRows = filtered.map(s=>({
-      Name:s.name,Contact:s.contact_person,Email:s.email,Phone:s.phone,
-      Category:s.category,Status:s.status,Rating:s.rating,KRA_PIN:s.kra_pin,
-      Tax_ID:s.tax_id,Bank:s.bank_name,Account:s.bank_account,Address:s.address,
-    }));
-    const ws = XLSX.utils.aoa_to_sheet([...headerRows,...[Object.keys(dataRows[0]||{})],...dataRows.map(r=>Object.values(r))]);
-    ws["!cols"] = Object.keys(dataRows[0]||{}).map(()=>({wch:20}));
-    XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
-    XLSX.writeFile(wb, `Suppliers_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported",description:`${filtered.length} suppliers exported`});
+  const exportExcel=()=>{
+    const wb=XLSX.utils.book_new();
+    const hdr=[[hospitalName],[sysName+" — Supplier Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const rows=filtered.map(s=>({Name:s.name,Contact:s.contact_person,Email:s.email,Phone:s.phone,Category:s.category,Status:s.status,Rating:s.rating,KRA_PIN:s.kra_pin,Tax_ID:s.tax_id,Bank:s.bank_name,Account:s.bank_account,Address:s.address}));
+    const ws=XLSX.utils.aoa_to_sheet([...hdr,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
+    ws["!cols"]=Object.keys(rows[0]||{}).map(()=>({wch:20}));
+    XLSX.utils.book_append_sheet(wb,ws,"Suppliers");
+    XLSX.writeFile(wb,`Suppliers_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast({title:"Exported",description:`${filtered.length} suppliers`});
   };
 
-  const printSupplier = (s: any) => {
-    const win = window.open("","_blank","width=800,height=600");
+  const printAll=()=>{
+    const win=window.open("","_blank","width=1100,height=800");
     if(!win) return;
-    win.document.write(`<html><head><title>${s.name}</title>
-    <style>body{font-family:'Segoe UI',Arial;margin:20px;font-size:12px;}.lh{border-bottom:3px solid #1a3a6b;padding-bottom:10px;margin-bottom:15px;}h1{color:#1a3a6b;font-size:18px;}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.field{margin-bottom:8px;}.label{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;}.val{font-size:12px;color:#333;margin-top:2px;}@media print{@page{margin:1.5cm;}}</style>
-    </head><body>
-    <div class="lh"><h2 style="margin:0;color:#1a3a6b;font-size:16px;">${hospitalName}</h2><div style="font-size:10px;color:#888;">${sysName} · Supplier Record</div></div>
+    win.document.write(`<html><head><title>Suppliers</title><style>body{font-family:'Segoe UI',Arial;font-size:11px;margin:20px}h2{color:#1a3a6b}table{width:100%;border-collapse:collapse}th{background:#1a3a6b;color:#fff;padding:6px 10px;text-align:left;font-size:10px}td{padding:5px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9fafb}@media print{@page{margin:1cm}}</style></head><body>
+    <h2>${hospitalName} — Supplier Register</h2><p style="font-size:10px;color:#888">Generated: ${new Date().toLocaleString("en-KE")} · ${filtered.length} suppliers</p>
+    <table><thead><tr><th>#</th><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Category</th><th>Status</th><th>KRA PIN</th><th>Rating</th></tr></thead>
+    <tbody>${filtered.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td>${s.contact_person||"—"}</td><td>${s.email||"—"}</td><td>${s.phone||"—"}</td><td>${s.category||"—"}</td><td>${s.status||"—"}</td><td>${s.kra_pin||"—"}</td><td>${s.rating||"—"}</td></tr>`).join("")}
+    </tbody></table></body></html>`);
+    win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
+  };
+
+  const printOne=(s:any)=>{
+    const win=window.open("","_blank","width=800,height=600");
+    if(!win) return;
+    win.document.write(`<html><head><title>${s.name}</title><style>body{font-family:'Segoe UI',Arial;margin:20px;font-size:12px}.lh{border-bottom:3px solid #1a3a6b;padding-bottom:10px;margin-bottom:15px}h1{color:#1a3a6b;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-bottom:8px}.label{font-size:9px;font-weight:700;color:#888;text-transform:uppercase}.val{font-size:12px;color:#333;margin-top:2px}@media print{@page{margin:1.5cm}}</style></head><body>
+    <div class="lh"><h2 style="margin:0;color:#1a3a6b">${hospitalName}</h2><div style="font-size:10px;color:#888">${sysName} · Supplier Record</div></div>
     <h1>${s.name}</h1>
     <div class="grid">
       <div class="field"><div class="label">Contact Person</div><div class="val">${s.contact_person||"—"}</div></div>
       <div class="field"><div class="label">Email</div><div class="val">${s.email||"—"}</div></div>
       <div class="field"><div class="label">Phone</div><div class="val">${s.phone||"—"}</div></div>
       <div class="field"><div class="label">Category</div><div class="val">${s.category||"—"}</div></div>
-      <div class="field"><div class="label">Status</div><div class="val">${s.status||"—"}</div></div>
-      <div class="field"><div class="label">Rating</div><div class="val">${s.rating||"—"}/5</div></div>
       <div class="field"><div class="label">KRA PIN</div><div class="val">${s.kra_pin||"—"}</div></div>
       <div class="field"><div class="label">Tax ID</div><div class="val">${s.tax_id||"—"}</div></div>
       <div class="field"><div class="label">Bank</div><div class="val">${s.bank_name||"—"}</div></div>
-      <div class="field"><div class="label">Account No.</div><div class="val">${s.bank_account||"—"}</div></div>
+      <div class="field"><div class="label">Account</div><div class="val">${s.bank_account||"—"}</div></div>
+      <div class="field"><div class="label">Branch</div><div class="val">${s.bank_branch||"—"}</div></div>
+      <div class="field"><div class="label">Rating</div><div class="val">${"★".repeat(s.rating||3)}</div></div>
     </div>
-    <div class="field" style="margin-top:8px;"><div class="label">Address</div><div class="val">${s.address||"—"}</div></div>
+    ${s.address?`<div class="field"><div class="label">Address</div><div class="val">${s.address}</div></div>`:""}
     ${s.notes?`<div class="field"><div class="label">Notes</div><div class="val">${s.notes}</div></div>`:""}
-    <div style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:8px;font-size:9px;color:#aaa;">${hospitalName} — ${sysName} · ${new Date().toLocaleDateString("en-KE")}</div>
+    <p style="font-size:9px;color:#aaa;margin-top:20px">Printed: ${new Date().toLocaleString("en-KE")}</p>
     </body></html>`);
     win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
 
-  const F = ({label,k,type="text",opts}:{label:string;k:string;type?:string;opts?:string[]}) => (
-    <div>
-      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">{label}</label>
-      {opts ? (
-        <select value={(form as any)[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 capitalize">
-          {opts.map(o=><option key={o} value={o}>{o.replace(/_/g," ")}</option>)}
-        </select>
-      ) : (
-        <input type={type} value={(form as any)[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400" />
-      )}
-    </div>
-  );
+  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
 
   return (
-    <div className="p-4 space-y-3" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f4f6fa",minHeight:"100vh",padding:16}}>
+      <style>{`
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .sup-row:hover td{background:#eff6ff!important}
+        @media(max-width:768px){.sup-header{flex-direction:column!important}.sup-filters{flex-wrap:wrap!important}.col-hide{display:none!important}}
+      `}</style>
+
       {/* Header */}
-      <div className="rounded-2xl px-5 py-3 flex items-center justify-between"
-        style={{background:"linear-gradient(90deg,#00695C,#00897B)",boxShadow:"0 4px 16px rgba(0,105,92,0.3)"}}>
-        <div className="flex items-center gap-3">
-          <Truck className="w-5 h-5 text-white" />
+      <div className="sup-header" style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <Truck style={{width:22,height:22,color:"#fff"}}/>
           <div>
-            <h1 className="text-base font-black text-white">Suppliers</h1>
-            <p className="text-[10px] text-white/50">{filtered.length} of {suppliers.length} suppliers</p>
+            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Suppliers</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>{filtered.length} of {suppliers.length} suppliers</div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={load} disabled={loading}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading?"animate-spin":""}`} />
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
+            <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
-          <button onClick={exportExcel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-semibold hover:bg-white/30">
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Export
+          <button onClick={printAll} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff"}}>
+            <Printer style={{width:13,height:13}}/>Print
           </button>
-          {isAdmin && (
-            <button onClick={openCreate}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-teal-800 text-xs font-bold hover:bg-teal-50">
-              <Plus className="w-3.5 h-3.5" /> Add Supplier
-            </button>
-          )}
+          <button onClick={exportExcel} style={{...btnSm,background:"rgba(52,211,153,0.85)",color:"#fff"}}>
+            <FileSpreadsheet style={{width:13,height:13}}/>Export
+          </button>
+          {isAdmin&&<button onClick={openCreate} style={{...btnSm,background:"#fff",color:"#1a3a6b",fontWeight:800}}>
+            <Plus style={{width:13,height:13}}/>Add Supplier
+          </button>}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl px-4 py-3 flex flex-wrap gap-3 items-center" style={{background:"rgba(8,20,55,0.78)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)"}}>
-        <div className="flex gap-1">
+      <div className="sup-filters" style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
+        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
+          <option value="all">All Categories</option>
+          {CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
+        </select>
+        <div style={{display:"flex",gap:4}}>
           {["all","active","inactive","suspended"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)}
-              className="px-2.5 py-1 rounded-full text-[10px] font-semibold capitalize transition-all"
-              style={{background:statusFilter===s?"#00695C":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3a6b":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
               {s}
             </button>
           ))}
         </div>
-        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none capitalize">
-          <option value="all">All Categories</option>
-          {CATEGORIES.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
-        </select>
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search suppliers…"
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-teal-400" />
-          {search && <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
+        <div style={{flex:1,minWidth:180,position:"relative"}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, KRA PIN…"
+            style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
-              <tr style={{background:"#00695C"}}>
-                {["#","Name","Contact","Phone","Category","Status","Rating","KRA PIN","Actions"].map(h=>(
-                  <th key={h} className="text-left px-3 py-2.5 text-white/80 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
+              <tr style={{background:"#1a3a6b"}}>
+                {["#","Name","Contact","Email","Phone","Category","Status","Rating","Actions"].map(h=>(
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                Array(5).fill(0).map((_,i)=>(
-                  <tr key={i} className="border-b border-gray-50"><td colSpan={9} className="px-4 py-3 animate-pulse"><div className="h-3 bg-gray-200 rounded w-3/4"/></td></tr>
-                ))
-              ) : filtered.length===0 ? (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">No suppliers found</td></tr>
-              ) : filtered.map((s,i)=>(
-                <tr key={s.id} className="border-b border-gray-50 hover:bg-teal-50/30 transition-colors group">
-                  <td className="px-3 py-2.5 text-gray-400">{i+1}</td>
-                  <td className="px-3 py-2.5 font-bold text-gray-800">{s.name}</td>
-                  <td className="px-3 py-2.5 text-gray-600">
-                    <div>{s.contact_person||"—"}</div>
-                    {s.email && <div className="text-[10px] text-gray-400">{s.email}</div>}
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-600">{s.phone||"—"}</td>
-                  <td className="px-3 py-2.5 text-gray-600 capitalize">{(s.category||"").replace(/_/g," ")||"—"}</td>
-                  <td className="px-3 py-2.5">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize"
-                      style={{background:STATUS_STYLE[s.status]?.bg||"#f3f4f6",color:STATUS_STYLE[s.status]?.color||"#6b7280"}}>
-                      {s.status||"—"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(n=>(
-                        <Star key={n} className="w-3 h-3" fill={n<=(s.rating||0)?"#f59e0b":"none"} stroke={n<=(s.rating||0)?"#f59e0b":"#d1d5db"} />
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-500 font-mono text-[10px]">{s.kra_pin||"—"}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={()=>setViewSupplier(s)} className="p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100"><Eye className="w-3 h-3"/></button>
-                      <button onClick={()=>printSupplier(s)} className="p-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100"><Printer className="w-3 h-3"/></button>
-                      {isAdmin && <button onClick={()=>openEdit(s)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"><Edit className="w-3 h-3"/></button>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {loading?(
+                <tr><td colSpan={9} style={{padding:"40px",textAlign:"center"}}>
+                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
+                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading suppliers…</span>
+                </td></tr>
+              ):filtered.length===0?(
+                <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
+              ):filtered.map((s,i)=>{
+                const st=SS[s.status]||{bg:"#f3f4f6",color:"#6b7280"};
+                return (
+                  <tr key={s.id} className="sup-row">
+                    <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
+                    <td style={{padding:"7px 12px",fontWeight:700,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{s.name}</td>
+                    <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"—"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.email||"—"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.phone||"—"}</td>
+                    <td style={{padding:"7px 12px",textTransform:"capitalize",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
+                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
+                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize"}}>{s.status||"active"}</span>
+                    </td>
+                    <td style={{padding:"7px 12px",color:"#f59e0b",fontSize:13,background:i%2===0?"#fff":"#f9fafb"}}>{"★".repeat(Math.min(s.rating||3,5))}</td>
+                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>setViewSupplier(s)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}><Eye style={{width:12,height:12}}/></button>
+                        {isAdmin&&<button onClick={()=>openEdit(s)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dcfce7",color:"#15803d"}}><Edit style={{width:12,height:12}}/></button>}
+                        {isAdmin&&<button onClick={()=>toggleStatus(s)} title={s.status==="active"?"Deactivate":"Activate"} style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:s.status==="active"?"#fef3c7":"#dcfce7",color:s.status==="active"?"#92400e":"#15803d"}}>{s.status==="active"?<XCircle style={{width:12,height:12}}/>:<CheckCircle style={{width:12,height:12}}/>}</button>}
+                        <button onClick={()=>printOne(s)} title="Print" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#f3f4f6",color:"#374151"}}><Printer style={{width:12,height:12}}/></button>
+                        {isAdmin&&<button onClick={()=>deleteSupplier(s)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}><Trash2 style={{width:12,height:12}}/></button>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-[10px] text-gray-400">
-          <span>{filtered.length} supplier{filtered.length!==1?"s":""}</span>
-          <span>Active: {suppliers.filter(s=>s.status==="active").length} · Inactive: {suppliers.filter(s=>s.status==="inactive").length}</span>
-        </div>
+        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",fontSize:11,color:"#6b7280"}}>{filtered.length} suppliers</div>
       </div>
 
-      {/* Add/Edit modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowForm(false)} />
-          <div className="relative rounded-2xl overflow-hidden w-full max-w-2xl bg-white shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="px-5 py-4 border-b flex items-center justify-between" style={{background:"#00695C"}}>
-              <h3 className="text-sm font-black text-white">{editing?"Edit Supplier":"New Supplier"}</h3>
-              <button onClick={()=>setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+      {/* View Modal */}
+      {viewSupplier&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(560px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
+              <div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewSupplier.name}</div><div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>{viewSupplier.category?.replace(/_/g," ")}</div></div>
+              <button onClick={()=>setViewSupplier(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div className="overflow-y-auto p-5 grid grid-cols-2 gap-4">
-              <div className="col-span-2"><F label="Supplier Name *" k="name" /></div>
-              <F label="Contact Person" k="contact_person" />
-              <F label="Phone" k="phone" type="tel" />
-              <F label="Email" k="email" type="email" />
-              <F label="Website" k="website" />
-              <F label="Category" k="category" opts={CATEGORIES} />
-              <F label="Status" k="status" opts={["active","inactive","suspended"]} />
-              <F label="KRA PIN" k="kra_pin" />
-              <F label="Tax ID" k="tax_id" />
-              <F label="Bank Name" k="bank_name" />
-              <F label="Bank Account" k="bank_account" />
-              <F label="Bank Branch" k="bank_branch" />
-              <F label="Rating (1-5)" k="rating" type="number" />
-              <div className="col-span-2"><F label="Address" k="address" /></div>
-              <div className="col-span-2">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Notes</label>
-                <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-teal-400 resize-none" />
-              </div>
+            <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Rating","★".repeat(viewSupplier.rating||3)],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
+              ))}
+              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
             </div>
-            <div className="px-5 py-3 border-t flex gap-2 justify-end">
-              <button onClick={()=>setShowForm(false)} className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={save} disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold"
-                style={{background:"#00695C",opacity:saving?0.7:1}}>
-                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<CheckCircle className="w-3.5 h-3.5"/>}
-                {saving?"Saving…":"Save Supplier"}
-              </button>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>printOne(viewSupplier)} style={{...btnSm,padding:"7px 14px",background:"#f3f4f6",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8}}><Printer style={{width:13,height:13}}/>Print</button>
+              {isAdmin&&<button onClick={()=>{setViewSupplier(null);openEdit(viewSupplier);}} style={{padding:"7px 16px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
+              <button onClick={()=>setViewSupplier(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* View modal */}
-      {viewSupplier && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setViewSupplier(null)} />
-          <div className="relative rounded-2xl overflow-hidden w-full max-w-lg bg-white shadow-2xl">
-            <div className="px-5 py-3 border-b flex items-center justify-between bg-teal-700">
-              <h3 className="text-sm font-black text-white">{viewSupplier.name}</h3>
-              <div className="flex gap-2">
-                <button onClick={()=>printSupplier(viewSupplier)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 text-white text-xs">
-                  <Printer className="w-3 h-3"/> Print
-                </button>
-                <button onClick={()=>setViewSupplier(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+      {/* Add/Edit Modal */}
+      {showForm&&(
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.55)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(640px,100%)",maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
+              <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Supplier":"New Supplier"}</div>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+            </div>
+            <div style={{overflowY:"auto",padding:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Supplier Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Pharmed Kenya Ltd"/></div>
+                <div><label style={lbl}>Contact Person</label><input value={form.contact_person} onChange={e=>setForm(p=>({...p,contact_person:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Email</label><input type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Phone</label><input value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Category</label><select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={inp}>{CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}</select></div>
+                <div><label style={lbl}>KRA PIN</label><input value={form.kra_pin} onChange={e=>setForm(p=>({...p,kra_pin:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Tax ID / VAT No.</label><input value={form.tax_id} onChange={e=>setForm(p=>({...p,tax_id:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Bank Name</label><input value={form.bank_name} onChange={e=>setForm(p=>({...p,bank_name:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Bank Account</label><input value={form.bank_account} onChange={e=>setForm(p=>({...p,bank_account:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Bank Branch</label><input value={form.bank_branch} onChange={e=>setForm(p=>({...p,bank_branch:e.target.value}))} style={inp}/></div>
+                <div><label style={lbl}>Website</label><input value={form.website} onChange={e=>setForm(p=>({...p,website:e.target.value}))} style={inp} placeholder="https://"/></div>
+                <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}</select></div>
+                <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
               </div>
             </div>
-            <div className="p-5 grid grid-cols-2 gap-3">
-              {[
-                {l:"Contact",v:viewSupplier.contact_person},{l:"Email",v:viewSupplier.email},
-                {l:"Phone",v:viewSupplier.phone},{l:"Category",v:viewSupplier.category},
-                {l:"Status",v:viewSupplier.status},{l:"KRA PIN",v:viewSupplier.kra_pin},
-                {l:"Tax ID",v:viewSupplier.tax_id},{l:"Bank",v:viewSupplier.bank_name},
-                {l:"Account",v:viewSupplier.bank_account},{l:"Branch",v:viewSupplier.bank_branch},
-              ].map(r=>(
-                <div key={r.l}>
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{r.l}</div>
-                  <div className="text-sm text-gray-700 mt-0.5">{r.v||"—"}</div>
-                </div>
-              ))}
-              <div className="col-span-2">
-                <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Address</div>
-                <div className="text-sm text-gray-700 mt-0.5">{viewSupplier.address||"—"}</div>
-              </div>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Truck style={{width:13,height:13}}/>}
+                {saving?"Saving…":"Save Supplier"}
+              </button>
             </div>
           </div>
         </div>

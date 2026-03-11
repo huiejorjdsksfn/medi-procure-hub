@@ -231,7 +231,7 @@ export default function TendersPage() {
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#1F6090,#2980b9)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Create Tender"}
+                  {saving?<RefreshCw style={{width:12,height:12}} style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Create Tender"}
                 </button>
               </div>
             </div>

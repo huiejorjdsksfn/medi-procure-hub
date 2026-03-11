@@ -787,3 +787,45 @@ label { font-size: 11px !important; font-weight: 700 !important; }
   body { font-size: 11px; }
   h1,h2,h3,h4 { page-break-after: avoid; }
 }
+
+
+/* ========================================================
+   MediProcure Hub — Global Responsive Styles
+   ======================================================== */
+* { box-sizing: border-box; }
+
+/* Ensure tables scroll on mobile */
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Hide non-essential columns on mobile */
+@media (max-width: 640px) {
+  .col-hide-sm { display: none !important; }
+  .modal-full { width: 100% !important; max-width: 100% !important; margin: 0 !important; border-radius: 0 !important; height: 100vh !important; max-height: 100vh !important; }
+}
+
+@media (max-width: 768px) {
+  .col-hide-md { display: none !important; }
+  .page-header { flex-direction: column !important; align-items: flex-start !important; }
+  .page-header-btns { flex-wrap: wrap !important; }
+  .filter-bar { flex-wrap: wrap !important; }
+  .modal-lg { width: calc(100vw - 32px) !important; max-height: 92vh !important; }
+}
+
+@media (max-width: 1024px) {
+  .col-hide-lg { display: none !important; }
+  .sidebar-hide { display: none !important; }
+}
+
+/* Smooth animations */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* Remove native form styling */
+input, select, textarea, button { font-family: inherit; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

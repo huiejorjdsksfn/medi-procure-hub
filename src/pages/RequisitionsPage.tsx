@@ -157,7 +157,7 @@ export default function RequisitionsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading?"animate-spin":""}`}/>
+            <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/80 text-white text-xs font-semibold hover:bg-green-500">
             <FileSpreadsheet className="w-3.5 h-3.5"/>Export
@@ -262,7 +262,7 @@ export default function RequisitionsPage() {
       {/* Create form modal */}
       {showForm&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowForm(false)}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setShowForm(false)}/>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
             <div className="px-5 py-4 flex items-center justify-between" style={{background:"#0a2558"}}>
               <h3 className="text-sm font-black text-white flex items-center gap-2"><ClipboardList className="w-4 h-4"/>New Requisition</h3>
@@ -301,7 +301,7 @@ export default function RequisitionsPage() {
               <button onClick={save} disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold"
                 style={{background:"#1a3a6b",opacity:saving?0.7:1}}>
-                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Send className="w-3.5 h-3.5"/>}
+                {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send className="w-3.5 h-3.5"/>}
                 {saving?"Saving…":"Create Requisition"}
               </button>
             </div>
@@ -312,7 +312,7 @@ export default function RequisitionsPage() {
       {/* View modal */}
       {viewReq&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={()=>setViewReq(null)}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setViewReq(null)}/>
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
             <div className="px-5 py-3 flex items-center justify-between" style={{background:"#0a2558"}}>
               <div><h3 className="text-sm font-black text-white">{viewReq.requisition_number}</h3><p className="text-[10px] text-white/40">{viewReq.title}</p></div>
