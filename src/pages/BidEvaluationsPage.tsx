@@ -108,6 +108,21 @@ export default function BidEvaluationsPage() {
 
   return (
       <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* KPI TILES */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
+        {[
+          {label:"Total Evaluations",val:rows.length,bg:"#c0392b"},
+          {label:"Recommended",val:recommended,bg:"#0e6655"},
+          {label:"Avg Score",val:avg,bg:"#7d6608"},
+          {label:"Highest Score",val:highest,bg:"#6c3483"},
+          {label:"Showing",val:filtered.length,bg:"#1a252f"},
+        ].map(k=>(
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+            <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+            <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
@@ -129,19 +144,6 @@ export default function BidEvaluationsPage() {
             <Plus style={{width:14,height:14}}/> Evaluate Bid
           </button>}
         </div>
-      </div>
-
-      {/* Stats */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:14,marginBottom:20}}>
-        {[{label:"Total Evaluations",value:rows.length,icon:Scale,color:"#c0185a"},{label:"Recommended",value:recommended,icon:Trophy,color:"#15803d"},{label:"Average Score",value:avg,icon:TrendingUp,color:"#1d4ed8"},{label:"Highest Score",value:highest,icon:Award,color:"#92400e"}].map(s=>(
-          <div key={s.label} style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"16px",boxShadow:"0 2px 6px rgba(0,0,0,0.04)"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <div style={{width:32,height:32,borderRadius:8,background:`${s.color}14`,display:"flex",alignItems:"center",justifyContent:"center"}}><s.icon style={{width:15,height:15,color:s.color}}/></div>
-              <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{s.label}</span>
-            </div>
-            <div style={{fontSize:28,fontWeight:900,color:"#111827"}}>{s.value}</div>
-          </div>
-        ))}
       </div>
 
       {/* Filters */}

@@ -75,6 +75,28 @@ export default function ProcurementPlanningPage() {
 
   return (
       <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
+      {/* KPI TILES */}
+      {(()=>{
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        const approved=rows.filter(r=>r.status==="approved").length;
+        const active=rows.filter(r=>r.status==="active").length;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+            {[
+              {label:"Total Est. Budget",val:fmtK(totalBudget),bg:"#c0392b"},
+              {label:"Total Plans",val:rows.length,bg:"#7d6608"},
+              {label:"Approved",val:approved,bg:"#0e6655"},
+              {label:"Active",val:active,bg:"#6c3483"},
+              {label:"Showing",val:filtered.length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e40af)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Procurement Planning</h1>

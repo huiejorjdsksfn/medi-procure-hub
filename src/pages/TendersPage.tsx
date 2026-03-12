@@ -101,6 +101,29 @@ export default function TendersPage() {
 
   return (
       <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* KPI TILES */}
+      {(()=>{
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        const totalVal=rows.reduce((s:number,r:any)=>s+Number(r.estimated_value||0),0);
+        const published=rows.filter(r=>r.status==="published").length;
+        const awarded=rows.filter(r=>r.status==="awarded").length;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
+            {[
+              {label:"Total Est. Value",val:fmtK(totalVal),bg:"#c0392b"},
+              {label:"Total Tenders",val:rows.length,bg:"#7d6608"},
+              {label:"Published",val:published,bg:"#0e6655"},
+              {label:"Awarded",val:awarded,bg:"#6c3483"},
+              {label:"Showing",val:filtered.length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>

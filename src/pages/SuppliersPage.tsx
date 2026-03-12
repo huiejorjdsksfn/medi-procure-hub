@@ -164,7 +164,28 @@ export default function SuppliersPage() {
         .sup-row:hover td{background:#eff6ff!important}
         @media(max-width:768px){.sup-header{flex-direction:column!important}.sup-filters{flex-wrap:wrap!important}.col-hide{display:none!important}}
       `}</style>
-
+      {/* KPI TILES */}
+      {(()=>{
+        const activeS=suppliers.filter(s=>s.status==="active").length;
+        const suspendedS=suppliers.filter(s=>s.status==="suspended").length;
+        const ratedS=suppliers.filter(s=>s.rating>=4).length;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
+            {[
+              {label:"Total Suppliers",val:suppliers.length,bg:"#c0392b"},
+              {label:"Active",val:activeS,bg:"#0e6655"},
+              {label:"Suspended",val:suspendedS,bg:"#7d6608"},
+              {label:"Top Rated (4+)",val:ratedS,bg:"#6c3483"},
+              {label:"Showing",val:filtered.length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
       <div  style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>

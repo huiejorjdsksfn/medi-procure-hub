@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
+import RoleGuard from "@/components/RoleGuard";
 
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "@/pages/NotFound";
@@ -75,15 +76,15 @@ const App = () => (
             <Route path="/index" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<P><DashboardPage /></P>} />
 
-            {/* Procurement */}
-            <Route path="/requisitions" element={<P><RequisitionsPage /></P>} />
-            <Route path="/purchase-orders" element={<P><PurchaseOrdersPage /></P>} />
-            <Route path="/goods-received" element={<P><GoodsReceivedPage /></P>} />
-            <Route path="/suppliers" element={<P><SuppliersPage /></P>} />
-            <Route path="/tenders" element={<P><TendersPage /></P>} />
-            <Route path="/bid-evaluations" element={<P><BidEvaluationsPage /></P>} />
-            <Route path="/contracts" element={<P><ContractsPage /></P>} />
-            <Route path="/procurement-planning" element={<P><ProcurementPlanningPage /></P>} />
+            {/* Procurement — role-gated */}
+            <Route path="/requisitions" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","requisitioner","warehouse_officer","inventory_manager"]}><RequisitionsPage /></RoleGuard></P>} />
+            <Route path="/purchase-orders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><PurchaseOrdersPage /></RoleGuard></P>} />
+            <Route path="/goods-received" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager"]}><GoodsReceivedPage /></RoleGuard></P>} />
+            <Route path="/suppliers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><SuppliersPage /></RoleGuard></P>} />
+            <Route path="/tenders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><TendersPage /></RoleGuard></P>} />
+            <Route path="/bid-evaluations" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><BidEvaluationsPage /></RoleGuard></P>} />
+            <Route path="/contracts" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><ContractsPage /></RoleGuard></P>} />
+            <Route path="/procurement-planning" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><ProcurementPlanningPage /></RoleGuard></P>} />
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
@@ -95,20 +96,20 @@ const App = () => (
             <Route path="/departments" element={<P><DepartmentsPage /></P>} />
             <Route path="/scanner" element={<P><ScannerPage /></P>} />
 
-            {/* Vouchers */}
-            <Route path="/vouchers" element={<P><VouchersPage /></P>} />
-            <Route path="/vouchers/payment" element={<P><PaymentVouchersPage /></P>} />
-            <Route path="/vouchers/receipt" element={<P><ReceiptVouchersPage /></P>} />
-            <Route path="/vouchers/journal" element={<P><JournalVouchersPage /></P>} />
-            <Route path="/vouchers/purchase" element={<P><PurchaseVouchersPage /></P>} />
-            <Route path="/vouchers/sales" element={<P><SalesVouchersPage /></P>} />
+            {/* Vouchers — role-gated */}
+            <Route path="/vouchers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><VouchersPage /></RoleGuard></P>} />
+            <Route path="/vouchers/payment" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><PaymentVouchersPage /></RoleGuard></P>} />
+            <Route path="/vouchers/receipt" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><ReceiptVouchersPage /></RoleGuard></P>} />
+            <Route path="/vouchers/journal" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><JournalVouchersPage /></RoleGuard></P>} />
+            <Route path="/vouchers/purchase" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><PurchaseVouchersPage /></RoleGuard></P>} />
+            <Route path="/vouchers/sales" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><SalesVouchersPage /></RoleGuard></P>} />
 
-            {/* Financials */}
-            <Route path="/financials" element={<P><FinancialDashboardPage /></P>} />
-            <Route path="/financials/dashboard" element={<P><FinancialDashboardPage /></P>} />
-            <Route path="/financials/chart-of-accounts" element={<P><ChartOfAccountsPage /></P>} />
-            <Route path="/financials/budgets" element={<P><BudgetsPage /></P>} />
-            <Route path="/financials/fixed-assets" element={<P><FixedAssetsPage /></P>} />
+            {/* Financials — role-gated */}
+            <Route path="/financials" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FinancialDashboardPage /></RoleGuard></P>} />
+            <Route path="/financials/dashboard" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FinancialDashboardPage /></RoleGuard></P>} />
+            <Route path="/financials/chart-of-accounts" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><ChartOfAccountsPage /></RoleGuard></P>} />
+            <Route path="/financials/budgets" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><BudgetsPage /></RoleGuard></P>} />
+            <Route path="/financials/fixed-assets" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FixedAssetsPage /></RoleGuard></P>} />
 
             {/* Quality */}
             <Route path="/quality" element={<P><QualityDashboardPage /></P>} />
@@ -120,15 +121,15 @@ const App = () => (
             <Route path="/inbox" element={<P><InboxPage /></P>} />
             <Route path="/email" element={<P><EmailPage /></P>} />
 
-            {/* Admin */}
-            <Route path="/users" element={<P><UsersPage /></P>} />
-            <Route path="/settings" element={<P><SettingsPage /></P>} />
-            <Route path="/audit-log" element={<P><AuditLogPage /></P>} />
-            <Route path="/admin/database" element={<P><AdminDatabasePage /></P>} />
-            <Route path="/admin/panel" element={<P><AdminPanelPage /></P>} />
-            <Route path="/webmaster" element={<P><WebmasterPage /></P>} />
-            <Route path="/backup" element={<P><BackupPage /></P>} />
-            <Route path="/odbc" element={<P><ODBCPage /></P>} />
+            {/* Admin — role-gated */}
+            <Route path="/users" element={<P><RoleGuard allowed={["admin"]}><UsersPage /></RoleGuard></P>} />
+            <Route path="/settings" element={<P><RoleGuard allowed={["admin"]}><SettingsPage /></RoleGuard></P>} />
+            <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><AuditLogPage /></RoleGuard></P>} />
+            <Route path="/admin/database" element={<P><RoleGuard allowed={["admin"]}><AdminDatabasePage /></RoleGuard></P>} />
+            <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin"]}><AdminPanelPage /></RoleGuard></P>} />
+            <Route path="/webmaster" element={<P><RoleGuard allowed={["admin"]}><WebmasterPage /></RoleGuard></P>} />
+            <Route path="/backup" element={<P><RoleGuard allowed={["admin"]}><BackupPage /></RoleGuard></P>} />
+            <Route path="/odbc" element={<P><RoleGuard allowed={["admin"]}><ODBCPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
 
             <Route path="*" element={<NotFound />} />
