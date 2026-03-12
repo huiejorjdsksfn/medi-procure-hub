@@ -7,6 +7,8 @@ import { notifyProcurement } from "@/lib/notify";
 import { Plus, Search, RefreshCw, Eye, Printer, Download, X, Save, CheckCircle, XCircle, DollarSign, Trash2 } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printPaymentVoucher } from "@/lib/printDocument";
 
 const genNo = () => { const d=new Date(); return `PV/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.floor(1000+Math.random()*9000)}`; };
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
@@ -33,6 +35,7 @@ const emptyLine = () => ({description:"",qty:"1",unit_price:"",amount:"",account
 
 export default function PaymentVouchersPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canApprove = hasRole("admin")||hasRole("procurement_manager");
 
   const [rows,     setRows]     = useState<any[]>([]);
@@ -364,7 +367,14 @@ export default function PaymentVouchersPage() {
             <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e5e7eb"}}>
               <span style={{fontSize:13,fontWeight:700}}>Payment Voucher</span>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>window.print()} style={{padding:"6px 14px",background:"#15803d",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><Printer style={{width:11,height:11}}/> Print</button>
+                <button onClick={()=>printPaymentVoucher(viewVoucher, {
+                    hospitalName: getSetting('hospital_name','Embu Level 5 Hospital'),
+                    sysName: getSetting('system_name','EL5 MediProcure'),
+                    docFooter: getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+                    currencySymbol: getSetting('currency_symbol','KES'),
+                    printFont: getSetting('print_font','Times New Roman'),
+                    showStamp: getSetting('show_stamp','true') === 'true',
+                  })} style={{padding:"6px 14px",background:"#15803d",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><Printer style={{width:11,height:11}}/> Print</button>
                 <button onClick={()=>setPrint(null)} style={{background:"#f3f4f6",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",lineHeight:0}}><X style={{width:13,height:13}}/></button>
               </div>
             </div>

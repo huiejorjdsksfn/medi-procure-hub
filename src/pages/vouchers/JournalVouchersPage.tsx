@@ -5,6 +5,8 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2, CheckCircle, BookOpen } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printJournalVoucher } from "@/lib/printDocument";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
 const genNo = () => `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
@@ -25,8 +27,7 @@ export default function JournalVouchersPage() {
     {account_code:"",account_name:"",debit:"",credit:"",description:""},
   ]);
   const [saving, setSaving] = useState(false);
-  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
-  const [logoUrl, setLogoUrl] = useState<string|null>(null);
+  const { get: getSetting } = useSystemSettings();
 
   const load = async () => {
     setLoading(true);
@@ -79,35 +80,14 @@ export default function JournalVouchersPage() {
   };
 
   const printVoucher = (v:any) => {
-    const w=window.open("","_blank","width=1000,height=700");
-    if(!w) return;
-    const logo=logoUrl?`<img src="${logoUrl}" style="height:50px;object-fit:contain">`:""
-    const entriesHtml=(v.entries||[]).map((e:any,i:number)=>`<tr><td>${i+1}</td><td>${e.account_code||""}</td><td>${e.account_name||""}</td><td>${e.description||""}</td><td style="text-align:right">${e.debit?fmtKES(Number(e.debit)):""}</td><td style="text-align:right">${e.credit?fmtKES(Number(e.credit)):""}</td></tr>`).join("");
-    w.document.write(`<html><head><title>Journal Voucher</title>
-    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:0;font-size:11px}
-    .lh{background:#1e3a5f;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
-    .lh-info h2{margin:0;font-size:16px;font-weight:900}.body{padding:20px}
-    table{width:100%;border-collapse:collapse;font-size:10px;margin-top:12px}
-    th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase}
-    td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
-    tr:nth-child(even) td{background:#f9fafb}
-    .total-row td{background:#e0f2fe;font-weight:800;font-size:12px}
-    @media print{@page{margin:1cm}}</style></head><body>
-    <div class="lh">${logo}<div class="lh-info"><h2>${hospitalName}</h2><small>JOURNAL VOUCHER — ${v.journal_number}</small></div></div>
-    <div class="body">
-      <table style="margin-bottom:16px;font-size:11px">
-        <tr><td style="font-weight:700;color:#666;width:30%">Journal No.</td><td>${v.journal_number}</td><td style="font-weight:700;color:#666;width:30%">Date</td><td>${new Date(v.journal_date).toLocaleDateString("en-KE",{year:"numeric",month:"long",day:"numeric"})}</td></tr>
-        <tr><td style="font-weight:700;color:#666">Reference</td><td>${v.reference||"—"}</td><td style="font-weight:700;color:#666">Period</td><td>${v.period||"—"}</td></tr>
-        <tr><td style="font-weight:700;color:#666">Narration</td><td colspan="3">${v.narration}</td></tr>
-        <tr><td style="font-weight:700;color:#666">Status</td><td>${v.status}</td><td style="font-weight:700;color:#666">Prepared By</td><td>${v.created_by_name||"—"}</td></tr>
-      </table>
-      <table><thead><tr><th>#</th><th>Account Code</th><th>Account Name</th><th>Description</th><th>Debit (KES)</th><th>Credit (KES)</th></tr></thead>
-      <tbody>${entriesHtml}
-      <tr class="total-row"><td colspan="4" style="text-align:right">TOTALS</td><td style="text-align:right">${fmtKES(v.total_debit)}</td><td style="text-align:right">${fmtKES(v.total_credit)}</td></tr>
-      </tbody></table>
-      <p style="margin-top:8px;font-size:10px;color:${v.is_balanced?"#15803d":"#dc2626"};font-weight:700">${v.is_balanced?"✓ BALANCED":"⚠ NOT BALANCED"}</p>
-    </div></body></html>`);
-    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+    printJournalVoucher(v, {
+      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
+      sysName:        getSetting('system_name','EL5 MediProcure'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      currencySymbol: getSetting('currency_symbol','KES'),
+      printFont:      getSetting('print_font','Times New Roman'),
+      showStamp:      getSetting('show_stamp','true') === 'true',
+    });
   };
 
   const updateEntry = (i:number, k:string, val:string) => {
