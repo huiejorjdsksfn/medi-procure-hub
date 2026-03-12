@@ -409,5 +409,5 @@ function SettingsInner() {
 }
 
 export default function SettingsPage() {
-  return <RoleGuard roles={["admin"]}><SettingsInner/></RoleGuard>;
+  return <RoleGuard allowed={["admin"]}><SettingsInner/></RoleGuard>;
 }

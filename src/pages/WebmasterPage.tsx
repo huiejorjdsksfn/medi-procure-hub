@@ -294,7 +294,7 @@ export default function WebmasterPage(){
   const sectionContent=SECTIONS.find(s=>s.id===activeSection);
 
   return(
-    <RoleGuard allowedRoles={["admin"]}>
+    <RoleGuard allowed={["admin"]}>
       <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#f0f2f5",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         <style>{`
           @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
