@@ -5,6 +5,8 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2, CheckCircle } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printGenericVoucher } from "@/lib/printDocument";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const genNo = () => `RV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
@@ -12,6 +14,7 @@ const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancell
 
 export default function ReceiptVouchersPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
@@ -56,47 +59,14 @@ export default function ReceiptVouchersPage() {
   };
 
   const printVoucher = (v:any) => {
-    const w=window.open("","_blank","width=900,height=700");
-    if(!w) return;
-    const logo=logoUrl?`<img src="${logoUrl}" style="height:50px;object-fit:contain">`:""
-    w.document.write(`<html><head><title>Receipt Voucher</title>
-    <style>
-      body{font-family:'Segoe UI',Arial;margin:0;padding:0;font-size:11px}
-      .lh{background:#0a2558;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
-      .lh-info h2{margin:0;font-size:16px;font-weight:900} .lh-info small{opacity:0.6;font-size:10px}
-      .body{padding:20px}
-      .title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #e5e7eb}
-      .badge{padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d}
-      table{width:100%;border-collapse:collapse;margin-top:12px}
-      td{padding:8px 12px;vertical-align:top} td:first-child{font-weight:700;color:#6b7280;width:35%;font-size:10px;text-transform:uppercase}
-      tr{border-bottom:1px solid #f3f4f6} .amount-row td{font-size:16px;font-weight:900;color:#0a2558}
-      .sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;padding-top:20px;border-top:1px solid #e5e7eb}
-      .sig-item{text-align:center} .sig-line{border-bottom:1px solid #374151;margin-bottom:4px;height:40px}
-      .footer{margin-top:30px;padding-top:10px;border-top:1px solid #e5e7eb;text-align:center;font-size:9px;color:#9ca3af}
-      @media print{@page{margin:1cm}body{margin:0}}
-    </style></head><body>
-    <div class="lh">${logo}<div class="lh-info"><h2>${hospitalName}</h2><small>OFFICIAL RECEIPT VOUCHER</small></div><div style="margin-left:auto;font-size:11px;opacity:0.7">${v.receipt_number}</div></div>
-    <div class="body">
-      <div class="title-row"><div><h3 style="margin:0;font-size:14px;font-weight:900;color:#0a2558">RECEIPT VOUCHER</h3><p style="margin:4px 0 0;color:#6b7280;font-size:11px">${v.receipt_number}</p></div><span class="badge">${v.status}</span></div>
-      <table>
-        <tr><td>Received From</td><td style="font-weight:700;font-size:13px">${v.received_from}</td></tr>
-        <tr class="amount-row"><td>Amount Received</td><td>${fmtKES(v.amount)}</td></tr>
-        <tr><td>Payment Method</td><td>${v.payment_method||"—"}</td></tr>
-        <tr><td>Receipt Date</td><td>${new Date(v.receipt_date).toLocaleDateString("en-KE",{year:"numeric",month:"long",day:"numeric"})}</td></tr>
-        ${v.reference?`<tr><td>Reference No.</td><td>${v.reference}</td></tr>`:""}
-        ${v.bank_name?`<tr><td>Bank</td><td>${v.bank_name}</td></tr>`:""}
-        ${v.bank_reference?`<tr><td>Bank Reference</td><td>${v.bank_reference}</td></tr>`:""}
-        ${v.income_account?`<tr><td>Income Account</td><td>${v.income_account}</td></tr>`:""}
-        ${v.description?`<tr><td>Description</td><td>${v.description}</td></tr>`:""}
-        <tr><td>Created By</td><td>${v.created_by_name||"—"}</td></tr>
-      </table>
-      <div class="sig">
-        <div class="sig-item"><div class="sig-line"></div><p>Received By</p><p style="font-size:9px;color:#9ca3af">${v.received_from}</p></div>
-        <div class="sig-item"><div class="sig-line"></div><p>Issued By</p><p style="font-size:9px;color:#9ca3af">${v.created_by_name||""} · Finance</p></div>
-      </div>
-      <div class="footer">${hospitalName} · ${v.receipt_number} · Printed ${new Date().toLocaleString("en-KE")}</div>
-    </div></body></html>`);
-    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+    printGenericVoucher(v, "Receipt Voucher", {
+      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
+      sysName:        getSetting('system_name','EL5 MediProcure'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      currencySymbol: getSetting('currency_symbol','KES'),
+      printFont:      getSetting('print_font','Times New Roman'),
+      showStamp:      getSetting('show_stamp','true') === 'true',
+    });
   };
 
   const exportExcel = () => {

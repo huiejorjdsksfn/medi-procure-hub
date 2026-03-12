@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { notifyProcurement, sendNotification } from "@/lib/notify";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printRequisition } from "@/lib/printDocument";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
@@ -33,13 +35,7 @@ export default function RequisitionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
   const [saving, setSaving] = useState(false);
-  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
-  const [sysName, setSysName] = useState("EL5 MediProcure");
-
-  useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
-      .then(({data}:any)=>{ if(!data) return; const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
-  },[]);
+  const { get: getSetting } = useSystemSettings();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,7 +88,7 @@ export default function RequisitionsPage() {
 
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
-    const header = [[hospitalName],[sysName+" — Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const header = [[getSetting('hospital_name','Embu Level 5 Hospital')],[getSetting('system_name','EL5 MediProcure')+" — Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
     const rows = filtered.map(r=>({
       "Req No.":r.requisition_number,"Title":r.title,"Department":r.department,
       "Priority":r.priority,"Status":r.status,"Requester":r.requester_name,
@@ -107,123 +103,16 @@ export default function RequisitionsPage() {
   };
 
   const printReq = (r:any) => {
-    const win=window.open("","_blank","width=900,height=700");
-    if(!win) return;
-    const reqDate = r.created_at ? new Date(r.created_at).toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"}) : "—";
-    const delivDate = r.delivery_date ? new Date(r.delivery_date).toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"}) : "—";
-    const items = (r.requisition_items||[]);
-    const totalAmt = items.reduce((s:number,i:any)=>s+((i.quantity||0)*(i.unit_price||0)),0) || (r.total_amount||0);
-    // Pad to at least 8 rows
-    const padded = [...items,...Array(Math.max(0,8-items.length)).fill(null)];
-    const rowsHtml = padded.map((i:any,idx:number)=>`
-      <tr style="height:28px">
-        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;color:#000">${i?i.item_name||"":"" }</td>
-        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;color:#000">${i?i.description||"":""}</td>
-        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center;color:#000">${i?i.unit_of_measure||"":"" }</td>
-        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center;color:#000">${i?i.quantity||"":""}</td>
-        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:right;color:#000">${i&&i.unit_price?Number(i.unit_price).toLocaleString("en-KE",{minimumFractionDigits:2}):"" }</td>
-        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:right;color:#000">${i&&i.quantity&&i.unit_price?Number((i.quantity||0)*(i.unit_price||0)).toLocaleString("en-KE",{minimumFractionDigits:2}):""}</td>
-      </tr>`).join("");
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Requisition Form — ${r.requisition_number||"Draft"}</title>
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Times New Roman',Times,serif;font-size:12px;color:#000;background:#fff;padding:30px 40px}
-      @media print{body{padding:10mm 15mm}@page{size:A4;margin:10mm 15mm}}
-      h1{font-size:20px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;color:#000}
-      .divider{border:none;border-top:3px solid #1a3a6b;margin:8px 0 18px}
-      .meta-block{margin-bottom:18px}
-      .meta-block p{font-size:12px;margin-bottom:3px;color:#000}
-      .meta-block strong{font-weight:700}
-      .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:18px}
-      .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;color:#000;text-decoration:underline}
-      .info-line{font-size:11.5px;color:#000;margin-bottom:5px;display:flex;gap:4px}
-      .info-label{font-weight:700;min-width:180px;flex-shrink:0}
-      .info-val{border-bottom:1px solid #999;flex:1;min-height:16px}
-      table{width:100%;border-collapse:collapse;margin-bottom:10px}
-      .tbl-title{background:#1a3a6b;color:#fff;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px;border:1px solid #1a3a6b}
-      .tbl-hdr{background:#1a3a6b;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;text-align:left;padding:5px 6px;border:1px solid #1a3a6b}
-      .tbl-hdr-c{text-align:center}
-      .tbl-hdr-r{text-align:right}
-      .totals-tbl{width:auto;margin-left:auto;margin-bottom:20px}
-      .totals-tbl td{border:1px solid #1a3a6b;padding:5px 10px;font-size:11.5px;color:#000}
-      .totals-tbl .lbl{background:#eef2ff;font-weight:700;text-transform:uppercase;width:130px}
-      .totals-tbl .val{text-align:right;font-weight:700;min-width:120px}
-      .sig-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
-      .sig-box{text-align:center}
-      .sig-line{border-top:1px solid #000;margin-top:32px;margin-bottom:4px}
-      .sig-lbl{font-size:10px;font-weight:700;text-transform:uppercase;color:#000}
-      .sig-date{font-size:9px;color:#555;margin-top:2px}
-      .remarks-box{border:1px solid #1a3a6b;min-height:60px;padding:8px;font-size:11.5px;color:#000;margin-bottom:20px}
-      .footer{margin-top:24px;border-top:1px solid #ccc;padding-top:8px;font-size:9px;color:#555;display:flex;justify-content:space-between}
-    </style></head><body>
-    <h1>Requisition Form</h1>
-    <hr class="divider"/>
-    <!-- Identity -->
-    <div style="text-align:center;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:700;color:#000">${hospitalName}</div>
-      <div style="font-size:10.5px;color:#444">Embu County Government &nbsp;·&nbsp; ${sysName}</div>
-    </div>
-    <!-- Ref numbers -->
-    <div class="meta-block">
-      <p><strong>REQUISITION NUMBER:</strong> ${r.requisition_number||"REQ/EL5H/—"}</p>
-      <p><strong>DATE:</strong> ${reqDate}</p>
-      <p><strong>PRIORITY:</strong> ${(r.priority||"Normal").toUpperCase()} &nbsp;&nbsp; <strong>STATUS:</strong> ${(r.status||"Draft").toUpperCase()}</p>
-    </div>
-    <!-- Two-column info -->
-    <div class="two-col">
-      <div>
-        <div class="section-title">Requisition Information:</div>
-        <div class="info-line"><span class="info-label">TITLE / PURPOSE:</span><span class="info-val">${r.title||""}</span></div>
-        <div class="info-line"><span class="info-label">DEPARTMENT:</span><span class="info-val">${r.department||""}</span></div>
-        <div class="info-line"><span class="info-label">REQUESTED BY:</span><span class="info-val">${r.requester_name||""}</span></div>
-        <div class="info-line"><span class="info-label">DATE REQUIRED:</span><span class="info-val">${delivDate}</span></div>
-      </div>
-      <div>
-        <div class="section-title">Approval Information:</div>
-        <div class="info-line"><span class="info-label">APPROVED BY:</span><span class="info-val">${r.approved_by_name||""}</span></div>
-        <div class="info-line"><span class="info-label">APPROVAL DATE:</span><span class="info-val">${r.approved_at?new Date(r.approved_at).toLocaleDateString("en-KE"):""}</span></div>
-        <div class="info-line"><span class="info-label">PO REFERENCE:</span><span class="info-val">${r.po_reference||""}</span></div>
-        <div class="info-line"><span class="info-label">NOTES / JUSTIFICATION:</span><span class="info-val">${r.notes||""}</span></div>
-      </div>
-    </div>
-    <!-- Items table -->
-    <table>
-      <tr><td colspan="6" class="tbl-title">REQUISITIONED ITEMS</td></tr>
-      <tr>
-        <th class="tbl-hdr" style="width:20%">ITEM NAME</th>
-        <th class="tbl-hdr" style="width:28%">DESCRIPTION / SPECIFICATION</th>
-        <th class="tbl-hdr tbl-hdr-c" style="width:10%">UNIT OF<br/>MEASURE</th>
-        <th class="tbl-hdr tbl-hdr-c" style="width:10%">QUANTITY<br/>REQUESTED</th>
-        <th class="tbl-hdr tbl-hdr-r" style="width:16%">ESTIMATED<br/>UNIT PRICE (KES)</th>
-        <th class="tbl-hdr tbl-hdr-r" style="width:16%">ESTIMATED<br/>TOTAL (KES)</th>
-      </tr>
-      ${rowsHtml}
-    </table>
-    <!-- Totals -->
-    <table class="totals-tbl">
-      <tr><td class="lbl">TOTAL ITEMS</td><td class="val">${items.length||"—"}</td></tr>
-      <tr><td class="lbl">TOTAL AMOUNT</td><td class="val">KES ${totalAmt.toLocaleString("en-KE",{minimumFractionDigits:2})}</td></tr>
-    </table>
-    <!-- Received condition / notes -->
-    <div class="section-title">JUSTIFICATION / SPECIAL NOTES:</div>
-    <div class="remarks-box">${r.notes||"&nbsp;"}</div>
-    <!-- Signatures -->
-    <div class="sig-grid">
-      ${["Requisitioned By","Verified By","Recommended By","Approved By"].map(s=>`
-        <div class="sig-box">
-          <div class="sig-line"></div>
-          <div class="sig-lbl">${s}</div>
-          <div class="sig-date">Name: ___________________</div>
-          <div class="sig-date">Date: ___________________</div>
-        </div>`).join("")}
-    </div>
-    <div class="footer">
-      <span>${hospitalName} &nbsp;·&nbsp; ${sysName}</span>
-      <span>Printed: ${new Date().toLocaleString("en-KE")} &nbsp;·&nbsp; CONFIDENTIAL</span>
-    </div>
-    </body></html>`);
-    win.document.close(); win.focus(); setTimeout(()=>win.print(),500);
-  };
+    printRequisition(r, {
+      hospitalName: getSetting('hospital_name','Embu Level 5 Hospital'),
+      sysName:      getSetting('system_name','EL5 MediProcure'),
+      docFooter:    getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      currencySymbol: getSetting('currency_symbol','KES'),
+      printFont:    getSetting('print_font','Times New Roman'),
+      printFontSize: getSetting('print_font_size','11'),
+      showStamp:    getSetting('show_stamp','true') === 'true',
+    });
+  };;
 
   const filtered = reqs.filter(r=>{
     if(statusFilter!=="all"&&r.status!==statusFilter) return false;

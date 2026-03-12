@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Package, Plus, RefreshCw, Search, Eye, Printer, X, Save, CheckCircle, Trash2 } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printGRN } from "@/lib/printDocument";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   pending:    {bg:"#fef3c7",color:"#92400e",label:"Pending"},
@@ -19,6 +21,7 @@ const EMPTY_ITEM: GrnItem = {item_name:"",description:"",unit_of_measure:"pcs",q
 
 export default function GoodsReceivedPage() {
   const { user, profile, roles } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canReceive = roles.includes("admin")||roles.includes("procurement_manager")||roles.includes("warehouse_officer")||roles.includes("inventory_manager");
   const [grns, setGrns]           = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -30,8 +33,6 @@ export default function GoodsReceivedPage() {
   const [saving, setSaving]       = useState(false);
   const [form, setForm] = useState({grn_number:"",po_reference:"",supplier_id:"",supplier_name:"",received_date:new Date().toISOString().slice(0,10),delivery_note_number:"",carrier_name:"",remarks:"",status:"received"});
   const [grnItems, setGrnItems]   = useState<GrnItem[]>([{...EMPTY_ITEM}]);
-  const hospitalName = "Embu Level 5 Hospital";
-  const sysName      = "EL5 MediProcure";
 
   const load = async()=>{
     setLoading(true);
@@ -46,28 +47,15 @@ export default function GoodsReceivedPage() {
   const genGrn = ()=>`GRN/EL5H/${new Date().getFullYear()}/${String(Math.floor(1000+Math.random()*9000))}`;
 
   const printGrn = (g:any) => {
-    const win = window.open("","_blank","width=900,height=700");
-    if(!win) return;
-    const rcvDate = g.received_date ? new Date(g.received_date).toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"}) : new Date(g.created_at||Date.now()).toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"});
-    const items: any[] = g.goods_received_items || [];
-    const totalAmt = items.reduce((s:number,i:any)=>s+((i.quantity_received||i.quantity||0)*(i.unit_price||0)),0);
-    const padded = [...items,...Array(Math.max(0,8-items.length)).fill(null)];
-    const rowsHtml = padded.map((it:any)=>`<tr style="height:26px"><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px">${it?it.item_name||it.description||"":""}</td><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px">${it?it.description||"":""}</td><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center">${it?it.unit_of_measure||"":""}</td><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center">${it?it.quantity_ordered||"":""}</td><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center">${it?it.quantity_received||"":""}</td><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:right">${it&&it.unit_price?Number(it.unit_price).toLocaleString("en-KE",{minimumFractionDigits:2}):""}</td><td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:right">${it&&it.unit_price&&(it.quantity_received||it.quantity)?Number((it.quantity_received||it.quantity||0)*(it.unit_price||0)).toLocaleString("en-KE",{minimumFractionDigits:2}):""}</td></tr>`).join("");
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GRN — ${g.grn_number}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Times New Roman',serif;font-size:12px;padding:30px 40px}@media print{body{padding:10mm}@page{size:A4;margin:10mm}}h1{font-size:22px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}.div{border:none;border-top:3px solid #1a3a6b;margin:8px 0 18px}.two{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:18px}.sl{font-size:12px;font-weight:700;text-decoration:underline;text-transform:uppercase;margin-bottom:8px}.il{font-size:11.5px;margin-bottom:6px}.lb{font-weight:700}.iv{border-bottom:1px solid #999;display:inline-block;min-width:180px;margin-left:4px}table{width:100%;border-collapse:collapse;margin-bottom:10px}.tt{background:#1a3a6b;color:#fff;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;padding:7px;border:1px solid #1a3a6b}.th{background:#1a3a6b;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;padding:5px 6px;border:1px solid #1a3a6b}.tot{width:280px;margin-left:auto;border-collapse:collapse}.tot td{border:1px solid #1a3a6b;padding:5px 10px;font-size:11.5px}.lbl{background:#eef2ff;font-weight:700;text-transform:uppercase}.val{text-align:right;font-weight:700}.wl{border-bottom:1px solid #000;display:block;margin-bottom:8px;min-height:18px}.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:24px}.sb{text-align:center}.sln{border-top:1px solid #000;margin-top:36px;margin-bottom:4px}.slb{font-size:10px;font-weight:700;text-transform:uppercase}.sdt{font-size:9px;color:#555;margin-top:3px}.ft{margin-top:24px;border-top:1px solid #ccc;padding-top:6px;font-size:9px;color:#555;display:flex;justify-content:space-between}.st{font-size:10px;border:1px solid #ccc;padding:10px;margin-bottom:16px;line-height:1.6}</style></head><body>
-    <h1>Goods Received Note</h1><p style="text-align:center;font-size:11px;color:#444;margin-bottom:6px">${hospitalName} · ${sysName} · Embu County Government</p><hr class="div"/>
-    <div style="margin-bottom:18px"><p><strong>GRN NUMBER:</strong> ${g.grn_number||"—"}</p><p><strong>DATE:</strong> ${rcvDate}</p><p><strong>PO REFERENCE:</strong> ${g.po_reference||"—"}</p></div>
-    <div class="two"><div><div class="sl">Delivery Information:</div><div class="il"><span class="lb">DELIVERY NOTE NUMBER:</span><span class="iv">${g.delivery_note_number||""}</span></div><div class="il"><span class="lb">DELIVERY DATE:</span><span class="iv">${rcvDate}</span></div><div class="il"><span class="lb">CARRIER/DRIVER NAME:</span><span class="iv">${g.carrier_name||""}</span></div></div>
-    <div><div class="sl">Supplier Information:</div><div class="il"><span class="lb">SUPPLIER NAME:</span><span class="iv">${g.supplier_name||""}</span></div><div class="il"><span class="lb">SUPPLIER ADDRESS:</span><span class="iv">&nbsp;</span></div><div class="il"><span class="lb">CONTACT INFO:</span><span class="iv">&nbsp;</span></div></div></div>
-    <div style="margin-bottom:16px"><div class="sl" style="margin-bottom:8px">Received By:</div><div class="il"><span class="lb">NAME:</span><span class="iv">${g.created_by_name||""}</span>&nbsp;&nbsp;<span class="lb">DEPT:</span><span class="iv">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div></div>
-    <table><tr><td colspan="7" class="tt">RECEIVED ITEMS</td></tr><tr><th class="th" style="width:18%">ITEM</th><th class="th" style="width:24%">DESCRIPTION</th><th class="th" style="width:9%;text-align:center">UOM</th><th class="th" style="width:10%;text-align:center">QTY<br>ORDERED</th><th class="th" style="width:10%;text-align:center">QTY<br>RECEIVED</th><th class="th" style="width:14%;text-align:right">UNIT PRICE</th><th class="th" style="width:15%;text-align:right">TOTAL PRICE</th></tr>${rowsHtml}</table>
-    <table class="tot"><tr><td class="lbl">TOTAL ITEMS</td><td class="val">${items.length||"—"}</td></tr><tr><td class="lbl">TOTAL AMOUNT</td><td class="val">KES ${totalAmt>0?totalAmt.toLocaleString("en-KE",{minimumFractionDigits:2}):"—"}</td></tr></table>
-    <div style="margin-bottom:16px"><div class="sl">Received Condition:</div><span class="wl">&nbsp;</span><span class="wl">&nbsp;</span></div>
-    <div style="margin-bottom:16px"><div class="sl">Comments / Remarks:</div><span class="wl">${g.remarks||"&nbsp;"}</span><span class="wl">&nbsp;</span><span class="wl">&nbsp;</span></div>
-    <div class="st"><strong>Confirmation Statement:</strong><br>I hereby confirm that the goods listed above have been received, verified and inspected. By signing below, I confirm receipt and acceptance on behalf of ${hospitalName}.</div>
-    <div class="sg">${["Received By","Inspected By","Approved By"].map(s=>`<div class="sb"><div class="sln"></div><div class="slb">${s}</div><div class="sdt">Name: ___________________</div><div class="sdt">Date: ___________________</div></div>`).join("")}</div>
-    <div class="ft"><span>${hospitalName} · ${sysName}</span><span>Printed: ${new Date().toLocaleString("en-KE")} · OFFICIAL DOCUMENT</span></div>
-    </body></html>`);
-    win.document.close(); win.focus(); setTimeout(()=>win.print(),500);
+    printGRN(g, {
+      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
+      sysName:        getSetting('system_name','EL5 MediProcure'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      currencySymbol: getSetting('currency_symbol','KES'),
+      printFont:      getSetting('print_font','Times New Roman'),
+      printFontSize:  getSetting('print_font_size','11'),
+      showStamp:      getSetting('show_stamp','true') === 'true',
+    });
   };
 
   const updateItem = (idx:number, field:keyof GrnItem, val:string) =>

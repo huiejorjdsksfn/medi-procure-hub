@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationPopup";
 import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import procBg from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/logo.png";
 import {
@@ -90,6 +91,7 @@ const MODULES = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, roles, signOut } = useAuth();
+  const { get: getSetting, bool: getBool } = useSystemSettings();
   const location  = useLocation();
   const navigate  = useNavigate();
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -99,11 +101,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [activeMenu,   setActiveMenu]   = useState<string|null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobile,     setIsMobile]     = useState(window.innerWidth < 900);
-  const [sysName,      setSysName]      = useState("EL5 MediProcure");
-  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
-  const [logoUrl,      setLogoUrl]      = useState<string|null>(null);
   const [searchQuery,  setSearchQuery]  = useState("");
   const [searchOpen,   setSearchOpen]   = useState(false);
+
+  // Live settings from real-time hook
+  const sysName      = getSetting("system_name", "EL5 MediProcure");
+  const hospitalName = getSetting("hospital_name", "Embu Level 5 Hospital");
+  const logoUrl      = getSetting("logo_url") || null;
 
   const primaryRole = roles[0] || "requisitioner";
   const isAdmin = roles.includes("admin");
@@ -129,23 +133,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   },[location.pathname]);
 
   useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name","logo_url"])
-      .then(({data}:any)=>{
-        data?.forEach((r:any)=>{
-          if(r.key==="system_name")   setSysName(r.value||"EL5 MediProcure");
-          if(r.key==="hospital_name") setHospitalName(r.value||"Embu Level 5 Hospital");
-          if(r.key==="logo_url")      setLogoUrl(r.value||null);
-        });
-      });
-  },[]);
-
-  useEffect(()=>{
     const handler=(e:MouseEvent)=>{ if(userMenuRef.current&&!userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false); };
     document.addEventListener("mousedown",handler);
     return ()=>document.removeEventListener("mousedown",handler);
   },[]);
 
-  const canSee = (m: typeof MODULES[0]) => !m.roles.length || m.roles.some(r=>roles.includes(r));
+  // Module toggle: hide modules disabled by admin
+  const moduleEnabled = (moduleId: string): boolean => {
+    const map: Record<string, string> = {
+      procurement: "enable_procurement",
+      vouchers:    "enable_vouchers",
+      financials:  "enable_financials",
+      inventory:   "true", // always on
+      quality:     "enable_quality",
+      reports:     "true", // always on
+      admin:       "true", // always on for admins
+    };
+    const key = map[moduleId];
+    if (!key || key === "true") return true;
+    return getBool(key, true);
+  };
+
+  const canSee = (m: typeof MODULES[0]) => {
+    if(!moduleEnabled(m.id)) return false;
+    return !m.roles.length || m.roles.some(r=>roles.includes(r));
+  };
 
   const allPages = MODULES.flatMap(m=>[
     {label:m.label,path:m.path,icon:m.icon,color:m.color},

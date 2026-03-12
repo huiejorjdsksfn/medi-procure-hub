@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { notifyProcurement, sendNotification } from "@/lib/notify";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printPurchaseOrder } from "@/lib/printDocument";
 
 const STATUS_CFG: Record<string,{bg:string;color:string}> = {
   draft:    {bg:"#f3f4f6",color:"#6b7280"},
@@ -23,19 +25,13 @@ const STATUS_CFG: Record<string,{bg:string;color:string}> = {
 
 export default function PurchaseOrdersPage() {
   const { user, profile, roles } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canApprove = roles.includes("admin") || roles.includes("procurement_manager");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewPO, setViewPO] = useState<any>(null);
-  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
-  const [sysName, setSysName] = useState("EL5 MediProcure");
-
-  useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
-      .then(({data}:any)=>{ if(!data) return; const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
-  },[]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,55 +54,20 @@ export default function PurchaseOrdersPage() {
   };
 
   const printLPO = (po:any) => {
-    const win = window.open("","_blank","width=900,height=700");
-    if(!win) return;
-    win.document.write(`<html><head><title>${po.po_number}</title>
-    <style>
-      body{font-family:'Segoe UI',Arial;margin:0;padding:20px;font-size:12px;color:#1f2937}
-      .header{background:#0a2558;color:#fff;padding:15px 20px;margin:-20px -20px 20px;display:flex;justify-content:space-between;align-items:center}
-      .header h2{margin:0;font-size:16px}.header small{opacity:0.6;font-size:10px}
-      .po-no{font-size:20px;font-weight:900;color:#1a3a6b;margin-bottom:5px}
-      .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
-      .field .lbl{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}
-      .field .val{font-size:12px;color:#1f2937}
-      table{width:100%;border-collapse:collapse;font-size:11px}
-      thead tr{background:#1a3a6b;color:#fff}
-      th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase}
-      td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
-      .total-row{background:#f8fafc;font-weight:700}
-      .sig-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:40px}
-      .sig-box{border-top:1px solid #ccc;padding-top:6px;font-size:9px;color:#888}
-      @media print{@page{margin:1.2cm}body{margin:0}}
-    </style></head><body>
-    <div class="header">
-      <div><h2>${hospitalName}</h2><small>Official Local Purchase Order</small></div>
-      <div style="text-align:right"><div style="font-size:16px;font-weight:900">${po.po_number}</div><small>Issue Date: ${po.created_at?new Date(po.created_at).toLocaleDateString("en-KE"):""}</small></div>
-    </div>
-    <div class="grid">
-      <div class="field"><div class="lbl">Supplier</div><div class="val">${po.suppliers?.name||po.supplier_name||"—"}</div></div>
-      <div class="field"><div class="lbl">Status</div><div class="val" style="text-transform:capitalize">${po.status||"—"}</div></div>
-      <div class="field"><div class="lbl">Delivery Date</div><div class="val">${po.delivery_date||"—"}</div></div>
-      <div class="field"><div class="lbl">Payment Terms</div><div class="val">${po.payment_terms||"30 Days"}</div></div>
-    </div>
-    <table>
-      <thead><tr><th>#</th><th>Item Description</th><th>Qty</th><th>UoM</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>
-      <tbody>
-        ${(po.items||[]).map((it:any,i:number)=>`<tr><td>${i+1}</td><td>${it.description||it.item_name||"—"}</td><td>${it.quantity||0}</td><td>${it.unit||"—"}</td><td style="text-align:right">KES ${Number(it.unit_price||0).toLocaleString()}</td><td style="text-align:right">KES ${Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td></tr>`).join("")||"<tr><td colspan='6' style='text-align:center;color:#9ca3af;padding:12px'>No line items</td></tr>"}
-      </tbody>
-      <tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding:8px 10px">TOTAL (KES)</td><td style="text-align:right;padding:8px 10px">KES ${Number(po.total_amount||0).toLocaleString()}</td></tr></tfoot>
-    </table>
-    ${po.notes?`<div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:6px"><strong style="font-size:10px;color:#888">NOTES:</strong> ${po.notes}</div>`:""}
-    <div class="sig-row">
-      ${["Prepared By","Authorized By","Supplier Acknowledgement"].map(s=>`<div class="sig-box">${s}<br><br><br></div>`).join("")}
-    </div>
-    <div style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:8px;font-size:9px;color:#aaa;text-align:center">${hospitalName} · ${sysName} · ${new Date().toLocaleDateString("en-KE")} · Official Document</div>
-    </body></html>`);
-    win.document.close();win.focus();setTimeout(()=>win.print(),400);
+    printPurchaseOrder(po, {
+      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
+      sysName:        getSetting('system_name','EL5 MediProcure'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      currencySymbol: getSetting('currency_symbol','KES'),
+      printFont:      getSetting('print_font','Times New Roman'),
+      printFontSize:  getSetting('print_font_size','11'),
+      showStamp:      getSetting('show_stamp','true') === 'true',
+    });
   };
 
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
-    const header = [[hospitalName],[sysName+" — Purchase Orders"],[`Exported: ${new Date().toLocaleString("en-KE")}`],[]];
+    const header = [[getSetting('hospital_name','Embu Level 5 Hospital')],[getSetting('system_name','EL5 MediProcure')+" — Purchase Orders"],[`Exported: ${new Date().toLocaleString("en-KE")}`],[]];
     const rows = filtered.map(po=>({
       "PO Number":po.po_number,"Supplier":po.suppliers?.name||po.supplier_name||"",
       "Status":po.status,"Total Amount":po.total_amount||0,

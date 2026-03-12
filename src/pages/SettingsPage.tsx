@@ -8,6 +8,8 @@ import {
   Server, Printer, Cpu, Zap, DollarSign, ShoppingCart
 } from "lucide-react";
 import RoleGuard from "@/components/RoleGuard";
+import { saveSettings } from "@/hooks/useSystemSettings";
+import { sendSystemBroadcast } from "@/lib/broadcast";
 
 const SECTIONS = [
   { id:"hospital",      label:"Hospital Info",      icon:Building2,   color:"#0078d4" },
@@ -135,18 +137,25 @@ function SettingsInner() {
 
   const save = async(keys:string[]) => {
     setSaving(true);
-    let ok=0;
-    for(const k of keys){
-      const val=S[k]??"";
-      try{
-        const{data:ex}=await (supabase as any).from("system_settings").select("id").eq("key",k).maybeSingle();
-        if(ex?.id) await (supabase as any).from("system_settings").update({value:val}).eq("key",k);
-        else       await (supabase as any).from("system_settings").insert({key:k,value:val,category:sec,label:k.replace(/_/g," ")});
-        ok++;
-      }catch{}
+    const kvPairs: Record<string,string> = {};
+    keys.forEach(k => { kvPairs[k] = S[k] ?? ""; });
+    const { ok, error } = await saveSettings(kvPairs, sec);
+    if (!ok) {
+      toast({title:"Save failed", description: error, variant:"destructive"});
+      setSaving(false);
+      return;
     }
-    await (supabase as any).from("audit_log").insert({user_id:user?.id,action:"settings_updated",table_name:"system_settings",details:JSON.stringify({section:sec,count:ok,by:profile?.full_name})}).catch(()=>{});
-    toast({title:`✓ ${ok} settings saved globally`});
+    // Broadcast to all connected users if key settings changed
+    const broadcastKeys = ["hospital_name","system_name","primary_color","maintenance_mode","logo_url"];
+    if(keys.some(k => broadcastKeys.includes(k))){
+      await sendSystemBroadcast({
+        title:"System Settings Updated",
+        message:`Settings updated by ${profile?.full_name||"Admin"}. Changes are now live across all sessions.`,
+        type:"info",
+      }).catch(()=>{});
+    }
+    await (supabase as any).from("audit_log").insert({user_id:user?.id,action:"settings_updated",table_name:"system_settings",details:JSON.stringify({section:sec,count:keys.length,by:profile?.full_name})}).catch(()=>{});
+    toast({title:`✓ ${keys.length} settings saved — live everywhere`});
     setDirty(false); setSaving(false);
   };
 

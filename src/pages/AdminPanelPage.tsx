@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
 import { notifyAdmins } from "@/lib/notify";
+import { saveSettings } from "@/hooks/useSystemSettings";
+import { sendSystemBroadcast } from "@/lib/broadcast";
 import {
   Settings, Palette, Shield, Bell, Database, Globe, FileText, Package,
   Truck, DollarSign, BarChart3, Save, RefreshCw, Upload, Users, Building2,
@@ -160,16 +162,24 @@ function AdminInner() {
 
   const saveSection = async(keys:string[])=>{
     setSaving(true);
-    for(const k of keys){
-      const val=S[k]??"";
-      const{data:ex}=await(supabase as any).from("system_settings").select("id").eq("key",k).maybeSingle();
-      if(ex?.id) await(supabase as any).from("system_settings").update({value:val}).eq("key",k);
-      else await(supabase as any).from("system_settings").insert({key:k,value:val,category:section});
+    const kvPairs: Record<string,string> = {};
+    keys.forEach(k => { kvPairs[k] = S[k] ?? ""; });
+    const { ok, error } = await saveSettings(kvPairs, section);
+    if (!ok) {
+      toast({title:"Save failed", description: error, variant:"destructive"});
+      setSaving(false);
+      return;
     }
-    if(keys.includes("maintenance_mode")||keys.includes("primary_color")){
-      await notifyAdmins({title:"Admin Panel: Settings Changed",message:`${profile?.full_name||"Admin"} updated ${section} settings`,type:"system",module:"Admin"});
+    // Broadcast change to all connected users
+    if(keys.includes("maintenance_mode")||keys.includes("primary_color")||keys.includes("hospital_name")||keys.includes("system_name")){
+      await sendSystemBroadcast({
+        title:"System Settings Updated",
+        message:`${profile?.full_name||"Admin"} updated ${section} settings. Changes are now live.`,
+        type:"info",
+      });
     }
-    toast({title:"Saved ✓",description:`${keys.length} settings updated globally`});
+    await notifyAdmins({title:"Admin Panel: Settings Changed",message:`${profile?.full_name||"Admin"} updated ${section} settings`,type:"system",module:"Admin"});
+    toast({title:"Saved ✓",description:`${keys.length} setting(s) updated — live across all users`});
     setSaving(false);
   };
 

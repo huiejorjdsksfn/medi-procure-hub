@@ -5,6 +5,8 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2, CheckCircle } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { printGenericVoucher } from "@/lib/printDocument";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
 const genNo = () => `PV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
@@ -12,6 +14,7 @@ const SC: Record<string,string> = {pending:"#d97706",approved:"#15803d",rejected
 
 export default function PurchaseVouchersPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
   const canApprove = hasRole("admin")||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
@@ -82,35 +85,14 @@ export default function PurchaseVouchersPage() {
   };
 
   const printVoucher = (v:any) => {
-    const w=window.open("","_blank","width=1000,height=700");
-    if(!w) return;
-    const logo=logoUrl?`<img src="${logoUrl}" style="height:50px;object-fit:contain">`:""
-    const itemsHtml=(v.line_items||[]).map((it:any,i:number)=>`<tr><td>${i+1}</td><td>${it.description}</td><td style="text-align:right">${it.qty}</td><td style="text-align:right">${fmtKES(Number(it.rate||0))}</td><td style="text-align:right">${fmtKES(Number(it.amount||0))}</td></tr>`).join("");
-    w.document.write(`<html><head><title>Purchase Voucher</title>
-    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:0;font-size:11px}
-    .lh{background:#1e3a5f;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
-    .lh-info h2{margin:0;font-size:16px;font-weight:900}.body{padding:20px}
-    table{width:100%;border-collapse:collapse;font-size:10px}
-    th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left;font-size:9px;text-transform:uppercase;font-weight:700}
-    td{padding:5px 10px;border-bottom:1px solid #f3f4f6}tr:nth-child(even) td{background:#f9fafb}
-    .total-row td{background:#e0f2fe;font-weight:800}.meta td:first-child{font-weight:700;color:#6b7280;width:30%}
-    @media print{@page{margin:1cm}}</style></head><body>
-    <div class="lh">${logo}<div class="lh-info"><h2>${hospitalName}</h2><small>PURCHASE VOUCHER — ${v.voucher_number}</small></div></div>
-    <div class="body">
-      <table class="meta" style="margin-bottom:16px;font-size:11px">
-        <tr><td>Supplier</td><td style="font-weight:700;font-size:13px">${v.supplier_name}</td><td style="font-weight:700;color:#6b7280">Date</td><td>${new Date(v.voucher_date).toLocaleDateString("en-KE",{year:"numeric",month:"long",day:"numeric"})}</td></tr>
-        <tr><td>Invoice No.</td><td>${v.invoice_number||"—"}</td><td style="font-weight:700;color:#6b7280">PO Reference</td><td>${v.po_reference||"—"}</td></tr>
-        <tr><td>Due Date</td><td>${v.due_date?new Date(v.due_date).toLocaleDateString("en-KE"):"—"}</td><td style="font-weight:700;color:#6b7280">Status</td><td>${v.status}</td></tr>
-        <tr><td>Expense Account</td><td colspan="3">${v.expense_account||"—"}</td></tr>
-      </table>
-      <table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
-      <tbody>${itemsHtml}
-        <tr><td colspan="4" style="text-align:right;font-weight:700">Subtotal</td><td>${fmtKES(v.subtotal)}</td></tr>
-        <tr><td colspan="4" style="text-align:right;font-weight:700">VAT ${v.tax_rate||16}%</td><td>${fmtKES(v.tax_amount)}</td></tr>
-        <tr class="total-row"><td colspan="4" style="text-align:right;font-size:13px">TOTAL</td><td style="font-size:13px">${fmtKES(v.amount)}</td></tr>
-      </tbody></table>
-    </div></body></html>`);
-    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+    printGenericVoucher(v, "Purchase Voucher", {
+      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
+      sysName:        getSetting('system_name','EL5 MediProcure'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      currencySymbol: getSetting('currency_symbol','KES'),
+      printFont:      getSetting('print_font','Times New Roman'),
+      showStamp:      getSetting('show_stamp','true') === 'true',
+    });
   };
 
   const filtered = search ? rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))) : rows;
