@@ -126,14 +126,38 @@ export default function PurchaseOrdersPage() {
   });
 
   return (
-      <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      <div style={{padding:16,display:"flex",flexDirection:"column",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      {/* KPI TILES */}
+      {(()=>{
+        const totalVal = orders.reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const recVal   = orders.filter(r=>r.status==="received").reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const bal      = totalVal - recVal;
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+            {[
+              {label:"Total Value",val:fmtK(totalVal),bg:"#c0392b"},
+              {label:"Received Amt.",val:fmtK(recVal),bg:"#7d6608"},
+              {label:"Balance",val:fmtK(bal),bg:"#0e6655"},
+              {label:"Record Count",val:orders.length,bg:"#6c3483"},
+              {label:"Pending / Draft",val:orders.filter(r=>["draft","pending"].includes(r.status||"")).length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
-      <div style={{borderRadius:16,background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)"}}>
+      <div style={{borderRadius:12,background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <ShoppingCart style={{width:20,height:20,color:"#fff"}}/>
           <div>
-            <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Purchase Orders</h1>
-            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{filtered.length} of {orders.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}</p>
+            <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Purchase Orders</h1>
+            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length} of {orders.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}</p>
           </div>
         </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:8}}>

@@ -107,9 +107,33 @@ export default function PaymentVouchersPage() {
   const filtered=rows.filter(r=>(stFilter==="all"||r.status===stFilter)&&(!search||[r.voucher_number,r.payee_name,r.payment_method,r.reference].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()))));
 
   return (
-      <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"16px 20px",maxWidth:1400,margin:"0 auto",fontFamily:"'Segoe UI',system-ui"}}>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      {/* KPI TILES */}
+      {(()=>{
+        const totalAmt = rows.reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const paidAmt  = rows.filter(r=>r.status==="paid").reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const pendAmt  = rows.filter(r=>r.status==="pending").reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const fmtKES=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(2)}K`:`KES ${n.toFixed(0)}`;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
+            {[
+              {label:"Total Value",val:fmtKES(totalAmt),bg:"#c0392b"},
+              {label:"Paid Amount",val:fmtKES(paidAmt),bg:"#0e6655"},
+              {label:"Pending Amount",val:fmtKES(pendAmt),bg:"#7d6608"},
+              {label:"Record Count",val:rows.length,bg:"#6c3483"},
+              {label:"Pending Approval",val:rows.filter(r=>r.status==="pending").length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#0f766e,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <DollarSign style={{width:21,height:21,color:"#fff"}}/>

@@ -70,25 +70,39 @@ export default function ChartOfAccountsPage() {
 
   const TYPES = ["all","Asset","Liability","Equity","Revenue","Expense"];
   const totalBalance = filtered.reduce((s,r)=>s+Number(r.balance||0),0);
+  const totalAssets  = rows.filter(r=>r.account_type==="Asset").reduce((s,r)=>s+Number(r.balance||0),0);
+  const totalRevenue = rows.filter(r=>r.account_type==="Revenue").reduce((s,r)=>s+Number(r.balance||0),0);
+  const totalExpense = rows.filter(r=>r.account_type==="Expense").reduce((s,r)=>s+Number(r.balance||0),0);
+  const activeAccounts = rows.filter(r=>r.is_active!==false).length;
 
   return (
-    <div
-      style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}
-    >
-    <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}.vpage-filters{flex-wrap:wrap!important}.vpage-table{font-size:11px!important}}
-        @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
-      `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e3a5f)"}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+      {/* KPI TILES */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+        {[
+          {label:"Total Balance",val:fmtKES(totalBalance),bg:"#c0392b"},
+          {label:"Total Assets",val:fmtKES(totalAssets),bg:"#0e6655"},
+          {label:"Total Revenue",val:fmtKES(totalRevenue),bg:"#7d6608"},
+          {label:"Total Expenses",val:fmtKES(totalExpense),bg:"#6c3483"},
+          {label:"Active Accounts",val:activeAccounts,bg:"#1a252f"},
+        ].map(k=>(
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+            <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
+            <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+      {/* HEADER BAR */}
+      <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e3a5f)"}}>
         <div>
-          <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Chart of Accounts</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} accounts · Balance: {fmtKES(totalBalance)}</p>
+          <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Chart of Accounts</h1>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} accounts · {filtered.length} shown</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus style={{width:14,height:14}}/>New Account</button>}
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus style={{width:14,height:14}}/>New Account</button>}
         </div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>

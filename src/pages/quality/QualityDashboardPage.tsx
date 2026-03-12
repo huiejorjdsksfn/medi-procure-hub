@@ -269,10 +269,12 @@ export default function QualityDashboardPage() {
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         .qrow:hover td{background:#f0f7ff!important;}
-        .qinp{width:100%;border:none;outline:none;background:transparent;font-size:9.5px;font-family:inherit;padding:2px 4px;text-align:center;color:#1a1a2e;box-sizing:border-box;}
-        .qinp:focus{background:#fffde7!important;border-radius:2px;}
-        .qsel{width:100%;border:none;outline:none;background:transparent;font-size:9.5px;font-family:inherit;text-align:center;cursor:pointer;color:#1a1a2e;}
-        .qsel:focus{background:#fffde7!important;}
+        .qinp{width:100%;border:none;outline:none;background:transparent;font-size:9.5px;font-family:inherit;padding:2px 4px;text-align:center;color:#111827!important;box-sizing:border-box;}
+        .qinp::placeholder{color:#9ca3af!important;}
+        .qinp:focus{background:#fffde7!important;border-radius:2px;color:#111827!important;}
+        .qsel{width:100%;border:none;outline:none;background:transparent;font-size:9.5px;font-family:inherit;text-align:center;cursor:pointer;color:#111827!important;}
+        .qsel option{color:#111827!important;background:#fff!important;}
+        .qsel:focus{background:#fffde7!important;color:#111827!important;}
       `}</style>
 
       {/* ══ TOP TOOLBAR ══ */}

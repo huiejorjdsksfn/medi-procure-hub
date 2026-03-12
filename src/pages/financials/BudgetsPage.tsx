@@ -73,24 +73,41 @@ export default function BudgetsPage() {
   const totalAllocated = filtered.reduce((s,r)=>s+Number(r.allocated_amount||0),0);
   const totalSpent = filtered.reduce((s,r)=>s+Number(r.spent_amount||0),0);
 
+  const activeCount = filtered.filter(r=>r.status==="active").length;
+  const exceededCount = filtered.filter(r=>r.status==="exceeded"||(r.spent_amount||0)>r.allocated_amount).length;
+  const utilizationPct = totalAllocated>0?Math.round(totalSpent/totalAllocated*100):0;
+
   return (
-    <div
-      style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}
-    >
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
     <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}.vpage-filters{flex-wrap:wrap!important}.vpage-table{font-size:11px!important}}
-        @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
+        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}}
       `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e1b4b,#3730a3)"}}>
+    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+      {/* KPI TILES */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+        {[
+          {label:"Total Allocated",val:fmtKES(totalAllocated),bg:"#c0392b"},
+          {label:"Total Spent",val:fmtKES(totalSpent),bg:"#7d6608"},
+          {label:"Remaining Balance",val:fmtKES(Math.max(0,totalAllocated-totalSpent)),bg:"#0e6655"},
+          {label:"Utilization %",val:`${utilizationPct}%`,bg:"#6c3483"},
+          {label:"Active Budgets",val:activeCount,bg:"#1a252f"},
+        ].map(k=>(
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+            <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+            <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+      {/* HEADER BAR */}
+      <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e1b4b,#3730a3)"}}>
         <div>
-          <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Budgets</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} budgets · Allocated: {fmtKES(totalAllocated)} · Spent: {fmtKES(totalSpent)}</p>
+          <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Budgets</h1>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} records · {exceededCount} exceeded</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#3730a3"}}><Plus style={{width:14,height:14}}/>New Budget</button>}
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#3730a3"}}><Plus style={{width:14,height:14}}/>New Budget</button>}
         </div>
       </div>
       <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
