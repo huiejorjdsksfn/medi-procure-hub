@@ -107,32 +107,122 @@ export default function RequisitionsPage() {
   };
 
   const printReq = (r:any) => {
-    const win=window.open("","_blank","width=800,height=600");
+    const win=window.open("","_blank","width=900,height=700");
     if(!win) return;
-    const items = (r.requisition_items||[]).map((i:any)=>`<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6">${i.item_name||"—"}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">${i.quantity||0}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6">${i.unit_of_measure||"—"}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">KES ${Number(i.unit_price||0).toLocaleString()}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">KES ${Number((i.quantity||0)*(i.unit_price||0)).toLocaleString()}</td></tr>`).join("");
-    win.document.write(`<html><head><title>${r.requisition_number}</title>
-    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:20px;font-size:12px;color:#1f2937}.lh{background:#0a2558;color:#fff;padding:15px 20px;margin:-20px -20px 20px}.lh h2{margin:0;font-size:18px}.lh small{opacity:0.6;font-size:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}.field{}.lbl{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}.val{font-size:12px;color:#1f2937}table{width:100%;border-collapse:collapse}thead tr{background:#1a3a6b;color:#fff}th{padding:8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase}@media print{@page{margin:1cm}}</style>
-    </head><body>
-    <div class="lh"><h2>${hospitalName}</h2><small>${sysName} · Requisition Voucher</small></div>
-    <h3 style="color:#1a3a6b;margin-bottom:12px">${r.requisition_number}</h3>
-    <div class="grid">
-      <div class="field"><div class="lbl">Title</div><div class="val">${r.title||"—"}</div></div>
-      <div class="field"><div class="lbl">Department</div><div class="val">${r.department||"—"}</div></div>
-      <div class="field"><div class="lbl">Status</div><div class="val">${r.status||"—"}</div></div>
-      <div class="field"><div class="lbl">Priority</div><div class="val">${r.priority||"—"}</div></div>
-      <div class="field"><div class="lbl">Requester</div><div class="val">${r.requester_name||"—"}</div></div>
-      <div class="field"><div class="lbl">Date</div><div class="val">${r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</div></div>
+    const reqDate = r.created_at ? new Date(r.created_at).toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"}) : "—";
+    const delivDate = r.delivery_date ? new Date(r.delivery_date).toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"}) : "—";
+    const items = (r.requisition_items||[]);
+    const totalAmt = items.reduce((s:number,i:any)=>s+((i.quantity||0)*(i.unit_price||0)),0) || (r.total_amount||0);
+    // Pad to at least 8 rows
+    const padded = [...items,...Array(Math.max(0,8-items.length)).fill(null)];
+    const rowsHtml = padded.map((i:any,idx:number)=>`
+      <tr style="height:28px">
+        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;color:#000">${i?i.item_name||"":"" }</td>
+        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;color:#000">${i?i.description||"":""}</td>
+        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center;color:#000">${i?i.unit_of_measure||"":"" }</td>
+        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:center;color:#000">${i?i.quantity||"":""}</td>
+        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:right;color:#000">${i&&i.unit_price?Number(i.unit_price).toLocaleString("en-KE",{minimumFractionDigits:2}):"" }</td>
+        <td style="border:1px solid #1a3a6b;padding:4px 6px;font-size:11px;text-align:right;color:#000">${i&&i.quantity&&i.unit_price?Number((i.quantity||0)*(i.unit_price||0)).toLocaleString("en-KE",{minimumFractionDigits:2}):""}</td>
+      </tr>`).join("");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Requisition Form — ${r.requisition_number||"Draft"}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Times New Roman',Times,serif;font-size:12px;color:#000;background:#fff;padding:30px 40px}
+      @media print{body{padding:10mm 15mm}@page{size:A4;margin:10mm 15mm}}
+      h1{font-size:20px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;color:#000}
+      .divider{border:none;border-top:3px solid #1a3a6b;margin:8px 0 18px}
+      .meta-block{margin-bottom:18px}
+      .meta-block p{font-size:12px;margin-bottom:3px;color:#000}
+      .meta-block strong{font-weight:700}
+      .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:18px}
+      .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;color:#000;text-decoration:underline}
+      .info-line{font-size:11.5px;color:#000;margin-bottom:5px;display:flex;gap:4px}
+      .info-label{font-weight:700;min-width:180px;flex-shrink:0}
+      .info-val{border-bottom:1px solid #999;flex:1;min-height:16px}
+      table{width:100%;border-collapse:collapse;margin-bottom:10px}
+      .tbl-title{background:#1a3a6b;color:#fff;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px;border:1px solid #1a3a6b}
+      .tbl-hdr{background:#1a3a6b;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;text-align:left;padding:5px 6px;border:1px solid #1a3a6b}
+      .tbl-hdr-c{text-align:center}
+      .tbl-hdr-r{text-align:right}
+      .totals-tbl{width:auto;margin-left:auto;margin-bottom:20px}
+      .totals-tbl td{border:1px solid #1a3a6b;padding:5px 10px;font-size:11.5px;color:#000}
+      .totals-tbl .lbl{background:#eef2ff;font-weight:700;text-transform:uppercase;width:130px}
+      .totals-tbl .val{text-align:right;font-weight:700;min-width:120px}
+      .sig-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
+      .sig-box{text-align:center}
+      .sig-line{border-top:1px solid #000;margin-top:32px;margin-bottom:4px}
+      .sig-lbl{font-size:10px;font-weight:700;text-transform:uppercase;color:#000}
+      .sig-date{font-size:9px;color:#555;margin-top:2px}
+      .remarks-box{border:1px solid #1a3a6b;min-height:60px;padding:8px;font-size:11.5px;color:#000;margin-bottom:20px}
+      .footer{margin-top:24px;border-top:1px solid #ccc;padding-top:8px;font-size:9px;color:#555;display:flex;justify-content:space-between}
+    </style></head><body>
+    <h1>Requisition Form</h1>
+    <hr class="divider"/>
+    <!-- Identity -->
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:#000">${hospitalName}</div>
+      <div style="font-size:10.5px;color:#444">Embu County Government &nbsp;·&nbsp; ${sysName}</div>
     </div>
-    <table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th>UoM</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th></tr></thead>
-    <tbody>${items||"<tr><td colspan='5' style='text-align:center;padding:12px;color:#9ca3af'>No items</td></tr>"}</tbody></table>
-    <div style="margin-top:15px;border-top:2px solid #1a3a6b;padding-top:10px;text-align:right">
-      <strong>Total: KES ${Number(r.total_amount||0).toLocaleString()}</strong>
+    <!-- Ref numbers -->
+    <div class="meta-block">
+      <p><strong>REQUISITION NUMBER:</strong> ${r.requisition_number||"REQ/EL5H/—"}</p>
+      <p><strong>DATE:</strong> ${reqDate}</p>
+      <p><strong>PRIORITY:</strong> ${(r.priority||"Normal").toUpperCase()} &nbsp;&nbsp; <strong>STATUS:</strong> ${(r.status||"Draft").toUpperCase()}</p>
     </div>
-    <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
-      ${["Requested By","Recommended By","Approved By"].map(s=>`<div><div style="border-top:1px solid #ccc;margin-bottom:4px;padding-top:4px;font-size:9px;color:#888">${s}</div></div>`).join("")}
+    <!-- Two-column info -->
+    <div class="two-col">
+      <div>
+        <div class="section-title">Requisition Information:</div>
+        <div class="info-line"><span class="info-label">TITLE / PURPOSE:</span><span class="info-val">${r.title||""}</span></div>
+        <div class="info-line"><span class="info-label">DEPARTMENT:</span><span class="info-val">${r.department||""}</span></div>
+        <div class="info-line"><span class="info-label">REQUESTED BY:</span><span class="info-val">${r.requester_name||""}</span></div>
+        <div class="info-line"><span class="info-label">DATE REQUIRED:</span><span class="info-val">${delivDate}</span></div>
+      </div>
+      <div>
+        <div class="section-title">Approval Information:</div>
+        <div class="info-line"><span class="info-label">APPROVED BY:</span><span class="info-val">${r.approved_by_name||""}</span></div>
+        <div class="info-line"><span class="info-label">APPROVAL DATE:</span><span class="info-val">${r.approved_at?new Date(r.approved_at).toLocaleDateString("en-KE"):""}</span></div>
+        <div class="info-line"><span class="info-label">PO REFERENCE:</span><span class="info-val">${r.po_reference||""}</span></div>
+        <div class="info-line"><span class="info-label">NOTES / JUSTIFICATION:</span><span class="info-val">${r.notes||""}</span></div>
+      </div>
+    </div>
+    <!-- Items table -->
+    <table>
+      <tr><td colspan="6" class="tbl-title">REQUISITIONED ITEMS</td></tr>
+      <tr>
+        <th class="tbl-hdr" style="width:20%">ITEM NAME</th>
+        <th class="tbl-hdr" style="width:28%">DESCRIPTION / SPECIFICATION</th>
+        <th class="tbl-hdr tbl-hdr-c" style="width:10%">UNIT OF<br/>MEASURE</th>
+        <th class="tbl-hdr tbl-hdr-c" style="width:10%">QUANTITY<br/>REQUESTED</th>
+        <th class="tbl-hdr tbl-hdr-r" style="width:16%">ESTIMATED<br/>UNIT PRICE (KES)</th>
+        <th class="tbl-hdr tbl-hdr-r" style="width:16%">ESTIMATED<br/>TOTAL (KES)</th>
+      </tr>
+      ${rowsHtml}
+    </table>
+    <!-- Totals -->
+    <table class="totals-tbl">
+      <tr><td class="lbl">TOTAL ITEMS</td><td class="val">${items.length||"—"}</td></tr>
+      <tr><td class="lbl">TOTAL AMOUNT</td><td class="val">KES ${totalAmt.toLocaleString("en-KE",{minimumFractionDigits:2})}</td></tr>
+    </table>
+    <!-- Received condition / notes -->
+    <div class="section-title">JUSTIFICATION / SPECIAL NOTES:</div>
+    <div class="remarks-box">${r.notes||"&nbsp;"}</div>
+    <!-- Signatures -->
+    <div class="sig-grid">
+      ${["Requisitioned By","Verified By","Recommended By","Approved By"].map(s=>`
+        <div class="sig-box">
+          <div class="sig-line"></div>
+          <div class="sig-lbl">${s}</div>
+          <div class="sig-date">Name: ___________________</div>
+          <div class="sig-date">Date: ___________________</div>
+        </div>`).join("")}
+    </div>
+    <div class="footer">
+      <span>${hospitalName} &nbsp;·&nbsp; ${sysName}</span>
+      <span>Printed: ${new Date().toLocaleString("en-KE")} &nbsp;·&nbsp; CONFIDENTIAL</span>
     </div>
     </body></html>`);
-    win.document.close();win.focus();setTimeout(()=>win.print(),400);
+    win.document.close(); win.focus(); setTimeout(()=>win.print(),500);
   };
 
   const filtered = reqs.filter(r=>{
