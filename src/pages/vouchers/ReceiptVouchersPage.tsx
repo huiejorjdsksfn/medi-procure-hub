@@ -125,6 +125,27 @@ export default function ReceiptVouchersPage() {
         @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
       `}</style>
     <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
+      {/* KPI TILES */}
+      {(()=>{
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        const totalAll=rows.reduce((s:number,r:any)=>s+Number(r.amount||0),0);
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+            {[
+              {label:"Total Receipts",val:fmtK(totalAll),bg:"#c0392b"},
+              {label:"Record Count",val:rows.length,bg:"#7d6608"},
+              {label:"Showing",val:filtered.length,bg:"#0e6655"},
+              {label:"This Month",val:rows.filter(r=>r.receipt_date&&new Date(r.receipt_date).getMonth()===new Date().getMonth()).length,bg:"#6c3483"},
+              {label:"Avg Amount",val:fmtK(rows.length?totalAll/rows.length:0),bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#065f46,#047857)"}}>
         <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Receipt Vouchers</h1>
