@@ -124,7 +124,7 @@ export default function ODBCPage() {
   );
 
   return (
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"calc(100vh-100px)"}}>
+      <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"calc(100vh-100px)"}}>
       {/* Header */}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e3a5f,#0369a1,#0284c7)",boxShadow:"0 4px 16px rgba(3,105,161,0.35)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -197,7 +197,7 @@ export default function ODBCPage() {
                     <button onClick={()=>testConnection(c.id)} disabled={testing===c.id}
                       style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"6px 0",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:testing===c.id?"#f3f4f6":"#e0f2fe",color:testing===c.id?"#9ca3af":"#0369a1"}}>
                       {testing===c.id?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Activity style={{width:12,height:12}}/>}
-                      {testing===c.id?"Testing…":"Test"}
+                      {testing===c.id?"Testing...":"Test"}
                     </button>
                     <button onClick={()=>openEdit(c)}
                       style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#fef3c7",color:"#92400e"}}>
@@ -322,7 +322,7 @@ export default function ODBCPage() {
               <button onClick={save} disabled={saving}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#0369a1",opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
-                {saving?"Saving…":editing?"Update Connection":"Create Connection"}
+                {saving?"Saving...":editing?"Update Connection":"Create Connection"}
               </button>
             </div>
           </div>

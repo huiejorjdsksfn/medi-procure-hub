@@ -186,7 +186,7 @@ export default function ScannerPage() {
   const filteredItems = itemSearch ? allItems.filter(i=>[i.name,i.barcode,(i.item_categories?.name||"")].some(v=>String(v||"").toLowerCase().includes(itemSearch.toLowerCase()))) : allItems;
 
   return (
-    <div style={{background:"#f4f6f9",minHeight:"calc(100vh - 57px)",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{background:"#f4f6f9",minHeight:"calc(100vh - 57px)",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 12px rgba(26,58,107,0.3)"}}>
         <ScanBarcode style={{width:20,height:20,color:"#fff"}}/>
@@ -233,7 +233,7 @@ export default function ScannerPage() {
                     <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
                     <input value={manualInput} onChange={e=>setManualInput(e.target.value)}
                       onKeyDown={e=>e.key==="Enter"&&manualInput&&handleBarcode(manualInput)}
-                      placeholder="Enter barcode or item name manually…"
+                      placeholder="Enter barcode or item name manually..."
                       style={{width:"100%",paddingLeft:30,paddingRight:10,paddingTop:8,paddingBottom:8,fontSize:12,border:"1px solid #e5e7eb",borderRadius:8,outline:"none"}}/>
                   </div>
                   <button onClick={()=>manualInput&&handleBarcode(manualInput)} style={{padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
@@ -249,14 +249,14 @@ export default function ScannerPage() {
                 <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
                   {lookingUp ? <RefreshCw style={{width:13,height:13,color:"#6b7280",animation:"spin 1s linear infinite"}}/> : foundItem ? <CheckCircle style={{width:13,height:13,color:"#22c55e"}}/> : onlineInfo ? <Globe style={{width:13,height:13,color:"#0078d4"}}/> : <AlertTriangle style={{width:13,height:13,color:"#f59e0b"}}/>}
                   <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>
-                    {lookingUp?"Looking up…":foundItem?"Found in Inventory":onlineInfo?"Found Online":"Not Found"}
+                    {lookingUp?"Looking up...":foundItem?"Found in Inventory":onlineInfo?"Found Online":"Not Found"}
                   </span>
                   {barcode && <span style={{marginLeft:"auto",fontSize:10,background:"#f3f4f6",padding:"2px 8px",borderRadius:4,color:"#6b7280",fontWeight:700,fontFamily:"monospace"}}>{barcode}</span>}
                 </div>
                 <div style={{padding:"14px 16px"}}>
                   {lookingUp ? (
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {["Checking local inventory…","Searching Open Food Facts…","Searching UPC database…"].map((s,i)=>(
+                      {["Checking local inventory...","Searching Open Food Facts...","Searching UPC database..."].map((s,i)=>(
                         <div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:"#6b7280"}}>
                           <RefreshCw style={{width:10,height:10,animation:"spin 1s linear infinite"}}/> {s}
                         </div>
@@ -407,7 +407,7 @@ export default function ScannerPage() {
           <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden"}}>
             <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
               <Search style={{width:12,height:12,color:"#9ca3af"}}/>
-              <input value={itemSearch} onChange={e=>setItemSearch(e.target.value)} placeholder="Search inventory…"
+              <input value={itemSearch} onChange={e=>setItemSearch(e.target.value)} placeholder="Search inventory..."
                 style={{flex:1,border:"none",outline:"none",fontSize:12,color:"#374151"}}/>
               <button onClick={()=>{setShowAdd(true);setBarcode("");}} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>
                 <Plus style={{width:11,height:11}}/> Add Item
@@ -482,7 +482,7 @@ export default function ScannerPage() {
                 <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Category</label>
                 <select value={addForm.category_id} onChange={e=>setAddForm(p=>({...p,category_id:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
-                  <option value="">Select…</option>
+                  <option value="">Select...</option>
                   {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -490,7 +490,7 @@ export default function ScannerPage() {
                 <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Department</label>
                 <select value={addForm.department_id} onChange={e=>setAddForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
-                  <option value="">Select…</option>
+                  <option value="">Select...</option>
                   {departments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
@@ -512,7 +512,7 @@ export default function ScannerPage() {
             <div style={{padding:"12px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
               <button onClick={saveItem} disabled={saving} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
-                {saving?"Saving…":"Save to Inventory"}
+                {saving?"Saving...":"Save to Inventory"}
               </button>
               <button onClick={()=>setShowAdd(false)} style={{padding:"9px 16px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:12}}>Cancel</button>
             </div>

@@ -121,7 +121,7 @@ export default function AuditLogPage() {
         </select>
         <div style={{position:"relative",flex:1,minWidth:200}}>
           <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.3)"}}/>
-          <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search user, module, record…"
+          <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search user, module, record..."
             style={{...inp,width:"100%",paddingLeft:28,boxSizing:"border-box"}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
             <X style={{width:10,height:10,color:"rgba(255,255,255,0.4)"}}/>
@@ -134,7 +134,7 @@ export default function AuditLogPage() {
         {loading?(
           <div style={{padding:40,textAlign:"center"}}>
             <RefreshCw style={{width:28,height:28,color:"rgba(255,255,255,0.3)",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 10px"}}/>
-            <p style={{color:"rgba(255,255,255,0.4)",fontSize:12}}>Loading audit trail…</p>
+            <p style={{color:"rgba(255,255,255,0.4)",fontSize:12}}>Loading audit trail...</p>
           </div>
         ):(
           <div style={{overflowX:"auto"}}>
@@ -164,7 +164,7 @@ export default function AuditLogPage() {
                         <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:st.bg,color:st.color}}>{l.action||"—"}</span>
                       </td>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize"}}>{l.module||"—"}</td>
-                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"…":"—"}</td>
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"...":"—"}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"—"}</td>
                       <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"rgba(255,255,255,0.35)"}}>
                         {l.details?JSON.stringify(l.details).slice(0,60):"—"}

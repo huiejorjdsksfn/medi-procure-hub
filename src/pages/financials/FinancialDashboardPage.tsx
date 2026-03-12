@@ -229,8 +229,8 @@ export default function FinancialDashboardPage() {
   const MENUS: Record<string, { label: string; action?: () => void }[]> = {
     File: [
       { label: "New Voucher", action: () => navigate(`/vouchers/${activeMod.replace("_vouchers","").replace("journal","journal")}`) },
-      { label: "Export Excel…", action: exportExcel },
-      { label: "Print Report…", action: printReport },
+      { label: "Export Excel...", action: exportExcel },
+      { label: "Print Report...", action: printReport },
       { label: "───────────" },
       { label: "Exit", action: () => navigate("/") },
     ],
@@ -248,7 +248,7 @@ export default function FinancialDashboardPage() {
       { label: "Chart of Accounts", action: () => navigate("/financials/chart-of-accounts") },
     ],
     Help: [
-      { label: "About EL5 Finance…" },
+      { label: "About EL5 Finance..." },
     ],
   };
 
@@ -395,7 +395,7 @@ export default function FinancialDashboardPage() {
             </div>
             {/* Search */}
             <div style={{ padding: "4px 6px", background: WIN_BG, borderBottom: "1px solid #808080" }}>
-              <input value={coaSearch} onChange={e => setCoaSearch(e.target.value)} placeholder="Search accounts…"
+              <input value={coaSearch} onChange={e => setCoaSearch(e.target.value)} placeholder="Search accounts..."
                 style={{ ...winInp, width: "100%", boxSizing: "border-box" as const }}/>
             </div>
             {/* Column headers */}
@@ -432,7 +432,7 @@ export default function FinancialDashboardPage() {
                 <span style={{ fontSize: 11 }}>Search:</span>
                 <div style={{ position: "relative" }}>
                   <Search style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: 10, height: 10, color: "#808080" }}/>
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter records…"
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter records..."
                     style={{ ...winInp, paddingLeft: 18, width: 180 }}/>
                 </div>
                 <span style={{ fontSize: 11 }}>Status:</span>
@@ -473,7 +473,7 @@ export default function FinancialDashboardPage() {
                     {loading ? (
                       <tr><td colSpan={COLS[activeMod].length} style={{ padding: 40, textAlign: "center" }}>
                         <RefreshCw style={{ width: 20, height: 20, animation: "spin 1s linear infinite", display: "block", margin: "0 auto 8px", color: "#808080" }}/>
-                        <div style={{ fontSize: 11, color: "#808080" }}>Loading data…</div>
+                        <div style={{ fontSize: 11, color: "#808080" }}>Loading data...</div>
                       </td></tr>
                     ) : displayed.length === 0 ? (
                       <tr><td colSpan={COLS[activeMod].length} style={{ padding: 40, textAlign: "center", color: "#808080", fontSize: 11 }}>No records found</td></tr>
@@ -506,7 +506,7 @@ export default function FinancialDashboardPage() {
             `${displayed.length} object${displayed.length !== 1 ? "s" : ""}`,
             `Module: ${MODS[activeMod]}`,
             `Date range: ${startDate} to ${endDate}`,
-            loading ? "⏳ Loading…" : "✓ Ready",
+            loading ? "⏳ Loading..." : "✓ Ready",
           ].map((s, i) => (
             <div key={i} style={{ boxShadow: sunken, padding: "1px 10px", fontSize: 10, color: "#000", marginRight: 2, whiteSpace: "nowrap" }}>{s}</div>
           ))}

@@ -65,7 +65,7 @@ const ALL_MODULES = [
 
 function Toggle({on,onChange}:{on:boolean;onChange:(v:boolean)=>void}) {
   return (
-    <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
+      <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
       <div style={{width:44,height:24,borderRadius:12,background:on?"#1a3a6b":"#d1d5db",display:"flex",alignItems:"center",padding:2,transition:"all 0.2s"}}>
         <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)"}}/>
       </div>
@@ -189,7 +189,7 @@ function AdminInner() {
     <button onClick={()=>saveSection(keys)} disabled={saving}
       style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:color,color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,marginTop:14,opacity:saving?0.8:1}}>
       {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
-      {saving?"Saving…":`Save ${label||""}`}
+      {saving?"Saving...":`Save ${label||""}`}
     </button>
   );
 
@@ -266,7 +266,7 @@ function AdminInner() {
                         <c.icon style={{width:13,height:13,color:c.c}}/>
                       </div>
                     </div>
-                    <div style={{fontSize:26,fontWeight:900,color:"#111827",lineHeight:1}}>{loading?"…":c.v.toLocaleString()}</div>
+                    <div style={{fontSize:26,fontWeight:900,color:"#111827",lineHeight:1}}>{loading?"...":c.v.toLocaleString()}</div>
                     <div style={{fontSize:11,fontWeight:600,color:"#9ca3af",marginTop:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{c.l}</div>
                   </button>
                 ))}

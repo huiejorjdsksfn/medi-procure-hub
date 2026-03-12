@@ -25,6 +25,9 @@ function BackupInner() {
   const [currentTable, setCurrentTable] = useState("");
   const [sysName, setSysName] = useState("EL5 MediProcure");
   const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [backupFmt, setBackupFmt] = useState("Excel (XLSX)");
+  const [backupSch, setBackupSch] = useState("Weekly (Sunday)");
+  const [backupScope, setBackupScope] = useState<string[]>(["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"]);
 
   useEffect(()=>{
     (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
@@ -138,7 +141,7 @@ function BackupInner() {
   };
 
   return (
-    <div style={{padding:24,maxWidth:896,margin:"0 auto",display:"flex",flexDirection:"column",gap:24, fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"calc(100vh-100px)" }}>
+      <div style={{padding:24,maxWidth:896,margin:"0 auto",display:"flex",flexDirection:"column",gap:24, fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"calc(100vh-100px)" }}>
       {/* Header card */}
       <div style={{borderRadius:16}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
@@ -233,7 +236,7 @@ function BackupInner() {
             <h3 style={{fontSize:12,fontWeight:900,color:"#374151"}}>Backup Format</h3>
             {["Excel (XLSX)","CSV (per table)","JSON dump","SQL Script"].map(fmt=>(
               <label key={fmt} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
-                <input type="radio" name="backup_fmt" defaultChecked={fmt==="Excel (XLSX)"} style={{accentColor:"#2563eb"}}/>
+                <input type="radio" name="backup_fmt" checked={backupFmt===fmt} onChange={()=>setBackupFmt(fmt)} style={{accentColor:"#2563eb"}}/>
                 <span style={{fontSize:12,color:"#4b5563"}}>{fmt}</span>
               </label>
             ))}
@@ -242,7 +245,7 @@ function BackupInner() {
             <h3 style={{fontSize:12,fontWeight:900,color:"#374151"}}>Auto-Schedule</h3>
             {["Daily at midnight","Weekly (Sunday)","Monthly (1st)","Manual only"].map(sch=>(
               <label key={sch} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
-                <input type="radio" name="backup_sch" defaultChecked={sch==="Weekly (Sunday)"} style={{accentColor:"#2563eb"}}/>
+                <input type="radio" name="backup_sch" checked={backupSch===sch} onChange={()=>setBackupSch(sch)} style={{accentColor:"#2563eb"}}/>
                 <span style={{fontSize:12,color:"#4b5563"}}>{sch}</span>
               </label>
             ))}
@@ -251,9 +254,9 @@ function BackupInner() {
             <h3 style={{fontSize:12,fontWeight:900,color:"#374151",marginBottom:8}}>Backup Scope</h3>
             <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
               {["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"].map(scope=>(
-                <label key={scope} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,cursor:"pointer",background:"#f0f9ff",border:"1px solid #bae6fd"}}>
-                  <input type="checkbox" defaultChecked style={{accentColor:"#2563eb",width:12,height:12}}/>
-                  <span style={{fontSize:12,color:"#1d4ed8",fontWeight:600}}>{scope}</span>
+                <label key={scope} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,cursor:"pointer",background:backupScope.includes(scope)?"#f0f9ff":"#f9fafb",border:`1px solid ${backupScope.includes(scope)?"#bae6fd":"#e5e7eb"}`}}>
+                  <input type="checkbox" checked={backupScope.includes(scope)} onChange={e=>setBackupScope(p=>e.target.checked?[...p,scope]:p.filter(s=>s!==scope))} style={{accentColor:"#2563eb",width:12,height:12}}/>
+                  <span style={{fontSize:12,color:backupScope.includes(scope)?"#1d4ed8":"#6b7280",fontWeight:600}}>{scope}</span>
                 </label>
               ))}
             </div>

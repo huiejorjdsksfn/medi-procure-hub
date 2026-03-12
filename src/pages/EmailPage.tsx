@@ -338,7 +338,7 @@ export default function EmailPage(){
         {/* Message rows */}
         <div style={{flex:1,overflowY:"auto"}}>
           {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"30px 0",gap:8,color:"#9ca3af",fontSize:12}}>
-            <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading…
+            <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading...
           </div>}
           {!loading&&filtered.length===0&&<div style={{textAlign:"center",padding:"40px 20px",color:"#9ca3af"}}>
             <Mail style={{width:32,height:32,margin:"0 auto 10px",color:"#e5e7eb"}}/>
@@ -370,7 +370,7 @@ export default function EmailPage(){
                     <span style={{fontSize:9.5,color:"#9ca3af",flexShrink:0}}>{timeStr(msg.created_at)}</span>
                   </div>
                   <div style={{fontSize:11.5,fontWeight:msg.is_read?400:600,color:msg.is_read?"#374151":"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:1}}>{msg.subject}</div>
-                  <div style={{fontSize:10.5,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:2}}>{msg.body.slice(0,60)}…</div>
+                  <div style={{fontSize:10.5,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:2}}>{msg.body.slice(0,60)}...</div>
                 </div>
                 {isStarred&&<Star style={{width:12,height:12,color:"#f59e0b",fill:"#f59e0b",flexShrink:0,marginTop:4}}/>}
               </div>

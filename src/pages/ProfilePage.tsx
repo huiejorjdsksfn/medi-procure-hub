@@ -82,7 +82,7 @@ export default function ProfilePage() {
             <button onClick={saveProfile} disabled={saving}
               style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"#0a2558",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,width:"100%",justifyContent:"center",opacity:saving?0.7:1}}>
               {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
-              {saving?"Saving…":"Save Profile"}
+              {saving?"Saving...":"Save Profile"}
             </button>
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function ProfilePage() {
           {/* Account info */}
           <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:12,fontWeight:800,color:"#374151",marginBottom:12,display:"flex",alignItems:"center",gap:6}}><Mail style={{width:14,height:14,color:"#6b7280"}}/>Account Information</div>
-            {[["Email",user?.email||"—"],["User ID",user?.id?.slice(0,16)+"…"||"—"],["Last Sign-In",user?.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleDateString("en-KE"):"-"]].map(([l,v])=>(
+            {[["Email",user?.email||"—"],["User ID",user?.id?.slice(0,16)+"..."||"—"],["Last Sign-In",user?.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleDateString("en-KE"):"-"]].map(([l,v])=>(
               <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f9fafb"}}>
                 <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
                 <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{v}</span>
@@ -106,7 +106,7 @@ export default function ProfilePage() {
             <button onClick={sendReset} disabled={resetSending||resetSent}
               style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:resetSent?"#dcfce7":"#f9fafb",color:resetSent?"#15803d":"#374151",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,width:"100%",justifyContent:"center",opacity:resetSending?0.7:1}}>
               {resetSending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Key style={{width:13,height:13}}/>}
-              {resetSent?"Reset Email Sent ✓":resetSending?"Sending…":"Send Password Reset Email"}
+              {resetSent?"Reset Email Sent ✓":resetSending?"Sending...":"Send Password Reset Email"}
             </button>
           </div>
           {/* Recent activity */}

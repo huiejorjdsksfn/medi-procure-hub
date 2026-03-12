@@ -100,7 +100,7 @@ export default function TendersPage() {
   rows.forEach(r=>{ counts[r.status]=(counts[r.status]||0)+1; });
 
   return (
-    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -138,7 +138,7 @@ export default function TendersPage() {
       {/* Search */}
       <div style={{position:"relative",marginBottom:14}}>
         <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tender number, title, category…"
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tender number, title, category..."
           style={{width:"100%",padding:"10px 12px 10px 34px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:9,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
       </div>
 
@@ -206,7 +206,7 @@ export default function TendersPage() {
                 <div style={{gridColumn:"span 2"}}><LBL>Title *</LBL>{INP(form.title,v=>setForm(p=>({...p,title:v})),"e.g. Supply of Pharmaceutical Drugs Q1 2025/26")}</div>
                 <div><LBL>Category</LBL>
                   <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
-                    <option value="">Select category…</option>
+                    <option value="">Select category...</option>
                     {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -220,18 +220,18 @@ export default function TendersPage() {
                 <div><LBL>Opening Date</LBL>{INP(form.opening_date,v=>setForm(p=>({...p,opening_date:v})),"","date")}</div>
                 <div><LBL>Closing Date *</LBL>{INP(form.closing_date,v=>setForm(p=>({...p,closing_date:v})),"","date")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Description</LBL>
-                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3} placeholder="Scope of work, items required…"
+                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3} placeholder="Scope of work, items required..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit",boxSizing:"border-box" as const}}/>
                 </div>
                 <div style={{gridColumn:"span 2"}}><LBL>Evaluation Criteria</LBL>
-                  <textarea value={form.evaluation_criteria} onChange={e=>setForm(p=>({...p,evaluation_criteria:e.target.value}))} rows={2} placeholder="How bids will be evaluated…"
+                  <textarea value={form.evaluation_criteria} onChange={e=>setForm(p=>({...p,evaluation_criteria:e.target.value}))} rows={2} placeholder="How bids will be evaluated..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit",boxSizing:"border-box" as const}}/>
                 </div>
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#1F6090,#2980b9)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Create Tender"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving...":editing?"Update":"Create Tender"}
                 </button>
               </div>
             </div>

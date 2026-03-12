@@ -126,7 +126,7 @@ export default function PurchaseOrdersPage() {
   });
 
   return (
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       {/* Header */}
       <div style={{borderRadius:16,background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -156,7 +156,7 @@ export default function PurchaseOrdersPage() {
         ))}
         <div style={{position:"relative",marginLeft:"auto"}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search POs…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search POs..."
             style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
         </div>

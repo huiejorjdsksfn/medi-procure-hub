@@ -35,7 +35,7 @@ const MAX_ROWS_OPTIONS  = [100, 500, 1000, 5000, "All"];
 ═══════════════════════════════════════ */
 function CtxMenu({ x, y, items, onClose }: { x:number; y:number; items:{label:string;icon?:any;color?:string;action:()=>void;divider?:boolean}[]; onClose:()=>void }) {
   return (
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:9999}}>
+      <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:9999}}>
       <div onClick={e=>e.stopPropagation()} style={{
         position:"fixed", left:x, top:y, zIndex:10000,
         background:"#1e2233", border:"1px solid #3a3d52",
@@ -535,12 +535,12 @@ function TableBrowser() {
   const fmtCell = (v:any, col:string) => {
     if (v===null||v===undefined) return <span style={{color:"#3d4460",fontStyle:"italic",fontSize:9}}>NULL</span>;
     const s = String(v);
-    if (col==="id"||col.endsWith("_id")) return <span style={{color:"#60a5fa",fontSize:9}}>{s.slice(0,8)}…</span>;
+    if (col==="id"||col.endsWith("_id")) return <span style={{color:"#60a5fa",fontSize:9}}>{s.slice(0,8)}...</span>;
     if (s.includes("T")&&s.includes(":")) { // datetime
       try { return <span style={{color:"#94a3b8"}}>{new Date(s).toLocaleString("en-KE",{dateStyle:"short",timeStyle:"short"})}</span>; } catch{}
     }
     if (s==="true"||s==="false") return <span style={{color:s==="true"?"#22c55e":"#ef4444",fontWeight:700,fontSize:10}}>{s}</span>;
-    return <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",maxWidth:180}}>{s.slice(0,80)+(s.length>80?"…":"")}</span>;
+    return <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",maxWidth:180}}>{s.slice(0,80)+(s.length>80?"...":"")}</span>;
   };
 
   const ctxMenuItems = (row:any) => [
@@ -642,7 +642,7 @@ function TableBrowser() {
           <div style={{padding:"5px 8px",borderBottom:"1px solid #2e3248",flexShrink:0,position:"relative"}}>
             <Search style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",width:11,height:11,color:"#475569"}}/>
             <input value={tblSearch} onChange={e=>setTblSearch(e.target.value)}
-              placeholder="Search objects…"
+              placeholder="Search objects..."
               style={{width:"100%",paddingLeft:24,paddingRight:6,paddingTop:4,paddingBottom:4,fontSize:11,background:"#141825",color:"#94a3b8",border:"1px solid #2e3248",borderRadius:3,outline:"none"}}/>
           </div>
 
@@ -833,17 +833,17 @@ function TableBrowser() {
               <Filter style={{width:11,height:11,color:"#60a5fa"}}/>
               <span style={{fontSize:10,color:"#64748b"}}>Filter:</span>
               <select value={filterCol} onChange={e=>setFilterCol(e.target.value)} style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 6px"}}>
-                <option value="">Column…</option>
+                <option value="">Column...</option>
                 {cols.map(c=><option key={c} value={c}>{c}</option>)}
               </select>
               <span style={{fontSize:10,color:"#64748b"}}>contains</span>
-              <input value={filterVal} onChange={e=>setFilterVal(e.target.value)} placeholder="value…"
+              <input value={filterVal} onChange={e=>setFilterVal(e.target.value)} placeholder="value..."
                 style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 8px",width:140,outline:"none"}}/>
               <button onClick={()=>loadTable(activeTable,1)} style={{padding:"3px 10px",background:"#1a3a6b",color:"#93c5fd",border:"none",borderRadius:3,cursor:"pointer",fontSize:10,fontWeight:700}}>Apply</button>
               <button onClick={()=>{setFilterCol("");setFilterVal("");setShowFilter(false);loadTable(activeTable,1,"","asc");}} style={{padding:"3px 8px",background:"#2e3248",color:"#64748b",border:"none",borderRadius:3,cursor:"pointer",fontSize:10}}>Clear</button>
               <div style={{marginLeft:"auto",position:"relative"}}>
                 <Search style={{position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",width:10,height:10,color:"#475569"}}/>
-                <input value={dataSearch} onChange={e=>setDataSearch(e.target.value)} placeholder="Search visible rows…"
+                <input value={dataSearch} onChange={e=>setDataSearch(e.target.value)} placeholder="Search visible rows..."
                   style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 6px 3px 22px",width:160,outline:"none"}}/>
               </div>
             </div>
@@ -857,7 +857,7 @@ function TableBrowser() {
               {loading ? (
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,gap:10}}>
                   <RefreshCw style={{width:20,height:20,color:"#475569",animation:"spin 1s linear infinite"}}/>
-                  <span style={{color:"#475569",fontSize:12}}>Loading {activeTable}…</span>
+                  <span style={{color:"#475569",fontSize:12}}>Loading {activeTable}...</span>
                 </div>
               ) : (
                 <table style={{width:"100%",borderCollapse:"collapse",minWidth:"max-content",fontSize:11}}>
@@ -1028,7 +1028,7 @@ function TableBrowser() {
             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
               {rtConnected
                 ? <><div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e"}}/><span style={{color:"#22c55e"}}>Real-time Active</span></>
-                : <><div style={{width:6,height:6,borderRadius:"50%",background:"#475569"}}/><span style={{color:"#475569"}}>Connecting…</span></>}
+                : <><div style={{width:6,height:6,borderRadius:"50%",background:"#475569"}}/><span style={{color:"#475569"}}>Connecting...</span></>}
               <Clock style={{width:10,height:10,color:"#3d4460"}}/>
               <span style={{color:"#3d4460"}}>{new Date().toLocaleTimeString("en-KE")}</span>
             </div>

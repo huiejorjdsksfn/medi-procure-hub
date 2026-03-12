@@ -28,7 +28,7 @@ function RoleBadge({role}:{role:string}) {
 
 function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}) {
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"#fff",borderRadius:12,width:"min(540px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
         <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>{title}</span>
@@ -180,7 +180,7 @@ function UsersInner() {
       <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center"}}>
         <div style={{position:"relative",flex:1,minWidth:220}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, email, department…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, email, department..."
             style={{width:"100%",paddingLeft:32,padding:"8px 12px 8px 32px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
         </div>
         <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}
@@ -317,7 +317,7 @@ function UsersInner() {
             <div style={{display:"flex",gap:8,paddingTop:4}}>
               <button onClick={createUser} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center",padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Plus style={{width:13,height:13}}/>}
-                {saving?"Creating…":"Create User"}
+                {saving?"Creating...":"Create User"}
               </button>
               <button onClick={()=>setCreateModal(false)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
             </div>
@@ -388,7 +388,7 @@ function UsersInner() {
                 <div style={{marginTop:5}}><RoleBadge role={viewUser.roles?.[0]||"—"}/></div>
               </div>
             </div>
-            {[["Department",viewUser.department||"—"],["Phone",viewUser.phone||"—"],["Status",viewUser.is_active!==false?"Active":"Inactive"],["User ID",viewUser.id?.slice(0,16)+"…"],["Created",viewUser.created_at?.slice(0,10)||"—"]].map(([k,v])=>(
+            {[["Department",viewUser.department||"—"],["Phone",viewUser.phone||"—"],["Status",viewUser.is_active!==false?"Active":"Inactive"],["User ID",viewUser.id?.slice(0,16)+"..."],["Created",viewUser.created_at?.slice(0,10)||"—"]].map(([k,v])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f9fafb",fontSize:13}}>
                 <span style={{color:"#9ca3af",fontWeight:600}}>{k}</span>
                 <span style={{color:"#374151",fontWeight:500,fontFamily:k==="User ID"?"monospace":"inherit"}}>{v}</span>

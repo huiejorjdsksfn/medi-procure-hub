@@ -191,7 +191,7 @@ export default function ItemsPage() {
         </button>
         <div style={{flex:1,minWidth:180,position:"relative"}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items..."
             style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
         </div>
@@ -212,7 +212,7 @@ export default function ItemsPage() {
               {loading ? (
                 <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
                   <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
-                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading items…</span>
+                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading items...</span>
                 </td></tr>
               ) : filtered.length===0 ? (
                 <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No items found</td></tr>
@@ -298,7 +298,7 @@ export default function ItemsPage() {
               <div><label style={lbl}>SKU / Code</label><input value={form.sku} onChange={e=>setForm(p=>({...p,sku:e.target.value}))} style={inp} placeholder="ITEM-001"/></div>
               <div><label style={lbl}>Item Type</label><select value={form.item_type} onChange={e=>setForm(p=>({...p,item_type:e.target.value}))} style={sel}>{TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}</select></div>
               <div><label style={lbl}>Category</label><select value={form.category_id} onChange={e=>setForm(p=>({...p,category_id:e.target.value}))} style={sel}><option value="">— None —</option>{cats.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-              <div><label style={lbl}>Unit of Measure</label><input value={form.unit_of_measure} onChange={e=>setForm(p=>({...p,unit_of_measure:e.target.value}))} style={inp} placeholder="Tablets, Vials, Pcs…"/></div>
+              <div><label style={lbl}>Unit of Measure</label><input value={form.unit_of_measure} onChange={e=>setForm(p=>({...p,unit_of_measure:e.target.value}))} style={inp} placeholder="Tablets, Vials, Pcs..."/></div>
               <div><label style={lbl}>Unit Price (KES)</label><input type="number" value={form.unit_price} onChange={e=>setForm(p=>({...p,unit_price:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Quantity in Stock</label><input type="number" value={form.quantity_in_stock} onChange={e=>setForm(p=>({...p,quantity_in_stock:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Reorder Level</label><input type="number" value={form.reorder_level} onChange={e=>setForm(p=>({...p,reorder_level:e.target.value}))} style={inp}/></div>
@@ -309,7 +309,7 @@ export default function ItemsPage() {
               <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
               <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Package style={{width:13,height:13}}/>}
-                {saving?"Saving…":"Save Item"}
+                {saving?"Saving...":"Save Item"}
               </button>
             </div>
           </div>

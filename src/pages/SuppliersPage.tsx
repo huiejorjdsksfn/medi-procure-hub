@@ -205,7 +205,7 @@ export default function SuppliersPage() {
         </div>
         <div style={{flex:1,minWidth:180,position:"relative"}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, KRA PIN…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, KRA PIN..."
             style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
         </div>
@@ -226,7 +226,7 @@ export default function SuppliersPage() {
               {loading?(
                 <tr><td colSpan={9} style={{padding:"40px",textAlign:"center"}}>
                   <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
-                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading suppliers…</span>
+                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading suppliers...</span>
                 </td></tr>
               ):filtered.length===0?(
                 <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
@@ -316,7 +316,7 @@ export default function SuppliersPage() {
               <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
               <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Truck style={{width:13,height:13}}/>}
-                {saving?"Saving…":"Save Supplier"}
+                {saving?"Saving...":"Save Supplier"}
               </button>
             </div>
           </div>

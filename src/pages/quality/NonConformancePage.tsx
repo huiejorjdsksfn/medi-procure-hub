@@ -84,7 +84,7 @@ export default function NonConformancePage() {
         ))}
         <div style={{position:"relative",marginLeft:"auto"}}>
           <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search NCRs…" style={{padding:"6px 12px 6px 26px",border:"1.5px solid #e5e7eb",borderRadius:20,fontSize:12,outline:"none",width:200}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search NCRs..." style={{padding:"6px 12px 6px 26px",border:"1.5px solid #e5e7eb",borderRadius:20,fontSize:12,outline:"none",width:200}}/>
         </div>
       </div>
       {/* Table */}
@@ -176,7 +176,7 @@ export default function NonConformancePage() {
             <div style={{padding:"12px 18px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end"}}>
               <button onClick={()=>setShowNew(false)} style={{padding:"8px 16px",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
               <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#c2410c",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
-                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}{saving?"Saving…":"Create NCR"}
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}{saving?"Saving...":"Create NCR"}
               </button>
             </div>
           </div>

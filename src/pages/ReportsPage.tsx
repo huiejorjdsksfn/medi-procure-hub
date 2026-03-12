@@ -148,7 +148,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"calc(100vh-80px)"}}>
+      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"calc(100vh-80px)"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -285,7 +285,7 @@ export default function ReportsPage() {
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
                   <Search style={{width:12,height:12,color:"#888"}}/>
-                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records…"
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records..."
                     style={{border:"none",background:"transparent",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
                   {search&&<button onClick={()=>setSearch("")}><X style={{width:10,height:10,color:"#888"}}/></button>}
                 </div>
@@ -302,7 +302,7 @@ export default function ReportsPage() {
               <div style={{marginLeft:"auto",display:"flex",gap:8}}>
                 <button onClick={loadReport} disabled={loading}
                   style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
-                  {loading?"Loading…":"Extract"}
+                  {loading?"Loading...":"Extract"}
                 </button>
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function ReportsPage() {
             {loading ? (
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128}}>
                 <RefreshCw style={{animation:"spin 1s linear infinite",color:"#888"}}/>
-                <span style={{fontSize:11,color:"#888",marginLeft:8}}>Loading…</span>
+                <span style={{fontSize:11,color:"#888",marginLeft:8}}>Loading...</span>
               </div>
             ) : filteredRows.length === 0 ? (
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128,fontSize:11,color:"#888"}}>No data. Select a report and click Extract.</div>

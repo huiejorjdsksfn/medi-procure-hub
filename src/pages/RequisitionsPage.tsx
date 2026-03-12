@@ -275,7 +275,7 @@ export default function RequisitionsPage() {
         ))}
         <div style={{position:"relative",marginLeft:"auto"}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions..."
             style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
         </div>
@@ -353,7 +353,7 @@ export default function RequisitionsPage() {
               <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
             </div>
             <div style={{padding:20}}>
-              {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description…"}].map(f=>(
+              {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description..."}].map(f=>(
                 <div key={f.k}>
                   <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>{f.l}</label>
                   {f.k==="notes"?(
@@ -385,7 +385,7 @@ export default function RequisitionsPage() {
               <button onClick={save} disabled={saving}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#1a3a6b",opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send style={{width:14,height:14}}/>}
-                {saving?"Saving…":"Create Requisition"}
+                {saving?"Saving...":"Create Requisition"}
               </button>
             </div>
           </div>

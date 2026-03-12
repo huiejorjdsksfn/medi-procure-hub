@@ -22,7 +22,7 @@ const INP = (v:any,cb:any,p="",t="text",min?:any,max?:any) => (
     onFocus={e=>(e.target as HTMLInputElement).style.borderColor="#1a3a6b"}
     onBlur={e=>(e.target as HTMLInputElement).style.borderColor="#e5e7eb"}/>
 );
-const SEL = (v:any,cb:any,opts:{value:string;label:string}[],p="Select…") => (
+const SEL = (v:any,cb:any,opts:{value:string;label:string}[],p="Select...") => (
   <select value={v} onChange={e=>cb(e.target.value)}
     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",background:"#fff"}}>
     <option value="">{p}</option>
@@ -107,7 +107,7 @@ export default function BidEvaluationsPage() {
   const highest = rows.length ? Math.max(...rows.map(r=>Number(r.total_score||0))).toFixed(1) : "—";
 
   return (
-    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
@@ -148,7 +148,7 @@ export default function BidEvaluationsPage() {
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{position:"relative",flex:1,minWidth:200}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search supplier, tender…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search supplier, tender..."
             style={{width:"100%",padding:"8px 10px 8px 30px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}/>
         </div>
         <select value={tFilter} onChange={e=>setTFilter(e.target.value)} style={{padding:"8px 12px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",minWidth:200}}>
@@ -234,8 +234,8 @@ export default function BidEvaluationsPage() {
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-                <div style={{gridColumn:"span 2"}}><LBL>Tender *</LBL>{SEL(form.tender_id,v=>setForm(p=>({...p,tender_id:v})),tOpts,"Select tender…")}</div>
-                <div style={{gridColumn:"span 2"}}><LBL>Supplier *</LBL>{SEL(form.supplier_id,v=>setForm(p=>({...p,supplier_id:v})),sOpts,"Select supplier…")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Tender *</LBL>{SEL(form.tender_id,v=>setForm(p=>({...p,tender_id:v})),tOpts,"Select tender...")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Supplier *</LBL>{SEL(form.supplier_id,v=>setForm(p=>({...p,supplier_id:v})),sOpts,"Select supplier...")}</div>
                 <div><LBL>Bid Amount (KES)</LBL>{INP(form.bid_amount,v=>setForm(p=>({...p,bid_amount:v})),"0","number",0)}</div>
                 <div/>
                 <div>
@@ -256,18 +256,18 @@ export default function BidEvaluationsPage() {
                   </div>
                 )}
                 <div style={{gridColumn:"span 2"}}><LBL>Recommendation</LBL>
-                  <textarea value={form.recommendation} onChange={e=>setForm(p=>({...p,recommendation:e.target.value}))} rows={2} placeholder="Evaluator's recommendation…"
+                  <textarea value={form.recommendation} onChange={e=>setForm(p=>({...p,recommendation:e.target.value}))} rows={2} placeholder="Evaluator's recommendation..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit"}}/>
                 </div>
                 <div style={{gridColumn:"span 2"}}><LBL>Notes</LBL>
-                  <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} placeholder="Additional notes…"
+                  <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} placeholder="Additional notes..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit"}}/>
                 </div>
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:6,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Submit"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving...":editing?"Update":"Submit"}
                 </button>
               </div>
             </div>

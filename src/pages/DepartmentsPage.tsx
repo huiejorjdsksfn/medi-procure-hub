@@ -73,7 +73,7 @@ export default function DepartmentsPage() {
       </div>
       <div style={{position:"relative",maxWidth:320,marginBottom:14}}>
         <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search departments…"
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search departments..."
           style={{width:"100%",padding:"8px 12px 8px 30px",border:"1.5px solid #e5e7eb",borderRadius:20,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
       </div>
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
@@ -136,7 +136,7 @@ export default function DepartmentsPage() {
               <button onClick={save} disabled={saving}
                 style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#4338ca",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
-                {saving?"Saving…":editing?"Update":"Create"}
+                {saving?"Saving...":editing?"Update":"Create"}
               </button>
             </div>
           </div>
