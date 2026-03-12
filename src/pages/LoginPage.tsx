@@ -306,7 +306,7 @@ export default function LoginPage() {
                 >
                   {loading && <RefreshCw style={{ width: 12, height: 12, animation:"spin 1s linear infinite" }} />}
                   {loading
-                    ? (forgotMode ? "Sending…" : "Signing in…")
+                    ? (forgotMode ? "Sending..." : "Signing in...")
                     : (forgotMode ? "SEND RESET" : "SUBMIT")
                   }
                 </button>

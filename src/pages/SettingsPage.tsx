@@ -26,7 +26,7 @@ const SECTIONS = [
 
 function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
   return (
-    <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
+      <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
       <div style={{width:48,height:26,borderRadius:13,background:on?"#0a2558":"#d1d5db",display:"flex",alignItems:"center",padding:"3px",transition:"background 0.2s"}}>
         <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)"}}/>
       </div>
@@ -328,7 +328,7 @@ function SettingsInner() {
               <FR label="Print Font" ac="#92400e"><Sel value={s("print_font","Times New Roman")} onChange={v=>set("print_font",v)} opts={[{v:"Times New Roman",l:"Times New Roman"},{v:"Arial",l:"Arial"},{v:"Calibri",l:"Calibri"}]}/></FR>
               <FR label="Print Font Size (pt)" ac="#92400e"><Inp value={s("print_font_size","11")} onChange={(v:string)=>set("print_font_size",v)} type="number"/></FR>
               <FR label="Document Footer" sub="Text at bottom of all documents" ac="#92400e"><TA value={s("doc_footer")} onChange={(v:string)=>set("doc_footer",v)} placeholder="Official document of Embu Level 5 Hospital."/></FR>
-              <FR label="Letterhead HTML" sub="Custom HTML for document headers" ac="#92400e"><TA value={s("letterhead_html")} onChange={(v:string)=>set("letterhead_html",v)} rows={4} placeholder="<div>Custom letterhead HTML…</div>"/></FR>
+              <FR label="Letterhead HTML" sub="Custom HTML for document headers" ac="#92400e"><TA value={s("letterhead_html")} onChange={(v:string)=>set("letterhead_html",v)} rows={4} placeholder="<div>Custom letterhead HTML...</div>"/></FR>
             </Card>
           )}
 

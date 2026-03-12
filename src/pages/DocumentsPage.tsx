@@ -327,7 +327,7 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div style={{minHeight:"calc(100vh - 82px)",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{minHeight:"calc(100vh - 82px)",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
@@ -355,7 +355,7 @@ export default function DocumentsPage() {
           <div style={{padding:"10px 12px",borderBottom:"1px solid #f3f4f6"}}>
             <div style={{position:"relative"}}>
               <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents…"
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents..."
                 style={{width:"100%",paddingLeft:28,padding:"8px 10px 8px 28px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",background:"#f9fafb"}}/>
             </div>
           </div>
@@ -560,7 +560,7 @@ export default function DocumentsPage() {
                     </select>
                   </div>
                   <div style={{padding:"10px 14px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,fontSize:12,color:"#92400e"}}>
-                    <strong>Available placeholders:</strong> {PLACEHOLDERS.slice(0,12).join(", ")}… and {PLACEHOLDERS.length-12} more
+                    <strong>Available placeholders:</strong> {PLACEHOLDERS.slice(0,12).join(", ")}... and {PLACEHOLDERS.length-12} more
                   </div>
                 </div>
               )}
@@ -578,7 +578,7 @@ export default function DocumentsPage() {
                   </div>
                   <textarea value={editDoc.html} onChange={e=>setEditDoc((p:any)=>({...p,html:e.target.value}))}
                     style={{flex:1,minHeight:300,width:"100%",padding:"10px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"monospace",lineHeight:1.6,resize:"vertical" as const}}
-                    placeholder="Paste or write HTML template here…"/>
+                    placeholder="Paste or write HTML template here..."/>
                 </div>
               )}
 
@@ -658,16 +658,16 @@ export default function DocumentsPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>File (PDF, Word, Image…)</label>
+                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>File (PDF, Word, Image...)</label>
                 <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:"#f9fafb",border:"2px dashed #e5e7eb",borderRadius:8,cursor:"pointer"}}>
                   <Upload style={{width:16,height:16,color:"#9ca3af"}}/>
-                  <span style={{fontSize:12,color:upFile?"#374151":"#9ca3af"}}>{upFile?upFile.name:"Click to choose file…"}</span>
+                  <span style={{fontSize:12,color:upFile?"#374151":"#9ca3af"}}>{upFile?upFile.name:"Click to choose file..."}</span>
                   <input type="file" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){setUpFile(f);if(!upName)setUpName(f.name.replace(/\.[^/.]+$/,""));}}}/>
                 </label>
               </div>
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Or Paste HTML Content</label>
-                <textarea value={upHtml} onChange={e=>setUpHtml(e.target.value)} rows={4} placeholder="Optional: paste HTML template content…"
+                <textarea value={upHtml} onChange={e=>setUpHtml(e.target.value)} rows={4} placeholder="Optional: paste HTML template content..."
                   style={{width:"100%",padding:"8px 12px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"monospace",resize:"none" as const}}/>
               </div>
             </div>
