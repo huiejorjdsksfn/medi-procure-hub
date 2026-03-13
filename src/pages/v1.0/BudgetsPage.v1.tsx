@@ -13,7 +13,6 @@ const SC: Record<string,string> = {active:"#15803d",draft:"#6b7280",closed:"#dc2
 
 export default function BudgetsPage() {
   const { user, profile, hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);

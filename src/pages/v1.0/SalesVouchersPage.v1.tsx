@@ -15,8 +15,6 @@ const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancell
 export default function SalesVouchersPage() {
   const { user, profile, hasRole } = useAuth();
   const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
@@ -28,7 +26,8 @@ export default function SalesVouchersPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({customer_name:"",customer_type:"walk_in",patient_number:"",payment_method:"Cash",voucher_date:new Date().toISOString().slice(0,10),due_date:"",description:"",income_account:"",department_id:"",tax_rate:"16"});
   const [lineItems, setLineItems] = useState<{item_id:string;item_name:string;qty:string;rate:string;amount:string}[]>([{item_id:"",item_name:"",qty:"1",rate:"",amount:""}]);
-  // hospitalName now from useSystemSettings
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [logoUrl, setLogoUrl] = useState<string|null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -36,9 +35,12 @@ export default function SalesVouchersPage() {
       (supabase as any).from("sales_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
       (supabase as any).from("items").select("id,name,unit_price").order("name"),
-    /* settings via useSystemSettings hook */
+      (supabase as any).from("system_settings").select("key,value").in("key",["hospital_name","system_logo_url"]),
+    ]);
     setRows(sv||[]); setDepts(d||[]); setItems(it||[]);
     const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
+    if(m.hospital_name) setHospitalName(m.hospital_name);
+    if(m.system_logo_url) setLogoUrl(m.system_logo_url);
     setLoading(false);
   };
   useEffect(()=>{load();},[]);

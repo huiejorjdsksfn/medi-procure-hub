@@ -43,7 +43,6 @@ function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:
 
 function UsersInner() {
   const {user, profile, roles:myRoles} = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const isAdmin = myRoles.includes("admin");
 
   const [users,       setUsers]       = useState<any[]>([]);

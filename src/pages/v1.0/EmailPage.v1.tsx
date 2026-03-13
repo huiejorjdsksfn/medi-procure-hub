@@ -74,7 +74,6 @@ export default function EmailPage(){
   const[composing,setComposing]=useState(false);
   const[compose,setCompose]=useState({to:"",subject:"",body:""});
   const[sending,setSending]=useState(false);
-  const[smtpEnabled,setSmtpEnabled]=useState<boolean|null>(null);
   const[replyMode,setReplyMode]=useState(false);
   const[replyBody,setReplyBody]=useState("");
   const[starredIds,setStarredIds]=useState<Set<string>>(new Set());
@@ -117,18 +116,7 @@ export default function EmailPage(){
 
   useEffect(()=>{load();},[load]);
 
-  // Check SMTP configuration status
-  useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value")
-      .in("key",["smtp_enabled","smtp_host","smtp_user","smtp_password"])
-      .then(({data}:any)=>{
-        const m:Record<string,string>={};
-        (data||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
-        setSmtpEnabled(m.smtp_enabled==="true" && !!m.smtp_host && !!m.smtp_user && !!m.smtp_password);
-      }).catch(()=>setSmtpEnabled(false));
-  },[]);
-
-
+  // Close context menu on outside click
   useEffect(()=>{
     const h=(e:MouseEvent)=>{ if(ctxRef.current&&!ctxRef.current.contains(e.target as Node)) setCtx(null); };
     document.addEventListener("mousedown",h);
@@ -211,47 +199,17 @@ export default function EmailPage(){
     if(!compose.to.trim()||!compose.subject.trim()||!user){ toast({title:"Fill all fields",variant:"destructive"}); return; }
     setSending(true);
     try{
-      // Find recipient by email in profiles
+      // Find recipient by email
       const{data:rec}=await (supabase as any).from("profiles").select("id,full_name").eq("email",compose.to.trim()).maybeSingle();
       if(rec){
         await sendNotification({userId:rec.id,title:compose.subject,message:compose.body,type:"email",module:"Email",actionUrl:"/email",senderId:user.id});
       }
-      // Save to inbox_items as sent
       await (supabase as any).from("inbox_items").insert({
         subject:compose.subject,body:compose.body,
         from_user_id:user.id,from_name:profile?.full_name,from_email:profile?.email||user.email,
         to_email:compose.to,type:"email",status:"sent",priority:"normal",module:"Email",
       });
-      // Also send actual email via Edge Function (uses system_settings SMTP config)
-      try {
-        const { data: smtpRows } = await (supabase as any).from("system_settings").select("key,value")
-          .in("key",["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_email","smtp_from_name","smtp_enabled"]);
-        const smtp: Record<string,string> = {};
-        (smtpRows||[]).forEach((r:any)=>{ if(r.key) smtp[r.key]=r.value||""; });
-        if(smtp.smtp_enabled==="true" && smtp.smtp_host && smtp.smtp_user && smtp.smtp_password){
-          const { error: fnErr } = await supabase.functions.invoke("send-email",{
-            body:{
-              to: compose.to,
-              subject: compose.subject,
-              body: compose.body,
-              html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111827;line-height:1.6">${compose.body.replace(/\n/g,"<br/>")}</div><hr style="margin-top:24px"/><p style="font-size:11px;color:#6b7280">Sent via ${smtp.smtp_from_name||"EL5 MediProcure"}</p>`,
-              from: smtp.smtp_from_email||smtp.smtp_user,
-              from_name: smtp.smtp_from_name||"EL5 MediProcure",
-              smtp: {
-                host: smtp.smtp_host, port: Number(smtp.smtp_port)||587,
-                username: smtp.smtp_user, password: smtp.smtp_password,
-                from_email: smtp.smtp_from_email||smtp.smtp_user,
-                from_name: smtp.smtp_from_name||"EL5 MediProcure",
-                encryption: "tls",
-              },
-            },
-          });
-          if(!fnErr) toast({title:"Email delivered ✓", description:`Sent to ${compose.to} via SMTP`});
-          else toast({title:"Message saved, SMTP delivery failed",description:"Check SMTP settings in Admin",variant:"destructive"});
-        } else {
-          toast({title:"Message sent ✓", description:"Internal delivery only (SMTP not configured)"});
-        }
-      } catch { toast({title:"Message sent ✓"}); }
+      toast({title:"Message sent ✓"});
       setComposing(false); setCompose({to:"",subject:"",body:""});
     }catch(e:any){ toast({title:"Send failed",description:e.message,variant:"destructive"}); }
     setSending(false);
@@ -290,13 +248,6 @@ export default function EmailPage(){
             style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"9px",borderRadius:10,background:"#0a2558",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
             <Edit3 style={{width:13,height:13}}/> Compose
           </button>
-          {/* SMTP status pill */}
-          <div style={{marginTop:8,padding:"5px 10px",borderRadius:8,background:smtpEnabled===null?"rgba(255,255,255,0.05)":smtpEnabled?"rgba(16,124,16,0.25)":"rgba(220,38,38,0.2)",display:"flex",alignItems:"center",gap:6}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:smtpEnabled===null?"#6b7280":smtpEnabled?"#16a34a":"#dc2626",flexShrink:0}}/>
-            <span style={{fontSize:10,fontWeight:700,color:smtpEnabled===null?"#9ca3af":smtpEnabled?"#4ade80":"#f87171"}}>
-              {smtpEnabled===null?"Checking SMTP...":smtpEnabled?"SMTP Active — Real Email On":"SMTP Off — Internal Only"}
-            </span>
-          </div>
         </div>
 
         {/* Folder list */}

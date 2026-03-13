@@ -23,7 +23,6 @@ const spin: React.CSSProperties = {animation:"spin 1s linear infinite",display:"
 
 export default function AuditLogPage() {
   const { hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const [logs, setLogs]           = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");

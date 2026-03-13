@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Camera, ScanBarcode, Search, Plus, Package, CheckCircle, Globe, RefreshCw, X, Edit3, Save, AlertTriangle, Wifi, Database, ShoppingCart, Clock, TrendingUp } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 declare global { interface Window { Html5Qrcode: any; } }
 
@@ -63,6 +64,7 @@ async function lookupOnline(barcode: string): Promise<ItemInfo|null> {
 
 export default function ScannerPage() {
   const { user, profile } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const [scanning,     setScanning]     = useState(false);
   const [barcode,      setBarcode]      = useState("");
   const [manualInput,  setManualInput]  = useState("");

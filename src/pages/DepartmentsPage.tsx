@@ -5,9 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, X, Save, Trash2, Edit, Download } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function DepartmentsPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin");
   const [rows, setRows]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

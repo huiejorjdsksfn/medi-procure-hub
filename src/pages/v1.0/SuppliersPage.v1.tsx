@@ -19,9 +19,6 @@ const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",tex
 
 export default function SuppliersPage() {
   const { user, profile, roles } = useAuth();
-  const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const isAdmin = roles.includes("admin")||roles.includes("procurement_manager")||roles.includes("procurement_officer");
 
   const [suppliers,    setSuppliers]    = useState<any[]>([]);
@@ -33,8 +30,8 @@ export default function SuppliersPage() {
   const [editing,      setEditing]      = useState<any>(null);
   const [viewSupplier, setViewSupplier] = useState<any>(null);
   const [saving,       setSaving]       = useState(false);
-  // hospitalName now from useSystemSettings
-  // sysName now from useSystemSettings
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName,      setSysName]      = useState("EL5 MediProcure");
   const [form, setForm] = useState({
     name:"",contact_person:"",email:"",phone:"",address:"",
     tax_id:"",kra_pin:"",category:"pharmaceutical",status:"active",
@@ -42,7 +39,7 @@ export default function SuppliersPage() {
   });
 
   useEffect(()=>{
-    /* settings via useSystemSettings hook */
+    /* settings now via useSystemSettings hook */const m:any={};data.forEach((r:any)=>{if(r.key)m[r.key]=r.value;});if(m.system_name)setSysName(m.system_name);if(m.hospital_name)setHospitalName(m.hospital_name);});
   },[]);
 
   const load = useCallback(async()=>{

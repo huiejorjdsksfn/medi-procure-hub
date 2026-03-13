@@ -4,12 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, BookOpen, TrendingUp, TrendingDown } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
 const TYPE_COLORS: Record<string,string> = {Asset:"#0369a1",Liability:"#dc2626",Equity:"#7c3aed",Revenue:"#15803d",Expense:"#d97706"};
 
 export default function ChartOfAccountsPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

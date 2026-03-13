@@ -15,8 +15,6 @@ const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancell
 export default function ReceiptVouchersPage() {
   const { user, profile, hasRole } = useAuth();
   const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
@@ -26,16 +24,20 @@ export default function ReceiptVouchersPage() {
   const [detail, setDetail] = useState<any>(null);
   const [form, setForm] = useState({received_from:"",amount:"",payment_method:"Cash",receipt_date:new Date().toISOString().slice(0,10),reference:"",description:"",income_account:"",bank_name:"",bank_reference:"",department_id:"",status:"confirmed"});
   const [saving, setSaving] = useState(false);
-  // hospitalName now from useSystemSettings
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [logoUrl, setLogoUrl] = useState<string|null>(null);
 
   const load = async () => {
     setLoading(true);
     const [{data:rv},{data:d},{data:s}] = await Promise.all([
       (supabase as any).from("receipt_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
-    /* settings via useSystemSettings hook */
+      (supabase as any).from("system_settings").select("key,value").in("key",["hospital_name","system_logo_url"]),
+    ]);
     setRows(rv||[]); setDepts(d||[]);
     const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
+    if(m.hospital_name) setHospitalName(m.hospital_name);
+    if(m.system_logo_url) setLogoUrl(m.system_logo_url);
     setLoading(false);
   };
   useEffect(()=>{load();},[]);

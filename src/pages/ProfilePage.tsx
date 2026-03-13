@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Building2, Key, Save, RefreshCw, Shield, Clock } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const ROLE_LABELS: Record<string,string> = {
   admin:"Administrator", procurement_manager:"Procurement Manager",
@@ -13,6 +14,7 @@ const ROLE_LABELS: Record<string,string> = {
 
 export default function ProfilePage() {
   const { user, profile, roles } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const [fullName, setFullName]     = useState(profile?.full_name||"");
   const [phone, setPhone]           = useState(profile?.phone_number||"");
   const [department, setDepartment] = useState(profile?.department||"");

@@ -22,9 +22,6 @@ const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",tex
 
 export default function ItemsPage() {
   const { user, profile, roles } = useAuth();
-  const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const canEdit = roles.includes("admin")||roles.includes("inventory_manager")||roles.includes("procurement_manager");
 
   const [items,       setItems]       = useState<any[]>([]);
@@ -38,8 +35,8 @@ export default function ItemsPage() {
   const [editing,     setEditing]     = useState<any>(null);
   const [viewItem,    setViewItem]    = useState<any>(null);
   const [saving,      setSaving]      = useState(false);
-  // hospitalName now from useSystemSettings
-  // sysName now from useSystemSettings
+  const [hospitalName,setHospitalName]= useState("Embu Level 5 Hospital");
+  const [sysName,     setSysName]     = useState("EL5 MediProcure");
 
   const [form, setForm] = useState({
     name:"",sku:"",item_type:"pharmaceutical",category_id:"",
@@ -48,7 +45,7 @@ export default function ItemsPage() {
   });
 
   useEffect(()=>{
-    /* settings via useSystemSettings hook */
+    /* settings now via useSystemSettings hook */ const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
     supabase.from("item_categories").select("*").then(({data})=>setCats(data||[]));
   },[]);
 

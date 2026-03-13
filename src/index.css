@@ -829,3 +829,72 @@ input, select, textarea, button { font-family: inherit; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── v2.0 GLOBAL BLACK FONT FIX — All inputs/fields ── */
+input, select, textarea,
+input[type="text"], input[type="number"], input[type="email"],
+input[type="password"], input[type="date"], input[type="search"],
+input[type="url"], input[type="tel"],
+.ent-input, [class*="Input"], [class*="input"],
+[contenteditable] {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+}
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+}
+select option {
+  color: #000 !important;
+  background: #fff !important;
+}
+/* Table cells — ensure black text */
+td, th { color: #111827; }
+/* Form labels */
+label { color: #374151; }
+/* Shadcn/Radix inputs */
+[data-radix-select-trigger], [data-radix-select-content],
+.SelectTrigger, .SelectContent { color: #000 !important; }
+
+/* ── v2.0 FORCE BLACK FONT EVERYWHERE — form fields, tables, panels ── */
+/* Inputs */
+input:not([type=range]):not([type=checkbox]):not([type=radio]),
+textarea, select {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1 !important;
+}
+select option { color: #111827 !important; background: #fff !important; }
+
+/* shadcn inputs */
+.flex.h-10, .flex.h-9, [cmdk-input], [data-slot=input] {
+  color: #111827 !important;
+}
+
+/* React inline style overrides — white-bg panels */
+div[style*="background:#fff"] input,
+div[style*="background: #fff"] input,
+div[style*="background:white"] input,
+div[style*="background:#f"] input {
+  color: #111827 !important;
+}
+
+/* Force black on ALL table cells */
+table td, table th { color: #111827 !important; }
+
+/* Override any gray text in inputs set via JS styles */
+input[style], textarea[style], select[style] {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Modal / dialog inputs */
+.modal input, .dialog input, [role=dialog] input,
+[role=dialog] textarea, [role=dialog] select {
+  color: #111827 !important;
+}

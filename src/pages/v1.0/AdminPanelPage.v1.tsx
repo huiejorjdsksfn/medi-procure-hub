@@ -103,7 +103,6 @@ function Panel({title,icon:Icon,color,children}:{title:string;icon:any;color:str
 
 function AdminInner() {
   const {user,profile,roles} = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const navigate = useNavigate();
   const [section, setSection] = useState("overview");
   const [saving,  setSaving]  = useState(false);
@@ -160,19 +159,6 @@ function AdminInner() {
   },[]);
 
   useEffect(()=>{ load(); },[load]);
-
-  // Real-time subscription: keep admin panel S in sync with DB changes
-  useEffect(()=>{
-    const ch=(supabase as any).channel("admin_settings_rt")
-      .on("postgres_changes",{event:"*",schema:"public",table:"system_settings"},
-        (payload:any)=>{
-          if(payload.new?.key){
-            setS(prev=>({...prev,[payload.new.key]:payload.new.value??""}));
-          }
-        })
-      .subscribe();
-    return()=>{(supabase as any).removeChannel(ch);};
-  },[]);
 
   const saveSection = async(keys:string[])=>{
     setSaving(true);
