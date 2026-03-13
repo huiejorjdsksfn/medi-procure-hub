@@ -32,9 +32,6 @@ const TX_TYPE_FILTER = ["ALL","Purchase","Receipt","Payment","Issue","Transfer"]
 
 export default function ReportsPage() {
   const { profile } = useAuth();
-  const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const [reportType, setReportType] = useState(REPORT_TYPES[0]);
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0,10));
@@ -43,14 +40,23 @@ export default function ReportsPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [kpi, setKpi] = useState({ purchase:0, received:0, profit:0, qty:0, invAmt:0 });
-  // hospitalName now from useSystemSettings
-  // sysName now from useSystemSettings
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName, setSysName] = useState("EL5 MediProcure");
+  const [logoUrl, setLogoUrl] = useState<string|null>(null);
   const [stockList, setStockList] = useState<any[]>([]);
   const [stockSearch, setStockSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    /* settings via useSystemSettings hook */
+    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name","system_logo_url"])
+      .then(({data}:any) => {
+        if (!data) return;
+        const m:any={};
+        data.forEach((r:any) => { if(r.key) m[r.key]=r.value; });
+        if (m.system_name) setSysName(m.system_name);
+        if (m.hospital_name) setHospitalName(m.hospital_name);
+        if (m.system_logo_url) setLogoUrl(m.system_logo_url);
+      });
     // Load stock list for left panel
     supabase.from("items").select("id,name,quantity_in_stock,unit_price").order("name")
       .then(({data}) => setStockList(data||[]));

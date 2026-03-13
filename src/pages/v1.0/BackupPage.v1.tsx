@@ -18,22 +18,26 @@ const BACKUP_TABLES = [
 
 function BackupInner() {
   const { user, profile } = useAuth();
-  const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTable, setCurrentTable] = useState("");
-  // sysName now from useSystemSettings
-  // hospitalName now from useSystemSettings
+  const [sysName, setSysName] = useState("EL5 MediProcure");
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
   const [backupFmt, setBackupFmt] = useState("Excel (XLSX)");
   const [backupSch, setBackupSch] = useState("Weekly (Sunday)");
   const [backupScope, setBackupScope] = useState<string[]>(["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"]);
 
   useEffect(()=>{
-    /* settings via useSystemSettings hook */
+    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
+      .then(({data}:any)=>{
+        if(!data) return;
+        const m:Record<string,string>={};
+        data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
+        if(m.system_name) setSysName(m.system_name);
+        if(m.hospital_name) setHospitalName(m.hospital_name);
+      });
     loadJobs();
   },[]);
 

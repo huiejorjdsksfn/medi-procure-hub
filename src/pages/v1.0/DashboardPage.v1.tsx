@@ -6,7 +6,6 @@ import { ChevronRight, X, LogOut, User, TrendingUp, Package, FileText, DollarSig
 import procBg from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/logo.png";
 import { NotificationBell } from "@/components/NotificationPopup";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 /* ── Polar helpers ─────────────────────────────────────────── */
 const P = (cx:number,cy:number,r:number,deg:number) => {
@@ -82,17 +81,12 @@ const SEGS: Seg[] = [
   },
 ];
 
-const ALL_QUICK=[
-  {label:"Requisitions",path:"/requisitions",   roles:[] as string[]},
-  {label:"Reports",     path:"/reports",         roles:["admin","procurement_manager","procurement_officer"]},
-  {label:"Mail",        path:"/email",            roles:[]},
-  {label:"Documents",   path:"/documents",        roles:[]},
-  {label:"Audit Log",   path:"/audit-log",        roles:["admin","procurement_manager"]},
-  {label:"Users",       path:"/users",            roles:["admin"]},
-  {label:"Admin",       path:"/admin/panel",      roles:["admin"]},
-  {label:"Database",    path:"/admin/database",   roles:["admin"]},
-  {label:"Settings",    path:"/settings",         roles:["admin"]},
-  {label:"Backup",      path:"/backup",           roles:["admin"]},
+const QUICK=[
+  {label:"Reports",path:"/reports"},{label:"Mail",path:"/email"},
+  {label:"Documents",path:"/documents"},{label:"Audit Log",path:"/audit-log"},
+  {label:"Users",path:"/users"},{label:"Admin",path:"/admin/panel"},
+  {label:"Database",path:"/admin/database"},{label:"Settings",path:"/settings"},
+  {label:"Backup",path:"/backup"},
 ];
 
 const ROLE_LABELS:Record<string,string>={
@@ -111,13 +105,12 @@ export default function DashboardPage(){
   const[active,setActive]=useState<string|null>(null);
   const[hov,setHov]=useState<string|null>(null);
   const[clock,setClock]=useState("");
+  const[logoUrl,setLogoUrl]=useState<string|null>(null);
+  const[sysName,setSysName]=useState("EL5 MediProcure");
+  const[hospital,setHospital]=useState("Embu Level 5 Hospital");
   const[spin,setSpin]=useState(0);
   const[kpi,setKpi]=useState({reqs:0,pos:0,pendPV:0,lowStock:0,openNCR:0,contracts:0});
   const[greeting,setGreeting]=useState("");
-  const { get: getSetting } = useSystemSettings();
-  const sysName  = getSetting("system_name", "EL5 MediProcure");
-  const hospital = getSetting("hospital_name","Embu Level 5 Hospital");
-  const logoUrl  = getSetting("logo_url") || getSetting("system_logo_url") || null;
 
   /* clock + spin */
   useEffect(()=>{
@@ -129,8 +122,18 @@ export default function DashboardPage(){
     return()=>{clearInterval(iv);clearInterval(sv);};
   },[]);
 
-  /* live KPIs */
+  /* settings + live KPIs */
   useEffect(()=>{
+    (supabase as any).from("system_settings").select("key,value")
+      .in("key",["system_name","hospital_name","logo_url","system_logo_url"])
+      .then(({data}:any)=>{
+        if(!data) return;
+        data.forEach((r:any)=>{
+          if(r.key==="system_name") setSysName(r.value||"");
+          if(r.key==="hospital_name") setHospital(r.value||"");
+          if(r.key==="logo_url"||r.key==="system_logo_url") setLogoUrl(r.value||null);
+        });
+      });
     Promise.all([
       (supabase as any).from("requisitions").select("id",{count:"exact",head:true}).eq("status","pending"),
       (supabase as any).from("purchase_orders").select("id",{count:"exact",head:true}).in("status",["draft","sent"]),
@@ -157,9 +160,6 @@ export default function DashboardPage(){
 
   const visLinks = (s:Seg) => s.links.filter(lk=>
     !lk.roles || lk.roles.some(r=>roles?.includes(r))
-  );
-  const QUICK = ALL_QUICK.filter(lk=>
-    !lk.roles.length || lk.roles.some(r=>roles?.includes(r))
   );
 
   /* ── outer tick ring ── */

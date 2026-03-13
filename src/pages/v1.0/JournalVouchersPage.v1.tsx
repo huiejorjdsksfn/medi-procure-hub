@@ -34,9 +34,12 @@ export default function JournalVouchersPage() {
     const [{data:jv},{data:c},{data:s}] = await Promise.all([
       (supabase as any).from("journal_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("chart_of_accounts").select("account_code,account_name").eq("is_active",true).order("account_code"),
-    /* settings via useSystemSettings hook */
+      (supabase as any).from("system_settings").select("key,value").in("key",["hospital_name","system_logo_url"]),
+    ]);
     setRows(jv||[]); setCoa(c||[]);
     const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
+    if(m.hospital_name) setHospitalName(m.hospital_name);
+    if(m.system_logo_url) setLogoUrl(m.system_logo_url);
     setLoading(false);
   };
   useEffect(()=>{load();},[]);

@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, X, Save, Trash2, Edit } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function CategoriesPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("inventory_manager");
   const [rows, setRows]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

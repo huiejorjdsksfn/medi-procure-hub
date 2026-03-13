@@ -114,7 +114,6 @@ const ALL_KEYS = [
 
 function SettingsInner() {
   const { user, profile } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const [S, setS]       = useState<Record<string,string>>({});
   const [users, setUsers] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
@@ -135,19 +134,6 @@ function SettingsInner() {
   },[]);
 
   useEffect(()=>{ load(); },[load]);
-
-  // Real-time: pick up settings changes made from AdminPanel or other sessions
-  useEffect(()=>{
-    const ch=(supabase as any).channel("settings_page_rt")
-      .on("postgres_changes",{event:"*",schema:"public",table:"system_settings"},
-        (payload:any)=>{
-          if(payload.new?.key){
-            setS(prev=>({...prev,[payload.new.key]:payload.new.value??""}));
-          }
-        })
-      .subscribe();
-    return()=>{(supabase as any).removeChannel(ch);};
-  },[]);
 
   const save = async(keys:string[]) => {
     setSaving(true);

@@ -73,9 +73,6 @@ const selStyle: React.CSSProperties = {
 
 export default function QualityDashboardPage() {
   const { user, profile } = useAuth();
-  const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -83,8 +80,8 @@ export default function QualityDashboardPage() {
   const [year,   setYear]   = useState(String(new Date().getFullYear()));
   const [loading,setLoading] = useState(true);
   const [saving, setSaving]  = useState(false);
-  // hospitalName now from useSystemSettings
-  // sysName now from useSystemSettings
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName,      setSysName]      = useState("EL5 MediProcure");
   const [lqcComments,  setLqcComments]  = useState("");
 
   const [iqcRows,  setIqcRows]  = useState<IQCRow[]>(Array.from({length:12}, emptyIQC));
@@ -142,6 +139,8 @@ export default function QualityDashboardPage() {
       // system settings
       const m: Record<string,string> = {};
       (sysRes.data || []).forEach((r:any) => { if (r.key) m[r.key] = r.value || ""; });
+      if (m.hospital_name) setHospitalName(m.hospital_name);
+      if (m.system_name)   setSysName(m.system_name);
     } catch(e) { console.error(e); }
     setLoading(false);
   };

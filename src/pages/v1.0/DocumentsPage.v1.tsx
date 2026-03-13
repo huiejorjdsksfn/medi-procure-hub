@@ -196,7 +196,6 @@ function ClipboardList(p:any) { return <svg {...p} viewBox="0 0 24 24" fill="non
 
 export default function DocumentsPage() {
   const { user, profile, roles } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const isAdmin = roles.includes("admin") || roles.includes("procurement_manager");
 
   const [docs,       setDocs]       = useState<any[]>([]);

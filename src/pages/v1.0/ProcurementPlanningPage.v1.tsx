@@ -14,7 +14,6 @@ const CATS = ["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Con
 
 export default function ProcurementPlanningPage() {
   const { user, profile, hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);

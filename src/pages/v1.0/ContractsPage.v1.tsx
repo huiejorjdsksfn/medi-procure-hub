@@ -29,7 +29,6 @@ const INP = (v:any,cb:any,p="",t="text") => (
 
 export default function ContractsPage() {
   const { user, profile, hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
 
   const [rows,     setRows]     = useState<any[]>([]);

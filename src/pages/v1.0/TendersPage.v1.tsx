@@ -32,7 +32,6 @@ const LBL = ({c,children}:{c?:string;children:any}) => <div style={{fontSize:12,
 
 export default function TendersPage() {
   const { user, profile, hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
 
   const [rows,     setRows]     = useState<any[]>([]);

@@ -34,7 +34,6 @@ const LBL = ({children}:{children:any}) => <div style={{fontSize:12,fontWeight:7
 
 export default function BidEvaluationsPage() {
   const { user, profile, hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const canEvaluate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
 
   const [rows,      setRows]      = useState<any[]>([]);

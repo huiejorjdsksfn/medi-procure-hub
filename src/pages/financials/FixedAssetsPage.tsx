@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, Building2, Printer, Eye } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:0})}`;
 const genNo = () => `AST/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*9900))}`;
@@ -13,6 +14,7 @@ const CATS = ["Medical Equipment","ICT Equipment","Furniture & Fittings","Motor 
 
 export default function FixedAssetsPage() {
   const { user, profile, hasRole } = useAuth();
+  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
