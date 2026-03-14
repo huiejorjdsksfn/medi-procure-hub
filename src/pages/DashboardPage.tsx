@@ -516,8 +516,8 @@ export default function DashboardPage(){
         ].map((k,i)=>(
           <button key={i} onClick={k.onClick}
             style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,
-              borderRight:"1px solid rgba(255,255,255,0.06)",background:"transparent",border:"none",
-              cursor:"pointer",borderRight:"1px solid rgba(255,255,255,0.05)",padding:0}}
+              borderRight:"1px solid rgba(255,255,255,0.05)",background:"transparent",border:"none",
+              cursor:"pointer",padding:0}}
             onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.06)")}
             onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
             <span style={{color:k.col}}>{k.icon}</span>

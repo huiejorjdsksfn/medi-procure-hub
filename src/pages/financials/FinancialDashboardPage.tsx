@@ -211,8 +211,6 @@ export default function FinancialDashboardPage() {
       case "Method":        return row.payment_method || "—";
       case "Expense Acct":  return <span style={{ fontSize: 10, color: "#404040" }}>{row.expense_account || "—"}</span>;
       case "Status":        return chip(row.status || "—");
-      case "Amount":        return plain ? row.amount : <b>{row.amount != null ? fmt(Number(row.amount)) : "—"}</b>;
-      case "Amount":        return plain ? row.amount : <b>{row.amount != null ? fmt(Number(row.amount)) : "—"}</b>;
       case "Amount":
       case "Total Amount":  return plain ? row.total_amount || row.amount : <b>{fmt(Number(row.total_amount || row.amount || 0))}</b>;
       case "Debit":         return plain ? row.total_debit : <b style={{ color: "#000080" }}>{row.total_debit != null ? fmt(Number(row.total_debit)) : "—"}</b>;

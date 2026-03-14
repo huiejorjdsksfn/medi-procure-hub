@@ -654,7 +654,7 @@ export default function QualityDashboardPage() {
                   <td key={i} style={{...tdBase,padding:"6px 10px",textAlign:"left"}}>
                     <div style={{fontSize:8.5,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>{s.label}</div>
                     <div style={{borderBottom:"1px solid #9ca3af",minHeight:20,marginTop:5,paddingBottom:2,
-                      fontSize:10,color:"#374151",fontStyle:s.val?"normal":"italic",color:s.val?"#1f2937":"#9ca3af"}}>
+                      fontSize:10,fontStyle:s.val?"normal":"italic",color:s.val?"#1f2937":"#9ca3af"}}>
                       {s.val||""}
                     </div>
                     <div style={{fontSize:8,color:"#9ca3af",marginTop:3}}>Signature &amp; Date</div>

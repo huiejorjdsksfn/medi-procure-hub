@@ -30,12 +30,11 @@ export default function ReceiptVouchersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{data:rv},{data:d},{data:s}] = await Promise.all([
+    const [{data:rv},{data:d}] = await Promise.all([
       (supabase as any).from("receipt_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
-    /* settings via useSystemSettings hook */
+    ]);
     setRows(rv||[]); setDepts(d||[]);
-    const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
     setLoading(false);
   };
   useEffect(()=>{load();},[]);

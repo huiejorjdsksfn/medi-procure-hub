@@ -12,6 +12,7 @@ import * as XLSX from "xlsx";
 import { notifyProcurement, sendNotification } from "@/lib/notify";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
+import { useDepartments } from "@/hooks/useDropdownData";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
@@ -36,6 +37,7 @@ export default function RequisitionsPage() {
   const [form, setForm] = useState({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
   const [saving, setSaving] = useState(false);
   const { get: getSetting } = useSystemSettings();
+  const { departments } = useDepartments();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -264,18 +266,26 @@ export default function RequisitionsPage() {
               <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
             </div>
             <div style={{padding:20}}>
-              {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description..."}].map(f=>(
-                <div key={f.k}>
-                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>{f.l}</label>
-                  {f.k==="notes"?(
-                    <textarea value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} rows={3} placeholder={f.ph}
-                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
-                  ):(
-                    <input value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
-                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
-                  )}
-                </div>
-              ))}
+              <div>
+                <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Title *</label>
+                <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="e.g. Medical Supplies Q1 2025"
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Department</label>
+                <select value={form.department} onChange={e=>setForm(p=>({...p,department:e.target.value}))}
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Notes / Justification</label>
+                <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={3} placeholder="Brief description..."
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+              </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 <div>
                   <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Priority</label>
