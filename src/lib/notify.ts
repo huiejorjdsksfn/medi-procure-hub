@@ -27,30 +27,20 @@ async function getUserEmail(userId: string): Promise<string|null> {
 /** Send email via Edge Function */
 async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
   try {
-    const smtpCfg = await (supabase as any).from("smtp_configs").select("*").eq("is_default",true).eq("is_active",true).maybeSingle();
-    const smtp = smtpCfg?.data;
     const { error, data } = await supabase.functions.invoke("send-email", {
       body: {
         to, subject, body,
-        from: smtp?.from_email,
-        from_name: smtp?.from_name || "EL5 MediProcure",
-        smtp: smtp ? {
-          host: smtp.host, port: smtp.port,
-          username: smtp.username, password: smtp.password,
-          from_email: smtp.from_email, from_name: smtp.from_name,
-          encryption: smtp.encryption,
-        } : undefined,
       }
     });
     // Log to email_logs
     await (supabase as any).from("email_logs").insert({
       to_email: to, subject,
-      body, from_name: smtp?.from_name || "EL5 MediProcure",
-      from_email: smtp?.from_email || "",
+      body, from_name: "EL5 MediProcure",
+      from_email: "",
       status: !error && data?.success ? "sent" : "failed",
       module: "notify",
       sent_at: new Date().toISOString(),
-      error_message: error?.message || data?.results?.[0]?.error || null,
+      error_message: error?.message || data?.error || null,
     }).catch(()=>{});
     return !error && (data?.success !== false);
   } catch(e) { console.error("sendEmail error:", e); return false; }
