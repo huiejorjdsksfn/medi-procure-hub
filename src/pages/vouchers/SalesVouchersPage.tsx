@@ -32,13 +32,12 @@ export default function SalesVouchersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{data:sv},{data:d},{data:it},{data:s}] = await Promise.all([
+    const [{data:sv},{data:d},{data:it}] = await Promise.all([
       (supabase as any).from("sales_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
       (supabase as any).from("items").select("id,name,unit_price").order("name"),
-    /* settings via useSystemSettings hook */
+    ]);
     setRows(sv||[]); setDepts(d||[]); setItems(it||[]);
-    const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
@@ -199,7 +198,7 @@ export default function SalesVouchersPage() {
                 <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase"}}>Line Items</label>
                 <button onClick={()=>setLineItems(p=>[...p,{item_id:"",item_name:"",qty:"1",rate:"",amount:""}])} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,color:"#0f766e",background:"none",border:"none",cursor:"pointer"}}><Plus style={{width:12,height:12}}/>Add</button>
               </div>
-              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse",borderCollapse:"collapse"}}>
+              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
                 <thead><tr style={{background:"#ecfdf5"}}>{["Item","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {lineItems.map((it,i)=>(
