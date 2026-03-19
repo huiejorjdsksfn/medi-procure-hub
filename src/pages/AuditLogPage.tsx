@@ -83,7 +83,7 @@ export default function AuditLogPage() {
   const sel: React.CSSProperties = {...inp,cursor:"pointer"};
 
   return (
-    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui,sans-serif",minHeight:"calc(100vh - 60px)"}}>
+    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui,sans-serif",minHeight:"100%"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* Header */}

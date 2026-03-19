@@ -112,7 +112,7 @@ export default function GoodsReceivedPage() {
   const tinp: React.CSSProperties = {padding:"5px 7px",border:"1.5px solid #e5e7eb",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box",fontFamily:"inherit",width:"100%"};
 
   return (
-    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui",minHeight:"calc(100vh - 60px)"}}>
+    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui",minHeight:"100%"}}>
       <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
       {/* KPI TILES */}
       {(()=>{

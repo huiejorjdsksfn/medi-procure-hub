@@ -124,7 +124,7 @@ export default function ODBCPage() {
   );
 
   return (
-      <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"calc(100vh-100px)"}}>
+      <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"100%"}}>
       {/* Header */}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e3a5f,#0369a1,#0284c7)",boxShadow:"0 4px 16px rgba(3,105,161,0.35)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>

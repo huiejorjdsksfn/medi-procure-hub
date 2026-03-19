@@ -71,7 +71,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <NetworkGuard>
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/index" element={<Navigate to="/dashboard" replace />} />
@@ -134,7 +135,7 @@ const App = () => (
             <Route path="/profile" element={<P><ProfilePage /></P>} />
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
           </NetworkGuard>
         </AuthProvider>
       </BrowserRouter>
