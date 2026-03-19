@@ -100,7 +100,7 @@ function TA({ value, onChange, rows=3, placeholder="" }: any) {
 
 const ALL_KEYS = [
   "hospital_name","system_name","hospital_address","hospital_phone","hospital_email","hospital_website","hospital_pin","hospital_county","hospital_type","system_logo_url","hospital_motto","hospital_reg_no","hospital_bed_capacity","hospital_director",
-  "smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_security","smtp_enabled","email_reply_to","email_signature","email_mode","resend_api_key","sendgrid_api_key","mailgun_api_key","mailgun_domain","test_email_to",
+  "smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_security","smtp_enabled","email_reply_to","email_signature",
   "email_notifications","email_po_approval","email_req_approved","email_grn","email_tender","push_notifications","sms_notifications","realtime_notifications","notify_on_login","notify_on_grn","notify_on_payment","notify_on_contract","notify_budget_alert",
   "two_factor","enforce_strong_password","audit_log","require_approval_grn","maintenance_mode","session_timeout","max_login_attempts","password_min_length","ip_whitelist","allow_registration","lock_inactive_users","require_email_verify","login_banner",
   "primary_color","secondary_color","accent_color","font_size","ui_density","dark_mode","sidebar_style","show_breadcrumb","show_live_indicator",
@@ -121,8 +121,6 @@ function SettingsInner() {
   const [sec, setSec]   = useState("hospital");
   const [showPass, setShowPass] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [testSending, setTestSending] = useState(false);
-  const [testResult, setTestResult]   = useState<{ok:boolean;msg:string}|null>(null);
 
   const set = (k:string,v:string) => { setS(p=>({...p,[k]:v})); setDirty(true); };
 
@@ -150,59 +148,6 @@ function SettingsInner() {
       .subscribe();
     return()=>{(supabase as any).removeChannel(ch);};
   },[]);
-
-  const sendTestEmail = async () => {
-    const to = S["test_email_to"] || profile?.email || "";
-    if (!to) { toast({title:"Enter a test recipient email first",variant:"destructive"}); return; }
-    setTestSending(true); setTestResult(null);
-    try {
-      // Always save SMTP settings first
-      await saveSettings({
-        smtp_host: S.smtp_host||"", smtp_port: S.smtp_port||"587",
-        smtp_user: S.smtp_user||"", smtp_password: S.smtp_password||"",
-        smtp_from_name: S.smtp_from_name||"EL5 MediProcure",
-        smtp_from_email: S.smtp_from_email||"", smtp_security: S.smtp_security||"tls",
-        smtp_enabled: S.smtp_enabled||"false",
-        resend_api_key: S.resend_api_key||"", sendgrid_api_key: S.sendgrid_api_key||"",
-        mailgun_api_key: S.mailgun_api_key||"", mailgun_domain: S.mailgun_domain||"",
-        email_mode: S.email_mode||"internal",
-      }, "email");
-
-      const { error, data } = await supabase.functions.invoke("send-email", {
-        body: {
-          to,
-          subject: "EL5 MediProcure — Test Email",
-          body: `This is a test email from EL5 MediProcure system.
-
-Sent at: ${new Date().toLocaleString("en-KE")}
-By: ${profile?.full_name||"Admin"}
-Mode: ${S.email_mode==="external"?"External SMTP":"Internal + External"}`,
-          from_name: S.smtp_from_name || "EL5 MediProcure",
-          smtp: S.smtp_enabled === "true" ? {
-            host: S.smtp_host, port: Number(S.smtp_port)||587,
-            username: S.smtp_user, password: S.smtp_password,
-            from_email: S.smtp_from_email || S.smtp_user,
-            from_name: S.smtp_from_name || "EL5 MediProcure",
-            encryption: S.smtp_security || "tls",
-          } : undefined,
-        }
-      });
-      if (error) throw new Error(error.message);
-      const d = data as any;
-      if (d?.success) {
-        setTestResult({ok:true, msg:`Delivered via ${d.provider||"internal"} ✓`});
-        toast({title:"Test email sent ✓", description:`Delivered to ${to} via ${d.provider||"internal"}`});
-      } else {
-        const errMsg = d?.results?.[0]?.error || d?.error || "Send failed";
-        setTestResult({ok:false, msg:errMsg});
-        toast({title:"Delivery failed", description:errMsg, variant:"destructive"});
-      }
-    } catch(e:any) {
-      setTestResult({ok:false, msg:e.message});
-      toast({title:"Test failed", description:e.message, variant:"destructive"});
-    }
-    setTestSending(false);
-  };
 
   const save = async(keys:string[]) => {
     setSaving(true);
@@ -292,92 +237,24 @@ Mode: ${S.email_mode==="external"?"External SMTP":"Internal + External"}`,
             </Card>
           )}
 
-          {sec==="email"&&(<>
-            {/* ── Mode selector ── */}
-            <Card title="Email Mode" sub="Choose how outgoing email works" color="#107c10" icon={Mail}
-              onSave={()=>save(["email_mode","smtp_enabled"])} saving={saving}>
-              <FR label="Email Mode" sub="Internal = in-app only. Allow External = also sends real emails via SMTP/API" ac="#107c10">
-                <div style={{display:"flex",gap:8}}>
-                  {[{v:"internal",l:"Internal Only",d:"Messages stay inside the system"},{v:"external",l:"Internal + External",d:"Also sends real emails externally"}].map(opt=>(
-                    <button key={opt.v} onClick={()=>set("email_mode",opt.v)}
-                      style={{padding:"8px 14px",borderRadius:8,border:`1.5px solid ${s("email_mode","internal")===opt.v?"#107c10":"#e5e7eb"}`,
-                        background:s("email_mode","internal")===opt.v?"#f0fdf4":"#fff",
-                        cursor:"pointer",fontSize:12,fontWeight:600,color:s("email_mode","internal")===opt.v?"#15803d":"#374151"}}>
-                      {opt.l}
-                      <div style={{fontSize:10,color:"#9ca3af",fontWeight:400,marginTop:2}}>{opt.d}</div>
-                    </button>
-                  ))}
-                </div>
-              </FR>
-              <FR label="Enable SMTP Sending" sub="Master toggle — required for external email delivery" ac="#107c10">
-                <Toggle on={b("smtp_enabled")} onChange={v=>set("smtp_enabled",String(v))}/>
-              </FR>
-            </Card>
-
-            {/* ── SMTP Settings ── */}
-            <Card title="SMTP Server Configuration" sub="Your outgoing mail server credentials" color="#0369a1" icon={Mail}
-              onSave={()=>save(["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_security","email_reply_to","email_signature"])} saving={saving}>
-              {[{k:"smtp_host",l:"SMTP Host",s:"e.g. smtp.gmail.com, smtp.office365.com"},{k:"smtp_port",l:"SMTP Port",s:"587 = TLS  |  465 = SSL"},{k:"smtp_user",l:"SMTP Username",s:"Usually your full email address"},{k:"smtp_from_name",l:"From Name",s:"Display name in emails"},{k:"smtp_from_email",l:"From Email",s:"Sender address"},{k:"email_reply_to",l:"Reply-To Email",s:"Optional separate reply address"}].map(f=>(
-                <FR key={f.k} label={f.l} sub={f.s} ac="#0369a1"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} placeholder={f.s}/></FR>
+          {sec==="email"&&(
+            <Card title="Email & SMTP Configuration" sub="Configure the mail server for outgoing emails" color="#107c10" icon={Mail} onSave={()=>save(["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_name","smtp_from_email","smtp_security","smtp_enabled","email_reply_to","email_signature"])} saving={saving}>
+              <FR label="Enable Email Sending" sub="Turn on/off all outgoing system emails" ac="#107c10"><Toggle on={b("smtp_enabled")} onChange={v=>set("smtp_enabled",String(v))}/></FR>
+              {[{k:"smtp_host",l:"SMTP Host",s:"e.g. smtp.gmail.com"},{k:"smtp_port",l:"SMTP Port",s:"587 TLS / 465 SSL"},{k:"smtp_user",l:"SMTP Username"},{k:"smtp_from_name",l:"From Name"},{k:"smtp_from_email",l:"From Email",s:"Sender address"},{k:"email_reply_to",l:"Reply-To Email"}].map(f=>(
+                <FR key={f.k} label={f.l} sub={f.s} ac="#107c10"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)}/></FR>
               ))}
-              <FR label="SMTP Password" sub="Stored securely in database" ac="#0369a1">
+              <FR label="SMTP Password" sub="Stored securely" ac="#107c10">
                 <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                  <Inp value={s("smtp_password")} onChange={(v:string)=>set("smtp_password",v)} type={showPass?"text":"password"} placeholder="App password or SMTP password"/>
+                  <Inp value={s("smtp_password")} onChange={(v:string)=>set("smtp_password",v)} type={showPass?"text":"password"}/>
                   <button onClick={()=>setShowPass(p=>!p)} style={{padding:9,background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",lineHeight:0}}>
                     {showPass?<EyeOff style={{width:14,height:14,color:"#6b7280"}}/>:<Eye style={{width:14,height:14,color:"#6b7280"}}/>}
                   </button>
                 </div>
               </FR>
-              <FR label="SMTP Security" ac="#0369a1"><Sel value={s("smtp_security","tls")} onChange={v=>set("smtp_security",v)} opts={[{v:"tls",l:"TLS (STARTTLS) — port 587"},{v:"ssl",l:"SSL — port 465"},{v:"none",l:"None — port 25"}]}/></FR>
-              <FR label="Email Signature" sub="Appended to all outgoing emails" ac="#0369a1"><TA value={s("email_signature")} onChange={(v:string)=>set("email_signature",v)} placeholder="Best regards,
-Procurement Department
-Embu Level 5 Hospital"/></FR>
+              <FR label="SMTP Security" ac="#107c10"><Sel value={s("smtp_security","tls")} onChange={v=>set("smtp_security",v)} opts={[{v:"tls",l:"TLS (STARTTLS)"},{v:"ssl",l:"SSL"},{v:"none",l:"None"}]}/></FR>
+              <FR label="Email Signature" sub="Appended to outgoing emails" ac="#107c10"><TA value={s("email_signature")} onChange={(v:string)=>set("email_signature",v)} placeholder="Best regards,&#10;Procurement Dept"/></FR>
             </Card>
-
-            {/* ── External Provider API Keys ── */}
-            <Card title="Email Provider API Keys" sub="Alternative to SMTP — Resend, SendGrid or Mailgun (faster & more reliable)" color="#7c3aed" icon={Zap}
-              onSave={()=>save(["resend_api_key","sendgrid_api_key","mailgun_api_key","mailgun_domain"])} saving={saving}>
-              <div style={{padding:"10px 0 14px",borderBottom:"1px solid #f3f4f6",marginBottom:4}}>
-                <div style={{fontSize:12,color:"#6b7280",lineHeight:1.6}}>
-                  Priority order: <strong style={{color:"#7c3aed"}}>Resend</strong> → <strong style={{color:"#0369a1"}}>SendGrid</strong> → <strong style={{color:"#d97706"}}>Mailgun</strong> → SMTP → Internal only.<br/>
-                  Leave all blank to use SMTP credentials above. Set any one API key to use that provider.
-                </div>
-              </div>
-              <FR label="Resend API Key" sub="resend.com — best for transactional email (re_...)" ac="#7c3aed">
-                <Inp value={s("resend_api_key")} onChange={(v:string)=>set("resend_api_key",v)} type="password" placeholder="re_xxxxxxxxxxxxxxxx"/>
-              </FR>
-              <FR label="SendGrid API Key" sub="sendgrid.com — enterprise email delivery (SG....)" ac="#0369a1">
-                <Inp value={s("sendgrid_api_key")} onChange={(v:string)=>set("sendgrid_api_key",v)} type="password" placeholder="SG.xxxxxxxxxxxxxxxxx"/>
-              </FR>
-              <FR label="Mailgun API Key" sub="mailgun.com — (key-xxxxx)" ac="#d97706">
-                <Inp value={s("mailgun_api_key")} onChange={(v:string)=>set("mailgun_api_key",v)} type="password" placeholder="key-xxxxxxxxxxxxxxxxx"/>
-              </FR>
-              <FR label="Mailgun Domain" sub="Your verified Mailgun sending domain" ac="#d97706">
-                <Inp value={s("mailgun_domain")} onChange={(v:string)=>set("mailgun_domain",v)} placeholder="mail.yourhospital.go.ke"/>
-              </FR>
-            </Card>
-
-            {/* ── Test Send ── */}
-            <Card title="Send Test Email" sub="Verify your email configuration is working correctly" color="#059669" icon={Mail}
-              onSave={()=>sendTestEmail()} saving={testSending}>
-              <FR label="Test Recipient Email" sub="Send a test email to this address to confirm delivery" ac="#059669">
-                <Inp value={s("test_email_to")} onChange={(v:string)=>set("test_email_to",v)} placeholder={profile?.email||"test@example.com"}/>
-              </FR>
-              {testResult&&(
-                <div style={{marginTop:10,padding:"10px 14px",borderRadius:8,
-                  background:testResult.ok?"#f0fdf4":"#fef2f2",
-                  border:`1px solid ${testResult.ok?"#86efac":"#fca5a5"}`,
-                  display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:testResult.ok?"#16a34a":"#dc2626",flexShrink:0}}/>
-                  <span style={{fontSize:12,color:testResult.ok?"#15803d":"#dc2626",fontWeight:600}}>{testResult.msg}</span>
-                </div>
-              )}
-              <div style={{marginTop:12,fontSize:11,color:"#9ca3af",lineHeight:1.6}}>
-                Clicking <strong>Save</strong> above will first persist all settings then send a test email.<br/>
-                Check your spam folder if it doesn't arrive within 2 minutes.
-              </div>
-            </Card>
-          </>)}
+          )}
 
           {sec==="notifications"&&(
             <Card title="Notification Settings" sub="Control which events trigger notifications and via which channels" color="#f59e0b" icon={Bell} onSave={()=>save(["email_notifications","email_po_approval","email_req_approved","email_grn","email_tender","push_notifications","sms_notifications","realtime_notifications","notify_on_login","notify_on_grn","notify_on_payment","notify_on_contract","notify_budget_alert"])} saving={saving}>

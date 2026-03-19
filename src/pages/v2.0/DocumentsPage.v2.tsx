@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import logoImg from "@/assets/logo.png";
 import {
   FileText, Upload, Eye, Download, Search, X, Plus, Filter,
   Printer, RefreshCw, Edit3, Trash2, FileCheck, Settings, Save,
@@ -59,8 +58,8 @@ const DOC_PRINT_CSS = `
 const SYSTEM_TEMPLATES = [
   { id:"lpo", name:"Local Purchase Order (LPO)", category:"template", description:"Standard LPO for procurement purchases", icon:ShoppingCart,
     html:`<div class="doc-page"><div class="watermark">LPO</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>LOCAL PURCHASE ORDER</h3><p>LPO No: <strong>{{LPO_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
+<div class="doc-header"><div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" onerror="this.style.display='none'"/></div>
+<div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>LOCAL PURCHASE ORDER</h3><p>LPO No: <strong>{{LPO_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
 <table class="info-table">
   <tr><td>Supplier:</td><td>{{SUPPLIER_NAME}}</td><td>Delivery Date:</td><td>{{DELIVERY_DATE}}</td></tr>
   <tr><td>Address:</td><td>{{SUPPLIER_ADDRESS}}</td><td>Department:</td><td>{{DEPARTMENT}}</td></tr>
@@ -82,12 +81,12 @@ const SYSTEM_TEMPLATES = [
   <div class="sig-box"><div class="sig-line">{{SIG_SUPPLIER}}</div><p class="sig-role">Supplier Representative</p><p class="sig-date">Date: {{SIG_DATE_2}}</p></div>
   <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p class="sig-role">Approved By</p><p class="sig-date">Date: {{SIG_DATE_3}}</p></div>
 </div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
+<div class="doc-stamp">OFFICIAL DOCUMENT — EMBU LEVEL 5 HOSPITAL · EMBU COUNTY GOVERNMENT</div></div>`},
 
   { id:"grn", name:"Goods Received Note (GRN)", category:"template", description:"Goods receipt confirmation document", icon:Package,
     html:`<div class="doc-page"><div class="watermark">GRN</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>GOODS RECEIVED NOTE</h3><p>GRN No: <strong>{{GRN_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
+<div class="doc-header"><div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" onerror="this.style.display='none'"/></div>
+<div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>GOODS RECEIVED NOTE</h3><p>GRN No: <strong>{{GRN_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
 <table class="info-table">
   <tr><td>Supplier:</td><td>{{SUPPLIER_NAME}}</td><td>LPO Reference:</td><td>{{LPO_NUMBER}}</td></tr>
   <tr><td>Delivery Note:</td><td>{{DELIVERY_NOTE}}</td><td>Received By:</td><td>{{RECEIVED_BY}}</td></tr>
@@ -104,12 +103,12 @@ const SYSTEM_TEMPLATES = [
   <div class="sig-box"><div class="sig-line">{{SIG_INSPECTED}}</div><p class="sig-role">Quality Inspector</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
   <div class="sig-box"><div class="sig-line">{{SIG_STORE}}</div><p class="sig-role">Store Manager</p><p class="sig-date">{{SIG_DATE_3}}</p></div>
 </div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
+<div class="doc-stamp">OFFICIAL DOCUMENT — EMBU LEVEL 5 HOSPITAL · EMBU COUNTY GOVERNMENT</div></div>`},
 
   { id:"pv", name:"Payment Voucher", category:"template", description:"Official payment authorization voucher", icon:DollarSign,
     html:`<div class="doc-page"><div class="watermark">PV</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>PAYMENT VOUCHER</h3><p>PV No: <strong>{{PV_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
+<div class="doc-header"><div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" onerror="this.style.display='none'"/></div>
+<div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>PAYMENT VOUCHER</h3><p>PV No: <strong>{{PV_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
 <table class="info-table">
   <tr><td>Payee:</td><td colspan="3"><strong>{{PAYEE_NAME}}</strong></td></tr>
   <tr><td>Account No:</td><td>{{ACCOUNT_NUMBER}}</td><td>Bank:</td><td>{{BANK_NAME}}</td></tr>
@@ -124,12 +123,12 @@ const SYSTEM_TEMPLATES = [
   <div class="sig-box"><div class="sig-line">{{SIG_VERIFIED}}</div><p class="sig-role">Verified By (Finance)</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
   <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p class="sig-role">Authorized By</p><p class="sig-date">{{SIG_DATE_3}}</p></div>
 </div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
+<div class="doc-stamp">OFFICIAL DOCUMENT — EMBU LEVEL 5 HOSPITAL · EMBU COUNTY GOVERNMENT</div></div>`},
 
   { id:"tender", name:"Invitation to Tender (ITT)", category:"template", description:"Formal tender invitation document", icon:Gavel,
     html:`<div class="doc-page"><div class="watermark">TENDER</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>INVITATION TO TENDER</h3><p>Tender No: <strong>{{TENDER_NUMBER}}</strong></p></div></div>
+<div class="doc-header"><div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" onerror="this.style.display='none'"/></div>
+<div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>INVITATION TO TENDER</h3><p>Tender No: <strong>{{TENDER_NUMBER}}</strong></p></div></div>
 <table class="info-table">
   <tr><td>Subject:</td><td colspan="3"><strong>{{TENDER_SUBJECT}}</strong></td></tr>
   <tr><td>Category:</td><td>{{TENDER_CATEGORY}}</td><td>Estimated Value:</td><td>KES {{ESTIMATED_VALUE}}</td></tr>
@@ -143,12 +142,12 @@ const SYSTEM_TEMPLATES = [
   <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p class="sig-role">Head of Procurement</p><p class="sig-date">{{SIG_DATE_1}}</p></div>
   <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p class="sig-role">Director, EL5H</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
 </div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
+<div class="doc-stamp">OFFICIAL DOCUMENT — EMBU LEVEL 5 HOSPITAL · EMBU COUNTY GOVERNMENT</div></div>`},
 
   { id:"req_form", name:"Procurement Requisition Form", category:"form", description:"Internal requisition request form", icon:ClipboardList,
     html:`<div class="doc-page"><div class="watermark">REQ</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>PROCUREMENT REQUISITION FORM</h3><p>REQ No: <strong>{{REQ_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
+<div class="doc-header"><div class="logo-area"><img src="/src/assets/embu-county-logo.jpg" alt="Logo" onerror="this.style.display='none'"/></div>
+<div class="header-text"><h2>EMBU LEVEL 5 HOSPITAL</h2><h3>PROCUREMENT REQUISITION FORM</h3><p>REQ No: <strong>{{REQ_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
 <table class="info-table">
   <tr><td>Requesting Dept:</td><td>{{DEPARTMENT}}</td><td>Priority:</td><td>{{PRIORITY}}</td></tr>
   <tr><td>Requested By:</td><td>{{REQUESTED_BY}}</td><td>Date Required:</td><td>{{DATE_REQUIRED}}</td></tr>
@@ -165,7 +164,7 @@ const SYSTEM_TEMPLATES = [
   <div class="sig-box"><div class="sig-line">{{SIG_PROCUREMENT}}</div><p class="sig-role">Procurement Officer</p><p class="sig-date">{{SIG_DATE_3}}</p></div>
   <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p class="sig-role">Approved By</p><p class="sig-date">{{SIG_DATE_4}}</p></div>
 </div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
+<div class="doc-stamp">OFFICIAL DOCUMENT — EMBU LEVEL 5 HOSPITAL · EMBU COUNTY GOVERNMENT</div></div>`},
 ];
 
 const PLACEHOLDERS = [
@@ -234,25 +233,9 @@ export default function DocumentsPage() {
     return()=>(supabase as any).removeChannel(ch);
   },[loadDocs,user]);
 
-  // Settings for dynamic templates
-  const hospitalName = getSetting("hospital_name", "Embu Level 5 Hospital");
-  const sysName      = getSetting("system_name", "EL5 MediProcure");
-  const logoUrl      = getSetting("logo_url") || getSetting("system_logo_url") || "";
-  const logoSrc      = logoUrl || logoImg;
-  const stamp        = `OFFICIAL DOCUMENT — ${hospitalName} · EMBU COUNTY GOVERNMENT`;
-
-  // Build dynamic system templates with live settings
-  const dynamicTemplates = SYSTEM_TEMPLATES.map(t => ({
-    ...t,
-    html: t.html
-      .replace(/LOGO_PLACEHOLDER/g, `<img src="${logoSrc}" alt="Logo" style="height:65px;object-fit:contain;" onerror="this.style.display='none'"/>`)
-      .replace(/HOSPITAL_NAME_PLACEHOLDER/g, hospitalName)
-      .replace(/STAMP_PLACEHOLDER/g, stamp),
-  }));
-
-  // All documents to show = dynamic system templates + DB docs
+  // All documents to show = system templates + DB docs
   const allDocs = [
-    ...dynamicTemplates.map(t=>({...t, id:t.id, is_system:true, created_at:new Date().toISOString()})),
+    ...SYSTEM_TEMPLATES.map(t=>({...t, id:t.id, is_system:true, created_at:new Date().toISOString()})),
     ...docs.filter(d=>!SYSTEM_TEMPLATES.find(t=>t.id===d.id)),
   ];
 
