@@ -1,22 +1,13 @@
-# ─────────────────────────────────────────────────────────────
 # ProcurBosse — electron-builder configuration
-# Produces: ProcurBosse-v2.0.0-Setup.exe (NSIS installer)
-#           ProcurBosse-v1.0.0-Setup.exe (legacy v1 build)
 # Targets: Windows 7 SP1 → Windows 11 (x64 + ia32)
-# ─────────────────────────────────────────────────────────────
-
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
 copyright: "© 2025 Embu County Government — All Rights Reserved"
-
-# App version (overridden per build)
-buildVersion: "2.0.0"
 
 directories:
   buildResources: build
   output: dist-electron
 
-# Files to pack into the app.asar
 files:
   - dist/**/*
   - electron/**/*
@@ -26,7 +17,6 @@ files:
   - "!.github/**/*"
   - "!supabase/**/*"
 
-# Extra resources copied alongside the exe (not in asar)
 extraResources:
   - from: public/icon.png
     to: icon.png
@@ -35,19 +25,16 @@ extraResources:
   - from: public/manifest.json
     to: manifest.json
 
-# ── Windows ──────────────────────────────────────────────────
 win:
   icon: public/icon.png
-  # Sign with cert if CSC_LINK env is set, otherwise unsigned
   certificateSubjectName: ""
   verifyUpdateCodeSignature: false
   target:
-    - target: nsis      # Full installer with uninstaller
+    - target: nsis
       arch:
-        - x64            # Windows 10/11 modern
-        - ia32           # Windows 7/8 32-bit compatibility
+        - x64
+        - ia32
 
-# ── NSIS Installer Options ────────────────────────────────────
 nsis:
   oneClick: false
   perMachine: false
@@ -58,13 +45,10 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: "ProcurBosse"
-  include: build/installer.nsh
   artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"
   deleteAppDataOnUninstall: false
-  # Windows 7 compatibility — disable modern NSIS features
   unicode: true
 
-# ── Auto-Update via GitHub Releases ──────────────────────────
 publish:
   provider: github
   owner: huiejorjdsksfn
@@ -72,20 +56,5 @@ publish:
   private: false
   releaseType: release
 
-# ── Mac (bonus) ───────────────────────────────────────────────
-mac:
-  icon: public/icon.png
-  target: dmg
-  artifactName: "ProcurBosse-v${version}-mac.dmg"
-  category: public.app-category.business
-
-# ── Linux (bonus) ─────────────────────────────────────────────
-linux:
-  icon: public/icon.png
-  target: AppImage
-  artifactName: "ProcurBosse-v${version}-linux.AppImage"
-  category: Office
-
-# ── Build options ─────────────────────────────────────────────
 compression: maximum
 removePackageScripts: true

@@ -1,3 +1,4 @@
+# Build Desktop App — Simplified, fixed for all Windows versions
 name: Build Desktop App
 
 on:
@@ -17,11 +18,11 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://yvjfehnzbzjliizjvuhq.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc' }}
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist
@@ -41,33 +42,31 @@ jobs:
         with:
           name: web-dist
           path: dist/
-      - name: Install with Electron
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: 'false'
-      - name: Build Windows exe
-        run: npx electron-builder --win --config electron-builder.yml
+      - name: Install dependencies
+        run: npm ci --no-audit
+        shell: bash
+      - name: Build Windows EXE
+        shell: bash
+        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
+          name: windows-exe-desktop
           path: dist-electron/*.exe
           retention-days: 30
+          if-no-files-found: warn
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0-build-${{ github.run_number }}
-          name: "EL5 MediProcure v2.0 (Build ${{ github.run_number }})"
+          tag_name: desktop-v2.0-build-${{ github.run_number }}
+          name: "EL5 MediProcure Desktop v2.0 (Build ${{ github.run_number }})"
           body: |
             ## EL5 MediProcure Desktop Installer
-
-            **Download the `.exe` below and run as Administrator.**
-
-            - Windows 7 SP1 / 8 / 10 / 11 (64-bit)
-            - Connects live to Embu L5H database
-            - All 40+ ERP modules included
+            **Download the `.exe` below and Run as Administrator.**
+            - Windows 10/11 (64-bit) — from this workflow
+            - For Windows 7/8: use the ProcurBosse Windows EXE workflow (ia32)
             - Built from: ${{ github.sha }}
           files: dist-electron/*.exe
           draft: false

@@ -1,14 +1,5 @@
-# ─────────────────────────────────────────────────────────────────────────────
 # ProcurBosse — Auto-build Windows .exe on every push to main
-#
-# Produces:
-#   • ProcurBosse-v2.x.x-x64-Setup.exe   (Windows 10/11, 64-bit — recommended)
-#   • ProcurBosse-v2.x.x-ia32-Setup.exe  (Windows 7/8/8.1, 32-bit compatible)
-#
-# Also builds v1 (legacy) exe on demand via workflow_dispatch
-#
-# Download from: GitHub → Releases → Assets
-# ─────────────────────────────────────────────────────────────────────────────
+# v2 = Windows 10/11 x64 | v1 = Windows 7/8/10 ia32 (Electron 22 LTS)
 name: Build ProcurBosse Windows EXE
 
 on:
@@ -17,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       build_v1:
-        description: 'Also build v1 legacy EXE?'
+        description: 'Also build v1 legacy EXE (Win7/8)?'
         type: boolean
-        default: false
+        default: true
         required: false
       version_override:
         description: 'Override version (e.g. 2.1.0)'
@@ -34,117 +25,33 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 
 jobs:
-  # ── STEP 1: Build React/Vite web app on Linux (fast) ───────────────────────
   build-web:
-    name: "Build Web App"
+    name: "Build Web App (Vite)"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build React app (Vite)
+      - run: npm ci --no-audit
+      - name: Build React app
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
-
-      - name: Show dist contents
-        run: |
-          echo "=== dist size ==="
-          du -sh dist/
-          echo "=== dist files ==="
-          ls dist/assets/ | head -10
-
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+      - name: Verify dist
+        run: du -sh dist/ && ls dist/
+      - uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: dist/
           retention-days: 1
 
-  # ── STEP 2: Build Windows EXE (v2 — current) ──────────────────────────────
   build-exe-v2:
-    name: "Build ProcurBosse v2 EXE (Windows)"
+    name: "ProcurBosse v2 — Win10/11 x64"
     runs-on: windows-latest
     needs: build-web
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Download web dist
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist/
-
-      - name: Install all dependencies (including Electron binary)
-        run: npm ci
-        shell: bash
-
-      - name: Set app version
-        shell: bash
-        run: |
-          VERSION="${{ github.event.inputs.version_override }}"
-          if [ -z "$VERSION" ]; then
-            VERSION="2.0.${{ github.run_number }}"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          npm version "$VERSION" --no-git-tag-version --allow-same-version 2>/dev/null || true
-          echo "Building ProcurBosse version: $VERSION"
-
-      - name: Build x64 installer (Windows 10/11)
-        shell: bash
-        run: npx electron-builder --win --x64 --config electron-builder.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          DEBUG: electron-builder
-
-      - name: Build ia32 installer (Windows 7/8)
-        shell: bash
-        run: npx electron-builder --win --ia32 --config electron-builder.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-
-      - name: List built files
-        shell: bash
-        run: |
-          echo "=== Built installers ==="
-          ls -lh dist-electron/*.exe 2>/dev/null || echo "No exe files found"
-          ls -lh dist-electron/ 2>/dev/null || echo "dist-electron empty"
-
-      - name: Upload v2 EXE artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: procurbosse-v2-windows
-          path: |
-            dist-electron/*-Setup.exe
-            dist-electron/*.blockmap
-          retention-days: 30
-          if-no-files-found: warn
-
-  # ── STEP 3 (optional): Build v1 legacy EXE ────────────────────────────────
-  build-exe-v1:
-    name: "Build ProcurBosse v1 EXE (Legacy)"
-    runs-on: windows-latest
-    needs: build-web
-    if: ${{ github.event.inputs.build_v1 == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -155,104 +62,129 @@ jobs:
         with:
           name: web-dist
           path: dist/
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci --no-audit
         shell: bash
-      - name: Set v1 version
+      - name: Set version
         shell: bash
         run: |
-          npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version 2>/dev/null || true
-          echo "VERSION=1.0.${{ github.run_number }}" >> $GITHUB_ENV
-      - name: Build v1 x64
+          if [ -n "${{ github.event.inputs.version_override }}" ]; then
+            VERSION="${{ github.event.inputs.version_override }}"
+          else
+            VERSION="2.0.${{ github.run_number }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='$VERSION';fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
+      - name: Build x64 installer
         shell: bash
         run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Rename output
+        shell: bash
+        run: |
+          cd dist-electron
+          for f in *.exe; do [ -f "$f" ] && mv "$f" "ProcurBosse-v${{ env.VERSION }}-Win10-x64-Setup.exe" && break; done
+          ls -lh
       - uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v1-windows
-          path: dist-electron/*-Setup.exe
+          name: procurbosse-v2-win64
+          path: dist-electron/ProcurBosse-*.exe
           retention-days: 30
+          if-no-files-found: warn
 
-  # ── STEP 4: Create GitHub Release with download links ─────────────────────
+  build-exe-v1:
+    name: "ProcurBosse v1 — Win7/8/10 ia32 (Legacy)"
+    runs-on: windows-latest
+    needs: build-web
+    if: ${{ github.event_name == 'push' || github.event.inputs.build_v1 == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Pin Electron 22 LTS for Windows 7 support
+        shell: bash
+        run: |
+          node -e "
+            const fs=require('fs');
+            const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+            p.devDependencies=p.devDependencies||{};
+            p.devDependencies['electron']='22.3.27';
+            p.version='1.0.${{ github.run_number }}';
+            fs.writeFileSync('package.json',JSON.stringify(p,null,2));
+            console.log('Pinned Electron 22.3.27 for Win7 support');
+          "
+          echo "V1_VERSION=1.0.${{ github.run_number }}" >> $GITHUB_ENV
+      - name: Install with Electron 22
+        shell: bash
+        run: npm install --no-audit
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+      - name: Build ia32 installer (Windows 7/8/10)
+        shell: bash
+        run: npx electron-builder --win --ia32 --config electron-builder.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Rename output
+        shell: bash
+        run: |
+          cd dist-electron
+          for f in *.exe; do [ -f "$f" ] && mv "$f" "ProcurBosse-v${{ env.V1_VERSION }}-Win7-ia32-Setup.exe" && break; done
+          ls -lh || echo "No exe found"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: procurbosse-v1-win7
+          path: dist-electron/ProcurBosse-*Win7*.exe
+          retention-days: 30
+          if-no-files-found: warn
+
   release:
     name: "Publish GitHub Release"
     runs-on: ubuntu-latest
-    needs: build-exe-v2
+    needs: [build-exe-v2, build-exe-v1]
+    if: always() && needs.build-exe-v2.result == 'success'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download v2 EXE
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v2-windows
+          name: procurbosse-v2-win64
           path: release/
         continue-on-error: true
-
-      - name: Download v1 EXE (if built)
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v1-windows
+          name: procurbosse-v1-win7
           path: release/
         continue-on-error: true
-
-      - name: Show release files
-        run: ls -lh release/ || echo "No release files"
-
-      - name: Determine tag
+      - run: ls -lh release/ || echo "No release files"
+      - name: Set tag
         id: tag
-        run: |
-          TAG="v2.0-build-${{ github.run_number }}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Release tag: $TAG"
-
-      - name: Create GitHub Release
+        run: echo "tag=v2.0-build-${{ github.run_number }}" >> $GITHUB_OUTPUT
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: "ProcurBosse ${{ steps.tag.outputs.tag }} — EL5 MediProcure"
           body: |
-            ## ProcurBosse Desktop Installer
+            ## 🏥 ProcurBosse Desktop — Embu Level 5 Hospital ERP
 
-            ### ⬇️ Download
+            | File | Windows | Arch | Note |
+            |------|---------|------|------|
+            | `ProcurBosse-v2.x-Win10-x64-Setup.exe` | **10 / 11** | 64-bit | ✅ Recommended |
+            | `ProcurBosse-v1.x-Win7-ia32-Setup.exe` | **7 / 8 / 8.1 / 10** | 32-bit | ✅ Legacy PCs |
 
-            | File | OS | Architecture | Notes |
-            |------|----|------|-------|
-            | `*-x64-Setup.exe` | Windows 10 / 11 | 64-bit | **Recommended** |
-            | `*-ia32-Setup.exe` | Windows 7 / 8 / 8.1 / 10 | 32-bit | Legacy support |
+            **Install:** Right-click → Run as Administrator → follow wizard
 
-            ### Installation Steps
-            1. Download the appropriate `.exe` for your Windows version
-            2. Right-click → **Run as Administrator**
-            3. Follow the setup wizard (choose install folder)
-            4. Launch via Desktop shortcut or Start Menu → **EL5 MediProcure → ProcurBosse**
+            **Requirements:** Internet connection · 300 MB disk · 2 GB RAM minimum
 
-            ### System Requirements
-            - Windows 7 SP1 or later *(32-bit or 64-bit)*
-            - Internet connection *(connects live to Embu Level 5 Hospital Supabase database)*
-            - 300 MB free disk space
-            - 2 GB RAM minimum
+            **Modules:** Procurement · Finance · Inventory · Quality · Admin · Email · Documents · ODBC/SQL Server
 
-            ### What's Included (All 40+ ERP Modules)
-            - ✅ Procurement (Requisitions, Purchase Orders, GRN, Suppliers, Tenders, Contracts)
-            - ✅ Finance (Vouchers, Budgets, Chart of Accounts, Fixed Assets)
-            - ✅ Inventory & Quality (Items, Categories, QC Inspections, NCR)
-            - ✅ Reports & Documents (Excel export, PDF print, Audit log)
-            - ✅ Mail & Notifications (Internal + SMTP email)
-            - ✅ Admin (Users, Settings, Database Admin, Webmaster)
-            - ✅ Real-time sync via Supabase
-            - ✅ Auto-update checker (notifies when new version released)
-            - ✅ IP Network restriction support
-            - ✅ Role-based access (Admin, Manager, Officer, Requisitioner, DB Admin)
-
-            ### Database
-            Connected live to: `yvjfehnzbzjliizjvuhq.supabase.co`
-            Repo: https://github.com/huiejorjdsksfn/medi-procure-hub
-
-            ---
-            Built from commit: `${{ github.sha }}`
-            Build: #${{ github.run_number }} · ${{ github.run_id }}
-
+            Built from `${{ github.sha }}` · Build #${{ github.run_number }}
           files: release/*.exe
           draft: false
           prerelease: false

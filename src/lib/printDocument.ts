@@ -1,11 +1,14 @@
 /**
- * EL5 MediProcure — Centralized Document Print Utility
- * All printed documents use black font, A4 layout, professional letterhead.
- * Usage: printDocument("REQ", data, settings)
+ * ProcurBosse — EL5 MediProcure Document Print Engine v2.0
+ * All printed documents match the Embu County Government official letterhead.
+ * Template: EMBU COUNTY GOVERNMENT | DEPARTMENT OF HEALTH | EMBU LEVEL 5 HOSPITAL
+ * "Note: Private and Confidential"
  */
 
 export interface PrintSettings {
   hospitalName?:    string;
+  countyName?:      string;
+  departmentName?:  string;
   sysName?:         string;
   docFooter?:       string;
   currencySymbol?:  string;
@@ -14,16 +17,21 @@ export interface PrintSettings {
   showLogo?:        boolean;
   showStamp?:       boolean;
   showWatermark?:   boolean;
-  logoUrl?:         string;   // URL/path to hospital logo image
+  logoUrl?:         string;
+  sealUrl?:         string;
   hospitalAddress?: string;
   hospitalPhone?:   string;
   hospitalEmail?:   string;
+  poBox?:           string;
+  confidential?:    boolean;
 }
 
 const DEF: Required<PrintSettings> = {
   hospitalName:    "Embu Level 5 Hospital",
+  countyName:      "Embu County Government",
+  departmentName:  "Department of Health",
   sysName:         "EL5 MediProcure",
-  docFooter:       "Embu Level 5 Hospital · Embu County Government",
+  docFooter:       "Embu Level 5 Hospital · Embu County Government · Department of Health",
   currencySymbol:  "KES",
   printFont:       "Times New Roman",
   printFontSize:   "11",
@@ -31,16 +39,18 @@ const DEF: Required<PrintSettings> = {
   showStamp:       true,
   showWatermark:   false,
   logoUrl:         "",
+  sealUrl:         "",
   hospitalAddress: "Embu Town, Embu County, Kenya",
   hospitalPhone:   "+254 060 000000",
   hospitalEmail:   "info@embu.health.go.ke",
+  poBox:           "P.O. Box 591-60100, Embu",
+  confidential:    true,
 };
 
 function merge(s?: PrintSettings): Required<PrintSettings> {
   return { ...DEF, ...s };
 }
 
-/** Generate a unique document serial number with timestamp + random */
 function uniqueSerial(prefix: string, existingRef?: string): string {
   if (existingRef && existingRef !== "—" && existingRef !== "") return existingRef;
   const d = new Date();
@@ -51,545 +61,580 @@ function uniqueSerial(prefix: string, existingRef?: string): string {
   return `${prefix}-${yy}${mm}${dd}-${rand}`;
 }
 
-/** Validate all required print fields, return list of missing */
 function missingFields(obj: Record<string,any>, required: string[]): string[] {
   return required.filter(k => !obj[k] || String(obj[k]).trim() === "" || obj[k] === "—");
 }
 
+function amountInWords(amount: number, currency = "Kenya Shillings"): string {
+  if (!amount || isNaN(amount)) return "";
+  const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
+    "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  function w(n: number): string {
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? " "+ones[n%10] : "");
+    if (n < 1000) return ones[Math.floor(n/100)]+" Hundred"+(n%100 ? " "+w(n%100) : "");
+    if (n < 1000000) return w(Math.floor(n/1000))+" Thousand"+(n%1000 ? " "+w(n%1000) : "");
+    if (n < 1000000000) return w(Math.floor(n/1000000))+" Million"+(n%1000000 ? " "+w(n%1000000) : "");
+    return w(Math.floor(n/1000000000))+" Billion"+(n%1000000000 ? " "+w(n%1000000000) : "");
+  }
+  const int = Math.floor(amount);
+  const dec = Math.round((amount - int)*100);
+  let result = (int > 0 ? w(int) : "Zero") + " " + currency;
+  if (dec > 0) result += " and " + w(dec) + " Cents";
+  return result + " Only";
+}
 
-/** Base print CSS — always black text, clean A4 */
+function formatDate(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return String(d);
+  return dt.toLocaleDateString("en-KE", { day:"2-digit", month:"long", year:"numeric" });
+}
+
+function fmtMoney(v: any, sym = "KES"): string {
+  const n = parseFloat(v) || 0;
+  return `${sym} ${n.toLocaleString("en-KE", { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+}
+
+/** Official Embu County Government letterhead — matching the scanned template */
 function baseCss(s: Required<PrintSettings>): string {
   return `
+    <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: '${s.printFont}', 'Times New Roman', Times, serif;
       font-size: ${s.printFontSize}pt;
-      color: #000;
+      color: #000 !important;
       background: #fff;
-      padding: 28px 36px;
+      padding: 20px 30px;
     }
     @media print {
-      body { padding: 10mm 14mm; }
-      @page { size: A4; margin: 10mm 14mm; }
+      body { padding: 8mm 12mm; }
+      @page { size: A4; margin: 8mm 12mm; }
       .no-print { display: none !important; }
     }
-    h1, h2, h3, p, td, th, div, span, label { color: #000; }
-    .doc-header { text-align: center; margin-bottom: 14px; border-bottom: 3px double #000; padding-bottom: 10px; }
-    .doc-title  { font-size: 17pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #000; }
-    .doc-sub    { font-size: 10pt; color: #000; margin-top: 3px; }
-    .doc-org    { font-size: 11pt; font-weight: 700; color: #000; margin-top: 2px; }
-    .divider    { border: none; border-top: 2px solid #000; margin: 8px 0 14px; }
-    .thin-divider { border: none; border-top: 1px solid #000; margin: 6px 0 10px; }
-    .two-col    { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 16px; }
-    .three-col  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 16px; }
-    .section-title {
-      font-size: 10pt; font-weight: 900; text-transform: uppercase;
-      letter-spacing: 0.8px; margin-bottom: 8px; color: #000;
-      border-bottom: 1.5px solid #000; padding-bottom: 3px;
+    h1,h2,h3,p,td,th,div,span,label,input,textarea { color: #000 !important; }
+
+    /* ── Official Letterhead ── */
+    .letterhead {
+      text-align: center;
+      border-bottom: 3px double #000;
+      padding-bottom: 10px;
+      margin-bottom: 6px;
+      position: relative;
     }
-    .info-line  { display: flex; margin-bottom: 5px; font-size: 10.5pt; }
-    .info-label { font-weight: 700; min-width: 170px; flex-shrink: 0; color: #000; }
-    .info-val   { border-bottom: 1px solid #555; flex: 1; min-height: 15px; color: #000; padding-left: 4px; }
-    .meta-badge { display: inline-block; border: 1px solid #000; padding: 2px 8px; font-size: 9pt; font-weight: 700; text-transform: uppercase; margin-right: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    .tbl-title  { background: #000; color: #fff; text-align: center; font-size: 10.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; padding: 6px; border: 1.5px solid #000; }
-    .tbl-hdr    { background: #333; color: #fff; font-size: 9.5pt; font-weight: 700; text-transform: uppercase; padding: 5px 7px; border: 1px solid #000; text-align: left; }
-    .tbl-hdr-c  { text-align: center; }
-    .tbl-hdr-r  { text-align: right; }
-    td          { border: 1px solid #555; padding: 4px 6px; font-size: 10pt; color: #000; }
-    tr:nth-child(even) td { background: #f7f7f7; }
-    .totals-tbl { width: auto; margin-left: auto; margin-bottom: 16px; }
-    .totals-tbl td { border: 1.5px solid #000; padding: 5px 12px; font-size: 10.5pt; }
-    .totals-lbl { background: #eee; font-weight: 700; text-transform: uppercase; width: 160px; }
-    .totals-val { text-align: right; font-weight: 700; min-width: 140px; }
-    .totals-grand td { background: #000; color: #fff; font-weight: 900; font-size: 11pt; }
-    .remarks-box { border: 1px solid #000; min-height: 56px; padding: 8px; font-size: 10pt; color: #000; margin-bottom: 18px; }
-    .sig-grid   { display: grid; gap: 20px; margin-top: 30px; }
-    .sig-grid-4 { grid-template-columns: repeat(4, 1fr); }
-    .sig-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .lh-county  { font-size: 15pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; }
+    .lh-dept    { font-size: 12pt; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+    .lh-seal    { margin: 6px auto; display: block; height: 72px; width: auto; }
+    .lh-seal-placeholder {
+      width: 72px; height: 72px; border: 2px solid #000; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 7.5pt; font-weight: 700; text-align: center; color: #000;
+      margin: 6px 0;
+    }
+    .lh-hospital { font-size: 12pt; font-weight: 700; text-transform: uppercase; color: #1a3a6b !important; margin-top: 4px; }
+    .lh-form    { font-size: 14pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; color: #000; }
+    .lh-note    { font-size: 9pt; font-style: italic; margin-top: 3px; }
+    .lh-contact { font-size: 8.5pt; margin-top: 3px; }
+    .doc-ref-bar {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      font-size: 9pt; border: 1px solid #000; padding: 5px 10px; margin-bottom: 8px;
+      background: #f9f9f9;
+    }
+
+    /* ── Body ── */
+    .section-header {
+      background: #1a3a6b; color: #fff !important; padding: 4px 10px;
+      font-size: 10pt; font-weight: 700; margin: 10px 0 0 0;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .section-header * { color: #fff !important; }
+    .field-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    .field-table td { padding: 4px 8px; font-size: 9.5pt; border: 1px solid #ccc; vertical-align: top; }
+    .field-label { font-weight: 700; width: 160px; background: #f5f5f5; white-space: nowrap; }
+
+    /* ── Items Table ── */
+    table.items { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9pt; }
+    table.items th {
+      background: #1a3a6b; color: #fff !important; text-align: center;
+      padding: 5px 6px; font-weight: 700; border: 1px solid #000;
+    }
+    table.items td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; }
+    table.items tr:nth-child(even) td { background: #f9f9f9; }
+    table.items tfoot td { font-weight: 700; background: #e8edf5; border-top: 2px solid #000; }
+    .amt-words { font-style: italic; font-size: 9pt; border: 1px solid #000; padding: 5px 10px; margin-top: 4px; }
+
+    /* ── Signatures ── */
+    .sig-grid   { display: grid; gap: 16px; margin-top: 20px; }
     .sig-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .sig-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .sig-grid-4 { grid-template-columns: repeat(4, 1fr); }
     .sig-box    { text-align: center; }
-    .sig-line   { border-top: 1.5px solid #000; margin-top: 36px; margin-bottom: 4px; }
-    .sig-lbl    { font-size: 9.5pt; font-weight: 700; text-transform: uppercase; color: #000; }
-    .sig-name   { font-size: 9pt; color: #000; margin-top: 4px; }
-    .sig-date   { font-size: 8.5pt; color: #000; margin-top: 3px; }
-    .stamp-box  { width: 80px; height: 80px; border: 2px solid #000; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #000; margin-top: 8px; }
-    .doc-footer { margin-top: 24px; border-top: 1.5px solid #000; padding-top: 7px; font-size: 8.5pt; color: #000; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
-    .status-box { display: inline-block; border: 2px solid #000; padding: 2px 10px; font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; }
+    .sig-line   { border-bottom: 1.5px solid #000; margin-bottom: 4px; margin-top: 35px; }
+    .sig-lbl    { font-weight: 700; font-size: 8.5pt; text-transform: uppercase; }
+    .sig-name   { font-size: 8pt; margin-top: 2px; }
+    .sig-date   { font-size: 8pt; margin-top: 2px; }
+    .stamp-box  { width: 75px; height: 75px; border: 2px solid #000; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; margin-top: 6px; }
+
+    /* ── Footer ── */
+    .doc-footer {
+      margin-top: 18px; border-top: 1.5px solid #000; padding-top: 6px;
+      font-size: 8pt; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;
+    }
+    .watermark {
+      position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%) rotate(-35deg);
+      font-size: 64pt; font-weight: 900; opacity: 0.04; pointer-events: none;
+      white-space: nowrap; z-index: 0;
+    }
+    .divider { border: none; border-top: 1px solid #999; margin: 6px 0; }
+    </style>
   `;
 }
 
-function docHeader(s: Required<PrintSettings>, title: string, subtitle?: string): string {
-  const logoHtml = s.showLogo && s.logoUrl
-    ? `<img src="${s.logoUrl}" alt="Logo" style="height:70px;width:auto;object-fit:contain;max-width:120px;" onerror="this.style.display='none'"/>`
+/** Official Embu County Government letterhead matching the scanned document */
+function docHeader(s: Required<PrintSettings>, formTitle: string, subtitle?: string): string {
+  const seal = s.showLogo && s.sealUrl
+    ? `<img src="${s.sealUrl}" alt="Seal" class="lh-seal" onerror="this.style.display='none'"/>`
     : s.showLogo
-      ? `<div style="width:70px;height:70px;border:2px solid #000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9pt;font-weight:700;text-align:center;color:#000;">EMBU<br/>L5H</div>`
+      ? `<div class="lh-seal-placeholder">EMBU<br/>L5H<br/>SEAL</div>`
       : "";
 
+  const watermark = s.showWatermark
+    ? `<div class="watermark">OFFICIAL</div>`
+    : "";
+
   return `
-    <div class="doc-header" style="display:flex;align-items:flex-start;gap:20px;text-align:left;">
-      ${logoHtml ? `<div style="flex-shrink:0;">${logoHtml}</div>` : ""}
-      <div style="flex:1;">
-        <div class="doc-org" style="font-size:14pt;font-weight:900;letter-spacing:0.5px;">${s.hospitalName}</div>
-        <div style="font-size:9.5pt;color:#000;margin-top:2px;">${s.hospitalAddress}</div>
-        <div style="font-size:9pt;color:#000;margin-top:1px;">Tel: ${s.hospitalPhone} &nbsp;·&nbsp; ${s.hospitalEmail}</div>
-        <div style="font-size:9pt;color:#000;margin-top:1px;">${s.sysName}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div class="doc-title" style="font-size:15pt;">${title}</div>
-        ${subtitle ? `<div style="font-size:10pt;font-weight:700;color:#000;margin-top:4px;border:1.5px solid #000;padding:2px 10px;display:inline-block;">${subtitle}</div>` : ""}
-      </div>
+    ${watermark}
+    <div class="letterhead">
+      <div class="lh-county">${s.countyName}</div>
+      <div class="lh-dept">${s.departmentName}</div>
+      ${seal}
+      <div class="lh-hospital">${s.hospitalName}</div>
+      <div class="lh-form">${formTitle}</div>
+      ${subtitle ? `<div class="lh-form" style="font-size:11pt;">${subtitle}</div>` : ""}
+      ${s.confidential ? `<div class="lh-note">Note: Private and Confidential</div>` : ""}
+      <div class="lh-contact">${s.poBox} &nbsp;·&nbsp; Tel: ${s.hospitalPhone} &nbsp;·&nbsp; ${s.hospitalEmail}</div>
     </div>
-    <hr class="divider"/>
   `;
+}
+
+function refBar(left: Record<string,string>, right: Record<string,string>): string {
+  const leftHtml = Object.entries(left).map(([k,v]) => `<div><strong>${k}:</strong> ${v}</div>`).join("");
+  const rightHtml = Object.entries(right).map(([k,v]) => `<div><strong>${k}:</strong> ${v}</div>`).join("");
+  return `<div class="doc-ref-bar"><div>${leftHtml}</div><div style="text-align:right">${rightHtml}</div></div>`;
+}
+
+function sectionHeader(text: string): string {
+  return `<div class="section-header">${text}</div>`;
+}
+
+function fieldTable(rows: [string, string][]): string {
+  const cells = rows.map(([l,v]) => `<tr><td class="field-label">${l}</td><td>${v||"&nbsp;"}</td></tr>`).join("");
+  return `<table class="field-table">${cells}</table>`;
 }
 
 function docFooter(s: Required<PrintSettings>): string {
   return `
     <div class="doc-footer">
       <span>${s.docFooter}</span>
-      <span>Printed: ${new Date().toLocaleString("en-KE")} &nbsp;·&nbsp; OFFICIAL DOCUMENT</span>
+      <span>Printed: ${new Date().toLocaleString("en-KE")} &nbsp;·&nbsp; OFFICIAL DOCUMENT &nbsp;·&nbsp; ${s.sysName}</span>
     </div>
   `;
 }
 
-function sigGrid(labels: string[], cols: 2 | 3 | 4 = 4, showStamp = false): string {
-  const gridClass = `sig-grid sig-grid-${cols}`;
+function sigGrid(labels: string[], cols: 2|3|4 = 4, showStamp = false): string {
   return `
-    <div class="${gridClass}">
+    <div class="sig-grid sig-grid-${cols}">
       ${labels.map((l, i) => `
         <div class="sig-box">
-          ${showStamp && i === labels.length - 1 ? `<div class="stamp-box">OFFICIAL<br/>STAMP</div>` : ""}
+          ${showStamp && i === labels.length-1 ? `<div class="stamp-box">OFFICIAL<br/>STAMP</div>` : ""}
           <div class="sig-line"></div>
           <div class="sig-lbl">${l}</div>
-          <div class="sig-name">Name: _______________________</div>
-          <div class="sig-date">Date: _______________________</div>
+          <div class="sig-name">Name: ___________________</div>
+          <div class="sig-date">Date: ___________________</div>
         </div>`).join("")}
     </div>
   `;
 }
 
-function openPrint(html: string, title: string): void {
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) { alert("Please allow pop-ups to print."); return; }
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>${html}</head><body>`);
-  // body content injected via write below  
+function openPrint(bodyHtml: string, title: string, cssHtml: string): void {
+  const win = window.open("", "_blank", "width=940,height=780,scrollbars=yes");
+  if (!win) { alert("Please allow pop-ups to print documents."); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>${cssHtml}</head><body>${bodyHtml}</body></html>`);
   win.document.close();
   win.focus();
-  setTimeout(() => win.print(), 600);
+  setTimeout(() => win.print(), 700);
 }
 
 // ─── REQUISITION ─────────────────────────────────────────────────────────────
 export function printRequisition(r: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
-  // Ensure unique ref number
   r = { ...r, requisition_number: uniqueSerial("REQ", r.requisition_number) };
-  // Warn on missing critical fields
   const missing = missingFields(r, ["title","department","requester_name"]);
   if (missing.length && !window.confirm(`Missing fields: ${missing.join(", ")}. Print anyway?`)) return;
   const items = r.requisition_items || [];
-  const totalAmt = items.reduce((sum: number, i: any) => sum + ((i.quantity || 0) * (i.unit_price || 0)), 0) || (r.total_amount || 0);
-  const padded = [...items, ...Array(Math.max(0, 8 - items.length)).fill(null)];
+  const total = items.reduce((sum: number, i: any) => sum + ((i.quantity||0)*(i.unit_price||0)), 0) || (r.total_amount||0);
+  const padded = [...items, ...Array(Math.max(0, 8-items.length)).fill(null)];
 
-  const rows = padded.map((i: any) => `
-    <tr style="height:26px">
-      <td>${i ? (i.item_name || "") : ""}</td>
-      <td>${i ? (i.description || "") : ""}</td>
-      <td style="text-align:center">${i ? (i.unit_of_measure || "") : ""}</td>
-      <td style="text-align:center">${i ? (i.quantity || "") : ""}</td>
-      <td style="text-align:right">${i && i.unit_price ? Number(i.unit_price).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-      <td style="text-align:right">${i && i.quantity && i.unit_price ? Number((i.quantity || 0) * (i.unit_price || 0)).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
+  const rows = padded.map((i: any, idx: number) => `
+    <tr>
+      <td style="text-align:center">${idx+1}</td>
+      <td>${i ? (i.item_name||"") : ""}</td>
+      <td>${i ? (i.description||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.unit_of_measure||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.quantity||"") : ""}</td>
+      <td style="text-align:right">${i && i.unit_price ? fmtMoney(i.unit_price, s.currencySymbol) : ""}</td>
+      <td style="text-align:right">${i && i.quantity && i.unit_price ? fmtMoney(i.quantity*i.unit_price, s.currencySymbol) : ""}</td>
     </tr>`).join("");
 
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Requisition — ${r.requisition_number || "Draft"}</title>
-  <style>${baseCss(s)}</style></head><body>
-  ${docHeader(s, "Requisition Form", r.requisition_number || "DRAFT")}
-  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="meta-badge">REF: ${r.requisition_number || "—"}</span>
-    <span class="meta-badge">DATE: ${r.created_at ? new Date(r.created_at).toLocaleDateString("en-KE", { dateStyle: "long" }) : "—"}</span>
-    <span class="meta-badge">PRIORITY: ${(r.priority || "Normal").toUpperCase()}</span>
-    <span class="meta-badge">STATUS: ${(r.status || "Draft").toUpperCase()}</span>
-  </div>
-  <div class="two-col">
-    <div>
-      <div class="section-title">Requisition Details</div>
-      <div class="info-line"><span class="info-label">TITLE / PURPOSE:</span><span class="info-val">${r.title || ""}</span></div>
-      <div class="info-line"><span class="info-label">DEPARTMENT:</span><span class="info-val">${r.department || ""}</span></div>
-      <div class="info-line"><span class="info-label">REQUESTED BY:</span><span class="info-val">${r.requester_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">DATE REQUIRED:</span><span class="info-val">${r.delivery_date ? new Date(r.delivery_date).toLocaleDateString("en-KE") : ""}</span></div>
-      <div class="info-line"><span class="info-label">CATEGORY:</span><span class="info-val">${r.category || ""}</span></div>
-    </div>
-    <div>
-      <div class="section-title">Approval Information</div>
-      <div class="info-line"><span class="info-label">APPROVED BY:</span><span class="info-val">${r.approved_by_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">APPROVAL DATE:</span><span class="info-val">${r.approved_at ? new Date(r.approved_at).toLocaleDateString("en-KE") : ""}</span></div>
-      <div class="info-line"><span class="info-label">PO REFERENCE:</span><span class="info-val">${r.po_reference || ""}</span></div>
-      <div class="info-line"><span class="info-label">BUDGET HEAD:</span><span class="info-val">${r.budget_head || ""}</span></div>
-      <div class="info-line"><span class="info-label">NOTES:</span><span class="info-val">${r.notes || ""}</span></div>
-    </div>
-  </div>
-  <table>
-    <tr><td colspan="6" class="tbl-title">REQUISITIONED ITEMS</td></tr>
-    <tr>
-      <th class="tbl-hdr" style="width:22%">ITEM NAME</th>
-      <th class="tbl-hdr" style="width:28%">DESCRIPTION / SPECIFICATION</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:9%">UOM</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:9%">QTY</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:16%">UNIT PRICE (${s.currencySymbol})</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:16%">TOTAL (${s.currencySymbol})</th>
-    </tr>
-    ${rows}
-  </table>
-  <table class="totals-tbl">
-    <tr><td class="totals-lbl">TOTAL ITEMS</td><td class="totals-val">${items.length}</td></tr>
-    <tr><td class="totals-lbl">TOTAL AMOUNT</td><td class="totals-val">${s.currencySymbol} ${totalAmt.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-  </table>
-  <div class="section-title">JUSTIFICATION / SPECIAL NOTES:</div>
-  <div class="remarks-box">${r.notes || "&nbsp;"}</div>
-  ${sigGrid(["Requested By", "Verified By", "Recommended By", "Approved By"], 4, s.showStamp)}
-  ${docFooter(s)}
-  </body></html>`);
-  win.document.close(); win.focus(); setTimeout(() => win.print(), 600);
+  const body = `
+    ${docHeader(s, "Local Purchase Requisition Form", r.requisition_number)}
+    ${refBar(
+      { "Requisition No": r.requisition_number, "Date": formatDate(r.created_at||r.date), "Priority": (r.priority||"Normal").toUpperCase() },
+      { "Department": r.department||"—", "Requested By": r.requester_name||"—", "Status": (r.status||"Pending").toUpperCase() }
+    )}
+    ${sectionHeader("I. Requisition Details")}
+    ${fieldTable([
+      ["Description/Purpose", r.title||r.description||"—"],
+      ["Department", r.department||"—"],
+      ["Requested By", r.requester_name||"—"],
+      ["Required By Date", formatDate(r.required_date||r.due_date)],
+      ["Delivery Location", r.delivery_location||r.hospital_ward||"—"],
+    ])}
+    ${sectionHeader("II. Items Required")}
+    <table class="items">
+      <thead><tr>
+        <th style="width:30px">#</th>
+        <th>Item Description</th>
+        <th>Specifications</th>
+        <th>Unit</th>
+        <th>Qty</th>
+        <th>Unit Price (${s.currencySymbol})</th>
+        <th>Amount (${s.currencySymbol})</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr><td colspan="5" style="text-align:right">TOTAL</td><td></td><td style="text-align:right">${fmtMoney(total, s.currencySymbol)}</td></tr>
+      </tfoot>
+    </table>
+    <div class="amt-words">Amount in Words: <strong>${amountInWords(total, s.currencySymbol)}</strong></div>
+    ${r.justification ? `${sectionHeader("III. Justification")}<p style="padding:6px 0;font-size:9.5pt">${r.justification}</p>` : ""}
+    ${sectionHeader("IV. Authorization")}
+    ${sigGrid(["Requisitioner","HOD / Supervisor","Procurement Officer","Approval / Finance"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `Requisition ${r.requisition_number}`, baseCss(s));
 }
 
 // ─── PURCHASE ORDER (LPO) ────────────────────────────────────────────────────
-export function printPurchaseOrder(po: any, cfg?: PrintSettings): void {
+export function printLPO(po: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
-  po = { ...po, po_number: uniqueSerial("PO", po.po_number) };
-  const missing = missingFields(po, ["supplier_name","delivery_date"]);
-  if (missing.length && !window.confirm(`Missing fields: ${missing.join(", ")}. Print anyway?`)) return;
-  const items = po.line_items || po.items || [];
-  if (!items.length && !window.confirm("No line items found. Print anyway?")) return;
-  const totalAmt = po.total_amount || items.reduce((sum: number, i: any) => sum + ((i.quantity || 0) * (i.unit_price || 0)), 0);
-  const padded = [...items, ...Array(Math.max(0, 6 - items.length)).fill(null)];
+  po = { ...po, po_number: uniqueSerial("LPO", po.po_number) };
+  const items = po.items || po.purchase_order_items || [];
+  const subtotal = items.reduce((sum: number, i: any) => sum + ((i.quantity||0)*(i.unit_price||0)), 0) || (po.total_amount||0);
+  const vatRate = parseFloat(po.vat_rate||"16")/100;
+  const vatAmt = po.include_vat ? subtotal*vatRate : 0;
+  const total = subtotal + vatAmt;
+  const padded = [...items, ...Array(Math.max(0, 8-items.length)).fill(null)];
 
   const rows = padded.map((i: any, idx: number) => `
-    <tr style="height:26px">
-      <td style="text-align:center">${i ? idx + 1 : ""}</td>
-      <td>${i ? (i.description || i.item_name || "") : ""}</td>
-      <td style="text-align:center">${i ? (i.unit || i.unit_of_measure || "") : ""}</td>
-      <td style="text-align:center">${i ? (i.quantity || "") : ""}</td>
-      <td style="text-align:right">${i && i.unit_price ? Number(i.unit_price).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-      <td style="text-align:right">${i && i.quantity && i.unit_price ? Number((i.quantity || 0) * (i.unit_price || 0)).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
+    <tr>
+      <td style="text-align:center">${idx+1}</td>
+      <td>${i ? (i.item_name||i.description||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.unit_of_measure||i.unit||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.quantity||"") : ""}</td>
+      <td style="text-align:right">${i && i.unit_price ? fmtMoney(i.unit_price, s.currencySymbol) : ""}</td>
+      <td style="text-align:right">${i && i.quantity && i.unit_price ? fmtMoney(i.quantity*i.unit_price, s.currencySymbol) : ""}</td>
     </tr>`).join("");
 
-  const vat = po.vat_amount || (totalAmt * 0.16);
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>LPO — ${po.po_number || "Draft"}</title>
-  <style>${baseCss(s)}</style></head><body>
-  ${docHeader(s, "Local Purchase Order", po.po_number || "DRAFT")}
-  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="meta-badge">LPO NO: ${po.po_number || "—"}</span>
-    <span class="meta-badge">DATE: ${po.created_at ? new Date(po.created_at).toLocaleDateString("en-KE", { dateStyle: "long" }) : "—"}</span>
-    <span class="meta-badge">STATUS: ${(po.status || "Draft").toUpperCase()}</span>
-  </div>
-  <div class="two-col">
-    <div>
-      <div class="section-title">Supplier Details</div>
-      <div class="info-line"><span class="info-label">SUPPLIER NAME:</span><span class="info-val">${po.suppliers?.name || po.supplier_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">SUPPLIER ADDRESS:</span><span class="info-val">${po.supplier_address || ""}</span></div>
-      <div class="info-line"><span class="info-label">CONTACT PERSON:</span><span class="info-val">${po.supplier_contact || ""}</span></div>
-      <div class="info-line"><span class="info-label">PHONE / EMAIL:</span><span class="info-val">${po.supplier_phone || ""}</span></div>
-    </div>
-    <div>
-      <div class="section-title">Order Details</div>
-      <div class="info-line"><span class="info-label">DELIVERY DATE:</span><span class="info-val">${po.delivery_date || ""}</span></div>
-      <div class="info-line"><span class="info-label">DELIVERY ADDRESS:</span><span class="info-val">${po.delivery_address || s.hospitalName}</span></div>
-      <div class="info-line"><span class="info-label">PAYMENT TERMS:</span><span class="info-val">${po.payment_terms || "30 Days"}</span></div>
-      <div class="info-line"><span class="info-label">REQUISITION REF:</span><span class="info-val">${po.requisition_number || ""}</span></div>
-    </div>
-  </div>
-  <table>
-    <tr><td colspan="6" class="tbl-title">ORDER ITEMS</td></tr>
-    <tr>
-      <th class="tbl-hdr tbl-hdr-c" style="width:5%">#</th>
-      <th class="tbl-hdr" style="width:36%">ITEM DESCRIPTION</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:8%">UOM</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:8%">QTY</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:18%">UNIT PRICE (${s.currencySymbol})</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:18%">AMOUNT (${s.currencySymbol})</th>
-    </tr>
-    ${rows}
-  </table>
-  <table class="totals-tbl">
-    <tr><td class="totals-lbl">SUB-TOTAL</td><td class="totals-val">${s.currencySymbol} ${(totalAmt - vat).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-    <tr><td class="totals-lbl">VAT (16%)</td><td class="totals-val">${s.currencySymbol} ${vat.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-    <tr class="totals-grand"><td class="totals-lbl">GRAND TOTAL</td><td class="totals-val">${s.currencySymbol} ${totalAmt.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-  </table>
-  ${po.notes ? `<div class="section-title">TERMS & CONDITIONS / NOTES:</div><div class="remarks-box">${po.notes}</div>` : ""}
-  ${sigGrid(["Prepared By", "Authorized By", "Finance Officer", "Supplier Acknowledgement"], 4, s.showStamp)}
-  ${docFooter(s)}
-  </body></html>`);
-  win.document.close(); win.focus(); setTimeout(() => win.print(), 600);
+  const body = `
+    ${docHeader(s, "Local Purchase Order (LPO)", po.po_number)}
+    ${refBar(
+      { "LPO No": po.po_number, "Date Issued": formatDate(po.created_at||po.date), "Req. No": po.requisition_number||"—" },
+      { "Delivery Date": formatDate(po.delivery_date), "Payment Terms": po.payment_terms||"30 Days", "Status": (po.status||"Draft").toUpperCase() }
+    )}
+    ${sectionHeader("I. Supplier Details")}
+    ${fieldTable([
+      ["Supplier Name", po.supplier_name||po.supplier||"—"],
+      ["Supplier Address", po.supplier_address||"—"],
+      ["Supplier Contact", po.supplier_phone||"—"],
+      ["Supplier Email", po.supplier_email||"—"],
+      ["PIN / Tax No.", po.supplier_pin||"—"],
+    ])}
+    ${sectionHeader("II. Order Details")}
+    <table class="items">
+      <thead><tr>
+        <th style="width:30px">#</th>
+        <th>Description of Goods/Services</th>
+        <th>Unit</th>
+        <th>Qty</th>
+        <th>Unit Price (${s.currencySymbol})</th>
+        <th>Amount (${s.currencySymbol})</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr><td colspan="4" style="text-align:right">SUB-TOTAL</td><td></td><td style="text-align:right">${fmtMoney(subtotal, s.currencySymbol)}</td></tr>
+        ${vatAmt > 0 ? `<tr><td colspan="4" style="text-align:right">VAT (${po.vat_rate||16}%)</td><td></td><td style="text-align:right">${fmtMoney(vatAmt, s.currencySymbol)}</td></tr>` : ""}
+        <tr><td colspan="4" style="text-align:right;font-size:10.5pt;">TOTAL</td><td></td><td style="text-align:right;font-size:10.5pt;">${fmtMoney(total, s.currencySymbol)}</td></tr>
+      </tfoot>
+    </table>
+    <div class="amt-words">Amount in Words: <strong>${amountInWords(total, s.currencySymbol)}</strong></div>
+    ${po.terms_conditions ? `${sectionHeader("III. Terms & Conditions")}<p style="padding:6px 0;font-size:9pt">${po.terms_conditions}</p>` : ""}
+    ${sectionHeader("IV. Authorization")}
+    ${sigGrid(["Procurement Officer","Procurement Manager","Finance Officer","Accounting Officer / CEO"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `LPO ${po.po_number}`, baseCss(s));
 }
 
-// ─── GOODS RECEIVED NOTE ─────────────────────────────────────────────────────
-export function printGRN(g: any, cfg?: PrintSettings): void {
+// ─── GOODS RECEIVED NOTE (GRN) ───────────────────────────────────────────────
+export function printGRN(grn: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
-  g = { ...g, grn_number: uniqueSerial("GRN", g.grn_number) };
-  const missing = missingFields(g, ["supplier_name","received_date"]);
-  if (missing.length && !window.confirm(`Missing GRN fields: ${missing.join(", ")}. Print anyway?`)) return;
-  const items = g.grn_items || g.items || [];
-  const totalVal = g.total_value || items.reduce((sum: number, i: any) => sum + ((i.received_quantity || i.quantity || 0) * (i.unit_price || 0)), 0);
+  grn = { ...grn, grn_number: uniqueSerial("GRN", grn.grn_number) };
+  const items = grn.items || grn.grn_items || [];
+  const padded = [...items, ...Array(Math.max(0, 8-items.length)).fill(null)];
 
-  const rows = items.map((i: any, idx: number) => `
+  const rows = padded.map((i: any, idx: number) => `
     <tr>
-      <td style="text-align:center">${idx + 1}</td>
-      <td>${i.item_name || i.description || ""}</td>
-      <td style="text-align:center">${i.unit_of_measure || i.unit || ""}</td>
-      <td style="text-align:center">${i.ordered_quantity || i.quantity || ""}</td>
-      <td style="text-align:center;font-weight:700">${i.received_quantity || i.quantity || ""}</td>
-      <td style="text-align:center">${i.rejected_quantity || 0}</td>
-      <td style="text-align:right">${i.unit_price ? Number(i.unit_price).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-      <td style="text-align:right">${(i.received_quantity || i.quantity) && i.unit_price ? Number((i.received_quantity || i.quantity) * i.unit_price).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
+      <td style="text-align:center">${idx+1}</td>
+      <td>${i ? (i.item_name||i.description||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.unit_of_measure||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.quantity_ordered||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.quantity_received||"") : ""}</td>
+      <td style="text-align:center">${i ? (i.quantity_accepted||i.quantity_received||"") : ""}</td>
+      <td style="text-align:center">${i && i.quantity_ordered && i.quantity_received ? Math.max(0,(i.quantity_ordered-i.quantity_received)) : ""}</td>
+      <td>${i ? (i.condition||"Good") : ""}</td>
     </tr>`).join("");
 
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GRN — ${g.grn_number || "Draft"}</title>
-  <style>${baseCss(s)}</style></head><body>
-  ${docHeader(s, "Goods Received Note", g.grn_number || "DRAFT")}
-  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="meta-badge">GRN NO: ${g.grn_number || "—"}</span>
-    <span class="meta-badge">DATE: ${g.received_date ? new Date(g.received_date).toLocaleDateString("en-KE", { dateStyle: "long" }) : "—"}</span>
-    <span class="meta-badge">STATUS: ${(g.status || "Pending").toUpperCase()}</span>
-    <span class="meta-badge">PO REF: ${g.po_number || "—"}</span>
-  </div>
-  <div class="two-col">
-    <div>
-      <div class="section-title">Receipt Information</div>
-      <div class="info-line"><span class="info-label">SUPPLIER:</span><span class="info-val">${g.suppliers?.name || g.supplier_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">DELIVERY NOTE NO:</span><span class="info-val">${g.delivery_note_number || ""}</span></div>
-      <div class="info-line"><span class="info-label">INVOICE NO:</span><span class="info-val">${g.invoice_number || ""}</span></div>
-      <div class="info-line"><span class="info-label">RECEIVED BY:</span><span class="info-val">${g.received_by_name || ""}</span></div>
-    </div>
-    <div>
-      <div class="section-title">Delivery Details</div>
-      <div class="info-line"><span class="info-label">RECEIVED DATE:</span><span class="info-val">${g.received_date ? new Date(g.received_date).toLocaleDateString("en-KE") : ""}</span></div>
-      <div class="info-line"><span class="info-label">WAREHOUSE / STORE:</span><span class="info-val">${g.warehouse || ""}</span></div>
-      <div class="info-line"><span class="info-label">CONDITION:</span><span class="info-val">${g.condition || "Good"}</span></div>
-      <div class="info-line"><span class="info-label">INSPECTED BY:</span><span class="info-val">${g.inspected_by || ""}</span></div>
-    </div>
-  </div>
-  <table>
-    <tr><td colspan="8" class="tbl-title">RECEIVED ITEMS</td></tr>
-    <tr>
-      <th class="tbl-hdr tbl-hdr-c" style="width:4%">#</th>
-      <th class="tbl-hdr" style="width:26%">ITEM DESCRIPTION</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:7%">UOM</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:9%">ORDERED QTY</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:9%">RECEIVED QTY</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:9%">REJECTED</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:15%">UNIT PRICE</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:15%">VALUE (${s.currencySymbol})</th>
-    </tr>
-    ${rows}
-  </table>
-  <table class="totals-tbl">
-    <tr class="totals-grand"><td class="totals-lbl">TOTAL VALUE</td><td class="totals-val">${s.currencySymbol} ${totalVal.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-  </table>
-  <div class="section-title">REMARKS / INSPECTION NOTES:</div>
-  <div class="remarks-box">${g.remarks || g.notes || "&nbsp;"}</div>
-  ${sigGrid(["Delivered By (Supplier)", "Received By", "Inspected By", "Store Keeper"], 4, s.showStamp)}
-  ${docFooter(s)}
-  </body></html>`);
-  win.document.close(); win.focus(); setTimeout(() => win.print(), 600);
+  const body = `
+    ${docHeader(s, "Goods Received Note (GRN)", grn.grn_number)}
+    ${refBar(
+      { "GRN No": grn.grn_number, "Date Received": formatDate(grn.received_date||grn.created_at), "LPO No": grn.po_number||grn.lpo_number||"—" },
+      { "Supplier": grn.supplier_name||"—", "Received By": grn.received_by||"—", "Store": grn.store_location||grn.store||"Main Store" }
+    )}
+    ${sectionHeader("I. Delivery Details")}
+    ${fieldTable([
+      ["Supplier Name", grn.supplier_name||"—"],
+      ["Delivery Note No.", grn.delivery_note_number||grn.waybill_number||"—"],
+      ["Invoice No.", grn.invoice_number||"—"],
+      ["Received By", grn.received_by||"—"],
+      ["Date Received", formatDate(grn.received_date||grn.created_at)],
+    ])}
+    ${sectionHeader("II. Items Received")}
+    <table class="items">
+      <thead><tr>
+        <th style="width:30px">#</th><th>Description</th><th>Unit</th>
+        <th>Ordered</th><th>Received</th><th>Accepted</th><th>Variance</th><th>Condition</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${grn.remarks ? `${sectionHeader("III. Remarks")}<p style="padding:6px;font-size:9.5pt;border:1px solid #ccc;">${grn.remarks}</p>` : ""}
+    ${sectionHeader("IV. Certification")}
+    ${sigGrid(["Store Keeper","Quality Inspector","Procurement Officer","HOD / Authorizing Officer"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `GRN ${grn.grn_number}`, baseCss(s));
 }
 
 // ─── PAYMENT VOUCHER ─────────────────────────────────────────────────────────
 export function printPaymentVoucher(v: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) return;
-  const items = v.items || v.payment_items || [];
+  v = { ...v, voucher_number: uniqueSerial("PV", v.voucher_number) };
+  const total = parseFloat(v.total_amount||v.amount||0);
 
-  const rows = items.length > 0 ? items.map((i: any, idx: number) => `
-    <tr>
-      <td style="text-align:center">${idx + 1}</td>
-      <td>${i.description || i.item_name || ""}</td>
-      <td style="text-align:right">${i.amount ? Number(i.amount).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-      <td>${i.account_code || ""}</td>
-      <td>${i.notes || ""}</td>
-    </tr>`) .join("") : `<tr><td colspan="5" style="text-align:center;padding:16px">—</td></tr>`;
-
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Payment Voucher — ${v.voucher_number || "Draft"}</title>
-  <style>${baseCss(s)}</style></head><body>
-  ${docHeader(s, "Payment Voucher", v.voucher_number || "DRAFT")}
-  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="meta-badge">VOUCHER NO: ${v.voucher_number || "—"}</span>
-    <span class="meta-badge">DATE: ${v.payment_date ? new Date(v.payment_date).toLocaleDateString("en-KE", { dateStyle: "long" }) : "—"}</span>
-    <span class="meta-badge">STATUS: ${(v.status || "Draft").toUpperCase()}</span>
-  </div>
-  <div class="two-col">
-    <div>
-      <div class="section-title">Payment Details</div>
-      <div class="info-line"><span class="info-label">PAY TO:</span><span class="info-val">${v.payee_name || v.supplier_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">PAYEE ADDRESS:</span><span class="info-val">${v.payee_address || ""}</span></div>
-      <div class="info-line"><span class="info-label">BANK / ACC NO:</span><span class="info-val">${v.bank_account || ""}</span></div>
-      <div class="info-line"><span class="info-label">PAYMENT METHOD:</span><span class="info-val">${v.payment_method || "Cheque"}</span></div>
-      <div class="info-line"><span class="info-label">CHEQUE NUMBER:</span><span class="info-val">${v.cheque_number || ""}</span></div>
-    </div>
-    <div>
-      <div class="section-title">Reference Information</div>
-      <div class="info-line"><span class="info-label">PO / CONTRACT REF:</span><span class="info-val">${v.po_reference || v.po_number || ""}</span></div>
-      <div class="info-line"><span class="info-label">INVOICE NUMBER:</span><span class="info-val">${v.invoice_number || ""}</span></div>
-      <div class="info-line"><span class="info-label">INVOICE DATE:</span><span class="info-val">${v.invoice_date || ""}</span></div>
-      <div class="info-line"><span class="info-label">BUDGET HEAD:</span><span class="info-val">${v.budget_head || ""}</span></div>
-      <div class="info-line"><span class="info-label">COST CENTRE:</span><span class="info-val">${v.cost_centre || v.department || ""}</span></div>
-    </div>
-  </div>
-  <table>
-    <tr><td colspan="5" class="tbl-title">PAYMENT PARTICULARS</td></tr>
-    <tr>
-      <th class="tbl-hdr tbl-hdr-c" style="width:5%">#</th>
-      <th class="tbl-hdr" style="width:38%">DESCRIPTION OF GOODS / SERVICES</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:20%">AMOUNT (${s.currencySymbol})</th>
-      <th class="tbl-hdr" style="width:17%">ACCOUNT CODE</th>
-      <th class="tbl-hdr" style="width:20%">NOTES</th>
-    </tr>
-    ${rows}
-  </table>
-  <table class="totals-tbl">
-    ${v.withholding_tax ? `<tr><td class="totals-lbl">GROSS AMOUNT</td><td class="totals-val">${s.currencySymbol} ${Number(v.gross_amount || v.total_amount || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-    <tr><td class="totals-lbl">WITHHOLDING TAX</td><td class="totals-val">(${s.currencySymbol} ${Number(v.withholding_tax || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 })})</td></tr>` : ""}
-    <tr class="totals-grand"><td class="totals-lbl">NET AMOUNT PAYABLE</td><td class="totals-val">${s.currencySymbol} ${Number(v.total_amount || v.amount || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-  </table>
-  <div style="border:2px solid #000;padding:10px;margin-bottom:18px;text-align:center">
-    <div style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px">Amount in Words:</div>
-    <div style="font-size:11pt;margin-top:6px">${v.amount_in_words || "_______________________________________________"}</div>
-  </div>
-  <div class="section-title">CERTIFICATION / DESCRIPTION:</div>
-  <div class="remarks-box">${v.description || v.notes || "&nbsp;"}</div>
-  ${sigGrid(["Prepared By", "Verified By", "Finance Officer", "Authorised By"], 4, s.showStamp)}
-  ${docFooter(s)}
-  </body></html>`);
-  win.document.close(); win.focus(); setTimeout(() => win.print(), 600);
+  const body = `
+    ${docHeader(s, "Payment Voucher", v.voucher_number)}
+    ${refBar(
+      { "Voucher No": v.voucher_number, "Date": formatDate(v.created_at||v.date), "Cheque No": v.cheque_number||"—" },
+      { "Fund": v.fund_code||v.fund||"—", "Vote Head": v.vote_head||"—", "Status": (v.status||"Draft").toUpperCase() }
+    )}
+    ${sectionHeader("I. Payee Details")}
+    ${fieldTable([
+      ["Pay To (Payee)", v.payee_name||v.supplier_name||"—"],
+      ["Payee PIN/ID", v.payee_pin||v.supplier_pin||"—"],
+      ["Bank Name", v.bank_name||"—"],
+      ["Account No.", v.account_number||"—"],
+      ["Payment Method", v.payment_method||"Cheque"],
+    ])}
+    ${sectionHeader("II. Payment Details")}
+    ${fieldTable([
+      ["Description / Narration", v.description||v.narration||"—"],
+      ["LPO / Invoice Reference", v.lpo_number||v.invoice_number||"—"],
+      ["GRN Reference", v.grn_number||"—"],
+      ["Period", v.period||"—"],
+    ])}
+    ${sectionHeader("III. Amount")}
+    <table class="items" style="width:50%;margin-left:auto">
+      <tbody>
+        ${v.subtotal ? `<tr><td>Sub-Total</td><td style="text-align:right">${fmtMoney(v.subtotal, s.currencySymbol)}</td></tr>` : ""}
+        ${v.tax_amount ? `<tr><td>WHT / Tax</td><td style="text-align:right">(${fmtMoney(v.tax_amount, s.currencySymbol)})</td></tr>` : ""}
+        <tr><td style="font-weight:700;font-size:10.5pt;">TOTAL PAYABLE</td><td style="text-align:right;font-weight:700;font-size:10.5pt;">${fmtMoney(total, s.currencySymbol)}</td></tr>
+      </tbody>
+    </table>
+    <div class="amt-words">Amount in Words: <strong>${amountInWords(total, s.currencySymbol)}</strong></div>
+    ${sectionHeader("IV. Certification & Authorization")}
+    ${sigGrid(["Prepared By","Verified By (Procurement)","Finance Officer","Accounting Officer"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `Payment Voucher ${v.voucher_number}`, baseCss(s));
 }
 
 // ─── JOURNAL VOUCHER ─────────────────────────────────────────────────────────
 export function printJournalVoucher(v: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
-  const entries = v.journal_entries || v.entries || [];
-  const totalDebit  = entries.reduce((sum: number, e: any) => sum + (e.debit  || 0), 0);
-  const totalCredit = entries.reduce((sum: number, e: any) => sum + (e.credit || 0), 0);
+  v = { ...v, voucher_number: uniqueSerial("JV", v.voucher_number) };
+  const entries = v.entries || v.journal_entries || [];
+  const totalDr = entries.reduce((sum: number, e: any) => sum + (parseFloat(e.debit)||0), 0);
+  const totalCr = entries.reduce((sum: number, e: any) => sum + (parseFloat(e.credit)||0), 0);
+  const padded = [...entries, ...Array(Math.max(0, 6-entries.length)).fill(null)];
 
-  const rows = entries.length > 0 ? entries.map((e: any, idx: number) => `
+  const rows = padded.map((e: any, idx: number) => `
     <tr>
-      <td style="text-align:center">${idx + 1}</td>
-      <td>${e.account_code || ""}</td>
-      <td>${e.account_name || e.description || ""}</td>
-      <td>${e.department || ""}</td>
-      <td style="text-align:right">${e.debit  ? Number(e.debit).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-      <td style="text-align:right">${e.credit ? Number(e.credit).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-    </tr>`) .join("") : `<tr><td colspan="6" style="text-align:center;padding:16px">No entries</td></tr>`;
+      <td style="text-align:center">${idx+1}</td>
+      <td>${e ? (e.account_code||"") : ""}</td>
+      <td>${e ? (e.account_name||e.description||"") : ""}</td>
+      <td>${e ? (e.narration||"") : ""}</td>
+      <td style="text-align:right">${e && e.debit ? fmtMoney(e.debit, s.currencySymbol) : ""}</td>
+      <td style="text-align:right">${e && e.credit ? fmtMoney(e.credit, s.currencySymbol) : ""}</td>
+    </tr>`).join("");
 
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Journal Voucher — ${v.voucher_number || "Draft"}</title>
-  <style>${baseCss(s)}</style></head><body>
-  ${docHeader(s, "Journal Voucher", v.voucher_number || "DRAFT")}
-  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="meta-badge">VOUCHER NO: ${v.voucher_number || "—"}</span>
-    <span class="meta-badge">DATE: ${v.voucher_date ? new Date(v.voucher_date).toLocaleDateString("en-KE", { dateStyle: "long" }) : "—"}</span>
-    <span class="meta-badge">TYPE: ${(v.journal_type || "General").toUpperCase()}</span>
-    <span class="meta-badge">PERIOD: ${v.period || "—"}</span>
-  </div>
-  <div class="two-col" style="margin-bottom:14px">
-    <div>
-      <div class="info-line"><span class="info-label">PREPARED BY:</span><span class="info-val">${v.prepared_by_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">COST CENTRE:</span><span class="info-val">${v.department || ""}</span></div>
-    </div>
-    <div>
-      <div class="info-line"><span class="info-label">REFERENCE:</span><span class="info-val">${v.reference || ""}</span></div>
-      <div class="info-line"><span class="info-label">DESCRIPTION:</span><span class="info-val">${v.description || ""}</span></div>
-    </div>
-  </div>
-  <table>
-    <tr><td colspan="6" class="tbl-title">JOURNAL ENTRIES</td></tr>
-    <tr>
-      <th class="tbl-hdr tbl-hdr-c" style="width:5%">#</th>
-      <th class="tbl-hdr" style="width:14%">ACCT CODE</th>
-      <th class="tbl-hdr" style="width:34%">ACCOUNT NAME / DESCRIPTION</th>
-      <th class="tbl-hdr" style="width:17%">DEPARTMENT</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:15%">DEBIT (${s.currencySymbol})</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:15%">CREDIT (${s.currencySymbol})</th>
-    </tr>
-    ${rows}
-    <tr style="font-weight:900;background:#eee">
-      <td colspan="4" style="text-align:right;padding:6px;border:1px solid #000;font-weight:900">TOTALS</td>
-      <td style="text-align:right;padding:6px;border:1px solid #000;font-weight:900">${s.currencySymbol} ${totalDebit.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td>
-      <td style="text-align:right;padding:6px;border:1px solid #000;font-weight:900">${s.currencySymbol} ${totalCredit.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td>
-    </tr>
-  </table>
-  <div style="text-align:center;margin-bottom:16px;font-weight:700;font-size:11pt">
-    ${Math.abs(totalDebit - totalCredit) < 0.01 ? "✓ JOURNAL ENTRY IS BALANCED" : "⚠ ENTRY DOES NOT BALANCE — Difference: " + Math.abs(totalDebit - totalCredit).toLocaleString("en-KE", { minimumFractionDigits: 2 })}
-  </div>
-  <div class="section-title">NARRATION / NOTES:</div>
-  <div class="remarks-box">${v.notes || v.narration || "&nbsp;"}</div>
-  ${sigGrid(["Prepared By", "Checked By", "Approved By"], 3, s.showStamp)}
-  ${docFooter(s)}
-  </body></html>`);
-  win.document.close(); win.focus(); setTimeout(() => win.print(), 600);
+  const body = `
+    ${docHeader(s, "Journal Voucher", v.voucher_number)}
+    ${refBar(
+      { "JV No": v.voucher_number, "Date": formatDate(v.created_at||v.date), "Period": v.period||"—" },
+      { "Type": (v.voucher_type||"General").toUpperCase(), "Prepared By": v.prepared_by||"—", "Status": (v.status||"Draft").toUpperCase() }
+    )}
+    ${sectionHeader("I. Journal Entries")}
+    <table class="items">
+      <thead><tr>
+        <th style="width:30px">#</th><th>Account Code</th><th>Account Name</th>
+        <th>Narration</th><th>Debit (${s.currencySymbol})</th><th>Credit (${s.currencySymbol})</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align:right;font-weight:700">TOTALS</td><td></td>
+          <td style="text-align:right;font-weight:700">${fmtMoney(totalDr, s.currencySymbol)}</td>
+          <td style="text-align:right;font-weight:700">${fmtMoney(totalCr, s.currencySymbol)}</td>
+        </tr>
+        <tr>
+          <td colspan="5" style="text-align:right">Balance (Dr-Cr)</td>
+          <td style="text-align:right;font-weight:700;${Math.abs(totalDr-totalCr)>0.01?'color:#dc2626!important':'color:#107c10!important'}">${fmtMoney(totalDr-totalCr, s.currencySymbol)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    ${v.narration ? `${sectionHeader("II. Narration")}<p style="padding:6px;border:1px solid #ccc;font-size:9.5pt">${v.narration}</p>` : ""}
+    ${sectionHeader("III. Authorization")}
+    ${sigGrid(["Prepared By","Checked By","Finance Officer","Accounting Officer"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `Journal Voucher ${v.voucher_number}`, baseCss(s));
 }
 
-// ─── GENERIC VOUCHER (Receipt / Purchase / Sales) ────────────────────────────
-export function printGenericVoucher(v: any, type: string, cfg?: PrintSettings): void {
+// ─── GENERIC VOUCHER ─────────────────────────────────────────────────────────
+export function printVoucher(v: any, type: string = "Voucher", cfg?: PrintSettings): void {
   const s = merge(cfg);
-  const items = v.items || [];
-  const totalAmt = v.total_amount || v.amount || items.reduce((sum: number, i: any) => sum + (i.amount || 0), 0);
+  const prefix = type === "Receipt" ? "RV" : type === "Purchase" ? "PurchV" : type === "Sales" ? "SV" : "VCH";
+  v = { ...v, voucher_number: uniqueSerial(prefix, v.voucher_number) };
+  const amount = parseFloat(v.total_amount||v.amount||0);
 
-  const rows = items.length > 0 ? items.map((i: any, idx: number) => `
-    <tr>
-      <td style="text-align:center">${idx + 1}</td>
-      <td>${i.description || i.item_name || ""}</td>
-      <td style="text-align:center">${i.quantity || ""}</td>
-      <td style="text-align:right">${i.unit_price ? Number(i.unit_price).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-      <td style="text-align:right">${i.amount ? Number(i.amount).toLocaleString("en-KE", { minimumFractionDigits: 2 }) : ""}</td>
-    </tr>`) .join("") : `<tr><td colspan="5" style="text-align:center;padding:16px">—</td></tr>`;
+  const body = `
+    ${docHeader(s, `${type} Voucher`, v.voucher_number)}
+    ${refBar(
+      { "Voucher No": v.voucher_number, "Date": formatDate(v.created_at||v.date) },
+      { "Type": type.toUpperCase(), "Status": (v.status||"Draft").toUpperCase() }
+    )}
+    ${sectionHeader("I. Details")}
+    ${fieldTable([
+      ["Party Name", v.payee_name||v.party_name||v.supplier_name||"—"],
+      ["Description", v.description||v.narration||"—"],
+      ["Reference", v.reference||v.invoice_number||"—"],
+      ["Payment Method", v.payment_method||"—"],
+      ["Period", v.period||"—"],
+    ])}
+    ${sectionHeader("II. Amount")}
+    <table class="items" style="width:50%;margin-left:auto">
+      <tbody>
+        <tr><td style="font-weight:700">TOTAL</td><td style="text-align:right;font-weight:700">${fmtMoney(amount, s.currencySymbol)}</td></tr>
+      </tbody>
+    </table>
+    <div class="amt-words">Amount in Words: <strong>${amountInWords(amount, s.currencySymbol)}</strong></div>
+    ${sectionHeader("III. Authorization")}
+    ${sigGrid(["Prepared By","Authorized By","Finance Officer","Accounting Officer"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `${type} Voucher ${v.voucher_number}`, baseCss(s));
+}
 
-  const win = window.open("", "_blank", "width=920,height=720");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${type} — ${v.voucher_number || "Draft"}</title>
-  <style>${baseCss(s)}</style></head><body>
-  ${docHeader(s, type, v.voucher_number || "DRAFT")}
-  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="meta-badge">NO: ${v.voucher_number || "—"}</span>
-    <span class="meta-badge">DATE: ${(v.voucher_date || v.receipt_date || v.created_at) ? new Date(v.voucher_date || v.receipt_date || v.created_at).toLocaleDateString("en-KE", { dateStyle: "long" }) : "—"}</span>
-    <span class="meta-badge">STATUS: ${(v.status || "Draft").toUpperCase()}</span>
-  </div>
-  <div class="two-col" style="margin-bottom:14px">
-    <div>
-      <div class="info-line"><span class="info-label">PARTY NAME:</span><span class="info-val">${v.party_name || v.payee_name || v.customer_name || v.supplier_name || ""}</span></div>
-      <div class="info-line"><span class="info-label">REFERENCE:</span><span class="info-val">${v.reference || v.po_number || ""}</span></div>
-      <div class="info-line"><span class="info-label">PAYMENT METHOD:</span><span class="info-val">${v.payment_method || "—"}</span></div>
-    </div>
-    <div>
-      <div class="info-line"><span class="info-label">DESCRIPTION:</span><span class="info-val">${v.description || ""}</span></div>
-      <div class="info-line"><span class="info-label">DEPARTMENT:</span><span class="info-val">${v.department || ""}</span></div>
-      <div class="info-line"><span class="info-label">PREPARED BY:</span><span class="info-val">${v.prepared_by_name || ""}</span></div>
-    </div>
-  </div>
-  <table>
-    <tr><td colspan="5" class="tbl-title">PARTICULARS</td></tr>
-    <tr>
-      <th class="tbl-hdr tbl-hdr-c" style="width:5%">#</th>
-      <th class="tbl-hdr" style="width:45%">DESCRIPTION</th>
-      <th class="tbl-hdr tbl-hdr-c" style="width:10%">QTY</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:20%">UNIT PRICE (${s.currencySymbol})</th>
-      <th class="tbl-hdr tbl-hdr-r" style="width:20%">AMOUNT (${s.currencySymbol})</th>
-    </tr>
-    ${rows}
-  </table>
-  <table class="totals-tbl">
-    <tr class="totals-grand"><td class="totals-lbl">TOTAL AMOUNT</td><td class="totals-val">${s.currencySymbol} ${Number(totalAmt).toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-  </table>
-  <div class="section-title">NOTES / REMARKS:</div>
-  <div class="remarks-box">${v.notes || "&nbsp;"}</div>
-  ${sigGrid(["Prepared By", "Checked By", "Approved By"], 3, s.showStamp)}
-  ${docFooter(s)}
-  </body></html>`);
-  win.document.close(); win.focus(); setTimeout(() => win.print(), 600);
+// ─── LABORATORY / GENERAL REPORT FORM (matches scanned template) ─────────────
+export function printLabReport(r: any, cfg?: PrintSettings): void {
+  const s = merge(cfg);
+  const serial = uniqueSerial("LAB", r.report_number);
+
+  const body = `
+    ${docHeader(s, "Laboratory General Report Form", serial)}
+    ${sectionHeader("I. Patient Details")}
+    ${fieldTable([
+      ["Name", r.patient_name||"—"],
+      ["Age", r.age ? `${r.age} Years` : "—"],
+      ["Gender", r.gender||"—"],
+      ["IP/OP No.", r.patient_id||r.ipop_number||"—"],
+    ])}
+    <table class="field-table" style="margin-bottom:6px">
+      <tr>
+        <td class="field-label">Received Date/Time</td><td>${formatDate(r.received_date)} ${r.received_time||""}</td>
+        <td class="field-label">Completed Date/Time</td><td>${formatDate(r.completed_date)} ${r.completed_time||""}</td>
+      </tr>
+      <tr>
+        <td class="field-label">Released Date/Time</td><td>${formatDate(r.released_date)} ${r.released_time||""}</td>
+        <td class="field-label"></td><td></td>
+      </tr>
+    </table>
+    ${sectionHeader("II. Specimen Details")}
+    ${fieldTable([
+      ["Sample No.", r.sample_number||"—"],
+      ["Requesting Clinician", r.requesting_clinician||"—"],
+      ["Diagnosis", r.diagnosis||"—"],
+      ["Specimen Type", r.specimen_type||"—"],
+    ])}
+    ${sectionHeader("III. Test Results")}
+    <table class="items">
+      <thead><tr>
+        <th>Analysis</th><th>Result</th><th>Units</th><th>Ref Range</th><th>Interpretation</th>
+      </tr></thead>
+      <tbody>
+        ${(r.results||[]).map((res: any) => `
+          <tr>
+            <td>${res.analysis||res.test||"—"}</td>
+            <td style="font-weight:700">${res.result||"—"}</td>
+            <td>${res.units||"—"}</td>
+            <td>${res.ref_range||res.reference_range||"—"}</td>
+            <td>${res.interpretation||"—"}</td>
+          </tr>`).join("")}
+        ${!(r.results||[]).length ? `<tr><td colspan="5" style="text-align:center;font-style:italic">No results recorded</td></tr>` : ""}
+      </tbody>
+    </table>
+    ${r.comments ? `${sectionHeader("IV. Comments / Clinical Notes")}<p style="padding:8px;border:1px solid #ccc;font-size:9.5pt">${r.comments}</p>` : ""}
+    ${sectionHeader("V. Authorized By")}
+    ${sigGrid(["Laboratory Technician","Senior Technologist","Pathologist","Medical Officer"], 4, s.showStamp)}
+    ${docFooter(s)}
+  `;
+  openPrint(body, `Lab Report ${serial}`, baseCss(s));
+}
+
+// ─── GENERIC DOCUMENT PRINTER ─────────────────────────────────────────────────
+export function printDocument(type: string, data: any, cfg?: PrintSettings): void {
+  switch (type.toUpperCase()) {
+    case "REQ":       return printRequisition(data, cfg);
+    case "LPO":       return printLPO(data, cfg);
+    case "GRN":       return printGRN(data, cfg);
+    case "PV":        return printPaymentVoucher(data, cfg);
+    case "JV":        return printJournalVoucher(data, cfg);
+    case "RV":        return printVoucher(data, "Receipt", cfg);
+    case "PURCHASE":  return printVoucher(data, "Purchase", cfg);
+    case "SALES":     return printVoucher(data, "Sales", cfg);
+    case "LAB":       return printLabReport(data, cfg);
+    default:          return printVoucher(data, type, cfg);
+  }
 }

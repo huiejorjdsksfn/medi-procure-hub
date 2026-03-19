@@ -24,6 +24,8 @@ const SECTIONS = [
   { id:"users_cap",    label:"Users",             icon:Users,      sub:"User management capabilities" },
   { id:"controls",     label:"Live Controls",     icon:Sliders,    sub:"System-wide toggles" },
   { id:"broadcast",    label:"Broadcast",         icon:Radio,      sub:"Send system messages" },
+  { id:"schema",       label:"Schema & Tables",   icon:Database,   sub:"Upload schema, manage tables" },
+  { id:"codebase",     label:"Codebase Info",     icon:BookOpen,   sub:"Repo files, version, links" },
   { id:"system",       label:"System Health",     icon:Server,     sub:"Server & database info" },
   { id:"audit",        label:"Audit Log",         icon:Activity,   sub:"Recent activity" },
   { id:"terminal",     label:"Console",           icon:Terminal,   sub:"Run system commands" },
