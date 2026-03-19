@@ -172,13 +172,7 @@ export default function DashboardPage() {
         @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.04)} }
         @keyframes ringPulse { 0%,100%{opacity:0.25} 50%{opacity:0.6} }
         @keyframes kpiPulse { 0%{box-shadow:0 0 0 0 rgba(255,255,255,0.12)} 70%{box-shadow:0 0 0 6px rgba(255,255,255,0)} 100%{box-shadow:0 0 0 0 rgba(255,255,255,0)} }
-        .seg-btn { cursor: pointer; transition: filter 0.2s; }
-        .seg-btn:hover { filter: brightness(1.18); }
-        .qk-btn { padding: 5px 14px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
-          cursor: pointer; font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.68); white-space: nowrap; transition: all 0.15s; }
-        .qk-btn:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); }
-        .panel-link { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px;
-          border: none; background: transparent; cursor: pointer; text-align: left; margin-bottom: 2px; transition: background 0.12s; }
+        /* seg-btn, qk-btn, panel-link — now inline */
       `}</style>
 
       {/* ── BACKGROUND ── */}
@@ -294,10 +288,10 @@ export default function DashboardPage() {
                   onClick={() => openSeg(s.id)}
                   onMouseEnter={() => setHov(s.id)}
                   onMouseLeave={() => setHov(null)}
-                  className={hasAccess ? "seg-btn" : ""}
                   style={{
                     opacity: hasAccess ? 1 : 0.3,
-                    transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    cursor: hasAccess ? "pointer" : "default",
+                    transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), filter 0.2s",
                     transform: `scale(${scale})`,
                     transformOrigin: `${CX}px ${CY}px`,
                   }}>
@@ -425,7 +419,7 @@ export default function DashboardPage() {
                 <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
                   {visLinks(seg).map(lk => (
                     <button key={lk.path} onClick={() => nav(lk.path)}
-                      className="panel-link"
+                      style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:2,transition:"background 0.12s"}}
                       onMouseEnter={e => (e.currentTarget.style.background = `${seg.g2}55`)}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                       <div style={{ width: 7, height: 7, borderRadius: "50%", background: seg.g3, flexShrink: 0, boxShadow: `0 0 5px ${seg.glow}` }} />
@@ -445,7 +439,10 @@ export default function DashboardPage() {
         {/* ── QUICK LINKS BAR ── */}
         <div style={{ position: "relative", zIndex: 100, height: 44, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(14px)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, paddingBottom: 2, flexShrink: 0 }}>
           {QUICK.map(lk => (
-            <button key={lk.path} onClick={() => nav(lk.path)} className="qk-btn">{lk.label}</button>
+            <button key={lk.path} onClick={() => nav(lk.path)} style={{padding:"5px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)",cursor:"pointer",fontSize:"10.5px",fontWeight:600,color:"rgba(255,255,255,0.68)",whiteSpace:"nowrap" as const,transition:"all 0.15s",fontFamily:"inherit"}}
+            onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.15)";(e.currentTarget as HTMLElement).style.color="#fff";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.3)";}}
+            onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.05)";(e.currentTarget as HTMLElement).style.color="rgba(255,255,255,0.68)";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.12)";}}
+            >{lk.label}</button>
           ))}
         </div>
       </div>

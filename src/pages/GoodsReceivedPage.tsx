@@ -73,7 +73,12 @@ export default function GoodsReceivedPage() {
   };
 
   const save = async()=>{
-    if(!form.supplier_name&&!form.supplier_id){toast({title:"Supplier required",variant:"destructive"});return;}
+    if(!form.supplier_name&&!form.supplier_id){toast({title:"Supplier is required",variant:"destructive"});return;}
+    if(!form.received_date){toast({title:"Received date is required",variant:"destructive"});return;}
+    const validItems2 = grnItems.filter((it:any)=>it.item_name?.trim());
+    if(!validItems2.length){toast({title:"At least one item with a name is required",variant:"destructive"});return;}
+    const badQty = validItems2.find((it:any)=>Number(it.quantity_received)<0);
+    if(badQty){toast({title:`Quantity received cannot be negative for: ${badQty.item_name}`,variant:"destructive"});return;}
     setSaving(true);
     const num = form.grn_number||genGrn();
     const supp = suppliers.find(s=>s.id===form.supplier_id);

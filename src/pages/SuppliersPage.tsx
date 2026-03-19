@@ -69,7 +69,10 @@ export default function SuppliersPage() {
   };
 
   const save=async()=>{
-    if(!form.name.trim()){toast({title:"Supplier name required",variant:"destructive"});return;}
+    if(!form.name.trim()){toast({title:"Supplier name is required",variant:"destructive"});return;}
+    if(form.email&&!/^[^@]+@[^@]+\.[^@]+$/.test(form.email)){toast({title:"Invalid email address",variant:"destructive"});return;}
+    if(form.phone&&!/^[+\d\s\-()]{6,20}$/.test(form.phone)){toast({title:"Invalid phone number",variant:"destructive"});return;}
+    if(form.kra_pin&&form.kra_pin.length>0&&form.kra_pin.length<5){toast({title:"KRA PIN must be at least 5 characters",variant:"destructive"});return;}
     setSaving(true);
     try{
       const payload={...form,rating:Number(form.rating)||3};

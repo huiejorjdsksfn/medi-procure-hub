@@ -76,7 +76,8 @@ export default function RequisitionsPage() {
   };
 
   const save = async () => {
-    if(!form.title.trim()){toast({title:"Title required",variant:"destructive"});return;}
+    if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}
+    if(form.delivery_date&&new Date(form.delivery_date)<new Date(new Date().toDateString())){toast({title:"Delivery date must be today or in the future",variant:"destructive"});return;}
     setSaving(true);
     const prefix="RQQ/EL5H";
     const num=`${prefix}/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;

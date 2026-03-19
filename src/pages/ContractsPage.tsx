@@ -64,7 +64,12 @@ export default function ContractsPage() {
   };
 
   const save = async () => {
-    if(!form.title||!form.start_date||!form.end_date){toast({title:"Title and dates required",variant:"destructive"});return;}
+    if(!form.title.trim()){toast({title:"Contract title is required",variant:"destructive"});return;}
+    if(!form.start_date){toast({title:"Start date is required",variant:"destructive"});return;}
+    if(!form.end_date){toast({title:"End date is required",variant:"destructive"});return;}
+    if(form.start_date&&form.end_date&&new Date(form.end_date)<=new Date(form.start_date)){toast({title:"End date must be after start date",variant:"destructive"});return;}
+    if(form.value&&isNaN(Number(form.value))){toast({title:"Contract value must be a number",variant:"destructive"});return;}
+    if(form.value&&Number(form.value)<0){toast({title:"Contract value cannot be negative",variant:"destructive"});return;}
     setSaving(true);
     const sup = suppliers.find(s=>s.id===form.supplier_id);
     const payload={...form,contract_number:form.contract_number||genNo(),total_value:parseFloat(form.total_value)||0,performance_score:parseInt(form.performance_score)||0,created_by:user?.id,supplier_name:sup?.name};

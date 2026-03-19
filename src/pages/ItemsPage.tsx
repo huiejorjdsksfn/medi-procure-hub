@@ -73,7 +73,10 @@ export default function ItemsPage() {
   const openCreate=()=>{ setEditing(null); setForm({name:"",sku:"",item_type:"pharmaceutical",category_id:"",unit_price:"",quantity_in_stock:"",reorder_level:"10",unit_of_measure:"",description:"",status:"active"}); setShowForm(true); };
 
   const save=async()=>{
-    if(!form.name.trim()){toast({title:"Name required",variant:"destructive"});return;}
+    if(!form.name.trim()){toast({title:"Item name is required",variant:"destructive"});return;}
+    if(form.unit_price!==undefined&&Number(form.unit_price)<0){toast({title:"Unit price cannot be negative",variant:"destructive"});return;}
+    if(form.quantity_in_stock!==undefined&&Number(form.quantity_in_stock)<0){toast({title:"Stock quantity cannot be negative",variant:"destructive"});return;}
+    if(form.reorder_level!==undefined&&Number(form.reorder_level)<0){toast({title:"Reorder level cannot be negative",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,unit_price:Number(form.unit_price)||0,quantity_in_stock:Number(form.quantity_in_stock)||0,reorder_level:Number(form.reorder_level)||10,category_id:form.category_id||null};
     try{
