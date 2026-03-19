@@ -102,6 +102,7 @@ const MODULES = [
       {label:"Webmaster",    path:"/webmaster",      icon:Globe,    roles:["admin"]},
       {label:"Backup",       path:"/backup",         icon:Archive,  roles:["admin"]},
       {label:"ODBC",         path:"/odbc",           icon:Cpu,      roles:["admin"]},
+      {label:"IP Access",    path:"/admin/ip-access", icon:Shield,   roles:["admin"]},
     ]},
   { id:"database_admin", label:"DB Admin", icon:Database, color:MOD_COLORS.database_admin,
     path:"/admin/database",
