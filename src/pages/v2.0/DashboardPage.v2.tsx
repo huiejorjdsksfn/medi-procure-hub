@@ -4,7 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronRight, X, LogOut, User,
-  Mail
+  TrendingUp, Package, FileText, DollarSign,
+  AlertTriangle, CheckCircle, Clock, ShoppingCart,
+  Gavel, Shield, BarChart2, Mail, BookOpen, Archive
 } from "lucide-react";
 import procBg from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/logo.png";
@@ -101,6 +103,8 @@ const ROLE_LABELS: Record<string, string> = {
   warehouse_officer: "Warehouse Officer", requisitioner: "Requisitioner",
 };
 
+const fmtK = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(0)}K` : String(n);
+
 const CX = 270, CY = 270, OR = 210, IR = 92;
 
 export default function DashboardPage() {
@@ -166,6 +170,16 @@ export default function DashboardPage() {
   const visLinks = (s: Seg) => s.links.filter(lk => !lk.roles || lk.roles.some(r => roles?.includes(r)));
   const QUICK = ALL_QUICK.filter(lk => !lk.roles.length || lk.roles.some(r => roles?.includes(r)));
 
+  /* KPI tile data */
+  const KPI_TILES = [
+    { icon: <FileText style={{ width: 20, height: 20 }} />,   label: "Pending Requisitions",  val: kpi.reqs,      col: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.35)", path: "/requisitions" },
+    { icon: <ShoppingCart style={{ width: 20, height: 20 }}/>, label: "Open Purchase Orders",  val: kpi.pos,       col: "#3b82f6", bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.35)", path: "/purchase-orders" },
+    { icon: <DollarSign style={{ width: 20, height: 20 }} />,  label: "Pending Vouchers",      val: kpi.pendPV,    col: "#10b981", bg: "rgba(16,185,129,0.12)",  border: "rgba(16,185,129,0.35)", path: "/vouchers/payment" },
+    { icon: <AlertTriangle style={{ width: 20, height: 20 }}/>,label: "Low Stock Items",        val: kpi.lowStock,  col: "#ef4444", bg: "rgba(239,68,68,0.12)",   border: "rgba(239,68,68,0.35)",  path: "/items" },
+    { icon: <Shield style={{ width: 20, height: 20 }} />,      label: "Open Non-Conformance",  val: kpi.openNCR,   col: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  border: "rgba(139,92,246,0.35)", path: "/quality/non-conformance" },
+    { icon: <CheckCircle style={{ width: 20, height: 20 }} />, label: "Active Contracts",       val: kpi.contracts, col: "#06b6d4", bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.35)",  path: "/contracts" },
+  ];
+
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", fontFamily: "'Segoe UI',system-ui,sans-serif", display: "flex", flexDirection: "column" }}>
       <style>{`
@@ -179,6 +193,8 @@ export default function DashboardPage() {
         .qk-btn:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); }
         .panel-link { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px;
           border: none; background: transparent; cursor: pointer; text-align: left; margin-bottom: 2px; transition: background 0.12s; }
+        .kpi-tile { transition: all 0.18s; cursor: pointer; }
+        .kpi-tile:hover { transform: translateY(-2px); filter: brightness(1.1); }
       `}</style>
 
       {/* ── BACKGROUND ── */}
@@ -439,6 +455,29 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ── D365-STYLE KPI TILES ── */}
+        <div style={{ position: "relative", zIndex: 80, padding: "8px 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8 }}>
+            {KPI_TILES.map((tile, i) => (
+              <button key={i} onClick={() => nav(tile.path)}
+                className="kpi-tile"
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  padding: "10px 6px", borderRadius: 10,
+                  background: tile.bg,
+                  border: `1px solid ${tile.border}`,
+                  cursor: "pointer", minHeight: 72,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = `${tile.bg.replace("0.12", "0.22")}`)}
+                onMouseLeave={e => (e.currentTarget.style.background = tile.bg)}>
+                <span style={{ color: tile.col, marginBottom: 4 }}>{tile.icon}</span>
+                <div style={{ fontSize: 22, fontWeight: 900, color: tile.col, lineHeight: 1 }}>{fmtK(tile.val)}</div>
+                <div style={{ fontSize: 8.5, color: "rgba(255,255,255,0.45)", marginTop: 4, textAlign: "center", lineHeight: 1.3 }}>{tile.label}</div>
+              </button>
+            ))}
           </div>
         </div>
 

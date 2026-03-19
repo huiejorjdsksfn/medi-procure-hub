@@ -3,94 +3,107 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { sendNotification } from "@/lib/notify";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import procBg from "@/assets/procurement-bg.jpg";
+import logoImg from "@/assets/logo.png";
 import {
   Mail, Send, RefreshCw, X, Search, Star, Archive, Reply,
-  Trash2, Edit3, Inbox, Users, Plus, AlertTriangle, CheckCheck,
-  Paperclip, MoreHorizontal, ChevronRight, Eye, EyeOff,
-  FileText, Globe, CheckCircle, Settings, Activity, Tag,
-  CornerUpLeft, CornerUpRight, FolderPlus, Folder, Volume2,
-  VolumeX, Copy, MoveRight, Flag, BookmarkPlus, Forward, ChevronDown,
-  Clock, Shield, Package, DollarSign, Gavel, Layers, BarChart3,
-  Calendar, Filter
+  Trash2, Edit3, Inbox, Users, Plus, AlertTriangle, CheckCircle,
+  Paperclip, ChevronRight, Eye, EyeOff, FileText, Settings,
+  Activity, CornerUpLeft, Forward, Volume2, VolumeX, Copy,
+  MoveRight, Flag, Folder, FolderPlus, Shield, Package, DollarSign,
+  Gavel, Layers, BarChart3, Clock
 } from "lucide-react";
 
+/* ── Types ──────────────────────────────────────────────────── */
 interface Msg {
   id:string; dbId:string; source:"inbox"|"notification";
   type:string; subject:string; body:string;
   from_user_id?:string; from_name?:string; from_email?:string;
   to_user_id?:string; to_email?:string;
-  priority:string; status:string; is_read:boolean;
-  is_starred:boolean; thread_id?:string; module?:string;
-  action_url?:string; created_at:string;
+  priority:string; status:string; is_read:boolean; is_starred:boolean;
+  thread_id?:string; module?:string; action_url?:string; created_at:string;
 }
+interface CtxMenu { x:number; y:number; msg:Msg; }
 
-const FOLDERS=[
-  {id:"inbox",    label:"Inbox",    icon:Inbox,   color:"#0a2558"},
-  {id:"unread",   label:"Unread",   icon:Mail,    color:"#dc2626"},
-  {id:"important",label:"Important",icon:Star,    color:"#d97706"},
-  {id:"sent",     label:"Sent",     icon:Send,    color:"#107c10"},
-  {id:"drafts",   label:"Drafts",   icon:FileText,color:"#6b7280"},
-  {id:"deleted",  label:"Deleted",  icon:Trash2,  color:"#374151"},
-];
-
-const TYPE_ICON:Record<string,any>={
-  email:Mail, procurement:Layers, grn:Package, voucher:DollarSign,
-  tender:Gavel, quality:Shield, system:Settings, info:Activity, warning:AlertTriangle, error:AlertTriangle, success:CheckCircle, default:Mail,
-};
+/* ── Helpers ─────────────────────────────────────────────────── */
 const TYPE_COLOR:Record<string,string>={
-  email:"#7c3aed",procurement:"#0078d4",grn:"#107c10",voucher:"#C45911",
-  tender:"#1F6090",quality:"#059669",system:"#6b7280",info:"#0078d4",warning:"#d97706",error:"#dc2626",success:"#16a34a",default:"#6b7280",
+  email:"#0078d4",procurement:"#0078d4",grn:"#107c10",voucher:"#C45911",
+  tender:"#1F6090",quality:"#498205",system:"#6b7280",info:"#0078d4",
+  warning:"#d97706",error:"#dc2626",success:"#107c10",default:"#6b7280",
 };
-
-function msgColor(type:string){ return TYPE_COLOR[type]||TYPE_COLOR.default; }
-function msgIcon(type:string){ return TYPE_ICON[type]||TYPE_ICON.default; }
+function msgColor(t:string){ return TYPE_COLOR[t]||TYPE_COLOR.default; }
 function timeStr(d:string){
-  const dt=new Date(d), now=new Date();
-  const diff=(now.getTime()-dt.getTime())/1000;
+  const dt=new Date(d),diff=(Date.now()-dt.getTime())/1000;
   if(diff<3600) return `${Math.floor(diff/60)}m ago`;
   if(diff<86400) return dt.toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"});
   if(diff<604800) return dt.toLocaleDateString("en-KE",{weekday:"short"});
   return dt.toLocaleDateString("en-KE",{day:"numeric",month:"short"});
 }
-function initials(name?:string){ return(name||"?").split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase(); }
-function avatarBg(name?:string){
-  const colors=["#0a2558","#C45911","#107c10","#7c3aed","#0369a1","#059669","#d97706","#dc2626"];
-  let h=0; for(const c of (name||"?")) h=(h*31+c.charCodeAt(0))%colors.length;
-  return colors[h];
+function initials(n?:string){ return(n||"?").split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase(); }
+function avatarBg(n?:string){
+  const cols=["#0078d4","#C45911","#107c10","#7c3aed","#0369a1","#498205","#d97706","#dc2626"];
+  let h=0; for(const c of(n||"?")) h=(h*31+c.charCodeAt(0))%cols.length;
+  return cols[h];
 }
 
-// ── Context menu ──────────────────────────────────────────────────────────
-interface CtxMenu{x:number;y:number;msg:Msg;}
+const FOLDERS=[
+  {id:"inbox",    label:"Inbox",    icon:Inbox,   },
+  {id:"unread",   label:"Unread",   icon:Mail,    },
+  {id:"starred",  label:"Starred",  icon:Star,    },
+  {id:"sent",     label:"Sent",     icon:Send,    },
+  {id:"deleted",  label:"Deleted",  icon:Trash2,  },
+];
 
-export default function EmailPage(){
-  const{user,profile}=useAuth();
-  const[folder,setFolder]=useState("inbox");
-  const[msgs,setMsgs]=useState<Msg[]>([]);
-  const[loading,setLoading]=useState(false);
-  const[selected,setSelected]=useState<Msg|null>(null);
-  const[search,setSearch]=useState("");
-  const[tab,setTab]=useState<"all"|"read"|"unread">("all");
-  const[ctx,setCtx]=useState<CtxMenu|null>(null);
-  const[composing,setComposing]=useState(false);
-  const[compose,setCompose]=useState({to:"",subject:"",body:""});
-  const[sending,setSending]=useState(false);
-  const[smtpEnabled,setSmtpEnabled]=useState<boolean|null>(null);
-  const[replyMode,setReplyMode]=useState(false);
-  const[replyBody,setReplyBody]=useState("");
-  const[starredIds,setStarredIds]=useState<Set<string>>(new Set());
-  const[importantIds,setImportantIds]=useState<Set<string>>(new Set());
-  const[deletedIds,setDeletedIds]=useState<Set<string>>(new Set());
-  const ctxRef=useRef<HTMLDivElement>(null);
+/* ── Component ───────────────────────────────────────────────── */
+export default function EmailPage() {
+  const { user, profile } = useAuth();
+  const { get: getSetting } = useSystemSettings();
 
-  // ── Load messages ─────────────────────────────────────────────────────
-  const load=useCallback(async()=>{
-    if(!user)return;
+  const [folder,      setFolder]      = useState("inbox");
+  const [msgs,        setMsgs]        = useState<Msg[]>([]);
+  const [loading,     setLoading]     = useState(false);
+  const [selected,    setSelected]    = useState<Msg|null>(null);
+  const [search,      setSearch]      = useState("");
+  const [tab,         setTab]         = useState<"all"|"read"|"unread">("all");
+  const [ctx,         setCtx]         = useState<CtxMenu|null>(null);
+  const [composing,   setComposing]   = useState(false);
+  const [compose,     setCompose]     = useState({to:"",cc:"",subject:"",body:"",priority:"normal"});
+  const [sending,     setSending]     = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [replyMode,   setReplyMode]   = useState(false);
+  const [replyBody,   setReplyBody]   = useState("");
+  const [starredIds,  setStarredIds]  = useState<Set<string>>(new Set());
+  const [deletedIds,  setDeletedIds]  = useState<Set<string>>(new Set());
+  const [smtpStatus,  setSmtpStatus]  = useState<{mode:string;provider:string;ready:boolean}|null>(null);
+  const ctxRef = useRef<HTMLDivElement>(null);
+
+  /* ── SMTP status ──────────────────────────────────────────── */
+  useEffect(()=>{
+    (supabase as any).from("system_settings").select("key,value")
+      .in("key",["smtp_enabled","smtp_host","smtp_user","smtp_password","email_mode","resend_api_key","sendgrid_api_key","mailgun_api_key"])
+      .then(({data}:any)=>{
+        const m:Record<string,string>={};
+        (data||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
+        const mode = m.email_mode||"internal";
+        const hasSmtp = m.smtp_enabled==="true"&&!!m.smtp_host&&!!m.smtp_user&&!!m.smtp_password;
+        const hasApi = !!(m.resend_api_key||m.sendgrid_api_key||m.mailgun_api_key);
+        const provider = m.resend_api_key?"Resend":m.sendgrid_api_key?"SendGrid":m.mailgun_api_key?"Mailgun":hasSmtp?"SMTP":"Internal";
+        setSmtpStatus({ mode, provider, ready: hasSmtp||hasApi });
+      }).catch(()=>setSmtpStatus({mode:"internal",provider:"Internal",ready:false}));
+  },[]);
+
+  /* ── Load ─────────────────────────────────────────────────── */
+  const load = useCallback(async()=>{
+    if(!user) return;
     setLoading(true);
-    try{
-      const[ir,nr]=await Promise.all([
-        (supabase as any).from("inbox_items").select("*").or(`to_user_id.eq.${user.id},from_user_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(100),
-        (supabase as any).from("notifications").select("*").order("created_at",{ascending:false}).limit(50),
+    try {
+      const [ir,nr] = await Promise.all([
+        (supabase as any).from("inbox_items").select("*")
+          .or(`to_user_id.eq.${user.id},from_user_id.eq.${user.id}`)
+          .order("created_at",{ascending:false}).limit(100),
+        (supabase as any).from("notifications").select("*")
+          .order("created_at",{ascending:false}).limit(50),
       ]);
       const inbox:Msg[]=(ir.data||[]).map((n:any,i:number)=>({
         id:`i-${n.id||i}`,dbId:n.id||"",source:"inbox" as const,
@@ -110,57 +123,43 @@ export default function EmailPage(){
         is_read:!!n.is_read,is_starred:false,module:n.module||n.category,
         created_at:n.created_at||new Date().toISOString(),
       }));
-      const all=[...inbox,...notifs].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
-      setMsgs(all);
-    }catch(e){console.error("EmailPage load",e);}
+      setMsgs([...inbox,...notifs].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()));
+    } catch(e){ console.error(e); }
     setLoading(false);
   },[user]);
 
-  useEffect(()=>{load();},[load]);
+  useEffect(()=>{ load(); },[load]);
 
-  // Check SMTP configuration status
+  /* ── Real-time ─────────────────────────────────────────────── */
   useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value")
-      .in("key",["smtp_enabled","smtp_host","smtp_user","smtp_password"])
-      .then(({data}:any)=>{
-        const m:Record<string,string>={};
-        (data||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
-        setSmtpEnabled(m.smtp_enabled==="true" && !!m.smtp_host && !!m.smtp_user && !!m.smtp_password);
-      }).catch(()=>setSmtpEnabled(false));
-  },[]);
-
-
-  useEffect(()=>{
-    const h=(e:MouseEvent)=>{ if(ctxRef.current&&!ctxRef.current.contains(e.target as Node)) setCtx(null); };
-    document.addEventListener("mousedown",h);
-    return()=>document.removeEventListener("mousedown",h);
-  },[]);
-
-  // Realtime
-  useEffect(()=>{
-    if(!user)return;
-    const ch=(supabase as any).channel(`email-page-${user.id}`)
+    if(!user) return;
+    const ch=(supabase as any).channel(`email-rt-${user.id}`)
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"inbox_items"},(p:any)=>{
         const n=p.new as any;
         if(n.to_user_id===user.id||n.from_user_id===user.id) load();
       })
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},(p:any)=>{ load(); })
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},()=>load())
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"inbox_items"},()=>load())
       .subscribe();
-    return()=>(supabase as any).removeChannel(ch);
+    return ()=>(supabase as any).removeChannel(ch);
   },[user,load]);
 
-  // ── Filter ────────────────────────────────────────────────────────────
-  const filtered=msgs.filter(m=>{
+  /* ── Context menu close ──────────────────────────────────── */
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{ if(ctxRef.current&&!ctxRef.current.contains(e.target as Node)) setCtx(null); };
+    document.addEventListener("mousedown",h);
+    return ()=>document.removeEventListener("mousedown",h);
+  },[]);
+
+  /* ── Filtering ───────────────────────────────────────────── */
+  const filtered = msgs.filter(m=>{
     if(deletedIds.has(m.id)) return folder==="deleted";
     if(folder==="deleted") return false;
     if(folder==="starred") return starredIds.has(m.id);
-    if(folder==="important") return importantIds.has(m.id);
-    if(folder==="sent") return m.source==="inbox"&&m.from_user_id===user?.id;
-    if(folder==="unread") return !m.is_read;
-    if(folder==="drafts") return false;
-    // inbox = all non-sent
+    if(folder==="sent")    return m.source==="inbox"&&m.from_user_id===user?.id;
+    if(folder==="unread")  return !m.is_read;
     if(folder==="inbox"){
-      if(tab==="read") return m.is_read;
+      if(tab==="read")   return m.is_read;
       if(tab==="unread") return !m.is_read;
       return true;
     }
@@ -171,213 +170,237 @@ export default function EmailPage(){
     return m.subject.toLowerCase().includes(s)||m.body.toLowerCase().includes(s)||(m.from_name||"").toLowerCase().includes(s);
   });
 
-  const unreadCount=msgs.filter(m=>!m.is_read&&!deletedIds.has(m.id)).length;
+  const unreadCount = msgs.filter(m=>!m.is_read&&!deletedIds.has(m.id)).length;
 
-  // ── Actions ───────────────────────────────────────────────────────────
-  const markRead=async(msg:Msg)=>{
+  /* ── Actions ─────────────────────────────────────────────── */
+  const markRead = async(msg:Msg)=>{
     if(msg.is_read) return;
     if(msg.source==="inbox") await (supabase as any).from("inbox_items").update({status:"read"}).eq("id",msg.dbId);
     else await (supabase as any).from("notifications").update({is_read:true}).eq("id",msg.dbId);
     setMsgs(p=>p.map(m=>m.id===msg.id?{...m,is_read:true,status:"read"}:m));
   };
-  const toggleStar=(id:string)=>setStarredIds(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});
-  const toggleImportant=(id:string)=>setImportantIds(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});
-  const deleteMsg=(id:string)=>{ setDeletedIds(p=>new Set([...p,id])); if(selected?.id===id) setSelected(null); toast({title:"Moved to Deleted"}); };
-  const markUnread=(msg:Msg)=>setMsgs(p=>p.map(m=>m.id===msg.id?{...m,is_read:false,status:"unread"}:m));
-  const archive=(id:string)=>{ setDeletedIds(p=>new Set([...p,id])); toast({title:"Archived"}); };
+  const toggleStar   = (id:string)=>setStarredIds(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});
+  const deleteMsg    = (id:string)=>{ setDeletedIds(p=>new Set([...p,id])); if(selected?.id===id) setSelected(null); toast({title:"Moved to Deleted"}); };
+  const markUnread   = (msg:Msg) =>setMsgs(p=>p.map(m=>m.id===msg.id?{...m,is_read:false,status:"unread"}:m));
+  const openMsg      = (msg:Msg) =>{ setSelected(msg); markRead(msg); setCtx(null); setReplyMode(false); setReplyBody(""); };
 
-  const openMsg=(msg:Msg)=>{ setSelected(msg); markRead(msg); setCtx(null); setReplyMode(false); setReplyBody(""); };
-
-  const sendReply=async()=>{
+  /* ── Send reply ──────────────────────────────────────────── */
+  const sendReply = async()=>{
     if(!selected||!replyBody.trim()||!user) return;
     setSending(true);
-    try{
-      const replyTo=selected.from_user_id&&selected.from_user_id!==user.id?selected.from_user_id:selected.to_user_id;
-      if(replyTo){
-        await sendNotification({userId:replyTo,title:`Re: ${selected.subject}`,message:replyBody,type:"email",module:"Email",actionUrl:"/email",senderId:user.id});
-      }
+    try {
+      const replyTo = selected.from_user_id&&selected.from_user_id!==user.id?selected.from_user_id:selected.to_user_id;
+      if(replyTo) await sendNotification({userId:replyTo,title:`Re: ${selected.subject}`,message:replyBody,type:"email",module:"Email",actionUrl:"/email",senderId:user.id});
       await (supabase as any).from("inbox_items").insert({
         subject:`Re: ${selected.subject}`,body:replyBody,
         from_user_id:user.id,from_name:profile?.full_name||"Staff",from_email:profile?.email||user.email,
         to_user_id:replyTo,type:"email",status:"sent",priority:"normal",
         thread_id:selected.thread_id||selected.dbId,module:"Email",
       });
-      toast({title:"Reply sent ✓"});
-      setReplyMode(false); setReplyBody(""); load();
-    }catch(e:any){ toast({title:"Failed",description:e.message,variant:"destructive"}); }
+      toast({title:"Reply sent ✓"}); setReplyMode(false); setReplyBody(""); load();
+    } catch(e:any){ toast({title:"Failed",description:e.message,variant:"destructive"}); }
     setSending(false);
   };
 
-  const sendCompose=async()=>{
-    if(!compose.to.trim()||!compose.subject.trim()||!user){ toast({title:"Fill all fields",variant:"destructive"}); return; }
-    setSending(true);
-    try{
-      // Find recipient by email in profiles
-      const{data:rec}=await (supabase as any).from("profiles").select("id,full_name").eq("email",compose.to.trim()).maybeSingle();
-      if(rec){
-        await sendNotification({userId:rec.id,title:compose.subject,message:compose.body,type:"email",module:"Email",actionUrl:"/email",senderId:user.id});
+  /* ── Send composed message ───────────────────────────────── */
+  const sendCompose = async(testMode=false)=>{
+    const to = testMode ? (profile?.email||user?.email||"") : compose.to.trim();
+    if(!to||(!testMode&&!compose.subject.trim())||!user){ toast({title:"Fill recipient and subject",variant:"destructive"}); return; }
+    if(testMode) setTestSending(true); else setSending(true);
+
+    try {
+      const subject = testMode ? `[TEST] EL5 MediProcure Email Test — ${new Date().toLocaleString("en-KE")}` : compose.subject;
+      const body    = testMode ? `This is a test email from EL5 MediProcure.\n\nSent by: ${profile?.full_name||"Staff"}\nTime: ${new Date().toLocaleString("en-KE")}\nMode: ${smtpStatus?.mode||"internal"} via ${smtpStatus?.provider||"Internal"}` : compose.body;
+
+      // 1. Always save to inbox_items (internal delivery — always works)
+      const rec = await (supabase as any).from("profiles").select("id,full_name").eq("email",to).maybeSingle();
+      if(rec.data) {
+        await sendNotification({userId:rec.data.id,title:subject,message:body,type:"email",module:"Email",actionUrl:"/email",senderId:user.id});
       }
-      // Save to inbox_items as sent
-      await (supabase as any).from("inbox_items").insert({
-        subject:compose.subject,body:compose.body,
-        from_user_id:user.id,from_name:profile?.full_name,from_email:profile?.email||user.email,
-        to_email:compose.to,type:"email",status:"sent",priority:"normal",module:"Email",
-      });
-      // Also send actual email via Edge Function (uses system_settings SMTP config)
-      try {
-        const { data: smtpRows } = await (supabase as any).from("system_settings").select("key,value")
-          .in("key",["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_email","smtp_from_name","smtp_enabled"]);
-        const smtp: Record<string,string> = {};
-        (smtpRows||[]).forEach((r:any)=>{ if(r.key) smtp[r.key]=r.value||""; });
-        if(smtp.smtp_enabled==="true" && smtp.smtp_host && smtp.smtp_user && smtp.smtp_password){
-          const { error: fnErr } = await supabase.functions.invoke("send-email",{
+      if(!testMode) {
+        await (supabase as any).from("inbox_items").insert({
+          subject,body,from_user_id:user.id,from_name:profile?.full_name,
+          from_email:profile?.email||user.email,to_email:to,
+          cc:compose.cc||null,type:"email",status:"sent",
+          priority:compose.priority||"normal",module:"Email",
+        });
+      }
+
+      // 2. External delivery — only if mode = "external" (or internal+external)
+      const mode = smtpStatus?.mode || getSetting("email_mode","internal");
+      if(mode==="external"||mode==="both") {
+        try {
+          const smtpRows = await (supabase as any).from("system_settings").select("key,value")
+            .in("key",["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_email","smtp_from_name","smtp_enabled","smtp_security","resend_api_key","sendgrid_api_key","mailgun_api_key","mailgun_domain"]);
+          const smtp:Record<string,string>={};
+          (smtpRows.data||[]).forEach((r:any)=>{ if(r.key) smtp[r.key]=r.value||""; });
+
+          const { data:fnData, error:fnErr } = await supabase.functions.invoke("send-email",{
             body:{
-              to: compose.to,
-              subject: compose.subject,
-              body: compose.body,
-              html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111827;line-height:1.6">${compose.body.replace(/\n/g,"<br/>")}</div><hr style="margin-top:24px"/><p style="font-size:11px;color:#6b7280">Sent via ${smtp.smtp_from_name||"EL5 MediProcure"}</p>`,
-              from: smtp.smtp_from_email||smtp.smtp_user,
-              from_name: smtp.smtp_from_name||"EL5 MediProcure",
-              smtp: {
-                host: smtp.smtp_host, port: Number(smtp.smtp_port)||587,
-                username: smtp.smtp_user, password: smtp.smtp_password,
-                from_email: smtp.smtp_from_email||smtp.smtp_user,
-                from_name: smtp.smtp_from_name||"EL5 MediProcure",
-                encryption: "tls",
-              },
-            },
+              to,
+              cc: compose.cc||undefined,
+              subject,
+              body,
+              html:`<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#374151;line-height:1.75">${body.replace(/\n/g,"<br/>")}</div><hr style="margin-top:24px;border:none;border-top:1px solid #e5e7eb"/><p style="font-size:11px;color:#9ca3af">Sent via ${getSetting("system_name","EL5 MediProcure")} · ${getSetting("hospital_name","Embu Level 5 Hospital")}</p>`,
+              from_name: smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
+              smtp: smtp.smtp_enabled==="true"&&smtp.smtp_host ? {
+                host:smtp.smtp_host, port:Number(smtp.smtp_port)||587,
+                username:smtp.smtp_user, password:smtp.smtp_password,
+                from_email:smtp.smtp_from_email||smtp.smtp_user,
+                from_name:smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
+                encryption:smtp.smtp_security||"tls",
+              } : undefined,
+            }
           });
-          if(!fnErr) toast({title:"Email delivered ✓", description:`Sent to ${compose.to} via SMTP`});
-          else toast({title:"Message saved, SMTP delivery failed",description:"Check SMTP settings in Admin",variant:"destructive"});
-        } else {
-          toast({title:"Message sent ✓", description:"Internal delivery only (SMTP not configured)"});
+          const d = fnData as any;
+          if(fnErr||!d?.success) {
+            toast({title:testMode?"Test: Internal ✓, External ✗":"Saved internally — external delivery failed",description:fnErr?.message||d?.error||"Check SMTP/API settings",variant:testMode?"destructive":"default"});
+          } else {
+            toast({title:testMode?`Test sent via ${d.provider||"SMTP"} ✓`:`Email sent via ${d.provider||"SMTP"} ✓`,description:`Delivered to ${to}`});
+          }
+        } catch(exErr:any){
+          toast({title:"External send error",description:exErr.message,variant:"destructive"});
         }
-      } catch { toast({title:"Message sent ✓"}); }
-      setComposing(false); setCompose({to:"",subject:"",body:""});
-    }catch(e:any){ toast({title:"Send failed",description:e.message,variant:"destructive"}); }
-    setSending(false);
+      } else {
+        if(testMode) toast({title:"Test: Internal delivery ✓",description:"Enable 'Internal + External' mode in Settings → Email to test real SMTP"});
+        else toast({title:"Message sent ✓",description:"Internal delivery complete"});
+      }
+
+      if(!testMode){ setComposing(false); setCompose({to:"",cc:"",subject:"",body:"",priority:"normal"}); }
+    } catch(e:any){ toast({title:"Send failed",description:e.message,variant:"destructive"}); }
+    if(testMode) setTestSending(false); else setSending(false);
   };
 
-  const inp:React.CSSProperties={width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box",color:"#111827",background:"#fff"};
+  /* ── Shared input style ──────────────────────────────────── */
+  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"#fff",fontFamily:"inherit"};
 
-  return(
-    <div style={{display:"flex",height:"100%",background:"#f9fafb",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
-      <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        .msg-row{transition:background 0.1s;cursor:pointer;}
-        .msg-row:hover{background:#f3f4f6!important;}
-        .msg-row.active{background:#eff6ff!important;border-right:3px solid #0a2558!important;}
-        .folder-btn{transition:background 0.12s;cursor:pointer;}
-        .folder-btn:hover{background:rgba(255,255,255,0.08)!important;}
-        .folder-btn.active-folder{background:rgba(255,255,255,0.15)!important;font-weight:700!important;}
-        .ctx-item{transition:background 0.1s;cursor:pointer;}
-        .ctx-item:hover{background:#f3f4f6;}
-        .tool-btn{cursor:pointer;transition:background 0.12s,color 0.12s;}
-        .tool-btn:hover{background:#f3f4f6!important;}
-      `}</style>
+  /* ── Hover helpers ───────────────────────────────────────── */
+  const hoverBg = (e:React.MouseEvent, on:boolean, bg="#f0f0f0") => {
+    (e.currentTarget as HTMLElement).style.background = on ? bg : "transparent";
+  };
 
-      {/* ── LEFT SIDEBAR (dark, Dappr-style) ────────────────────── */}
-      <div style={{width:220,flexShrink:0,background:"#111827",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+  /* ──────────────────────────────────────────────────────────
+      RENDER
+  ────────────────────────────────────────────────────────── */
+  return (
+    <div style={{display:"flex",height:"100%",background:"#fff",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+
+      {/* ── LEFT SIDEBAR ────────────────────────────────────── */}
+      <div style={{width:210,flexShrink:0,background:"#faf9f8",borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* Header */}
-        <div style={{padding:"20px 16px 12px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-            <div style={{width:34,height:34,borderRadius:9,background:"#0a2558",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e0e0e0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+            <div style={{width:32,height:32,borderRadius:6,background:"#0078d4",display:"flex",alignItems:"center",justifyContent:"center"}}>
               <Mail style={{width:16,height:16,color:"#fff"}}/>
             </div>
-            <span style={{fontSize:16,fontWeight:800,color:"#fff"}}>Mail</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"#1f1f1f"}}>Mail & Inbox</div>
+              <div style={{fontSize:9.5,color:"#888"}}>{unreadCount>0?`${unreadCount} unread`:"All caught up"}</div>
+            </div>
           </div>
           {/* Compose */}
-          <button onClick={()=>setComposing(true)}
-            style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"9px",borderRadius:10,background:"#0a2558",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
-            <Edit3 style={{width:13,height:13}}/> Compose
+          <button onClick={()=>{ setComposing(true); setSelected(null); }}
+            style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"8px",borderRadius:4,background:"#0078d4",border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,color:"#fff"}}>
+            <Edit3 style={{width:13,height:13}}/> New Message
           </button>
-          {/* SMTP status pill */}
-          <div style={{marginTop:8,padding:"5px 10px",borderRadius:8,background:smtpEnabled===null?"rgba(255,255,255,0.05)":smtpEnabled?"rgba(16,124,16,0.25)":"rgba(220,38,38,0.2)",display:"flex",alignItems:"center",gap:6}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:smtpEnabled===null?"#6b7280":smtpEnabled?"#16a34a":"#dc2626",flexShrink:0}}/>
-            <span style={{fontSize:10,fontWeight:700,color:smtpEnabled===null?"#9ca3af":smtpEnabled?"#4ade80":"#f87171"}}>
-              {smtpEnabled===null?"Checking SMTP...":smtpEnabled?"SMTP Active — Real Email On":"SMTP Off — Internal Only"}
-            </span>
-          </div>
+          {/* SMTP mode badge */}
+          {smtpStatus&&(
+            <div style={{marginTop:8,padding:"5px 8px",borderRadius:4,background:smtpStatus.ready?"#f0fff0":"#fff8f0",border:`1px solid ${smtpStatus.ready?"#86efac":"#fdba74"}`,display:"flex",alignItems:"center",gap:5}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:smtpStatus.ready?"#16a34a":"#d97706",flexShrink:0}}/>
+              <span style={{fontSize:9.5,fontWeight:600,color:smtpStatus.ready?"#15803d":"#92400e",lineHeight:1.3}}>
+                {smtpStatus.ready?`${smtpStatus.provider} · ${smtpStatus.mode==="external"||smtpStatus.mode==="both"?"External Active":"Internal + External"}` : "SMTP Off — Internal Only"}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Folder list */}
-        <nav style={{flex:1,overflowY:"auto",padding:"0 8px"}}>
+        {/* Folders */}
+        <nav style={{flex:1,overflowY:"auto",padding:"6px 6px 0"}}>
           {FOLDERS.map(f=>{
             const count=f.id==="inbox"?unreadCount:f.id==="starred"?starredIds.size:0;
-            return(
-              <button key={f.id} className={`folder-btn${folder===f.id?" active-folder":""}`}
-                onClick={()=>{setFolder(f.id);setSelected(null);}}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:9,border:"none",background:"transparent",textAlign:"left",cursor:"pointer",marginBottom:2}}>
-                <f.icon style={{width:15,height:15,color:folder===f.id?"#fff":f.color}}/>
-                <span style={{flex:1,fontSize:12,fontWeight:500,color:folder===f.id?"#fff":"rgba(255,255,255,0.65)"}}>{f.label}</span>
-                {count>0&&<span style={{minWidth:18,height:18,borderRadius:9,background:folder===f.id?"rgba(255,255,255,0.25)":"#ef4444",color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px"}}>{count}</span>}
+            const isAct=folder===f.id;
+            return (
+              <button key={f.id} onClick={()=>{setFolder(f.id);setSelected(null);setComposing(false);}}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:4,border:"none",
+                  background:isAct?"#e8f0fe":"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:1,
+                  borderLeft:isAct?"2px solid #0078d4":"2px solid transparent"}}
+                onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#f0f0f0"; }}
+                onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                <f.icon style={{width:14,height:14,color:isAct?"#0078d4":"#666",flexShrink:0}}/>
+                <span style={{flex:1,fontSize:12.5,fontWeight:isAct?600:400,color:isAct?"#0078d4":"#1f1f1f"}}>{f.label}</span>
+                {count>0&&<span style={{minWidth:18,height:18,borderRadius:9,background:"#0078d4",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px"}}>{count}</span>}
               </button>
             );
           })}
 
-          {/* Custom folders */}
-          <div style={{borderTop:"1px solid rgba(255,255,255,0.08)",marginTop:8,paddingTop:8}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px 6px"}}>
-              <span style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Folders</span>
-              <button style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.4)",lineHeight:0,padding:2}}>
-                <Settings style={{width:11,height:11}}/>
-              </button>
-            </div>
-            {[{id:"procurement",label:"Procurement",icon:Layers},{id:"system",label:"System Alerts",icon:Shield}].map(f=>(
-              <button key={f.id} className={`folder-btn${folder===f.id?" active-folder":""}`}
-                onClick={()=>{setFolder(f.id);setSelected(null);}}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:9,border:"none",background:"transparent",textAlign:"left",cursor:"pointer",marginBottom:2}}>
-                <f.icon style={{width:13,height:13,color:"rgba(255,255,255,0.5)"}}/>
-                <span style={{flex:1,fontSize:12,color:"rgba(255,255,255,0.55)"}}>{f.label}</span>
-              </button>
-            ))}
-            <button onClick={()=>toast({title:"Folder creation coming soon"})} className="folder-btn"
-              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",color:"rgba(255,255,255,0.3)"}}>
-              <FolderPlus style={{width:13,height:13}}/><span style={{fontSize:11}}>Add Folder</span>
-            </button>
+          <div style={{borderTop:"1px solid #e0e0e0",margin:"8px 4px",paddingTop:8}}>
+            <div style={{fontSize:9.5,fontWeight:700,color:"#888",letterSpacing:"0.07em",textTransform:"uppercase",padding:"0 6px 6px"}}>System Folders</div>
+            {[{id:"procurement",label:"Procurement",icon:Layers},{id:"system",label:"System Alerts",icon:Shield}].map(f=>{
+              const isAct=folder===f.id;
+              return (
+                <button key={f.id} onClick={()=>{setFolder(f.id);setSelected(null);setComposing(false);}}
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"7px 10px",borderRadius:4,border:"none",
+                    background:isAct?"#e8f0fe":"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:1}}
+                  onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#f0f0f0"; }}
+                  onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                  <f.icon style={{width:13,height:13,color:"#888",flexShrink:0}}/>
+                  <span style={{fontSize:12.5,color:"#555"}}>{f.label}</span>
+                </button>
+              );
+            })}
           </div>
         </nav>
 
-        {/* User info */}
-        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9}}>
-          <div style={{width:28,height:28,borderRadius:"50%",background:avatarBg(profile?.full_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(profile?.full_name)}</div>
+        {/* User strip */}
+        <div style={{padding:"10px 16px",borderTop:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:26,height:26,borderRadius:"50%",background:avatarBg(profile?.full_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:9.5,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(profile?.full_name)}</div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.email||""}</div>
+            <div style={{fontSize:11,fontWeight:600,color:"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
+            <div style={{fontSize:9,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.email||""}</div>
           </div>
         </div>
       </div>
 
-      {/* ── MIDDLE: Message list ─────────────────────────────────── */}
-      <div style={{width:320,flexShrink:0,borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",background:"#fff",height:"100%",overflow:"hidden"}}>
+      {/* ── MIDDLE: Message list ──────────────────────────────── */}
+      <div style={{width:300,flexShrink:0,borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",background:"#fff",height:"100%",overflow:"hidden"}}>
         {/* Header + search */}
-        <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e5e7eb"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-            <h2 style={{fontSize:16,fontWeight:800,color:"#111827",margin:0}}>{FOLDERS.find(f=>f.id===folder)?.label||"Inbox"}</h2>
-            <div style={{display:"flex",gap:4}}>
-              <button className="tool-btn" onClick={load} style={{padding:5,borderRadius:7,border:"none",background:"transparent",lineHeight:0}}>
-                <RefreshCw style={{width:13,height:13,color:"#6b7280",animation:loading?"spin 1s linear infinite":undefined}}/>
+        <div style={{padding:"12px 14px 8px",borderBottom:"1px solid #e0e0e0"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <h2 style={{fontSize:14,fontWeight:700,color:"#1f1f1f",margin:0}}>{FOLDERS.find(f=>f.id===folder)?.label||folder}</h2>
+            <div style={{display:"flex",gap:2}}>
+              <button onClick={load}
+                style={{padding:5,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",lineHeight:0}}
+                onMouseEnter={e=>hoverBg(e,true)}
+                onMouseLeave={e=>hoverBg(e,false)}>
+                <RefreshCw style={{width:13,height:13,color:"#666",animation:loading?"spin 1s linear infinite":undefined}}/>
               </button>
-              <button className="tool-btn" onClick={()=>setComposing(true)} style={{padding:5,borderRadius:7,border:"none",background:"transparent",lineHeight:0}}>
-                <Plus style={{width:13,height:13,color:"#6b7280"}}/>
+              <button onClick={()=>{ setComposing(true); setSelected(null); }}
+                style={{padding:5,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",lineHeight:0}}
+                onMouseEnter={e=>hoverBg(e,true)}
+                onMouseLeave={e=>hoverBg(e,false)}>
+                <Plus style={{width:13,height:13,color:"#666"}}/>
               </button>
             </div>
           </div>
           {/* Search */}
           <div style={{position:"relative"}}>
-            <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages..."
-              style={{...inp,paddingLeft:30,height:34,fontSize:12,background:"#f9fafb",border:"1px solid #e5e7eb"}}/>
-            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
-              <X style={{width:12,height:12}}/>
+            <Search style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#999"}}/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages…"
+              style={{...inp,paddingLeft:28,height:30,fontSize:12,background:"#f5f5f5",border:"1px solid #e0e0e0"}}/>
+            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",lineHeight:0}}>
+              <X style={{width:11,height:11,color:"#999"}}/>
             </button>}
           </div>
           {/* Tabs */}
           {folder==="inbox"&&(
-            <div style={{display:"flex",gap:2,marginTop:10,background:"#f3f4f6",borderRadius:8,padding:3}}>
-              {(["all","read","unread"] as const).map(t=>(
+            <div style={{display:"flex",gap:0,marginTop:8,borderBottom:"2px solid #e0e0e0"}}>
+              {(["all","unread","read"] as const).map(t=>(
                 <button key={t} onClick={()=>setTab(t)}
-                  style={{flex:1,padding:"5px 0",fontSize:11,fontWeight:tab===t?700:400,borderRadius:6,border:"none",cursor:"pointer",background:tab===t?"#fff":"transparent",color:tab===t?"#111827":"#6b7280",boxShadow:tab===t?"0 1px 3px rgba(0,0,0,0.1)":"none",transition:"all 0.12s"}}>
+                  style={{padding:"5px 12px",fontSize:11.5,fontWeight:tab===t?700:400,border:"none",background:"transparent",
+                    cursor:"pointer",color:tab===t?"#0078d4":"#555",
+                    borderBottom:tab===t?"2px solid #0078d4":"2px solid transparent",
+                    marginBottom:-2,transition:"all 0.12s"}}>
                   {t.charAt(0).toUpperCase()+t.slice(1)}
                 </button>
               ))}
@@ -385,154 +408,231 @@ export default function EmailPage(){
           )}
         </div>
 
-        {/* Message rows */}
+        {/* Messages */}
         <div style={{flex:1,overflowY:"auto"}}>
-          {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"30px 0",gap:8,color:"#9ca3af",fontSize:12}}>
-            <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading...
+          {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"28px",gap:8,color:"#999",fontSize:12}}>
+            <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading…
           </div>}
-          {!loading&&filtered.length===0&&<div style={{textAlign:"center",padding:"40px 20px",color:"#9ca3af"}}>
-            <Mail style={{width:32,height:32,margin:"0 auto 10px",color:"#e5e7eb"}}/>
-            <div style={{fontSize:13,fontWeight:600,color:"#374151"}}>No messages</div>
+          {!loading&&filtered.length===0&&<div style={{textAlign:"center",padding:"40px 16px",color:"#999"}}>
+            <Mail style={{width:32,height:32,margin:"0 auto 10px",color:"#e0e0e0"}}/><div style={{fontSize:13,fontWeight:600,color:"#555"}}>No messages</div>
           </div>}
           {filtered.map(msg=>{
             const isActive=selected?.id===msg.id;
             const isStarred=starredIds.has(msg.id);
-            return(
-              <div key={msg.id} className={`msg-row${isActive?" active":""}`}
+            return (
+              <div key={msg.id}
                 onClick={()=>openMsg(msg)}
                 onContextMenu={e=>{e.preventDefault();setCtx({x:e.clientX,y:e.clientY,msg});}}
                 style={{
-                  display:"flex",alignItems:"flex-start",gap:10,
-                  padding:"11px 14px",borderBottom:"1px solid #f3f4f6",
-                  background:isActive?"#eff6ff":msg.is_read?"#fff":"#f8faff",
-                  borderRight:isActive?"3px solid #0a2558":"3px solid transparent",
-                  position:"relative",
-                }}>
+                  display:"flex",alignItems:"flex-start",gap:9,padding:"10px 12px",
+                  borderBottom:"1px solid #f0f0f0",cursor:"pointer",
+                  background:isActive?"#e8f0fe":msg.is_read?"#fff":"#f8f9ff",
+                  borderLeft:isActive?"2px solid #0078d4":"2px solid transparent",
+                  transition:"background 0.08s",
+                }}
+                onMouseEnter={e=>{ if(!isActive)(e.currentTarget as HTMLElement).style.background=msg.is_read?"#f5f5f5":"#f0f3ff"; }}
+                onMouseLeave={e=>{ if(!isActive)(e.currentTarget as HTMLElement).style.background=msg.is_read?"#fff":"#f8f9ff"; }}>
                 {/* Unread dot */}
-                <div style={{width:7,height:7,borderRadius:"50%",background:msg.is_read?"transparent":"#0a2558",flexShrink:0,marginTop:6}}/>
+                <div style={{width:6,height:6,borderRadius:"50%",background:msg.is_read?"transparent":"#0078d4",flexShrink:0,marginTop:7}}/>
                 {/* Avatar */}
-                <div style={{width:34,height:34,borderRadius:"50%",background:avatarBg(msg.from_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff",flexShrink:0}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarBg(msg.from_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"#fff",flexShrink:0}}>
                   {initials(msg.from_name)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:6}}>
-                    <span style={{fontSize:12,fontWeight:msg.is_read?500:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,maxWidth:160}}>{msg.from_name||"System"}</span>
-                    <span style={{fontSize:9.5,color:"#9ca3af",flexShrink:0}}>{timeStr(msg.created_at)}</span>
+                  <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:4}}>
+                    <span style={{fontSize:12,fontWeight:msg.is_read?500:700,color:"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,maxWidth:140}}>{msg.from_name||"System"}</span>
+                    <span style={{fontSize:9.5,color:"#999",flexShrink:0}}>{timeStr(msg.created_at)}</span>
                   </div>
-                  <div style={{fontSize:11.5,fontWeight:msg.is_read?400:600,color:msg.is_read?"#374151":"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:1}}>{msg.subject}</div>
-                  <div style={{fontSize:10.5,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:2}}>{msg.body.slice(0,60)}...</div>
+                  <div style={{fontSize:11.5,fontWeight:msg.is_read?400:600,color:msg.is_read?"#555":"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:1}}>{msg.subject}</div>
+                  <div style={{fontSize:10.5,color:"#999",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:2}}>{msg.body.slice(0,55)}…</div>
                 </div>
-                {isStarred&&<Star style={{width:12,height:12,color:"#f59e0b",fill:"#f59e0b",flexShrink:0,marginTop:4}}/>}
+                {isStarred&&<Star style={{width:11,height:11,color:"#f59e0b",fill:"#f59e0b",flexShrink:0,marginTop:5}}/>}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* ── RIGHT: Email reader ──────────────────────────────────── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",background:"#fff"}}>
+      {/* ── RIGHT: Reader / Compose / Empty ──────────────────── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",background:"#fff",position:"relative"}}>
+
+        {/* ── EMPTY STATE with procurement wallpaper ── */}
         {!selected&&!composing&&(
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:"#9ca3af"}}>
-            <Mail style={{width:48,height:48,color:"#e5e7eb"}}/>
-            <div style={{fontSize:14,fontWeight:600,color:"#374151"}}>Select a message to read</div>
-            <div style={{fontSize:12,color:"#9ca3af"}}>or compose a new one</div>
-            <button onClick={()=>setComposing(true)} style={{marginTop:8,display:"flex",alignItems:"center",gap:8,padding:"9px 20px",background:"#0a2558",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700}}>
-              <Edit3 style={{width:13,height:13}}/> New Message
-            </button>
+          <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {/* Background */}
+            <div style={{position:"absolute",inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.22)"}}/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(0,30,80,0.75),rgba(0,0,0,0.55))"}}/>
+            {/* Content */}
+            <div style={{position:"relative",textAlign:"center",padding:"40px 32px"}}>
+              <div style={{width:64,height:64,borderRadius:16,background:"rgba(0,120,212,0.85)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",backdropFilter:"blur(4px)"}}>
+                <Mail style={{width:30,height:30,color:"#fff"}}/>
+              </div>
+              <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:8,letterSpacing:"-0.3px"}}>Mail & Inbox</div>
+              <div style={{fontSize:12.5,color:"rgba(255,255,255,0.55)",marginBottom:24,maxWidth:300,lineHeight:1.6}}>
+                Select a message from the list to read it, or compose a new message to get started.
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                <button onClick={()=>setComposing(true)}
+                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:600}}>
+                  <Edit3 style={{width:13,height:13}}/> New Message
+                </button>
+                <button onClick={load}
+                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
+                  <RefreshCw style={{width:13,height:13}}/> Refresh
+                </button>
+              </div>
+              {/* System status */}
+              {smtpStatus&&(
+                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",display:"inline-flex",alignItems:"center",gap:8}}>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:smtpStatus.ready?"#4ade80":"#fbbf24"}}/>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>
+                    Email: {smtpStatus.ready?`${smtpStatus.provider} Active`:"Internal Only"} · {unreadCount} unread
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Compose window */}
+        {/* ── COMPOSE WINDOW ── */}
         {composing&&(
-          <div style={{flex:1,display:"flex",flexDirection:"column",padding:24,overflow:"auto"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-              <h3 style={{fontSize:16,fontWeight:800,color:"#111827",margin:0}}>New Message</h3>
-              <button onClick={()=>setComposing(false)} style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280",lineHeight:0,padding:4}}>
-                <X style={{width:18,height:18}}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            {/* Compose header */}
+            <div style={{padding:"12px 20px",borderBottom:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:10,background:"#faf9f8"}}>
+              <Edit3 style={{width:15,height:15,color:"#0078d4"}}/>
+              <h3 style={{fontSize:14,fontWeight:700,color:"#1f1f1f",margin:0,flex:1}}>New Message</h3>
+              <button onClick={()=>setComposing(false)} style={{padding:5,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",lineHeight:0}}
+                onMouseEnter={e=>hoverBg(e,true)} onMouseLeave={e=>hoverBg(e,false)}>
+                <X style={{width:15,height:15,color:"#666"}}/>
               </button>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:10,maxWidth:680}}>
-              <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:4}}>To</label>
-                <input value={compose.to} onChange={e=>setCompose(p=>({...p,to:e.target.value}))} placeholder="recipient@email.com" style={inp}/>
-              </div>
-              <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:4}}>Subject</label>
-                <input value={compose.subject} onChange={e=>setCompose(p=>({...p,subject:e.target.value}))} placeholder="Message subject" style={inp}/>
-              </div>
-              <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:4}}>Message</label>
-                <textarea value={compose.body} onChange={e=>setCompose(p=>({...p,body:e.target.value}))} placeholder="Write your message here..." rows={12}
-                  style={{...inp,resize:"vertical" as const,minHeight:200}}/>
-              </div>
-              <div style={{display:"flex",gap:10}}>
-                <button onClick={sendCompose} disabled={sending}
-                  style={{display:"flex",alignItems:"center",gap:8,padding:"9px 20px",background:"#0a2558",color:"#fff",border:"none",borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:700,opacity:sending?0.7:1}}>
-                  {sending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>} Send
-                </button>
-                <button onClick={()=>setComposing(false)} style={{padding:"9px 16px",border:"1.5px solid #e5e7eb",borderRadius:9,background:"#fff",cursor:"pointer",fontSize:13,color:"#374151"}}>Discard</button>
+            <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
+              <div style={{maxWidth:700,display:"flex",flexDirection:"column",gap:12}}>
+                {/* To */}
+                <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>To</label>
+                  <input value={compose.to} onChange={e=>setCompose(p=>({...p,to:e.target.value}))} placeholder="recipient@email.com or internal user email"
+                    style={{...inp,border:"none",flex:1,padding:"6px 0"}}/>
+                </div>
+                {/* CC */}
+                <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>CC</label>
+                  <input value={compose.cc} onChange={e=>setCompose(p=>({...p,cc:e.target.value}))} placeholder="cc@email.com (optional)"
+                    style={{...inp,border:"none",flex:1,padding:"6px 0"}}/>
+                </div>
+                {/* Subject */}
+                <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>Sub</label>
+                  <input value={compose.subject} onChange={e=>setCompose(p=>({...p,subject:e.target.value}))} placeholder="Message subject"
+                    style={{...inp,border:"none",flex:1,fontWeight:600,padding:"6px 0"}}/>
+                </div>
+                {/* Priority */}
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pri</label>
+                  <select value={compose.priority} onChange={e=>setCompose(p=>({...p,priority:e.target.value}))}
+                    style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
+                    <option value="low">Low Priority</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High Priority</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                {/* Body */}
+                <textarea value={compose.body} onChange={e=>setCompose(p=>({...p,body:e.target.value}))}
+                  placeholder="Write your message here…" rows={12}
+                  style={{...inp,resize:"vertical" as const,minHeight:220,marginTop:4}}/>
+                {/* Actions */}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center"}}>
+                  <button onClick={()=>sendCompose(false)} disabled={sending||testSending}
+                    style={{display:"flex",alignItems:"center",gap:7,padding:"9px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:600,opacity:(sending||testSending)?0.7:1}}>
+                    {sending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
+                    {sending?"Sending…":"Send"}
+                  </button>
+                  <button onClick={()=>sendCompose(true)} disabled={sending||testSending}
+                    title="Send test email to yourself to verify SMTP configuration"
+                    style={{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",background:"transparent",color:"#0078d4",border:"1px solid #0078d4",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:500,opacity:(sending||testSending)?0.7:1}}>
+                    {testSending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Activity style={{width:12,height:12}}/>}
+                    {testSending?"Testing…":"Test Send"}
+                  </button>
+                  <button onClick={()=>setComposing(false)}
+                    style={{padding:"9px 14px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#555"}}>
+                    Discard
+                  </button>
+                  {smtpStatus&&(
+                    <div style={{marginLeft:"auto",fontSize:10.5,color:"#888",display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:6,height:6,borderRadius:"50%",background:smtpStatus.ready?"#22c55e":"#f59e0b"}}/>
+                      {smtpStatus.ready?`External via ${smtpStatus.provider}`:"Internal only — configure SMTP in Settings"}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Email reader */}
+        {/* ── EMAIL READER ── */}
         {selected&&!composing&&(
           <>
             {/* Toolbar */}
-            <div style={{padding:"12px 20px",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" as const}}>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap" as const,background:"#faf9f8"}}>
               {[
-                {icon:CornerUpLeft,label:"Reply",   action:()=>{setReplyMode(true);setReplyBody(`\n\n--- Original message ---\n${selected.body}`);}},
+                {icon:CornerUpLeft,label:"Reply",action:()=>{setReplyMode(true);setReplyBody(`\n\n--- Original ---\n${selected.body}`);}},
                 {icon:Users,       label:"Reply All",action:()=>{setReplyMode(true);setReplyBody(`\n\n--- Original ---\n${selected.body}`);}},
-                {icon:Forward,     label:"Forward", action:()=>{setCompose({to:"",subject:`Fwd: ${selected.subject}`,body:`\n\n--- Forwarded ---\n${selected.body}`});setComposing(true);}},
-                {icon:Trash2,      label:"Delete",  action:()=>deleteMsg(selected.id)},
-                {icon:Flag,        label:"Important",action:()=>toggleImportant(selected.id)},
+                {icon:Forward,     label:"Forward",action:()=>{ setCompose({to:"",cc:"",subject:`Fwd: ${selected.subject}`,body:`\n\n--- Fwd ---\n${selected.body}`,priority:"normal"}); setComposing(true); }},
+                {icon:Trash2,      label:"Delete",action:()=>deleteMsg(selected.id)},
               ].map(btn=>(
-                <button key={btn.label} onClick={btn.action} className="tool-btn"
-                  style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",border:"1.5px solid #e5e7eb",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12,color:"#374151",fontWeight:500}}>
-                  <btn.icon style={{width:13,height:13}}/>{btn.label}
+                <button key={btn.label} onClick={btn.action}
+                  style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#1f1f1f",fontWeight:500}}
+                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
+                  <btn.icon style={{width:13,height:13,color:"#555"}}/>{btn.label}
                 </button>
               ))}
               <div style={{flex:1}}/>
-              <button className="tool-btn" onClick={()=>toggleStar(selected.id)} style={{padding:6,border:"1.5px solid #e5e7eb",borderRadius:8,background:"#fff",cursor:"pointer",lineHeight:0}}>
-                <Star style={{width:14,height:14,color:starredIds.has(selected.id)?"#f59e0b":"#9ca3af",fill:starredIds.has(selected.id)?"#f59e0b":"none"}}/>
+              <button onClick={()=>toggleStar(selected.id)}
+                style={{padding:6,border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",lineHeight:0}}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
+                <Star style={{width:14,height:14,color:starredIds.has(selected.id)?"#f59e0b":"#999",fill:starredIds.has(selected.id)?"#f59e0b":"none"}}/>
               </button>
-              <button className="tool-btn" onClick={()=>markUnread(selected)} style={{padding:6,border:"1.5px solid #e5e7eb",borderRadius:8,background:"#fff",cursor:"pointer",lineHeight:0}}>
-                <EyeOff style={{width:14,height:14,color:"#9ca3af"}}/>
-              </button>
-              <button className="tool-btn" onClick={()=>archive(selected.id)} style={{padding:6,border:"1.5px solid #e5e7eb",borderRadius:8,background:"#fff",cursor:"pointer",lineHeight:0}}>
-                <Archive style={{width:14,height:14,color:"#9ca3af"}}/>
+              <button onClick={()=>markUnread(selected)}
+                style={{padding:6,border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",lineHeight:0}}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
+                <EyeOff style={{width:14,height:14,color:"#999"}}/>
               </button>
             </div>
 
             {/* Email header */}
-            <div style={{padding:"20px 24px",borderBottom:"1px solid #e5e7eb"}}>
-              <div style={{display:"flex",alignItems:"flex-start",gap:14,marginBottom:12}}>
-                <div style={{width:42,height:42,borderRadius:"50%",background:avatarBg(selected.from_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#fff",flexShrink:0}}>{initials(selected.from_name)}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",gap:10,justifyContent:"space-between"}}>
-                    <span style={{fontSize:15,fontWeight:700,color:"#111827"}}>{selected.from_name||"System"}</span>
-                    <span style={{fontSize:11,color:"#9ca3af"}}>{timeStr(selected.created_at)}</span>
+            <div style={{padding:"20px 24px 16px",borderBottom:"1px solid #e0e0e0"}}>
+              <h2 style={{fontSize:18,fontWeight:700,color:"#1f1f1f",margin:"0 0 14px"}}>{selected.subject}</h2>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:"50%",background:avatarBg(selected.from_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(selected.from_name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,fontWeight:700,color:"#1f1f1f"}}>{selected.from_name||"System"}</span>
+                    <span style={{fontSize:11,color:"#999"}}>{timeStr(selected.created_at)}</span>
                   </div>
-                  <h2 style={{fontSize:14,fontWeight:700,color:"#111827",margin:"4px 0 2px"}}>{selected.subject}</h2>
-                  {selected.from_email&&<div style={{fontSize:11,color:"#9ca3af"}}>From: <span style={{color:"#374151"}}>{selected.from_email}</span>{selected.to_email&&<> &nbsp;·&nbsp; To: <span style={{color:"#374151"}}>{selected.to_email}</span></>}</div>}
+                  {selected.from_email&&<div style={{fontSize:11,color:"#888",marginTop:2}}>
+                    <span style={{color:"#999"}}>From:</span> {selected.from_email}
+                    {selected.to_email&&<span style={{marginLeft:12}}><span style={{color:"#999"}}>To:</span> {selected.to_email}</span>}
+                  </div>}
+                  <div style={{marginTop:6,display:"flex",gap:5,flexWrap:"wrap" as const}}>
+                    <span style={{padding:"2px 8px",borderRadius:3,fontSize:10,fontWeight:600,background:`${msgColor(selected.type)}18`,color:msgColor(selected.type)}}>{selected.type}</span>
+                    {selected.module&&<span style={{padding:"2px 8px",borderRadius:3,fontSize:10,background:"#f0f0f0",color:"#666"}}>{selected.module}</span>}
+                    {selected.priority!=="normal"&&<span style={{padding:"2px 8px",borderRadius:3,fontSize:10,fontWeight:600,background:selected.priority==="urgent"?"#fef2f2":"#fff8f0",color:selected.priority==="urgent"?"#dc2626":"#d97706"}}>{selected.priority}</span>}
+                  </div>
                 </div>
-              </div>
-              {/* Tags */}
-              <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-                <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:`${msgColor(selected.type)}15`,color:msgColor(selected.type)}}>{selected.type}</span>
-                {selected.module&&<span style={{padding:"2px 8px",borderRadius:20,fontSize:10,background:"#f3f4f6",color:"#6b7280"}}>{selected.module}</span>}
-                {importantIds.has(selected.id)&&<span style={{padding:"2px 8px",borderRadius:20,fontSize:10,background:"#fef3c7",color:"#d97706",fontWeight:700}}>⭐ Important</span>}
               </div>
             </div>
 
             {/* Body */}
             <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
-              <div style={{maxWidth:720,fontSize:13,color:"#374151",lineHeight:1.8,whiteSpace:"pre-wrap" as const}}>{selected.body}</div>
+              <div style={{maxWidth:700,fontSize:13.5,color:"#374151",lineHeight:1.85,whiteSpace:"pre-wrap" as const}}>{selected.body}</div>
               {selected.action_url&&(
                 <div style={{marginTop:20}}>
-                  <a href={selected.action_url} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0a2558",color:"#fff",borderRadius:8,textDecoration:"none",fontSize:12,fontWeight:700}}>
-                    <ChevronRight style={{width:13,height:13}}/> View in System
+                  <a href={selected.action_url} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",borderRadius:4,textDecoration:"none",fontSize:12,fontWeight:600}}>
+                    <ChevronRight style={{width:12,height:12}}/> View in System
                   </a>
                 </div>
               )}
@@ -540,16 +640,16 @@ export default function EmailPage(){
 
             {/* Reply panel */}
             {replyMode&&(
-              <div style={{padding:"16px 24px",borderTop:"1px solid #e5e7eb",background:"#f9fafb"}}>
-                <div style={{fontSize:11,color:"#6b7280",marginBottom:8}}>Replying to <strong style={{color:"#374151"}}>{selected.from_name}</strong></div>
+              <div style={{padding:"14px 20px",borderTop:"1px solid #e0e0e0",background:"#faf9f8"}}>
+                <div style={{fontSize:11.5,color:"#666",marginBottom:8}}>Replying to <strong style={{color:"#1f1f1f"}}>{selected.from_name}</strong></div>
                 <textarea value={replyBody} onChange={e=>setReplyBody(e.target.value)} rows={5}
-                  placeholder="Write your reply..." style={{...inp,resize:"none" as const,background:"#fff"}}/>
+                  placeholder="Write your reply…" style={{...inp,resize:"none" as const}}/>
                 <div style={{display:"flex",gap:8,marginTop:10}}>
                   <button onClick={sendReply} disabled={sending}
-                    style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0a2558",color:"#fff",border:"none",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700,opacity:sending?0.7:1}}>
+                    style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:600,opacity:sending?0.7:1}}>
                     {sending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Send style={{width:12,height:12}}/>} Send Reply
                   </button>
-                  <button onClick={()=>setReplyMode(false)} style={{padding:"8px 14px",border:"1.5px solid #e5e7eb",borderRadius:9,background:"#fff",cursor:"pointer",fontSize:12,color:"#374151"}}>Cancel</button>
+                  <button onClick={()=>setReplyMode(false)} style={{padding:"8px 12px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#555"}}>Cancel</button>
                 </div>
               </div>
             )}
@@ -557,46 +657,26 @@ export default function EmailPage(){
         )}
       </div>
 
-      {/* ── CONTEXT MENU ────────────────────────────────────────── */}
+      {/* ── CONTEXT MENU ──────────────────────────────────────── */}
       {ctx&&(
-        <div ref={ctxRef} style={{position:"fixed",left:Math.min(ctx.x,window.innerWidth-220),top:Math.min(ctx.y,window.innerHeight-380),width:210,background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",boxShadow:"0 8px 28px rgba(0,0,0,0.18)",zIndex:2000,overflow:"hidden",fontFamily:"'Segoe UI',sans-serif"}}>
+        <div ref={ctxRef} style={{position:"fixed",left:Math.min(ctx.x,window.innerWidth-210),top:Math.min(ctx.y,window.innerHeight-360),width:200,background:"#fff",borderRadius:4,border:"1px solid #e0e0e0",boxShadow:"0 8px 24px rgba(0,0,0,0.15)",zIndex:2000,overflow:"hidden",fontFamily:"'Segoe UI',sans-serif"}}>
           {[
-            {label:"Open",         icon:Eye,       action:()=>openMsg(ctx.msg)},
-            {label:"Reply",        icon:CornerUpLeft, action:()=>{openMsg(ctx.msg);setTimeout(()=>setReplyMode(true),50);}},
-            {label:"Reply All",    icon:Users,     action:()=>{openMsg(ctx.msg);setTimeout(()=>setReplyMode(true),50);}},
-            {label:"Forward",      icon:Forward,   action:()=>{setCompose({to:"",subject:`Fwd: ${ctx.msg.subject}`,body:`\n\n--- Fwd ---\n${ctx.msg.body}`});setComposing(true);setCtx(null);}},
-            {label:"Forward w/ attachment", icon:Paperclip, action:()=>toast({title:"No attachments"})},
+            {label:"Open",        icon:Eye,          action:()=>openMsg(ctx.msg)},
+            {label:"Reply",       icon:CornerUpLeft, action:()=>{openMsg(ctx.msg);setTimeout(()=>setReplyMode(true),50);}},
+            {label:"Forward",     icon:Forward,      action:()=>{setCompose({to:"",cc:"",subject:`Fwd: ${ctx.msg.subject}`,body:`\n\n--- Fwd ---\n${ctx.msg.body}`,priority:"normal"});setComposing(true);setCtx(null);}},
             null,
-            {label:ctx.msg.is_read?"Mark as unread":"Mark as read", icon:ctx.msg.is_read?EyeOff:Eye, action:()=>{ctx.msg.is_read?markUnread(ctx.msg):markRead(ctx.msg);setCtx(null);}},
-            {label:"Move to Junk", icon:VolumeX,   action:()=>{deleteMsg(ctx.msg.id);setCtx(null);}},
-            {label:"Mute",         icon:VolumeX,   action:()=>toast({title:"Muted"})},
-            {label:"Delete",       icon:Trash2,    action:()=>{deleteMsg(ctx.msg.id);setCtx(null);}, danger:true},
-            null,
-            {label:"Star",         icon:Star,      action:()=>{toggleStar(ctx.msg.id);setCtx(null);}, starRow:true},
-            {label:"Archive",      icon:Archive,   action:()=>{archive(ctx.msg.id);setCtx(null);}},
-            {label:"Move to",      icon:MoveRight, action:()=>toast({title:"Coming soon"})},
-            {label:"Copy to",      icon:Copy,      action:()=>toast({title:"Coming soon"})},
+            {label:ctx.msg.is_read?"Mark Unread":"Mark Read",icon:ctx.msg.is_read?EyeOff:Eye,action:()=>{ctx.msg.is_read?markUnread(ctx.msg):markRead(ctx.msg);setCtx(null);}},
+            {label:"Star",        icon:Star,         action:()=>{toggleStar(ctx.msg.id);setCtx(null);}},
+            {label:"Delete",      icon:Trash2,       action:()=>{deleteMsg(ctx.msg.id);setCtx(null);}, danger:true},
           ].map((item,i)=>{
-            if(item===null) return <div key={i} style={{height:1,background:"#f3f4f6",margin:"3px 0"}}/>;
+            if(item===null) return <div key={i} style={{height:1,background:"#f0f0f0",margin:"2px 0"}}/>;
             const it=item as any;
-            if(it.starRow){
-              return(
-                <div key={i} className="ctx-item" style={{display:"flex",alignItems:"center",gap:10,padding:"7px 14px",cursor:"pointer"}}
-                  onClick={()=>{it.action();}}>
-                  <Star style={{width:13,height:13,color:"#9ca3af"}}/>
-                  <span style={{flex:1,fontSize:12,color:"#374151"}}>Star</span>
-                  <div style={{display:"flex",gap:3}}>
-                    {["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#a855f7","#9ca3af"].map(c=>(
-                      <button key={c} onClick={e=>{e.stopPropagation();toggleStar(ctx.msg.id);setCtx(null);}} style={{width:14,height:14,borderRadius:"50%",background:c,border:"none",cursor:"pointer",padding:0}}/>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            return(
-              <button key={i} className="ctx-item" onClick={it.action}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"7px 14px",border:"none",background:"transparent",cursor:"pointer",width:"100%",textAlign:"left" as const,fontSize:12,color:it.danger?"#dc2626":"#374151"}}>
-                <it.icon style={{width:13,height:13,color:it.danger?"#dc2626":"#9ca3af"}}/>{it.label}
+            return (
+              <button key={i} onClick={it.action}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",border:"none",background:"transparent",cursor:"pointer",width:"100%",textAlign:"left" as const,fontSize:12.5,color:it.danger?"#dc2626":"#1f1f1f"}}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=it.danger?"#fdf4f4":"#f5f5f5"}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                <it.icon style={{width:13,height:13,color:it.danger?"#dc2626":"#666"}}/>{it.label}
               </button>
             );
           })}

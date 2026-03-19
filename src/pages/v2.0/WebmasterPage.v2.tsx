@@ -296,7 +296,14 @@ export default function WebmasterPage(){
   return(
     <RoleGuard allowed={["admin"]}>
       <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#f0f2f5",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        <style>{`
+          @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+          .sec-btn{transition:background 0.12s,color 0.12s;cursor:pointer;}
+          .sec-btn:hover{background:#e8edf5!important;}
+          .sec-btn.active{background:#e8edf5!important;border-left:3px solid #0a2558!important;}
+          .cap-row:hover{background:#f9fafb;}
+          .mod-row:hover{background:#f9fafb;}
+        `}</style>
 
         {/* ── Top action bar ────────────────────────────────────────── */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",background:"#fff",borderBottom:"1px solid #e5e7eb",flexWrap:"wrap",gap:8}}>
@@ -327,14 +334,9 @@ export default function WebmasterPage(){
           {/* Left nav */}
           <div style={{width:220,flexShrink:0,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",padding:"6px 0"}}>
             {SECTIONS.map(s=>(
-              <button key={s.id}
+              <button key={s.id} className={`sec-btn${activeSection===s.id?" active":""}`}
                 onClick={()=>setActiveSection(s.id)}
-                style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",
-                  borderLeft:activeSection===s.id?"3px solid #0a2558":"3px solid transparent",
-                  background:activeSection===s.id?"#e8edf5":"transparent",
-                  textAlign:"left",cursor:"pointer",transition:"background 0.12s"}}
-                onMouseEnter={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="#e8edf5";}}
-                onMouseLeave={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="transparent";}}>
+                style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",borderLeft:"3px solid transparent",background:"transparent",textAlign:"left",cursor:"pointer"}}>
                 <s.icon style={{width:14,height:14,color:activeSection===s.id?"#0a2558":"#6b7280",flexShrink:0}}/>
                 <div>
                   <div style={{fontSize:11,fontWeight:700,color:activeSection===s.id?"#0a2558":"#374151",textTransform:"uppercase",letterSpacing:"0.05em"}}>{s.label}</div>
@@ -368,10 +370,7 @@ export default function WebmasterPage(){
                     </h3>
                     <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden"}}>
                       {ALL_MODULES.filter(m=>m.group===grp).map((m,i,arr)=>(
-                        <div key={m.id}
-                          style={{display:"flex",alignItems:"center",gap:14,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
-                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                        <div key={m.id} className="mod-row" style={{display:"flex",alignItems:"center",gap:14,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none"}}>
                           <div style={{width:32,height:32,borderRadius:8,background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                             <m.icon style={{width:15,height:15,color:"#374151"}}/>
                           </div>
@@ -422,10 +421,7 @@ export default function WebmasterPage(){
                       {cg.caps.map((cap,i,arr)=>{
                         const checked=(caps[selectedRole]||[]).includes(cap.id);
                         return(
-                          <div key={cap.id}
-                            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",cursor:"pointer",transition:"background 0.1s"}}
-                            onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}
+                          <div key={cap.id} className="cap-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",cursor:"pointer"}}
                             onClick={()=>setCaps(p=>{
                               const cur=p[selectedRole]||[];
                               return{...p,[selectedRole]:checked?cur.filter(c=>c!==cap.id):[...cur,cap.id]};
@@ -500,10 +496,7 @@ export default function WebmasterPage(){
                     <h3 style={{fontSize:12,fontWeight:800,color:"#374151",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>{section.group}</h3>
                     <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden"}}>
                       {section.items.map((item,i,arr)=>(
-                        <div key={item.label}
-                          style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
-                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                        <div key={item.label} className="cap-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none"}}>
                           <CB checked={true} onChange={()=>{}} disabled/>
                           <div style={{flex:1}}>
                             <div style={{fontSize:13,color:"#111827",fontWeight:500}}>{item.label}</div>

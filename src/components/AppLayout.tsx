@@ -1,19 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import procBg from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/logo.png";
 import {
   Package, FileText, ShoppingCart, Truck, Users, BarChart3,
   Settings, LogOut, ChevronDown, Building2, Shield, FileCheck,
   Database, Home, Gavel, DollarSign, ClipboardList, BookOpen,
   PiggyBank, Layers, Receipt, BookMarked, Calendar, Scale,
-  Search, Mail, Activity, Menu, X, UserCircle, ChevronLeft,
-  ChevronRight, Globe, Archive, Server, TrendingUp,
-  LayoutDashboard, Sliders, Eye, Lock, Cpu
+  Search, Mail, Activity, Menu, X, UserCircle, ChevronRight,
+  Globe, Archive, TrendingUp, LayoutDashboard, Sliders, Eye, Cpu,
+  Bell
 } from "lucide-react";
 
 const ROLE_LABELS: Record<string,string> = {
@@ -23,8 +21,8 @@ const ROLE_LABELS: Record<string,string> = {
 };
 
 const MODULES = [
-  { id:"home", label:"Dashboard", icon:LayoutDashboard, color:"#60a5fa", path:"/dashboard", roles:[] as string[], sub:[] as {label:string;path:string;icon:any;roles:string[]}[] },
-  { id:"procurement", label:"Procurement", icon:ShoppingCart, color:"#38bdf8", path:"/requisitions",
+  { id:"home", label:"Dashboard", icon:LayoutDashboard, color:"#0078d4", path:"/dashboard", roles:[] as string[], sub:[] as {label:string;path:string;icon:any;roles:string[]}[] },
+  { id:"procurement", label:"Procurement", icon:ShoppingCart, color:"#0078d4", path:"/requisitions",
     roles:["admin","procurement_manager","procurement_officer","requisitioner"],
     sub:[
       {label:"Requisitions",    path:"/requisitions",         icon:ClipboardList, roles:[]},
@@ -36,16 +34,16 @@ const MODULES = [
       {label:"Bid Evaluations", path:"/bid-evaluations",      icon:Scale,         roles:["admin","procurement_manager"]},
       {label:"Proc. Planning",  path:"/procurement-planning", icon:Calendar,      roles:["admin","procurement_manager"]},
     ]},
-  { id:"vouchers", label:"Vouchers", icon:FileText, color:"#fb923c", path:"/vouchers/payment",
+  { id:"vouchers", label:"Vouchers", icon:FileText, color:"#C45911", path:"/vouchers/payment",
     roles:["admin","procurement_manager","procurement_officer"],
     sub:[
-      {label:"Payment",  path:"/vouchers/payment",  icon:DollarSign, roles:[]},
-      {label:"Receipt",  path:"/vouchers/receipt",  icon:Receipt,    roles:["admin","procurement_manager"]},
-      {label:"Journal",  path:"/vouchers/journal",  icon:BookMarked, roles:["admin","procurement_manager"]},
-      {label:"Purchase", path:"/vouchers/purchase", icon:FileText,   roles:["admin","procurement_manager"]},
-      {label:"Sales",    path:"/vouchers/sales",    icon:FileText,   roles:["admin","procurement_manager"]},
+      {label:"Payment Vouchers",  path:"/vouchers/payment",  icon:DollarSign, roles:[]},
+      {label:"Receipt Vouchers",  path:"/vouchers/receipt",  icon:Receipt,    roles:["admin","procurement_manager"]},
+      {label:"Journal Vouchers",  path:"/vouchers/journal",  icon:BookMarked, roles:["admin","procurement_manager"]},
+      {label:"Purchase Vouchers", path:"/vouchers/purchase", icon:FileText,   roles:["admin","procurement_manager"]},
+      {label:"Sales Vouchers",    path:"/vouchers/sales",    icon:FileText,   roles:["admin","procurement_manager"]},
     ]},
-  { id:"financials", label:"Financials", icon:TrendingUp, color:"#34d399", path:"/financials/dashboard",
+  { id:"financials", label:"Financials", icon:TrendingUp, color:"#107c10", path:"/financials/dashboard",
     roles:["admin","procurement_manager"],
     sub:[
       {label:"Finance Dashboard",  path:"/financials/dashboard",        icon:TrendingUp, roles:[]},
@@ -53,7 +51,7 @@ const MODULES = [
       {label:"Budgets",            path:"/financials/budgets",          icon:PiggyBank,  roles:[]},
       {label:"Fixed Assets",       path:"/financials/fixed-assets",     icon:Building2,  roles:[]},
     ]},
-  { id:"inventory", label:"Inventory", icon:Package, color:"#a78bfa", path:"/items",
+  { id:"inventory", label:"Inventory", icon:Package, color:"#5c2d91", path:"/items",
     roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer"],
     sub:[
       {label:"Items / Stock", path:"/items",       icon:Package,   roles:[]},
@@ -61,21 +59,21 @@ const MODULES = [
       {label:"Departments",   path:"/departments", icon:Building2, roles:["admin","inventory_manager"]},
       {label:"Scanner",       path:"/scanner",     icon:Search,    roles:[]},
     ]},
-  { id:"quality", label:"Quality", icon:Shield, color:"#4ade80", path:"/quality/dashboard",
+  { id:"quality", label:"Quality", icon:Shield, color:"#498205", path:"/quality/dashboard",
     roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer"],
     sub:[
       {label:"QC Dashboard",    path:"/quality/dashboard",       icon:Shield, roles:[]},
       {label:"Inspections",     path:"/quality/inspections",     icon:Eye,    roles:[]},
       {label:"Non-Conformance", path:"/quality/non-conformance", icon:Shield, roles:[]},
     ]},
-  { id:"reports", label:"Reports & BI", icon:BarChart3, color:"#f472b6", path:"/reports",
+  { id:"reports", label:"Reports & BI", icon:BarChart3, color:"#8764b8", path:"/reports",
     roles:["admin","procurement_manager","procurement_officer"],
     sub:[
       {label:"Analytics",   path:"/reports",    icon:BarChart3, roles:[]},
       {label:"Audit Log",   path:"/audit-log",  icon:Activity,  roles:["admin","procurement_manager"]},
       {label:"Documents",   path:"/documents",  icon:FileText,  roles:[]},
     ]},
-  { id:"admin", label:"Administration", icon:Settings, color:"#fbbf24", path:"/admin/panel",
+  { id:"admin", label:"Administration", icon:Settings, color:"#ca5010", path:"/admin/panel",
     roles:["admin"],
     sub:[
       {label:"Admin Panel",  path:"/admin/panel",    icon:Sliders,  roles:["admin"]},
@@ -93,64 +91,67 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { get: getSetting, bool: getBool } = useSystemSettings();
   const location  = useLocation();
   const navigate  = useNavigate();
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef   = useRef<HTMLDivElement>(null);
+  const flyoutRef     = useRef<HTMLDivElement>(null);
+  const flyoutTimeout = useRef<ReturnType<typeof setTimeout>|null>(null);
 
-  const [collapsed,    setCollapsed]    = useState(false);
+  const [flyout,       setFlyout]       = useState<string|null>(null);
+  const [pinned,       setPinned]       = useState<string|null>(null);
   const [mobileOpen,   setMobileOpen]   = useState(false);
-  const [activeMenu,   setActiveMenu]   = useState<string|null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobile,     setIsMobile]     = useState(window.innerWidth < 900);
   const [searchQuery,  setSearchQuery]  = useState("");
   const [searchOpen,   setSearchOpen]   = useState(false);
 
-  // Live settings from real-time hook
   const sysName      = getSetting("system_name", "EL5 MediProcure");
   const hospitalName = getSetting("hospital_name", "Embu Level 5 Hospital");
   const logoUrl      = getSetting("logo_url") || null;
 
   const primaryRole = roles[0] || "requisitioner";
-  const isAdmin = roles.includes("admin");
+  const isAdmin     = roles.includes("admin");
   const isDashboard = location.pathname === "/dashboard" || location.pathname === "/";
 
+  // Active module from URL
+  const activeModule = MODULES.find(m =>
+    location.pathname === m.path || m.sub.some(s => location.pathname.startsWith(s.path))
+  );
+  const activeSub = activeModule?.sub.find(s => location.pathname.startsWith(s.path));
+
   useEffect(()=>{
-    const handle = ()=>{
-      const w = window.innerWidth;
-      setIsMobile(w < 900);
-      if (w < 1100 && w >= 900) setCollapsed(true);
-      else if (w >= 1100) setCollapsed(false);
-    };
-    window.addEventListener("resize", handle);
-    handle();
-    return ()=>window.removeEventListener("resize", handle);
+    const h = ()=>{ setIsMobile(window.innerWidth < 900); };
+    window.addEventListener("resize", h); h();
+    return ()=>window.removeEventListener("resize", h);
   },[]);
 
   useEffect(()=>{ setMobileOpen(false); setUserMenuOpen(false); },[location.pathname]);
 
   useEffect(()=>{
-    const active = MODULES.find(m => m.path===location.pathname || m.sub.some(s=>location.pathname.startsWith(s.path)));
-    if (active) setActiveMenu(active.id);
-  },[location.pathname]);
-
-  useEffect(()=>{
-    const handler=(e:MouseEvent)=>{ if(userMenuRef.current&&!userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false); };
-    document.addEventListener("mousedown",handler);
-    return ()=>document.removeEventListener("mousedown",handler);
+    const h=(e:MouseEvent)=>{ if(userMenuRef.current&&!userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false); };
+    document.addEventListener("mousedown",h);
+    return ()=>document.removeEventListener("mousedown",h);
   },[]);
 
-  // Module toggle: hide modules disabled by admin
-  const moduleEnabled = (moduleId: string): boolean => {
-    const map: Record<string, string> = {
-      procurement: "enable_procurement",
-      vouchers:    "enable_vouchers",
-      financials:  "enable_financials",
-      inventory:   "true", // always on
-      quality:     "enable_quality",
-      reports:     "true", // always on
-      admin:       "true", // always on for admins
+  // Close flyout on outside click
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{
+      const t = e.target as Node;
+      const rail = document.getElementById("crm-rail");
+      const fly  = document.getElementById("crm-flyout");
+      if(rail&&fly&&!rail.contains(t)&&!fly.contains(t)){ setPinned(null); setFlyout(null); }
     };
-    const key = map[moduleId];
-    if (!key || key === "true") return true;
-    return getBool(key, true);
+    document.addEventListener("mousedown",h);
+    return ()=>document.removeEventListener("mousedown",h);
+  },[]);
+
+  const moduleEnabled = (id: string) => {
+    const map: Record<string,string> = {
+      procurement:"enable_procurement", vouchers:"enable_vouchers",
+      financials:"enable_financials", inventory:"true", quality:"enable_quality",
+      reports:"true", admin:"true",
+    };
+    const k = map[id];
+    if(!k||k==="true") return true;
+    return getBool(k, true);
   };
 
   const canSee = (m: typeof MODULES[0]) => {
@@ -158,216 +159,362 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return !m.roles.length || m.roles.some(r=>roles.includes(r));
   };
 
+  const visibleMods = MODULES.filter(canSee);
+  const activeFlyoutMod = MODULES.find(m => m.id === (flyout||pinned));
+  const flyoutLinks = activeFlyoutMod?.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r))) || [];
+
+  // Search
   const allPages = MODULES.flatMap(m=>[
-    {label:m.label,path:m.path,icon:m.icon,color:m.color},
-    ...m.sub.map(s=>({label:`${m.label} › ${s.label}`,path:s.path,icon:s.icon,color:m.color}))
+    {label:m.label, path:m.path, icon:m.icon, color:m.color},
+    ...m.sub.map(s=>({label:`${m.label} › ${s.label}`, path:s.path, icon:s.icon, color:m.color}))
   ]);
   const searchResults = searchQuery.length>1
-    ? allPages.filter(p=>p.label.toLowerCase().includes(searchQuery.toLowerCase())).slice(0,6)
+    ? allPages.filter(p=>p.label.toLowerCase().includes(searchQuery.toLowerCase())).slice(0,8)
     : [];
 
-  const SidebarContent = ({forMobile=false}:{forMobile?:boolean}) => (
-    <div style={{
-      display:"flex", flexDirection:"column", height:"100%",
-      width: forMobile ? 260 : "100%",
-      backgroundImage:`linear-gradient(180deg,rgba(6,14,35,0.93) 0%,rgba(10,22,54,0.89) 100%),url(${procBg})`,
-      backgroundSize:"cover", backgroundPosition:"center top",
-    }}>
-      {/* Logo */}
-      <div style={{padding:collapsed&&!forMobile?"12px 0":"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9,justifyContent:collapsed&&!forMobile?"center":"flex-start",flexShrink:0}}>
-        <img src={logoImg} alt="" style={{width:28,height:28,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:3,flexShrink:0}}/>
-        {(!collapsed||forMobile)&&(
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:11.5,fontWeight:800,color:"#fff",letterSpacing:"0.02em",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{sysName}</div>
-            <div style={{fontSize:8.5,color:"rgba(255,255,255,0.4)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{hospitalName}</div>
-          </div>
-        )}
-        {forMobile&&<button onClick={()=>setMobileOpen(false)} style={{marginLeft:"auto",background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:5,cursor:"pointer",color:"rgba(255,255,255,0.7)",lineHeight:0}}><X style={{width:13,height:13}}/></button>}
-      </div>
+  const openFlyout = (id: string) => {
+    if(flyoutTimeout.current) clearTimeout(flyoutTimeout.current);
+    setFlyout(id);
+  };
+  const startCloseFlyout = () => {
+    if(pinned) return;
+    flyoutTimeout.current = setTimeout(()=>setFlyout(null), 200);
+  };
+  const cancelCloseFlyout = () => {
+    if(flyoutTimeout.current) clearTimeout(flyoutTimeout.current);
+  };
 
-      {/* Nav */}
-      <nav style={{flex:1,overflowY:"auto",padding:"6px 0"}} className="sb-scroll">
-        {MODULES.filter(canSee).map(m=>{
-          const isActive = activeMenu===m.id;
-          const isCurrent = location.pathname===m.path||m.sub.some(s=>location.pathname.startsWith(s.path));
-          const filteredSub = m.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r)));
-          return (
-            <div key={m.id}>
-              <button onClick={()=>{
-                if(filteredSub.length&&!collapsed){ setActiveMenu(isActive?null:m.id); }
-                else navigate(m.path);
-              }}
-                title={collapsed?m.label:undefined}
-                style={{display:"flex",alignItems:"center",width:"100%",padding:collapsed&&!forMobile?"10px 0":"8px 12px",justifyContent:collapsed&&!forMobile?"center":"flex-start",gap:8,border:"none",cursor:"pointer",textAlign:"left" as const,borderLeft:isCurrent?`3px solid ${m.color}`:"3px solid transparent",background:isCurrent?"rgba(255,255,255,0.12)":"transparent",transition:"all 0.14s"}}
-                onMouseEnter={e=>{if(!isCurrent)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.07)";}}
-                onMouseLeave={e=>{if(!isCurrent)(e.currentTarget as HTMLElement).style.background="transparent";}}>
-                <m.icon style={{width:14,height:14,color:isCurrent?m.color:"rgba(255,255,255,0.6)",flexShrink:0}}/>
-                {(!collapsed||forMobile)&&<>
-                  <span style={{flex:1,fontSize:11.5,fontWeight:isCurrent?700:500,color:isCurrent?"#fff":"rgba(255,255,255,0.75)",lineHeight:1.2}}>{m.label}</span>
-                  {filteredSub.length>0&&<ChevronRight style={{width:10,height:10,color:"rgba(255,255,255,0.35)",transform:isActive?"rotate(90deg)":"none",transition:"transform 0.18s"}}/>}
-                </>}
-              </button>
-              {/* Sub-items */}
-              {isActive&&(!collapsed||forMobile)&&filteredSub.map(s=>{
-                const sa=location.pathname.startsWith(s.path);
-                return(
-                  <Link key={s.path} to={s.path} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px 7px 28px",textDecoration:"none",background:sa?"rgba(255,255,255,0.13)":"transparent",borderLeft:sa?`3px solid ${m.color}`:"3px solid transparent",transition:"all 0.1s"}}
-                    onMouseEnter={e=>{if(!sa)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.06)";}}
-                    onMouseLeave={e=>{if(!sa)(e.currentTarget as HTMLElement).style.background="transparent";}}>
-                    <s.icon style={{width:11,height:11,color:sa?m.color:"rgba(255,255,255,0.45)",flexShrink:0}}/>
-                    <span style={{fontSize:11,fontWeight:sa?600:400,color:sa?"#fff":"rgba(255,255,255,0.62)"}}>{s.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
-      </nav>
+  const RAIL_W = 48;
+  const FLYOUT_W = 230;
 
-      {/* User */}
-      <div style={{borderTop:"1px solid rgba(255,255,255,0.08)",flexShrink:0,padding:collapsed&&!forMobile?"10px 0":"9px 12px"}}>
-        {(!collapsed||forMobile)?(
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#C45911,#e07830)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
-              <div style={{fontSize:8.5,color:"rgba(255,255,255,0.4)",marginTop:1}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
-            </div>
-            <button onClick={()=>{signOut();navigate("/login");}} title="Sign out"
-              style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:5,padding:"4px 5px",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
-              <LogOut style={{width:11,height:11}}/>
-            </button>
+  // ── Mobile sidebar (full) ────────────────────────────────────
+  const MobileSidebar = () => (
+    <div style={{position:"fixed",inset:0,zIndex:600,display:"flex"}}>
+      <div style={{width:260,background:"#1f1f1f",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+        {/* Header */}
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",gap:10}}>
+          <img src={logoUrl||logoImg} alt="" style={{width:28,height:28,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:3}}/>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{sysName}</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.4)"}}>{hospitalName}</div>
           </div>
-        ):(
-          <button onClick={()=>{signOut();navigate("/login");}} title="Sign out"
-            style={{display:"flex",justifyContent:"center",width:"100%",background:"transparent",border:"none",cursor:"pointer",padding:8,color:"rgba(255,255,255,0.5)",lineHeight:0}}>
-            <LogOut style={{width:13,height:13}}/>
+          <button onClick={()=>setMobileOpen(false)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:5,cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+        </div>
+        {/* Nav */}
+        <nav style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
+          {visibleMods.map(m=>{
+            const isCur = location.pathname===m.path||m.sub.some(s=>location.pathname.startsWith(s.path));
+            const fs = m.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r)));
+            return (
+              <div key={m.id}>
+                <button onClick={()=>fs.length?navigate(fs[0].path):navigate(m.path)}
+                  style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:"10px 16px",border:"none",
+                    borderLeft:isCur?`3px solid ${m.color}`:"3px solid transparent",
+                    background:isCur?"rgba(255,255,255,0.1)":"transparent",cursor:"pointer",textAlign:"left" as const}}>
+                  <m.icon style={{width:15,height:15,color:isCur?m.color:"rgba(255,255,255,0.6)",flexShrink:0}}/>
+                  <span style={{fontSize:13,fontWeight:isCur?700:400,color:isCur?"#fff":"rgba(255,255,255,0.75)"}}>{m.label}</span>
+                </button>
+                {isCur&&fs.map(s=>{
+                  const sa=location.pathname.startsWith(s.path);
+                  return <Link key={s.path} to={s.path} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 16px 8px 40px",textDecoration:"none",background:sa?"rgba(255,255,255,0.07)":"transparent",borderLeft:sa?`3px solid ${m.color}`:"3px solid transparent"}}>
+                    <s.icon style={{width:12,height:12,color:sa?m.color:"rgba(255,255,255,0.45)",flexShrink:0}}/>
+                    <span style={{fontSize:12,color:sa?"#fff":"rgba(255,255,255,0.6)"}}>{s.label}</span>
+                  </Link>;
+                })}
+              </div>
+            );
+          })}
+        </nav>
+        {/* User */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#0078d4,#106ebe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#fff"}}>{profile?.full_name||"User"}</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.4)"}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
+          </div>
+          <button onClick={()=>{signOut();navigate("/login");}} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:5,padding:5,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+            <LogOut style={{width:12,height:12}}/>
           </button>
-        )}
+        </div>
       </div>
+      <div onClick={()=>setMobileOpen(false)} style={{flex:1,background:"rgba(0,0,0,0.55)"}}/>
     </div>
   );
 
-  const sidebarW = isMobile ? 0 : (collapsed ? 54 : 230);
-
   return (
-    <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"#f5f5f5",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
-      {/* Desktop sidebar */}
+      {/* ── MOBILE DRAWER ── */}
+      {isMobile&&mobileOpen&&!isDashboard&&<MobileSidebar/>}
+
+      {/* ── D365-STYLE LEFT ICON RAIL ── */}
       {!isMobile&&!isDashboard&&(
-        <div style={{width:sidebarW,flexShrink:0,height:"100vh",transition:"width 0.2s cubic-bezier(0.4,0,0.2,1)",overflow:"hidden",boxShadow:"2px 0 14px rgba(0,0,0,0.18)",zIndex:100,position:"relative"}}>
-          <SidebarContent/>
-          {/* Collapse toggle */}
-          <button onClick={()=>setCollapsed(v=>!v)} title={collapsed?"Expand":"Collapse"}
-            style={{position:"absolute",bottom:58,right:collapsed?"50%":-10,transform:collapsed?"translateX(50%)":"none",width:20,height:20,borderRadius:"50%",background:"#1a3a6b",border:"2px solid #fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,0.3)",zIndex:10,transition:"all 0.2s"}}>
-            {collapsed?<ChevronRight style={{width:9,height:9}}/>:<ChevronLeft style={{width:9,height:9}}/>}
-          </button>
-        </div>
+        <>
+          {/* Rail */}
+          <div id="crm-rail" style={{
+            width: RAIL_W, flexShrink:0, height:"100vh", zIndex:200,
+            background:"#1f1f1f", display:"flex", flexDirection:"column",
+            alignItems:"center", paddingTop:4, gap:2,
+            boxShadow:"2px 0 8px rgba(0,0,0,0.22)",
+          }}>
+            {/* Logo icon at top */}
+            <div style={{width:36,height:36,borderRadius:8,overflow:"hidden",marginBottom:8,flexShrink:0}}>
+              <img src={logoUrl||logoImg} alt="" style={{width:"100%",height:"100%",objectFit:"contain",background:"rgba(255,255,255,0.08)",padding:4}}/>
+            </div>
+
+            {/* Module icons */}
+            {visibleMods.filter(m=>m.id!=="home").map(m=>{
+              const isCur = activeModule?.id===m.id;
+              const isOpen = (flyout||pinned)===m.id;
+              return (
+                <button key={m.id}
+                  title={m.label}
+                  onClick={()=>{ if(m.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r))).length===0){ navigate(m.path); return; } if(pinned===m.id){setPinned(null);setFlyout(null);}else{setPinned(m.id);setFlyout(m.id);} }}
+                  onMouseEnter={()=>openFlyout(m.id)}
+                  onMouseLeave={startCloseFlyout}
+                  style={{
+                    width:40, height:40, borderRadius:6, border:"none",
+                    background: isOpen?"rgba(255,255,255,0.18)": isCur?"rgba(0,120,212,0.22)":"transparent",
+                    cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                    position:"relative", flexShrink:0,
+                    transition:"background 0.15s",
+                  }}>
+                  {/* Active bar */}
+                  {isCur&&<div style={{position:"absolute",left:0,top:"20%",bottom:"20%",width:3,borderRadius:"0 2px 2px 0",background:m.color}}/>}
+                  <m.icon style={{width:17,height:17,color:isCur?m.color:isOpen?"#fff":"rgba(255,255,255,0.55)"}}/>
+                </button>
+              );
+            })}
+
+            {/* Dashboard icon always visible */}
+            <div style={{flex:1}}/>
+            <button title="Dashboard" onClick={()=>navigate("/dashboard")}
+              style={{width:40,height:40,borderRadius:6,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.12)"}
+              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+              <Home style={{width:16,height:16,color:"rgba(255,255,255,0.5)"}}/>
+            </button>
+            {/* Settings shortcut for admin */}
+            {isAdmin&&<button title="Settings" onClick={()=>navigate("/settings")}
+              style={{width:40,height:40,borderRadius:6,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.12)"}
+              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+              <Settings style={{width:16,height:16,color:"rgba(255,255,255,0.5)"}}/>
+            </button>}
+          </div>
+
+          {/* Flyout panel */}
+          {(flyout||pinned)&&activeFlyoutMod&&(
+            <div id="crm-flyout"
+              onMouseEnter={cancelCloseFlyout}
+              onMouseLeave={startCloseFlyout}
+              style={{
+                position:"fixed", left:RAIL_W, top:0, bottom:0,
+                width:FLYOUT_W, zIndex:190,
+                background:"#292929",
+                boxShadow:"4px 0 18px rgba(0,0,0,0.35)",
+                display:"flex", flexDirection:"column",
+                overflow:"hidden",
+                animation:"flySlide 0.15s ease-out",
+              }}>
+              <style>{`@keyframes flySlide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}`}</style>
+              {/* Flyout header */}
+              <div style={{padding:"18px 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:10}}>
+                <activeFlyoutMod.icon style={{width:16,height:16,color:activeFlyoutMod.color,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12.5,fontWeight:700,color:"#fff",letterSpacing:"0.01em"}}>{activeFlyoutMod.label}</div>
+                </div>
+                {pinned&&<button onClick={()=>{setPinned(null);setFlyout(null);}} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:4,padding:4,cursor:"pointer",color:"rgba(255,255,255,0.5)",lineHeight:0}}><X style={{width:11,height:11}}/></button>}
+              </div>
+              {/* Links */}
+              <nav style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
+                {flyoutLinks.map(s=>{
+                  const sa = location.pathname.startsWith(s.path);
+                  return (
+                    <Link key={s.path} to={s.path}
+                      onClick={()=>{ if(!pinned){setFlyout(null);} }}
+                      style={{
+                        display:"flex", alignItems:"center", gap:10,
+                        padding:"9px 16px", textDecoration:"none",
+                        background:sa?"rgba(0,120,212,0.22)":"transparent",
+                        borderLeft:sa?`3px solid ${activeFlyoutMod.color}`:"3px solid transparent",
+                        transition:"background 0.1s",
+                      }}
+                      onMouseEnter={e=>{ if(!sa)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.07)"; }}
+                      onMouseLeave={e=>{ if(!sa)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                      <s.icon style={{width:13,height:13,color:sa?activeFlyoutMod.color:"rgba(255,255,255,0.5)",flexShrink:0}}/>
+                      <span style={{fontSize:13,fontWeight:sa?600:400,color:sa?"#fff":"rgba(255,255,255,0.75)"}}>{s.label}</span>
+                      {sa&&<ChevronRight style={{width:10,height:10,color:"rgba(255,255,255,0.3)",marginLeft:"auto"}}/>}
+                    </Link>
+                  );
+                })}
+              </nav>
+              {/* Pin hint */}
+              <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.06)",fontSize:9.5,color:"rgba(255,255,255,0.2)"}}>
+                {pinned?"Click X to close panel":"Click module icon to pin this panel"}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Mobile drawer */}
-      {isMobile&&mobileOpen&&!isDashboard&&(
-        <div style={{position:"fixed",inset:0,zIndex:500,display:"flex"}}>
-          <div><SidebarContent forMobile/></div>
-          <div onClick={()=>setMobileOpen(false)} style={{flex:1,background:"rgba(0,0,0,0.5)"}}/>
-        </div>
-      )}
-
-      {/* Main */}
+      {/* ── MAIN AREA ── */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
         <SystemBroadcastBanner/>
 
-        {/* Topbar */}
-        <header style={{height:50,flexShrink:0,background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",padding:"0 14px",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,0.2)",zIndex:90,position:"relative"}}>
+        {/* ── D365-STYLE TOP BAR ── */}
+        <header style={{
+          height:48, flexShrink:0,
+          background:"#fff",
+          borderBottom:"1px solid #e0e0e0",
+          display:"flex", alignItems:"center",
+          padding:"0 0 0 12px", gap:0,
+          boxShadow:"0 1px 4px rgba(0,0,0,0.08)",
+          zIndex:100, position:"relative",
+        }}>
+          {/* Mobile menu toggle */}
           {isMobile&&!isDashboard&&(
-            <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:7,cursor:"pointer",color:"#fff",lineHeight:0,flexShrink:0}}>
-              <Menu style={{width:15,height:15}}/>
+            <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"transparent",border:"none",borderRadius:4,padding:8,cursor:"pointer",color:"#444",lineHeight:0,marginRight:4}}>
+              <Menu style={{width:16,height:16}}/>
             </button>
           )}
-          {isMobile&&(
-            <div style={{display:"flex",alignItems:"center",gap:5}}>
-              <img src={logoImg} alt="" style={{width:22,height:22,borderRadius:4}}/>
-              <span style={{fontSize:11,fontWeight:800,color:"#fff",whiteSpace:"nowrap" as const}}>{sysName}</span>
+
+          {/* Logo + System Name (D365 style) */}
+          <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:12,borderRight:"1px solid #e0e0e0",height:"100%",marginRight:0}}>
+            <img src={logoUrl||logoImg} alt="" style={{width:22,height:22,borderRadius:4,objectFit:"contain"}}/>
+            <span style={{fontSize:12.5,fontWeight:700,color:"#1f1f1f",whiteSpace:"nowrap" as const,letterSpacing:"0.01em"}}>{sysName}</span>
+          </div>
+
+          {/* Module / Section name (D365 breadcrumb style) */}
+          {!isDashboard&&activeModule&&(
+            <div style={{display:"flex",alignItems:"center",height:"100%"}}>
+              <div style={{
+                display:"flex", alignItems:"center", gap:6,
+                padding:"0 16px", height:"100%",
+                borderRight:"1px solid #e0e0e0",
+                borderBottom:`2px solid ${activeModule.color}`,
+                background:"#fafafa",
+              }}>
+                <activeModule.icon style={{width:13,height:13,color:activeModule.color}}/>
+                <span style={{fontSize:12,fontWeight:600,color:"#1f1f1f"}}>{activeModule.label}</span>
+                {activeSub&&<>
+                  <span style={{color:"#ccc",fontSize:11}}>/</span>
+                  <span style={{fontSize:12,color:"#444"}}>{activeSub.label}</span>
+                </>}
+              </div>
+            </div>
+          )}
+          {isDashboard&&(
+            <div style={{display:"flex",alignItems:"center",height:"100%"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 16px",height:"100%",borderRight:"1px solid #e0e0e0",borderBottom:"2px solid #0078d4",background:"#fafafa"}}>
+                <LayoutDashboard style={{width:13,height:13,color:"#0078d4"}}/>
+                <span style={{fontSize:12,fontWeight:600,color:"#1f1f1f"}}>Dashboard</span>
+              </div>
             </div>
           )}
 
-          {/* Search */}
-          <div style={{flex:1,maxWidth:isMobile?undefined:380,position:"relative"}}>
-            <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.38)",pointerEvents:"none"}}/>
-            <input value={searchQuery} onChange={e=>{setSearchQuery(e.target.value);setSearchOpen(true);}}
-              onFocus={()=>setSearchOpen(true)} onBlur={()=>setTimeout(()=>setSearchOpen(false),180)}
-              placeholder="Search modules & pages…"
-              style={{width:"100%",paddingLeft:28,paddingRight:8,height:30,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.14)",borderRadius:6,outline:"none",fontSize:11.5,color:"#fff",fontFamily:"inherit"}}/>
-            {searchOpen&&searchResults.length>0&&(
-              <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#fff",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.18)",border:"1px solid #e5e7eb",overflow:"hidden",zIndex:200}}>
-                {searchResults.map(r=>(
-                  <button key={r.path} onMouseDown={()=>{navigate(r.path);setSearchQuery("");setSearchOpen(false);}}
-                    style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"8px 12px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const}}
-                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                    <div style={{width:24,height:24,borderRadius:5,background:`${r.color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <r.icon style={{width:12,height:12,color:r.color}}/>
-                    </div>
-                    <span style={{fontSize:12,color:"#111827",fontWeight:500}}>{r.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Hospital name sub-label */}
+          {!isMobile&&(
+            <div style={{padding:"0 14px",fontSize:10.5,color:"#888",display:"flex",alignItems:"center",gap:5}}>
+              <div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}}/>
+              {hospitalName}
+            </div>
+          )}
 
-          <div style={{display:"flex",alignItems:"center",gap:3,marginLeft:"auto",flexShrink:0}}>
-            <button onClick={()=>navigate("/email")} title="Mail & Inbox"
-              style={{padding:"4px 8px",borderRadius:5,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0,display:"flex",alignItems:"center",gap:4}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.1)"}
+          {/* Right side actions */}
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:0,paddingRight:8}}>
+
+            {/* Search */}
+            <div style={{position:"relative",marginRight:4}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:4,background:searchOpen?"#f5f5f5":"transparent",border:searchOpen?"1px solid #e0e0e0":"1px solid transparent",cursor:"text"}}
+                onClick={()=>setSearchOpen(true)}>
+                <Search style={{width:13,height:13,color:"#888"}}/>
+                {searchOpen
+                  ? <input autoFocus value={searchQuery} onChange={e=>{setSearchQuery(e.target.value);}}
+                      onBlur={()=>setTimeout(()=>{setSearchOpen(false);setSearchQuery("");},160)}
+                      placeholder="Search modules…"
+                      style={{width:160,border:"none",outline:"none",fontSize:12,background:"transparent",color:"#1f1f1f"}}/>
+                  : <span style={{fontSize:12,color:"#888"}}>Search</span>
+                }
+              </div>
+              {searchOpen&&searchResults.length>0&&(
+                <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,width:260,background:"#fff",borderRadius:6,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",border:"1px solid #e0e0e0",overflow:"hidden",zIndex:300}}>
+                  {searchResults.map(r=>(
+                    <button key={r.path} onMouseDown={()=>{navigate(r.path);setSearchQuery("");setSearchOpen(false);}}
+                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const}}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
+                      onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                      <div style={{width:26,height:26,borderRadius:5,background:`${r.color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <r.icon style={{width:13,height:13,color:r.color}}/>
+                      </div>
+                      <span style={{fontSize:12,color:"#1f1f1f"}}>{r.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mail button */}
+            <button onClick={()=>navigate("/email")} title="Mail"
+              style={{width:36,height:36,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0f0f0"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-              <Mail style={{width:14,height:14}}/>
-              <span style={{fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.55)"}}>Mail</span>
+              <Mail style={{width:16,height:16,color:"#444"}}/>
             </button>
 
-            <div style={{width:1,height:18,background:"rgba(255,255,255,0.15)",margin:"0 3px"}}/>
+            {/* Divider */}
+            <div style={{width:1,height:22,background:"#e0e0e0",margin:"0 6px"}}/>
 
-            {/* User menu */}
+            {/* User menu (D365 style) */}
             <div style={{position:"relative"}} ref={userMenuRef}>
               <button onClick={()=>setUserMenuOpen(v=>!v)}
-                style={{display:"flex",alignItems:"center",gap:5,padding:"3px 7px",borderRadius:5,border:"none",background:"rgba(255,255,255,0.08)",cursor:"pointer"}}
-                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.14)"}
-                onMouseLeave={e=>{if(!userMenuOpen)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.08)";}}>
-                <div style={{width:24,height:24,borderRadius:"50%",background:"linear-gradient(135deg,#C45911,#e07830)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
-                {!isMobile&&<div style={{textAlign:"left" as const,lineHeight:1}}>
-                  <div style={{fontSize:10.5,fontWeight:700,color:"#fff",maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name?.split(" ")[0]||"User"}</div>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.42)",marginTop:1}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
+                style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:4,border:"none",background:"transparent",cursor:"pointer"}}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0f0f0"}
+                onMouseLeave={e=>{ if(!userMenuOpen)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#0078d4,#106ebe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff",flexShrink:0}}>
+                  {profile?.full_name?.[0]?.toUpperCase()||"U"}
+                </div>
+                {!isMobile&&<div style={{textAlign:"left" as const,lineHeight:1.2}}>
+                  <div style={{fontSize:11.5,fontWeight:600,color:"#1f1f1f",maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name?.split(" ")[0]||"User"}</div>
+                  <div style={{fontSize:9,color:"#888"}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
                 </div>}
-                <ChevronDown style={{width:9,height:9,color:"rgba(255,255,255,0.38)"}}/>
+                <ChevronDown style={{width:10,height:10,color:"#888"}}/>
               </button>
 
               {userMenuOpen&&(
-                <div style={{position:"absolute",right:0,top:"calc(100% + 5px)",minWidth:200,background:"#fff",boxShadow:"0 8px 28px rgba(0,0,0,0.18)",border:"1px solid #e5e7eb",borderRadius:9,overflow:"hidden",zIndex:300}}>
-                  <div style={{padding:"10px 14px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
-                    <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{profile?.full_name}</div>
-                    <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:1}}>{profile?.email||user?.email}</div>
+                <div style={{position:"absolute",right:0,top:"calc(100% + 4px)",minWidth:220,background:"#fff",boxShadow:"0 8px 28px rgba(0,0,0,0.15)",border:"1px solid #e0e0e0",borderRadius:6,overflow:"hidden",zIndex:400}}>
+                  {/* User info header */}
+                  <div style={{padding:"14px 16px",background:"#f5f5f5",borderBottom:"1px solid #e0e0e0"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#0078d4,#106ebe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700,color:"#1f1f1f"}}>{profile?.full_name||"User"}</div>
+                        <div style={{fontSize:10,color:"#888"}}>{profile?.email||user?.email}</div>
+                      </div>
+                    </div>
                   </div>
                   {[
-                    {label:"My Profile",   path:"/profile",     icon:UserCircle},
+                    {label:"My Profile",    path:"/profile",     icon:UserCircle},
                     {label:"Mail & Inbox",  path:"/email",       icon:Mail},
                     ...(isAdmin?[
-                      {label:"Admin Panel",path:"/admin/panel", icon:Sliders},
-                      {label:"Users",      path:"/users",       icon:Users},
-                      {label:"Settings",   path:"/settings",    icon:Settings},
+                      {label:"Admin Panel", path:"/admin/panel", icon:Sliders},
+                      {label:"Users",       path:"/users",       icon:Users},
+                      {label:"Settings",    path:"/settings",    icon:Settings},
                     ]:[]),
                   ].map(item=>(
                     <button key={item.path} onClick={()=>{navigate(item.path);setUserMenuOpen(false);}}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:12,color:"#374151"}}
-                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
+                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:13,color:"#1f1f1f"}}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                      <item.icon style={{width:13,height:13,color:"#6b7280"}}/>{item.label}
+                      <item.icon style={{width:14,height:14,color:"#666"}}/>{item.label}
                     </button>
                   ))}
-                  <div style={{borderTop:"1px solid #f3f4f6"}}>
+                  <div style={{borderTop:"1px solid #e0e0e0"}}>
                     <button onClick={()=>{signOut();navigate("/login");}}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:12,color:"#dc2626"}}
-                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fef2f2"}
+                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:13,color:"#d13438"}}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fdf4f4"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                      <LogOut style={{width:13,height:13}}/> Sign Out
+                      <LogOut style={{width:14,height:14}}/> Sign Out
                     </button>
                   </div>
                 </div>
@@ -376,37 +523,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Breadcrumb */}
-        {!isDashboard&&<div style={{height:28,flexShrink:0,background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",padding:"0 14px",gap:5,fontSize:10,color:"#9ca3af"}}>
-          <Home style={{width:10,height:10}}/><span style={{color:"#e5e7eb"}}>/</span>
-          {(()=>{
-            const active = MODULES.find(m=>m.sub.some(s=>location.pathname.startsWith(s.path))||location.pathname===m.path);
-            const sub = active?.sub.find(s=>location.pathname.startsWith(s.path));
-            return <>
-              {active&&<span style={{fontWeight:600,color:"#6b7280"}}>{active.label}</span>}
-              {sub&&<><span style={{color:"#e5e7eb"}}>/</span><span style={{fontWeight:600,color:"#374151"}}>{sub.label}</span></>}
-              {!active&&<span style={{fontWeight:600,color:"#374151"}}>Dashboard</span>}
-            </>;
-          })()}
-          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5}}>
-            <div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}}/>
-            <span style={{fontSize:9,color:"#9ca3af"}}>{hospitalName}</span>
-          </div>
-        </div>}
-
-        {/* Content */}
-        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f0f2f5"}}>
+        {/* Page content */}
+        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f5f5f5"}}>
           {children}
         </main>
       </div>
-
-      <style>{`
-        .sb-scroll{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.18) transparent;}
-        .sb-scroll::-webkit-scrollbar{width:3px;}
-        .sb-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18);border-radius:99px;}
-        input[placeholder]{color:rgba(255,255,255,0.35)!important;}
-        @media(max-width:899px){.desk-only{display:none!important;}}
-      `}</style>
     </div>
   );
 }
