@@ -102,9 +102,9 @@ function SqlPanel({ table, onClose }: { table:string; onClose:()=>void }) {
   const fmtVal = (v: any) => v === null ? <span style={{color:"#555e7a",fontStyle:"italic"}}>NULL</span> : String(v).slice(0,120);
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#141825",fontFamily:"monospace"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#1e1e1e",fontFamily:"'Cascadia Code','Fira Code',monospace"}}>
       {/* SQL editor header */}
-      <div style={{display:"flex",alignItems:"center",padding:"4px 8px",background:"#1a1e2e",borderBottom:"1px solid #2e3248",gap:6,flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"center",padding:"4px 8px",background:"#252526",borderBottom:"1px solid #3c3c3c",gap:6,flexShrink:0}}>
         <Code2 style={{width:13,height:13,color:"#60a5fa"}}/>
         <span style={{fontSize:11,fontWeight:700,color:"#cdd6f4"}}>SQL Editor — {table}</span>
         <div style={{display:"flex",gap:4,marginLeft:"auto"}}>
@@ -116,7 +116,7 @@ function SqlPanel({ table, onClose }: { table:string; onClose:()=>void }) {
             {running ? <RefreshCw style={{width:11,height:11,animation:"spin 1s linear infinite"}}/> : <Play style={{width:11,height:11}}/>}
             Run (F5)
           </button>
-          <button onClick={()=>setSql(`SELECT * FROM ${table} LIMIT 50;`)} style={{padding:"3px 10px",background:"#2e3248",color:"#94a3b8",border:"none",borderRadius:4,cursor:"pointer",fontSize:11}}>Reset</button>
+          <button onClick={()=>setSql(`SELECT * FROM ${table} LIMIT 50;`)} style={{padding:"3px 10px",background:"#f3f4f6",color:"#374151",border:"1px solid #d1d5db",borderRadius:4,cursor:"pointer",fontSize:11}}>Reset</button>
           <button onClick={onClose} style={{padding:"3px 8px",background:"transparent",color:"#64748b",border:"none",cursor:"pointer"}}><X style={{width:12,height:12}}/></button>
         </div>
       </div>
@@ -173,9 +173,9 @@ function SqlPanel({ table, onClose }: { table:string; onClose:()=>void }) {
                 </thead>
                 <tbody>
                   {result.map((row,i)=>(
-                    <tr key={i} style={{borderBottom:"1px solid #1e2234",background:i%2===0?"#10121c":"#13162a"}}>
+                    <tr key={i} style={{borderBottom:"1px solid #1e2234",background:i%2===0?"#fff":"#f9fafb"}}>
                       {cols.map(c=>(
-                        <td key={c} style={{padding:"4px 12px",color:row[c]===null?"#3d4460":"#94a3b8",fontStyle:row[c]===null?"italic":"normal",whiteSpace:"nowrap",borderRight:"1px solid #1e2234",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis"}}>
+                        <td key={c} style={{padding:"4px 12px",color:row[c]===null?"#9ca3af":"#1e1e1e",fontStyle:row[c]===null?"italic":"normal",whiteSpace:"nowrap",borderRight:"1px solid #1e2234",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis"}}>
                           {fmtVal(row[c])}
                         </td>
                       ))}
@@ -308,10 +308,10 @@ function VisPanel({ rows, cols }: { rows:any[]; cols:string[] }) {
         <div style={{flex:1,display:"flex",flexDirection:"column",padding:"16px 20px",overflow:"auto"}}>
           {/* Y axis selector */}
           <div style={{display:"flex",gap:8,marginBottom:8}}>
-            <select value={xCol} onChange={e=>setXCol(e.target.value)} style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"2px 6px"}}>
+            <select value={xCol} onChange={e=>setXCol(e.target.value)} style={{fontSize:10,background:"#f5f5f5",color:"#374151",border:"1px solid #d1d5db",borderRadius:3,padding:"2px 6px"}}>
               {cols.map(c=><option key={c} value={c}>{c}</option>)}
             </select>
-            <select value={yCol} onChange={e=>setYCol(e.target.value)} style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"2px 6px"}}>
+            <select value={yCol} onChange={e=>setYCol(e.target.value)} style={{fontSize:10,background:"#f5f5f5",color:"#374151",border:"1px solid #d1d5db",borderRadius:3,padding:"2px 6px"}}>
               {cols.map(c=><option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -533,7 +533,7 @@ function TableBrowser() {
   const autoSkip = (col:string) => col==="id"||col==="created_at"||col==="updated_at";
 
   const fmtCell = (v:any, col:string) => {
-    if (v===null||v===undefined) return <span style={{color:"#3d4460",fontStyle:"italic",fontSize:9}}>NULL</span>;
+    if (v===null||v===undefined) return <span style={{color:"#9ca3af",fontStyle:"italic",fontSize:9}}>NULL</span>;
     const s = String(v);
     if (col==="id"||col.endsWith("_id")) return <span style={{color:"#60a5fa",fontSize:9}}>{s.slice(0,8)}...</span>;
     if (s.includes("T")&&s.includes(":")) { // datetime
@@ -560,11 +560,11 @@ function TableBrowser() {
       position: fullscreen ? "fixed" : "relative",
       inset: fullscreen ? 0 : undefined,
       zIndex: fullscreen ? 9000 : undefined,
-      background:"#141825", fontFamily:"'Segoe UI',system-ui,sans-serif",
+      background:"#f8f9fa", fontFamily:"'Segoe UI',Inter,system-ui,sans-serif",color:"#1e1e1e",
     }}>
 
       {/* ══ TOP BAR ══ */}
-      <div style={{display:"flex",alignItems:"center",padding:"0 12px",height:38,background:"#1a1e2e",borderBottom:"1px solid #2e3248",flexShrink:0,gap:8}}>
+      <div style={{display:"flex",alignItems:"center",padding:"0 12px",height:40,background:"#0a2558",borderBottom:"1px solid #0d3070",flexShrink:0,gap:8}}>
         <Database style={{width:14,height:14,color:"#60a5fa"}}/>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           <div style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
@@ -606,10 +606,10 @@ function TableBrowser() {
       </div>
 
       {/* ══ CONNECTION TAB ══ */}
-      <div style={{background:"#181d2c",borderBottom:"1px solid #2e3248",padding:"0 8px",display:"flex",alignItems:"center",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",padding:"4px 12px 3px",background:"#1a1e2e",border:"1px solid #2e3248",borderBottom:"none",borderRadius:"4px 4px 0 0",marginTop:2,gap:5}}>
+      <div style={{background:"#fff",borderBottom:"1px solid #e0e0e0",padding:"0 8px",display:"flex",alignItems:"center",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",padding:"4px 12px 3px",background:"#f5f5f5",border:"1px solid #e0e0e0",borderBottom:"none",borderRadius:"4px 4px 0 0",marginTop:2,gap:5}}>
           <Server style={{width:11,height:11,color:"#22c55e"}}/>
-          <span style={{fontSize:11,color:"#cdd6f4",fontWeight:600}}>PGSQL (postgres@EL5MediProcure)</span>
+          <span style={{fontSize:11,color:"#1e1e1e",fontWeight:600}}>PGSQL (postgres@EL5MediProcure)</span>
           <X style={{width:10,height:10,color:"#64748b",cursor:"pointer"}}/>
         </div>
       </div>
@@ -618,17 +618,17 @@ function TableBrowser() {
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
         {/* SIDEBAR */}
-        <div style={{width:240,display:"flex",flexDirection:"column",background:"#1a1e2e",borderRight:"1px solid #2e3248",flexShrink:0,overflow:"hidden"}}>
+        <div style={{width:240,display:"flex",flexDirection:"column",background:"#fff",borderRight:"1px solid #e0e0e0",flexShrink:0,overflow:"hidden"}}>
 
           {/* DB Objects header */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",borderBottom:"1px solid #2e3248",flexShrink:0}}>
-            <span style={{fontSize:11,fontWeight:800,color:"#cdd6f4"}}>DB Objects</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#1e1e1e"}}>DB Objects</span>
             <Maximize2 style={{width:12,height:12,color:"#64748b",cursor:"pointer"}}/>
           </div>
 
           {/* Schema dropdown */}
           <div style={{padding:"6px 8px",borderBottom:"1px solid #2e3248",display:"flex",gap:4,flexShrink:0}}>
-            <select style={{flex:1,fontSize:11,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 6px",outline:"none"}}>
+            <select style={{flex:1,fontSize:11,background:"#f5f5f5",color:"#374151",border:"1px solid #d1d5db",borderRadius:3,padding:"3px 6px",outline:"none"}}>
               <option>public</option>
               <option>auth</option>
               <option>storage</option>
@@ -643,7 +643,7 @@ function TableBrowser() {
             <Search style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",width:11,height:11,color:"#475569"}}/>
             <input value={tblSearch} onChange={e=>setTblSearch(e.target.value)}
               placeholder="Search objects..."
-              style={{width:"100%",paddingLeft:24,paddingRight:6,paddingTop:4,paddingBottom:4,fontSize:11,background:"#141825",color:"#94a3b8",border:"1px solid #2e3248",borderRadius:3,outline:"none"}}/>
+              style={{width:"100%",paddingLeft:24,paddingRight:6,paddingTop:4,paddingBottom:4,fontSize:11,background:"#f9fafb",color:"#1e1e1e",border:"1px solid #d1d5db",borderRadius:3,outline:"none"}}/>
           </div>
 
           {/* Tree */}
@@ -659,9 +659,9 @@ function TableBrowser() {
                     style={{display:"flex",alignItems:"center",gap:5,width:"100%",padding:"4px 10px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const}}>
                     {isOpen
                       ? <ChevronDown style={{width:11,height:11,color:"#64748b"}}/>
-                      : <ChevronRight style={{width:11,height:11,color:"#64748b"}}/>}
+                      : <ChevronRight style={{width:11,height:11,color:"#9ca3af"}}/>}
                     <span style={{fontSize:10,fontWeight:700,color:grp.color}}>{grp.label}</span>
-                    <span style={{marginLeft:"auto",fontSize:9,color:"#3d4460"}}>{tbls.length}</span>
+                    <span style={{marginLeft:"auto",fontSize:9,color:"#9ca3af"}}>{tbls.length}</span>
                   </button>
                   {isOpen && tbls.map(t => {
                     const isActive = activeTable === t && openTabs.includes(t);
@@ -675,10 +675,10 @@ function TableBrowser() {
                           border:"none",cursor:"pointer",textAlign:"left" as const,
                           background: activeTable===t ? `${grp.color}28` : "transparent",
                         }}
-                        onMouseEnter={e=>{if(activeTable!==t)(e.currentTarget as HTMLElement).style.background="#2a3050";}}
+                        onMouseEnter={e=>{if(activeTable!==t)(e.currentTarget as HTMLElement).style.background="#f0f0f0";}}
                         onMouseLeave={e=>{if(activeTable!==t)(e.currentTarget as HTMLElement).style.background="transparent";}}>
                         <TableIcon style={{width:11,height:11,flexShrink:0,color:activeTable===t?grp.color:"#475569"}}/>
-                        <span style={{fontSize:11,color:activeTable===t?"#e2e8f0":"#8b95b0",fontWeight:activeTable===t?700:400}}>{t}</span>
+                        <span style={{fontSize:11,color:activeTable===t?"#1e1e1e":"#374151",fontWeight:activeTable===t?700:400}}>{t}</span>
                       </button>
                     );
                   })}
@@ -706,7 +706,7 @@ function TableBrowser() {
         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
           {/* Open table tabs */}
-          <div style={{display:"flex",alignItems:"center",background:"#181d2c",borderBottom:"1px solid #2e3248",flexShrink:0,overflowX:"auto",paddingLeft:4}}>
+          <div style={{display:"flex",alignItems:"center",background:"#f5f5f5",borderBottom:"1px solid #e0e0e0",flexShrink:0,overflowX:"auto",paddingLeft:4}}>
             {openTabs.map(tab => {
               const g2 = TABLE_GROUPS.find(g=>g.tables.includes(tab));
               const isAct = tab===activeTable;
@@ -715,13 +715,13 @@ function TableBrowser() {
                   style={{
                     display:"flex",alignItems:"center",gap:5,
                     padding:"5px 12px 4px",cursor:"pointer",flexShrink:0,
-                    background:isAct?"#141825":"transparent",
-                    borderRight:"1px solid #2e3248",
+                    background:isAct?"#fff":"#f5f5f5",
+                    borderRight:"1px solid #e0e0e0",
                     borderBottom:isAct?"1px solid #141825":"none",
                     marginBottom:isAct?"-1px":0,
                   }}>
                   <TableIcon style={{width:11,height:11,color:isAct?(g2?.color||"#60a5fa"):"#475569"}}/>
-                  <span style={{fontSize:11,color:isAct?"#cdd6f4":"#6b7a9a",fontWeight:isAct?700:400,whiteSpace:"nowrap"}}>
+                  <span style={{fontSize:11,color:isAct?"#1e1e1e":"#6b7280",fontWeight:isAct?700:400,whiteSpace:"nowrap"}}>
                     Table Data public.{tab}
                   </span>
                   <button onClick={e=>closeTab(tab,e)} style={{padding:"1px 2px",background:"transparent",border:"none",cursor:"pointer",color:"#475569",marginLeft:2}}>
@@ -733,30 +733,30 @@ function TableBrowser() {
           </div>
 
           {/* Table title */}
-          <div style={{padding:"6px 12px",background:"#1a1e2e",borderBottom:"1px solid #2e3248",flexShrink:0}}>
-            <span style={{fontSize:13,fontWeight:800,color:"#e2e8f0"}}>Table Data public.{activeTable}</span>
+          <div style={{padding:"6px 12px",background:"#fff",borderBottom:"1px solid #e0e0e0",flexShrink:0}}>
+            <span style={{fontSize:13,fontWeight:800,color:"#1e1e1e"}}>Table Data public.{activeTable}</span>
           </div>
 
           {/* ── TOOLBAR ── */}
-          <div style={{display:"flex",alignItems:"center",gap:4,padding:"5px 8px",background:"#1a1e2e",borderBottom:"1px solid #2e3248",flexShrink:0,flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:4,padding:"5px 8px",background:"#fff",borderBottom:"1px solid #e0e0e0",flexShrink:0,flexWrap:"wrap"}}>
 
             {/* Options */}
-            <button style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"#2e3248",border:"none",borderRadius:3,cursor:"pointer",color:"#cdd6f4",fontSize:11,fontWeight:600}}>
+            <button style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"#f3f4f6",border:"1px solid #d1d5db",borderRadius:4,cursor:"pointer",color:"#374151",fontSize:11,fontWeight:600}}>
               <Settings style={{width:11,height:11}}/> Options <ChevronDown style={{width:9,height:9}}/>
             </button>
 
             <div style={{width:1,height:18,background:"#2e3248"}}/>
 
             {/* Truncate */}
-            <button onClick={truncateConfirm} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#94a3b8",fontSize:11}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#2e3248"}
+            <button onClick={truncateConfirm} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#374151",fontSize:11}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f3f4f6"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <AlertTriangle style={{width:11,height:11,color:"#f97316"}}/> Truncate
             </button>
 
             {/* Drop */}
-            <button onClick={dropConfirm} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#94a3b8",fontSize:11}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#2e3248"}
+            <button onClick={dropConfirm} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#374151",fontSize:11}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f3f4f6"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <X style={{width:11,height:11,color:"#ef4444"}}/> Drop
             </button>
@@ -769,8 +769,8 @@ function TableBrowser() {
             </button>
 
             {/* Total Rows */}
-            <button style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#94a3b8",fontSize:11}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#2e3248"}
+            <button style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#374151",fontSize:11}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f3f4f6"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <FileSpreadsheet style={{width:11,height:11,color:"#94a3b8"}}/> Total Rows: {rowCount.toLocaleString()}
             </button>
@@ -785,22 +785,22 @@ function TableBrowser() {
             <div style={{width:1,height:18,background:"#2e3248"}}/>
 
             {/* Export */}
-            <button onClick={()=>exportXlsx(false)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#94a3b8",fontSize:11}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#2e3248"}
+            <button onClick={()=>exportXlsx(false)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#374151",fontSize:11}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f3f4f6"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <Download style={{width:11,height:11}}/> Export <ChevronDown style={{width:9,height:9}}/>
             </button>
 
             {/* Export All */}
-            <button onClick={()=>exportXlsx(true)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#94a3b8",fontSize:11}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#2e3248"}
+            <button onClick={()=>exportXlsx(true)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#374151",fontSize:11}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f3f4f6"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <Download style={{width:11,height:11}}/> Export All Rows
             </button>
 
             {/* Import */}
-            <button style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#94a3b8",fontSize:11}}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#2e3248"}
+            <button style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:"transparent",border:"none",borderRadius:3,cursor:"pointer",color:"#374151",fontSize:11}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f3f4f6"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <Upload style={{width:11,height:11}}/> Import Data
             </button>
@@ -832,19 +832,19 @@ function TableBrowser() {
             <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",background:"#13162a",borderBottom:"1px solid #2e3248",flexShrink:0}}>
               <Filter style={{width:11,height:11,color:"#60a5fa"}}/>
               <span style={{fontSize:10,color:"#64748b"}}>Filter:</span>
-              <select value={filterCol} onChange={e=>setFilterCol(e.target.value)} style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 6px"}}>
+              <select value={filterCol} onChange={e=>setFilterCol(e.target.value)} style={{fontSize:10,background:"#f5f5f5",color:"#374151",border:"1px solid #d1d5db",borderRadius:3,padding:"3px 6px"}}>
                 <option value="">Column...</option>
                 {cols.map(c=><option key={c} value={c}>{c}</option>)}
               </select>
               <span style={{fontSize:10,color:"#64748b"}}>contains</span>
               <input value={filterVal} onChange={e=>setFilterVal(e.target.value)} placeholder="value..."
-                style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 8px",width:140,outline:"none"}}/>
+                style={{fontSize:10,background:"#f5f5f5",color:"#374151",border:"1px solid #d1d5db",borderRadius:3,padding:"3px 8px",width:140,outline:"none"}}/>
               <button onClick={()=>loadTable(activeTable,1)} style={{padding:"3px 10px",background:"#1a3a6b",color:"#93c5fd",border:"none",borderRadius:3,cursor:"pointer",fontSize:10,fontWeight:700}}>Apply</button>
               <button onClick={()=>{setFilterCol("");setFilterVal("");setShowFilter(false);loadTable(activeTable,1,"","asc");}} style={{padding:"3px 8px",background:"#2e3248",color:"#64748b",border:"none",borderRadius:3,cursor:"pointer",fontSize:10}}>Clear</button>
               <div style={{marginLeft:"auto",position:"relative"}}>
                 <Search style={{position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",width:10,height:10,color:"#475569"}}/>
                 <input value={dataSearch} onChange={e=>setDataSearch(e.target.value)} placeholder="Search visible rows..."
-                  style={{fontSize:10,background:"#2e3248",color:"#94a3b8",border:"1px solid #3a3d52",borderRadius:3,padding:"3px 6px 3px 22px",width:160,outline:"none"}}/>
+                  style={{fontSize:10,background:"#f5f5f5",color:"#374151",border:"1px solid #d1d5db",borderRadius:3,padding:"3px 6px 3px 22px",width:160,outline:"none"}}/>
               </div>
             </div>
           )}

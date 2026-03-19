@@ -67,6 +67,10 @@ export default function ReceiptVouchersPage() {
       sysName:        getSetting('system_name','EL5 MediProcure'),
       docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
       currencySymbol: getSetting('currency_symbol','KES'),
+      logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
+      hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
+      hospitalPhone:   getSetting('hospital_phone','+254 060 000000'),
+      hospitalEmail:   getSetting('hospital_email','info@embu.health.go.ke'),
       printFont:      getSetting('print_font','Times New Roman'),
       showStamp:      getSetting('show_stamp','true') === 'true',
     });
