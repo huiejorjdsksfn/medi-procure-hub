@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
 import { Archive, RefreshCw, Download, CheckCircle, Clock, AlertTriangle, Database, FileSpreadsheet, Play, Trash2, Shield, Zap, Settings, Calendar } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { logAudit } from "@/lib/audit";
 import * as XLSX from "xlsx";
 
 const BACKUP_TABLES = [

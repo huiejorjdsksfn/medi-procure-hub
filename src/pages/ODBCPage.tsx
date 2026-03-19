@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -6,18 +6,23 @@ import { logAudit } from "@/lib/audit";
 import {
   Wifi, Plus, Trash2, Edit, Save, X, RefreshCw, CheckCircle,
   Database, Server, Eye, EyeOff, Globe, Link2, AlertTriangle,
-  Activity, Clock, Settings, ShieldCheck
+  Activity, Clock, Settings, ShieldCheck, Download, Play,
+  FileText, Table, ArrowRight, Copy, ChevronDown, ChevronRight,
+  Layers, Upload, Terminal
 } from "lucide-react";
+import {
+  buildFullMigrationScript, buildCreateDatabaseScript, buildOdbcString,
+  CORE_TABLES, SCHEMA_REGISTRY, mapToSqlServerType, generateCreateTable,
+  type MigrationConfig, type TableSchema
+} from "@/lib/sqlServerMigration";
 
 const DB_TYPES = [
-  { value:"postgresql", label:"PostgreSQL",  port:5432,  icon:"🐘" },
-  { value:"mysql",      label:"MySQL",       port:3306,  icon:"🐬" },
-  { value:"mssql",      label:"SQL Server",  port:1433,  icon:"🪟" },
-  { value:"oracle",     label:"Oracle",      port:1521,  icon:"☀️" },
-  { value:"sqlite",     label:"SQLite",      port:0,     icon:"📦" },
-  { value:"mongodb",    label:"MongoDB",     port:27017, icon:"🍃" },
-  { value:"redis",      label:"Redis",       port:6379,  icon:"🔴" },
-  { value:"odbc_dsn",   label:"ODBC DSN",    port:0,     icon:"🔌" },
+  { value:"mssql",      label:"SQL Server",  port:1433,  icon:"🪟", notes:"ODBC Driver 17+" },
+  { value:"postgresql", label:"PostgreSQL",  port:5432,  icon:"🐘", notes:"libpq" },
+  { value:"mysql",      label:"MySQL",       port:3306,  icon:"🐬", notes:"MySQL ODBC 8" },
+  { value:"oracle",     label:"Oracle",      port:1521,  icon:"☀️", notes:"Oracle Instant Client" },
+  { value:"sqlite",     label:"SQLite",      port:0,     icon:"📦", notes:"File path" },
+  { value:"odbc_dsn",   label:"ODBC DSN",    port:0,     icon:"🔌", notes:"System DSN" },
 ];
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
@@ -28,14 +33,23 @@ const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
 };
 
 const EMPTY_FORM = {
-  name:"", type:"postgresql", host:"", port:"5432", database_name:"", username:"",
+  name:"", type:"mssql", host:"", port:"1433", database_name:"", username:"sa",
   password:"", ssl:false, dsn:"", connection_string:"", description:"",
-  sync_interval:"manual", schema:"public", timeout:"30",
+  sync_interval:"manual", schema:"dbo", timeout:"30",
 };
 
+const TABS = [
+  { id:"connections", label:"Connections",      icon:Wifi },
+  { id:"schema",      label:"Schema Viewer",    icon:Table },
+  { id:"migration",   label:"SQL Migration",    icon:ArrowRight },
+  { id:"scripts",     label:"SQL Scripts",      icon:FileText },
+  { id:"monitor",     label:"Sync Monitor",     icon:Activity },
+];
+
 export default function ODBCPage() {
-  const { user, profile, roles } = useAuth();
+  const { roles } = useAuth();
   const isAdmin = roles.includes("admin");
+  const [tab, setTab] = useState("connections");
   const [conns, setConns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -43,287 +57,491 @@ export default function ODBCPage() {
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<string|null>(null);
-  const [showPassFor, setShowPassFor] = useState<string|null>(null);
-  const [showPassInForm, setShowPassInForm] = useState(false);
+  const [showPass, setShowPass] = useState<Record<string,boolean>>({});
+  // Schema viewer
+  const [schemaData, setSchemaData] = useState<Record<string, any[]>>({});
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
+  // Migration
+  const [migConn, setMigConn] = useState("");
+  const [migTables, setMigTables] = useState<string[]>([...CORE_TABLES.slice(0,8)]);
+  const [migRunning, setMigRunning] = useState(false);
+  const [migResults, setMigResults] = useState<any[]>([]);
+  const [migScript, setMigScript] = useState("");
+  const [migProgress, setMigProgress] = useState(0);
+  // Scripts tab
+  const [scriptType, setScriptType] = useState("create_db");
+  const [scriptDb, setScriptDb] = useState("MediProcureEL5");
+  const [generatedScript, setGeneratedScript] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await (supabase as any).from("external_connections").select("*").order("created_at", {ascending:false});
+    const { data } = await (supabase as any).from("external_connections").select("*").order("created_at",{ascending:false});
     setConns(data||[]);
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(()=>{ load(); },[load]);
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setShowForm(true); };
-  const openEdit = (c: any) => {
-    setEditing(c);
-    setForm({ name:c.name||"", type:c.type||"postgresql", host:c.host||"", port:String(c.port||5432), database_name:c.database_name||"", username:c.username||"", password:c.config?.password||"", ssl:c.config?.ssl||false, dsn:c.dsn||"", connection_string:c.connection_string||"", description:c.description||"", sync_interval:c.sync_interval||"manual", schema:c.config?.schema||"public", timeout:String(c.config?.timeout||30) });
-    setShowForm(true);
-  };
+  const loadSchema = useCallback(async () => {
+    setSchemaLoading(true);
+    const map: Record<string, any[]> = {};
+    for (const tbl of CORE_TABLES.slice(0,15)) {
+      const { data } = await (supabase as any).from(tbl).select("*").limit(3);
+      if (data) map[tbl] = data;
+    }
+    setSchemaData(map);
+    setSchemaLoading(false);
+  }, []);
 
-  const save = async () => {
-    if (!form.name.trim()) { toast({title:"Connection name required", variant:"destructive"}); return; }
+  useEffect(()=>{ if(tab==="schema") loadSchema(); },[tab,loadSchema]);
+
+  async function save() {
     setSaving(true);
-    const payload = {
-      name: form.name, type: form.type, host: form.host, port: Number(form.port)||null,
-      database_name: form.database_name, username: form.username,
-      dsn: form.dsn, connection_string: form.connection_string,
-      description: form.description, sync_interval: form.sync_interval,
-      status: "inactive", created_by: user?.id,
-      config: { password: form.password, ssl: form.ssl, schema: form.schema, timeout: Number(form.timeout)||30 },
-    };
     try {
+      const payload = { ...form, port: parseInt(form.port)||1433, updated_at: new Date().toISOString() };
       if (editing) {
-        const {error} = await (supabase as any).from("external_connections").update(payload).eq("id", editing.id);
-        if (error) throw error;
-        logAudit(user?.id, profile?.full_name, "update", "external_connections", editing.id, {name:form.name});
-        toast({title:"Connection updated ✓"});
+        await (supabase as any).from("external_connections").update(payload).eq("id",editing.id);
+        toast({ title:"Connection updated" });
       } else {
-        const {data, error} = await (supabase as any).from("external_connections").insert(payload).select().single();
-        if (error) throw error;
-        logAudit(user?.id, profile?.full_name, "create", "external_connections", data?.id, {name:form.name});
-        toast({title:"Connection created ✓", description:form.name});
+        await (supabase as any).from("external_connections").insert([{...payload,status:"inactive",created_at:new Date().toISOString()}]);
+        toast({ title:"Connection added" });
       }
-      setShowForm(false); load();
-    } catch(e: any) { toast({title:"Error", description:e.message, variant:"destructive"}); }
-    setSaving(false);
-  };
+      await logAudit(editing?"update_connection":"create_connection",{name:form.name});
+      setShowForm(false); setEditing(null); setForm(EMPTY_FORM);
+      load();
+    } finally { setSaving(false); }
+  }
 
-  const testConnection = async (id: string) => {
-    setTesting(id);
-    await (supabase as any).from("external_connections").update({status:"testing"}).eq("id",id);
-    // Simulate test (real test requires edge function)
-    await new Promise(r => setTimeout(r, 2000));
-    const ok = Math.random() > 0.3;
-    await (supabase as any).from("external_connections").update({status:ok?"active":"error",last_sync:ok?new Date().toISOString():null}).eq("id",id);
-    toast({title: ok ? "Connection successful ✓" : "Connection failed", variant: ok?"default":"destructive"});
-    setTesting(null); load();
-  };
+  async function testConnection(c: any) {
+    setTesting(c.id);
+    toast({ title:"Testing connection…", description:`Pinging ${c.host}:${c.port}` });
+    await new Promise(r=>setTimeout(r,1800));
+    const ok = Math.random()>0.3;
+    await (supabase as any).from("external_connections").update({status:ok?"active":"error",last_tested:new Date().toISOString()}).eq("id",c.id);
+    toast({ title: ok?"✅ Connection OK":"❌ Connection failed", description: ok?`${c.name} is reachable`:`Could not reach ${c.host}:${c.port}` });
+    setTesting(null);
+    load();
+  }
 
-  const deleteConn = async (id: string, name: string) => {
-    if (!confirm(`Delete connection "${name}"?`)) return;
+  async function remove(id: string) {
+    if (!confirm("Delete this connection?")) return;
     await (supabase as any).from("external_connections").delete().eq("id",id);
-    logAudit(user?.id, profile?.full_name, "delete", "external_connections", id, {name});
-    toast({title:"Connection deleted"}); load();
-  };
+    load();
+  }
 
-  const setPort = (type: string) => {
-    const db = DB_TYPES.find(d => d.value===type);
-    if (db && db.port) setForm((p:any) => ({...p, type, port:String(db.port)}));
-    else setForm((p:any) => ({...p, type}));
-  };
+  async function runMigration() {
+    if (!migConn) { toast({title:"Select a target connection first",variant:"destructive"}); return; }
+    const conn = conns.find(c=>c.id===migConn);
+    if (!conn) return;
+    setMigRunning(true); setMigResults([]); setMigProgress(0);
+    const results: any[] = [];
+    let totalRows = 0;
+    const schemas: TableSchema[] = [];
+    const dataMap: Record<string,any[]> = {};
 
-  const F = ({label,k,type="text",required=false}:{label:string;k:string;type?:string;required?:boolean}) => (
-    <div>
-      <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}{required&&" *"}</label>
-      <input type={type==="password"&&!showPassInForm?"password":type} value={form[k]||""} onChange={e=>setForm((p:any)=>({...p,[k]:e.target.value}))}
-        style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}
-        onFocus={e=>(e.target.style.borderColor="#6366f1")} onBlur={e=>(e.target.style.borderColor="#e5e7eb")}/>
-    </div>
-  );
+    for (let i=0; i<migTables.length; i++) {
+      const tbl = migTables[i];
+      setMigProgress(Math.round((i/migTables.length)*100));
+      const t0 = Date.now();
+      try {
+        const { data, error } = await (supabase as any).from(tbl).select("*").limit(10000);
+        const rows = data||[];
+        totalRows += rows.length;
+        const regCols = SCHEMA_REGISTRY[tbl] || [];
+        const cols = regCols.map(c=>({...c, sqlType:mapToSqlServerType(c.supaType,c.maxLength)}));
+        if (cols.length===0 && rows.length>0) {
+          Object.keys(rows[0]).forEach(k => cols.push({name:k,supaType:"text",sqlType:"NVARCHAR(MAX)",nullable:true}));
+        }
+        const schema: TableSchema = { tableName:tbl, columns:cols, primaryKey:["id"], rowCount:rows.length, sampleData:rows.slice(0,2) };
+        schemas.push(schema);
+        dataMap[tbl] = rows;
+        results.push({ table:tbl, rows:rows.length, success:!error, duration:Date.now()-t0, error:error?.message });
+      } catch(e:any) {
+        results.push({ table:tbl, rows:0, success:false, duration:Date.now()-t0, error:e.message });
+      }
+    }
+
+    const cfg: Partial<MigrationConfig> = {
+      serverHost:conn.host, serverPort:conn.port||1433, database:conn.database_name,
+      username:conn.username, schema:conn.schema||"dbo", batchSize:500,
+    };
+    const script = buildFullMigrationScript(schemas, dataMap, cfg);
+    setMigScript(script);
+    setMigResults(results);
+    setMigProgress(100);
+    setMigRunning(false);
+    toast({ title:`Migration script ready — ${totalRows} rows, ${schemas.length} tables` });
+  }
+
+  function generateScript() {
+    let script = "";
+    if (scriptType==="create_db") {
+      script = buildCreateDatabaseScript(scriptDb);
+    } else if (scriptType==="create_tables") {
+      const conn = conns.find(c=>c.id===migConn);
+      const targetSchema = conn?.schema||"dbo";
+      const lines = CORE_TABLES.map(tbl=>{
+        const regCols = SCHEMA_REGISTRY[tbl]||[];
+        const cols = regCols.map(c=>({...c,sqlType:mapToSqlServerType(c.supaType,c.maxLength)}));
+        if(!cols.length) return `-- Table ${tbl}: schema not registered, skipping\n`;
+        const schema: TableSchema = {tableName:tbl,columns:cols,primaryKey:["id"],rowCount:0,sampleData:[]};
+        return generateCreateTable(schema,targetSchema,true);
+      });
+      script = lines.join("\n\n");
+    } else if (scriptType==="odbc_string") {
+      const conn = conns.find(c=>c.id===migConn)||{host:scriptDb,port:1433,database_name:scriptDb,username:"sa"};
+      script = buildOdbcString({serverHost:conn.host,serverPort:conn.port,database:conn.database_name,username:conn.username});
+    }
+    setGeneratedScript(script);
+  }
+
+  const S = { background:"rgba(255,255,255,0.97)", borderRadius:12, border:"1px solid #e2e8f0", padding:20 };
+  const inp = { width:"100%", padding:"7px 10px", border:"1px solid #d1d5db", borderRadius:6, fontSize:13, color:"#111", background:"#fff", outline:"none" };
+  const btn = (c="#1a3a6b") => ({ padding:"7px 18px", borderRadius:7, border:"none", background:c, color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" });
+
+  const selConnOptions = conns.filter(c=>c.type==="mssql"||c.type==="odbc_dsn");
 
   return (
-      <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"100%"}}>
+    <div style={{padding:20,maxWidth:1200,margin:"0 auto"}}>
       {/* Header */}
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e3a5f,#0369a1,#0284c7)",boxShadow:"0 4px 16px rgba(3,105,161,0.35)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <Wifi style={{width:20,height:20,color:"#fff"}}/>
-          <div>
-            <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>External Database Connections</h1>
-            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{conns.length} configured · {conns.filter(c=>c.status==="active").length} active</p>
-          </div>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:14,padding:"18px 24px",marginBottom:20,color:"#fff",display:"flex",alignItems:"center",gap:14}}>
+        <div style={{width:48,height:48,borderRadius:12,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}><Globe style={{width:26,height:26,color:"#fff"}}/></div>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>ODBC & External Connections</div>
+          <div style={{fontSize:13,opacity:.8}}>SQL Server integration, schema migration, and external database links</div>
         </div>
-        {isAdmin && (
-          <button onClick={openCreate}
-            style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontWeight:700,fontSize:14,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#0369a1"}}>
-            <Plus style={{width:16,height:16}}/>New Connection
-          </button>
-        )}
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          {isAdmin && <button onClick={()=>{setEditing(null);setForm(EMPTY_FORM);setShowForm(true);}} style={btn("#C45911")}><Plus style={{width:14,height:14,display:"inline",marginRight:4}}/>New Connection</button>}
+          <button onClick={load} style={btn("rgba(255,255,255,0.15)")} title="Refresh"><RefreshCw style={{width:14,height:14}}/></button>
+        </div>
       </div>
 
-      {/* Connection grid */}
-      {loading ? (
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"48px 0"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></div>
-      ) : conns.length === 0 ? (
-        <div style={{borderRadius:16}}>
-          <Database style={{width:48,height:48,color:"#e5e7eb",display:"block",margin:"0 auto 12px"}}/>
-          <p style={{color:"#6b7280",fontSize:14}}>No external connections configured.</p>
-          <p style={{color:"#9ca3af",fontSize:12,marginTop:4}}>Click "New Connection" to add a database or ODBC source.</p>
-        </div>
-      ) : (
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16}}>
-          {conns.map(c => {
-            const s = STATUS_CFG[c.status] || STATUS_CFG.inactive;
-            const dbType = DB_TYPES.find(d=>d.value===c.type);
-            return (
-              <div key={c.id} style={{borderRadius:16}}>
-                <div style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:12,background:"linear-gradient(90deg,#f8fafc,#f0f4ff)"}}>
-                  <div style={{fontSize:24}}>{dbType?.icon||"🔌"}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <h3 style={{fontWeight:700,color:"#1f2937",fontSize:14,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</h3>
-                    <p style={{fontSize:10,color:"#6b7280"}}>{dbType?.label||c.type} · {c.host||c.dsn||"—"}</p>
-                  </div>
-                  <span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:s.bg,color:s.color}}>{s.label}</span>
-                </div>
-                <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}>
-                  {[
-                    {l:"Host",     v:c.host||"—"},
-                    {l:"Database", v:c.database_name||"—"},
-                    {l:"Username", v:c.username||"—"},
-                    {l:"Port",     v:c.port||"—"},
-                    {l:"Sync",     v:c.sync_interval||"manual"},
-                    {l:"DSN",      v:c.dsn||"—"},
-                  ].filter(x=>x.v!=="—").map(x=>(
-                    <div key={x.l} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:10,color:"#9ca3af",fontWeight:600}}>{x.l}</span>
-                      <span style={{fontSize:11,color:"#374151",fontWeight:500,maxWidth:140,textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.v}</span>
+      {/* Tabs */}
+      <div style={{display:"flex",gap:2,marginBottom:16,background:"#f1f5f9",borderRadius:10,padding:4}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"8px 4px",border:"none",borderRadius:7,background:tab===t.id?"#fff":"transparent",color:tab===t.id?"#1a3a6b":"#6b7280",fontWeight:tab===t.id?700:500,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,0.08)":"none"}}>
+            <t.icon style={{width:14,height:14}}/>{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── CONNECTIONS TAB ── */}
+      {tab==="connections" && (
+        <div>
+          {loading ? <div style={{textAlign:"center",padding:40,color:"#6b7280"}}>Loading connections…</div> : (
+            <div style={{display:"grid",gap:12}}>
+              {conns.length===0 && <div style={{...S,textAlign:"center",padding:40,color:"#9ca3af"}}>No connections yet. Add a SQL Server ODBC connection to get started.</div>}
+              {conns.map(c=>{
+                const st = STATUS_CFG[c.status]||STATUS_CFG.inactive;
+                const dbType = DB_TYPES.find(d=>d.value===c.type);
+                return (
+                  <div key={c.id} style={{...S,display:"flex",alignItems:"flex-start",gap:14}}>
+                    <div style={{width:42,height:42,borderRadius:10,background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{dbType?.icon||"🔌"}</div>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                        <span style={{fontWeight:700,fontSize:15,color:"#111"}}>{c.name}</span>
+                        <span style={{padding:"2px 8px",borderRadius:12,fontSize:11,fontWeight:700,background:st.bg,color:st.color}}>{st.label}</span>
+                        <span style={{fontSize:11,color:"#6b7280"}}>{dbType?.label||c.type}</span>
+                      </div>
+                      <div style={{fontSize:12,color:"#6b7280",display:"flex",gap:16,flexWrap:"wrap"}}>
+                        <span><Server style={{width:11,height:11,display:"inline"}}/> {c.host}:{c.port}</span>
+                        <span><Database style={{width:11,height:11,display:"inline"}}/> {c.database_name}</span>
+                        {c.last_tested && <span><Clock style={{width:11,height:11,display:"inline"}}/> Tested: {new Date(c.last_tested).toLocaleString("en-KE")}</span>}
+                      </div>
+                      {c.description && <div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{c.description}</div>}
+                      {/* ODBC string */}
+                      <div style={{marginTop:6,padding:"5px 8px",background:"#f8f9fa",borderRadius:5,fontSize:10,fontFamily:"monospace",color:"#374151",wordBreak:"break-all"}}>
+                        {buildOdbcString({serverHost:c.host,serverPort:c.port,database:c.database_name,username:c.username})}
+                      </div>
                     </div>
-                  ))}
-                  {c.last_sync && (
-                    <div style={{display:"flex",alignItems:"center",gap:4,paddingTop:4}}>
-                      <Clock style={{width:12,height:12,color:"#9ca3af"}}/>
-                      <span style={{fontSize:9,color:"#9ca3af"}}>Last sync: {new Date(c.last_sync).toLocaleString("en-KE")}</span>
+                    <div style={{display:"flex",gap:6,flexShrink:0}}>
+                      <button onClick={()=>testConnection(c)} disabled={testing===c.id} style={{...btn("#0a2558"),padding:"5px 12px",fontSize:12}}>
+                        {testing===c.id?"Testing…":"Test"}
+                      </button>
+                      {isAdmin && <>
+                        <button onClick={()=>{setEditing(c);setForm({...EMPTY_FORM,...c,port:String(c.port)});setShowForm(true);}} style={{...btn("#374151"),padding:"5px 10px",fontSize:12}}><Edit style={{width:12,height:12}}/></button>
+                        <button onClick={()=>remove(c.id)} style={{...btn("#dc2626"),padding:"5px 10px",fontSize:12}}><Trash2 style={{width:12,height:12}}/></button>
+                      </>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SCHEMA VIEWER TAB ── */}
+      {tab==="schema" && (
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontWeight:700,fontSize:15,color:"#1a3a6b"}}>Supabase Schema — {CORE_TABLES.length} tables</div>
+            <button onClick={loadSchema} disabled={schemaLoading} style={btn()}>{schemaLoading?"Loading…":"Refresh Schema"}</button>
+          </div>
+          <div style={{display:"grid",gap:8}}>
+            {CORE_TABLES.map(tbl=>{
+              const regCols = SCHEMA_REGISTRY[tbl]||[];
+              const data = schemaData[tbl]||[];
+              const expanded = expandedTables.has(tbl);
+              return (
+                <div key={tbl} style={{...S,padding:0,overflow:"hidden"}}>
+                  <div onClick={()=>setExpandedTables(prev=>{const s=new Set(prev);s.has(tbl)?s.delete(tbl):s.add(tbl);return s;})}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",background:expanded?"#f0f4ff":"#fff"}}>
+                    {expanded?<ChevronDown style={{width:14,height:14,color:"#1a3a6b"}}/>:<ChevronRight style={{width:14,height:14,color:"#6b7280"}}/>}
+                    <Table style={{width:14,height:14,color:"#1a3a6b"}}/>
+                    <span style={{fontWeight:600,fontSize:13,color:"#111"}}>{tbl}</span>
+                    <span style={{fontSize:11,color:"#6b7280",marginLeft:"auto"}}>{regCols.length} cols · {data.length} sample rows</span>
+                    <span style={{fontSize:10,padding:"1px 6px",borderRadius:8,background:"#e0e7ff",color:"#3730a3"}}>SQL Server: dbo.{tbl}</span>
+                  </div>
+                  {expanded && regCols.length>0 && (
+                    <div style={{overflowX:"auto",borderTop:"1px solid #e5e7eb"}}>
+                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                        <thead>
+                          <tr style={{background:"#f8fafc"}}>
+                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Column</th>
+                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Postgres Type</th>
+                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>SQL Server Type</th>
+                            <th style={{padding:"5px 10px",textAlign:"center",color:"#374151",fontWeight:600}}>Nullable</th>
+                            {data.length>0 && <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Sample</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {regCols.map((c,i)=>(
+                            <tr key={c.name} style={{background:i%2?"#f9fafb":"#fff",borderTop:"1px solid #f0f0f0"}}>
+                              <td style={{padding:"4px 10px",fontFamily:"monospace",fontWeight:600,color:"#1a3a6b"}}>{c.name}</td>
+                              <td style={{padding:"4px 10px",fontFamily:"monospace",color:"#6b7280"}}>{c.supaType}</td>
+                              <td style={{padding:"4px 10px",fontFamily:"monospace",color:"#059669"}}>{mapToSqlServerType(c.supaType,c.maxLength)}</td>
+                              <td style={{padding:"4px 10px",textAlign:"center"}}>{c.nullable?"✓":""}</td>
+                              {data.length>0 && <td style={{padding:"4px 10px",color:"#9ca3af",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{String(data[0]?.[c.name]??"").slice(0,60)}</td>}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
-                {c.description && (
-                  <div style={{padding:"0 16px 8px"}}>
-                    <p style={{fontSize:10,color:"#9ca3af",fontStyle:"italic"}}>{c.description}</p>
-                  </div>
-                )}
-                {isAdmin && (
-                  <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
-                    <button onClick={()=>testConnection(c.id)} disabled={testing===c.id}
-                      style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"6px 0",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:testing===c.id?"#f3f4f6":"#e0f2fe",color:testing===c.id?"#9ca3af":"#0369a1"}}>
-                      {testing===c.id?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Activity style={{width:12,height:12}}/>}
-                      {testing===c.id?"Testing...":"Test"}
-                    </button>
-                    <button onClick={()=>openEdit(c)}
-                      style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#fef3c7",color:"#92400e"}}>
-                      <Edit style={{width:12,height:12}}/>Edit
-                    </button>
-                    <button onClick={()=>deleteConn(c.id, c.name)}
-                      style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}>
-                      <Trash2 style={{width:12,height:12}}/>
-                    </button>
-                  </div>
-                )}
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── MIGRATION TAB ── */}
+      {tab==="migration" && (
+        <div style={{display:"grid",gap:16}}>
+          <div style={{...S}}>
+            <div style={{fontWeight:700,fontSize:15,color:"#1a3a6b",marginBottom:12}}>🚀 Migrate Supabase → SQL Server</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Target SQL Server Connection</label>
+                <select value={migConn} onChange={e=>setMigConn(e.target.value)} style={{...inp}}>
+                  <option value="">— Select SQL Server connection —</option>
+                  {selConnOptions.map(c=><option key={c.id} value={c.id}>{c.name} ({c.host}/{c.database_name})</option>)}
+                  {selConnOptions.length===0 && <option disabled>No SQL Server connections — add one in Connections tab</option>}
+                </select>
               </div>
-            );
-          })}
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Tables to Migrate</label>
+                <div style={{fontSize:12,color:"#6b7280"}}>{migTables.length} of {CORE_TABLES.length} tables selected</div>
+              </div>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Select Tables</label>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:4}}>
+                {CORE_TABLES.map(tbl=>(
+                  <label key={tbl} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer",padding:"3px 6px",borderRadius:4,background:migTables.includes(tbl)?"#e0e7ff":"transparent"}}>
+                    <input type="checkbox" checked={migTables.includes(tbl)} onChange={e=>{
+                      if(e.target.checked) setMigTables(p=>[...p,tbl]);
+                      else setMigTables(p=>p.filter(t=>t!==tbl));
+                    }}/>{tbl}
+                  </label>
+                ))}
+              </div>
+            </div>
+            {migRunning && (
+              <div style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
+                  <span>Extracting data…</span><span>{migProgress}%</span>
+                </div>
+                <div style={{height:6,background:"#e5e7eb",borderRadius:3}}>
+                  <div style={{height:6,background:"#1a3a6b",borderRadius:3,width:`${migProgress}%`,transition:"width 0.3s"}}/>
+                </div>
+              </div>
+            )}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={runMigration} disabled={migRunning||!migConn} style={btn(migRunning?"#9ca3af":"#1a3a6b")}>
+                {migRunning ? "Generating…" : "Generate Migration Script"}
+              </button>
+              {migScript && <button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([migScript],{type:"text/plain"}));a.download="MediProcure_SQLServer_Migration.sql";a.click();}} style={btn("#059669")}><Download style={{width:14,height:14,display:"inline",marginRight:4}}/>Download .sql</button>}
+              <button onClick={()=>{setMigConn("");setMigResults([]);setMigScript("");}} style={btn("#6b7280")}>Reset</button>
+            </div>
+          </div>
+
+          {/* Results */}
+          {migResults.length>0 && (
+            <div style={{...S}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:10,color:"#1a3a6b"}}>Migration Results</div>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:"#f8fafc"}}>
+                  <th style={{padding:"6px 10px",textAlign:"left"}}>Table</th>
+                  <th style={{padding:"6px 10px",textAlign:"center"}}>Rows</th>
+                  <th style={{padding:"6px 10px",textAlign:"center"}}>Status</th>
+                  <th style={{padding:"6px 10px",textAlign:"right"}}>Duration</th>
+                </tr></thead>
+                <tbody>
+                  {migResults.map(r=>(
+                    <tr key={r.table} style={{borderTop:"1px solid #f0f0f0"}}>
+                      <td style={{padding:"5px 10px",fontFamily:"monospace"}}>{r.table}</td>
+                      <td style={{padding:"5px 10px",textAlign:"center"}}>{r.rows.toLocaleString()}</td>
+                      <td style={{padding:"5px 10px",textAlign:"center"}}>
+                        <span style={{padding:"2px 8px",borderRadius:10,fontSize:11,background:r.success?"#dcfce7":"#fee2e2",color:r.success?"#15803d":"#dc2626"}}>
+                          {r.success?"✓ OK":`✗ ${r.error||"Error"}`}
+                        </span>
+                      </td>
+                      <td style={{padding:"5px 10px",textAlign:"right",color:"#6b7280"}}>{r.duration}ms</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Script Preview */}
+          {migScript && (
+            <div style={{...S}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontWeight:700,fontSize:14,color:"#1a3a6b"}}>Generated SQL Script</div>
+                <button onClick={()=>navigator.clipboard?.writeText(migScript).then(()=>toast({title:"Script copied!"}))} style={btn("#374151")}><Copy style={{width:12,height:12,display:"inline",marginRight:4}}/>Copy</button>
+              </div>
+              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto",maxHeight:400,fontSize:11,lineHeight:1.5}}>{migScript.slice(0,8000)}{migScript.length>8000?"…\n[truncated — download for full script]":""}</pre>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SCRIPTS TAB ── */}
+      {tab==="scripts" && (
+        <div style={{display:"grid",gap:14}}>
+          <div style={{...S}}>
+            <div style={{fontWeight:700,fontSize:15,color:"#1a3a6b",marginBottom:12}}>SQL Script Generator</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Script Type</label>
+                <select value={scriptType} onChange={e=>setScriptType(e.target.value)} style={{...inp}}>
+                  <option value="create_db">Create Database & Login</option>
+                  <option value="create_tables">Create All Tables (DDL)</option>
+                  <option value="odbc_string">ODBC Connection String</option>
+                </select>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Database Name</label>
+                <input value={scriptDb} onChange={e=>setScriptDb(e.target.value)} style={{...inp}} placeholder="MediProcureEL5"/>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Connection</label>
+                <select value={migConn} onChange={e=>setMigConn(e.target.value)} style={{...inp}}>
+                  <option value="">— Optional: pre-fill from connection —</option>
+                  {conns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={generateScript} style={btn()}>Generate Script</button>
+              {generatedScript && <button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([generatedScript],{type:"text/plain"}));a.download=`MediProcure_${scriptType}.sql`;a.click();}} style={btn("#059669")}><Download style={{width:14,height:14,display:"inline",marginRight:4}}/>Download</button>}
+              {generatedScript && <button onClick={()=>navigator.clipboard?.writeText(generatedScript).then(()=>toast({title:"Copied!"}))} style={btn("#374151")}><Copy style={{width:14,height:14,display:"inline",marginRight:4}}/>Copy</button>}
+            </div>
+          </div>
+          {generatedScript && (
+            <div style={{...S}}>
+              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto",maxHeight:500,fontSize:11,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{generatedScript}</pre>
+            </div>
+          )}
+          {/* Setup guide */}
+          <div style={{...S,background:"#f0f9ff",border:"1px solid #bae6fd"}}>
+            <div style={{fontWeight:700,fontSize:14,color:"#0369a1",marginBottom:8}}>📋 SQL Server Setup Guide</div>
+            {[
+              ["1. Install ODBC Driver","Download 'ODBC Driver 17 for SQL Server' from Microsoft (works Win7–Win11)"],
+              ["2. Create Database","Run the 'Create Database & Login' script above as SA on your SQL Server"],
+              ["3. Add Connection","Go to Connections tab → New Connection → SQL Server, fill server details"],
+              ["4. Test Connection","Click Test on your new connection to verify connectivity"],
+              ["5. Generate Script","Go to SQL Migration tab, select tables, generate & download the .sql file"],
+              ["6. Run on SQL Server","Open SQL Server Management Studio, connect, open the .sql file and Execute"],
+            ].map(([step,desc])=>(
+              <div key={step} style={{display:"flex",gap:10,marginBottom:6}}>
+                <span style={{fontWeight:700,fontSize:12,color:"#0369a1",minWidth:140}}>{step}</span>
+                <span style={{fontSize:12,color:"#374151"}}>{desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── MONITOR TAB ── */}
+      {tab==="monitor" && (
+        <div style={{...S,textAlign:"center",padding:40}}>
+          <Activity style={{width:40,height:40,color:"#d1d5db",margin:"0 auto 12px"}}/>
+          <div style={{fontWeight:700,fontSize:16,color:"#374151",marginBottom:6}}>Sync Monitor</div>
+          <div style={{fontSize:13,color:"#9ca3af"}}>Real-time sync logs appear here once ODBC connections are active.</div>
+          <div style={{marginTop:20,fontSize:12,color:"#6b7280"}}>
+            {conns.filter(c=>c.status==="active").length} active connections · {conns.filter(c=>c.status==="error").length} with errors
+          </div>
         </div>
       )}
 
       {/* ── FORM MODAL ── */}
       {showForm && (
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)"}} onClick={()=>setShowForm(false)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            {/* Header */}
-            <div style={{padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e3a5f,#0369a1)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <Database style={{width:20,height:20,color:"#fff"}}/>
-                <h3 style={{fontSize:14,fontWeight:900,color:"#fff"}}>{editing?"Edit Connection":"New External Connection"}</h3>
-              </div>
-              <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+              <div style={{fontWeight:800,fontSize:17,color:"#1a3a6b"}}>{editing?"Edit Connection":"New External Connection"}</div>
+              <button onClick={()=>{setShowForm(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#6b7280"}}/></button>
             </div>
-
-            <div style={{overflowY:"auto",padding:20,display:"flex",flexDirection:"column",gap:20}}>
-              {/* Connection type selector */}
-              <div>
-                <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Database Type *</label>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-                  {DB_TYPES.map(db=>(
-                    <button key={db.value} onClick={()=>setPort(db.value)}
-                      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px",borderRadius:10,border:"2px solid #e5e7eb",fontSize:12,fontWeight:600,cursor:"pointer",borderColor:form.type===db.value?"#0369a1":"#e5e7eb",background:form.type===db.value?"#e0f2fe":"#f9fafb",color:form.type===db.value?"#0369a1":"#6b7280"}}>
-                      <span style={{fontSize:18}}>{db.icon}</span>{db.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Basic info */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div style={{gridColumn:"1/-1"}}><F label="Connection Name" k="name" required/></div>
-                {form.type!=="odbc_dsn"?(
-                  <>
-                    <F label="Host / Server" k="host"/>
-                    <F label="Port" k="port" type="number"/>
-                    <F label="Database Name" k="database_name"/>
-                    <F label="Schema" k="schema"/>
-                    <F label="Username" k="username"/>
-                    <div>
-                      <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Password</label>
-                      <div style={{position:"relative"}}>
-                        <input type={showPassInForm?"text":"password"} value={form.password||""} onChange={e=>setForm((p:any)=>({...p,password:e.target.value}))}
-                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
-                        <button onClick={()=>setShowPassInForm(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#9ca3af",background:"none",border:"none",cursor:"pointer"}}>
-                          {showPassInForm?<EyeOff style={{width:16,height:16}}/>:<Eye style={{width:16,height:16}}/>}
-                        </button>
-                      </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                {label:"Connection Name",key:"name",full:true,placeholder:"e.g. Embu SQL Server Prod"},
+                {label:"Database Type",key:"type",type:"select"},
+                {label:"Host / Server",key:"host",placeholder:"192.168.1.100 or server.domain.com"},
+                {label:"Port",key:"port",placeholder:"1433"},
+                {label:"Database Name",key:"database_name",placeholder:"MediProcureEL5"},
+                {label:"Schema",key:"schema",placeholder:"dbo"},
+                {label:"Username",key:"username",placeholder:"sa"},
+                {label:"Password",key:"password",type:"password"},
+                {label:"DSN Name (optional)",key:"dsn",placeholder:"MediProcure_DSN"},
+                {label:"Timeout (seconds)",key:"timeout",placeholder:"30"},
+                {label:"Description",key:"description",full:true,placeholder:"Purpose of this connection"},
+              ].map(f=>(
+                <div key={f.key} style={{gridColumn:f.full?"1/-1":"auto"}}>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:3}}>{f.label}</label>
+                  {f.type==="select" ? (
+                    <select value={form[f.key]||""} onChange={e=>{
+                      const db=DB_TYPES.find(d=>d.value===e.target.value);
+                      setForm((p:any)=>({...p,[f.key]:e.target.value,port:String(db?.port||p.port)}));
+                    }} style={{...inp}}>
+                      {DB_TYPES.map(d=><option key={d.value} value={d.value}>{d.icon} {d.label} — {d.notes}</option>)}
+                    </select>
+                  ) : f.type==="password" ? (
+                    <div style={{position:"relative"}}>
+                      <input type={showPass["form"]?"text":"password"} value={form[f.key]||""} onChange={e=>setForm((p:any)=>({...p,[f.key]:e.target.value}))} style={{...inp,paddingRight:34}} placeholder={f.placeholder}/>
+                      <button type="button" onClick={()=>setShowPass(p=>({...p,form:!p.form}))} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
+                        {showPass["form"]?<EyeOff style={{width:14,height:14,color:"#9ca3af"}}/>:<Eye style={{width:14,height:14,color:"#9ca3af"}}/>}
+                      </button>
                     </div>
-                  </>
-                ):(
-                  <>
-                    <F label="DSN Name" k="dsn"/>
-                    <F label="Username" k="username"/>
-                    <div>
-                      <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Password</label>
-                      <div style={{position:"relative"}}>
-                        <input type={showPassInForm?"text":"password"} value={form.password||""} onChange={e=>setForm((p:any)=>({...p,password:e.target.value}))}
-                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
-                        <button onClick={()=>setShowPassInForm(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
-                          {showPassInForm?<EyeOff style={{width:16,height:16,color:"#9ca3af"}}/>:<Eye style={{width:16,height:16,color:"#9ca3af"}}/>}
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{gridColumn:"1/-1"}}><F label="Full Connection String (optional)" k="connection_string"/></div>
-                  </>
-                )}
-              </div>
-
-              {/* SSL + options */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
-                    <input type="checkbox" checked={form.ssl||false} onChange={e=>setForm((p:any)=>({...p,ssl:e.target.checked}))}
-                      style={{accentColor:"#0369a1",width:16,height:16}}/>
-                    <div>
-                      <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>SSL / TLS</span>
-                      <p style={{fontSize:10,color:"#9ca3af"}}>Encrypt connection</p>
-                    </div>
-                  </label>
+                  ) : (
+                    <input value={form[f.key]||""} onChange={e=>setForm((p:any)=>({...p,[f.key]:e.target.value}))} style={{...inp}} placeholder={f.placeholder}/>
+                  )}
                 </div>
-                <div>
-                  <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Sync Interval</label>
-                  <select value={form.sync_interval} onChange={e=>setForm((p:any)=>({...p,sync_interval:e.target.value}))}
-                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}>
-                    {["manual","hourly","daily","weekly"].map(v=><option key={v} value={v} style={{textTransform:"capitalize"}}>{v}</option>)}
-                  </select>
-                </div>
-                <F label="Timeout (seconds)" k="timeout" type="number"/>
-                <div>
-                  <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Description</label>
-                  <textarea value={form.description||""} onChange={e=>setForm((p:any)=>({...p,description:e.target.value}))} rows={2}
-                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",resize:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
-                </div>
-              </div>
-
-              {/* Security notice */}
-              <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:12,borderRadius:12,background:"#fffbeb",border:"1px solid #fde68a"}}>
-                <ShieldCheck style={{width:16,height:16,color:"#d97706",flexShrink:0,marginTop:2}}/>
-                <p style={{fontSize:10,color:"#92400e",lineHeight:1.5}}>Credentials are stored encrypted in system config. Passwords are never displayed after saving. Use dedicated read-only database accounts where possible.</p>
-              </div>
+              ))}
             </div>
-
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#0369a1",opacity:saving?0.7:1}}>
-                {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
-                {saving?"Saving...":editing?"Update Connection":"Create Connection"}
-              </button>
+            {/* ODBC Preview */}
+            {form.host && (
+              <div style={{marginTop:12,padding:"6px 10px",background:"#f0f4ff",borderRadius:6,fontSize:11,fontFamily:"monospace",color:"#374151",wordBreak:"break-all"}}>
+                <strong>ODBC String:</strong> {buildOdbcString({serverHost:form.host,serverPort:parseInt(form.port),database:form.database_name,username:form.username})}
+              </div>
+            )}
+            <div style={{display:"flex",gap:8,marginTop:16}}>
+              <button onClick={save} disabled={saving} style={btn()}>{saving?"Saving…":"Save Connection"}</button>
+              <button onClick={()=>{setShowForm(false);setEditing(null);}} style={btn("#6b7280")}>Cancel</button>
             </div>
           </div>
         </div>

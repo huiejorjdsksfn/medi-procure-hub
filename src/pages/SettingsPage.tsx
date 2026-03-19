@@ -244,7 +244,7 @@ Mode: ${S.email_mode==="external"?"External SMTP":"Internal + External"}`,
   };
 
   return (
-    <div style={{minHeight:"100%",background:"#f0f2f5",fontSize:14,fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{minHeight:"100%",background:"rgba(240,242,245,0.95)",fontSize:14,fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Top bar */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100}}>
         <Settings style={{width:18,height:18,color:"#fff"}}/>
