@@ -24,6 +24,7 @@ const SECTIONS = [
   { id:"modules",       label:"Module Toggles",      icon:Cpu,         color:"#059669" },
   { id:"users",         label:"User Roles",          icon:Users,       color:"#5b21b6" },
   { id:"advanced",      label:"Advanced & API",      icon:Zap,         color:"#dc2626" },
+  { id:"sms",           label:"SMS (Twilio)",         icon:Bell,        color:"#7c3aed" },
 ];
 
 function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
@@ -545,6 +546,39 @@ Embu Level 5 Hospital"/></FR>
               <FR label="Backup Schedule" ac="#dc2626"><Sel value={s("backup_schedule","daily")} onChange={v=>set("backup_schedule",v)} opts={[{v:"hourly",l:"Hourly"},{v:"daily",l:"Daily"},{v:"weekly",l:"Weekly"},{v:"monthly",l:"Monthly"}]}/></FR>
               <FR label="Backup Retention (days)" ac="#dc2626"><Inp value={s("backup_retention","30")} onChange={(v:string)=>set("backup_retention",v)} type="number"/></FR>
               <FR label="Export Format" ac="#dc2626"><Sel value={s("export_format","xlsx")} onChange={v=>set("export_format",v)} opts={[{v:"xlsx",l:"Excel (.xlsx)"},{v:"csv",l:"CSV"},{v:"pdf",l:"PDF"},{v:"json",l:"JSON"}]}/></FR>
+            </Card>
+          )}
+
+          {sec==="sms"&&(
+            <Card title="SMS Notifications (Twilio)" sub="Configure Twilio for SMS alerts on approvals, GRN, payments" color="#7c3aed" icon={Bell}
+              onSave={()=>save(["twilio_account_sid","twilio_auth_token","twilio_phone_number","twilio_enabled","sms_on_po_approve","sms_on_req_approve","sms_on_grn","sms_on_payment","sms_on_login_alert","sms_hospital_name"])} saving={saving}>
+              <FR label="Enable Twilio SMS" sub="Master toggle for all SMS notifications" ac="#7c3aed">
+                <Toggle on={bool("twilio_enabled")} onChange={v=>set("twilio_enabled",v?"true":"false")}/>
+              </FR>
+              <FR label="Account SID" sub="From Twilio Console → Account Info" ac="#7c3aed">
+                <Inp value={s("twilio_account_sid")} onChange={(v:string)=>set("twilio_account_sid",v)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+              </FR>
+              <FR label="Auth Token" sub="Keep this secret — never share" ac="#7c3aed">
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <Inp value={s("twilio_auth_token")} onChange={(v:string)=>set("twilio_auth_token",v)} placeholder="Auth token from Twilio Console"/>
+                </div>
+              </FR>
+              <FR label="Twilio Phone Number" sub="Your Twilio sending number (E.164 format)" ac="#7c3aed">
+                <Inp value={s("twilio_phone_number")} onChange={(v:string)=>set("twilio_phone_number",v)} placeholder="+254700000000"/>
+              </FR>
+              <FR label="SMS Sender Name" sub="Shown as sender prefix in messages" ac="#7c3aed">
+                <Inp value={s("sms_hospital_name","EL5 MediProcure")} onChange={(v:string)=>set("sms_hospital_name",v)} placeholder="EL5 MediProcure"/>
+              </FR>
+              <div style={{fontWeight:700,fontSize:13,color:"#374151",padding:"14px 0 6px",borderTop:"1px solid #f3f4f6",marginTop:4}}>SMS Triggers</div>
+              <FR label="PO Approved" ac="#7c3aed"><Toggle on={bool("sms_on_po_approve",true)} onChange={v=>set("sms_on_po_approve",v?"true":"false")}/></FR>
+              <FR label="Requisition Approved/Rejected" ac="#7c3aed"><Toggle on={bool("sms_on_req_approve",true)} onChange={v=>set("sms_on_req_approve",v?"true":"false")}/></FR>
+              <FR label="GRN Received" ac="#7c3aed"><Toggle on={bool("sms_on_grn",true)} onChange={v=>set("sms_on_grn",v?"true":"false")}/></FR>
+              <FR label="Payment Processed" ac="#7c3aed"><Toggle on={bool("sms_on_payment",true)} onChange={v=>set("sms_on_payment",v?"true":"false")}/></FR>
+              <FR label="Login Alert (security)" ac="#7c3aed"><Toggle on={bool("sms_on_login_alert",true)} onChange={v=>set("sms_on_login_alert",v?"true":"false")}/></FR>
+              <div style={{marginTop:12,padding:"10px 14px",borderRadius:8,background:"#f5f3ff",border:"1px solid #c4b5fd",fontSize:12,color:"#5b21b6"}}>
+                <strong>Setup:</strong> Create a Twilio account at twilio.com → get Account SID, Auth Token, and a phone number → enter above → enable toggle → save.
+                For Kenya numbers: format as +254XXXXXXXXX (replace leading 0 with +254).
+              </div>
             </Card>
           )}
 
