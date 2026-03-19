@@ -63,7 +63,10 @@ export default function TendersPage() {
   };
 
   const save = async () => {
-    if(!form.title||!form.closing_date){ toast({title:"Title and closing date required",variant:"destructive"}); return; }
+    if(!form.title.trim()){ toast({title:"Tender title is required",variant:"destructive"}); return; }
+    if(!form.closing_date){ toast({title:"Closing date is required",variant:"destructive"}); return; }
+    if(new Date(form.closing_date) < new Date(new Date().toDateString())){ toast({title:"Closing date must be today or in the future",variant:"destructive"}); return; }
+    if(form.estimated_value&&isNaN(Number(form.estimated_value))){ toast({title:"Estimated value must be a number",variant:"destructive"}); return; }
     setSaving(true);
     const payload={...form,estimated_value:form.estimated_value?Number(form.estimated_value):null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){

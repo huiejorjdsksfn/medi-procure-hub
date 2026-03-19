@@ -66,7 +66,9 @@ export default function PaymentVouchersPage() {
   const lineTotal = (lines:any[]) => lines.reduce((s,l)=>s+(Number(l.qty||1)*Number(l.unit_price||l.amount||0)),0);
 
   const save = async () => {
-    if(!form.payee_name){toast({title:"Payee name required",variant:"destructive"});return;}
+    if(!form.payee_name?.trim()){toast({title:"Payee name is required",variant:"destructive"});return;}
+    if(!form.voucher_date){toast({title:"Voucher date is required",variant:"destructive"});return;}
+    if(form.total_amount!==undefined&&Number(form.total_amount)<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
     const validLines=form.line_items.filter(l=>l.description.trim());
     if(!validLines.length){toast({title:"Add at least one line item",variant:"destructive"});return;}
     setSaving(true);
