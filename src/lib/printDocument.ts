@@ -14,23 +14,48 @@ export interface PrintSettings {
   showLogo?:        boolean;
   showStamp?:       boolean;
   showWatermark?:   boolean;
+  logoUrl?:         string;   // URL/path to hospital logo image
+  hospitalAddress?: string;
+  hospitalPhone?:   string;
+  hospitalEmail?:   string;
 }
 
 const DEF: Required<PrintSettings> = {
-  hospitalName:   "Embu Level 5 Hospital",
-  sysName:        "EL5 MediProcure",
-  docFooter:      "Embu Level 5 Hospital · Embu County Government",
-  currencySymbol: "KES",
-  printFont:      "Times New Roman",
-  printFontSize:  "11",
-  showLogo:       true,
-  showStamp:      true,
-  showWatermark:  false,
+  hospitalName:    "Embu Level 5 Hospital",
+  sysName:         "EL5 MediProcure",
+  docFooter:       "Embu Level 5 Hospital · Embu County Government",
+  currencySymbol:  "KES",
+  printFont:       "Times New Roman",
+  printFontSize:   "11",
+  showLogo:        true,
+  showStamp:       true,
+  showWatermark:   false,
+  logoUrl:         "",
+  hospitalAddress: "Embu Town, Embu County, Kenya",
+  hospitalPhone:   "+254 060 000000",
+  hospitalEmail:   "info@embu.health.go.ke",
 };
 
 function merge(s?: PrintSettings): Required<PrintSettings> {
   return { ...DEF, ...s };
 }
+
+/** Generate a unique document serial number with timestamp + random */
+function uniqueSerial(prefix: string, existingRef?: string): string {
+  if (existingRef && existingRef !== "—" && existingRef !== "") return existingRef;
+  const d = new Date();
+  const yy = d.getFullYear().toString().slice(-2);
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  const rand = Math.floor(1000+Math.random()*9000);
+  return `${prefix}-${yy}${mm}${dd}-${rand}`;
+}
+
+/** Validate all required print fields, return list of missing */
+function missingFields(obj: Record<string,any>, required: string[]): string[] {
+  return required.filter(k => !obj[k] || String(obj[k]).trim() === "" || obj[k] === "—");
+}
+
 
 /** Base print CSS — always black text, clean A4 */
 function baseCss(s: Required<PrintSettings>): string {
@@ -95,12 +120,27 @@ function baseCss(s: Required<PrintSettings>): string {
 }
 
 function docHeader(s: Required<PrintSettings>, title: string, subtitle?: string): string {
+  const logoHtml = s.showLogo && s.logoUrl
+    ? `<img src="${s.logoUrl}" alt="Logo" style="height:70px;width:auto;object-fit:contain;max-width:120px;" onerror="this.style.display='none'"/>`
+    : s.showLogo
+      ? `<div style="width:70px;height:70px;border:2px solid #000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9pt;font-weight:700;text-align:center;color:#000;">EMBU<br/>L5H</div>`
+      : "";
+
   return `
-    <div class="doc-header">
-      <div class="doc-title">${title}</div>
-      <div class="doc-org">${s.hospitalName}</div>
-      <div class="doc-sub">Embu County Government &nbsp;·&nbsp; ${s.sysName}${subtitle ? " &nbsp;·&nbsp; " + subtitle : ""}</div>
+    <div class="doc-header" style="display:flex;align-items:flex-start;gap:20px;text-align:left;">
+      ${logoHtml ? `<div style="flex-shrink:0;">${logoHtml}</div>` : ""}
+      <div style="flex:1;">
+        <div class="doc-org" style="font-size:14pt;font-weight:900;letter-spacing:0.5px;">${s.hospitalName}</div>
+        <div style="font-size:9.5pt;color:#000;margin-top:2px;">${s.hospitalAddress}</div>
+        <div style="font-size:9pt;color:#000;margin-top:1px;">Tel: ${s.hospitalPhone} &nbsp;·&nbsp; ${s.hospitalEmail}</div>
+        <div style="font-size:9pt;color:#000;margin-top:1px;">${s.sysName}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="doc-title" style="font-size:15pt;">${title}</div>
+        ${subtitle ? `<div style="font-size:10pt;font-weight:700;color:#000;margin-top:4px;border:1.5px solid #000;padding:2px 10px;display:inline-block;">${subtitle}</div>` : ""}
+      </div>
     </div>
+    <hr class="divider"/>
   `;
 }
 
@@ -142,6 +182,11 @@ function openPrint(html: string, title: string): void {
 // ─── REQUISITION ─────────────────────────────────────────────────────────────
 export function printRequisition(r: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
+  // Ensure unique ref number
+  r = { ...r, requisition_number: uniqueSerial("REQ", r.requisition_number) };
+  // Warn on missing critical fields
+  const missing = missingFields(r, ["title","department","requester_name"]);
+  if (missing.length && !window.confirm(`Missing fields: ${missing.join(", ")}. Print anyway?`)) return;
   const items = r.requisition_items || [];
   const totalAmt = items.reduce((sum: number, i: any) => sum + ((i.quantity || 0) * (i.unit_price || 0)), 0) || (r.total_amount || 0);
   const padded = [...items, ...Array(Math.max(0, 8 - items.length)).fill(null)];
@@ -212,6 +257,11 @@ export function printRequisition(r: any, cfg?: PrintSettings): void {
 // ─── PURCHASE ORDER (LPO) ────────────────────────────────────────────────────
 export function printPurchaseOrder(po: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
+  po = { ...po, po_number: uniqueSerial("PO", po.po_number) };
+  const missing = missingFields(po, ["supplier_name","delivery_date"]);
+  if (missing.length && !window.confirm(`Missing fields: ${missing.join(", ")}. Print anyway?`)) return;
+  const items = po.line_items || po.items || [];
+  if (!items.length && !window.confirm("No line items found. Print anyway?")) return;
   const items = po.items || [];
   const totalAmt = po.total_amount || items.reduce((sum: number, i: any) => sum + ((i.quantity || 0) * (i.unit_price || 0)), 0);
   const padded = [...items, ...Array(Math.max(0, 6 - items.length)).fill(null)];
@@ -280,6 +330,9 @@ export function printPurchaseOrder(po: any, cfg?: PrintSettings): void {
 // ─── GOODS RECEIVED NOTE ─────────────────────────────────────────────────────
 export function printGRN(g: any, cfg?: PrintSettings): void {
   const s = merge(cfg);
+  g = { ...g, grn_number: uniqueSerial("GRN", g.grn_number) };
+  const missing = missingFields(g, ["supplier_name","received_date"]);
+  if (missing.length && !window.confirm(`Missing GRN fields: ${missing.join(", ")}. Print anyway?`)) return;
   const items = g.grn_items || g.items || [];
   const totalVal = g.total_value || items.reduce((sum: number, i: any) => sum + ((i.received_quantity || i.quantity || 0) * (i.unit_price || 0)), 0);
 

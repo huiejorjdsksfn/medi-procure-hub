@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
 
 import LoginPage from "@/pages/LoginPage";
+import NetworkGuard from "@/components/NetworkGuard";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
 
@@ -134,6 +135,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </NetworkGuard>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
