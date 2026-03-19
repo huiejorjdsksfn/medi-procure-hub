@@ -4,6 +4,7 @@ import { supabase, db } from "@/integrations/supabase/client";
 
 export type ProcurementRole = 
   | "admin" 
+  | "database_admin"
   | "requisitioner" 
   | "procurement_officer" 
   | "procurement_manager" 
@@ -36,6 +37,7 @@ export const useAuth = () => useContext(AuthContext);
 
 const ROLE_PRIORITY: ProcurementRole[] = [
   "admin",
+  "database_admin",
   "procurement_manager",
   "procurement_officer",
   "inventory_manager",

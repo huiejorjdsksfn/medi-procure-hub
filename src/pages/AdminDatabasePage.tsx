@@ -556,7 +556,7 @@ function TableBrowser() {
   return (
     <div style={{
       display:"flex", flexDirection:"column",
-      height: fullscreen ? "100vh" : "calc(100vh - 57px)",
+      height: fullscreen ? "100vh" : "100%",
       position: fullscreen ? "fixed" : "relative",
       inset: fullscreen ? 0 : undefined,
       zIndex: fullscreen ? 9000 : undefined,
@@ -1056,7 +1056,7 @@ function Zap(props:any) { return <svg {...props} viewBox="0 0 24 24" fill="none"
 ═══════════════════════════════════════ */
 export default function AdminDatabasePage() {
   return (
-    <RoleGuard allowed={["admin"]}>
+    <RoleGuard allowed={["admin","database_admin"]}>
       <TableBrowser/>
     </RoleGuard>
   );
