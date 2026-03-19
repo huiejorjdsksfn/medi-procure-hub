@@ -35,6 +35,7 @@ export default function ReportsPage() {
   const { get: getSetting } = useSystemSettings();
   const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
   const sysName = getSetting("system_name","EL5 MediProcure");
+  const logoUrl = getSetting("logo_url") || getSetting("system_logo_url") || "";
   const [reportType, setReportType] = useState(REPORT_TYPES[0]);
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0,10));
@@ -143,7 +144,7 @@ export default function ReportsPage() {
   };
 
   return (
-      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"calc(100vh-80px)"}}>
+      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"100%",display:"flex",flexDirection:"column"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -229,7 +230,7 @@ export default function ReportsPage() {
       </div>
 
       {/* ── MAIN LAYOUT: Left stock panel + Right transaction grid ── */}
-      <div style={{display:"flex",gap:0,height:"calc(100vh - 230px)"}}>
+      <div style={{display:"flex",gap:0,minHeight:400,flex:1}}>
 
         {/* LEFT PANEL — Available Stocks (like original image) */}
         <div style={{width:200,background:"#d4d0c8",borderRight:"2px solid #999",display:"flex",flexDirection:"column",flexShrink:0}}>
