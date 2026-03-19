@@ -265,12 +265,7 @@ export default function FinancialDashboardPage() {
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes marquee { 0%{background-position:0 0} 100%{background-position:20px 0} }
-        .win-row-sel { background: #000082 !important; color: #fff !important; }
-        .win-row-sel td { background: #000082 !important; color: #fff !important; }
-        .win-row:hover:not(.win-row-sel) td { background: #d0e8ff !important; }
-        .coa-item:hover { background: #000082 !important; color: #fff !important; }
-        .coa-item:hover span { color: #fff !important; }
-        .win-menu-item:hover { background: #000082 !important; color: #fff !important; cursor: default; }
+        /* win-row styles now inline */
         .tb-btn:active { box-shadow: ${btnDown} !important; }
         input[type=date]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0); }
         ::-webkit-scrollbar { width: 14px; height: 14px; }
@@ -479,13 +474,12 @@ export default function FinancialDashboardPage() {
                     ) : displayed.map((row, i) => (
                       <tr key={row.id || i}
                         onClick={() => setSelRow(i)}
-                        className={`win-row${selRow === i ? " win-row-sel" : ""}`}
-                        style={{ cursor: "default" }}>
+                        style={{ cursor:"default", background: selRow === i ? "#000082" : i%2===0 ? "#fff" : "#f8f8f0" }}>
                         {COLS[activeMod].map(col => (
                           <td key={col} style={{
                             padding: "2px 8px", borderBottom: "1px solid #d4d0c8", whiteSpace: "nowrap",
-                            background: i % 2 === 0 ? "#fff" : "#f8f8f0",
-                            color: "#000",
+                            background: selRow === i ? "#000082" : i % 2 === 0 ? "#fff" : "#f8f8f0",
+                            color: selRow === i ? "#fff" : "#000",
                           }}>
                             {getCell(row, col)}
                           </td>
