@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { sendNotification } from "@/lib/notify";
+import procBg from "@/assets/procurement-bg.jpg";
 import {
   Mail, Send, RefreshCw, X, Search, Star, Archive, Reply,
   Trash2, Edit3, Inbox, Users, Plus, AlertTriangle, CheckCheck,

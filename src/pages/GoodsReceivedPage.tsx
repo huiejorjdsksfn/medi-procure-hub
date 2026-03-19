@@ -44,6 +44,12 @@ export default function GoodsReceivedPage() {
   };
   useEffect(()=>{ load(); },[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("grn-rt").on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const genGrn = ()=>`GRN/EL5H/${new Date().getFullYear()}/${String(Math.floor(1000+Math.random()*9000))}`;
 
   const printGrn = (g:any) => {

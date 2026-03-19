@@ -44,6 +44,12 @@ export default function PurchaseOrdersPage() {
 
   useEffect(()=>{ load(); },[load]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("pos-rt").on("postgres_changes",{event:"*",schema:"public",table:"purchase_orders"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[load]);
+
   const approve = async (id:string) => {
     const po = orders.find(o=>o.id===id);
     await (supabase as any).from("purchase_orders").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);

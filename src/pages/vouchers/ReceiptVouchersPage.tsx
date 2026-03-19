@@ -39,6 +39,12 @@ export default function ReceiptVouchersPage() {
   };
   useEffect(()=>{load();},[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("rcv-rt").on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const save = async () => {
     if(!form.received_from||!form.amount){toast({title:"Fill required fields",variant:"destructive"});return;}
     setSaving(true);

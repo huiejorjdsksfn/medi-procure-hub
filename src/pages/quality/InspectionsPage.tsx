@@ -36,6 +36,12 @@ export default function InspectionsPage() {
   };
   useEffect(()=>{ load(); },[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("ins-rt").on("postgres_changes",{event:"*",schema:"public",table:"inspections"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const save = async()=>{
     if(!form.item_name||!form.inspection_date){toast({title:"Item name and date required",variant:"destructive"});return;}
     setSaving(true);

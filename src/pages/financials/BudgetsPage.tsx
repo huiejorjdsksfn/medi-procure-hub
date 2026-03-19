@@ -35,6 +35,12 @@ export default function BudgetsPage() {
   };
   useEffect(()=>{ load(); },[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("bud-rt").on("postgres_changes",{event:"*",schema:"public",table:"budgets"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const openEdit = (b:any) => {
     setEditing(b);
     setForm({budget_name:b.budget_name,department_id:b.department_id||"",department_name:b.department_name||"",financial_year:b.financial_year,allocated_amount:String(b.allocated_amount),category:b.category||"",status:b.status,notes:b.notes||""});

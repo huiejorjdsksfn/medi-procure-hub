@@ -41,6 +41,12 @@ export default function PurchaseVouchersPage() {
   };
   useEffect(()=>{load();},[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("puv-rt").on("postgres_changes",{event:"*",schema:"public",table:"purchase_vouchers"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const updateItem = (i:number,k:string,v:string) => {
     setItems(p=>{const n=[...p];n[i]={...n[i],[k]:v};
       if(k==="qty"||k==="rate") n[i].amount=String(Number(n[i].qty||0)*Number(n[i].rate||0));

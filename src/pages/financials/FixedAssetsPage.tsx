@@ -38,6 +38,12 @@ export default function FixedAssetsPage() {
   };
   useEffect(()=>{ load(); },[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("fa-rt").on("postgres_changes",{event:"*",schema:"public",table:"fixed_assets"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const openEdit = (a:any) => {
     setEditing(a);
     setForm({asset_number:a.asset_number,asset_name:a.asset_name,category:a.category||"",department_id:a.department_id||"",purchase_date:a.purchase_date||"",purchase_cost:String(a.purchase_cost||0),useful_life:String(a.useful_life||0),residual_value:String(a.residual_value||0),depreciation_method:a.depreciation_method||"Straight Line",location:a.location||"",serial_number:a.serial_number||"",supplier_name:a.supplier_name||"",warranty_expiry:a.warranty_expiry||"",condition:a.condition||"good",status:a.status||"active",description:a.description||""});
