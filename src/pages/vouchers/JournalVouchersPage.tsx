@@ -40,6 +40,12 @@ export default function JournalVouchersPage() {
   };
   useEffect(()=>{load();},[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("jv-rt").on("postgres_changes",{event:"*",schema:"public",table:"journal_vouchers"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const totalDebit = entries.reduce((s,e)=>s+Number(e.debit||0),0);
   const totalCredit = entries.reduce((s,e)=>s+Number(e.credit||0),0);
   const isBalanced = Math.abs(totalDebit-totalCredit)<0.01 && totalDebit>0;

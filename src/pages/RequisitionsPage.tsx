@@ -50,6 +50,12 @@ export default function RequisitionsPage() {
 
   useEffect(()=>{ load(); },[load]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("reqs-rt").on("postgres_changes",{event:"*",schema:"public",table:"requisitions"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[load]);
+
   const approve = async (id:string) => {
     const req = reqs.find(r=>r.id===id);
     await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);

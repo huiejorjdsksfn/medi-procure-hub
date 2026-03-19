@@ -42,6 +42,12 @@ export default function SalesVouchersPage() {
   };
   useEffect(()=>{load();},[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("sv-rt").on("postgres_changes",{event:"*",schema:"public",table:"sales_vouchers"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const updateLine = (i:number,k:string,v:string) => {
     setLineItems(p=>{const n=[...p];n[i]={...n[i],[k]:v};
       if(k==="item_id"){const it=items.find(x=>x.id===v); if(it){n[i].item_name=it.name;n[i].rate=String(it.unit_price||0);}}

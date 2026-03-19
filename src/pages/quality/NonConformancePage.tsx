@@ -35,6 +35,12 @@ export default function NonConformancePage() {
   };
   useEffect(()=>{ load(); },[]);
 
+  /* ── Real-time subscription ─────────────────────────────── */
+  useEffect(()=>{
+    const ch=(supabase as any).channel("ncr-rt").on("postgres_changes",{event:"*",schema:"public",table:"non_conformance"},()=>load()).subscribe();
+    return ()=>{(supabase as any).removeChannel(ch);};
+  },[]);
+
   const save = async()=>{
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);

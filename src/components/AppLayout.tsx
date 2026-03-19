@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { NotificationBell } from "@/components/NotificationPopup";
 import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import procBg from "@/assets/procurement-bg.jpg";
@@ -324,8 +323,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Mail style={{width:14,height:14}}/>
               <span style={{fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.55)"}}>Mail</span>
             </button>
-
-            <NotificationBell logoUrl={logoUrl} sysName={sysName} hospitalName={hospitalName}/>
 
             <div style={{width:1,height:18,background:"rgba(255,255,255,0.15)",margin:"0 3px"}}/>
 
