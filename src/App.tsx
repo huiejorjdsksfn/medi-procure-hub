@@ -54,6 +54,7 @@ import DocumentsPage from "@/pages/DocumentsPage";
 import BackupPage from "@/pages/BackupPage";
 import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
+import IpAccessPage from "@/pages/IpAccessPage";
 import ProfilePage from "@/pages/ProfilePage";
 
 const queryClient = new QueryClient({
@@ -132,6 +133,7 @@ const App = () => (
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/backup" element={<P><RoleGuard allowed={["admin"]}><BackupPage /></RoleGuard></P>} />
             <Route path="/odbc" element={<P><RoleGuard allowed={["admin"]}><ODBCPage /></RoleGuard></P>} />
+            <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
 
             <Route path="*" element={<NotFound />} />

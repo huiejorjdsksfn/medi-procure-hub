@@ -1,5 +1,10 @@
-# ProcurBosse — Auto-build Windows .exe on every push to main
-# v2 = Windows 10/11 x64 | v1 = Windows 7/8/10 ia32 (Electron 22 LTS)
+# ─────────────────────────────────────────────────────────────────────────────
+# ProcurBosse — Windows EXE Build (FIXED)
+# Produces:
+#   ProcurBosse-v2.x-Win10-x64-Setup.exe  (Windows 10/11 x64 — Electron latest)
+#   ProcurBosse-v1.x-Win7-ia32-Setup.exe  (Windows 7/8/10 ia32 — Electron 22 LTS)
+#   ProcurBosse_vX.X_YYYYMMDD_Windows.zip (Both in one ZIP)
+# ─────────────────────────────────────────────────────────────────────────────
 name: Build ProcurBosse Windows EXE
 
 on:
@@ -8,12 +13,11 @@ on:
   workflow_dispatch:
     inputs:
       build_v1:
-        description: 'Also build v1 legacy EXE (Win7/8)?'
+        description: 'Build v1 Win7/ia32?'
         type: boolean
         default: true
-        required: false
       version_override:
-        description: 'Override version (e.g. 2.1.0)'
+        description: 'Version (e.g. 2.1.0)'
         required: false
         default: ''
 
@@ -21,151 +25,316 @@ permissions:
   contents: write
 
 env:
-  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+  SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 
 jobs:
+  # ── Step 1: Build React/Vite on Linux (fast) ──────────────────────────────
   build-web:
-    name: "Build Web App (Vite)"
+    name: "Build Web (Vite)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci --no-audit
-      - name: Build React app
+
+      - name: Install deps
+        run: npm ci --no-audit
+
+      - name: Build Vite app
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      - name: Verify dist
-        run: du -sh dist/ && ls dist/
+          VITE_SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPABASE_KEY }}
+
+      - name: Verify build output
+        run: |
+          echo "=== dist/ ==="
+          ls -lh dist/
+          echo "=== dist/assets ==="
+          ls dist/assets/ | head -10
+          echo "=== Size ==="
+          du -sh dist/
+
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: dist/
           retention-days: 1
 
-  build-exe-v2:
+  # ── Step 2: Build v2 EXE — Windows 10/11 x64 ─────────────────────────────
+  build-v2:
     name: "ProcurBosse v2 — Win10/11 x64"
     runs-on: windows-latest
     needs: build-web
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
+
       - name: Install dependencies
         run: npm ci --no-audit
         shell: bash
+
       - name: Set version
-        shell: bash
+        id: ver
+        shell: python
         run: |
-          if [ -n "${{ github.event.inputs.version_override }}" ]; then
-            VERSION="${{ github.event.inputs.version_override }}"
-          else
-            VERSION="2.0.${{ github.run_number }}"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='$VERSION';fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
+          import os, json
+          override = "${{ github.event.inputs.version_override }}".strip()
+          run_num = "${{ github.run_number }}"
+          version = override if override else f"2.0.{run_num}"
+          pkg = json.loads(open("package.json").read())
+          pkg["version"] = version
+          open("package.json","w").write(json.dumps(pkg, indent=2))
+          open(os.environ["GITHUB_OUTPUT"],"a").write(f"version={version}\n")
+          print(f"Version: {version}")
+
       - name: Build x64 installer
         shell: bash
-        run: npx electron-builder --win --x64 --config electron-builder.yml
+        run: |
+          npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Rename output
-        shell: bash
+
+      - name: Rename & verify output
+        shell: python
         run: |
-          cd dist-electron
-          for f in *.exe; do [ -f "$f" ] && mv "$f" "ProcurBosse-v${{ env.VERSION }}-Win10-x64-Setup.exe" && break; done
-          ls -lh
+          import os, glob, shutil
+          ver = "${{ steps.ver.outputs.version }}"
+          exes = glob.glob("dist-electron/*.exe")
+          print(f"Found EXEs: {exes}")
+          if exes:
+              src = max(exes, key=os.path.getmtime)
+              dst = f"dist-electron/ProcurBosse-v{ver}-Win10-x64-Setup.exe"
+              shutil.move(src, dst)
+              size = os.path.getsize(dst) // 1024 // 1024
+              print(f"Renamed to: {dst} ({size} MB)")
+          else:
+              print("ERROR: No EXE found!")
+              import sys; sys.exit(1)
+
       - uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v2-win64
-          path: dist-electron/ProcurBosse-*.exe
+          name: procurbosse-v2-x64
+          path: dist-electron/ProcurBosse-*-Win10-x64-Setup.exe
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
 
-  build-exe-v1:
-    name: "ProcurBosse v1 — Win7/8/10 ia32 (Legacy)"
+  # ── Step 3: Build v1 EXE — Windows 7/8/10 ia32 (Electron 22 LTS) ─────────
+  build-v1:
+    name: "ProcurBosse v1 — Win7/8 ia32"
     runs-on: windows-latest
     needs: build-web
     if: ${{ github.event_name == 'push' || github.event.inputs.build_v1 == 'true' }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-      - name: Pin Electron 22 LTS for Windows 7 support
-        shell: bash
-        run: |
-          node -e "
-            const fs=require('fs');
-            const p=JSON.parse(fs.readFileSync('package.json','utf8'));
-            p.devDependencies=p.devDependencies||{};
-            p.devDependencies['electron']='22.3.27';
-            p.version='1.0.${{ github.run_number }}';
-            fs.writeFileSync('package.json',JSON.stringify(p,null,2));
-            console.log('Pinned Electron 22.3.27 for Win7 support');
-          "
-          echo "V1_VERSION=1.0.${{ github.run_number }}" >> $GITHUB_ENV
-      - name: Install with Electron 22
-        shell: bash
-        run: npm install --no-audit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
+
+      - name: Pin Electron 22 LTS (last Win7 supported)
+        shell: python
+        run: |
+          import json
+          run_num = "${{ github.run_number }}"
+          pkg = json.loads(open("package.json").read())
+          pkg.setdefault("devDependencies", {})["electron"] = "22.3.27"
+          pkg["version"] = f"1.0.{run_num}"
+          open("package.json","w").write(json.dumps(pkg, indent=2))
+          print(f"Electron pinned to 22.3.27, version: 1.0.{run_num}")
+
+      - name: Install with Electron 22
+        shell: bash
+        run: npm install --no-audit
+
+      - name: Patch builder for ia32 artifact name
+        shell: python
+        run: |
+          run_num = "${{ github.run_number }}"
+          cfg = open("electron-builder.yml").read()
+          cfg = cfg.replace(
+              'artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"',
+              'artifactName: "ProcurBosse-v${version}-Win7-ia32-Setup.exe"'
+          )
+          open("electron-builder.yml","w").write(cfg)
+          print("Patched artifact name for v1")
+
       - name: Build ia32 installer (Windows 7/8/10)
         shell: bash
-        run: npx electron-builder --win --ia32 --config electron-builder.yml
+        run: |
+          npx electron-builder --win --ia32 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Rename output
-        shell: bash
+
+      - name: Verify output
+        shell: python
         run: |
-          cd dist-electron
-          for f in *.exe; do [ -f "$f" ] && mv "$f" "ProcurBosse-v${{ env.V1_VERSION }}-Win7-ia32-Setup.exe" && break; done
-          ls -lh || echo "No exe found"
+          import glob, os
+          exes = glob.glob("dist-electron/*.exe")
+          if exes:
+              for e in exes:
+                  print(f"  {os.path.basename(e)} ({os.path.getsize(e)//1024//1024} MB)")
+          else:
+              print("WARNING: No EXE found")
+
       - uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v1-win7
+          name: procurbosse-v1-ia32
           path: dist-electron/ProcurBosse-*Win7*.exe
           retention-days: 30
           if-no-files-found: warn
 
+  # ── Step 4: Package both into ZIP + create GitHub Release ─────────────────
   release:
-    name: "Publish GitHub Release"
+    name: "Release & ZIP Package"
     runs-on: ubuntu-latest
-    needs: [build-exe-v2, build-exe-v1]
-    if: always() && needs.build-exe-v2.result == 'success'
+    needs: [build-v2, build-v1]
+    if: always() && needs.build-v2.result == 'success'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+
+      - uses: actions/setup-python@v5
         with:
-          name: procurbosse-v2-win64
+          python-version: '3.12'
+
+      - name: Download v2 EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: procurbosse-v2-x64
+          path: release/
+        continue-on-error: false
+
+      - name: Download v1 EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: procurbosse-v1-ia32
           path: release/
         continue-on-error: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: procurbosse-v1-win7
-          path: release/
-        continue-on-error: true
-      - run: ls -lh release/ || echo "No release files"
-      - name: Set tag
+
+      - name: Create ZIP package with README
+        shell: python
+        run: |
+          import zipfile, os, glob
+          from datetime import datetime
+
+          ts = datetime.now().strftime("%Y%m%d")
+          ver = "${{ needs.build-v2.outputs.version }}"
+          zip_name = f"ProcurBosse_v{ver}_{ts}_Windows.zip"
+
+          readme = f"""ProcurBosse — EL5 MediProcure Windows Installer Package
+          ═══════════════════════════════════════════════════════
+          Version:  {ver}
+          Built:    {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}
+          Hospital: Embu Level 5 Hospital, Embu County Government
+          System:   EL5 MediProcure v2.0 — 40+ ERP Modules
+
+          INSTALLATION
+          ─────────────────────────────────────────────────────
+          1. Right-click the correct .exe → Run as Administrator
+          2. Follow the setup wizard
+          3. Launch from Desktop or Start Menu → ProcurBosse
+
+          FILE GUIDE
+          ─────────────────────────────────────────────────────
+          ProcurBosse-v{ver}-Win10-x64-Setup.exe
+             → Windows 10 / 11 (64-bit) — RECOMMENDED
+             → Electron latest — best performance
+
+          ProcurBosse-v1.0.*-Win7-ia32-Setup.exe
+             → Windows 7 SP1 / 8 / 8.1 / 10 (32-bit)
+             → Electron 22 LTS — maximum compatibility
+
+          SYSTEM REQUIREMENTS
+          ─────────────────────────────────────────────────────
+          v2 (Modern) : Windows 10/11, 64-bit, 4GB RAM, 500MB disk
+          v1 (Legacy) : Windows 7+, 32/64-bit, 2GB RAM, 350MB disk
+          Both require: Internet connection, 1366x768+ display
+
+          INCLUDED DLLs (installed automatically by setup)
+          ─────────────────────────────────────────────────────
+          vcruntime140.dll, vcruntime140_1.dll — Visual C++ Runtime
+          ucrtbase.dll      — Universal C Runtime (Win7 required)
+          d3dcompiler_47.dll — DirectX Shader Compiler
+          chrome_elf.dll    — Chromium Error Reporting
+          libEGL.dll        — SwiftShader EGL (software render)
+          libGLESv2.dll     — SwiftShader GLES (software render)
+          ffmpeg.dll        — Multimedia codec support
+
+          DATABASE & CONNECTIVITY
+          ─────────────────────────────────────────────────────
+          Live DB: yvjfehnzbzjliizjvuhq.supabase.co (PostgreSQL)
+          Auth:    Supabase Auth (JWT tokens)
+          Repo:    https://github.com/huiejorjdsksfn/medi-procure-hub
+
+          MODULES INCLUDED
+          ─────────────────────────────────────────────────────
+          ✓ Procurement (Requisitions, LPO, GRN, Suppliers, Tenders)
+          ✓ Finance (Vouchers, Budgets, Chart of Accounts, Assets)
+          ✓ Inventory (Items, Categories, QR Scanner)
+          ✓ Quality (Inspections, Non-Conformance Reports)
+          ✓ Reports & Documents (Excel/PDF export, Print)
+          ✓ Email (SMTP, Internal Mail, Notifications)
+          ✓ Admin (Users, Settings, Database Admin, Webmaster)
+          ✓ ODBC / SQL Server migration support
+          ✓ IP Restriction (network whitelist enforcement)
+          ✓ Real-time sync (Supabase Realtime channels)
+          ✓ Auto-update checker
+
+          Build: #{os.environ.get('GITHUB_RUN_NUMBER','local')} | Commit: {os.environ.get('GITHUB_SHA','?')[:8]}
+          """
+
+          with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+              zf.writestr("README.txt", readme)
+              for exe in glob.glob("release/*.exe"):
+                  name = os.path.basename(exe)
+                  size = os.path.getsize(exe)//1024//1024
+                  print(f"  Adding {name} ({size} MB)")
+                  zf.write(exe, name)
+
+          size = os.path.getsize(zip_name)//1024//1024
+          print(f"\nZIP: {zip_name} ({size} MB)")
+          # Save zip name for next step
+          open("zip_name.txt","w").write(zip_name)
+
+      - name: List release files
+        run: ls -lh release/ *.zip 2>/dev/null || echo "Files above"
+
+      - name: Set release tag
         id: tag
-        run: echo "tag=v2.0-build-${{ github.run_number }}" >> $GITHUB_OUTPUT
-      - name: Create Release
+        run: echo "tag=v${{ needs.build-v2.outputs.version }}-build-${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
@@ -173,19 +342,33 @@ jobs:
           body: |
             ## 🏥 ProcurBosse Desktop — Embu Level 5 Hospital ERP
 
-            | File | Windows | Arch | Note |
+            | File | Windows | Arch | Size |
             |------|---------|------|------|
-            | `ProcurBosse-v2.x-Win10-x64-Setup.exe` | **10 / 11** | 64-bit | ✅ Recommended |
-            | `ProcurBosse-v1.x-Win7-ia32-Setup.exe` | **7 / 8 / 8.1 / 10** | 32-bit | ✅ Legacy PCs |
+            | `ProcurBosse-v2.x-Win10-x64-Setup.exe` | **10 / 11** | 64-bit | ~150MB |
+            | `ProcurBosse-v1.x-Win7-ia32-Setup.exe` | **7/8/8.1/10** | 32-bit | ~120MB |
+            | `ProcurBosse_v2.x_*_Windows.zip` | **All** | Both | Compressed |
 
-            **Install:** Right-click → Run as Administrator → follow wizard
+            ### Installation
+            1. Download the ZIP (contains both installers)
+            2. Extract ZIP
+            3. Right-click the correct `.exe` → **Run as Administrator**
+            4. Follow the setup wizard
+            5. Launch from **Desktop shortcut** or **Start Menu → ProcurBosse**
 
-            **Requirements:** Internet connection · 300 MB disk · 2 GB RAM minimum
+            ### System Requirements
+            - **Internet connection** (live Supabase database)
+            - **300–500 MB disk space**
+            - **2–4 GB RAM minimum**
+            - Windows 7 SP1 or later
 
-            **Modules:** Procurement · Finance · Inventory · Quality · Admin · Email · Documents · ODBC/SQL Server
+            ### ERP Modules
+            Procurement · Finance · Inventory · Quality · Reports · Email · Admin · ODBC/SQL Server · IP Restriction
 
+            ---
             Built from `${{ github.sha }}` · Build #${{ github.run_number }}
-          files: release/*.exe
+          files: |
+            release/*.exe
+            ProcurBosse_*.zip
           draft: false
           prerelease: false
           make_latest: true
