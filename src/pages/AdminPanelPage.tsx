@@ -229,7 +229,7 @@ function AdminInner() {
   ];
 
   return (
-    <div style={{display:"flex",minHeight:"calc(100vh - 82px)",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f0f2f5"}}>
+    <div style={{display:"flex",minHeight:"100%",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f0f2f5"}}>
 
       {/* ── LEFT SIDEBAR ── */}
       <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0,boxShadow:"1px 0 4px rgba(0,0,0,0.04)"}}>

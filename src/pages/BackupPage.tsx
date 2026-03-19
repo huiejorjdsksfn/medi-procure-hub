@@ -137,7 +137,7 @@ function BackupInner() {
   };
 
   return (
-      <div style={{padding:24,maxWidth:896,margin:"0 auto",display:"flex",flexDirection:"column",gap:24, fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"calc(100vh-100px)" }}>
+      <div style={{padding:24,maxWidth:896,margin:"0 auto",display:"flex",flexDirection:"column",gap:24, fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"100%" }}>
       {/* Header card */}
       <div style={{borderRadius:16}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>

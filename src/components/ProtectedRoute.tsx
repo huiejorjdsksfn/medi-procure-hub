@@ -7,32 +7,44 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(145deg,#0a2e6e,#1565c0,#29b6f6)", fontFamily: "Segoe UI, system-ui, sans-serif" }}
-      >
-        <div className="text-center">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl"
-            style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
-          >
-            <img src="/favicon.png" alt="" className="w-9 h-9 object-contain drop-shadow"
-              style={{ filter: "brightness(0) invert(1)" }}
-              onError={e => ((e.target as HTMLElement).style.display = "none")}
-            />
-          </div>
-          <div className="w-8 h-8 border-[3px] border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3"/>
-          <p className="text-white/70 text-sm font-medium">Loading MediProcure…</p>
-          <p className="text-white/40 text-xs mt-1">Embu Level 5 Hospital</p>
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center",
+        justifyContent: "center", flexDirection: "column", gap: 16,
+        background: "linear-gradient(145deg,#0a2e6e,#1565c0,#0a2558)",
+        fontFamily: "'Segoe UI',system-ui,sans-serif",
+      }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 16,
+          background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+        }}>
+          <img src="/favicon.png" alt=""
+            style={{ width: 36, height: 36, objectFit: "contain", filter: "brightness(0) invert(1)" }}
+            onError={e => ((e.target as HTMLElement).style.display = "none")}
+          />
         </div>
+        {/* Spinner */}
+        <div style={{
+          width: 32, height: 32, borderRadius: "50%",
+          border: "3px solid rgba(255,255,255,0.25)",
+          borderTopColor: "#fff",
+          animation: "spin 0.8s linear infinite",
+        }}/>
+        <div>
+          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: 500, textAlign: "center", margin: 0 }}>
+            Loading MediProcure…
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, textAlign: "center", marginTop: 4 }}>
+            Embu Level 5 Hospital
+          </p>
+        </div>
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
 
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!session) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 

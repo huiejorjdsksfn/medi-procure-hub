@@ -263,9 +263,9 @@ Mode: ${S.email_mode==="external"?"External SMTP":"Internal + External"}`,
         </div>
       </div>
 
-      <div style={{display:"flex",minHeight:"calc(100vh - 82px)"}}>
+      <div style={{display:"flex",minHeight:"100%"}}>
         {/* Sidebar */}
-        <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",padding:"12px 0",flexShrink:0,position:"sticky",top:82,height:"calc(100vh - 82px)",overflowY:"auto"}}>
+        <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",padding:"12px 0",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto"}}>
           {SECTIONS.map(x=>(
             <button key={x.id} onClick={()=>setSec(x.id)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",border:"none",background:sec===x.id?`${x.color}12`:"transparent",cursor:"pointer",textAlign:"left" as const,borderLeft:sec===x.id?`3px solid ${x.color}`:"3px solid transparent",transition:"all 0.1s"}}>
               <x.icon style={{width:15,height:15,color:sec===x.id?x.color:"#9ca3af",flexShrink:0}}/>

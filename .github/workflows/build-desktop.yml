@@ -1,0 +1,75 @@
+name: Build Desktop App
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  build-windows-exe:
+    runs-on: windows-latest
+    needs: build-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+      - name: Install with Electron
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 'false'
+      - name: Build Windows exe
+        run: npx electron-builder --win --config electron-builder.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: dist-electron/*.exe
+          retention-days: 30
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.0-build-${{ github.run_number }}
+          name: "EL5 MediProcure v2.0 (Build ${{ github.run_number }})"
+          body: |
+            ## EL5 MediProcure Desktop Installer
+
+            **Download the `.exe` below and run as Administrator.**
+
+            - Windows 7 SP1 / 8 / 10 / 11 (64-bit)
+            - Connects live to Embu L5H database
+            - All 40+ ERP modules included
+            - Built from: ${{ github.sha }}
+          files: dist-electron/*.exe
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

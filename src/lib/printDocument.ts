@@ -262,7 +262,6 @@ export function printPurchaseOrder(po: any, cfg?: PrintSettings): void {
   if (missing.length && !window.confirm(`Missing fields: ${missing.join(", ")}. Print anyway?`)) return;
   const items = po.line_items || po.items || [];
   if (!items.length && !window.confirm("No line items found. Print anyway?")) return;
-  const items = po.items || [];
   const totalAmt = po.total_amount || items.reduce((sum: number, i: any) => sum + ((i.quantity || 0) * (i.unit_price || 0)), 0);
   const padded = [...items, ...Array(Math.max(0, 6 - items.length)).fill(null)];
 

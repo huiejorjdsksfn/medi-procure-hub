@@ -346,7 +346,7 @@ export default function DocumentsPage() {
   };
 
   return (
-      <div style={{minHeight:"calc(100vh - 82px)",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{minHeight:"100%",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
@@ -366,7 +366,7 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      <div style={{display:"flex",gap:0,height:"calc(100vh - 148px)"}}>
+      <div style={{display:"flex",gap:0,minHeight:400,flex:1}}>
 
         {/* LEFT PANEL */}
         <div style={{width:260,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>

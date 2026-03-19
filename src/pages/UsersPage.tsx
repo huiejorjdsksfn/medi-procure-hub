@@ -157,7 +157,7 @@ function UsersInner() {
   if(!isAdmin) return <div style={{padding:32,textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>Admin access required</div>;
 
   return (
-    <div style={{minHeight:"calc(100vh - 82px)",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{minHeight:"100%",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
         <Users style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
