@@ -85,7 +85,7 @@ export default function RequisitionsPage() {
       ...form, requisition_number:num, status:"draft",
       requested_by:user?.id, requester_name:profile?.full_name,
     }).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
     logAudit(user?.id,profile?.full_name,"create","requisitions",data?.id,{title:form.title});
     toast({title:"Requisition Created",description:num});
     await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted requisition ${num}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});

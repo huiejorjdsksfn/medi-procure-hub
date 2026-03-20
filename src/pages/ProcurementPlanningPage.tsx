@@ -46,15 +46,15 @@ export default function ProcurementPlanningPage() {
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
     const dept = depts.find(d=>d.id===form.department_id);
-    const payload={...form,plan_number:editing?editing.plan_number:genNo(),department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
+    const payload={...form,plan_number:editing?editing.plan_number:genNo(),item_description:form.description||form.title||"",department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("procurement_plans").update(payload).eq("id",editing.id);
       if(!error){toast({title:"Plan updated ✓"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}
-      else toast({title:"Error",description:error.message,variant:"destructive"});
+      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
     } else {
       const{data,error}=await(supabase as any).from("procurement_plans").insert(payload).select().single();
       if(!error){toast({title:"Plan created ✓"});logAudit(user?.id,profile?.full_name,"create","procurement_plans",data?.id,{title:form.title});}
-      else toast({title:"Error",description:error.message,variant:"destructive"});
+      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };

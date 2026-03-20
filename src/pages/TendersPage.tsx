@@ -74,7 +74,7 @@ export default function TendersPage() {
       toast({title:"Tender updated ✓"});
     } else {
       const{data,error}=await(supabase as any).from("tenders").insert({...payload,tender_number:genNo(),status:"draft"}).select().single();
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
       logAudit(user?.id,profile?.full_name,"create","tenders",data?.id,{});
       await notifyProcurement({title:"New Tender Created",message:`${form.title} — Closing: ${fmtDate(form.closing_date)}`,type:"tender",module:"Tenders",senderId:user?.id});
       toast({title:"Tender created ✓"});

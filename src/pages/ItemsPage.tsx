@@ -99,7 +99,7 @@ export default function ItemsPage() {
   const deleteItem = async (it:any) => {
     if(!confirm(`Delete "${it.name}"?`)) return;
     const {error} = await supabase.from("items").delete().eq("id",it.id);
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});return;}
     logAudit(user?.id,profile?.full_name,"delete","items",it.id,{name:it.name});
     toast({title:"Item deleted"});
     load();

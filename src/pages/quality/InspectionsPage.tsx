@@ -50,7 +50,7 @@ export default function InspectionsPage() {
       quantity_inspected:Number(form.quantity_inspected||0),quantity_accepted:Number(form.quantity_accepted||0),quantity_rejected:Number(form.quantity_rejected||0),
       created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("inspections").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","inspections",data?.id,{item:form.item_name});toast({title:"Inspection recorded ✓"});setShowNew(false);load();}
     setSaving(false);
   };

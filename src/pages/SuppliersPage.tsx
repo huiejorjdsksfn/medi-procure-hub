@@ -95,7 +95,7 @@ export default function SuppliersPage() {
   const deleteSupplier=async(s:any)=>{
     if(!confirm(`Delete supplier "${s.name}"?`)) return;
     const{error}=await supabase.from("suppliers").delete().eq("id",s.id);
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});return;}
     logAudit(user?.id,profile?.full_name,"delete","suppliers",s.id,{name:s.name});
     toast({title:"Supplier deleted"}); load();
   };

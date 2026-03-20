@@ -76,7 +76,7 @@ export default function PaymentVouchersPage() {
     const sup=suppliers.find(s=>s.id===form.supplier_id);
     const payload={voucher_number:genNo(),payee_name:form.payee_name||(sup?.name||""),payee_type:form.payee_type,supplier_id:form.supplier_id||null,payment_method:form.payment_method,voucher_date:form.voucher_date,bank_name:form.bank_name||(sup?.bank_name||""),account_number:form.account_number||(sup?.account_number||""),reference:form.reference,description:form.description,expense_account:form.expense_account,line_items:validLines,total_amount:total,status:"pending",prepared_by:user?.id,prepared_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("payment_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
     logAudit(user?.id,profile?.full_name,"create","payment_vouchers",data?.id,{});
     await notifyProcurement({title:"New Payment Voucher",message:`${payload.voucher_number} — ${form.payee_name} — ${fmtKES(total)}`,type:"voucher",module:"PaymentVouchers",senderId:user?.id});
     toast({title:"Payment voucher created ✓"});

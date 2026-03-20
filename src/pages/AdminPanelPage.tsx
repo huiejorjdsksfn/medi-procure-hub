@@ -143,18 +143,30 @@ export default function AdminPanelPage() {
 
   async function doSave() {
     setSaving(true);
-    const res = await saveSettings(cfg);
-    if (res.ok) toast({ title:"✅ Settings saved and propagated" });
-    else toast({ title:"Save failed",variant:"destructive" });
+    // Filter out empty values before saving
+    const toSave = Object.fromEntries(
+      Object.entries(cfg).filter(([, v]) => v !== undefined && v !== null)
+    );
+    const res = await saveSettings(toSave);
+    if (res.ok) {
+      toast({ title:"✅ All settings saved and propagated to all users" });
+    } else {
+      toast({ title:"Save failed: " + (res.error || "Unknown error"), variant:"destructive" });
+    }
     setSaving(false);
   }
 
   async function doBroadcast() {
-    if (!bcast.title||!bcast.body){ toast({title:"Title and message required",variant:"destructive"}); return; }
+    if (!bcast.title.trim()){ toast({title:"Broadcast title is required",variant:"destructive"}); return; }
+    if (!bcast.body.trim()){ toast({title:"Broadcast message is required",variant:"destructive"}); return; }
     setBcasting(true);
-    await sendSystemBroadcast({ title:bcast.title,message:bcast.body,type:bcast.type as any });
-    toast({ title:"📡 Broadcast sent" });
-    setBcast({title:"",body:"",type:"info"});
+    try {
+      await sendSystemBroadcast({ title:bcast.title,message:bcast.body,type:bcast.type as any });
+      toast({ title:`📡 Broadcast sent to all users (${bcast.type})` });
+      setBcast({title:"",body:"",type:"info"});
+    } catch(e:any) {
+      toast({ title:"Broadcast failed: " + e.message, variant:"destructive" });
+    }
     setBcasting(false);
   }
 

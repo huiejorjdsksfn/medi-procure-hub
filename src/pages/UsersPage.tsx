@@ -76,7 +76,7 @@ function UsersInner() {
   useEffect(()=>{ if(isAdmin) load(); },[load,isAdmin]);
 
   const createUser = async()=>{
-    if(!newU.email||!newU.password||!newU.full_name){toast({title:"Fill all required fields",variant:"destructive"});return;}
+    if(!newU.email||!newU.password||!newU.full_name){toast({title:"Please fill all required fields",variant:"destructive"});return;}
     setSaving(true);
     try {
       // Create auth user
