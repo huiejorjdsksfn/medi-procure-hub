@@ -5,30 +5,32 @@ on:
     tags: ['v5.*']
   workflow_dispatch:
     inputs:
-      version: {description: Version, default: '5.0.0', required: false}
+      version:
+        description: Version
+        default: '5.0.0'
+        required: false
 permissions:
   contents: write
-env:
-  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 jobs:
   web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '20', cache: npm}
+        with:
+          node-version: '20'
+          cache: npm
       - run: npm ci --no-audit
       - run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
           VITE_SUPABASE_PROJECT_ID: yvjfehnzbzjliizjvuhq
-          VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
-          VITE_SYSTEM_NAME: "EL5 MediProcure"
-          VITE_APP_VERSION: "2.0.0" 
       - uses: actions/upload-artifact@v4
-        with: {name: web-v5, path: dist/, retention-days: 1}
+        with:
+          name: web-v5
+          path: dist/
+          retention-days: 1
   build:
     needs: web
     runs-on: windows-latest
@@ -37,30 +39,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '20', cache: npm}
+        with:
+          node-version: '20'
+          cache: npm
       - uses: actions/download-artifact@v4
-        with: {name: web-v5, path: dist/}
+        with:
+          name: web-v5
+          path: dist/
       - run: npm ci --no-audit
         shell: bash
       - id: v
         shell: bash
         run: |
-          I="${{ github.event.inputs.version }}"
-          V="${I:-5.0.${{ github.run_number }}}"
-          node -e "const p=require('./package.json');p.version='$V';require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))"
-          echo "ver=$V" >> $GITHUB_OUTPUT
-      - run: npx electron-builder --win --x64
+          INP="${{ github.event.inputs.version }}"
+          VER="${INP:-5.0.${{ github.run_number }}}"
+          node -e "const p=require('./package.json');p.version='$VER';require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))"
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+      - name: Build v5 EXE
         shell: bash
+        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - shell: bash
         run: |
-          V="${{ steps.v.outputs.ver }}"
           cd dist-electron
-          mv "$(ls *.exe|head -1)" "ProcurBosse-v5.${V}-Win10-x64.exe"
+          mv "$(ls *.exe|head -1)" "ProcurBosse-v5.${{ steps.v.outputs.ver }}-Win10-x64.exe"
       - uses: actions/upload-artifact@v4
-        with: {name: v5-exe, path: dist-electron/ProcurBosse-v5.*.exe, if-no-files-found: error}
+        with:
+          name: v5-exe
+          path: dist-electron/ProcurBosse-v5.*.exe
+          if-no-files-found: error
       - uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,8 +77,7 @@ jobs:
           tag_name: v5-b${{ github.run_number }}
           name: ProcurBosse v5 Build ${{ github.run_number }}
           body: |
-            ProcurBosse v5 — EL5 MediProcure
-            QR codes · bulk import · offline · Kiswahili
+            ProcurBosse v5 — QR codes · bulk import · offline sync · Kiswahili
             Right-click .exe → Run as Administrator
-            `${{ github.sha }}`
+            ${{ github.sha }}
           files: dist-electron/ProcurBosse-v5.*.exe
