@@ -1,0 +1,123 @@
+name: Build ProcurBosse v5
+
+on:
+  push:
+    tags: ['v5.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
+        default: '5.0.0'
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+
+jobs:
+  build-web:
+    name: "Build Web"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci --no-audit
+      - name: Vite build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-v5
+          path: dist/
+          retention-days: 1
+
+  build-v5-exe:
+    name: "ProcurBosse v5 — Win10/11 x64"
+    runs-on: windows-latest
+    needs: build-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-v5
+          path: dist/
+      - name: npm ci
+        run: npm ci --no-audit
+        shell: bash
+      - name: Set version 5.0.x
+        shell: python
+        run: |
+          import os, json
+          inp = r"${{ github.event.inputs.version }}".strip()
+          run = "${{ github.run_number }}"
+          ver = inp if inp else f"5.0.{run}"
+          pkg = json.loads(open("package.json").read())
+          pkg["version"] = ver
+          open("package.json","w").write(json.dumps(pkg, indent=2))
+          env_file = os.environ.get("GITHUB_OUTPUT","")
+          if env_file: open(env_file,"a").write(f"version={ver}\n")
+          print(f"ProcurBosse v5 = {ver}")
+        id: ver
+      - name: Build v5 x64 installer
+        run: npx electron-builder --win --x64 --config electron-builder.yml
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Rename to v5
+        shell: python
+        run: |
+          import os, glob, shutil
+          ver = "${{ steps.ver.outputs.version }}"
+          exes = glob.glob("dist-electron/*.exe")
+          if not exes: raise SystemExit("No EXE built!")
+          src = max(exes, key=os.path.getmtime)
+          dst = f"dist-electron/ProcurBosse-v5.{ver}-Win10-x64-Setup.exe"
+          shutil.move(src, dst)
+          print(f"v5 EXE: {os.path.basename(dst)} ({os.path.getsize(dst)//1024//1024}MB)")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: procurbosse-v5-x64
+          path: dist-electron/ProcurBosse-v5*.exe
+          retention-days: 60
+          if-no-files-found: error
+      - name: Release v5
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: procurbosse-v5-build-${{ github.run_number }}
+          name: "ProcurBosse v5 — Build #${{ github.run_number }}"
+          body: |
+            ## ProcurBosse v5 — EL5 MediProcure
+
+            **New in v5:**
+            - Advanced reporting with Excel/PDF export
+            - QR code generation for items and documents
+            - Offline mode with local SQLite sync queue
+            - Enhanced IP restriction with geo-blocking
+            - Bulk import from CSV/Excel
+            - Multi-language support (English/Kiswahili)
+            - Auto-backup to Supabase Storage
+            - Role permissions matrix editor
+
+            Windows 10/11 x64 | Right-click → Run as Administrator
+            Built from: `${{ github.sha }}`
+          files: dist-electron/ProcurBosse-v5*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
