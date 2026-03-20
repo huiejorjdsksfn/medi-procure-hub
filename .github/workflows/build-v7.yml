@@ -59,7 +59,7 @@ jobs:
       - name: npm ci
         run: npm ci --no-audit
         shell: bash
-      - name: Set version 5.0.x
+      - name: Set version 7.0.x
         shell: python
         run: |
           import os, json
@@ -79,7 +79,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Rename to v5
+      - name: Rename to v7
         shell: python
         run: |
           import os, glob, shutil
@@ -89,7 +89,7 @@ jobs:
           src = max(exes, key=os.path.getmtime)
           dst = f"dist-electron/ProcurBosse-v7.{ver}-Win10-x64-Setup.exe"
           shutil.move(src, dst)
-          print(f"v5 EXE: {os.path.basename(dst)} ({os.path.getsize(dst)//1024//1024}MB)")
+          print(f"v7 EXE: {os.path.basename(dst)} ({os.path.getsize(dst)//1024//1024}MB)")
       - uses: actions/upload-artifact@v4
         with:
           name: procurbosse-v7-x64
