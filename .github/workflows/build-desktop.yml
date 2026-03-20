@@ -1,4 +1,3 @@
-# Build Desktop App — Simplified, fixed for all Windows versions
 name: Build Desktop App
 
 on:
@@ -9,8 +8,13 @@ on:
 permissions:
   contents: write
 
+env:
+  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+
 jobs:
   build-web:
+    name: "Build Web (Vite)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,17 +23,20 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci --no-audit
-      - run: npm run build
+      - name: Build
+        run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://yvjfehnzbzjliizjvuhq.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc' }}
+          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
+      - run: ls -lh dist/ && du -sh dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: web-dist
+          name: web-dist-desktop
           path: dist/
           retention-days: 1
 
   build-windows-exe:
+    name: "Build Windows EXE (x64)"
     runs-on: windows-latest
     needs: build-web
     steps:
@@ -40,20 +47,20 @@ jobs:
           cache: 'npm'
       - uses: actions/download-artifact@v4
         with:
-          name: web-dist
+          name: web-dist-desktop
           path: dist/
-      - name: Install dependencies
+      - name: Install
         run: npm ci --no-audit
         shell: bash
-      - name: Build Windows EXE
-        shell: bash
+      - name: Build EXE
         run: npx electron-builder --win --x64 --config electron-builder.yml
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-exe-desktop
+          name: procurbosse-desktop-exe
           path: dist-electron/*.exe
           retention-days: 30
           if-no-files-found: warn
@@ -61,13 +68,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: desktop-v2.0-build-${{ github.run_number }}
-          name: "EL5 MediProcure Desktop v2.0 (Build ${{ github.run_number }})"
+          name: "ProcurBosse Desktop v2.0 (Build ${{ github.run_number }})"
           body: |
-            ## EL5 MediProcure Desktop Installer
-            **Download the `.exe` below and Run as Administrator.**
-            - Windows 10/11 (64-bit) — from this workflow
-            - For Windows 7/8: use the ProcurBosse Windows EXE workflow (ia32)
-            - Built from: ${{ github.sha }}
+            ## ProcurBosse Desktop — Embu Level 5 Hospital
+            Windows 10/11 x64 installer.
+            Right-click → Run as Administrator.
+            Built from: ${{ github.sha }}
           files: dist-electron/*.exe
           draft: false
         env:

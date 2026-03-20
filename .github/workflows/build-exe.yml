@@ -1,10 +1,6 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# ProcurBosse — Windows EXE Build (FULLY FIXED)
-# ══════════════════════════════════════════════════════════════════════════════
-# Outputs:
-#   ProcurBosse-v2.x-Win10-x64-Setup.exe   Windows 10/11 x64 (Electron latest)
-#   ProcurBosse-v1.x-Win7-ia32-Setup.exe   Windows 7/8 ia32 (Electron 22 LTS)
-#   ProcurBosse_vX_YYYYMMDD_Windows.zip    Both + README
+# ProcurBosse — Multi-Version Windows EXE Build
+# Builds v1 (Win7), v2 (Win10/11), plus on-demand v5/v6/v7 upgrades
 # ══════════════════════════════════════════════════════════════════════════════
 name: Build ProcurBosse Windows EXE
 
@@ -13,12 +9,14 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      build_v1:
-        description: 'Build v1 Win7/8 ia32?'
-        type: boolean
-        default: true
+      version_target:
+        description: 'Which version to build'
+        type: choice
+        options: [v2+v1, v2-only, v5, v6, v7]
+        default: v2+v1
+        required: true
       version_override:
-        description: 'Version override (e.g. 2.1.0)'
+        description: 'Override version number (e.g. 5.0.0)'
         required: false
         default: ''
 
@@ -30,7 +28,7 @@ env:
   SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 
 jobs:
-  # ─── JOB 1: Build React/Vite web app ────────────────────────────────────────
+  # ─── JOB 1: Build React/Vite web app ─────────────────────────────────────
   build-web:
     name: "Build Web App (Vite)"
     runs-on: ubuntu-latest
@@ -40,7 +38,8 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci --no-audit
+      - name: Install
+        run: npm ci --no-audit
       - name: Vite build
         run: npm run build
         env:
@@ -53,9 +52,9 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ─── JOB 2: ProcurBosse v2 — Win10/11 x64 ──────────────────────────────────
+  # ─── JOB 2: ProcurBosse v2 — Win10/11 x64 (always builds) ───────────────
   build-v2:
-    name: "ProcurBosse v2 - Win10/11 x64"
+    name: "ProcurBosse v2 — Win10/11 x64"
     runs-on: windows-latest
     needs: build-web
     outputs:
@@ -82,8 +81,18 @@ jobs:
         run: |
           import os, json
           override = r"${{ github.event.inputs.version_override }}".strip()
+          target = r"${{ github.event.inputs.version_target }}"
           run = "${{ github.run_number }}"
-          ver = override if override else f"2.0.{run}"
+          if override:
+              ver = override
+          elif "v5" in target:
+              ver = f"5.0.{run}"
+          elif "v6" in target:
+              ver = f"6.0.{run}"
+          elif "v7" in target:
+              ver = f"7.0.{run}"
+          else:
+              ver = f"2.0.{run}"
           pkg = json.loads(open("package.json").read())
           pkg["version"] = ver
           open("package.json","w").write(json.dumps(pkg, indent=2))
@@ -101,27 +110,28 @@ jobs:
         run: |
           import os, glob, shutil
           ver = "${{ steps.setver.outputs.version }}"
+          target = r"${{ github.event.inputs.version_target }}"
+          vname = "v5" if "v5" in target else "v6" if "v6" in target else "v7" if "v7" in target else "v2"
           exes = glob.glob("dist-electron/*.exe")
-          print(f"EXEs found: {[os.path.basename(e) for e in exes]}")
           if not exes:
-              print("ERROR: no EXE built"); raise SystemExit(1)
+              print("ERROR: no EXE found"); raise SystemExit(1)
           src = max(exes, key=os.path.getmtime)
-          dst = f"dist-electron/ProcurBosse-v{ver}-Win10-x64-Setup.exe"
+          dst = f"dist-electron/ProcurBosse-{vname}.{ver}-Win10-x64-Setup.exe"
           shutil.move(src, dst)
-          print(f"Renamed to: {os.path.basename(dst)} ({os.path.getsize(dst)//1024//1024}MB)")
+          print(f"Renamed: {os.path.basename(dst)} ({os.path.getsize(dst)//1024//1024}MB)")
       - uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v2-x64
-          path: dist-electron/ProcurBosse-*-Win10-x64-Setup.exe
+          name: procurbosse-x64
+          path: dist-electron/ProcurBosse-*.exe
           retention-days: 30
           if-no-files-found: error
 
-  # ─── JOB 3: ProcurBosse v1 — Win7/8 ia32 (Electron 22 LTS) ─────────────────
+  # ─── JOB 3: ProcurBosse v1 — Win7/8 ia32 (Electron 22 LTS) ──────────────
   build-v1:
-    name: "ProcurBosse v1 - Win7/8 ia32"
+    name: "ProcurBosse v1 — Win7/8 ia32"
     runs-on: windows-latest
     needs: build-web
-    if: ${{ github.event_name == 'push' || github.event.inputs.build_v1 == 'true' }}
+    if: ${{ github.event_name == 'push' || contains(github.event.inputs.version_target, 'v1') || github.event.inputs.version_target == 'v2+v1' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -134,52 +144,51 @@ jobs:
         with:
           name: web-dist
           path: dist/
-      - name: Pin Electron 22.3.27 (Win7 support)
+      - name: Pin Electron 22.3.27 (last Win7 supported)
         shell: python
         run: |
           import json
           run = "${{ github.run_number }}"
           pkg = json.loads(open("package.json").read())
-          pkg.setdefault("devDependencies", {})["electron"] = "22.3.27"
+          pkg.setdefault("devDependencies",{})["electron"] = "22.3.27"
           pkg["version"] = f"1.0.{run}"
           open("package.json","w").write(json.dumps(pkg, indent=2))
-          print(f"Electron = 22.3.27, version = 1.0.{run}")
+          print(f"Pinned Electron 22.3.27, version 1.0.{run}")
       - name: npm install (Electron 22)
-        shell: bash
         run: npm install --no-audit --legacy-peer-deps
+        shell: bash
       - name: Patch ia32 artifact name
         shell: python
         run: |
           cfg = open("electron-builder.yml").read()
           cfg = cfg.replace(
             'artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"',
-            'artifactName: "ProcurBosse-v${version}-Win7-ia32-Setup.exe"'
+            'artifactName: "ProcurBosse-v1.${version}-Win7-ia32-Setup.exe"'
           )
           open("electron-builder.yml","w").write(cfg)
-          print("Patched artifact name")
-      - name: Build ia32 EXE
-        shell: bash
+      - name: Build ia32 (Windows 7/8/10)
         run: npx electron-builder --win --ia32 --config electron-builder.yml
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Verify output
+      - name: Verify
         shell: python
         run: |
           import glob, os
           exes = glob.glob("dist-electron/*.exe")
           for e in exes: print(f"  {os.path.basename(e)} ({os.path.getsize(e)//1024//1024}MB)")
-          if not exes: print("WARNING: no EXE")
+          if not exes: print("WARNING: no EXE found")
       - uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v1-ia32
+          name: procurbosse-ia32
           path: dist-electron/ProcurBosse-*Win7*.exe
           retention-days: 30
           if-no-files-found: warn
 
-  # ─── JOB 4: ZIP + GitHub Release ────────────────────────────────────────────
+  # ─── JOB 4: Package ZIP + GitHub Release ─────────────────────────────────
   release:
-    name: "Package ZIP + GitHub Release"
+    name: "ZIP Package + GitHub Release"
     runs-on: ubuntu-latest
     needs: [build-v2, build-v1]
     if: always() && needs.build-v2.result == 'success'
@@ -190,36 +199,33 @@ jobs:
           python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v2-x64
+          name: procurbosse-x64
           path: release/
       - uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v1-ia32
+          name: procurbosse-ia32
           path: release/
         continue-on-error: true
-      - run: ls -lh release/
-      - name: Create ZIP
+      - run: ls -lh release/ || echo "No files"
+      - name: Create ZIP with README
         shell: python
         run: |
           import zipfile, os, glob
           from datetime import datetime
           ver = "${{ needs.build-v2.outputs.version }}"
-          ts  = datetime.now().strftime("%Y%m%d")
-          zip_name = f"ProcurBosse_v{ver}_{ts}_Windows_AllVersions.zip"
+          target = r"${{ github.event.inputs.version_target }}"
+          vname = "v5" if "v5" in target else "v6" if "v6" in target else "v7" if "v7" in target else "v2"
+          ts = datetime.now().strftime("%Y%m%d")
+          zip_name = f"ProcurBosse_{vname}.{ver}_{ts}_Windows_AllVersions.zip"
           readme = (
-            f"ProcurBosse v{ver} — EL5 MediProcure\n"
+            f"ProcurBosse {vname.upper()} v{ver} — EL5 MediProcure\n"
+            f"Embu Level 5 Hospital | Embu County Government\n"
             f"Built: {datetime.now().strftime('%Y-%m-%d')} | Build #${{ github.run_number }}\n\n"
             "CONTENTS:\n"
-            f"  ProcurBosse-v{ver}-Win10-x64-Setup.exe  (Windows 10/11 x64 — recommended)\n"
-            "  ProcurBosse-v1.x-Win7-ia32-Setup.exe  (Windows 7/8/10 ia32 — legacy)\n\n"
-            "INSTALL: Right-click .exe -> Run as Administrator -> follow wizard\n"
-            "REQUIREMENTS: Internet connection, 2-4GB RAM, 350-500MB disk\n"
-            "DB: yvjfehnzbzjliizjvuhq.supabase.co\n"
-            "REPO: https://github.com/huiejorjdsksfn/medi-procure-hub\n"
           )
           with zipfile.ZipFile(zip_name,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as zf:
               zf.writestr("README.txt", readme)
-              for exe in glob.glob("release/*.exe"):
+              for exe in sorted(glob.glob("release/*.exe")):
                   name = os.path.basename(exe)
                   mb = os.path.getsize(exe)//1024//1024
                   print(f"  Adding {name} ({mb}MB)")
@@ -228,22 +234,27 @@ jobs:
           open("zip_name.txt","w").write(zip_name)
       - name: Set tag
         id: tag
-        run: echo "tag=v${{ needs.build-v2.outputs.version }}-build-${{ github.run_number }}" >> $GITHUB_OUTPUT
-      - name: Create Release
+        run: |
+          VER="${{ needs.build-v2.outputs.version }}"
+          TAG="procurbosse-v${VER}-build-${{ github.run_number }}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Tag: ${TAG}"
+      - name: GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          name: "ProcurBosse ${{ steps.tag.outputs.tag }} — EL5 MediProcure"
+          name: "ProcurBosse v${{ needs.build-v2.outputs.version }} — EL5 MediProcure Build #${{ github.run_number }}"
           body: |
             ## ProcurBosse Desktop — Embu Level 5 Hospital ERP
 
-            | File | Windows | Arch |
+            ### Downloads
+            | File | Windows | Architecture |
             |------|---------|------|
-            | `ProcurBosse-v2.x-Win10-x64-Setup.exe` | **10/11** | x64 |
-            | `ProcurBosse-v1.x-Win7-ia32-Setup.exe` | **7/8/10** | ia32 |
-            | `ProcurBosse_*.zip` | **All** | Both |
+            | `ProcurBosse-v2.x-Win10-x64-Setup.exe` | 10/11 | x64 |
+            | `ProcurBosse-v1.x-Win7-ia32-Setup.exe` | 7/8/10 | ia32 |
+            | `ProcurBosse_*.zip` | Both | Package |
 
-            **Install:** Right-click .exe → Run as Administrator → follow wizard
+            **Install:** Right-click → Run as Administrator → follow wizard
 
             Built from `${{ github.sha }}` · Build #${{ github.run_number }}
           files: |
@@ -255,9 +266,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ─── JOB 5: Smoke Test ──────────────────────────────────────────────────────
+  # ─── JOB 5: Smoke Test ───────────────────────────────────────────────────
   smoke-test:
-    name: "Smoke Test — Verify Artifacts"
+    name: "Smoke Test"
     runs-on: ubuntu-latest
     needs: release
     if: always()
@@ -268,59 +279,53 @@ jobs:
           python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v2-x64
+          name: procurbosse-x64
           path: test/
         continue-on-error: true
       - name: Run tests
         shell: python
         run: |
-          import os, glob, json, sys
+          import os, glob, json
           print("=" * 55)
-          print("ProcurBosse Smoke Test Suite")
+          print("ProcurBosse Smoke Tests")
           print("=" * 55)
           passed, failed = [], []
           
-          # 1. EXE exists and >50MB
+          # EXE size
           exes = glob.glob("test/*.exe")
           if exes:
               mb = os.path.getsize(exes[0])//1024//1024
-              (passed if mb>50 else failed).append(f"v2 EXE size: {mb}MB")
-          else: failed.append("v2 EXE: not found in artifact")
+              (passed if mb > 50 else failed).append(f"EXE size: {mb}MB")
+          else: failed.append("No EXE artifact found")
           
-          # 2. Critical source files
-          for sf in ["src/App.tsx","src/pages/DashboardPage.tsx",
-                     "src/hooks/useSystemSettings.ts","src/lib/sms.ts",
-                     "src/lib/ipRestriction.ts","electron/main.js",
-                     "electron-builder.yml","build_procurbosse.py"]:
+          # Critical files
+          for sf in ["src/App.tsx","src/pages/DashboardPage.tsx","src/pages/AdminPanelPage.tsx",
+                     "src/pages/SettingsPage.tsx","src/hooks/useSystemSettings.ts",
+                     "src/lib/sms.ts","src/lib/ipRestriction.ts","electron/main.js",
+                     "vite.config.ts","electron-builder.yml"]:
               (passed if os.path.exists(sf) else failed).append(f"File: {sf}")
           
-          # 3. Edge functions
+          # vite.config.ts must NOT have require()
+          if "require(" not in open("vite.config.ts").read():
+              passed.append("vite.config.ts: no require() (ESM safe)")
+          else:
+              failed.append("vite.config.ts: contains require() — will fail CI!")
+          
+          # Edge functions
           for fn in ["send-email","send-sms","notify-requisition"]:
               p = f"supabase/functions/{fn}/index.ts"
               (passed if os.path.exists(p) else failed).append(f"Edge fn: {fn}")
           
-          # 4. package.json valid
+          # package.json
           try:
               pkg = json.loads(open("package.json").read())
               passed.append(f"package.json: {pkg.get('name')} v{pkg.get('version')}")
-          except: failed.append("package.json: invalid JSON")
-          
-          # 5. No obvious import errors
-          import re
-          pages = glob.glob("src/pages/*.tsx")
-          for pg in pages[:10]:
-              content = open(pg).read()
-              if "useSystemSettings()" in content and "useSystemSettings" not in content.split("import")[0]:
-                  # Check import exists
-                  if "from "@/hooks/useSystemSettings"" not in content:
-                      failed.append(f"Missing import in {os.path.basename(pg)}")
-          if len([p for p in passed if "File:" in p]) > 5:
-              passed.append("Import check: OK (spot check)")
-          
-          print(f"\n PASSED ({len(passed)}):")
+          except: failed.append("package.json: invalid")
+
+          print(f"\nPASSED ({len(passed)}):")
           for p in passed: print(f"  OK  {p}")
-          print(f"\n FAILED ({len(failed)}):")
+          print(f"\nFAILED ({len(failed)}):")
           for f in failed: print(f"  !!  {f}")
           print("=" * 55)
-          print(f"RESULT: {len(passed)}/{len(passed)+len(failed)} passed")
+          print(f"RESULT: {len(passed)}/{len(passed)+len(failed)}")
           if not failed: print("ALL TESTS PASSED")
