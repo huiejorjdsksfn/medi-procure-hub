@@ -2,13 +2,15 @@ name: Build ProcurBosse v5
 
 on:
   push:
-    tags: ['v5.*']
+    branches: [main]
+    tags:
+      - 'v5.*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number'
-        default: '5.0.0'
+        description: 'Version (default 5.0.0)'
         required: false
+        default: '5.0.0'
 
 permissions:
   contents: write
@@ -19,7 +21,7 @@ env:
 
 jobs:
   build-web:
-    name: "Build Web"
+    name: "Build Web App"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,16 +35,19 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
+      - run: ls -lh dist/ && du -sh dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: web-v5
+          name: web-dist-v5
           path: dist/
           retention-days: 1
 
   build-v5-exe:
-    name: "ProcurBosse v5 — Win10/11 x64"
+    name: "ProcurBosse v5 - Win10/11 x64"
     runs-on: windows-latest
     needs: build-web
+    outputs:
+      version: ${{ steps.setver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,28 +59,27 @@ jobs:
           python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
-          name: web-v5
+          name: web-dist-v5
           path: dist/
-      - name: npm ci
-        run: npm ci --no-audit
+      - run: npm ci --no-audit
         shell: bash
-      - name: Set version 5.0.x
+      - name: Set version v5
+        id: setver
         shell: python
         run: |
           import os, json
-          inp = r"${{ github.event.inputs.version }}".strip()
+          inp = "${{ github.event.inputs.version }}".strip()
           run = "${{ github.run_number }}"
-          ver = inp if inp else f"5.0.{run}"
+          ver = inp if inp and inp != "" else f"5.0.{run}"
           pkg = json.loads(open("package.json").read())
           pkg["version"] = ver
           open("package.json","w").write(json.dumps(pkg, indent=2))
-          env_file = os.environ.get("GITHUB_OUTPUT","")
-          if env_file: open(env_file,"a").write(f"version={ver}\n")
+          gho = os.environ.get("GITHUB_OUTPUT","")
+          if gho: open(gho,"a").write(f"version={ver}\n")
           print(f"ProcurBosse v5 = {ver}")
-        id: ver
-      - name: Build v5 x64 installer
-        run: npx electron-builder --win --x64 --config electron-builder.yml
+      - name: Build v5 x64 EXE
         shell: bash
+        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -83,9 +87,9 @@ jobs:
         shell: python
         run: |
           import os, glob, shutil
-          ver = "${{ steps.ver.outputs.version }}"
+          ver = "${{ steps.setver.outputs.version }}"
           exes = glob.glob("dist-electron/*.exe")
-          if not exes: raise SystemExit("No EXE built!")
+          if not exes: raise SystemExit("No EXE found!")
           src = max(exes, key=os.path.getmtime)
           dst = f"dist-electron/ProcurBosse-v5.{ver}-Win10-x64-Setup.exe"
           shutil.move(src, dst)
@@ -93,30 +97,28 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: procurbosse-v5-x64
-          path: dist-electron/ProcurBosse-v5*.exe
+          path: dist-electron/ProcurBosse-v5.*.exe
           retention-days: 60
           if-no-files-found: error
-      - name: Release v5
+      - name: Create Release v5
         uses: softprops/action-gh-release@v2
         with:
           tag_name: procurbosse-v5-build-${{ github.run_number }}
-          name: "ProcurBosse v5 — Build #${{ github.run_number }}"
+          name: "ProcurBosse v5 Build #${{ github.run_number }}"
           body: |
             ## ProcurBosse v5 — EL5 MediProcure
 
-            **New in v5:**
-            - Advanced reporting with Excel/PDF export
-            - QR code generation for items and documents
-            - Offline mode with local SQLite sync queue
-            - Enhanced IP restriction with geo-blocking
-            - Bulk import from CSV/Excel
-            - Multi-language support (English/Kiswahili)
-            - Auto-backup to Supabase Storage
-            - Role permissions matrix editor
+            Windows 10/11 x64 — Right-click → Run as Administrator
 
-            Windows 10/11 x64 | Right-click → Run as Administrator
-            Built from: `${{ github.sha }}`
-          files: dist-electron/ProcurBosse-v5*.exe
+            **New in v5:**
+            - Advanced reporting (Excel/PDF)
+            - QR code generation
+            - Bulk import CSV/Excel
+            - Offline sync mode
+            - Multi-language (Kiswahili)
+
+            Built from `${{ github.sha }}` Build #${{ github.run_number }}
+          files: dist-electron/ProcurBosse-v5.*.exe
           draft: false
           prerelease: false
         env:

@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-web:
-    name: "Build Web (Vite)"
+    name: "Build Web"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
-      - run: ls -lh dist/ && du -sh dist/
+      - run: ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist-desktop
@@ -36,7 +36,7 @@ jobs:
           retention-days: 1
 
   build-windows-exe:
-    name: "Build Windows EXE (x64)"
+    name: "Build Windows EXE x64"
     runs-on: windows-latest
     needs: build-web
     steps:
@@ -49,30 +49,28 @@ jobs:
         with:
           name: web-dist-desktop
           path: dist/
-      - name: Install
-        run: npm ci --no-audit
+      - run: npm ci --no-audit
         shell: bash
       - name: Build EXE
-        run: npx electron-builder --win --x64 --config electron-builder.yml
         shell: bash
+        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-desktop-exe
+          name: desktop-exe
           path: dist-electron/*.exe
           retention-days: 30
           if-no-files-found: warn
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: desktop-v2.0-build-${{ github.run_number }}
-          name: "ProcurBosse Desktop v2.0 (Build ${{ github.run_number }})"
+          tag_name: desktop-build-${{ github.run_number }}
+          name: "ProcurBosse Desktop Build #${{ github.run_number }}"
           body: |
-            ## ProcurBosse Desktop — Embu Level 5 Hospital
-            Windows 10/11 x64 installer.
-            Right-click → Run as Administrator.
+            Windows 10/11 x64 desktop installer.
+            Right-click .exe -> Run as Administrator.
             Built from: ${{ github.sha }}
           files: dist-electron/*.exe
           draft: false
