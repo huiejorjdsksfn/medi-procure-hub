@@ -1,4 +1,4 @@
-name: Build Desktop App
+name: ProcurBosse Desktop
 
 on:
   push:
@@ -14,16 +14,16 @@ env:
 
 jobs:
   build-web:
-    name: "Build Web"
+    name: Build Web
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
       - run: npm ci --no-audit
-      - name: Build
+      - name: Vite build
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
@@ -31,12 +31,12 @@ jobs:
       - run: ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: web-dist-desktop
+          name: web-desktop
           path: dist/
           retention-days: 1
 
-  build-windows-exe:
-    name: "Build Windows EXE x64"
+  build-desktop:
+    name: Build Desktop EXE
     runs-on: windows-latest
     needs: build-web
     steps:
@@ -44,10 +44,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
       - uses: actions/download-artifact@v4
         with:
-          name: web-dist-desktop
+          name: web-desktop
           path: dist/
       - run: npm ci --no-audit
         shell: bash
@@ -57,6 +57,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: ls -lh dist-electron/ 2>/dev/null || echo "No output"
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-exe
@@ -69,9 +71,8 @@ jobs:
           tag_name: desktop-build-${{ github.run_number }}
           name: "ProcurBosse Desktop Build #${{ github.run_number }}"
           body: |
-            Windows 10/11 x64 desktop installer.
-            Right-click .exe -> Run as Administrator.
-            Built from: ${{ github.sha }}
+            Windows 10/11 x64. Right-click .exe -> Run as Administrator.
+            Commit `${{ github.sha }}`
           files: dist-electron/*.exe
           draft: false
         env:

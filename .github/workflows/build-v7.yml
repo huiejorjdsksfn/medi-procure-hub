@@ -1,4 +1,4 @@
-name: Build ProcurBosse v7
+name: ProcurBosse v7 EXE
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
     inputs:
       version:
         description: 'Version (default 7.0.0)'
-        required: false
         default: '7.0.0'
+        required: false
 
 permissions:
   contents: write
@@ -21,103 +21,85 @@ env:
 
 jobs:
   build-web:
-    name: "Build Web App"
+    name: Build Web
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
       - run: npm ci --no-audit
       - name: Vite build
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
-      - run: ls -lh dist/ && du -sh dist/
+      - run: ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: web-dist-v7
+          name: web-v7
           path: dist/
           retention-days: 1
 
-  build-v7-exe:
-    name: "ProcurBosse v7 - Win10/11 x64"
+  build-v7:
+    name: ProcurBosse v7 Win10/11 x64
     runs-on: windows-latest
     needs: build-web
     outputs:
-      version: ${{ steps.setver.outputs.version }}
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+          cache: npm
       - uses: actions/download-artifact@v4
         with:
-          name: web-dist-v7
+          name: web-v7
           path: dist/
       - run: npm ci --no-audit
         shell: bash
-      - name: Set version v7
-        id: setver
-        shell: python
+      - name: Set version
+        id: ver
+        shell: bash
         run: |
-          import os, json
-          inp = "${{ github.event.inputs.version }}".strip()
-          run = "${{ github.run_number }}"
-          ver = inp if inp and inp != "" else f"7.0.{run}"
-          pkg = json.loads(open("package.json").read())
-          pkg["version"] = ver
-          open("package.json","w").write(json.dumps(pkg, indent=2))
-          gho = os.environ.get("GITHUB_OUTPUT","")
-          if gho: open(gho,"a").write(f"version={ver}\n")
-          print(f"ProcurBosse v7 = {ver}")
+          INP="${{ github.event.inputs.version }}"
+          if [ -n "$INP" ]; then VER="$INP"; else VER="7.0.${{ github.run_number }}"; fi
+          node -e "const p=require('./package.json');p.version='$VER';require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))"
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "ProcurBosse v7 = $VER"
       - name: Build v7 x64 EXE
         shell: bash
         run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Rename to v7
-        shell: python
+      - name: Rename EXE
+        shell: bash
         run: |
-          import os, glob, shutil
-          ver = "${{ steps.setver.outputs.version }}"
-          exes = glob.glob("dist-electron/*.exe")
-          if not exes: raise SystemExit("No EXE found!")
-          src = max(exes, key=os.path.getmtime)
-          dst = f"dist-electron/ProcurBosse-v7.{ver}-Win10-x64-Setup.exe"
-          shutil.move(src, dst)
-          print(f"v7 EXE: {os.path.basename(dst)} ({os.path.getsize(dst)//1024//1024}MB)")
+          VER="${{ steps.ver.outputs.version }}"
+          cd dist-electron
+          EXE=$(ls *.exe 2>/dev/null | head -1)
+          if [ -z "$EXE" ]; then echo "No EXE found!"; exit 1; fi
+          mv "$EXE" "ProcurBosse-v7.${VER}-Win10-x64-Setup.exe"
+          echo "OK: $(ls *.exe)"
       - uses: actions/upload-artifact@v4
         with:
           name: procurbosse-v7-x64
           path: dist-electron/ProcurBosse-v7.*.exe
           retention-days: 60
           if-no-files-found: error
-      - name: Create Release v7
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: procurbosse-v7-build-${{ github.run_number }}
           name: "ProcurBosse v7 Build #${{ github.run_number }}"
           body: |
-            ## ProcurBosse v7 — EL5 MediProcure
-
-            Windows 10/11 x64 — Right-click → Run as Administrator
-
-            **New in v7:**
-            - All v6 features
-            - Cross-platform (Win/Mac/Linux)
-            - Kenya IFMIS integration
-            - HL7/FHIR support
-            - Blockchain audit trail
-
-            Built from `${{ github.sha }}` Build #${{ github.run_number }}
+            ProcurBosse v7 - EL5 MediProcure Windows x64
+            New: Cross-platform, Kenya IFMIS, HL7/FHIR, blockchain
+            Right-click .exe -> Run as Administrator
+            Commit: `${{ github.sha }}`
           files: dist-electron/ProcurBosse-v7.*.exe
           draft: false
           prerelease: false
