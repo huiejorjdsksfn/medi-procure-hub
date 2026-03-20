@@ -1,79 +1,50 @@
 name: ProcurBosse Desktop
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: write
-
 env:
-  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
-
+  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 jobs:
-  build-web:
-    name: Build Web
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
+        with: {node-version: '20', cache: npm}
       - run: npm ci --no-audit
-      - name: Vite build
-        run: npm run build
+      - run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
-      - run: ls -lh dist/
+          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - uses: actions/upload-artifact@v4
-        with:
-          name: web-desktop
-          path: dist/
-          retention-days: 1
-
-  build-desktop:
-    name: Build Desktop EXE
+        with: {name: web-desk, path: dist/, retention-days: 1}
+  build:
+    needs: web
     runs-on: windows-latest
-    needs: build-web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
+        with: {node-version: '20', cache: npm}
       - uses: actions/download-artifact@v4
-        with:
-          name: web-desktop
-          path: dist/
+        with: {name: web-desk, path: dist/}
       - run: npm ci --no-audit
         shell: bash
-      - name: Build EXE
+      - run: npx electron-builder --win --x64
         shell: bash
-        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - run: ls -lh dist-electron/ 2>/dev/null || echo "No output"
-        shell: bash
       - uses: actions/upload-artifact@v4
-        with:
-          name: desktop-exe
-          path: dist-electron/*.exe
-          retention-days: 30
-          if-no-files-found: warn
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: desktop-build-${{ github.run_number }}
-          name: "ProcurBosse Desktop Build #${{ github.run_number }}"
-          body: |
-            Windows 10/11 x64. Right-click .exe -> Run as Administrator.
-            Commit `${{ github.sha }}`
-          files: dist-electron/*.exe
-          draft: false
+        with: {name: desktop, path: dist-electron/*.exe, if-no-files-found: warn}
+      - uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: desk-b${{ github.run_number }}
+          name: ProcurBosse Desktop Build ${{ github.run_number }}
+          body: Windows 10/11 x64. Right-click → Run as Administrator. ${{ github.sha }}
+          files: dist-electron/*.exe

@@ -1,107 +1,71 @@
 name: ProcurBosse v7 EXE
-
 on:
   push:
     branches: [main]
-    tags:
-      - 'v7.*'
+    tags: ['v7.*']
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version (default 7.0.0)'
-        default: '7.0.0'
-        required: false
-
+      version: {description: Version, default: '7.0.0', required: false}
 permissions:
   contents: write
-
 env:
-  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
-
+  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 jobs:
-  build-web:
-    name: Build Web
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
+        with: {node-version: '20', cache: npm}
       - run: npm ci --no-audit
-      - name: Vite build
-        run: npm run build
+      - run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
-      - run: ls -lh dist/
+          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - uses: actions/upload-artifact@v4
-        with:
-          name: web-v7
-          path: dist/
-          retention-days: 1
-
-  build-v7:
-    name: ProcurBosse v7 Win10/11 x64
+        with: {name: web-v7, path: dist/, retention-days: 1}
+  build:
+    needs: web
     runs-on: windows-latest
-    needs: build-web
     outputs:
-      version: ${{ steps.ver.outputs.version }}
+      ver: ${{ steps.v.outputs.ver }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
+        with: {node-version: '20', cache: npm}
       - uses: actions/download-artifact@v4
-        with:
-          name: web-v7
-          path: dist/
+        with: {name: web-v7, path: dist/}
       - run: npm ci --no-audit
         shell: bash
-      - name: Set version
-        id: ver
+      - id: v
         shell: bash
         run: |
-          INP="${{ github.event.inputs.version }}"
-          if [ -n "$INP" ]; then VER="$INP"; else VER="7.0.${{ github.run_number }}"; fi
-          node -e "const p=require('./package.json');p.version='$VER';require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))"
-          echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "ProcurBosse v7 = $VER"
-      - name: Build v7 x64 EXE
+          I="${{ github.event.inputs.version }}"
+          V="${I:-7.0.${{ github.run_number }}}"
+          node -e "const p=require('./package.json');p.version='$V';require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))"
+          echo "ver=$V" >> $GITHUB_OUTPUT
+      - run: npx electron-builder --win --x64
         shell: bash
-        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Rename EXE
-        shell: bash
+      - shell: bash
         run: |
-          VER="${{ steps.ver.outputs.version }}"
+          V="${{ steps.v.outputs.ver }}"
           cd dist-electron
-          EXE=$(ls *.exe 2>/dev/null | head -1)
-          if [ -z "$EXE" ]; then echo "No EXE found!"; exit 1; fi
-          mv "$EXE" "ProcurBosse-v7.${VER}-Win10-x64-Setup.exe"
-          echo "OK: $(ls *.exe)"
+          mv "$(ls *.exe|head -1)" "ProcurBosse-v7.${V}-Win10-x64.exe"
       - uses: actions/upload-artifact@v4
-        with:
-          name: procurbosse-v7-x64
-          path: dist-electron/ProcurBosse-v7.*.exe
-          retention-days: 60
-          if-no-files-found: error
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: procurbosse-v7-build-${{ github.run_number }}
-          name: "ProcurBosse v7 Build #${{ github.run_number }}"
-          body: |
-            ProcurBosse v7 - EL5 MediProcure Windows x64
-            New: Cross-platform, Kenya IFMIS, HL7/FHIR, blockchain
-            Right-click .exe -> Run as Administrator
-            Commit: `${{ github.sha }}`
-          files: dist-electron/ProcurBosse-v7.*.exe
-          draft: false
-          prerelease: false
+        with: {name: v7-exe, path: dist-electron/ProcurBosse-v7.*.exe, if-no-files-found: error}
+      - uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v7-b${{ github.run_number }}
+          name: ProcurBosse v7 Build ${{ github.run_number }}
+          body: |
+            ProcurBosse v7 — EL5 MediProcure
+            IFMIS · HL7/FHIR · cross-platform · blockchain
+            Right-click .exe → Run as Administrator
+            `${{ github.sha }}`
+          files: dist-electron/ProcurBosse-v7.*.exe

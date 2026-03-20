@@ -1,42 +1,55 @@
 @echo off
-title ProcurBosse Installer
+title ProcurBosse Installer - EL5 MediProcure
 color 0A
 cls
 echo.
-echo  ProcurBosse - EL5 MediProcure Installer
-echo  Embu Level 5 Hospital, Embu County Government
+echo  ============================================================
+echo   ProcurBosse - EL5 MediProcure Installer
+echo   Embu Level 5 Hospital, Embu County Government
+echo  ============================================================
 echo.
-echo  Detecting Windows version...
+echo  Detecting system architecture...
 if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (set ARCH=x64) else (set ARCH=ia32)
-echo  Architecture: %PROCESSOR_ARCHITECTURE% (%ARCH%)
+echo  Windows:  %OS%
+echo  Arch:     %PROCESSOR_ARCHITECTURE% [%ARCH%]
 echo.
+set FOUND=
 if "%ARCH%"=="x64" (
-    for %%f in (*Win10-x64-Setup.exe) do (
-        echo  Installing: %%f
-        "%%f"
-        goto :done
-    )
-    for /r %%f in (*Win10-x64-Setup.exe) do (
-        echo  Installing: %%f
-        "%%f"
-        goto :done
+    for /r "%~dp0" %%F in (*Win10-x64*.exe *-x64*.exe) do (
+        if not defined FOUND set FOUND=%%F
     )
 )
-for %%f in (*Win7-ia32-Setup.exe) do (
-    echo  Installing ia32: %%f
-    "%%f"
-    goto :done
+if not defined FOUND (
+    for /r "%~dp0" %%F in (*ia32*.exe *Win7*.exe *Setup*.exe) do (
+        if not defined FOUND set FOUND=%%F
+    )
 )
-for /r %%f in (*-Setup.exe) do (
-    echo  Installing: %%f
-    "%%f"
-    goto :done
+if not defined FOUND (
+    echo  ERROR: No installer EXE found in this folder!
+    echo.
+    echo  Download from:
+    echo  https://github.com/huiejorjdsksfn/medi-procure-hub/releases
+    echo.
+    pause
+    exit /b 1
 )
-echo  ERROR: No installer found. Download from:
-echo  github.com/huiejorjdsksfn/medi-procure-hub/releases
-goto :end
-:done
+echo  Installer found: %FOUND%
+echo  Starting installation...
+echo  Click YES if Windows UAC prompt appears.
 echo.
-echo  Install complete! Launch from Desktop shortcut.
-:end
+"%FOUND%"
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo  WARNING: Installer returned error %ERRORLEVEL%
+    echo  Try right-clicking this BAT and selecting Run as Administrator
+) else (
+    echo.
+    echo  ============================================================
+    echo   Installation complete!
+    echo   - Desktop shortcut: ProcurBosse
+    echo   - Start Menu: EL5 MediProcure
+    echo   - Or run LAUNCH_ProcurBosse.bat
+    echo  ============================================================
+)
+echo.
 pause
