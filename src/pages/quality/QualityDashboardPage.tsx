@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { RefreshCw, Printer, Download, Save, Calendar } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import logoImg from "@/assets/logo.png";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const MONTHS = ["January","February","March","April","May","June",
@@ -333,7 +334,7 @@ export default function QualityDashboardPage() {
             <tbody>
               <tr>
                 <td style={{...tdBase,width:130,padding:6,textAlign:"center"}}>
-                  <div style={{fontSize:8,color:"#9ca3af",fontStyle:"italic"}}>Hospital Logo</div>
+                  <img src={logoImg} alt="EL5H Logo" style={{width:60,height:60,objectFit:"contain",display:"block",margin:"0 auto 2px"}} />
                   <div style={{fontWeight:700,fontSize:9,color:"#2e75b6",marginTop:2}}>EL5H</div>
                 </td>
                 <td style={{...tdBase,textAlign:"center",padding:"6px 0"}}>
