@@ -6,13 +6,18 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version
-        default: '7.0.0'
+        description: 'Version (default 7.0.0)'
         required: false
+        default: '7.0.0'
 permissions:
   contents: write
+env:
+  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 jobs:
+
   web:
+    name: Build Web (Vite)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,63 +26,85 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci --no-audit
-      - run: npm run build
+      - name: Vite build
+        run: npm run build
         env:
-          VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-          VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
           VITE_SUPABASE_PROJECT_ID: yvjfehnzbzjliizjvuhq
-      - uses: actions/upload-artifact@v4
+      - run: ls -lh dist/
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
         with:
-          name: web-v7
+          name: web-dist-v7
           path: dist/
           retention-days: 1
+
   build:
-    needs: web
+    name: v7 Win10/11 x64
     runs-on: windows-latest
+    needs: web
     outputs:
-      ver: ${{ steps.v.outputs.ver }}
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
-      - uses: actions/download-artifact@v4
+      - name: Download web build
+        uses: actions/download-artifact@v4
         with:
-          name: web-v7
+          name: web-dist-v7
           path: dist/
       - run: npm ci --no-audit
         shell: bash
-      - id: v
+      - name: Set version
+        id: ver
         shell: bash
         run: |
           INP="${{ github.event.inputs.version }}"
           VER="${INP:-7.0.${{ github.run_number }}}"
-          node -e "const p=require('./package.json');p.version='$VER';require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))"
-          echo "ver=$VER" >> $GITHUB_OUTPUT
-      - name: Build v7 EXE
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='$VER';fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "ProcurBosse v7 = $VER"
+      - name: Build v7 x64 EXE
         shell: bash
         run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - shell: bash
+      - name: Rename to v7
+        shell: bash
         run: |
+          VER="${{ steps.ver.outputs.version }}"
           cd dist-electron
-          mv "$(ls *.exe|head -1)" "ProcurBosse-v7.${{ steps.v.outputs.ver }}-Win10-x64.exe"
-      - uses: actions/upload-artifact@v4
+          EXE=$(ls *.exe 2>/dev/null | head -1)
+          [ -z "$EXE" ] && echo "No EXE!" && exit 1
+          mv "$EXE" "ProcurBosse-v7.${VER}-Win10-x64-Setup.exe"
+          echo "EXE: $(ls *.exe)"
+      - name: Upload v7 EXE
+        uses: actions/upload-artifact@v4
         with:
-          name: v7-exe
+          name: procurbosse-v7-exe
           path: dist-electron/ProcurBosse-v7.*.exe
+          retention-days: 60
           if-no-files-found: error
-      - uses: softprops/action-gh-release@v2
+      - name: Create GitHub Release v7
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v7-b${{ github.run_number }}
-          name: ProcurBosse v7 Build ${{ github.run_number }}
+          tag_name: v7-build-${{ github.run_number }}
+          name: "ProcurBosse v7 Build #${{ github.run_number }}"
           body: |
-            ProcurBosse v7 — IFMIS · HL7/FHIR · cross-platform · blockchain
-            Right-click .exe → Run as Administrator
-            ${{ github.sha }}
+            **ProcurBosse v7** — EL5 MediProcure · Embu Level 5 Hospital
+
+            ✨ **Kenya IFMIS · HL7/FHIR · Cross-platform · Blockchain**
+
+            Right-click .exe → Run as Administrator → Follow wizard
+
+            Commit: `${{ github.sha }}` · Build #${{ github.run_number }}
           files: dist-electron/ProcurBosse-v7.*.exe
+          draft: false
+          prerelease: false

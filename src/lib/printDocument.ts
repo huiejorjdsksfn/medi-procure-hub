@@ -638,3 +638,236 @@ export function printDocument(type: string, data: any, cfg?: PrintSettings): voi
     default:          return printVoucher(data, type, cfg);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRINTER DRIVER SUPPORT
+// Kyocera · Thermal · HP DeskJet · HP LaserJet
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type PrinterType = 
+  | 'kyocera'       // Kyocera ECOSYS (A4 laser, common in hospitals)
+  | 'thermal_80mm'  // 80mm thermal receipt printer (Epson TM, Star TSP)
+  | 'thermal_58mm'  // 58mm thermal (mobile/small receipt)
+  | 'hp_deskjet'    // HP DeskJet inkjet
+  | 'hp_laserjet'   // HP LaserJet
+  | 'hp_color'      // HP Color LaserJet
+  | 'generic'       // Generic / auto-detect
+  | 'pdf';          // PDF export (virtual)
+
+export interface PrinterConfig {
+  type: PrinterType;
+  name: string;
+  paperSize: 'A4' | '80mm' | '58mm' | 'Letter' | 'Legal' | 'A5';
+  dpi: number;
+  colorSupport: boolean;
+  marginTop: string;
+  marginRight: string;
+  marginBottom: string;
+  marginLeft: string;
+  fontSize: string;
+  lineHeight: string;
+  copies?: number;
+}
+
+// Preset configs for each printer model
+export const PRINTER_PRESETS: Record<PrinterType, PrinterConfig> = {
+  kyocera: {
+    type: 'kyocera',
+    name: 'Kyocera ECOSYS',
+    paperSize: 'A4',
+    dpi: 600,
+    colorSupport: false,
+    marginTop: '15mm',
+    marginRight: '15mm',
+    marginBottom: '15mm',
+    marginLeft: '20mm',
+    fontSize: '11pt',
+    lineHeight: '1.5',
+  },
+  thermal_80mm: {
+    type: 'thermal_80mm',
+    name: 'Thermal 80mm',
+    paperSize: '80mm',
+    dpi: 203,
+    colorSupport: false,
+    marginTop: '2mm',
+    marginRight: '3mm',
+    marginBottom: '5mm',
+    marginLeft: '3mm',
+    fontSize: '8pt',
+    lineHeight: '1.3',
+  },
+  thermal_58mm: {
+    type: 'thermal_58mm',
+    name: 'Thermal 58mm',
+    paperSize: '58mm',
+    dpi: 203,
+    colorSupport: false,
+    marginTop: '2mm',
+    marginRight: '2mm',
+    marginBottom: '4mm',
+    marginLeft: '2mm',
+    fontSize: '7pt',
+    lineHeight: '1.2',
+  },
+  hp_deskjet: {
+    type: 'hp_deskjet',
+    name: 'HP DeskJet',
+    paperSize: 'A4',
+    dpi: 300,
+    colorSupport: true,
+    marginTop: '12mm',
+    marginRight: '12mm',
+    marginBottom: '12mm',
+    marginLeft: '12mm',
+    fontSize: '11pt',
+    lineHeight: '1.5',
+  },
+  hp_laserjet: {
+    type: 'hp_laserjet',
+    name: 'HP LaserJet',
+    paperSize: 'A4',
+    dpi: 600,
+    colorSupport: false,
+    marginTop: '15mm',
+    marginRight: '15mm',
+    marginBottom: '15mm',
+    marginLeft: '20mm',
+    fontSize: '11pt',
+    lineHeight: '1.5',
+  },
+  hp_color: {
+    type: 'hp_color',
+    name: 'HP Color LaserJet',
+    paperSize: 'A4',
+    dpi: 600,
+    colorSupport: true,
+    marginTop: '15mm',
+    marginRight: '15mm',
+    marginBottom: '15mm',
+    marginLeft: '20mm',
+    fontSize: '11pt',
+    lineHeight: '1.5',
+  },
+  generic: {
+    type: 'generic',
+    name: 'Generic Printer',
+    paperSize: 'A4',
+    dpi: 300,
+    colorSupport: true,
+    marginTop: '20mm',
+    marginRight: '20mm',
+    marginBottom: '20mm',
+    marginLeft: '25mm',
+    fontSize: '11pt',
+    lineHeight: '1.6',
+  },
+  pdf: {
+    type: 'pdf',
+    name: 'PDF Export',
+    paperSize: 'A4',
+    dpi: 96,
+    colorSupport: true,
+    marginTop: '20mm',
+    marginRight: '20mm',
+    marginBottom: '20mm',
+    marginLeft: '25mm',
+    fontSize: '11pt',
+    lineHeight: '1.6',
+  },
+};
+
+/**
+ * Get the CSS @page rule for a printer type
+ */
+export function getPrinterPageCSS(printerType: PrinterType = 'generic'): string {
+  const cfg = PRINTER_PRESETS[printerType] || PRINTER_PRESETS.generic;
+  
+  let pageSize = 'A4';
+  if (cfg.paperSize === '80mm') pageSize = '80mm auto';
+  else if (cfg.paperSize === '58mm') pageSize = '58mm auto';
+  else if (cfg.paperSize === 'Letter') pageSize = 'letter';
+  else if (cfg.paperSize === 'Legal') pageSize = 'legal';
+  else if (cfg.paperSize === 'A5') pageSize = 'A5';
+
+  return `
+    @page {
+      size: ${pageSize};
+      margin: ${cfg.marginTop} ${cfg.marginRight} ${cfg.marginBottom} ${cfg.marginLeft};
+    }
+    @media print {
+      body {
+        font-size: ${cfg.fontSize} !important;
+        line-height: ${cfg.lineHeight} !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        ${!cfg.colorSupport ? 'filter: grayscale(100%);' : ''}
+      }
+      ${cfg.paperSize === '80mm' || cfg.paperSize === '58mm' ? `
+        .letterhead { display: none !important; }
+        .print-header-mini { display: block !important; }
+        table { font-size: 8pt !important; }
+        th, td { padding: 2px 4px !important; }
+      ` : ''}
+    }
+  `;
+}
+
+/**
+ * Build complete print CSS for a specific printer
+ */
+export function buildPrinterCSS(printerType: PrinterType, baseFont = 'Times New Roman'): string {
+  const cfg = PRINTER_PRESETS[printerType] || PRINTER_PRESETS.generic;
+  const isThermal = printerType === 'thermal_80mm' || printerType === 'thermal_58mm';
+  
+  return `
+    ${getPrinterPageCSS(printerType)}
+    body {
+      font-family: ${isThermal ? 'Arial, sans-serif' : `'${baseFont}', serif`};
+      font-size: ${cfg.fontSize};
+      line-height: ${cfg.lineHeight};
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+    ${isThermal ? `
+    /* Thermal printer optimizations */
+    .letterhead { display: none; }
+    .print-thermal-header { display: block; text-align: center; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: none; border-bottom: 1px solid #000; padding: 2px 3px; font-size: 7pt; }
+    th { font-weight: bold; border-top: 1px solid #000; }
+    .footer { border-top: 1px dashed #000; margin-top: 8px; text-align: center; font-size: 7pt; }
+    ` : `
+    /* Standard printer (A4) */
+    .letterhead { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #1a3a6b; padding-bottom: 10px; margin-bottom: 16px; }
+    .letterhead img { width: 56px; height: 56px; object-fit: contain; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 5px 8px; }
+    th { background: #1a3a6b; color: #fff; font-weight: bold; }
+    .signature-box { border: 1px solid #ccc; padding: 20px; margin-top: 20px; }
+    `}
+    @media print {
+      .no-print, .no-print * { display: none !important; }
+      a { color: #000 !important; text-decoration: none !important; }
+    }
+  `;
+}
+
+/**
+ * Detect printer type from system settings
+ */
+export function detectPrinterType(settings: Record<string,string>): PrinterType {
+  const saved = (settings['printer_type'] || 'generic') as PrinterType;
+  if (saved in PRINTER_PRESETS) return saved;
+  
+  // Auto-detect from printer name
+  const printerName = (settings['printer_name'] || '').toLowerCase();
+  if (printerName.includes('kyocera')) return 'kyocera';
+  if (printerName.includes('thermal') || printerName.includes('tm-') || printerName.includes('tsp')) return 'thermal_80mm';
+  if (printerName.includes('deskjet') || printerName.includes('desk jet')) return 'hp_deskjet';
+  if (printerName.includes('laserjet') || printerName.includes('laser jet')) return 'hp_laserjet';
+  if (printerName.includes('hp')) return 'hp_deskjet';
+  
+  return 'generic';
+}

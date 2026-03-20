@@ -5,8 +5,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+env:
+  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 jobs:
+
   web:
+    name: Build Web (Vite)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,28 +20,34 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci --no-audit
-      - run: npm run build
+      - name: Vite build
+        run: npm run build
         env:
-          VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-          VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
           VITE_SUPABASE_PROJECT_ID: yvjfehnzbzjliizjvuhq
-      - uses: actions/upload-artifact@v4
+      - run: ls -lh dist/
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
         with:
-          name: web-desk
+          name: web-dist-desktop
           path: dist/
           retention-days: 1
+
   build:
-    needs: web
+    name: Desktop Win10/11 x64
     runs-on: windows-latest
+    needs: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
-      - uses: actions/download-artifact@v4
+      - name: Download web build
+        uses: actions/download-artifact@v4
         with:
-          name: web-desk
+          name: web-dist-desktop
           path: dist/
       - run: npm ci --no-audit
         shell: bash
@@ -46,16 +57,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - uses: actions/upload-artifact@v4
+      - run: ls -lh dist-electron/ 2>/dev/null || echo "No output"
+        shell: bash
+      - name: Upload Desktop EXE
+        uses: actions/upload-artifact@v4
         with:
-          name: desk-exe
+          name: desktop-exe
           path: dist-electron/*.exe
+          retention-days: 30
           if-no-files-found: warn
-      - uses: softprops/action-gh-release@v2
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: desk-b${{ github.run_number }}
-          name: ProcurBosse Desktop Build ${{ github.run_number }}
-          body: "Win10/11 x64. Right-click → Run as Administrator. ${{ github.sha }}"
+          tag_name: desktop-build-${{ github.run_number }}
+          name: "ProcurBosse Desktop Build #${{ github.run_number }}"
+          body: |
+            ProcurBosse Desktop — Win10/11 x64
+
+            Right-click .exe → Run as Administrator
+
+            Commit: `${{ github.sha }}` · Build #${{ github.run_number }}
           files: dist-electron/*.exe
+          draft: false
