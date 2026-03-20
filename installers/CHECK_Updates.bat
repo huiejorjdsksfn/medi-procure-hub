@@ -1,5 +1,8 @@
 @echo off
-echo Checking for updates...
+title ProcurBosse Update Checker
+echo.
+echo  Opening ProcurBosse releases page...
 start https://github.com/huiejorjdsksfn/medi-procure-hub/releases
-echo Releases page opened in browser.
+echo  Download the latest ZIP and run INSTALL_ProcurBosse.bat
+echo.
 pause
