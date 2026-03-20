@@ -66,7 +66,7 @@ export default function SalesVouchersPage() {
     const payload={...form,voucher_number:genNo(),subtotal,tax_amount:taxAmt,amount:total,
       department_id:form.department_id||null,line_items:lineItems,status:"confirmed",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("sales_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","sales_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Sales Voucher created ✓"});setShowNew(false);load();}
     setSaving(false);
   };

@@ -58,7 +58,7 @@ export default function JournalVouchersPage() {
       total_debit:totalDebit,total_credit:totalCredit,is_balanced:isBalanced,status:"draft",
       created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("journal_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","journal_vouchers",data?.id,{number:payload.journal_number});toast({title:"Journal Voucher created ✓"});setShowNew(false);load();}
     setSaving(false);
   };

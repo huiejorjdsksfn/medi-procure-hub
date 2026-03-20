@@ -54,11 +54,11 @@ export default function BudgetsPage() {
     const payload={...form,budget_code:editing?editing.budget_code:genCode(),department_name:dept?.name||form.department_name,allocated_amount:Number(form.allocated_amount),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("budgets").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
       else{logAudit(user?.id,profile?.full_name,"update","budgets",editing.id,{name:form.budget_name});toast({title:"Budget updated ✓"});}
     } else {
       const{data,error}=await(supabase as any).from("budgets").insert(payload).select().single();
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
       else{logAudit(user?.id,profile?.full_name,"create","budgets",data?.id,{name:form.budget_name});toast({title:"Budget created ✓"});}
     }
     setSaving(false); setShowNew(false); setEditing(null); load();

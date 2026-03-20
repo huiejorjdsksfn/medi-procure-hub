@@ -87,39 +87,64 @@ function SettingsInner() {
   async function save(keys: string[]) {
     setSaving(true);
     const subset: Record<string,string> = {};
-    keys.forEach(k => { if (s[k]!==undefined) subset[k]=s[k]; });
-    // Also save any undefined keys that were changed
+    keys.forEach(k => { if (s[k] !== undefined) subset[k] = s[k]; });
     const res = await saveSettings(subset);
     if (res.ok) {
-      await sendSystemBroadcast({ title:"Settings Updated", message:`Settings updated by ${profile?.full_name||user?.email}`, type:"info" });
-      toast({ title:"✅ Settings saved & propagated to all users" });
+      toast({ title:`✅ ${keys.length} settings saved & propagated` });
       setDirty(false);
     } else {
-      toast({ title:"Save failed: "+res.error, variant:"destructive" });
+      toast({ title:"Save failed: " + (res.error || "Check your connection"), variant:"destructive" });
     }
     setSaving(false);
   }
 
   async function saveAll() {
     setSaving(true);
-    const res = await saveSettings(s);
+    // Filter: only save keys that have values
+    const toSave = Object.fromEntries(
+      Object.entries(s).filter(([k, v]) => v !== undefined && v !== null && String(v).length >= 0)
+    );
+    const res = await saveSettings(toSave);
     if (res.ok) {
-      toast({ title:"✅ All settings saved and propagated" });
+      await sendSystemBroadcast({ 
+        title:"System Settings Updated", 
+        message:`Settings updated by ${profile?.full_name||user?.email||"Admin"}`, 
+        type:"info" 
+      });
+      toast({ title:`✅ All ${Object.keys(toSave).length} settings saved and propagated` });
       setDirty(false);
     } else {
-      toast({ title:"Save failed", variant:"destructive" });
+      toast({ title:"Save failed: " + (res.error || "Please check your connection"), variant:"destructive" });
     }
     setSaving(false);
   }
 
   async function testEmail() {
     setTesting(true); setTestResult(null);
+    const toAddr = s["hospital_email"] || user?.email || "";
+    if (!toAddr) {
+      setTestResult({ok:false, msg:"Please set hospital email address first"});
+      setTesting(false); return;
+    }
     try {
-      const { error } = await supabase.functions.invoke("send-email", {
-        body: { to:s["hospital_email"]||user?.email, subject:"ProcurBosse SMTP Test", body:"Test email from EL5 MediProcure settings." }
+      const { error, data } = await supabase.functions.invoke("send-email", {
+        body: { 
+          to: toAddr, 
+          subject: "ProcurBosse SMTP Test — " + new Date().toLocaleString("en-KE"), 
+          body: "This is a test email from EL5 MediProcure Settings page.\n\nIf you received this, SMTP is configured correctly.",
+          from_name: s["smtp_from_name"] || "EL5 MediProcure"
+        }
       });
-      setTestResult(error?{ok:false,msg:error.message}:{ok:true,msg:"Test email sent! Check your inbox."});
-    } catch(e:any) { setTestResult({ok:false,msg:e.message}); }
+      if (error) {
+        setTestResult({ok:false, msg:"Edge function error: " + error.message});
+      } else if (data?.error) {
+        setTestResult({ok:false, msg:"SMTP error: " + data.error});
+      } else {
+        setTestResult({ok:true, msg:"✅ Test email sent to " + toAddr + " — check your inbox"});
+      }
+    } catch(e:any) { 
+      setTestResult({ok:false, msg:"Failed: " + e.message + " — check SMTP settings"}); 
+    }
     setTesting(false);
   }
 

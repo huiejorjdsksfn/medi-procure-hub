@@ -80,11 +80,11 @@ export default function BidEvaluationsPage() {
       evaluated_at:new Date().toISOString(),status:"evaluated"};
     if(editing){
       const{error}=await(supabase as any).from("bid_evaluations").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
       toast({title:"Evaluation updated ✓"});
     } else {
       const{data,error}=await(supabase as any).from("bid_evaluations").insert(payload).select().single();
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
       logAudit(user?.id,profile?.full_name,"create","bid_evaluations",data?.id,{});
       toast({title:"Bid evaluated ✓"});
     }

@@ -47,7 +47,7 @@ export default function ProfilePage() {
     if(!user?.email) return;
     setResetSending(true);
     const{error}=await(supabase as any).auth.resetPasswordForEmail(user.email,{redirectTo:window.location.origin+"/reset-password"});
-    if(error) toast({title:"Error",description:error.message,variant:"destructive"});
+    if(error) toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
     else{ setResetSent(true); toast({title:"Password reset email sent ✓"}); }
     setResetSending(false);
   };

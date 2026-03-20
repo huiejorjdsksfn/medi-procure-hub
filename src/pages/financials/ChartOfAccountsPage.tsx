@@ -41,11 +41,11 @@ export default function ChartOfAccountsPage() {
     const payload={...form,balance:Number(form.balance)||0};
     if(editing){
       const{error}=await(supabase as any).from("chart_of_accounts").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
       else{toast({title:"Account updated ✓"});}
     } else {
       const{error}=await(supabase as any).from("chart_of_accounts").insert(payload);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
       else{toast({title:"Account created ✓"});}
     }
     setSaving(false); setShowNew(false); setEditing(null); load();

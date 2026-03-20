@@ -75,11 +75,11 @@ export default function ContractsPage() {
     const payload={...form,contract_number:form.contract_number||genNo(),total_value:parseFloat(form.total_value)||0,performance_score:parseInt(form.performance_score)||0,created_by:user?.id,supplier_name:sup?.name};
     if(editing){
       const{error}=await(supabase as any).from("contracts").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
       toast({title:"Contract updated ✓"});
     } else {
       const{data,error}=await(supabase as any).from("contracts").insert(payload).select().single();
-      if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
       logAudit(user?.id,profile?.full_name,"create","contracts",data?.id,{});
       await notifyProcurement({title:"New Contract Created",message:`${payload.contract_number}: ${form.title} — ${sup?.name||""}`,type:"procurement",module:"Contracts",senderId:user?.id});
       toast({title:"Contract created ✓"});

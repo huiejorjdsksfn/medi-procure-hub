@@ -46,11 +46,11 @@ export default function ReceiptVouchersPage() {
   },[]);
 
   const save = async () => {
-    if(!form.received_from||!form.amount){toast({title:"Fill required fields",variant:"destructive"});return;}
+    if(!form.received_from||!form.amount){toast({title:"Please fill all required fields",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,receipt_number:genNo(),amount:Number(form.amount),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("receipt_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","receipt_vouchers",data?.id,{received_from:form.received_from});toast({title:"Receipt Voucher created ✓"});setShowNew(false);load();}
     setSaving(false);
   };

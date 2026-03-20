@@ -72,7 +72,7 @@ export default function VouchersPage() {
     const dept=depts.find(d=>d.id===form.department_id);
     const payload={voucher_number:form.voucher_number||genNo(),requested_by:form.requested_by||profile?.full_name,department_id:form.department_id||null,department_name:dept?.name,purpose:form.purpose,date:form.date,items:validItems,total_value:total(validItems),status:"pending",created_by:user?.id};
     const{data,error}=await(supabase as any).from("vouchers").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
     logAudit(user?.id,profile?.full_name,"create","vouchers",data?.id,{});
     await notifyProcurement({title:"New Store Voucher",message:`${payload.voucher_number} — ${form.purpose.slice(0,60)}`,type:"voucher",module:"Vouchers",senderId:user?.id});
     toast({title:"Voucher submitted ✓"});

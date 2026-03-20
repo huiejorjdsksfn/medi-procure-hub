@@ -69,11 +69,11 @@ export default function FixedAssetsPage() {
     if(editing){
       const{error}=await(supabase as any).from("fixed_assets").update(payload).eq("id",editing.id);
       if(!error){logAudit(user?.id,profile?.full_name,"update","fixed_assets",editing.id,{name:form.asset_name});toast({title:"Asset updated ✓"});}
-      else toast({title:"Error",description:error.message,variant:"destructive"});
+      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
     } else {
       const{data,error}=await(supabase as any).from("fixed_assets").insert(payload).select().single();
       if(!error){logAudit(user?.id,profile?.full_name,"create","fixed_assets",data?.id,{name:form.asset_name});toast({title:"Asset registered ✓"});}
-      else toast({title:"Error",description:error.message,variant:"destructive"});
+      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };

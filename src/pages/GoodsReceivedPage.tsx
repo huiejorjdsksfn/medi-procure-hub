@@ -90,7 +90,7 @@ export default function GoodsReceivedPage() {
       ...form, grn_number:num, supplier_name:supp?.name||form.supplier_name,
       created_by:user?.id, created_by_name:profile?.full_name
     }).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
     const validItems = grnItems.filter(it=>it.item_name.trim());
     if(validItems.length>0){
       await(supabase as any).from("goods_received_items").insert(

@@ -59,12 +59,12 @@ export default function PurchaseVouchersPage() {
   const total = subtotal + taxAmt;
 
   const save = async () => {
-    if(!form.supplier_name||items.length===0){toast({title:"Fill required fields",variant:"destructive"});return;}
+    if(!form.supplier_name||items.length===0){toast({title:"Please fill all required fields",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,voucher_number:genNo(),supplier_id:form.supplier_id||null,subtotal,tax_amount:taxAmt,amount:total,
       line_items:items,status:"pending",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("purchase_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Error",description:error.message,variant:"destructive"});}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","purchase_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Purchase Voucher created ✓"});setShowNew(false);load();}
     setSaving(false);
   };
