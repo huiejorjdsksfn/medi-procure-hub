@@ -51,6 +51,7 @@ import WebmasterPage from "@/pages/WebmasterPage";
 import InboxPage from "@/pages/InboxPage";
 import EmailPage from "@/pages/EmailPage";
 import DocumentsPage from "@/pages/DocumentsPage";
+import DocumentEditorPage from "@/pages/DocumentEditorPage";
 import BackupPage from "@/pages/BackupPage";
 import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
@@ -91,7 +92,8 @@ const App = () => (
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
-            <Route path="/documents" element={<P><DocumentsPage /></P>} />
+            <Route path="/documents" element={<P><DocumentsPage />
+              <Route path="/documents/editor" element={<DocumentEditorPage />} /></P>} />
 
             {/* Inventory */}
             <Route path="/items" element={<P><ItemsPage /></P>} />
