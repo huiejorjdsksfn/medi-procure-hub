@@ -29,7 +29,7 @@ const EMPTY_ITEM = { description:"", quantity:1, unit:"pcs", unit_price:0 };
 const inp: React.CSSProperties = {
   width:"100%", padding:"8px 12px", border:"1.5px solid #e5e7eb",
   borderRadius:8, fontSize:13, outline:"none", boxSizing:"border-box" as const,
-  color:"#111827", background:"#fff",
+  color:"#111827", background:"transparent",
 };
 const lbl: React.CSSProperties = {
   display:"block", fontSize:10, fontWeight:700, textTransform:"uppercase" as const,
@@ -399,7 +399,7 @@ export default function PurchaseOrdersPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 16px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",fontSize:11,color:"#6b7280"}}>
+        <div style={{padding:"8px 16px",background:"rgba(255,255,255,0.04)",borderTop:"1px solid #e5e7eb",fontSize:11,color:"#6b7280"}}>
           {filtered.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}
         </div>
       </div>
@@ -673,7 +673,7 @@ export default function PurchaseOrdersPage() {
               )}
 
               {viewPO.notes&&(
-                <div style={{padding:12,borderRadius:10,background:"#f9fafb",border:"1px solid #e5e7eb"}}>
+                <div style={{padding:12,borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid #e5e7eb"}}>
                   <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",margin:"0 0 4px"}}>Notes</p>
                   <p style={{fontSize:13,color:"#374151",margin:0}}>{viewPO.notes}</p>
                 </div>

@@ -353,7 +353,7 @@ export default function DocumentsPage() {
   };
 
   return (
-      <div style={{minHeight:"100%",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{minHeight:"100%",background:"transparent",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>

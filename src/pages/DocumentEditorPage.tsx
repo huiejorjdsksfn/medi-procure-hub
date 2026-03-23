@@ -360,7 +360,7 @@ ${html}
   };
 
   const S: any = {
-    page: { minHeight:"100vh",background:"#f3f4f6",display:"flex",flexDirection:"column" as const },
+    page: { minHeight:"100vh",background:"transparent",display:"flex",flexDirection:"column" as const },
     bar: { background:"#1a3a6b",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,position:"sticky" as const,top:0,zIndex:100 },
     tb: { background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 12px",display:"flex",alignItems:"center",gap:2,flexWrap:"wrap" as const },
     sep: { width:1,height:20,background:"#e5e7eb",margin:"0 4px" },

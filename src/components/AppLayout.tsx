@@ -208,7 +208,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"#f5f5f5",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"#0d1b3e",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
       {/* ════════════════════════════════════════════
           TOP BAR — D365 style (black, app branding)
@@ -356,8 +356,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isDashboard&&(
         <div style={{
           height:44, flexShrink:0, zIndex:200,
-          background:"#f5f5f5",
-          borderBottom:"1px solid #e0e0e0",
+          background:"#0d1b3e",
+          borderBottom:"1px solid rgba(255,255,255,0.08)",
           display:"flex", alignItems:"stretch",
           overflowX:"auto", overflowY:"hidden",
         }}>
@@ -379,7 +379,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background=`${col}18`; }}
                 onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
                 <m.icon style={{width:14,height:14,color:isAct?"#fff":col,flexShrink:0}}/>
-                <span style={{fontSize:12,fontWeight:isAct?700:500,color:isAct?"#fff":"#333",letterSpacing:"0.01em"}}>{m.label}</span>
+                <span style={{fontSize:12,fontWeight:isAct?700:500,color:isAct?"#fff":"rgba(255,255,255,0.72)",letterSpacing:"0.01em"}}>{m.label}</span>
               </button>
             );
           })}
@@ -388,8 +388,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             style={{display:"flex",alignItems:"center",gap:6,padding:"0 14px",border:"none",background:"transparent",cursor:"pointer",marginLeft:"auto",flexShrink:0}}
             onMouseEnter={e=>hov(e,true,"#e8e8e8")}
             onMouseLeave={e=>hov(e,false)}>
-            <Home style={{width:13,height:13,color:"#666"}}/>
-            <span style={{fontSize:11.5,color:"#666"}}>Dashboard</span>
+            <Home style={{width:13,height:13,color:"rgba(255,255,255,0.55)"}}/>
+            <span style={{fontSize:11.5,color:"rgba(255,255,255,0.55)"}}>Dashboard</span>
           </button>
         </div>
       )}
@@ -492,7 +492,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ════════════════════════════════════════════
           PAGE CONTENT
       ════════════════════════════════════════════ */}
-      <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f5f5f5"}}>
+      <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#0d1b3e"}}>
         {children}
       </main>
     </div>
