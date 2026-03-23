@@ -144,7 +144,7 @@ export default function ReportsPage() {
   };
 
   return (
-      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"100%",display:"flex",flexDirection:"column"}}>
+      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"100%",display:"flex",flexDirection:"column"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>

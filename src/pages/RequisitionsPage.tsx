@@ -261,7 +261,7 @@ export default function RequisitionsPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 16px",background:"#f9fafb",borderTop:"1px solid #e5e7eb"}}>
+        <div style={{padding:"8px 16px",background:"rgba(255,255,255,0.04)",borderTop:"1px solid #e5e7eb"}}>
           {filtered.length} requisition{filtered.length!==1?"s":""}
           {filtered.length>0&&` · Total: KES ${filtered.reduce((s,r)=>s+Number(r.total_amount||0),0).toLocaleString()}`}
         </div>
@@ -356,7 +356,7 @@ export default function RequisitionsPage() {
                   </div>
                 ))}
               </div>
-              {viewReq.notes&&<div style={{marginBottom:16,padding:12,borderRadius:12,background:"#f9fafb"}}><p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:4}}>Notes</p><p style={{fontSize:14,color:"#374151"}}>{viewReq.notes}</p></div>}
+              {viewReq.notes&&<div style={{marginBottom:16,padding:12,borderRadius:12,background:"rgba(255,255,255,0.04)"}}><p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:4}}>Notes</p><p style={{fontSize:14,color:"#374151"}}>{viewReq.notes}</p></div>}
               {(viewReq.requisition_items||[]).length>0&&(
                 <div>
                   <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:8}}>Line Items ({viewReq.requisition_items.length})</p>

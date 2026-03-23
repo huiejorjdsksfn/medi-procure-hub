@@ -92,8 +92,9 @@ const App = () => (
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
-            <Route path="/documents" element={<P><DocumentsPage />
-              <Route path="/documents/editor" element={<DocumentEditorPage />} /></P>} />
+            <Route path="/documents" element={<P><DocumentsPage /></P>} />
+            <Route path="/documents/editor" element={<P><DocumentEditorPage /></P>} />
+            <Route path="/documents/editor/:id" element={<P><DocumentEditorPage /></P>} />
 
             {/* Inventory */}
             <Route path="/items" element={<P><ItemsPage /></P>} />

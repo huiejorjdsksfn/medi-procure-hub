@@ -272,7 +272,7 @@ export default function EmailPage() {
   };
 
   /* ── Shared input style ──────────────────────────────────── */
-  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"#fff",fontFamily:"inherit"};
+  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"transparent",fontFamily:"inherit"};
 
   /* ── Hover helpers ───────────────────────────────────────── */
   const hoverBg = (e:React.MouseEvent, on:boolean, bg="#f0f0f0") => {
@@ -283,11 +283,11 @@ export default function EmailPage() {
       RENDER
   ────────────────────────────────────────────────────────── */
   return (
-    <div style={{display:"flex",height:"100%",background:"#fff",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
+    <div style={{display:"flex",height:"100%",background:"transparent",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────── */}
-      <div style={{width:210,flexShrink:0,background:"#faf9f8",borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{width:210,flexShrink:0,background:"rgba(255,255,255,0.04)",borderRight:"1px solid rgba(255,255,255,0.1)",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* Header */}
         <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e0e0e0"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>

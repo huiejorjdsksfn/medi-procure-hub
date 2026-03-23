@@ -121,7 +121,7 @@ function Sect({ title, icon: Icon, color, children }: { title: string; icon: any
 function AdminInner() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { settings, getSetting } = useSystemSettings();
+  const { settings, get: getSetting, bool: getBool } = useSystemSettings();
 
   const [sec, setSec] = useState("overview");
   const [cfg, setCfg] = useState<Record<string,string>>({});
