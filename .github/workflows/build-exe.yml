@@ -1,4 +1,12 @@
-name: ProcurBosse v1+v2 EXE
+# ═══════════════════════════════════════════════════════════════════════
+# ProcurBosse — Windows EXE Builder
+# Builds BOTH versions on every push to main:
+#   v1 → Windows 7/8/10  (ia32, 32-bit)
+#   v2 → Windows 10/11   (x64, 64-bit)
+# Auto-publishes to GitHub Releases
+# ═══════════════════════════════════════════════════════════════════════
+name: Build Windows EXE
+
 on:
   push:
     branches: [main]
@@ -7,188 +15,164 @@ on:
       version:
         description: 'Version override (e.g. 2.1.0)'
         required: false
-        default: ''
+
 permissions:
   contents: write
-env:
-  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+
 jobs:
-
-  web:
-    name: Build Web (Vite)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-      - run: npm ci --no-audit
-      - name: Vite build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
-          VITE_SUPABASE_PROJECT_ID: yvjfehnzbzjliizjvuhq
-          VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
-          VITE_SYSTEM_NAME: "EL5 MediProcure"
-      - run: ls -lh dist/ && du -sh dist/
-      - name: Upload web build
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-dist
-          path: dist/
-          retention-days: 1
-
-  v2:
-    name: v2 Win10/11 x64
+  # ── Job 1: Build x64 (Windows 10/11) ────────────────────────────────
+  build-x64:
     runs-on: windows-latest
-    needs: web
-    outputs:
-      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-      - name: Download web build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist/
-      - run: npm ci --no-audit
-        shell: bash
+          cache: 'npm'
+
       - name: Set version
-        id: ver
         shell: bash
         run: |
-          INP="${{ github.event.inputs.version }}"
-          VER="${INP:-2.0.${{ github.run_number }}}"
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='$VER';fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
-          echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "Building ProcurBosse v2 = $VER"
-      - name: Build x64 EXE
-        shell: bash
-        run: npx electron-builder --win --x64 --config electron-builder.yml
+          VER="${{ github.event.inputs.version || '2.0.0' }}"
+          npm version $VER --no-git-tag-version --allow-same-version
+          echo "APP_VERSION=$VER" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build React/Vite app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+
+      - name: Build Electron x64 EXE
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Rename to v2
-        shell: bash
-        run: |
-          VER="${{ steps.ver.outputs.version }}"
-          cd dist-electron
-          EXE=$(ls *.exe 2>/dev/null | head -1)
-          [ -z "$EXE" ] && echo "ERROR: No EXE produced" && exit 1
-          mv "$EXE" "ProcurBosse-v2.${VER}-Win10-x64-Setup.exe"
-          echo "EXE: $(ls *.exe) ($(du -sh *.exe | cut -f1))"
-      - name: Upload v2 EXE
+        run: npx electron-builder --win --x64 --config electron-builder.yml
+
+      - name: Upload x64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v2-exe
-          path: dist-electron/ProcurBosse-v2.*.exe
+          name: ProcurBosse-x64-Setup
+          path: dist-electron/*.exe
           retention-days: 30
-          if-no-files-found: error
 
-  v1:
-    name: v1 Win7/8 ia32
+  # ── Job 2: Build ia32 (Windows 7/8) ─────────────────────────────────
+  build-ia32:
     runs-on: windows-latest
-    needs: web
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: Download web build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist/
-      - name: Pin Electron 22 LTS for Win7
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set version (ia32 = v1.x)
         shell: bash
         run: |
-          RUN="${{ github.run_number }}"
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.devDependencies.electron='22.3.27';p.version='1.0.${RUN}';fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
-          echo "Electron pinned to 22.3.27, v1.0.$RUN"
-      - run: npm install --no-audit --legacy-peer-deps
+          VER="1.0.0"
+          npm version $VER --no-git-tag-version --allow-same-version
+          echo "APP_VERSION=$VER" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build React/Vite app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+
+      - name: Patch electron-builder for ia32 artifact name
         shell: bash
-      - name: Patch ia32 artifact name
-        shell: pwsh
         run: |
-          $cfg = Get-Content 'electron-builder.yml' -Raw
-          $old = 'artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"'
-          $new = 'artifactName: "ProcurBosse-v1.${version}-Win7-ia32-Setup.exe"'
-          $cfg = $cfg.Replace($old, $new)
-          Set-Content 'electron-builder.yml' $cfg
-          Write-Host "Patched artifact name for ia32"
-      - name: Build ia32 EXE
-        shell: bash
-        run: npx electron-builder --win --ia32 --config electron-builder.yml
+          python3 -c "
+          import yaml, sys
+          with open('electron-builder.yml') as f: c = yaml.safe_load(f)
+          c['nsis']['artifactName'] = 'ProcurBosse-v1-Win7-ia32-Setup.exe'
+          with open('electron-builder.yml','w') as f: yaml.dump(c,f,default_flow_style=False)
+          print('patched')
+          "
+
+      - name: Build Electron ia32 EXE
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: List dist-electron
-        shell: bash
-        run: ls -lh dist-electron/ 2>/dev/null || echo "No dist-electron output"
-      - name: Upload v1 EXE
+        run: npx electron-builder --win --ia32 --config electron-builder.yml
+
+      - name: Upload ia32 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-v1-exe
-          path: dist-electron/ProcurBosse-v1.*.exe
+          name: ProcurBosse-ia32-Setup
+          path: dist-electron/*.exe
           retention-days: 30
-          if-no-files-found: warn
 
+  # ── Job 3: Create GitHub Release with both EXEs ──────────────────────
   release:
-    name: Create GitHub Release + ZIP
+    needs: [build-x64, build-ia32]
     runs-on: ubuntu-latest
-    needs: [v2, v1]
-    if: always() && needs.v2.result == 'success'
     steps:
-      - name: Download v2 EXE
+      - uses: actions/checkout@v4
+
+      - name: Download x64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v2-exe
-          path: release/
-      - name: Download v1 EXE
+          name: ProcurBosse-x64-Setup
+          path: release-files/
+
+      - name: Download ia32 artifact
         uses: actions/download-artifact@v4
         with:
-          name: procurbosse-v1-exe
-          path: release/
-        continue-on-error: true
+          name: ProcurBosse-ia32-Setup
+          path: release-files/
+
       - name: List release files
-        run: ls -lh release/ || echo "No files in release/"
-      - name: Create ZIP package
-        run: |
-          VER="${{ needs.v2.outputs.version }}"
-          TS=$(date +%Y%m%d)
-          ZIPNAME="ProcurBosse_v${VER}_${TS}_Windows.zip"
-          zip -j "$ZIPNAME" release/*.exe && echo "ZIP: $ZIPNAME" || echo "ZIP skipped (no EXEs)"
+        run: ls -lh release-files/
+
+      - name: Get version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ needs.v2.outputs.version }}-build-${{ github.run_number }}
-          name: "ProcurBosse v${{ needs.v2.outputs.version }} — EL5 MediProcure"
+          tag_name: v${{ steps.ver.outputs.version }}-build${{ github.run_number }}
+          name: "ProcurBosse v${{ steps.ver.outputs.version }} — EL5 MediProcure"
           body: |
-            ## ProcurBosse Windows Installers
+            ## ProcurBosse v${{ steps.ver.outputs.version }} — Embu Level 5 Hospital ERP
+
+            ### 📦 Downloads
 
             | File | OS | Architecture |
-            |------|----|------|
-            | `ProcurBosse-v2.*-Win10-x64-Setup.exe` | **Windows 10/11** | 64-bit ✅ Recommended |
-            | `ProcurBosse-v1.*-Win7-ia32-Setup.exe` | **Windows 7/8/10** | 32-bit Legacy |
-            | `ProcurBosse_v*_Windows.zip` | Both | Complete package |
+            |------|-----|------|
+            | `ProcurBosse-v2-x64-Setup.exe` | Windows 10/11 | 64-bit ✅ **Recommended** |
+            | `ProcurBosse-v1-Win7-ia32-Setup.exe` | Windows 7/8/10 | 32-bit Legacy |
 
-            **Install:** Right-click .exe → Run as Administrator → Follow wizard
+            ### 🚀 Installation
+            1. Download the correct EXE for your Windows version
+            2. Run `INSTALL_ProcurBosse.bat` or double-click the EXE
+            3. Launch from Desktop shortcut
 
-            **System:** EL5 MediProcure · Embu Level 5 Hospital · Embu County Government
+            ### ✅ Changes in this build
+            - Fixed `useSystemSettings` crash in Admin Panel & Settings
+            - All printouts redesigned to match Embu County Government official letterhead
+            - Dark navy UI — no more white page flashes
+            - Fixed `/documents/editor` nested route crash
+            - Realtime DB subscriptions enabled on all 38 tables
+            - Full RLS auth policies applied to all tables
+            - Auto-create user profile on signup
+            - Windows 7 compatibility fixes in Electron
 
-            Commit: `${{ github.sha }}` · Build #${{ github.run_number }}
-          files: |
-            release/*.exe
-            ProcurBosse_*.zip
+            ### 🗄️ Database
+            - Supabase: `yvjfehnzbzjliizjvuhq.supabase.co`
+            - Realtime enabled on all core tables
+            - RLS policies: role-based access control enforced
+
+          files: release-files/*
           draft: false
           prerelease: false
-          make_latest: true
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -2,7 +2,7 @@
 # Targets: Windows 7 SP1 → Windows 11 (x64 + ia32)
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
-copyright: "© 2025 Embu County Government — All Rights Reserved"
+copyright: "© 2026 Embu County Government — All Rights Reserved"
 
 directories:
   buildResources: build
@@ -31,6 +31,9 @@ win:
   verifyUpdateCodeSignature: false
   target:
     - target: nsis
+      arch:
+        - x64
+        - ia32
 
 nsis:
   oneClick: false
@@ -45,6 +48,7 @@ nsis:
   artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"
   deleteAppDataOnUninstall: false
   unicode: true
+  include: build/installer.nsh
 
 publish:
   provider: github
