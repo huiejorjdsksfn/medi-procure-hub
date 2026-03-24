@@ -41,7 +41,14 @@ export default function ContractsPage() {
   const [editing,  setEditing]  = useState<any>(null);
   const [detail,   setDetail]   = useState<any>(null);
   const [saving,   setSaving]   = useState(false);
-  const [form, setForm] = useState({contract_number:"",supplier_id:"",title:"",description:"",start_date:"",end_date:"",total_value:"",status:"active",payment_terms:"",delivery_terms:"",performance_score:"0"});
+  const [form, setForm] = useState({
+    contract_number:"", supplier_id:"", title:"", description:"",
+    start_date:"", end_date:"", total_value:"", status:"active",
+    payment_terms:"", delivery_terms:"", performance_score:"0",
+    procurement_method:"Open Tender", scope_of_work:"",
+    special_conditions:"", retention_percentage:"0",
+    contract_type:"Supply", contact_person:"", contact_email:"",
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,8 +65,27 @@ export default function ContractsPage() {
   },[load]);
 
   const openNew = (v?:any) => {
-    if(v){setEditing(v);setForm({contract_number:v.contract_number||"",supplier_id:v.supplier_id||"",title:v.title||"",description:v.description||"",start_date:v.start_date||"",end_date:v.end_date||"",total_value:String(v.total_value||""),status:v.status||"active",payment_terms:v.payment_terms||"",delivery_terms:v.delivery_terms||"",performance_score:String(v.performance_score||"0")});}
-    else{setEditing(null);setForm({contract_number:"",supplier_id:"",title:"",description:"",start_date:"",end_date:"",total_value:"",status:"active",payment_terms:"",delivery_terms:"",performance_score:"0"});}
+    if(v){setEditing(v);setForm({
+      contract_number:v.contract_number||"", supplier_id:v.supplier_id||"",
+      title:v.title||"", description:v.description||"",
+      start_date:v.start_date||"", end_date:v.end_date||"",
+      total_value:String(v.total_value||""), status:v.status||"active",
+      payment_terms:v.payment_terms||"", delivery_terms:v.delivery_terms||"",
+      performance_score:String(v.performance_score||"0"),
+      procurement_method:v.procurement_method||"Open Tender",
+      scope_of_work:v.scope_of_work||"", special_conditions:v.special_conditions||"",
+      retention_percentage:String(v.retention_percentage||"0"),
+      contract_type:v.contract_type||"Supply",
+      contact_person:v.contact_person||"", contact_email:v.contact_email||"",
+    });}
+    else{setEditing(null);setForm({
+      contract_number:"", supplier_id:"", title:"", description:"",
+      start_date:"", end_date:"", total_value:"", status:"active",
+      payment_terms:"", delivery_terms:"", performance_score:"0",
+      procurement_method:"Open Tender", scope_of_work:"",
+      special_conditions:"", retention_percentage:"0",
+      contract_type:"Supply", contact_person:"", contact_email:"",
+    });}
     setShowNew(true);
   };
 

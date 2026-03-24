@@ -43,7 +43,16 @@ export default function TendersPage() {
   const [detail,   setDetail]   = useState<any>(null);
   const [editing,  setEditing]  = useState<any>(null);
   const [saving,   setSaving]   = useState(false);
-  const [form, setForm] = useState({title:"",description:"",category:"",tender_type:"Open Tender",estimated_value:"",opening_date:"",closing_date:"",evaluation_criteria:"",contact_person:""});
+  const [form, setForm] = useState({
+    title:"", description:"", category:"",
+    tender_type:"Open Tender", estimated_value:"",
+    opening_date:"", closing_date:"",
+    evaluation_criteria:"", contact_person:"",
+    contact_email:"", contact_phone:"",
+    bid_bond_required:false, bid_bond_amount:"",
+    performance_bond:false, currency:"KES",
+    procurement_method:"Open Tender",
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,8 +66,30 @@ export default function TendersPage() {
   },[load]);
 
   const openNew = (v?:any) => {
-    if(v){ setEditing(v); setForm({title:v.title||"",description:v.description||"",category:v.category||"",tender_type:v.tender_type||"Open Tender",estimated_value:String(v.estimated_value||""),opening_date:v.opening_date||"",closing_date:v.closing_date||"",evaluation_criteria:v.evaluation_criteria||"",contact_person:v.contact_person||""}); }
-    else { setEditing(null); setForm({title:"",description:"",category:"",tender_type:"Open Tender",estimated_value:"",opening_date:"",closing_date:"",evaluation_criteria:"",contact_person:""}); }
+    if(v){ setEditing(v); setForm({
+      title:v.title||"", description:v.description||"", category:v.category||"",
+      tender_type:v.tender_type||"Open Tender",
+      estimated_value:String(v.estimated_value||""),
+      opening_date:v.opening_date||"", closing_date:v.closing_date||"",
+      evaluation_criteria:v.evaluation_criteria||"",
+      contact_person:v.contact_person||"",
+      contact_email:v.contact_email||"", contact_phone:v.contact_phone||"",
+      bid_bond_required:v.bid_bond_required||false,
+      bid_bond_amount:String(v.bid_bond_amount||""),
+      performance_bond:v.performance_bond||false,
+      currency:v.currency||"KES",
+      procurement_method:v.procurement_method||"Open Tender",
+    }); }
+    else { setEditing(null); setForm({
+      title:"", description:"", category:"",
+      tender_type:"Open Tender", estimated_value:"",
+      opening_date:"", closing_date:"",
+      evaluation_criteria:"", contact_person:"",
+      contact_email:"", contact_phone:"",
+      bid_bond_required:false, bid_bond_amount:"",
+      performance_bond:false, currency:"KES",
+      procurement_method:"Open Tender",
+    }); }
     setShowNew(true);
   };
 

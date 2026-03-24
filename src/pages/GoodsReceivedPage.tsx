@@ -31,7 +31,13 @@ export default function GoodsReceivedPage() {
   const [viewGrn, setViewGrn]     = useState<any>(null);
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [form, setForm] = useState({grn_number:"",po_reference:"",supplier_id:"",supplier_name:"",received_date:new Date().toISOString().slice(0,10),delivery_note_number:"",carrier_name:"",remarks:"",status:"received"});
+  const [form, setForm] = useState({
+    grn_number:"", po_reference:"", supplier_id:"", supplier_name:"",
+    received_date:new Date().toISOString().slice(0,10),
+    delivery_note_number:"", invoice_number:"", waybill_number:"",
+    carrier_name:"", received_by:"", store_location:"Main Store",
+    inspection_done:false, remarks:"", status:"received"
+  });
   const [grnItems, setGrnItems]   = useState<GrnItem[]>([{...EMPTY_ITEM}]);
 
   const load = async()=>{
@@ -72,7 +78,13 @@ export default function GoodsReceivedPage() {
     setGrnItems(prev=>prev.map((it,i)=>i===idx?{...it,[field]:val}:it));
 
   const resetForm = () => {
-    setForm({grn_number:"",po_reference:"",supplier_id:"",supplier_name:"",received_date:new Date().toISOString().slice(0,10),delivery_note_number:"",carrier_name:"",remarks:"",status:"received"});
+    setForm({
+    grn_number:"", po_reference:"", supplier_id:"", supplier_name:"",
+    received_date:new Date().toISOString().slice(0,10),
+    delivery_note_number:"", invoice_number:"", waybill_number:"",
+    carrier_name:"", received_by:"", store_location:"Main Store",
+    inspection_done:false, remarks:"", status:"received"
+  });
     setGrnItems([{...EMPTY_ITEM}]);
   };
 

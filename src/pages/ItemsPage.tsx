@@ -42,9 +42,14 @@ export default function ItemsPage() {
   // sysName now from useSystemSettings
 
   const [form, setForm] = useState({
-    name:"",sku:"",item_type:"pharmaceutical",category_id:"",
-    unit_price:"",quantity_in_stock:"",reorder_level:"10",
-    unit_of_measure:"",description:"",status:"active"
+    name:"", sku:"", item_type:"pharmaceutical", category_id:"",
+    unit_price:"", quantity_in_stock:"", reorder_level:"10",
+    unit_of_measure:"pcs", description:"", status:"active",
+    brand:"", manufacturer:"", country_of_origin:"",
+    storage_conditions:"", shelf_life_days:"", batch_number:"",
+    expiry_date:"", supplier_id:"", cost_price:"",
+    location_in_store:"", is_controlled:false, is_consumable:true,
+    notes:"",
   });
 
   useEffect(()=>{
