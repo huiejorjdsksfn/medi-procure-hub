@@ -164,7 +164,7 @@ export default function SuppliersPage() {
   const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"transparent",minHeight:"100%",padding:16}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",padding:16}}>
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         .sup-row:hover td{background:#eff6ff!important}

@@ -45,10 +45,10 @@ function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) 
 
 function FR({ label, sub, color, children }: { label: string; sub?: string; color?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid rgba(255,255,255,0.06)",gap:16 }}>
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid #f1f5f9",gap:16 }}>
       <div style={{ flex:1 }}>
         {color && <span style={{ display:"inline-block",width:3,height:14,borderRadius:2,background:color,marginRight:8,verticalAlign:"middle" }} />}
-        <span style={{ fontSize:13.5,fontWeight:500,color:"#f1f5f9" }}>{label}</span>
+        <span style={{ fontSize:13.5,fontWeight:500,color:"#1e293b" }}>{label}</span>
         {sub && <div style={{ fontSize:11.5,color:"#64748b",marginTop:2 }}>{sub}</div>}
       </div>
       <div style={{ flexShrink:0 }}>{children}</div>
@@ -58,13 +58,13 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 
 function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) {
   return (
-    <div style={{ background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
+    <div style={{ background:"#f8fafc",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
       <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:12,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
         <div style={{ width:36,height:36,borderRadius:9,background:color,display:"flex",alignItems:"center",justifyContent:"center" }}>
           <Icon style={{ width:17,height:17,color:"#fff" }} />
         </div>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:14,fontWeight:700,color:"#f1f5f9" }}>{title}</div>
+          <div style={{ fontSize:14,fontWeight:700,color:"#1e293b" }}>{title}</div>
           {sub && <div style={{ fontSize:11,color:"#64748b" }}>{sub}</div>}
         </div>
         {onSave && (
@@ -103,7 +103,7 @@ function SettingsInner() {
 
   const inp: React.CSSProperties = {
     padding:"8px 11px", border:"1px solid rgba(255,255,255,0.12)",
-    borderRadius:7, fontSize:13, color:"#f1f5f9",
+    borderRadius:7, fontSize:13, color:"#1e293b",
     background:"rgba(255,255,255,0.06)", outline:"none", width:"100%",
   };
 
@@ -154,13 +154,13 @@ function SettingsInner() {
   }
 
   return (
-    <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#f1f5f9",fontFamily:"var(--font-sans)" }}>
+    <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#1e293b",fontFamily:"var(--font-sans)" }}>
 
       {/* Header */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
         <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:4 }} />
         <div>
-          <div style={{ fontSize:15,fontWeight:800,color:"#f1f5f9" }}>System Settings</div>
+          <div style={{ fontSize:15,fontWeight:800,color:"#1e293b" }}>System Settings</div>
           <div style={{ fontSize:10,color:"#64748b" }}>Changes propagate to all users via Supabase Realtime</div>
         </div>
         <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>

@@ -43,7 +43,7 @@ export default function NetworkGuard({ children }: { children: React.ReactNode }
 
   if (loading || status === "checking") {
     return (
-      <div style={{position:"fixed",inset:0,background:"#0a1628",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+      <div style={{position:"fixed",inset:0,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
         <div style={{textAlign:"center",color:"#fff"}}>
           <div style={{width:48,height:48,border:"4px solid rgba(255,255,255,0.2)",borderTop:"4px solid #C45911",borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto 16px"}}/>
           <div style={{fontSize:14,opacity:0.7}}>Verifying network access...</div>
@@ -55,7 +55,7 @@ export default function NetworkGuard({ children }: { children: React.ReactNode }
 
   if (status === "denied" && result) {
     return (
-      <div style={{position:"fixed",inset:0,background:"#0a1628",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
+      <div style={{position:"fixed",inset:0,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
         <div style={{background:"#fff",borderRadius:16,padding:40,maxWidth:520,textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
           <div style={{width:64,height:64,borderRadius:"50%",background:"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:28}}>🚫</div>
           <div style={{fontSize:22,fontWeight:800,color:"#dc2626",marginBottom:8}}>Access Denied</div>

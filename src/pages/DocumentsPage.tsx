@@ -353,7 +353,7 @@ export default function DocumentsPage() {
   };
 
   return (
-      <div style={{minHeight:"100%",background:"transparent",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{minHeight:"100%",background:"#f8fafc",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
@@ -558,7 +558,7 @@ export default function DocumentsPage() {
             <div style={{display:"flex",borderBottom:"1px solid #e5e7eb",background:"#f9fafb"}}>
               {([["metadata","Details"],["html","HTML Editor"],["preview","Preview"],["sigs","Signatures"]] as const).map(([id,lbl])=>(
                 <button key={id} onClick={()=>setEditTab(id as any)}
-                  style={{padding:"10px 18px",border:"none",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:editTab===id?700:500,color:editTab===id?"#1a3a6b":"#6b7280",borderBottom:editTab===id?"2px solid #1a3a6b":"2px solid transparent",transition:"all 0.1s"}}>
+                  style={{padding:"10px 18px",border:"none",background:"#f8fafc",cursor:"pointer",fontSize:12,fontWeight:editTab===id?700:500,color:editTab===id?"#1a3a6b":"#6b7280",borderBottom:editTab===id?"2px solid #1a3a6b":"2px solid transparent",transition:"all 0.1s"}}>
                   {lbl}
                 </button>
               ))}

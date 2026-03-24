@@ -58,6 +58,7 @@ import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
 import IpAccessPage from "@/pages/IpAccessPage";
 import ProfilePage from "@/pages/ProfilePage";
+import GuiEditorPage from "@/pages/GuiEditorPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
@@ -140,6 +141,7 @@ const App = () => (
             <Route path="/odbc" element={<P><RoleGuard allowed={["admin"]}><ODBCPage /></RoleGuard></P>} />
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
+            <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin"]}><GuiEditorPage /></RoleGuard></P>} />
 
             <Route path="*" element={<NotFound />} />
             </Routes>

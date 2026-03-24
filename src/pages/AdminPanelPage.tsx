@@ -92,10 +92,10 @@ function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) 
 
 function FR({ label, sub, color, children }: { label: string; sub?: string; color?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,0.06)",gap:12 }}>
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #f1f5f9",gap:12 }}>
       <div style={{ flex:1 }}>
         {color && <span style={{ display:"inline-block",width:3,height:12,borderRadius:2,background:color,marginRight:8,verticalAlign:"middle" }} />}
-        <span style={{ fontSize:13,fontWeight:500,color:"#f1f5f9" }}>{label}</span>
+        <span style={{ fontSize:13,fontWeight:500,color:"#1e293b" }}>{label}</span>
         {sub && <div style={{ fontSize:11,color:"#64748b",marginTop:2 }}>{sub}</div>}
       </div>
       <div style={{ flexShrink:0 }}>{children}</div>
@@ -105,12 +105,12 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 
 function Sect({ title, icon: Icon, color, children }: { title: string; icon: any; color: string; children: React.ReactNode }) {
   return (
-    <div style={{ background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"16px 20px",marginBottom:16 }}>
+    <div style={{ background:"#f8fafc",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"16px 20px",marginBottom:16 }}>
       <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
         <div style={{ width:32,height:32,borderRadius:8,background:color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
           <Icon style={{ width:16,height:16,color:"#fff" }} />
         </div>
-        <span style={{ fontSize:14,fontWeight:600,color:"#f1f5f9" }}>{title}</span>
+        <span style={{ fontSize:14,fontWeight:600,color:"#1e293b" }}>{title}</span>
       </div>
       {children}
     </div>
@@ -143,7 +143,7 @@ function AdminInner() {
 
   const inp: React.CSSProperties = {
     padding:"8px 11px", border:"1px solid rgba(255,255,255,0.12)",
-    borderRadius:7, fontSize:13, color:"#f1f5f9",
+    borderRadius:7, fontSize:13, color:"#1e293b",
     background:"rgba(255,255,255,0.06)", outline:"none", width:"100%",
   };
 
@@ -209,13 +209,13 @@ function AdminInner() {
   ];
 
   return (
-    <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#f1f5f9",fontFamily:"var(--font-sans)" }}>
+    <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#1e293b",fontFamily:"var(--font-sans)" }}>
 
       {/* Top bar */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
         <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:4 }} />
         <div>
-          <div style={{ fontSize:15,fontWeight:700,color:"#f1f5f9" }}>Admin Control Panel</div>
+          <div style={{ fontSize:15,fontWeight:700,color:"#1e293b" }}>Admin Control Panel</div>
           <div style={{ fontSize:10,color:"#64748b" }}>EL5 MediProcure · Embu Level 5 Hospital</div>
         </div>
         <div style={{ marginLeft:"auto",display:"flex",gap:8 }}>
@@ -254,28 +254,28 @@ function AdminInner() {
           {/* OVERVIEW */}
           {sec === "overview" && (
             <div>
-              <div style={{ fontSize:15,fontWeight:700,marginBottom:14,color:"#f1f5f9" }}>System Overview</div>
+              <div style={{ fontSize:15,fontWeight:700,marginBottom:14,color:"#1e293b" }}>System Overview</div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20 }}>
                 {KPI.map(k => (
-                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"left" }}>
+                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid rgba(255,255,255,0.07)",background:"#f8fafc",cursor:"pointer",textAlign:"left" }}>
                     <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
                       <div style={{ width:26,height:26,borderRadius:7,background:k.color,display:"flex",alignItems:"center",justifyContent:"center" }}>
                         <k.icon style={{ width:13,height:13,color:"#fff" }} />
                       </div>
                       <span style={{ fontSize:10,color:"#64748b" }}>{k.label}</span>
                     </div>
-                    <div style={{ fontSize:22,fontWeight:700,color:"#f1f5f9" }}>{loading ? "…" : (k.n||0).toLocaleString()}</div>
+                    <div style={{ fontSize:22,fontWeight:700,color:"#1e293b" }}>{loading ? "…" : (k.n||0).toLocaleString()}</div>
                   </button>
                 ))}
               </div>
               <div style={{ fontSize:12,fontWeight:600,color:"#64748b",marginBottom:8 }}>All Modules</div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:5 }}>
                 {ALL_MODULES.map(m => (
-                  <button key={m.path} onClick={() => navigate(m.path)} style={{ display:"flex",alignItems:"center",gap:7,padding:"7px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.03)",cursor:"pointer" }}>
+                  <button key={m.path} onClick={() => navigate(m.path)} style={{ display:"flex",alignItems:"center",gap:7,padding:"7px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"#f8fafc",cursor:"pointer" }}>
                     <div style={{ width:22,height:22,borderRadius:5,background:`${m.color}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
                       <m.icon style={{ width:11,height:11,color:m.color }} />
                     </div>
-                    <span style={{ fontSize:11,color:"#cbd5e1",fontWeight:500 }}>{m.label}</span>
+                    <span style={{ fontSize:11,color:"#374151",fontWeight:500 }}>{m.label}</span>
                     <ChevronRight style={{ width:10,height:10,color:"#475569",marginLeft:"auto",flexShrink:0 }} />
                   </button>
                 ))}
@@ -516,8 +516,8 @@ function AdminInner() {
               <FR label="Title" color="#d97706">
                 <input value={bcast.title} onChange={e=>setBcast(p=>({...p,title:e.target.value}))} placeholder="System Alert" style={{...inp,width:300}} />
               </FR>
-              <div style={{ padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ fontSize:12,fontWeight:500,color:"#f1f5f9",marginBottom:6 }}>Message</div>
+              <div style={{ padding:"10px 0",borderBottom:"1px solid #f1f5f9" }}>
+                <div style={{ fontSize:12,fontWeight:500,color:"#1e293b",marginBottom:6 }}>Message</div>
                 <textarea value={bcast.body} onChange={e=>setBcast(p=>({...p,body:e.target.value}))} placeholder="Message to all active users…" style={{...inp,height:80,resize:"vertical"}} />
               </div>
               <FR label="Type" color="#d97706">
@@ -537,13 +537,13 @@ function AdminInner() {
           {sec === "database" && (
             <Sect title="Database" icon={Database} color="#374151">
               <FR label="Supabase Project ID" color="#374151">
-                <code style={{ fontSize:12,color:"#94a3b8" }}>yvjfehnzbzjliizjvuhq</code>
+                <code style={{ fontSize:12,color:"#64748b" }}>yvjfehnzbzjliizjvuhq</code>
               </FR>
               <FR label="Region" color="#374151">
-                <span style={{ color:"#94a3b8" }}>af-south-1 · Africa/Nairobi</span>
+                <span style={{ color:"#64748b" }}>af-south-1 · Africa/Nairobi</span>
               </FR>
               <FR label="PostgreSQL" color="#374151">
-                <span style={{ color:"#94a3b8" }}>57+ tables · RLS enabled on all</span>
+                <span style={{ color:"#64748b" }}>57+ tables · RLS enabled on all</span>
               </FR>
               <div style={{ marginTop:14,display:"flex",gap:8,flexWrap:"wrap" }}>
                 {[
@@ -560,7 +560,7 @@ function AdminInner() {
           {/* CODEBASE */}
           {sec === "codebase" && (
             <div>
-              <div style={{ fontSize:13,fontWeight:600,marginBottom:10,color:"#94a3b8" }}>Source Code — ProcurBosse v2.0</div>
+              <div style={{ fontSize:13,fontWeight:600,marginBottom:10,color:"#64748b" }}>Source Code — ProcurBosse v2.0</div>
               <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:10,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden" }}>
                 {Object.entries(CODE_FILES).map(([folder, files]) => {
                   const isOpen = tree.has(folder);
@@ -573,13 +573,13 @@ function AdminInner() {
                         {isOpen
                           ? <FolderOpen style={{ width:13,height:13,color:"#d97706" }} />
                           : <Folder style={{ width:13,height:13,color:"#d97706" }} />}
-                        <span style={{ fontSize:11.5,fontFamily:"var(--font-mono)",fontWeight:600,color:"#cbd5e1" }}>{folder}/</span>
+                        <span style={{ fontSize:11.5,fontFamily:"var(--font-mono)",fontWeight:600,color:"#374151" }}>{folder}/</span>
                         <span style={{ fontSize:10,color:"#475569",marginLeft:"auto" }}>{files.length} files</span>
                       </button>
                       {isOpen && files.map(file => (
                         <div key={file} style={{ display:"flex",alignItems:"center",gap:7,padding:"4px 12px 4px 32px",borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
                           <Code2 style={{ width:10,height:10,color:file.endsWith(".ts")||file.endsWith(".tsx")?"#61afef":"#abb2bf",flexShrink:0 }} />
-                          <span style={{ fontSize:11,fontFamily:"var(--font-mono)",color:"#94a3b8" }}>{file}</span>
+                          <span style={{ fontSize:11,fontFamily:"var(--font-mono)",color:"#64748b" }}>{file}</span>
                         </div>
                       ))}
                     </div>

@@ -100,6 +100,7 @@ const MODULES = [
       {label:"Users",        path:"/users",          icon:Users,    roles:["admin"]},
       {label:"Settings",     path:"/settings",       icon:Settings, roles:["admin"]},
       {label:"Webmaster",    path:"/webmaster",      icon:Globe,    roles:["admin"]},
+      {label:"GUI Editor",   path:"/gui-editor",     icon:Palette,  roles:["admin"]},
       {label:"Backup",       path:"/backup",         icon:Archive,  roles:["admin"]},
       {label:"ODBC",         path:"/odbc",           icon:Cpu,      roles:["admin"]},
       {label:"IP Access",    path:"/admin/ip-access", icon:Shield,   roles:["admin"]},
@@ -208,7 +209,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"#0d1b3e",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
       {/* ════════════════════════════════════════════
           TOP BAR — D365 style (black, app branding)
@@ -356,8 +357,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isDashboard&&(
         <div style={{
           height:44, flexShrink:0, zIndex:200,
-          background:"#0d1b3e",
-          borderBottom:"1px solid rgba(255,255,255,0.08)",
+          background:"#ffffff",
+          borderBottom:"1px solid #e2e8f0",
           display:"flex", alignItems:"stretch",
           overflowX:"auto", overflowY:"hidden",
         }}>
@@ -371,25 +372,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   display:"flex", alignItems:"center", gap:7,
                   padding:"0 18px", border:"none",
                   cursor:"pointer", flexShrink:0, whiteSpace:"nowrap" as const,
-                  background: isAct ? col : "transparent",
+                  background: isAct ? col : "#ffffff",
                   borderBottom: isAct ? `3px solid ${col}` : "3px solid transparent",
                   transition:"all 0.14s",
                   position:"relative",
                 }}
-                onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background=`${col}18`; }}
-                onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background=`${col}12`; }}
+                onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#ffffff"; }}>
                 <m.icon style={{width:14,height:14,color:isAct?"#fff":col,flexShrink:0}}/>
-                <span style={{fontSize:12,fontWeight:isAct?700:500,color:isAct?"#fff":"rgba(255,255,255,0.72)",letterSpacing:"0.01em"}}>{m.label}</span>
+                <span style={{fontSize:12,fontWeight:isAct?700:500,color:isAct?"#ffffff":"#1e293b",letterSpacing:"0.01em"}}>{m.label}</span>
               </button>
             );
           })}
           {/* Home shortcut at far right */}
           <button onClick={()=>navigate("/dashboard")}
             style={{display:"flex",alignItems:"center",gap:6,padding:"0 14px",border:"none",background:"transparent",cursor:"pointer",marginLeft:"auto",flexShrink:0}}
-            onMouseEnter={e=>hov(e,true,"#e8e8e8")}
+            onMouseEnter={e=>hov(e,true,"#f1f5f9")}
             onMouseLeave={e=>hov(e,false)}>
-            <Home style={{width:13,height:13,color:"rgba(255,255,255,0.55)"}}/>
-            <span style={{fontSize:11.5,color:"rgba(255,255,255,0.55)"}}>Dashboard</span>
+            <Home style={{width:13,height:13,color:"#475569"}}/>
+            <span style={{fontSize:11.5,color:"#475569"}}>Dashboard</span>
           </button>
         </div>
       )}
@@ -432,7 +433,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Close tiles */}
           <button onClick={()=>setTileDropOpen(false)}
             style={{display:"flex",alignItems:"center",justifyContent:"center",width:32,height:32,background:"#f0f0f0",border:"1px solid #e0e0e0",borderRadius:4,cursor:"pointer",marginLeft:"auto",alignSelf:"flex-end"}}
-            onMouseEnter={e=>hov(e,true,"#e8e8e8")}
+            onMouseEnter={e=>hov(e,true,"#f1f5f9")}
             onMouseLeave={e=>hov(e,false)}>
             <X style={{width:14,height:14,color:"#666"}}/>
           </button>
