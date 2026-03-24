@@ -649,7 +649,7 @@ ORDER BY t.table_name;`);
                   <span style={{ color:"#60a5fa" }}>[{log.time}]</span>{" "}
                   <span style={{ color:log.event==="INSERT"?"#4ade80":log.event==="UPDATE"?"#fbbf24":"#f87171",fontWeight:700 }}>{log.event}</span>{" "}
                   <span style={{ color:"#c084fc" }}>{log.table}</span>{" "}
-                  <span style={{ color:"#e2e8f0" }}>{log.data}</span>
+                  <span style={{ color:"#1e293b" }}>{log.data}</span>
                 </div>
               ))}
             </div>

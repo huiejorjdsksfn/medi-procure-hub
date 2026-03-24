@@ -1,12 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════════
-# ProcurBosse — Windows EXE Builder
-# Builds BOTH versions on every push to main:
-#   v2 → Windows 10/11  (x64, 64-bit)  ← Recommended
-#   v1 → Windows 7/8    (ia32, 32-bit) ← Legacy
-# Auto-publishes to GitHub Releases
-# ═══════════════════════════════════════════════════════════════════════
-name: Build Windows EXE
-
+name: Build Windows EXE — ProcurBosse
 on:
   push:
     branches: [main]
@@ -20,168 +12,87 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
   VITE_SUPABASE_PROJECT_ID: "yvjfehnzbzjliizjvuhq"
   VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
-  VITE_COUNTY_NAME: "Embu County Government"
   VITE_SYSTEM_NAME: "EL5 MediProcure"
-  VITE_APP_VERSION: "2.0.0"
 
 jobs:
-  # ── Build x64 (Windows 10/11) ────────────────────────────────────
-  build-x64:
+  build-win-x64:
+    name: Windows 10/11 x64
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Write .env file
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - name: Write env
         shell: bash
         run: |
           cat > .env << 'EOF'
           VITE_SUPABASE_URL="https://yvjfehnzbzjliizjvuhq.supabase.co"
           VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
-          VITE_SUPABASE_PROJECT_ID="yvjfehnzbzjliizjvuhq"
-          VITE_HOSPITAL_NAME="Embu Level 5 Hospital"
-          VITE_COUNTY_NAME="Embu County Government"
-          VITE_SYSTEM_NAME="EL5 MediProcure"
-          VITE_APP_VERSION="2.0.0"
           EOF
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Build React/Vite app
-        run: npm run build
-
-      - name: Set version 2.0.0
-        shell: bash
-        run: npm version 2.0.0 --no-git-tag-version --allow-same-version
-
-      - name: Build Electron x64 EXE
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm install --legacy-peer-deps
+      - run: npm version 2.0.0 --no-git-tag-version --allow-same-version
+      - run: npm run build
+      - name: Build x64 EXE
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}", ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true" }
         run: npx electron-builder --win --x64 --config electron-builder.yml
+      - uses: actions/upload-artifact@v4
+        with: { name: win-x64, path: dist-electron/*.exe, retention-days: 30 }
 
-      - name: Upload x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ProcurBosse-x64-Setup
-          path: dist-electron/*.exe
-          retention-days: 30
-
-  # ── Build ia32 (Windows 7/8/10) ──────────────────────────────────
-  build-ia32:
-    runs-on: windows-latest
+  build-win-ia32:
+    name: Windows 7/8 ia32 (Legacy)
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Write .env file
+      - uses: actions/setup-node@v4
+        with: { node-version: '18', cache: 'npm' }
+      - name: Write env
         shell: bash
         run: |
           cat > .env << 'EOF'
           VITE_SUPABASE_URL="https://yvjfehnzbzjliizjvuhq.supabase.co"
           VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
-          VITE_SUPABASE_PROJECT_ID="yvjfehnzbzjliizjvuhq"
-          VITE_HOSPITAL_NAME="Embu Level 5 Hospital"
-          VITE_COUNTY_NAME="Embu County Government"
-          VITE_SYSTEM_NAME="EL5 MediProcure"
-          VITE_APP_VERSION="1.0.0"
           EOF
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Build React/Vite app
-        run: npm run build
-
-      - name: Set version 1.0.0 (ia32 legacy)
-        shell: bash
-        run: npm version 1.0.0 --no-git-tag-version --allow-same-version
-
+      - run: npm install --legacy-peer-deps
+      - run: npm version 1.0.0 --no-git-tag-version --allow-same-version
       - name: Patch artifact name for ia32
-        shell: python3 {0}
+        shell: python
         run: |
           import re
-          with open('electron-builder.yml') as f:
-              c = f.read()
+          with open('electron-builder.yml') as f: c = f.read()
           c = re.sub(r'artifactName:.*', 'artifactName: "ProcurBosse-v1-Win7-ia32-Setup.exe"', c)
-          with open('electron-builder.yml', 'w') as f:
-              f.write(c)
-
-      - name: Build Electron ia32 EXE
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with open('electron-builder.yml','w') as f: f.write(c)
+      - run: npm run build
+      - name: Build ia32 EXE
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}", ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true" }
         run: npx electron-builder --win --ia32 --config electron-builder.yml
+      - uses: actions/upload-artifact@v4
+        with: { name: win-ia32, path: dist-electron/*.exe, retention-days: 30 }
 
-      - name: Upload ia32 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ProcurBosse-ia32-Setup
-          path: dist-electron/*.exe
-          retention-days: 30
-
-  # ── Create Release with both EXEs ────────────────────────────────
   release:
-    needs: [build-x64, build-ia32]
+    name: GitHub Release
+    needs: [build-win-x64, build-win-ia32]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download x64 EXE
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        with: { name: win-x64, path: release/ }
+      - uses: actions/download-artifact@v4
+        with: { name: win-ia32, path: release/ }
+      - run: ls -lh release/
+      - uses: softprops/action-gh-release@v2
         with:
-          name: ProcurBosse-x64-Setup
-          path: release-files/
-
-      - name: Download ia32 EXE
-        uses: actions/download-artifact@v4
-        with:
-          name: ProcurBosse-ia32-Setup
-          path: release-files/
-
-      - name: List release files
-        run: ls -lh release-files/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v2.0.0-build${{ github.run_number }}
+          tag_name: "v2.0.0-build${{ github.run_number }}"
           name: "ProcurBosse v2.0.0 — EL5 MediProcure (Build ${{ github.run_number }})"
           body: |
             ## ProcurBosse v2.0.0 — Embu Level 5 Hospital ERP
 
-            ### 📦 Downloads
+            | File | OS | Arch |
+            |------|----|------|
+            | `ProcurBosse-v2.0.0-x64-Setup.exe` | Windows 10/11 | x64 ✅ Recommended |
+            | `ProcurBosse-v1-Win7-ia32-Setup.exe` | Windows 7/8/10 | ia32 Legacy |
 
-            | File | OS | Architecture |
-            |------|-----|------|
-            | `ProcurBosse-v2.0.0-x64-Setup.exe` | Windows 10/11 | 64-bit ✅ **Recommended** |
-            | `ProcurBosse-v1-Win7-ia32-Setup.exe` | Windows 7/8/10 | 32-bit Legacy |
-
-            ### 🗄️ Database
-            - Supabase: `yvjfehnzbzjliizjvuhq.supabase.co`
-            - Realtime on all 38 tables ✅
-            - RLS auth policies on all tables ✅
-            - Auto profile creation on signup ✅
-
-            ### ✅ What's new
-            - Fixed `useSystemSettings` crash (Admin Panel + Settings)
-            - All printouts redesigned to Embu County Government letterhead
-            - Dark navy UI — no white flash
-            - Fixed `/documents/editor` route crash
-            - `printGenericVoucher` export fixed (voucher pages)
-            - BackupPage CSS duplicate key fixed
-            - Code-split bundles for faster loading
-            - Windows 7 Electron compatibility fixes
-          files: release-files/*
+            **What's new:** White nav theme • GUI Editor • PWA install • Twilio SMS • IP whitelist • Full requisition forms with items • All pages light theme
+          files: release/*
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}

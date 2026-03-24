@@ -113,7 +113,7 @@ export default function ProcurementPlanningPage() {
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search plans..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
       <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#0f172a"}}>
+          <thead><tr style={{background:"#ffffff"}}>
             {["Plan No.","Title","Dept.","Category","Method","Budget","FY","Status","Actions"].map(h=>(
               <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
           </tr></thead>

@@ -157,7 +157,7 @@ function UsersInner() {
   if(!isAdmin) return <div style={{padding:32,textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>Admin access required</div>;
 
   return (
-    <div style={{minHeight:"100%",background:"transparent",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{minHeight:"100%",background:"#f8fafc",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
         <Users style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
@@ -301,7 +301,7 @@ function UsersInner() {
                 <div style={{position:"relative"}}>
                   <input type={f.k==="password"&&!pwVis?"password":(f.t||"text")} value={(newU as any)[f.k]||""} onChange={e=>setNewU(p=>({...p,[f.k]:e.target.value}))}
                     style={{width:"100%",padding:`9px 12px${f.k==="password"?" 9px 36px":""}`,fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                  {f.k==="password"&&<button type="button" onClick={()=>setPwVis(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
+                  {f.k==="password"&&<button type="button" onClick={()=>setPwVis(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
                     {pwVis?<EyeOff style={{width:14,height:14}}/>:<Eye style={{width:14,height:14}}/>}
                   </button>}
                 </div>
@@ -359,7 +359,7 @@ function UsersInner() {
                 <div style={{fontSize:13,fontWeight:600,color:"#111827"}}>Account Active</div>
                 <div style={{fontSize:11,color:"#9ca3af"}}>Inactive users cannot log in</div>
               </div>
-              <button onClick={()=>setEditActive(v=>!v)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
+              <button onClick={()=>setEditActive(v=>!v)} style={{background:"#f8fafc",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
                 <div style={{width:44,height:24,borderRadius:12,background:editActive?"#1a3a6b":"#d1d5db",display:"flex",alignItems:"center",padding:2,transition:"all 0.2s"}}>
                   <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:editActive?"translateX(20px)":"translateX(0)"}}/>
                 </div>

@@ -360,7 +360,7 @@ ${html}
   };
 
   const S: any = {
-    page: { minHeight:"100vh",background:"transparent",display:"flex",flexDirection:"column" as const },
+    page: { minHeight:"100vh",background:"#f8fafc",display:"flex",flexDirection:"column" as const },
     bar: { background:"#1a3a6b",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,position:"sticky" as const,top:0,zIndex:100 },
     tb: { background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 12px",display:"flex",alignItems:"center",gap:2,flexWrap:"wrap" as const },
     sep: { width:1,height:20,background:"#e5e7eb",margin:"0 4px" },
@@ -377,7 +377,7 @@ ${html}
         </button>
         <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.15)",padding:2 }} />
         <input value={meta.name} onChange={e=>setMeta(p=>({...p,name:e.target.value}))}
-          style={{ background:"transparent",border:"none",color:"#fff",fontSize:15,fontWeight:600,outline:"none",flex:1,minWidth:200 }} />
+          style={{ background:"#f8fafc",border:"none",color:"#fff",fontSize:15,fontWeight:600,outline:"none",flex:1,minWidth:200 }} />
         <div style={{ display:"flex",gap:8,marginLeft:"auto" }}>
           <button onClick={() => setShowTemplates(p=>!p)} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <FileText style={{ width:13,height:13 }} /> Templates
@@ -450,12 +450,12 @@ ${html}
           {/* Heading buttons */}
           {["H1","H2","H3"].map(h=>(
             <button key={h} title={h} onClick={()=>exec("formatBlock",`<${h.toLowerCase()}>`)}
-              style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"transparent",fontSize:11,fontWeight:700,color:"#374151" }}>
+              style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"#f8fafc",fontSize:11,fontWeight:700,color:"#374151" }}>
               {h}
             </button>
           ))}
           <button title="Paragraph" onClick={()=>exec("formatBlock","<p>")}
-            style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"transparent",fontSize:11,color:"#374151" }}>P</button>
+            style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"#f8fafc",fontSize:11,color:"#374151" }}>P</button>
           <div style={S.sep}/>
           {/* Text color */}
           <input type="color" title="Text Color" defaultValue="#000000"
@@ -467,7 +467,7 @@ ${html}
             style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",padding:1 }} />
           <div style={S.sep}/>
           <button title="Clear Formatting" onClick={()=>exec("removeFormat")}
-            style={{ padding:"3px 7px",border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",fontSize:11,background:"transparent" }}>
+            style={{ padding:"3px 7px",border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",fontSize:11,background:"#f8fafc" }}>
             Clear
           </button>
         </div>

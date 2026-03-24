@@ -188,7 +188,7 @@ export default function ScannerPage() {
   const filteredItems = itemSearch ? allItems.filter(i=>[i.name,i.barcode,(i.item_categories?.name||"")].some(v=>String(v||"").toLowerCase().includes(itemSearch.toLowerCase()))) : allItems;
 
   return (
-      <div style={{background:"transparent",minHeight:"100%",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{background:"#f8fafc",minHeight:"100%",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 12px rgba(26,58,107,0.3)"}}>
         <ScanBarcode style={{width:20,height:20,color:"#fff"}}/>
@@ -349,7 +349,7 @@ export default function ScannerPage() {
               <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:6}}>
                 <Clock style={{width:12,height:12,color:"#6b7280"}}/>
                 <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Recent Activity</span>
-                <button onClick={fetchHistory} style={{marginLeft:"auto",background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+                <button onClick={fetchHistory} style={{marginLeft:"auto",background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af"}}>
                   <RefreshCw style={{width:11,height:11}}/>
                 </button>
               </div>
@@ -414,7 +414,7 @@ export default function ScannerPage() {
               <button onClick={()=>{setShowAdd(true);setBarcode("");}} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>
                 <Plus style={{width:11,height:11}}/> Add Item
               </button>
-              <button onClick={fetchAllItems} style={{background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+              <button onClick={fetchAllItems} style={{background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af"}}>
                 <RefreshCw style={{width:12,height:12}}/>
               </button>
             </div>

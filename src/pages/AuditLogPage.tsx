@@ -114,12 +114,12 @@ export default function AuditLogPage() {
         <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>To</label>
         <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={inp}/>
         <select value={filterModule} onChange={e=>{setFilterModule(e.target.value);setPage(1);}} style={sel}>
-          <option value="all" style={{background:"#0f172a"}}>All Modules</option>
-          {modules.map(m=><option key={m} value={m} style={{background:"#0f172a"}}>{m}</option>)}
+          <option value="all" style={{background:"#ffffff"}}>All Modules</option>
+          {modules.map(m=><option key={m} value={m} style={{background:"#ffffff"}}>{m}</option>)}
         </select>
         <select value={filterAction} onChange={e=>{setFilterAction(e.target.value);setPage(1);}} style={sel}>
-          <option value="all" style={{background:"#0f172a"}}>All Actions</option>
-          {actions.map(a=><option key={a} value={a} style={{background:"#0f172a"}}>{a}</option>)}
+          <option value="all" style={{background:"#ffffff"}}>All Actions</option>
+          {actions.map(a=><option key={a} value={a} style={{background:"#ffffff"}}>{a}</option>)}
         </select>
         <div style={{position:"relative",flex:1,minWidth:200}}>
           <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.3)"}}/>
