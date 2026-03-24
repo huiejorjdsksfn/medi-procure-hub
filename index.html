@@ -1,48 +1,39 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en-KE">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EL5 MediProcure — Hospital ERP</title>
-    <meta name="description" content="Embu Level 5 Hospital Procurement & ERP Management System" />
-    <meta name="application-name" content="MediProcure" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a2558" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MediProcure" />
+    <meta name="application-name" content="EL5 MediProcure" />
+    <meta name="description" content="Embu Level 5 Hospital Procurement & ERP Management System" />
+    <meta name="keywords" content="hospital, procurement, ERP, Embu, Kenya, medical supplies" />
+    <meta name="author" content="Embu County Government" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="EL5 MediProcure — Hospital ERP" />
+    <meta property="og:description" content="Embu Level 5 Hospital Procurement & ERP Management System" />
+    <meta property="og:type" content="website" />
+
+    <!-- PWA icons -->
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="apple-touch-startup-image" href="/logo.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta property="og:title" content="EL5 MediProcure" />
-    <meta property="og:description" content="Embu Level 5 Hospital — Procurement Management System" />
-    <meta property="og:type" content="website" />
+
+    <title>EL5 MediProcure — Hospital ERP</title>
+
+    <!-- Prevent FOUC on dark theme -->
+    <style>
+      html, body, #root { margin: 0; padding: 0; background: #0a2558; height: 100%; }
+      #root { min-height: 100vh; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Register service worker for PWA / offline support
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(reg => {
-              console.log('[SW] Registered:', reg.scope);
-              reg.addEventListener('updatefound', () => {
-                const nw = reg.installing;
-                if (nw) {
-                  nw.addEventListener('statechange', () => {
-                    if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                      // New version ready — notify app
-                      window.dispatchEvent(new CustomEvent('sw-update-ready'));
-                    }
-                  });
-                }
-              });
-            })
-            .catch(err => console.warn('[SW] Registration failed:', err));
-        });
-      }
-    </script>
   </body>
 </html>

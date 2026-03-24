@@ -266,15 +266,16 @@ function SettingsInner() {
 
           {tab === "sms" && (
             <Card title="SMS / Twilio" sub="SMS notifications via Twilio API" color="#7c3aed" icon={Phone}
-              onSave={() => save(["twilio_enabled","twilio_account_sid","twilio_auth_token","twilio_phone_number","sms_hospital_name","sms_on_po_approve","sms_on_req_approve","sms_on_low_stock","sms_on_payment"])} saving={saving}>
+              onSave={() => save(["twilio_enabled","twilio_account_sid","twilio_auth_token","twilio_messaging_service_sid","twilio_phone_number","sms_hospital_name","sms_on_po_approve","sms_on_req_approve","sms_on_low_stock","sms_on_payment"])} saving={saving}>
               <FR label="Enable Twilio SMS" color="#7c3aed">
                 <Tog on={get("twilio_enabled")==="true"} onChange={v=>set("twilio_enabled",v?"true":"false")} />
               </FR>
               {[
-                {k:"twilio_account_sid",  l:"Account SID",   p:"ACxxxxxxxxxx"},
-                {k:"twilio_auth_token",   l:"Auth Token",    p:"••••", pw:true},
-                {k:"twilio_phone_number", l:"Twilio Phone",  p:"+12025551234"},
-                {k:"sms_hospital_name",   l:"SMS From Name", p:"EL5 MediProcure"},
+                {k:"twilio_account_sid",           l:"Account SID",            p:"ACxxxxxxxxxx"},
+                {k:"twilio_auth_token",          l:"Auth Token",             p:"••••", pw:true},
+                {k:"twilio_messaging_service_sid",l:"Messaging Service SID",  p:"MGd547d8e3273fda2d21afdd6856acb245"},
+                {k:"twilio_phone_number",         l:"Twilio Phone (fallback)", p:"+12025551234"},
+                {k:"sms_hospital_name",           l:"SMS From Name",          p:"EL5 MediProcure"},
               ].map(f => (
                 <FR key={f.k} label={f.l} color="#7c3aed">
                   <input type={(f as any).pw?"password":"text"} value={get(f.k)} onChange={e=>set(f.k,e.target.value)} style={{...inp,width:260}} placeholder={f.p} />

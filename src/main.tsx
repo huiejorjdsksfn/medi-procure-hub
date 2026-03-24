@@ -1,10 +1,13 @@
-import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
-import ErrorBoundary from "./components/ErrorBoundary";
-import "./index.css";
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
 
-createRoot(document.getElementById("root")!).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // VitePWA handles SW registration automatically
+    console.log('[PWA] Service worker support detected');
+  });
+}
+
+createRoot(document.getElementById("root")!).render(<App />);
