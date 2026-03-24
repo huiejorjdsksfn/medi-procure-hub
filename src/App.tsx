@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
 
 import LoginPage from "@/pages/LoginPage";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
@@ -74,6 +75,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <NetworkGuard>
+            <PWAInstallPrompt />
             <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
