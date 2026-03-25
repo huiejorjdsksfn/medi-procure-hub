@@ -38,9 +38,26 @@
       <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:0.04em;">EL5 MediProcure</div>
       <div style="font-size:12px;color:rgba(255,255,255,0.55);">Embu Level 5 Hospital</div>
       <div style="width:36px;height:36px;border-radius:50%;border:3px solid rgba(255,255,255,0.2);border-top-color:#C45911;animation:spin 0.8s linear infinite;"></div>
+      <div id="loading-hint" style="font-size:10px;color:rgba(255,255,255,0);margin-top:8px;transition:color 3s 4s;">Taking longer than expected...</div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     </div>
   </div>
+  <script>
+    // Hard safety: if React hasn't mounted after 10s, redirect to a clean reload
+    setTimeout(function() {
+      var loading = document.getElementById("app-loading");
+      if (loading && loading.parentElement) {
+        document.getElementById("loading-hint").style.color = "rgba(255,255,255,0.5)";
+      }
+    }, 4000);
+    setTimeout(function() {
+      var loading = document.getElementById("app-loading");
+      if (loading && loading.parentElement) {
+        // React failed to mount - force reload
+        window.location.reload();
+      }
+    }, 15000);
+  </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

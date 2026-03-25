@@ -4,7 +4,7 @@
  * Saves to Supabase system_settings in real-time
  */
 import { useState, useRef, useEffect } from "react";
-import { useSystemSettings, saveSettings } from "@/hooks/useSystemSettings";
+import { useSystemSettings, saveSettings, applyThemeToDOM } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import {
   Save, RotateCcw, Palette, Type, Layout, Settings2,

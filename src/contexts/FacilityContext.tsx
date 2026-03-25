@@ -56,13 +56,15 @@ export function FacilityProvider({ children }: { children: ReactNode }) {
   const [allFacilities, setAllFacilities] = useState<Facility[]>([]);
   const [userFacilities, setUserFacilities] = useState<Facility[]>([]);
   const [facility, setFacility] = useState<Facility | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // never block render
 
   const loadFacilities = useCallback(async () => {
     try {
-      // Load all active facilities
-      const { data: all } = await (supabase as any)
+      // Load all active facilities — with 5s timeout so it never blocks the app
+      const timeoutPromise = new Promise((_,reject) => setTimeout(() => reject(new Error("timeout")), 5000));
+      const queryPromise = (supabase as any)
         .from("facilities").select("*").eq("is_active", true).order("is_main", { ascending: false }).order("name");
+      const { data: all } = await Promise.race([queryPromise, timeoutPromise]) as any;
       const facilities: Facility[] = all || [];
       setAllFacilities(facilities);
 
@@ -85,9 +87,17 @@ export function FacilityProvider({ children }: { children: ReactNode }) {
       const main = accessible.find(f => f.is_main) || accessible[0] || null;
       setFacility(found || main);
     } catch (e) {
-      console.error("FacilityProvider error:", e);
-    } finally {
-      setLoading(false);
+      console.warn("FacilityProvider:", e);
+      // Provide a default fallback facility so the app still works
+      const defaultFacility: Facility = {
+        id: "default", code: "EL5H", name: "Embu Level 5 Hospital",
+        short_name: "EL5H", location: "Embu", type: "hospital",
+        level: "5", county: "Embu", is_active: true, is_main: true,
+        primary_color: "#0a2558", accent_color: "#C45911",
+      };
+      setAllFacilities(prev => prev.length ? prev : [defaultFacility]);
+      setUserFacilities(prev => prev.length ? prev : [defaultFacility]);
+      setFacility(prev => prev || defaultFacility);
     }
   }, [user, roles]);
 
