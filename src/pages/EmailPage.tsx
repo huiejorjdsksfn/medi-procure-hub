@@ -287,7 +287,7 @@ export default function EmailPage() {
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────── */}
-      <div style={{width:210,flexShrink:0,background:"#f8fafc",borderRight:"1px solid rgba(255,255,255,0.1)",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{width:210,flexShrink:0,background:"#f8fafc",borderRight:"1px solid #f1f5f9",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* Header */}
         <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e0e0e0"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
@@ -477,13 +477,13 @@ export default function EmailPage() {
                   <Edit3 style={{width:13,height:13}}/> New Message
                 </button>
                 <button onClick={load}
-                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
+                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:"#e2e8f0",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
                   <RefreshCw style={{width:13,height:13}}/> Refresh
                 </button>
               </div>
               {/* System status */}
               {smtpStatus&&(
-                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",display:"inline-flex",alignItems:"center",gap:8}}>
+                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"#e2e8f0",border:"1px solid #e2e8f0",display:"inline-flex",alignItems:"center",gap:8}}>
                   <div style={{width:7,height:7,borderRadius:"50%",background:smtpStatus.ready?"#4ade80":"#fbbf24"}}/>
                   <span style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>
                     Email: {smtpStatus.ready?`${smtpStatus.provider} Active`:"Internal Only"} · {unreadCount} unread
@@ -675,7 +675,7 @@ export default function EmailPage() {
               <button key={i} onClick={it.action}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",border:"none",background:"#f8fafc",cursor:"pointer",width:"100%",textAlign:"left" as const,fontSize:12.5,color:it.danger?"#dc2626":"#1f1f1f"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=it.danger?"#fdf4f4":"#f5f5f5"}
-                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                 <it.icon style={{width:13,height:13,color:it.danger?"#dc2626":"#666"}}/>{it.label}
               </button>
             );

@@ -103,7 +103,7 @@ export default function ChartOfAccountsPage() {
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} accounts · {filtered.length} shown</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus style={{width:14,height:14}}/>New Account</button>}
         </div>
       </div>

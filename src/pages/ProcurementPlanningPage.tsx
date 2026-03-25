@@ -105,7 +105,7 @@ export default function ProcurementPlanningPage() {
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} plans · Est. Budget: {fmtKES(totalBudget)}</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canManage&&<button onClick={()=>{setEditing(null);setForm({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e40af"}}><Plus style={{width:14,height:14}}/>New Plan</button>}
         </div>
       </div>

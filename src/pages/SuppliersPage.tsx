@@ -294,7 +294,7 @@ export default function SuppliersPage() {
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"#fff",borderRadius:14,width:"min(560px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
-              <div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewSupplier.name}</div><div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>{viewSupplier.category?.replace(/_/g," ")}</div></div>
+              <div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewSupplier.name}</div><div style={{fontSize:11,color:"rgba(255,255,255,0.9)",marginTop:2}}>{viewSupplier.category?.replace(/_/g," ")}</div></div>
               <button onClick={()=>setViewSupplier(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>

@@ -364,10 +364,10 @@ export default function DocumentsPage() {
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
           {isAdmin&&<button onClick={()=>setUploadModal(true)}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+            style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"#e2e8f0",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
             <Upload style={{width:13,height:13}}/> Upload
           </button>}
-          <button onClick={loadDocs} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+          <button onClick={loadDocs} style={{padding:"8px 10px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
             <RefreshCw style={{width:13,height:13}}/>
           </button>
         </div>
@@ -549,7 +549,7 @@ export default function DocumentsPage() {
               <Edit3 style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Edit Document: {editDoc.name}</span>
               {editDoc.is_system&&<span style={{fontSize:10,fontWeight:700,background:"#fef3c7",color:"#92400e",padding:"2px 8px",borderRadius:4}}>SYSTEM TEMPLATE</span>}
-              <button onClick={()=>setEditModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}>
+              <button onClick={()=>setEditModal(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}>
                 <X style={{width:13,height:13}}/>
               </button>
             </div>
@@ -668,7 +668,7 @@ export default function DocumentsPage() {
             <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
               <Upload style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Upload Document</span>
-              <button onClick={()=>setUploadModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setUploadModal(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column" as const,gap:12}}>
               {[{l:"Document Name",k:"upName",v:upName,s:(v:string)=>setUpName(v)},{l:"Description",k:"upDesc",v:upDesc,s:(v:string)=>setUpDesc(v)}].map(f=>(

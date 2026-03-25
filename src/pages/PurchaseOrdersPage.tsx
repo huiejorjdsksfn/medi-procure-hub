@@ -276,7 +276,7 @@ export default function PurchaseOrdersPage() {
     : null;
 
   return (
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{padding:16,display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
 
       {/* ── KPI TILES ── */}
@@ -312,7 +312,7 @@ export default function PurchaseOrdersPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={load} disabled={loading}
-            style={{padding:6,borderRadius:6,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",cursor:"pointer"}}>
+            style={{padding:6,borderRadius:6,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={exportExcel}
@@ -410,7 +410,7 @@ export default function PurchaseOrdersPage() {
       {showForm&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:40,paddingBottom:20}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={closeForm}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(760px,98%)",maxHeight:"calc(100vh-60px)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(760px,98%)",maxHeight:"calc(100vh-60px)",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
 
             {/* Modal header */}
             <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)",flexShrink:0}}>
@@ -421,7 +421,7 @@ export default function PurchaseOrdersPage() {
                   <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{editing?`Editing ${editing.po_number}`:"Fill in all required fields marked with *"}</p>
                 </div>
               </div>
-              <button onClick={closeForm} style={{padding:6,borderRadius:7,background:"rgba(255,255,255,0.12)",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
+              <button onClick={closeForm} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
                 <X style={{width:16,height:16}}/>
               </button>
             </div>
@@ -602,7 +602,7 @@ export default function PurchaseOrdersPage() {
       {viewPO&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={()=>setViewPO(null)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(620px,98%)",maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(620px,98%)",maxHeight:"90vh",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
             <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)"}}>
               <div>
                 <h3 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>{viewPO.po_number}</h3>
@@ -610,14 +610,14 @@ export default function PurchaseOrdersPage() {
               </div>
               <div style={{display:"flex",gap:8}}>
                 {canCreate&&["draft","pending"].includes(viewPO.status)&&(
-                  <button onClick={()=>{setViewPO(null);openEdit(viewPO);}} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"rgba(255,255,255,0.12)"}}>
+                  <button onClick={()=>{setViewPO(null);openEdit(viewPO);}} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
                     <Edit3 style={{width:12,height:12}}/>Edit
                   </button>
                 )}
-                <button onClick={()=>printLPO(viewPO)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"rgba(255,255,255,0.12)"}}>
+                <button onClick={()=>printLPO(viewPO)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
                   <Printer style={{width:12,height:12}}/>Print LPO
                 </button>
-                <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"rgba(255,255,255,0.12)",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
+                <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
                   <X style={{width:16,height:16}}/>
                 </button>
               </div>

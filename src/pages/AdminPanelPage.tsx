@@ -77,7 +77,7 @@ const CODE_FILES: Record<string, string[]> = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  const bg = on ? "#4f46e5" : "rgba(255,255,255,0.15)";
+  const bg = on ? "#4f46e5" : "#e2e8f0";
   return (
     <button
       onClick={() => onChange(!on)}
@@ -105,8 +105,8 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 
 function Sect({ title, icon: Icon, color, children }: { title: string; icon: any; color: string; children: React.ReactNode }) {
   return (
-    <div style={{ background:"#f8fafc",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"16px 20px",marginBottom:16 }}>
-      <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+    <div style={{ background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 20px",marginBottom:16 }}>
+      <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid #e2e8f0" }}>
         <div style={{ width:32,height:32,borderRadius:8,background:color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
           <Icon style={{ width:16,height:16,color:"#fff" }} />
         </div>
@@ -142,9 +142,9 @@ function AdminInner() {
   const set = (k: string, v: string) => setCfg(p => ({ ...p, [k]: v }));
 
   const inp: React.CSSProperties = {
-    padding:"8px 11px", border:"1px solid rgba(255,255,255,0.12)",
+    padding:"8px 11px", border:"1px solid #e2e8f0",
     borderRadius:7, fontSize:13, color:"#1e293b",
-    background:"rgba(255,255,255,0.06)", outline:"none", width:"100%",
+    background:"#e2e8f0", outline:"none", width:"100%",
   };
 
   const btn = (bg: string): React.CSSProperties => ({
@@ -213,16 +213,16 @@ function AdminInner() {
 
       {/* Top bar */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
-        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:4 }} />
+        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"#f1f5f9",padding:4 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:700,color:"#1e293b" }}>Admin Control Panel</div>
           <div style={{ fontSize:10,color:"#64748b" }}>EL5 MediProcure · Embu Level 5 Hospital</div>
         </div>
         <div style={{ marginLeft:"auto",display:"flex",gap:8 }}>
-          <button onClick={loadStats} style={{ ...btn("rgba(255,255,255,0.08)"),padding:"7px 10px" }}>
+          <button onClick={loadStats} style={{ ...btn("#e2e8f0"),padding:"7px 10px" }}>
             <RefreshCw style={{ width:13,height:13 }} />
           </button>
-          <button onClick={() => navigate("/settings")} style={btn("rgba(255,255,255,0.08)")}>
+          <button onClick={() => navigate("/settings")} style={btn("#e2e8f0")}>
             <Settings style={{ width:13,height:13 }} /> Settings
           </button>
           <button onClick={doSave} disabled={saving} style={btn("linear-gradient(135deg,#4f46e5,#7c3aed)")}>
@@ -235,7 +235,7 @@ function AdminInner() {
       <div style={{ display:"grid",gridTemplateColumns:"196px 1fr",minHeight:"calc(100vh - 60px)" }}>
 
         {/* Sidebar */}
-        <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid rgba(255,255,255,0.05)",paddingTop:8 }}>
+        <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid #e2e8f0",paddingTop:8 }}>
           {SECTIONS.map(s => (
             <button
               key={s.id}
@@ -257,7 +257,7 @@ function AdminInner() {
               <div style={{ fontSize:15,fontWeight:700,marginBottom:14,color:"#1e293b" }}>System Overview</div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20 }}>
                 {KPI.map(k => (
-                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid rgba(255,255,255,0.07)",background:"#f8fafc",cursor:"pointer",textAlign:"left" }}>
+                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",textAlign:"left" }}>
                     <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
                       <div style={{ width:26,height:26,borderRadius:7,background:k.color,display:"flex",alignItems:"center",justifyContent:"center" }}>
                         <k.icon style={{ width:13,height:13,color:"#fff" }} />
@@ -271,7 +271,7 @@ function AdminInner() {
               <div style={{ fontSize:12,fontWeight:600,color:"#64748b",marginBottom:8 }}>All Modules</div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:5 }}>
                 {ALL_MODULES.map(m => (
-                  <button key={m.path} onClick={() => navigate(m.path)} style={{ display:"flex",alignItems:"center",gap:7,padding:"7px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"#f8fafc",cursor:"pointer" }}>
+                  <button key={m.path} onClick={() => navigate(m.path)} style={{ display:"flex",alignItems:"center",gap:7,padding:"7px 10px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer" }}>
                     <div style={{ width:22,height:22,borderRadius:5,background:`${m.color}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
                       <m.icon style={{ width:11,height:11,color:m.color }} />
                     </div>
@@ -352,7 +352,7 @@ function AdminInner() {
               </FR>
               <div style={{ marginTop:14,display:"flex",gap:8 }}>
                 <button onClick={() => navigate("/users")} style={btn("#7c3aed")}>Manage Users →</button>
-                <button onClick={doSave} disabled={saving} style={btn("rgba(255,255,255,0.1)")}>
+                <button onClick={doSave} disabled={saving} style={btn("#f1f5f9")}>
                   <Save style={{ width:13,height:13 }} />{saving?"Saving…":"Save"}
                 </button>
               </div>
@@ -379,7 +379,7 @@ function AdminInner() {
               </FR>
               <div style={{ marginTop:14,display:"flex",gap:8 }}>
                 <button onClick={() => navigate("/admin/ip-access")} style={btn("#dc2626")}>IP Access Manager →</button>
-                <button onClick={doSave} disabled={saving} style={btn("rgba(255,255,255,0.1)")}>
+                <button onClick={doSave} disabled={saving} style={btn("#f1f5f9")}>
                   <Save style={{ width:13,height:13 }} />{saving?"Saving…":"Save"}
                 </button>
               </div>
@@ -561,14 +561,14 @@ function AdminInner() {
           {sec === "codebase" && (
             <div>
               <div style={{ fontSize:13,fontWeight:600,marginBottom:10,color:"#64748b" }}>Source Code — ProcurBosse v2.0</div>
-              <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:10,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden" }}>
+              <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" }}>
                 {Object.entries(CODE_FILES).map(([folder, files]) => {
                   const isOpen = tree.has(folder);
                   return (
                     <div key={folder}>
                       <button
                         onClick={() => setTree(p => { const s = new Set(p); s.has(folder) ? s.delete(folder) : s.add(folder); return s; })}
-                        style={{ width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:isOpen?"rgba(79,70,229,0.1)":"transparent",border:"none",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer" }}
+                        style={{ width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:isOpen?"rgba(79,70,229,0.1)":"transparent",border:"none",borderBottom:"1px solid #f8fafc",cursor:"pointer" }}
                       >
                         {isOpen
                           ? <FolderOpen style={{ width:13,height:13,color:"#d97706" }} />
@@ -577,7 +577,7 @@ function AdminInner() {
                         <span style={{ fontSize:10,color:"#475569",marginLeft:"auto" }}>{files.length} files</span>
                       </button>
                       {isOpen && files.map(file => (
-                        <div key={file} style={{ display:"flex",alignItems:"center",gap:7,padding:"4px 12px 4px 32px",borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
+                        <div key={file} style={{ display:"flex",alignItems:"center",gap:7,padding:"4px 12px 4px 32px",borderBottom:"1px solid #f0f7ff" }}>
                           <Code2 style={{ width:10,height:10,color:file.endsWith(".ts")||file.endsWith(".tsx")?"#61afef":"#abb2bf",flexShrink:0 }} />
                           <span style={{ fontSize:11,fontFamily:"var(--font-mono)",color:"#64748b" }}>{file}</span>
                         </div>

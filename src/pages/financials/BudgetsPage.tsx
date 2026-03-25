@@ -114,7 +114,7 @@ export default function BudgetsPage() {
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} records · {exceededCount} exceeded</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canManage&&<button onClick={()=>{setEditing(null);setForm({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#3730a3"}}><Plus style={{width:14,height:14}}/>New Budget</button>}
         </div>
       </div>

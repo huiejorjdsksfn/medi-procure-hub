@@ -186,7 +186,7 @@ export default function BidEvaluationsPage() {
               return (
                 <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}
                   onClick={()=>setDetail(r)}>
                   <td style={{padding:"13px 14px",fontSize:13,fontWeight:800,color:"#c0185a",fontFamily:"monospace"}}>{r.tender_number}</td>
                   <td style={{padding:"13px 14px",fontSize:13,fontWeight:600,color:"#111827"}}>{r.supplier_name}</td>
@@ -234,7 +234,7 @@ export default function BidEvaluationsPage() {
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",alignItems:"center",gap:10}}>
               <Scale style={{width:16,height:16,color:"#fff"}}/>
               <span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Bid Evaluation</span>
-              <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -285,7 +285,7 @@ export default function BidEvaluationsPage() {
           <div style={{width:"min(420px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",alignItems:"center",gap:8}}>
               <Scale style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>Evaluation Detail</span>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:18,display:"flex",flexDirection:"column" as const,gap:12}}>
               <div style={{textAlign:"center" as const,padding:"20px",background:"linear-gradient(135deg,#f0f9ff,#eff6ff)",borderRadius:12}}>
