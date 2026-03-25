@@ -43,10 +43,12 @@ export default function NetworkGuard({ children }: { children: React.ReactNode }
 
   if (loading || status === "checking") {
     return (
-      <div style={{position:"fixed",inset:0,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
-        <div style={{textAlign:"center",color:"#fff"}}>
-          <div style={{width:48,height:48,border:"4px solid rgba(255,255,255,0.2)",borderTop:"4px solid #C45911",borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto 16px"}}/>
-          <div style={{fontSize:14,opacity:0.7}}>Verifying network access...</div>
+      <div style={{position:"fixed",inset:0,background:"linear-gradient(145deg,#0a2e6e,#1565c0,#0a2558)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:18,fontWeight:800,color:"#fff",marginBottom:8,letterSpacing:"0.04em"}}>EL5 MediProcure</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginBottom:20}}>Embu Level 5 Hospital</div>
+          <div style={{width:40,height:40,border:"3px solid rgba(255,255,255,0.2)",borderTop:"3px solid #C45911",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 16px"}}/>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.6)"}}>Verifying access...</div>
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       </div>
