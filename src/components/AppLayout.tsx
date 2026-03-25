@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import logoImg from "@/assets/logo.png";
+import FacilitySwitcher from "@/components/FacilitySwitcher";
 import {
   Package, FileText, ShoppingCart, Truck, Users, BarChart3,
   Settings, LogOut, ChevronDown, Building2, Shield, FileCheck,
@@ -101,6 +102,7 @@ const MODULES = [
       {label:"Settings",     path:"/settings",       icon:Settings, roles:["admin"]},
       {label:"Webmaster",    path:"/webmaster",      icon:Globe,    roles:["admin"]},
       {label:"GUI Editor",   path:"/gui-editor",     icon:Palette,  roles:["admin"]},
+      {label:"Facilities",   path:"/facilities",     icon:Building2,roles:["admin","procurement_manager"]},
       {label:"Backup",       path:"/backup",         icon:Archive,  roles:["admin"]},
       {label:"ODBC",         path:"/odbc",           icon:Cpu,      roles:["admin"]},
       {label:"IP Access",    path:"/admin/ip-access", icon:Shield,   roles:["admin"]},
@@ -282,6 +284,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
+        {/* Facility Switcher */}
+        <FacilitySwitcher/>
         {/* Mail */}
         <button onClick={()=>navigate("/email")} title="Mail"
           style={{width:36,height:36,borderRadius:3,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}

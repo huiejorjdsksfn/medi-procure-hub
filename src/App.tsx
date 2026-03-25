@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FacilityProvider } from "@/contexts/FacilityContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
@@ -59,6 +60,7 @@ import AdminPanelPage from "@/pages/AdminPanelPage";
 import IpAccessPage from "@/pages/IpAccessPage";
 import ProfilePage from "@/pages/ProfilePage";
 import GuiEditorPage from "@/pages/GuiEditorPage";
+import FacilitiesPage from "@/pages/FacilitiesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
@@ -75,6 +77,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <FacilityProvider>
           <NetworkGuard>
             <PWAInstallPrompt />
             <Routes>
@@ -142,10 +145,12 @@ const App = () => (
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin"]}><GuiEditorPage /></RoleGuard></P>} />
+            <Route path="/facilities" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FacilitiesPage /></RoleGuard></P>} />
 
             <Route path="*" element={<NotFound />} />
             </Routes>
           </NetworkGuard>
+          </FacilityProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
