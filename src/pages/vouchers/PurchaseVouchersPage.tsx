@@ -141,7 +141,7 @@ export default function PurchaseVouchersPage() {
         <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Purchase Vouchers</h1>
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records · Total: {fmtKES(totalAmt)}</p></div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#7c2d12"}}><Plus style={{width:14,height:14}}/>New Voucher</button>}
         </div>
       </div>

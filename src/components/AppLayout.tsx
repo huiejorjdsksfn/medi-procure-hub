@@ -493,7 +493,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ════════════════════════════════════════════
           PAGE CONTENT
       ════════════════════════════════════════════ */}
-      <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#0d1b3e"}}>
+      <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f8fafc"}}>
         {children}
       </main>
     </div>

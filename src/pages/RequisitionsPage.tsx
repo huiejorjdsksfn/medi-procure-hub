@@ -224,10 +224,10 @@ export default function RequisitionsPage() {
 
   return (
     <><style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-      .req-row:hover{background:rgba(255,255,255,0.03)!important}
+      .req-row:hover{background:#f0f7ff!important}
       .act-btn:hover{opacity:0.8}
     `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{padding:16,display:"flex",flexDirection:"column",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%"}}>
 
       {/* KPI TILES */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
@@ -248,7 +248,7 @@ export default function RequisitionsPage() {
       {/* HEADER BAR */}
       <div style={{borderRadius:12,background:"linear-gradient(90deg,#0a2558,#1a3a6b)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)",padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src={logoImg} alt="Logo" style={{width:32,height:32,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.15)",padding:2,flexShrink:0}}/>
+          <img src={logoImg} alt="Logo" style={{width:32,height:32,borderRadius:6,objectFit:"contain",background:"#e2e8f0",padding:2,flexShrink:0}}/>
           <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
           <div>
             <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Requisitions</h1>
@@ -256,7 +256,7 @@ export default function RequisitionsPage() {
           </div>
         </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-          <button onClick={load} disabled={loading} style={{padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",cursor:"pointer"}}>
+          <button onClick={load} disabled={loading} style={{padding:"6px 10px",borderRadius:8,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.85)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
@@ -275,8 +275,9 @@ export default function RequisitionsPage() {
         {["all","draft","submitted","pending","approved","rejected","ordered","received"].map(k=>(
           <button key={k} onClick={()=>setFilter(k)}
             style={{padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",
-              background:statusFilter===k?"#1e40af":"#f1f5f9",
-              color:statusFilter===k?"#fff":"#475569"}}>
+              background:statusFilter===k?"#1e40af":"#ffffff",
+              color:statusFilter===k?"#fff":"#374151",
+              border:"1px solid #e2e8f0"}}>
             {k.charAt(0).toUpperCase()+k.slice(1)}
             <span style={{marginLeft:5,fontSize:9,opacity:0.75}}>
               {k==="all"?reqs.length:reqs.filter(r=>r.status===k).length}
@@ -292,20 +293,20 @@ export default function RequisitionsPage() {
       </div>
 
       {/* TABLE */}
-      <div style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.2)"}}>
+      <div style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",border:"1px solid #e2e8f0",background:"#fff"}}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
             <thead>
-              <tr style={{background:"#0a2558"}}>
+              <tr style={{background:"#1e3a6b"}}>
                 {["#","Req Number","Title","Department","Ward","Priority","Status","Requester","Amount","Date","Actions"].map(h=>(
-                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.7)",fontWeight:700,fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.06em",whiteSpace:"nowrap"}}>{h}</th>
+                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.9)",fontWeight:700,fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.06em",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading?(
                 Array(5).fill(0).map((_,i)=>(
-                  <tr key={i}><td colSpan={11} style={{padding:10}}><div style={{height:10,background:"rgba(255,255,255,0.05)",borderRadius:4}}/></td></tr>
+                  <tr key={i}><td colSpan={11} style={{padding:10}}><div style={{height:10,background:"#e2e8f0",borderRadius:4}}/></td></tr>
                 ))
               ):filtered.length===0?(
                 <tr><td colSpan={11} style={{padding:"40px 16px",textAlign:"center",color:"#64748b"}}>No requisitions found</td></tr>
@@ -314,7 +315,7 @@ export default function RequisitionsPage() {
                 const isPending=r.status==="submitted"||r.status==="pending";
                 const isDraft=r.status==="draft";
                 return (
-                  <tr key={r.id} className="req-row" style={{borderBottom:"1px solid #f1f5f9",transition:"background 0.12s"}}>
+                  <tr key={r.id} className="req-row" style={{borderBottom:"1px solid #e2e8f0",background:"#fff",transition:"background 0.12s"}}>
                     <td style={{padding:"9px 12px",color:"#94a3b8"}}>{i+1}</td>
                     <td style={{padding:"9px 12px",fontFamily:"monospace",fontSize:11,fontWeight:700,color:"#2563eb",whiteSpace:"nowrap"}}>{r.requisition_number||"—"}</td>
                     <td style={{padding:"9px 12px",fontWeight:600,color:"#1e293b",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title||"—"}</td>
@@ -369,7 +370,7 @@ export default function RequisitionsPage() {
               <h3 style={{fontSize:14,fontWeight:900,color:"#fff",margin:0,display:"flex",alignItems:"center",gap:8}}>
                 <ClipboardList style={{width:16,height:16}}/>{editReq?"Edit Requisition":"New Requisition"}
               </h3>
-              <button onClick={()=>setShowForm(false)} style={{padding:5,borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
+              <button onClick={()=>setShowForm(false)} style={{padding:5,borderRadius:6,background:"#f1f5f9",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column",gap:14}}>
 
@@ -452,15 +453,15 @@ export default function RequisitionsPage() {
                 <div style={{border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
                   <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
                     <thead>
-                      <tr style={{background:"#0a2558"}}>
+                      <tr style={{background:"#1e3a6b"}}>
                         {["#","Item Name","Description / Specs","Unit","Qty","Unit Price (KES)","Total",""].map((h,i)=>(
-                          <th key={i} style={{padding:"8px 10px",textAlign:"left",color:"rgba(255,255,255,0.7)",fontSize:9.5,textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
+                          <th key={i} style={{padding:"8px 10px",textAlign:"left",color:"rgba(255,255,255,0.9)",fontSize:9.5,textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {items.map((it,i)=>(
-                        <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
+                        <tr key={i} style={{borderBottom:"1px solid #e2e8f0",background:"#fff"}}>
                           <td style={{padding:"6px 10px",color:"#64748b",textAlign:"center"}}>{i+1}</td>
                           <td style={{padding:"4px 6px"}}><input value={it.item_name} onChange={e=>setItem(i,"item_name",e.target.value)} placeholder="Item name" style={{...inp,fontSize:11.5}}/></td>
                           <td style={{padding:"4px 6px"}}><input value={it.description} onChange={e=>setItem(i,"description",e.target.value)} placeholder="Specifications / details" style={{...inp,fontSize:11.5}}/></td>
@@ -481,7 +482,7 @@ export default function RequisitionsPage() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{background:"#0a2558"}}>
+                      <tr style={{background:"#1e3a6b"}}>
                         <td colSpan={5} style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:"rgba(255,255,255,0.9)",fontSize:11}}>TOTAL AMOUNT:</td>
                         <td style={{padding:"8px 10px",textAlign:"right",fontWeight:900,color:"#4ade80",fontSize:13}}>KES {totalAmt.toLocaleString("en-KE",{minimumFractionDigits:2})}</td>
                         <td colSpan={2}/>
@@ -500,7 +501,7 @@ export default function RequisitionsPage() {
 
               {/* footer buttons */}
               <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:4,borderTop:"1px solid #1e293b"}}>
-                <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",borderRadius:8,border:"1px solid #334155",background:"#f8fafc",color:"#94a3b8",cursor:"pointer",fontSize:13}}>Cancel</button>
+                <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f8fafc",color:"#374151",cursor:"pointer",fontSize:13}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:9,color:"#fff",fontSize:13,fontWeight:700,border:"none",cursor:saving?"not-allowed":"pointer",background:"linear-gradient(90deg,#1a3a6b,#2563eb)",opacity:saving?0.7:1}}>
                   {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send style={{width:14,height:14}}/>}
                   {saving?"Saving...":(editReq?"Update Requisition":"Create Requisition")}
@@ -520,7 +521,7 @@ export default function RequisitionsPage() {
             <label style={lbl}>Rejection Reason</label>
             <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} rows={3} placeholder="State reason for rejection..." style={{...inp,resize:"vertical",marginBottom:14,color:"#1e293b",background:"#fff",border:"1.5px solid #cbd5e1"}}/>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>setRejectId(null)} style={{padding:"7px 16px",borderRadius:7,border:"1px solid #334155",background:"#f8fafc",color:"#94a3b8",cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>setRejectId(null)} style={{padding:"7px 16px",borderRadius:7,border:"1px solid #e2e8f0",background:"#f8fafc",color:"#374151",cursor:"pointer"}}>Cancel</button>
               <button onClick={reject} style={{padding:"7px 16px",borderRadius:7,background:"#dc2626",color:"#fff",border:"none",cursor:"pointer",fontWeight:700}}>Confirm Reject</button>
             </div>
           </div>
@@ -538,15 +539,15 @@ export default function RequisitionsPage() {
                 <p style={{fontSize:10,color:"rgba(255,255,255,0.4)",margin:0}}>{viewReq.title}</p>
               </div>
               <div style={{display:"flex",gap:8}}>
-                {canCreate&&<button onClick={()=>{setViewReq(null);openEdit(viewReq);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.1)",cursor:"pointer"}}><Edit2 style={{width:11,height:11}}/>Edit</button>}
-                <button onClick={()=>printReq(viewReq)} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"none",background:"rgba(255,255,255,0.1)",cursor:"pointer"}}><Printer style={{width:11,height:11}}/>Print</button>
+                {canCreate&&<button onClick={()=>{setViewReq(null);openEdit(viewReq);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.2)",background:"#f1f5f9",cursor:"pointer"}}><Edit2 style={{width:11,height:11}}/>Edit</button>}
+                <button onClick={()=>printReq(viewReq)} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"none",background:"#f1f5f9",cursor:"pointer"}}><Printer style={{width:11,height:11}}/>Print</button>
                 {canApprove&&(viewReq.status==="submitted"||viewReq.status==="pending")&&(
                   <>
                     <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"none",background:"#052e16",cursor:"pointer"}}><CheckCircle style={{width:11,height:11}}/>Approve</button>
                     <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"none",background:"#7f1d1d",cursor:"pointer"}}><XCircle style={{width:11,height:11}}/>Reject</button>
                   </>
                 )}
-                <button onClick={()=>setViewReq(null)} style={{padding:5,borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:15,height:15}}/></button>
+                <button onClick={()=>setViewReq(null)} style={{padding:5,borderRadius:6,background:"#f1f5f9",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:15,height:15}}/></button>
               </div>
             </div>
             <div style={{overflowY:"auto",padding:20}}>
@@ -570,10 +571,10 @@ export default function RequisitionsPage() {
                 <div>
                   <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#64748b",marginBottom:8}}>Items ({viewReq.requisition_items.length})</p>
                   <table style={{width:"100%",fontSize:12,borderCollapse:"collapse",borderRadius:8,overflow:"hidden"}}>
-                    <thead><tr style={{background:"#0a2558"}}>{["#","Item","Description","Unit","Qty","Unit Price","Total"].map(h=><th key={h} style={{textAlign:"left",padding:"7px 10px",color:"rgba(255,255,255,0.7)",fontSize:9.5,textTransform:"uppercase",fontWeight:700}}>{h}</th>)}</tr></thead>
+                    <thead><tr style={{background:"#1e3a6b"}}>{["#","Item","Description","Unit","Qty","Unit Price","Total"].map(h=><th key={h} style={{textAlign:"left",padding:"7px 10px",color:"rgba(255,255,255,0.9)",fontSize:9.5,textTransform:"uppercase",fontWeight:700}}>{h}</th>)}</tr></thead>
                     <tbody>
                       {viewReq.requisition_items.map((it:any,i:number)=>(
-                        <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
+                        <tr key={i} style={{borderBottom:"1px solid #e2e8f0",background:"#fff"}}>
                           <td style={{padding:"7px 10px",color:"#94a3b8"}}>{i+1}</td>
                           <td style={{padding:"7px 10px",fontWeight:600,color:"#1e293b"}}>{it.item_name||"—"}</td>
                           <td style={{padding:"7px 10px",color:"#6b7280"}}>{it.description||it.specifications||it.specifications||"—"}</td>
@@ -584,7 +585,7 @@ export default function RequisitionsPage() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot><tr style={{background:"#0a2558"}}>
+                    <tfoot><tr style={{background:"#1e3a6b"}}>
                       <td colSpan={5} style={{padding:"7px 10px",textAlign:"right",fontWeight:700,color:"rgba(255,255,255,0.9)",fontSize:11}}>TOTAL:</td>
                       <td colSpan={2} style={{padding:"7px 10px",fontWeight:900,color:"#4ade80",fontSize:13}}>KES {viewReq.requisition_items.reduce((s:number,it:any)=>s+(it.quantity||0)*(it.unit_price||0),0).toLocaleString()}</td>
                     </tr></tfoot>

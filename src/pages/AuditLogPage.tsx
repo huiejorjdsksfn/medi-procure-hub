@@ -79,7 +79,7 @@ export default function AuditLogPage() {
     toast({title:"Exported",description:`${filtered.length} records exported`});
   };
 
-  const inp: React.CSSProperties = {background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",borderRadius:8,padding:"5px 10px",fontSize:12,outline:"none"};
+  const inp: React.CSSProperties = {background:"#e2e8f0",border:"1px solid #e2e8f0",color:"#fff",borderRadius:8,padding:"5px 10px",fontSize:12,outline:"none"};
   const sel: React.CSSProperties = {...inp,cursor:"pointer"};
 
   return (
@@ -97,7 +97,7 @@ export default function AuditLogPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={fetchLogs} disabled={loading}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
             <RefreshCw style={{width:13,height:13,...(loading?{animation:"spin 1s linear infinite"}:{})}}/>Refresh
           </button>
           <button onClick={exportExcel}
@@ -108,7 +108,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"10px 16px",display:"flex",flexWrap:"wrap",gap:10,marginBottom:14,alignItems:"center"}}>
+      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid #f1f5f9",borderRadius:12,padding:"10px 16px",display:"flex",flexWrap:"wrap",gap:10,marginBottom:14,alignItems:"center"}}>
         <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>From</label>
         <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={inp}/>
         <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>To</label>
@@ -132,7 +132,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Table */}
-      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:14,overflow:"hidden"}}>
+      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid #f1f5f9",borderRadius:14,overflow:"hidden"}}>
         {loading?(
           <div style={{padding:40,textAlign:"center"}}>
             <RefreshCw style={{width:28,height:28,color:"rgba(255,255,255,0.3)",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 10px"}}/>
@@ -154,7 +154,7 @@ export default function AuditLogPage() {
                 ):paged.map((l,i)=>{
                   const st=ACTION_STYLE[l.action]||ACTION_STYLE.default;
                   return(
-                    <tr key={l.id||i} style={{borderBottom:"1px solid rgba(255,255,255,0.04)",background:i%2===0?"rgba(255,255,255,0.02)":"transparent"}}
+                    <tr key={l.id||i} style={{borderBottom:"1px solid #f8fafc",background:i%2===0?"rgba(255,255,255,0.02)":"transparent"}}
                       onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(96,165,250,0.07)"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.3)"}}>{(page-1)*PAGE_SIZE+i+1}</td>
@@ -179,14 +179,14 @@ export default function AuditLogPage() {
           </div>
         )}
         {totalPages>1&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid #e2e8f0"}}>
             <span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
             <div style={{display:"flex",gap:4}}>
               <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>‹</button>
+                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>‹</button>
               <span style={{padding:"4px 10px",background:"rgba(96,165,250,0.2)",border:"1px solid rgba(96,165,250,0.3)",color:"#93c5fd",borderRadius:6,fontSize:12,fontWeight:700}}>{page}/{totalPages}</span>
               <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>›</button>
+                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>›</button>
             </div>
           </div>
         )}

@@ -30,13 +30,13 @@ const TABS = [
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  const bg = on ? "#4f46e5" : "rgba(255,255,255,0.12)";
+  const bg = on ? "#4f46e5" : "#e2e8f0";
   return (
     <button
       onClick={() => onChange(!on)}
       style={{ background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0,lineHeight:0 }}
     >
-      <span style={{ display:"inline-flex",width:48,height:26,borderRadius:13,background:bg,alignItems:"center",padding:"3px",transition:"background 0.2s",border:`1px solid ${on?"#4f46e5":"rgba(255,255,255,0.15)"}` }}>
+      <span style={{ display:"inline-flex",width:48,height:26,borderRadius:13,background:bg,alignItems:"center",padding:"3px",transition:"background 0.2s",border:`1px solid ${on?"#4f46e5":"#e2e8f0"}` }}>
         <span style={{ display:"block",width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)",boxShadow:"0 1px 4px rgba(0,0,0,0.3)" }} />
       </span>
     </button>
@@ -58,8 +58,8 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 
 function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) {
   return (
-    <div style={{ background:"#f8fafc",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
-      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:12,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+    <div style={{ background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
+      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:12,borderBottom:"1px solid #e2e8f0" }}>
         <div style={{ width:36,height:36,borderRadius:9,background:color,display:"flex",alignItems:"center",justifyContent:"center" }}>
           <Icon style={{ width:17,height:17,color:"#fff" }} />
         </div>
@@ -102,9 +102,9 @@ function SettingsInner() {
   const set = (k: string, v: string) => { setS(p => ({ ...p, [k]: v })); setDirty(true); };
 
   const inp: React.CSSProperties = {
-    padding:"8px 11px", border:"1px solid rgba(255,255,255,0.12)",
+    padding:"8px 11px", border:"1px solid #e2e8f0",
     borderRadius:7, fontSize:13, color:"#1e293b",
-    background:"rgba(255,255,255,0.06)", outline:"none", width:"100%",
+    background:"#e2e8f0", outline:"none", width:"100%",
   };
 
   async function save(keys: string[]) {
@@ -158,7 +158,7 @@ function SettingsInner() {
 
       {/* Header */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
-        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:4 }} />
+        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"#f1f5f9",padding:4 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:800,color:"#1e293b" }}>System Settings</div>
           <div style={{ fontSize:10,color:"#64748b" }}>Changes propagate to all users via Supabase Realtime</div>
@@ -179,7 +179,7 @@ function SettingsInner() {
       <div style={{ display:"grid",gridTemplateColumns:"188px 1fr",minHeight:"calc(100vh - 60px)" }}>
 
         {/* Sidebar */}
-        <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid rgba(255,255,255,0.05)",paddingTop:8 }}>
+        <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid #e2e8f0",paddingTop:8 }}>
           {TABS.map(t => (
             <button
               key={t.id}

@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 16,
-          background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)",
+          background: "#e2e8f0", backdropFilter: "blur(12px)",
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
         }}>

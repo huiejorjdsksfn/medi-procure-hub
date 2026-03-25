@@ -460,7 +460,7 @@ export default function ScannerPage() {
               <Plus style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:13,fontWeight:700,color:"#fff",flex:1}}>Add Item to Inventory</span>
               {onlineInfo && <span style={{fontSize:9,background:"rgba(255,255,255,0.2)",padding:"2px 8px",borderRadius:4,color:"#fff"}}>Pre-filled from {onlineInfo.source}</span>}
-              <button onClick={()=>setShowAdd(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setShowAdd(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[

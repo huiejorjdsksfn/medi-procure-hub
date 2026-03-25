@@ -282,7 +282,7 @@ export default function QualityDashboardPage() {
         </div>
         {/* Month / Year */}
         <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 12px",border:"1px solid rgba(255,255,255,0.2)"}}>
-          <Calendar style={{width:12,height:12,color:"rgba(255,255,255,0.7)"}}/>
+          <Calendar style={{width:12,height:12,color:"rgba(255,255,255,0.9)"}}/>
           <select value={month} onChange={e=>setMonth(e.target.value)}
             style={{background:"#f8fafc",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",cursor:"pointer"}}>
             {MONTHS.map(m=><option key={m} value={m} style={{color:"#1a1a2e"}}>{m}</option>)}

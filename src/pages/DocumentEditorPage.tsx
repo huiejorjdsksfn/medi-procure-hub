@@ -372,25 +372,25 @@ ${html}
     <div style={S.page}>
       {/* ── Header ── */}
       <div style={S.bar}>
-        <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:0 }}>
+        <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.9)",cursor:"pointer",padding:0 }}>
           <X style={{ width:18,height:18 }} />
         </button>
-        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.15)",padding:2 }} />
+        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain",background:"#e2e8f0",padding:2 }} />
         <input value={meta.name} onChange={e=>setMeta(p=>({...p,name:e.target.value}))}
           style={{ background:"#f8fafc",border:"none",color:"#fff",fontSize:15,fontWeight:600,outline:"none",flex:1,minWidth:200 }} />
         <div style={{ display:"flex",gap:8,marginLeft:"auto" }}>
-          <button onClick={() => setShowTemplates(p=>!p)} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
+          <button onClick={() => setShowTemplates(p=>!p)} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <FileText style={{ width:13,height:13 }} /> Templates
           </button>
           <button onClick={() => setMode(m => m==="edit"?"preview":"edit")}
-            style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
+            style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             {mode==="edit" ? <Eye style={{ width:13,height:13 }} /> : <Edit3 style={{ width:13,height:13 }} />}
             {mode==="edit" ? "Preview" : "Edit"}
           </button>
-          <button onClick={print} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
+          <button onClick={print} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <Printer style={{ width:13,height:13 }} /> Print
           </button>
-          <button onClick={downloadHTML} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
+          <button onClick={downloadHTML} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <Download style={{ width:13,height:13 }} /> Export
           </button>
           <button onClick={save} disabled={saving}

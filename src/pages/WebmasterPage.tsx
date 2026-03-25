@@ -308,7 +308,7 @@ export default function WebmasterPage(){
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={saveSection} disabled={saving}
-              style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",background:"#0a2558",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+              style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
               {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
               SAVE CHANGES
             </button>
@@ -373,7 +373,7 @@ export default function WebmasterPage(){
                         <div key={m.id}
                           style={{display:"flex",alignItems:"center",gap:14,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
                           onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                           <div style={{width:32,height:32,borderRadius:8,background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                             <m.icon style={{width:15,height:15,color:"#374151"}}/>
                           </div>
@@ -427,14 +427,14 @@ export default function WebmasterPage(){
                           <div key={cap.id}
                             style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",cursor:"pointer",transition:"background 0.1s"}}
                             onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}
+                            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}
                             onClick={()=>setCaps(p=>{
                               const cur=p[selectedRole]||[];
                               return{...p,[selectedRole]:checked?cur.filter(c=>c!==cap.id):[...cur,cap.id]};
                             })}>
                             <CB checked={checked} onChange={v=>setCaps(p=>{const cur=p[selectedRole]||[];return{...p,[selectedRole]:v?[...cur,cap.id]:cur.filter(c=>c!==cap.id)};})}/>
                             <span style={{fontSize:13,color:"#1e293b",flex:1}}>{cap.label}</span>
-                            {selectedRole==="admin"&&<span style={{fontSize:9,color:"#64748b",background:"rgba(255,255,255,0.06)",padding:"1px 6px",borderRadius:4}}>always on</span>}
+                            {selectedRole==="admin"&&<span style={{fontSize:9,color:"#64748b",background:"#e2e8f0",padding:"1px 6px",borderRadius:4}}>always on</span>}
                           </div>
                         );
                       })}
@@ -505,20 +505,20 @@ export default function WebmasterPage(){
                         <div key={item.label}
                           style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
                           onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                           <CB checked={true} onChange={()=>{}} disabled/>
                           <div style={{flex:1}}>
                             <div style={{fontSize:13,color:"#1e293b",fontWeight:500}}>{item.label}</div>
                             <div style={{fontSize:10.5,color:"#9ca3af"}}>{item.desc}</div>
                           </div>
-                          <span style={{fontSize:9,color:"#64748b",background:"rgba(255,255,255,0.06)",padding:"1px 6px",borderRadius:4}}>admin only</span>
+                          <span style={{fontSize:9,color:"#64748b",background:"#e2e8f0",padding:"1px 6px",borderRadius:4}}>admin only</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ))}
                 <div style={{marginTop:8,display:"flex",gap:8}}>
-                  <button onClick={()=>navigate("/users")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0a2558",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  <button onClick={()=>navigate("/users")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
                     <Users style={{width:13,height:13}}/>Manage Users
                   </button>
                 </div>
@@ -585,7 +585,7 @@ export default function WebmasterPage(){
                     </div>
                   </div>
                   <button onClick={sendBroadcast} disabled={saving}
-                    style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px 20px",background:"#0a2558",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+                    style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px 20px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                     {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<SendIcon style={{width:13,height:13}}/>}
                     Send System Broadcast
                   </button>
@@ -635,7 +635,7 @@ export default function WebmasterPage(){
                   ))}
                 </div>
                 <div style={{display:"flex",gap:10}}>
-                  <button onClick={()=>navigate("/admin/database")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0a2558",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  <button onClick={()=>navigate("/admin/database")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
                     <Database style={{width:13,height:13}}/>Database Admin
                   </button>
                   <button onClick={()=>navigate("/backup")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",border:"1.5px solid #0a2558",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:"#0a2558"}}>
@@ -719,14 +719,14 @@ export default function WebmasterPage(){
               <div style={{maxWidth:680,display:"flex",flexDirection:"column",gap:16}}>
                 <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
                   <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
-                    <div style={{width:48,height:48,borderRadius:10,background:"#0a2558",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <div style={{width:48,height:48,borderRadius:10,background:"#1e3a6b",display:"flex",alignItems:"center",justifyContent:"center"}}>
                       <Monitor style={{width:24,height:24,color:"#fff"}}/>
                     </div>
                     <div>
                       <h2 style={{fontSize:16,fontWeight:900,color:"#1e293b",margin:0}}>MediProcure Hub</h2>
                       <div style={{fontSize:12,color:"#9ca3af"}}>Embu Level 5 Hospital · Procurement Management System</div>
                     </div>
-                    <div style={{marginLeft:"auto",background:"#0a2558",color:"#fff",padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700}}>v1.0.0</div>
+                    <div style={{marginLeft:"auto",background:"#1e3a6b",color:"#fff",padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700}}>v1.0.0</div>
                   </div>
                   {[
                     ["Version","1.0.0"],
