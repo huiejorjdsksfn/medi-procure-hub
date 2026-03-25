@@ -67,7 +67,11 @@ const queryClient = new QueryClient({
 });
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><AppLayout>{children}</AppLayout></ProtectedRoute>
+  <ProtectedRoute>
+    <FacilityProvider>
+      <AppLayout>{children}</AppLayout>
+    </FacilityProvider>
+  </ProtectedRoute>
 );
 
 const App = () => (
@@ -77,7 +81,6 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <FacilityProvider>
           <NetworkGuard>
             <PWAInstallPrompt />
             <Routes>
@@ -150,7 +153,6 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
             </Routes>
           </NetworkGuard>
-          </FacilityProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

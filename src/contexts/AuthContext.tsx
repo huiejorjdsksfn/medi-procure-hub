@@ -70,10 +70,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Safety: force loading=false after 5s no matter what
+    const safetyTimer = setTimeout(() => setLoading(false), 5000);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        clearTimeout(safetyTimer);
         if (session?.user) {
           setTimeout(async () => {
             await fetchProfile(session.user.id);
@@ -98,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(safetyTimer); };
   }, []);
 
   const signOut = async () => {

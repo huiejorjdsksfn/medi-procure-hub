@@ -361,8 +361,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isDashboard&&(
         <div style={{
           height:44, flexShrink:0, zIndex:200,
-          background:"#ffffff",
-          borderBottom:"1px solid #e2e8f0",
+          background:"var(--color-nav-bg, #ffffff)",
+          borderBottom:"1px solid var(--color-border, #e2e8f0)",
           display:"flex", alignItems:"stretch",
           overflowX:"auto", overflowY:"hidden",
         }}>
@@ -376,7 +376,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   display:"flex", alignItems:"center", gap:7,
                   padding:"0 18px", border:"none",
                   cursor:"pointer", flexShrink:0, whiteSpace:"nowrap" as const,
-                  background: isAct ? col : "#ffffff",
+                  background: isAct ? col : "var(--color-nav-bg, #ffffff)",
                   borderBottom: isAct ? `3px solid ${col}` : "3px solid transparent",
                   transition:"all 0.14s",
                   position:"relative",
@@ -384,7 +384,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background=`${col}12`; }}
                 onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#ffffff"; }}>
                 <m.icon style={{width:14,height:14,color:isAct?"#fff":col,flexShrink:0}}/>
-                <span style={{fontSize:12,fontWeight:isAct?700:500,color:isAct?"#ffffff":"#1e293b",letterSpacing:"0.01em"}}>{m.label}</span>
+                <span style={{fontSize:12,fontWeight:isAct?700:500,color:isAct?"#ffffff":"var(--color-nav-text, #1e293b)",letterSpacing:"0.01em"}}>{m.label}</span>
               </button>
             );
           })}

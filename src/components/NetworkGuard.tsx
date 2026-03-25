@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { checkIpAccess, revokeSession, type IpCheckResult } from "@/lib/ipRestriction";
 import { supabase } from "@/integrations/supabase/client";
 
-const CHECK_INTERVAL_MS = 5 * 60 * 1000; // re-check every 5 min
+const CHECK_INTERVAL_MS = 10 * 60 * 1000; // re-check every 5 min
 
 export default function NetworkGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, roles } = useAuth();
@@ -18,8 +18,11 @@ export default function NetworkGuard({ children }: { children: React.ReactNode }
 
   const doCheck = useCallback(async () => {
     if (!user) { setStatus("allowed"); setLoading(false); return; }
+    // Hard 3s timeout - fail open so app is never blocked
+    const timer = setTimeout(() => { setStatus("allowed"); setLoading(false); }, 3000);
     try {
       const res = await checkIpAccess(user.id, user.email || "");
+      clearTimeout(timer);
       setResult(res);
       if (res.allowed) {
         setStatus("allowed");
