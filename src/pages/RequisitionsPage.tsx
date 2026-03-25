@@ -13,6 +13,7 @@ import { notifyProcurement, sendNotification } from "@/lib/notify";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
+import { useFacility } from "@/contexts/FacilityContext";
 import logoImg from "@/assets/logo.png";
 
 const S: Record<string,{bg:string;color:string;label:string}> = {
@@ -48,6 +49,7 @@ export default function RequisitionsPage() {
   const [rejectId, setRejectId]     = useState<string|null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const { get: getSetting } = useSystemSettings();
+  const { facility } = useFacility();
   const { departments } = useDepartments();
 
   const EMPTY_FORM = {
@@ -133,7 +135,7 @@ export default function RequisitionsPage() {
         const {data,error}=await (supabase as any).from("requisitions").insert({
           ...form, requisition_number:num, status:"draft",
           requested_by:user?.id, requester_name:form.requester_name||profile?.full_name,
-          total_amount:total,
+          total_amount:total, facility_id:facility?.id||null,
         }).select().single();
         if(error) throw error;
         if(validItems.length>0)

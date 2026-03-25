@@ -9,6 +9,7 @@ import {
 import procBg from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/logo.png";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { useFacility } from "@/contexts/FacilityContext";
 
 /* ── Polar helpers ─────────────────────────────────────────── */
 const P = (cx: number, cy: number, r: number, deg: number) => {
@@ -111,6 +112,7 @@ export default function DashboardPage() {
   const [clock, setClock] = useState("");
   const [kpi, setKpi] = useState({ reqs: 0, pos: 0, pendPV: 0, lowStock: 0, openNCR: 0, contracts: 0 });
   const [greeting, setGreeting] = useState("");
+  const { facility } = useFacility();
   const { get: getSetting } = useSystemSettings();
   const sysName  = getSetting("system_name", "EL5 MediProcure");
   const hospital = getSetting("hospital_name", "Embu Level 5 Hospital");
