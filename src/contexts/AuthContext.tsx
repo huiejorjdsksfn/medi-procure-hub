@@ -2,14 +2,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase, db } from "@/integrations/supabase/client";
 
-export type ProcurementRole = 
-  | "admin" 
-  | "database_admin"
-  | "requisitioner" 
-  | "procurement_officer" 
-  | "procurement_manager" 
-  | "warehouse_officer" 
-  | "inventory_manager";
+export type ProcurementRole =
+  | "admin" | "database_admin" | "requisitioner"
+  | "procurement_officer" | "procurement_manager"
+  | "warehouse_officer" | "inventory_manager";
 
 interface AuthContextType {
   session: Session | null;
@@ -23,11 +19,8 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  profile: null,
-  roles: [],
-  loading: true,
+  session: null, user: null, profile: null,
+  roles: [], loading: true,
   signOut: async () => {},
   hasRole: () => false,
   primaryRole: "requisitioner",
@@ -36,86 +29,75 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 const ROLE_PRIORITY: ProcurementRole[] = [
-  "admin",
-  "database_admin",
-  "procurement_manager",
-  "procurement_officer",
-  "inventory_manager",
-  "warehouse_officer",
-  "requisitioner",
+  "admin","database_admin","procurement_manager",
+  "procurement_officer","inventory_manager","warehouse_officer","requisitioner",
 ];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
-  const [roles, setRoles] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [session,  setSession]  = useState<Session | null>(null);
+  const [user,     setUser]     = useState<User | null>(null);
+  const [profile,  setProfile]  = useState<any>(null);
+  const [roles,    setRoles]    = useState<string[]>([]);
+  const [loading,  setLoading]  = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    setProfile(data);
+  const fetchProfile = async (uid: string) => {
+    try {
+      const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+      setProfile(data);
+    } catch { /* non-fatal */ }
   };
 
-  const fetchRoles = async (userId: string) => {
-    const { data } = await db
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    setRoles((data as any[])?.map((r: any) => r.role) || []);
+  const fetchRoles = async (uid: string) => {
+    try {
+      const { data } = await db.from("user_roles").select("role").eq("user_id", uid);
+      setRoles((data as any[] || []).map((r: any) => r.role));
+    } catch { setRoles([]); }
   };
 
   useEffect(() => {
-    // Safety: force loading=false after 5s no matter what
-    const safetyTimer = setTimeout(() => setLoading(false), 5000);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        clearTimeout(safetyTimer);
-        if (session?.user) {
-          setTimeout(async () => {
-            await fetchProfile(session.user.id);
-            await fetchRoles(session.user.id);
-            setLoading(false);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRoles([]);
-          setLoading(false);
-        }
-      }
-    );
+    let mounted = true;
+    // Hard safety: loading MUST become false within 6 seconds no matter what
+    const safety = setTimeout(() => { if (mounted) setLoading(false); }, 6000);
 
+    // Get session immediately from localStorage (synchronous in supabase-js v2)
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRoles(session.user.id);
+        Promise.all([fetchProfile(session.user.id), fetchRoles(session.user.id)])
+          .finally(() => { if (mounted) { clearTimeout(safety); setLoading(false); } });
+      } else {
+        clearTimeout(safety);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => { subscription.unsubscribe(); clearTimeout(safetyTimer); };
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await Promise.all([fetchProfile(session.user.id), fetchRoles(session.user.id)]);
+        if (mounted) setLoading(false);
+      } else {
+        setProfile(null);
+        setRoles([]);
+        if (mounted) setLoading(false);
+      }
+    });
+
+    return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setRoles([]);
+    setSession(null); setUser(null); setProfile(null); setRoles([]);
   };
 
-  const hasRole = (role: ProcurementRole) => roles.includes(role);
-  
-  const primaryRole: ProcurementRole = 
-    ROLE_PRIORITY.find(r => roles.includes(r)) || "requisitioner";
+  const hasRole = (r: ProcurementRole) => roles.includes(r);
+  const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || "requisitioner";
 
   return (
     <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut, hasRole, primaryRole }}>
