@@ -92,7 +92,7 @@ export function useSystemSettings() {
     return v !== undefined ? v === "true" : def;
   }, [settings]);
 
-  return { settings, loading, get, bool };
+  return { settings, loading, get, getSetting: get, bool };
 }
 
 /**

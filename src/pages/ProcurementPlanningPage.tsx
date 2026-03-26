@@ -183,5 +183,6 @@ export default function ProcurementPlanningPage() {
         </div>
       )}
     </div>
+      </div>
   );
 }

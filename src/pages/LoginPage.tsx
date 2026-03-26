@@ -381,5 +381,8 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+      </div>
+    </div>
+    </div>
   );
 }
