@@ -690,5 +690,6 @@ export default function PurchaseOrdersPage() {
         </div>
       )}
     </div>
+      </div>
   );
 }

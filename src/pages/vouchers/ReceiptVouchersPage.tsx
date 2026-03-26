@@ -231,5 +231,6 @@ export default function ReceiptVouchersPage() {
       )}
     </div>
   </div>
+    </div>
   );
 }

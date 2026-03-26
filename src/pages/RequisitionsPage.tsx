@@ -1,3 +1,8 @@
+/**
+ * ProcurBosse — Requisitions Page v3.0
+ * ERP-style: status tabs, search bar, KPI tiles, professional table
+ * EL5 MediProcure · Embu Level 5 Hospital
+ */
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -5,8 +10,8 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
-  CheckCircle, XCircle, Clock, ClipboardList, ChevronDown, Send,
-  AlertTriangle, Download
+  CheckCircle, XCircle, Clock, ClipboardList, Send, AlertTriangle,
+  Download, Edit3, ChevronDown
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { notifyProcurement, sendNotification } from "@/lib/notify";
@@ -14,245 +19,337 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
 
-const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
-  draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
-  submitted: {bg:"#dbeafe",color:"#1d4ed8",label:"Submitted"},
-  pending:   {bg:"#fef3c7",color:"#92400e",label:"Pending"},
-  approved:  {bg:"#dcfce7",color:"#15803d",label:"Approved"},
-  rejected:  {bg:"#fee2e2",color:"#dc2626",label:"Rejected"},
-  ordered:   {bg:"#e0f2fe",color:"#0369a1",label:"Ordered"},
-  received:  {bg:"#d1fae5",color:"#065f46",label:"Received"},
+// ── Status config ────────────────────────────────────────────────────────────
+const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = {
+  draft:     {bg:"#f1f5f9",      color:"#475569", border:"#cbd5e1", label:"Draft",     dot:"#94a3b8"},
+  submitted: {bg:"#dbeafe",      color:"#1d4ed8", border:"#93c5fd", label:"Submitted", dot:"#3b82f6"},
+  pending:   {bg:"#fef9c3",      color:"#854d0e", border:"#fde047", label:"Pending",   dot:"#eab308"},
+  approved:  {bg:"#dcfce7",      color:"#15803d", border:"#86efac", label:"Approved",  dot:"#22c55e"},
+  rejected:  {bg:"#fee2e2",      color:"#dc2626", border:"#fca5a5", label:"Rejected",  dot:"#ef4444"},
+  ordered:   {bg:"#e0f2fe",      color:"#0369a1", border:"#7dd3fc", label:"Ordered",   dot:"#0ea5e9"},
+  received:  {bg:"#d1fae5",      color:"#065f46", border:"#6ee7b7", label:"Received",  dot:"#10b981"},
 };
+
+// ── Styles ───────────────────────────────────────────────────────────────────
+const CARD_STYLE: React.CSSProperties = {
+  background:"#fff",
+  border:"1px solid #e5e7eb",
+  borderRadius:12,
+  padding:"14px 18px",
+  boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
+};
+
+// ── Format helpers ────────────────────────────────────────────────────────────
+const fmtKES = (n:number) => {
+  if(n>=1_000_000) return `KES ${(n/1_000_000).toFixed(1)}M`;
+  if(n>=1000)      return `KES ${(n/1000).toFixed(0)}K`;
+  return `KES ${n.toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+};
+const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
 
 export default function RequisitionsPage() {
   const { user, profile, roles } = useAuth();
-  const canApprove = roles.includes("admin") || roles.includes("procurement_manager");
-  const canCreate = !roles.includes("warehouse_officer") && !roles.includes("inventory_manager");
-  const [reqs, setReqs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [viewReq, setViewReq] = useState<any>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
-  const [saving, setSaving] = useState(false);
-  const { get: getSetting } = useSystemSettings();
+  const canApprove = roles?.includes("admin")||roles?.includes("procurement_manager");
+  const canCreate  = !roles?.includes("warehouse_officer");
+  const { getSetting } = useSystemSettings();
   const { departments } = useDepartments();
+  const currencySymbol = getSetting("currency_symbol","KES");
 
-  const load = useCallback(async () => {
+  const [reqs,       setReqs]       = useState<any[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState("");
+  const [statusTab,  setStatusTab]  = useState("all");
+  const [priority,   setPriority]   = useState("all");
+  const [viewReq,    setViewReq]    = useState<any>(null);
+  const [showForm,   setShowForm]   = useState(false);
+  const [editReq,    setEditReq]    = useState<any>(null);
+  const [saving,     setSaving]     = useState(false);
+  const [sortCol,    setSortCol]    = useState("created_at");
+  const [sortAsc,    setSortAsc]    = useState(false);
+  const [rejectId,   setRejectId]   = useState<string|null>(null);
+  const [rejectReason,setRejectReason]=useState("");
+
+  const EMPTY_FORM = {title:"",department:"",priority:"normal",notes:"",delivery_date:"",justification:"",cost_centre:"",fund_source:"County Fund"};
+  const [form, setForm] = useState({...EMPTY_FORM});
+
+  const load = useCallback(async ()=>{
     setLoading(true);
-    const { data } = await (supabase as any).from("requisitions")
-      .select("*,requisition_items(*)")
-      .order("created_at",{ascending:false});
+    const {data} = await (supabase as any).from("requisitions")
+      .select("*,requisition_items(count)")
+      .order(sortCol,{ascending:sortAsc});
     setReqs(data||[]);
     setLoading(false);
-  },[]);
+  },[sortCol,sortAsc]);
 
-  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{load();},[load]);
 
-  /* ── Real-time subscription ─────────────────────────────── */
+  // Real-time
   useEffect(()=>{
-    const ch=(supabase as any).channel("reqs-rt").on("postgres_changes",{event:"*",schema:"public",table:"requisitions"},()=>load()).subscribe();
-    return ()=>{(supabase as any).removeChannel(ch);};
+    const ch=(supabase as any).channel("reqs-v3").on("postgres_changes",{event:"*",schema:"public",table:"requisitions"},load).subscribe();
+    return()=>(supabase as any).removeChannel(ch);
   },[load]);
 
-  const approve = async (id:string) => {
-    const req = reqs.find(r=>r.id===id);
-    await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);
+  // ── Actions ──────────────────────────────────────────────────────────────────
+  async function approve(id:string){
+    const req=reqs.find(r=>r.id===id);
+    await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",id);
     logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
-    toast({title:"Requisition Approved ✓"});
-    // Notify the requester
+    toast({title:"✅ Requisition Approved"});
     if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Approved ✓",message:`Your requisition "${req.title||req.requisition_number}" has been approved.`,type:"success",module:"Procurement",actionUrl:"/requisitions"});
-    await notifyProcurement({title:"Requisition Approved",message:`${profile?.full_name||"Manager"} approved requisition ${req?.requisition_number||id.slice(0,8)}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
     load();
-  };
-  const reject = async (id:string) => {
-    const req = reqs.find(r=>r.id===id);
-    await (supabase as any).from("requisitions").update({status:"rejected"}).eq("id",id);
-    logAudit(user?.id,profile?.full_name,"reject","requisitions",id,{});
-    toast({title:"Requisition Rejected",variant:"destructive"});
-    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Rejected",message:`Your requisition "${req.title||req.requisition_number}" was not approved.`,type:"warning",module:"Procurement",actionUrl:"/requisitions"});
-    load();
-  };
+  }
 
-  const save = async () => {
+  async function rejectConfirm(){
+    if(!rejectId) return;
+    const req=reqs.find(r=>r.id===rejectId);
+    await (supabase as any).from("requisitions").update({status:"rejected",rejection_reason:rejectReason||"Rejected by manager"}).eq("id",rejectId);
+    logAudit(user?.id,profile?.full_name,"reject","requisitions",rejectId,{reason:rejectReason});
+    toast({title:"Requisition rejected"});
+    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Rejected",message:`Your requisition "${req.title||req.requisition_number}" was rejected. Reason: ${rejectReason||"See manager"}`,type:"error",module:"Procurement",actionUrl:"/requisitions"});
+    setRejectId(null); setRejectReason(""); load();
+  }
+
+  async function submit(id:string){
+    await (supabase as any).from("requisitions").update({status:"submitted"}).eq("id",id);
+    toast({title:"Requisition submitted for approval"});
+    await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted a requisition`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
+    load();
+  }
+
+  async function save(){
     if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}
-    if(form.delivery_date&&new Date(form.delivery_date)<new Date(new Date().toDateString())){toast({title:"Delivery date must be today or in the future",variant:"destructive"});return;}
     setSaving(true);
-    const prefix="RQQ/EL5H";
-    const num=`${prefix}/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;
-    const {data,error}=await (supabase as any).from("requisitions").insert({
-      ...form, requisition_number:num, status:"draft",
-      requested_by:user?.id, requester_name:profile?.full_name,
-    }).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
-    logAudit(user?.id,profile?.full_name,"create","requisitions",data?.id,{title:form.title});
-    toast({title:"Requisition Created",description:num});
-    await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted requisition ${num}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
-    setShowForm(false);
-    setForm({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
-    load();
+    const num = editReq?.requisition_number||`RQQ/EL5H/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;
+    const payload={...form,requisition_number:num,status:editReq?.status||"draft",requested_by:user?.id,requester_name:profile?.full_name};
+    let error:any;
+    if(editReq){
+      ({error}=await (supabase as any).from("requisitions").update(payload).eq("id",editReq.id));
+    } else {
+      ({error}=await (supabase as any).from("requisitions").insert(payload));
+    }
+    if(error){toast({title:"Save failed",description:error.message||"Database error",variant:"destructive"});setSaving(false);return;}
+    toast({title:editReq?"Requisition updated ✓":"Requisition created ✓",description:num});
+    setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); load();
     setSaving(false);
-  };
+  }
 
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const header = [[getSetting('hospital_name','Embu Level 5 Hospital')],[getSetting('system_name','EL5 MediProcure')+" — Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
-    const rows = filtered.map(r=>({
-      "Req No.":r.requisition_number,"Title":r.title,"Department":r.department,
-      "Priority":r.priority,"Status":r.status,"Requester":r.requester_name,
-      "Amount":r.total_amount||0,"Date":r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"",
-      "Approved By":r.approved_by||"","Notes":r.notes||"",
+  function exportExcel(){
+    const wb=XLSX.utils.book_new();
+    const header=[[getSetting("hospital_name","Embu Level 5 Hospital")],[getSetting("system_name","EL5 MediProcure")+" — Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const rows=filtered.map(r=>({
+      "Req No":r.requisition_number,"Title":r.title,"Department":r.department||"","Priority":r.priority,
+      "Status":r.status,"Requester":r.requester_name||"","Date":fmtDate(r.created_at),
+      "Delivery Date":fmtDate(r.delivery_date),"Total Amount":r.total_amount||0,"Notes":r.notes||"",
     }));
-    const ws = XLSX.utils.aoa_to_sheet([...header,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
-    ws["!cols"] = Object.keys(rows[0]||{}).map(()=>({wch:18}));
+    const ws=XLSX.utils.aoa_to_sheet(header);
+    XLSX.utils.sheet_add_json(ws,rows,{origin:"A5"});
     XLSX.utils.book_append_sheet(wb,ws,"Requisitions");
     XLSX.writeFile(wb,`Requisitions_${new Date().toISOString().slice(0,10)}.xlsx`);
     toast({title:"Exported",description:`${filtered.length} records`});
-  };
+  }
 
-  const printReq = (r:any) => {
-    printRequisition(r, {
-      hospitalName: getSetting('hospital_name','Embu Level 5 Hospital'),
-      sysName:      getSetting('system_name','EL5 MediProcure'),
-      docFooter:    getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
-      currencySymbol: getSetting('currency_symbol','KES'),
-      logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
-      hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
-      hospitalPhone:   getSetting('hospital_phone','+254 060 000000'),
-      hospitalEmail:   getSetting('hospital_email','info@embu.health.go.ke'),
-      printFont:    getSetting('print_font','Times New Roman'),
-      printFontSize: getSetting('print_font_size','11'),
-      showStamp:    getSetting('show_stamp','true') === 'true',
-    });
-  };;
-
+  // ── Filter & stats ───────────────────────────────────────────────────────────
   const filtered = reqs.filter(r=>{
-    if(statusFilter!=="all"&&r.status!==statusFilter) return false;
-    if(search){const q=search.toLowerCase();return (r.title||"").toLowerCase().includes(q)||(r.requisition_number||"").toLowerCase().includes(q)||(r.department||"").toLowerCase().includes(q)||(r.requester_name||"").toLowerCase().includes(q);}
+    if(statusTab!=="all"&&r.status!==statusTab) return false;
+    if(priority!=="all"&&r.priority!==priority) return false;
+    if(search){
+      const q=search.toLowerCase();
+      return (r.requisition_number||"").toLowerCase().includes(q)||(r.title||"").toLowerCase().includes(q)||(r.requester_name||"").toLowerCase().includes(q)||(r.department||"").toLowerCase().includes(q);
+    }
     return true;
+  }).sort((a,b)=>{
+    const va=a[sortCol]||""; const vb=b[sortCol]||"";
+    return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
   });
 
-  const stats = {all:reqs.length,pending:reqs.filter(r=>r.status==="pending"||r.status==="submitted").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length};
+  const COUNTS={all:reqs.length,draft:reqs.filter(r=>r.status==="draft").length,submitted:reqs.filter(r=>r.status==="submitted").length,pending:reqs.filter(r=>r.status==="pending").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length,ordered:reqs.filter(r=>r.status==="ordered").length};
+  const totalValue=reqs.reduce((s,r)=>s+Number(r.total_amount||0),0);
+  const approvedValue=reqs.filter(r=>r.status==="approved").reduce((s,r)=>s+Number(r.total_amount||0),0);
+  const pendingCount=COUNTS.submitted+COUNTS.pending;
 
+  const toggleSort=(col:string)=>{if(sortCol===col)setSortAsc(a=>!a);else{setSortCol(col);setSortAsc(true);}};
+  const SortInd=({col}:{col:string})=>sortCol===col?<span style={{fontSize:9,marginLeft:3}}>{sortAsc?"▲":"▼"}</span>:null;
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <><style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style><div style={{padding:16,display:"flex",flexDirection:"column",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-      {/* KPI TILES */}
-      {(()=>{
-        const totalVal = reqs.reduce((s,r)=>s+Number(r.total_amount||0),0);
-        const appVal   = reqs.filter(r=>r.status==="approved").reduce((s,r)=>s+Number(r.total_amount||0),0);
-        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
-        return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
-            {[
-              {label:"Total Value",val:fmtK(totalVal),bg:"#c0392b"},
-              {label:"Approved Value",val:fmtK(appVal),bg:"#0e6655"},
-              {label:"Pending Count",val:reqs.filter(r=>r.status==="pending").length,bg:"#7d6608"},
-              {label:"Record Count",val:reqs.length,bg:"#6c3483"},
-              {label:"Approved Count",val:reqs.filter(r=>r.status==="approved").length,bg:"#1a252f"},
-            ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-                <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
-                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
-              </div>
-            ))}
+    <div style={{minHeight:"100vh",background:"#f0f4f8",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+
+      {/* ── KPI TILES ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid #e5e7eb"}}>
+        {[
+          {label:"Total Value",     val:fmtKES(totalValue),    bg:"#dc2626",  icon:"💰"},
+          {label:"Approved Value",  val:fmtKES(approvedValue), bg:"#059669",  icon:"✅"},
+          {label:"Pending Approval",val:String(pendingCount),  bg:"#d97706",  icon:"⏳"},
+          {label:"Total Records",   val:String(reqs.length),   bg:"#6366f1",  icon:"📋"},
+          {label:"Approved",        val:String(COUNTS.approved),bg:"#0078d4", icon:"👍"},
+        ].map((kpi,i)=>(
+          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
+            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase"}}>{kpi.label}</div>
+            <div style={{fontSize:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums"}}>{kpi.val}</div>
           </div>
-        );
-      })()}
-      {/* Header */}
-      <div style={{borderRadius:12,background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)",padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <ClipboardList style={{width:20,height:20,color:"#fff"}}/>
+        ))}
+      </div>
+
+      {/* ── PAGE HEADER ── */}
+      <div style={{padding:"16px 20px 0",display:"flex",alignItems:"center",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
+          </div>
           <div>
-            <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Requisitions</h1>
-            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length} of {reqs.length} records</p>
+            <div style={{fontSize:16,fontWeight:800,color:"#1a1a2e"}}>Requisitions</div>
+            <div style={{fontSize:11,color:"#6b7280"}}>Purchase requisition management · {reqs.length} records</div>
           </div>
         </div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-          <button onClick={load} disabled={loading} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.18)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
-            <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
+            <Download style={{width:13,height:13}}/> Export
           </button>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.9)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
-            <FileSpreadsheet style={{width:14,height:14}}/>Export
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
+            <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
-          {canCreate && (
-            <button onClick={()=>setShowForm(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"#fff",color:"#1e3a8a",border:"none",cursor:"pointer",fontSize:12,fontWeight:700}}>
-              <Plus style={{width:14,height:14}}/>New Requisition
+          {canCreate&&(
+            <button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setShowForm(true);}}
+              style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(5,150,105,0.35)"}}>
+              <Plus style={{width:14,height:14}}/> New Requisition
             </button>
           )}
         </div>
       </div>
 
-      {/* Stat chips */}
-      <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-        {Object.entries(stats).map(([k,v])=>(
-          <button key={k} onClick={()=>setStatusFilter(k==="all"?"all":k)}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"}}>
-            {k==="pending"&&<Clock style={{width:12,height:12}}/>}
-            {k==="approved"&&<CheckCircle style={{width:12,height:12}}/>}
-            {k==="rejected"&&<XCircle style={{width:12,height:12}}/>}
-            <span style={{textTransform:"capitalize"}}>{k}</span>
-            <span style={{padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:statusFilter===(k==="all"?"all":k)?"rgba(255,255,255,0.25)":"#e5e7eb"}}>
-              {String(v)}
-            </span>
-          </button>
-        ))}
-        <div style={{position:"relative",marginLeft:"auto"}}>
-          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions..."
-            style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
+      {/* ── STATUS TABS ── */}
+      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+        {Object.entries({all:"All",...Object.fromEntries(Object.entries(STATUS_CFG).map(([k,v])=>[k,v.label]))}).map(([key,label])=>{
+          const cnt=COUNTS[key as keyof typeof COUNTS]??0;
+          const isActive=statusTab===key;
+          const cfg=STATUS_CFG[key];
+          return (
+            <button key={key} onClick={()=>setStatusTab(key)}
+              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"#fff",cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex",alignItems:"center",gap:5}}>
+              {cfg?.dot&&isActive&&<span style={{width:6,height:6,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>}
+              {label} ({key==="all"?reqs.length:cnt})
+            </button>
+          );
+        })}
+        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",fontSize:12,color:"#374151",cursor:"pointer"}}>
+            <option value="all">All Priority</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+          </select>
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+      {/* ── SEARCH BAR ── */}
+      <div style={{padding:"10px 20px"}}>
+        <div style={{position:"relative",maxWidth:"100%"}}>
+          <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisition number, title, requester, department…"
+            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid #e5e7eb",borderRadius:10,background:"#fff",fontSize:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
+        </div>
+      </div>
+
+      {/* ── TABLE ── */}
+      <div style={{margin:"0 20px 20px",background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",fontSize:12}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
-              <tr style={{background:"#0a2558"}}>
-                {["#","Req Number","Title","Department","Priority","Status","Requester","Amount","Date","Actions"].map(h=>(
-                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.8)",fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
+              <tr style={{borderBottom:"2px solid #e5e7eb",background:"#f9fafb"}}>
+                {[
+                  {col:"requisition_number",label:"REQ NO",    w:150},
+                  {col:"title",            label:"TITLE",      w:220},
+                  {col:"department",       label:"DEPARTMENT", w:120},
+                  {col:"priority",         label:"PRIORITY",   w:90},
+                  {col:"requester_name",   label:"REQUESTER",  w:140},
+                  {col:"created_at",       label:"DATE",       w:100},
+                  {col:"delivery_date",    label:"DELIVERY",   w:100},
+                  {col:"total_amount",     label:"AMOUNT",     w:110},
+                  {col:"status",           label:"STATUS",     w:110},
+                  {col:"",                 label:"ACTIONS",    w:90},
+                ].map(h=>(
+                  <th key={h.col} onClick={()=>h.col&&toggleSort(h.col)}
+                    style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap",cursor:h.col?"pointer":"default",userSelect:"none",width:h.w}}>
+                    {h.label}{h.col&&<SortInd col={h.col}/>}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {loading?(
-                Array(5).fill(0).map((_,i)=>(
-                  <tr key={i}><td colSpan={10} style={{animation:"pulse 1.5s infinite"}}><div style={{height:12,background:"#e5e7eb",borderRadius:6,width:"100%"}}/></td></tr>
-                ))
-              ):filtered.length===0?(
-                <tr><td colSpan={10} style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af"}}>No requisitions found</td></tr>
-              ):filtered.map((r,i)=>{
-                const s=STATUS_CFG[r.status]||{bg:"#f3f4f6",color:"#6b7280",label:r.status};
-                const isPending = r.status==="submitted"||r.status==="pending";
+              {loading&&(
+                <tr><td colSpan={10} style={{padding:40,textAlign:"center",color:"#9ca3af",fontSize:13}}>Loading requisitions…</td></tr>
+              )}
+              {!loading&&filtered.length===0&&(
+                <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
+                  <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
+                  <div style={{fontSize:13,color:"#9ca3af"}}>No requisitions found{search?` for "${search}"`:""}.</div>
+                  {canCreate&&!search&&<button onClick={()=>setShowForm(true)} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
+                </td></tr>
+              )}
+              {!loading&&filtered.map((r,ri)=>{
+                const cfg=STATUS_CFG[r.status]||STATUS_CFG.draft;
+                const isPending=r.status==="submitted"||r.status==="pending";
+                const isDraft=r.status==="draft";
+                const prioColor={urgent:"#dc2626",high:"#d97706",normal:"#059669",low:"#6b7280"}[r.priority as string]||"#6b7280";
+
                 return (
-                  <tr key={r.id} style={{borderBottom:"1px solid #f9fafb"}}>
-                    <td style={{padding:"10px 12px",color:"#9ca3af"}}>{i+1}</td>
-                    <td style={{padding:"10px 12px",fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#1e3a5f"}}>{r.requisition_number||"—"}</td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title||"—"}</td>
-                    <td style={{padding:"10px 12px",color:"#4b5563"}}>{r.department||"—"}</td>
-                    <td style={{padding:"10px 12px"}}>
-                      <span style={{padding:"1px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:r.priority==="urgent"||r.priority==="high"?"#fee2e2":r.priority==="normal"?"#dbeafe":"#f3f4f6",color:r.priority==="urgent"||r.priority==="high"?"#b91c1c":r.priority==="normal"?"#1d4ed8":"#6b7280"}}>
-                        {r.priority||"normal"}
+                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"#fff":"#fafafa",transition:"background 0.1s"}}
+                    onMouseEnter={e=>(e.currentTarget.style.background="#f0f9ff")}
+                    onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#fff":"#fafafa")}>
+
+                    <td style={{padding:"10px 14px",fontWeight:700,color:"#003087",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
+                      {r.requisition_number||"—"}
+                    </td>
+                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      <div style={{fontWeight:600,color:"#1f2937",fontSize:12}}>{r.title||"Untitled"}</div>
+                      {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
+                    </td>
+                    <td style={{padding:"10px 14px",color:"#6b7280",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"—"}</td>
+                    <td style={{padding:"10px 14px"}}>
+                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
+                    </td>
+                    <td style={{padding:"10px 14px",color:"#374151",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
+                    <td style={{padding:"10px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
+                    <td style={{padding:"10px 14px",fontWeight:600,color:"#1f2937",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
+                      {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"—"}
+                    </td>
+                    <td style={{padding:"10px 14px"}}>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
+                        <span style={{width:5,height:5,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>
+                        {cfg.label}
                       </span>
                     </td>
-                    <td style={{padding:"10px 12px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label}</span>
-                    </td>
-                    <td style={{padding:"10px 12px",color:"#4b5563"}}>{r.requester_name||"—"}</td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937"}}>{r.total_amount?`KES ${Number(r.total_amount).toLocaleString()}`:"—"}</td>
-                    <td style={{padding:"10px 12px",color:"#9ca3af",fontSize:10,whiteSpace:"nowrap"}}>{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
-                    <td style={{padding:"10px 12px"}}>
-                      <div style={{display:"flex",gap:4}}>
-                        <button onClick={()=>setViewReq(r)} style={{padding:"5px",borderRadius:6,background:"#dbeafe",color:"#1d4ed8",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
-                        <button onClick={()=>printReq(r)} style={{padding:"5px",borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
-                        {canApprove&&isPending&&(
+                    <td style={{padding:"10px 14px"}}>
+                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                        <button title="View" onClick={()=>setViewReq(r)} style={{padding:5,borderRadius:6,border:"none",background:"#f0f9ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <Eye style={{width:13,height:13,color:"#0369a1"}}/>
+                        </button>
+                        {(isDraft||r.requested_by===user?.id)&&(
+                          <button title="Edit" onClick={()=>{setEditReq(r);setForm({title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"});setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <Edit3 style={{width:13,height:13,color:"#059669"}}/>
+                          </button>
+                        )}
+                        {isDraft&&(
+                          <button title="Submit" onClick={()=>submit(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#eff6ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <Send style={{width:13,height:13,color:"#3b82f6"}}/>
+                          </button>
+                        )}
+                        {isPending&&canApprove&&(
                           <>
-                            <button onClick={()=>approve(r.id)} style={{padding:"5px",borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/></button>
-                            <button onClick={()=>reject(r.id)} style={{padding:"5px",borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/></button>
+                            <button title="Approve" onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <CheckCircle style={{width:13,height:13,color:"#059669"}}/>
+                            </button>
+                            <button title="Reject" onClick={()=>setRejectId(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#fff1f2",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <XCircle style={{width:13,height:13,color:"#dc2626"}}/>
+                            </button>
                           </>
                         )}
+                        <button title="Print" onClick={()=>printRequisition(r,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <Printer style={{width:13,height:13,color:"#ca8a04"}}/>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -261,126 +358,145 @@ export default function RequisitionsPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 16px",background:"#f9fafb",borderTop:"1px solid #e5e7eb"}}>
-          {filtered.length} requisition{filtered.length!==1?"s":""}
-          {filtered.length>0&&` · Total: KES ${filtered.reduce((s,r)=>s+Number(r.total_amount||0),0).toLocaleString()}`}
+        {/* Footer */}
+        <div style={{padding:"8px 16px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:"#9ca3af"}}>
+          <span>Showing {filtered.length} of {reqs.length} requisitions</span>
+          <span>{reqs.length>0&&`Total value: ${fmtKES(totalValue)}`}</span>
         </div>
       </div>
 
-      {/* Create form modal */}
+      {/* ── CREATE / EDIT MODAL ── */}
       {showForm&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setShowForm(false)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(520px,100%)",overflow:"hidden"}}>
-            <div style={{padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a2558"}}>
-              <h3 style={{fontSize:14,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",gap:8}}><ClipboardList style={{width:16,height:16}}/>New Requisition</h3>
-              <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
-            </div>
-            <div style={{padding:20}}>
-              <div>
-                <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Title *</label>
-                <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="e.g. Medical Supplies Q1 2025"
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div>
-                <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Department</label>
-                <select value={form.department} onChange={e=>setForm(p=>({...p,department:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.name}>{dept.name}</option>
-                  ))}
-                </select>
+                <div style={{fontSize:16,fontWeight:800,color:"#1a1a2e"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>Embu Level 5 Hospital · {editReq?.requisition_number||"New"}</div>
               </div>
-              <div>
-                <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Notes / Justification</label>
-                <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={3} placeholder="Brief description..."
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div>
-                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Priority</label>
-                  <select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}
-                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                    {["low","normal","high","urgent"].map(v=><option key={v} value={v} style={{textTransform:"capitalize"}}>{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Delivery Date</label>
-                  <input type="date" value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))}
-                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
-                </div>
-              </div>
-            </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#1a3a6b",opacity:saving?0.7:1}}>
-                {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send style={{width:14,height:14}}/>}
-                {saving?"Saving...":"Create Requisition"}
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
+                <X style={{width:16,height:16,color:"#6b7280"}}/>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* View modal */}
-      {viewReq&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setViewReq(null)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a2558"}}>
-              <div><h3 style={{fontSize:14,fontWeight:900,color:"#fff"}}>{viewReq.requisition_number}</h3><p style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>{viewReq.title}</p></div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>printReq(viewReq)} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/>Print</button>
-                {canApprove&&(viewReq.status==="submitted"||viewReq.status==="pending")&&(
-                  <>
-                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/>Approve</button>
-                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/>Reject</button>
-                  </>
-                )}
-                <button onClick={()=>setViewReq(null)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
-              </div>
-            </div>
-            <div style={{overflowY:"auto",padding:20}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
-                {[
-                  {l:"Department",v:viewReq.department},{l:"Priority",v:viewReq.priority},
-                  {l:"Status",v:viewReq.status},{l:"Requester",v:viewReq.requester_name},
-                  {l:"Total",v:viewReq.total_amount?`KES ${Number(viewReq.total_amount).toLocaleString()}`:"—"},
-                  {l:"Date",v:viewReq.created_at?new Date(viewReq.created_at).toLocaleDateString("en-KE"):"—"},
-                ].map(r=>(
-                  <div key={r.l}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
-                    <div style={{fontSize:14,color:"#1f2937",fontWeight:500,marginTop:2}}>{r.v||"—"}</div>
-                  </div>
-                ))}
-              </div>
-              {viewReq.notes&&<div style={{marginBottom:16,padding:12,borderRadius:12,background:"#f9fafb"}}><p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:4}}>Notes</p><p style={{fontSize:14,color:"#374151"}}>{viewReq.notes}</p></div>}
-              {(viewReq.requisition_items||[]).length>0&&(
-                <div>
-                  <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:8}}>Line Items ({viewReq.requisition_items.length})</p>
-                  <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} style={{textAlign:"left",padding:"8px 12px",color:"rgba(255,255,255,0.85)",fontSize:10,textTransform:"uppercase",fontWeight:700}}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {viewReq.requisition_items.map((it:any,i:number)=>(
-                        <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                          <td style={{padding:"8px 12px",fontWeight:500}}>{it.item_name||"—"}</td>
-                          <td style={{padding:"8px 12px"}}>{it.quantity}</td>
-                          <td style={{padding:"8px 12px",color:"#6b7280"}}>{it.unit_of_measure||"—"}</td>
-                          <td style={{padding:"8px 12px"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
-                          <td style={{padding:"8px 12px",fontWeight:600}}>KES {Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              {[
+                {k:"title",l:"Requisition Title *",p:"e.g. Medical Supplies — Pharmacy",span:2,req:true},
+                {k:"department",l:"Department",p:"e.g. Pharmacy",span:1},
+                {k:"priority",l:"Priority",p:"",span:1,type:"select",opts:["urgent","high","normal","low"]},
+                {k:"delivery_date",l:"Required By Date",p:"",span:1,type:"date"},
+                {k:"cost_centre",l:"Cost Centre",p:"e.g. PHARM-001",span:1},
+                {k:"fund_source",l:"Fund Source",p:"County Fund",span:1,type:"select",opts:["County Fund","National Fund","Donor Fund","NHIF","Other"]},
+                {k:"justification",l:"Justification",p:"Why is this needed?",span:2,type:"textarea"},
+                {k:"notes",l:"Additional Notes",p:"Any other information…",span:2,type:"textarea"},
+              ].map(field=>(
+                <div key={field.k} style={{gridColumn:field.span===2?"span 2":"span 1"}}>
+                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>{field.l}</label>
+                  {field.type==="select"?(
+                    <select value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
+                      {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize"}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
+                    </select>
+                  ):field.type==="textarea"?(
+                    <textarea value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+                  ):(
+                    <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                  )}
                 </div>
+              ))}
+            </div>
+            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
+                {saving?"Saving…":editReq?"Update Requisition":"Create Requisition"}
+              </button>
+              {!editReq&&(
+                <button onClick={async()=>{await save();/* submit after save handled by status */}} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
+                  Save &amp; Submit
+                </button>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* ── VIEW DETAIL MODAL ── */}
+      {viewReq&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:800,color:"#1a1a2e"}}>{viewReq.requisition_number}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>{viewReq.title}</div>
+              </div>
+              <span style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
+                {STATUS_CFG[viewReq.status]?.label||viewReq.status}
+              </span>
+              <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
+                <X style={{width:16,height:16,color:"#6b7280"}}/>
+              </button>
+            </div>
+            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              {[
+                {l:"Requisition Number",v:viewReq.requisition_number},
+                {l:"Status",v:STATUS_CFG[viewReq.status]?.label||viewReq.status},
+                {l:"Title",v:viewReq.title},
+                {l:"Department",v:viewReq.department||"—"},
+                {l:"Priority",v:viewReq.priority||"normal"},
+                {l:"Requester",v:viewReq.requester_name||"—"},
+                {l:"Date Raised",v:fmtDate(viewReq.created_at)},
+                {l:"Required By",v:viewReq.delivery_date?fmtDate(viewReq.delivery_date):"—"},
+                {l:"Total Amount",v:viewReq.total_amount?`${currencySymbol} ${Number(viewReq.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2})}`: "—"},
+                {l:"Fund Source",v:viewReq.fund_source||"—"},
+                {l:"Cost Centre",v:viewReq.cost_centre||"—"},
+                {l:"Approved By",v:viewReq.approved_by_name||"—"},
+                {l:"Justification",v:viewReq.justification||"—",span:2},
+                {l:"Notes",v:viewReq.notes||"—",span:2},
+                ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"—",span:2,warn:true}]:[]),
+              ].map((row:any,i:number)=>(
+                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"#fff1f2":"#f9fafb",borderRadius:8,border:`1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
+                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+              {(viewReq.status==="submitted"||viewReq.status==="pending")&&canApprove&&(
+                <>
+                  <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>✓ Approve</button>
+                  <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>✗ Reject</button>
+                </>
+              )}
+              {viewReq.status==="draft"&&(
+                <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>⇪ Submit for Approval</button>
+              )}
+              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>🖨 Print</button>
+              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── REJECT DIALOG ── */}
+      {rejectId&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:440,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+              <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
+              <div style={{fontSize:15,fontWeight:800,color:"#1a1a2e"}}>Reject Requisition</div>
+            </div>
+            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
+              <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </>
   );
 }
