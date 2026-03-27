@@ -4,11 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FacilityProvider } from "@/contexts/FacilityContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
 
 import LoginPage from "@/pages/LoginPage";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
@@ -57,13 +59,19 @@ import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
 import IpAccessPage from "@/pages/IpAccessPage";
 import ProfilePage from "@/pages/ProfilePage";
+import GuiEditorPage from "@/pages/GuiEditorPage";
+import FacilitiesPage from "@/pages/FacilitiesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
 });
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><AppLayout>{children}</AppLayout></ProtectedRoute>
+  <ProtectedRoute>
+    <FacilityProvider>
+      <AppLayout>{children}</AppLayout>
+    </FacilityProvider>
+  </ProtectedRoute>
 );
 
 const App = () => (
@@ -74,6 +82,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <NetworkGuard>
+            <PWAInstallPrompt />
             <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -92,8 +101,9 @@ const App = () => (
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
-            <Route path="/documents" element={<P><DocumentsPage />
-              <Route path="/documents/editor" element={<DocumentEditorPage />} /></P>} />
+            <Route path="/documents" element={<P><DocumentsPage /></P>} />
+            <Route path="/documents/editor" element={<P><DocumentEditorPage /></P>} />
+            <Route path="/documents/editor/:id" element={<P><DocumentEditorPage /></P>} />
 
             {/* Inventory */}
             <Route path="/items" element={<P><ItemsPage /></P>} />
@@ -137,6 +147,8 @@ const App = () => (
             <Route path="/odbc" element={<P><RoleGuard allowed={["admin"]}><ODBCPage /></RoleGuard></P>} />
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
+            <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin"]}><GuiEditorPage /></RoleGuard></P>} />
+            <Route path="/facilities" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FacilitiesPage /></RoleGuard></P>} />
 
             <Route path="*" element={<NotFound />} />
             </Routes>

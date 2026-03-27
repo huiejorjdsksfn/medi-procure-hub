@@ -206,14 +206,14 @@ export default function ODBCPage() {
     <div style={{padding:20,maxWidth:1200,margin:"0 auto"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:14,padding:"18px 24px",marginBottom:20,color:"#fff",display:"flex",alignItems:"center",gap:14}}>
-        <div style={{width:48,height:48,borderRadius:12,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}><Globe style={{width:26,height:26,color:"#fff"}}/></div>
+        <div style={{width:48,height:48,borderRadius:12,background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}><Globe style={{width:26,height:26,color:"#fff"}}/></div>
         <div>
           <div style={{fontSize:20,fontWeight:800}}>ODBC & External Connections</div>
           <div style={{fontSize:13,opacity:.8}}>SQL Server integration, schema migration, and external database links</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           {isAdmin && <button onClick={()=>{setEditing(null);setForm(EMPTY_FORM);setShowForm(true);}} style={btn("#C45911")}><Plus style={{width:14,height:14,display:"inline",marginRight:4}}/>New Connection</button>}
-          <button onClick={load} style={btn("rgba(255,255,255,0.15)")} title="Refresh"><RefreshCw style={{width:14,height:14}}/></button>
+          <button onClick={load} style={btn("#e2e8f0")} title="Refresh"><RefreshCw style={{width:14,height:14}}/></button>
         </div>
       </div>
 

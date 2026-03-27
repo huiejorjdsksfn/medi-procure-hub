@@ -188,7 +188,7 @@ export default function VouchersPage() {
               return(
                 <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#5C2D91",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.voucher_number}</td>
                   <td style={{padding:"12px 14px",fontSize:13,color:"#111827",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}} onClick={()=>setDetail(r)}>{r.purpose}</td>
                   <td style={{padding:"12px 14px",fontSize:13,color:"#374151"}} onClick={()=>setDetail(r)}>{r.requested_by}</td>
@@ -219,7 +219,7 @@ export default function VouchersPage() {
           <div style={{background:"#fff",borderRadius:14,width:"min(800px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
               <FileText style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>New Store Requisition Voucher</span>
-              <button onClick={()=>setShowNew(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setShowNew(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>

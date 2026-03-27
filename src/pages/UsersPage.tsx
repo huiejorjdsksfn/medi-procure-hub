@@ -157,7 +157,7 @@ function UsersInner() {
   if(!isAdmin) return <div style={{padding:32,textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>Admin access required</div>;
 
   return (
-    <div style={{minHeight:"100%",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{minHeight:"100%",background:"#f8fafc",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f8fafc",minHeight:"100%"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
         <Users style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
@@ -166,13 +166,13 @@ function UsersInner() {
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>{users.length} users · {users.filter(u=>u.is_active!==false).length} active</div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
+          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"#e2e8f0",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
             <Download style={{width:13,height:13}}/> Export
           </button>
           <button onClick={()=>setCreateModal(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"#C45911",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
             <Plus style={{width:13,height:13}}/> New User
           </button>
-          <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+          <button onClick={load} style={{padding:"8px 10px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
             <RefreshCw style={{width:13,height:13}}/>
           </button>
         </div>
@@ -220,7 +220,7 @@ function UsersInner() {
               )):filtered.map(u=>(
                 <tr key={u.id} style={{borderBottom:"1px solid #f9fafb"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <td style={{padding:"10px 14px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:9}}>
                       <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -301,7 +301,7 @@ function UsersInner() {
                 <div style={{position:"relative"}}>
                   <input type={f.k==="password"&&!pwVis?"password":(f.t||"text")} value={(newU as any)[f.k]||""} onChange={e=>setNewU(p=>({...p,[f.k]:e.target.value}))}
                     style={{width:"100%",padding:`9px 12px${f.k==="password"?" 9px 36px":""}`,fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                  {f.k==="password"&&<button type="button" onClick={()=>setPwVis(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
+                  {f.k==="password"&&<button type="button" onClick={()=>setPwVis(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
                     {pwVis?<EyeOff style={{width:14,height:14}}/>:<Eye style={{width:14,height:14}}/>}
                   </button>}
                 </div>
@@ -359,7 +359,7 @@ function UsersInner() {
                 <div style={{fontSize:13,fontWeight:600,color:"#111827"}}>Account Active</div>
                 <div style={{fontSize:11,color:"#9ca3af"}}>Inactive users cannot log in</div>
               </div>
-              <button onClick={()=>setEditActive(v=>!v)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
+              <button onClick={()=>setEditActive(v=>!v)} style={{background:"#f8fafc",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
                 <div style={{width:44,height:24,borderRadius:12,background:editActive?"#1a3a6b":"#d1d5db",display:"flex",alignItems:"center",padding:2,transition:"all 0.2s"}}>
                   <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:editActive?"translateX(20px)":"translateX(0)"}}/>
                 </div>

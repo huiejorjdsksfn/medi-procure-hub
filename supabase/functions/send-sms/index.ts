@@ -1,9 +1,8 @@
 /**
- * ProcurBosse — send-sms Edge Function v2.0
- * Twilio SMS integration. Reads config from system_settings.
- * Logs every message to sms_log table.
- * 
- * Invoke: supabase.functions.invoke("send-sms", { body: { to, message, module } })
+ * ProcurBosse — send-sms Edge Function v4.0
+ * Twilio SMS via Messaging Service SID MGd547d8e3273fda2d21afdd6856acb245
+ * Reads credentials from system_settings (entered in Admin → Settings → SMS/Twilio)
+ * Falls back to environment variables if not in DB
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -18,148 +17,122 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-interface SmsPayload {
-  to: string | string[];
-  message: string;
-  module?: string;
-  record_id?: string;
-  sent_by?: string;
-  sent_by_name?: string;
-  priority?: "low" | "normal" | "high" | "urgent";
+// ── Hardcoded Messaging Service SID ───────────────────────────
+const MSG_SVC_SID = "MGd547d8e3273fda2d21afdd6856acb245";
+
+async function getTwilioCfg(): Promise<Record<string, string>> {
+  try {
+    const { data } = await sb.from("system_settings").select("key,value")
+      .in("key", [
+        "twilio_account_sid","twilio_auth_token","twilio_phone_number",
+        "twilio_messaging_service_sid","twilio_enabled","sms_hospital_name","sms_sender_id"
+      ]);
+    const cfg: Record<string, string> = {};
+    (data || []).forEach((r: any) => { if (r.value) cfg[r.key] = r.value; });
+    // Fallback to env vars
+    if (!cfg.twilio_account_sid)  cfg.twilio_account_sid  = Deno.env.get("TWILIO_ACCOUNT_SID")  ?? "";
+    if (!cfg.twilio_auth_token)   cfg.twilio_auth_token   = Deno.env.get("TWILIO_AUTH_TOKEN")   ?? "";
+    if (!cfg.twilio_phone_number) cfg.twilio_phone_number = Deno.env.get("TWILIO_PHONE_NUMBER") ?? "";
+    // Always use hardcoded MSG SVC SID if not in DB
+    if (!cfg.twilio_messaging_service_sid) cfg.twilio_messaging_service_sid = MSG_SVC_SID;
+    if (!cfg.sms_hospital_name) cfg.sms_hospital_name = "EL5 MediProcure";
+    return cfg;
+  } catch { return { twilio_messaging_service_sid: MSG_SVC_SID, sms_hospital_name: "EL5 MediProcure" }; }
 }
 
-async function getTwilioConfig(): Promise<Record<string, string>> {
-  const { data } = await sb
-    .from("system_settings")
-    .select("key,value")
-    .in("key", [
-      "twilio_account_sid","twilio_auth_token","twilio_phone_number",
-      "twilio_enabled","sms_hospital_name","sms_sender_id"
-    ]);
-  const cfg: Record<string, string> = {};
-  (data || []).forEach((r: any) => { cfg[r.key] = r.value ?? ""; });
-  return cfg;
+function fmtPhone(raw: string): string {
+  let n = raw.replace(/[\s\-()+]/g, "");
+  if (n.startsWith("07") || n.startsWith("01")) return "+254" + n.slice(1);
+  if (n.startsWith("254")) return "+" + n;
+  if (!n.startsWith("+")) return "+" + n;
+  return n;
 }
 
-async function sendViaTwilio(
-  accountSid: string, authToken: string,
-  from: string, to: string, body: string
-): Promise<{ ok: boolean; sid?: string; error?: string; cost?: number }> {
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+async function twilioSend(cfg: Record<string,string>, to: string, body: string) {
+  const sid   = cfg.twilio_account_sid;
+  const token = cfg.twilio_auth_token;
+  const msSid = cfg.twilio_messaging_service_sid || MSG_SVC_SID;
+  const from  = cfg.twilio_phone_number;
+
+  if (!sid || !token) return { ok: false, error: "Twilio Account SID / Auth Token not configured in Settings → SMS/Twilio" };
+
+  const params: Record<string, string> = { To: to, Body: body };
+  if (msSid)  params.MessagingServiceSid = msSid;
+  else if (from) params.From = from;
+  else return { ok: false, error: "No Messaging Service SID or From number configured" };
+
+  const url  = `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
   const resp = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": "Basic " + btoa(`${sid}:${token}`),
+      "Content-Type":  "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({ From: from, To: to, Body: body }).toString(),
+    body: new URLSearchParams(params).toString(),
   });
   const data = await resp.json();
-  if (!resp.ok) {
-    return { ok: false, error: data.message || `HTTP ${resp.status}` };
-  }
-  return { ok: true, sid: data.sid, cost: parseFloat(data.price || "0") * -1 };
+  if (!resp.ok) return { ok: false, error: data.message || data.code || `HTTP ${resp.status}` };
+  return { ok: true, sid: data.sid, status: data.status, cost: Math.abs(parseFloat(data.price || "0")) };
 }
 
-async function logSms(
-  to: string, from: string, message: string,
-  status: string, twilio_sid?: string, error?: string,
-  payload?: SmsPayload, cost?: number
-) {
+async function logSms(to: string, message: string, result: any, meta: any) {
   try {
     await sb.from("sms_log").insert({
       to_number:    to,
-      from_number:  from,
-      message:      message.slice(0, 1600),
-      status,
-      twilio_sid:   twilio_sid || null,
-      module:       payload?.module || "system",
-      record_id:    payload?.record_id || null,
-      sent_by:      payload?.sent_by || null,
-      sent_by_name: payload?.sent_by_name || null,
-      error_msg:    error || null,
-      cost:         cost || null,
+      from_number:  meta.from || MSG_SVC_SID,
+      message,
+      status:       result.ok ? "sent" : "failed",
+      twilio_sid:   result.sid  || null,
+      twilio_status:result.status || null,
+      module:       meta.module || "system",
+      record_id:    meta.record_id || null,
+      sent_by:      meta.sent_by || null,
+      sent_by_name: meta.sent_by_name || null,
+      error_msg:    result.error || null,
+      cost:         result.cost  || null,
       sent_at:      new Date().toISOString(),
     });
-  } catch (e) {
-    console.warn("SMS log failed:", e);
-  }
-}
-
-function formatNumber(raw: string): string {
-  // Kenyan numbers: add +254 if starts with 07 or 01
-  let n = raw.replace(/\s+/g, "").replace(/-/g, "");
-  if (n.startsWith("07") || n.startsWith("01")) {
-    n = "+254" + n.slice(1);
-  } else if (n.startsWith("254") && !n.startsWith("+")) {
-    n = "+" + n;
-  }
-  return n;
+  } catch (_) { /* non-fatal */ }
 }
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-
   try {
-    const payload: SmsPayload = await req.json();
-    const { to, message } = payload;
-
+    const body = await req.json();
+    const { to, message, module: mod, record_id, sent_by, sent_by_name } = body;
     if (!to || !message) {
-      return new Response(JSON.stringify({ ok: false, error: "to and message required" }), {
-        status: 400, headers: { ...cors, "Content-Type": "application/json" }
-      });
+      return new Response(JSON.stringify({ ok: false, error: "to and message are required" }),
+        { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const cfg = await getTwilioConfig();
-
-    if (cfg.twilio_enabled !== "true") {
-      await logSms(Array.isArray(to) ? to.join(",") : to, cfg.twilio_phone_number || "", message, "disabled", undefined, "Twilio disabled in settings", payload);
-      return new Response(JSON.stringify({
-        ok: false,
-        error: "SMS not enabled. Configure Twilio in Admin → Settings → SMS."
-      }), { headers: { ...cors, "Content-Type": "application/json" } });
+    const cfg = await getTwilioCfg();
+    if (cfg.twilio_enabled === "false") {
+      return new Response(JSON.stringify({ ok: false, error: "SMS disabled in Settings → SMS/Twilio" }),
+        { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const { twilio_account_sid, twilio_auth_token, twilio_phone_number } = cfg;
-    if (!twilio_account_sid || !twilio_auth_token || !twilio_phone_number) {
-      return new Response(JSON.stringify({
-        ok: false,
-        error: "Twilio not configured. Add credentials in Admin → Settings → SMS."
-      }), { headers: { ...cors, "Content-Type": "application/json" } });
-    }
-
-    // Hospital name prefix
     const hospitalName = cfg.sms_hospital_name || "EL5 MediProcure";
     const fullMsg = `[${hospitalName}] ${message}`.slice(0, 1600);
+    const numbers = (Array.isArray(to) ? to : String(to).split(",").map(s => s.trim())).filter(Boolean);
+    const results = [];
 
-    // Send to all recipients
-    const recipients = Array.isArray(to) ? to : to.split(",").map((s: string) => s.trim()).filter(Boolean);
-    const results: any[] = [];
-
-    for (const recipient of recipients) {
-      const formattedTo = formatNumber(recipient);
-      const result = await sendViaTwilio(
-        twilio_account_sid, twilio_auth_token,
-        twilio_phone_number, formattedTo, fullMsg
-      );
-      await logSms(formattedTo, twilio_phone_number, fullMsg,
-        result.ok ? "sent" : "failed", result.sid, result.error, payload, result.cost);
-      results.push({ to: formattedTo, ...result });
+    for (const num of numbers) {
+      const formatted = fmtPhone(num);
+      const result    = await twilioSend(cfg, formatted, fullMsg);
+      await logSms(formatted, fullMsg, result, { from: cfg.twilio_phone_number, module: mod, record_id, sent_by, sent_by_name });
+      results.push({ to: formatted, ...result });
     }
 
-    const allOk = results.every(r => r.ok);
     return new Response(JSON.stringify({
-      ok: allOk,
-      provider: "twilio",
-      results,
-      sent: results.filter(r => r.ok).length,
+      ok:     results.every(r => r.ok),
+      sent:   results.filter(r => r.ok).length,
       failed: results.filter(r => !r.ok).length,
+      provider: "twilio",
+      messaging_service_sid: cfg.twilio_messaging_service_sid,
+      results,
     }), { headers: { ...cors, "Content-Type": "application/json" } });
-
   } catch (err: any) {
-    console.error("send-sms error:", err);
-    return new Response(JSON.stringify({ ok: false, error: err.message }), {
-      status: 500, headers: { ...cors, "Content-Type": "application/json" }
-    });
+    return new Response(JSON.stringify({ ok: false, error: err.message }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 });

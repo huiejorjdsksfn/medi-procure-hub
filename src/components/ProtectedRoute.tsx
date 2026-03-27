@@ -10,36 +10,20 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
       <div style={{
         minHeight: "100vh", display: "flex", alignItems: "center",
         justifyContent: "center", flexDirection: "column", gap: 16,
-        background: "linear-gradient(145deg,#0a2e6e,#1565c0,#0a2558)",
+        background: "linear-gradient(145deg,#0a2e6e,#0a2558)",
         fontFamily: "'Segoe UI',system-ui,sans-serif",
       }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: 16,
-          background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-        }}>
-          <img src="/favicon.png" alt=""
-            style={{ width: 36, height: 36, objectFit: "contain", filter: "brightness(0) invert(1)" }}
-            onError={e => ((e.target as HTMLElement).style.display = "none")}
-          />
+        <div style={{ fontSize:18, fontWeight:800, color:"#fff", letterSpacing:"0.04em" }}>
+          EL5 MediProcure
         </div>
-        {/* Spinner */}
+        <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>Embu Level 5 Hospital</div>
         <div style={{
-          width: 32, height: 32, borderRadius: "50%",
-          border: "3px solid rgba(255,255,255,0.25)",
-          borderTopColor: "#fff",
-          animation: "spin 0.8s linear infinite",
+          width:32, height:32, borderRadius:"50%",
+          border:"3px solid rgba(255,255,255,0.2)",
+          borderTopColor:"#C45911",
+          animation:"spin 0.8s linear infinite",
         }}/>
-        <div>
-          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: 500, textAlign: "center", margin: 0 }}>
-            Loading MediProcure…
-          </p>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, textAlign: "center", marginTop: 4 }}>
-            Embu Level 5 Hospital
-          </p>
-        </div>
-        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }

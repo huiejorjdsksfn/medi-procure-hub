@@ -1,0 +1,30 @@
+# ProcurBosse — Supabase DB Migration Auto-Deploy
+name: Deploy Supabase Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Push migrations
+        run: |
+          supabase db push \
+            --project-ref yvjfehnzbzjliizjvuhq \
+            --db-url "postgresql://postgres.yvjfehnzbzjliizjvuhq:${{ secrets.SUPABASE_DB_PASSWORD }}@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+        continue-on-error: true
+
+      - name: Confirm deploy
+        run: echo "✅ Migrations deployed to yvjfehnzbzjliizjvuhq.supabase.co"

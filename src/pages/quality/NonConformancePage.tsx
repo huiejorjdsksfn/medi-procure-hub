@@ -76,7 +76,7 @@ export default function NonConformancePage() {
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}><Download style={{width:13,height:13}}/>Export</button>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}><Download style={{width:13,height:13}}/>Export</button>
           {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.92)",color:"#7c2d12",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}><Plus style={{width:13,height:13}}/>New NCR</button>}
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function NonConformancePage() {
           <div style={{width:"min(440px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"12px 16px",background:"linear-gradient(90deg,#7c2d12,#c2410c)",display:"flex",alignItems:"center",gap:8}}>
               <AlertTriangle style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>{detail.ncr_number}</span>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
               <div style={{fontSize:14,fontWeight:800,color:"#1f2937"}}>{detail.title}</div>
@@ -159,7 +159,7 @@ export default function NonConformancePage() {
           <div style={{background:"#fff",borderRadius:16,width:"min(620px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.2)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(90deg,#7c2d12,#c2410c)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>New Non-Conformance Report</span>
-              <button onClick={()=>setShowNew(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setShowNew(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:18,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Title *</label><input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={inp}/></div>

@@ -30,13 +30,13 @@ const TABS = [
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  const bg = on ? "#4f46e5" : "rgba(255,255,255,0.12)";
+  const bg = on ? "#4f46e5" : "#e2e8f0";
   return (
     <button
       onClick={() => onChange(!on)}
       style={{ background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0,lineHeight:0 }}
     >
-      <span style={{ display:"inline-flex",width:48,height:26,borderRadius:13,background:bg,alignItems:"center",padding:"3px",transition:"background 0.2s",border:`1px solid ${on?"#4f46e5":"rgba(255,255,255,0.15)"}` }}>
+      <span style={{ display:"inline-flex",width:48,height:26,borderRadius:13,background:bg,alignItems:"center",padding:"3px",transition:"background 0.2s",border:`1px solid ${on?"#4f46e5":"#e2e8f0"}` }}>
         <span style={{ display:"block",width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)",boxShadow:"0 1px 4px rgba(0,0,0,0.3)" }} />
       </span>
     </button>
@@ -45,10 +45,10 @@ function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) 
 
 function FR({ label, sub, color, children }: { label: string; sub?: string; color?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid rgba(255,255,255,0.06)",gap:16 }}>
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid #f1f5f9",gap:16 }}>
       <div style={{ flex:1 }}>
         {color && <span style={{ display:"inline-block",width:3,height:14,borderRadius:2,background:color,marginRight:8,verticalAlign:"middle" }} />}
-        <span style={{ fontSize:13.5,fontWeight:500,color:"#f1f5f9" }}>{label}</span>
+        <span style={{ fontSize:13.5,fontWeight:500,color:"#1e293b" }}>{label}</span>
         {sub && <div style={{ fontSize:11.5,color:"#64748b",marginTop:2 }}>{sub}</div>}
       </div>
       <div style={{ flexShrink:0 }}>{children}</div>
@@ -58,13 +58,13 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 
 function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) {
   return (
-    <div style={{ background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
-      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:12,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+    <div style={{ background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
+      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:12,borderBottom:"1px solid #e2e8f0" }}>
         <div style={{ width:36,height:36,borderRadius:9,background:color,display:"flex",alignItems:"center",justifyContent:"center" }}>
           <Icon style={{ width:17,height:17,color:"#fff" }} />
         </div>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:14,fontWeight:700,color:"#f1f5f9" }}>{title}</div>
+          <div style={{ fontSize:14,fontWeight:700,color:"#1e293b" }}>{title}</div>
           {sub && <div style={{ fontSize:11,color:"#64748b" }}>{sub}</div>}
         </div>
         {onSave && (
@@ -102,9 +102,9 @@ function SettingsInner() {
   const set = (k: string, v: string) => { setS(p => ({ ...p, [k]: v })); setDirty(true); };
 
   const inp: React.CSSProperties = {
-    padding:"8px 11px", border:"1px solid rgba(255,255,255,0.12)",
-    borderRadius:7, fontSize:13, color:"#f1f5f9",
-    background:"rgba(255,255,255,0.06)", outline:"none", width:"100%",
+    padding:"8px 11px", border:"1px solid #e2e8f0",
+    borderRadius:7, fontSize:13, color:"#1e293b",
+    background:"#e2e8f0", outline:"none", width:"100%",
   };
 
   async function save(keys: string[]) {
@@ -154,13 +154,13 @@ function SettingsInner() {
   }
 
   return (
-    <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#f1f5f9",fontFamily:"var(--font-sans)" }}>
+    <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#1e293b",fontFamily:"var(--font-sans)" }}>
 
       {/* Header */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
-        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:4 }} />
+        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"#f1f5f9",padding:4 }} />
         <div>
-          <div style={{ fontSize:15,fontWeight:800,color:"#f1f5f9" }}>System Settings</div>
+          <div style={{ fontSize:15,fontWeight:800,color:"#1e293b" }}>System Settings</div>
           <div style={{ fontSize:10,color:"#64748b" }}>Changes propagate to all users via Supabase Realtime</div>
         </div>
         <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>
@@ -179,7 +179,7 @@ function SettingsInner() {
       <div style={{ display:"grid",gridTemplateColumns:"188px 1fr",minHeight:"calc(100vh - 60px)" }}>
 
         {/* Sidebar */}
-        <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid rgba(255,255,255,0.05)",paddingTop:8 }}>
+        <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid #e2e8f0",paddingTop:8 }}>
           {TABS.map(t => (
             <button
               key={t.id}
@@ -266,15 +266,16 @@ function SettingsInner() {
 
           {tab === "sms" && (
             <Card title="SMS / Twilio" sub="SMS notifications via Twilio API" color="#7c3aed" icon={Phone}
-              onSave={() => save(["twilio_enabled","twilio_account_sid","twilio_auth_token","twilio_phone_number","sms_hospital_name","sms_on_po_approve","sms_on_req_approve","sms_on_low_stock","sms_on_payment"])} saving={saving}>
+              onSave={() => save(["twilio_enabled","twilio_account_sid","twilio_auth_token","twilio_messaging_service_sid","twilio_phone_number","sms_hospital_name","sms_on_po_approve","sms_on_req_approve","sms_on_low_stock","sms_on_payment"])} saving={saving}>
               <FR label="Enable Twilio SMS" color="#7c3aed">
                 <Tog on={get("twilio_enabled")==="true"} onChange={v=>set("twilio_enabled",v?"true":"false")} />
               </FR>
               {[
-                {k:"twilio_account_sid",  l:"Account SID",   p:"ACxxxxxxxxxx"},
-                {k:"twilio_auth_token",   l:"Auth Token",    p:"••••", pw:true},
-                {k:"twilio_phone_number", l:"Twilio Phone",  p:"+12025551234"},
-                {k:"sms_hospital_name",   l:"SMS From Name", p:"EL5 MediProcure"},
+                {k:"twilio_account_sid",           l:"Account SID",            p:"ACxxxxxxxxxx"},
+                {k:"twilio_auth_token",          l:"Auth Token",             p:"••••", pw:true},
+                {k:"twilio_messaging_service_sid",l:"Messaging Service SID",  p:"MGd547d8e3273fda2d21afdd6856acb245"},
+                {k:"twilio_phone_number",         l:"Twilio Phone (fallback)", p:"+12025551234"},
+                {k:"sms_hospital_name",           l:"SMS From Name",          p:"EL5 MediProcure"},
               ].map(f => (
                 <FR key={f.k} label={f.l} color="#7c3aed">
                   <input type={(f as any).pw?"password":"text"} value={get(f.k)} onChange={e=>set(f.k,e.target.value)} style={{...inp,width:260}} placeholder={f.p} />

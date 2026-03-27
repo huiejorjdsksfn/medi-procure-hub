@@ -188,7 +188,7 @@ export default function ScannerPage() {
   const filteredItems = itemSearch ? allItems.filter(i=>[i.name,i.barcode,(i.item_categories?.name||"")].some(v=>String(v||"").toLowerCase().includes(itemSearch.toLowerCase()))) : allItems;
 
   return (
-      <div style={{background:"#f4f6f9",minHeight:"100%",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+      <div style={{background:"#f8fafc",minHeight:"100%",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 12px rgba(26,58,107,0.3)"}}>
         <ScanBarcode style={{width:20,height:20,color:"#fff"}}/>
@@ -349,7 +349,7 @@ export default function ScannerPage() {
               <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:6}}>
                 <Clock style={{width:12,height:12,color:"#6b7280"}}/>
                 <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Recent Activity</span>
-                <button onClick={fetchHistory} style={{marginLeft:"auto",background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+                <button onClick={fetchHistory} style={{marginLeft:"auto",background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af"}}>
                   <RefreshCw style={{width:11,height:11}}/>
                 </button>
               </div>
@@ -414,7 +414,7 @@ export default function ScannerPage() {
               <button onClick={()=>{setShowAdd(true);setBarcode("");}} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>
                 <Plus style={{width:11,height:11}}/> Add Item
               </button>
-              <button onClick={fetchAllItems} style={{background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+              <button onClick={fetchAllItems} style={{background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af"}}>
                 <RefreshCw style={{width:12,height:12}}/>
               </button>
             </div>
@@ -460,7 +460,7 @@ export default function ScannerPage() {
               <Plus style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:13,fontWeight:700,color:"#fff",flex:1}}>Add Item to Inventory</span>
               {onlineInfo && <span style={{fontSize:9,background:"rgba(255,255,255,0.2)",padding:"2px 8px",borderRadius:4,color:"#fff"}}>Pre-filled from {onlineInfo.source}</span>}
-              <button onClick={()=>setShowAdd(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setShowAdd(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[

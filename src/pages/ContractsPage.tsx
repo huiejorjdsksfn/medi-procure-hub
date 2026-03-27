@@ -41,7 +41,14 @@ export default function ContractsPage() {
   const [editing,  setEditing]  = useState<any>(null);
   const [detail,   setDetail]   = useState<any>(null);
   const [saving,   setSaving]   = useState(false);
-  const [form, setForm] = useState({contract_number:"",supplier_id:"",title:"",description:"",start_date:"",end_date:"",total_value:"",status:"active",payment_terms:"",delivery_terms:"",performance_score:"0"});
+  const [form, setForm] = useState({
+    contract_number:"", supplier_id:"", title:"", description:"",
+    start_date:"", end_date:"", total_value:"", status:"active",
+    payment_terms:"", delivery_terms:"", performance_score:"0",
+    procurement_method:"Open Tender", scope_of_work:"",
+    special_conditions:"", retention_percentage:"0",
+    contract_type:"Supply", contact_person:"", contact_email:"",
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,8 +65,27 @@ export default function ContractsPage() {
   },[load]);
 
   const openNew = (v?:any) => {
-    if(v){setEditing(v);setForm({contract_number:v.contract_number||"",supplier_id:v.supplier_id||"",title:v.title||"",description:v.description||"",start_date:v.start_date||"",end_date:v.end_date||"",total_value:String(v.total_value||""),status:v.status||"active",payment_terms:v.payment_terms||"",delivery_terms:v.delivery_terms||"",performance_score:String(v.performance_score||"0")});}
-    else{setEditing(null);setForm({contract_number:"",supplier_id:"",title:"",description:"",start_date:"",end_date:"",total_value:"",status:"active",payment_terms:"",delivery_terms:"",performance_score:"0"});}
+    if(v){setEditing(v);setForm({
+      contract_number:v.contract_number||"", supplier_id:v.supplier_id||"",
+      title:v.title||"", description:v.description||"",
+      start_date:v.start_date||"", end_date:v.end_date||"",
+      total_value:String(v.total_value||""), status:v.status||"active",
+      payment_terms:v.payment_terms||"", delivery_terms:v.delivery_terms||"",
+      performance_score:String(v.performance_score||"0"),
+      procurement_method:v.procurement_method||"Open Tender",
+      scope_of_work:v.scope_of_work||"", special_conditions:v.special_conditions||"",
+      retention_percentage:String(v.retention_percentage||"0"),
+      contract_type:v.contract_type||"Supply",
+      contact_person:v.contact_person||"", contact_email:v.contact_email||"",
+    });}
+    else{setEditing(null);setForm({
+      contract_number:"", supplier_id:"", title:"", description:"",
+      start_date:"", end_date:"", total_value:"", status:"active",
+      payment_terms:"", delivery_terms:"", performance_score:"0",
+      procurement_method:"Open Tender", scope_of_work:"",
+      special_conditions:"", retention_percentage:"0",
+      contract_type:"Supply", contact_person:"", contact_email:"",
+    });}
     setShowNew(true);
   };
 
@@ -190,7 +216,7 @@ export default function ContractsPage() {
               return(
                 <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#0369a1",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.contract_number}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#111827",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}} onClick={()=>setDetail(r)}>{r.title}</td>
                   <td style={{padding:"12px 14px",fontSize:13,color:"#374151"}} onClick={()=>setDetail(r)}>{supName}</td>
@@ -223,7 +249,7 @@ export default function ContractsPage() {
           <div style={{background:"#fff",borderRadius:14,width:"min(680px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
               <FileText style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Contract</span>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -268,7 +294,7 @@ export default function ContractsPage() {
           <div style={{width:"min(440px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",gap:8,alignItems:"center"}}>
               <FileText style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.contract_number}</span>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:18,display:"flex",flexDirection:"column" as const,gap:12}}>
               <div style={{fontSize:17,fontWeight:800,color:"#111827"}}>{detail.title}</div>

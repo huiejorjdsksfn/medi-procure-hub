@@ -196,7 +196,7 @@ export default function PaymentVouchersPage() {
               return(
                 <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#0f766e",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.voucher_number}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#111827"}} onClick={()=>setDetail(r)}>{r.payee_name}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.payment_method}</td>
@@ -227,7 +227,7 @@ export default function PaymentVouchersPage() {
           <div style={{background:"#fff",borderRadius:14,width:"min(780px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
               <DollarSign style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>New Payment Voucher</span>
-              <button onClick={()=>setShowNew(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setShowNew(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               {/* Payee section */}
@@ -329,8 +329,8 @@ export default function PaymentVouchersPage() {
           <div style={{width:"min(480px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",gap:8,alignItems:"center"}}>
               <DollarSign style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.voucher_number}</span>
-              <button onClick={()=>{setPrint(detail);setDetail(null);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}><Printer style={{width:9,height:9}}/> Print</button>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+              <button onClick={()=>{setPrint(detail);setDetail(null);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",background:"#e2e8f0",border:"1px solid rgba(255,255,255,0.25)",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}><Printer style={{width:9,height:9}}/> Print</button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:18,display:"flex",flexDirection:"column" as const,gap:12}}>
               <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,display:"inline-block"}}>{sc(detail.status).label}</span>

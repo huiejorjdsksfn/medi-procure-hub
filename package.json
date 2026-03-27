@@ -17,7 +17,14 @@
     "electron:win:x64": "npm run build && electron-builder --win --x64 --config electron-builder.yml",
     "electron:win:ia32": "npm run build && electron-builder --win --ia32 --config electron-builder.yml",
     "release:v1": "cross-env APP_VERSION=1.0.0 npm run electron:win",
-    "release:v2": "cross-env APP_VERSION=2.0.0 npm run electron:win"
+    "release:v2": "cross-env APP_VERSION=2.0.0 npm run electron:win",
+    "build:prod": "vite build --mode production",
+    "electron:build:x64": "npm run build && electron-builder --win --x64 --config electron-builder.yml",
+    "electron:build:ia32": "npm run build && electron-builder --win --ia32 --config electron-builder.yml",
+    "electron:build:both": "npm run build && electron-builder --win --x64 --ia32 --config electron-builder.yml",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",

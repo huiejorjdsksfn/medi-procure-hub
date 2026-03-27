@@ -61,7 +61,7 @@ export default function ProfilePage() {
         {/* Profile info */}
         <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
           <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"20px 20px 40px"}}>
-            <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
+            <div style={{width:64,height:64,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
               <User style={{width:28,height:28,color:"#fff"}}/>
             </div>
             <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{fullName||user?.email?.split("@")[0]||"—"}</div>
@@ -82,7 +82,7 @@ export default function ProfilePage() {
               </div>
             ))}
             <button onClick={saveProfile} disabled={saving}
-              style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"#0a2558",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,width:"100%",justifyContent:"center",opacity:saving?0.7:1}}>
+              style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,width:"100%",justifyContent:"center",opacity:saving?0.7:1}}>
               {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
               {saving?"Saving...":"Save Profile"}
             </button>

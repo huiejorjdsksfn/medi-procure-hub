@@ -272,7 +272,7 @@ export default function EmailPage() {
   };
 
   /* ── Shared input style ──────────────────────────────────── */
-  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"#fff",fontFamily:"inherit"};
+  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"#f8fafc",fontFamily:"inherit"};
 
   /* ── Hover helpers ───────────────────────────────────────── */
   const hoverBg = (e:React.MouseEvent, on:boolean, bg="#f0f0f0") => {
@@ -283,11 +283,11 @@ export default function EmailPage() {
       RENDER
   ────────────────────────────────────────────────────────── */
   return (
-    <div style={{display:"flex",height:"100%",background:"#fff",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
+    <div style={{display:"flex",height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────── */}
-      <div style={{width:210,flexShrink:0,background:"#faf9f8",borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{width:210,flexShrink:0,background:"#f8fafc",borderRight:"1px solid #f1f5f9",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* Header */}
         <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e0e0e0"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
@@ -370,13 +370,13 @@ export default function EmailPage() {
             <h2 style={{fontSize:14,fontWeight:700,color:"#1f1f1f",margin:0}}>{FOLDERS.find(f=>f.id===folder)?.label||folder}</h2>
             <div style={{display:"flex",gap:2}}>
               <button onClick={load}
-                style={{padding:5,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",lineHeight:0}}
+                style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer",lineHeight:0}}
                 onMouseEnter={e=>hoverBg(e,true)}
                 onMouseLeave={e=>hoverBg(e,false)}>
                 <RefreshCw style={{width:13,height:13,color:"#666",animation:loading?"spin 1s linear infinite":undefined}}/>
               </button>
               <button onClick={()=>{ setComposing(true); setSelected(null); }}
-                style={{padding:5,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",lineHeight:0}}
+                style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer",lineHeight:0}}
                 onMouseEnter={e=>hoverBg(e,true)}
                 onMouseLeave={e=>hoverBg(e,false)}>
                 <Plus style={{width:13,height:13,color:"#666"}}/>
@@ -397,7 +397,7 @@ export default function EmailPage() {
             <div style={{display:"flex",gap:0,marginTop:8,borderBottom:"2px solid #e0e0e0"}}>
               {(["all","unread","read"] as const).map(t=>(
                 <button key={t} onClick={()=>setTab(t)}
-                  style={{padding:"5px 12px",fontSize:11.5,fontWeight:tab===t?700:400,border:"none",background:"transparent",
+                  style={{padding:"5px 12px",fontSize:11.5,fontWeight:tab===t?700:400,border:"none",background:"#f8fafc",
                     cursor:"pointer",color:tab===t?"#0078d4":"#555",
                     borderBottom:tab===t?"2px solid #0078d4":"2px solid transparent",
                     marginBottom:-2,transition:"all 0.12s"}}>
@@ -477,13 +477,13 @@ export default function EmailPage() {
                   <Edit3 style={{width:13,height:13}}/> New Message
                 </button>
                 <button onClick={load}
-                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
+                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:"#e2e8f0",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
                   <RefreshCw style={{width:13,height:13}}/> Refresh
                 </button>
               </div>
               {/* System status */}
               {smtpStatus&&(
-                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",display:"inline-flex",alignItems:"center",gap:8}}>
+                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"#e2e8f0",border:"1px solid #e2e8f0",display:"inline-flex",alignItems:"center",gap:8}}>
                   <div style={{width:7,height:7,borderRadius:"50%",background:smtpStatus.ready?"#4ade80":"#fbbf24"}}/>
                   <span style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>
                     Email: {smtpStatus.ready?`${smtpStatus.provider} Active`:"Internal Only"} · {unreadCount} unread
@@ -501,7 +501,7 @@ export default function EmailPage() {
             <div style={{padding:"12px 20px",borderBottom:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:10,background:"#faf9f8"}}>
               <Edit3 style={{width:15,height:15,color:"#0078d4"}}/>
               <h3 style={{fontSize:14,fontWeight:700,color:"#1f1f1f",margin:0,flex:1}}>New Message</h3>
-              <button onClick={()=>setComposing(false)} style={{padding:5,borderRadius:4,border:"none",background:"transparent",cursor:"pointer",lineHeight:0}}
+              <button onClick={()=>setComposing(false)} style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer",lineHeight:0}}
                 onMouseEnter={e=>hoverBg(e,true)} onMouseLeave={e=>hoverBg(e,false)}>
                 <X style={{width:15,height:15,color:"#666"}}/>
               </button>
@@ -550,7 +550,7 @@ export default function EmailPage() {
                   </button>
                   <button onClick={()=>sendCompose(true)} disabled={sending||testSending}
                     title="Send test email to yourself to verify SMTP configuration"
-                    style={{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",background:"transparent",color:"#0078d4",border:"1px solid #0078d4",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:500,opacity:(sending||testSending)?0.7:1}}>
+                    style={{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",background:"#f8fafc",color:"#0078d4",border:"1px solid #0078d4",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:500,opacity:(sending||testSending)?0.7:1}}>
                     {testSending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Activity style={{width:12,height:12}}/>}
                     {testSending?"Testing…":"Test Send"}
                   </button>
@@ -673,9 +673,9 @@ export default function EmailPage() {
             const it=item as any;
             return (
               <button key={i} onClick={it.action}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",border:"none",background:"transparent",cursor:"pointer",width:"100%",textAlign:"left" as const,fontSize:12.5,color:it.danger?"#dc2626":"#1f1f1f"}}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",border:"none",background:"#f8fafc",cursor:"pointer",width:"100%",textAlign:"left" as const,fontSize:12.5,color:it.danger?"#dc2626":"#1f1f1f"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=it.danger?"#fdf4f4":"#f5f5f5"}
-                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                 <it.icon style={{width:13,height:13,color:it.danger?"#dc2626":"#666"}}/>{it.label}
               </button>
             );
