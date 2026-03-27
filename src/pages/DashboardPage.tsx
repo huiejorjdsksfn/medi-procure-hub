@@ -137,6 +137,8 @@ const SEGS: Seg[] = [
       {label:"Backup",              path:"/backup",                  roles:["admin"]},
       {label:"System Broadcasts",   path:"/admin/panel",             roles:["admin","webmaster"]},
       {label:"Audit Log",           path:"/audit-log",               roles:["admin"]},
+      {label:"GUI Editor",          path:"/gui-editor",              roles:["admin","webmaster"]},
+      {label:"Facilities",          path:"/facilities",              roles:["admin","procurement_manager"]},
     ],
   },
 ];

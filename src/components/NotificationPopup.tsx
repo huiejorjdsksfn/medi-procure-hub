@@ -1,261 +1,340 @@
+/**
+ * ProcurBosse — Notification Popup v2.0
+ * Matches design: white card + logo badge at top + count + action button
+ * Uses Embu Level 5 Hospital logo instead of bell icon
+ */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, RefreshCw, Check, CheckCheck, Mail, Settings, AlertTriangle, ShoppingCart, Package, DollarSign, Gavel, Shield, Layers, Activity } from "lucide-react";
+import { X, Check, CheckCheck, ExternalLink, Bell } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 type NType = "info"|"success"|"warning"|"error"|"email"|"procurement"|"voucher"|"grn"|"tender"|"quality"|"inventory"|"system";
 
 interface Notif {
-  id: string; title: string; message: string; type: NType;
-  is_read: boolean; created_at: string;
-  action_url?: string; module?: string; source?: "notification"|"inbox";
+  id: string;
+  title: string;
+  message: string;
+  type: NType;
+  is_read: boolean;
+  created_at: string;
+  action_url?: string;
+  module?: string;
 }
 
-function timeAgo(date:string){
-  const d=(Date.now()-new Date(date).getTime())/1000;
-  if(d<60) return "just now";
-  if(d<3600) return `${Math.floor(d/60)}m ago`;
-  if(d<86400) return `${Math.floor(d/3600)}h ago`;
-  return new Date(date).toLocaleDateString("en-KE",{day:"2-digit",month:"short"});
+function timeAgo(date: string) {
+  const d = (Date.now() - new Date(date).getTime()) / 1000;
+  if (d < 60) return "just now";
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+  return new Date(date).toLocaleDateString("en-KE", { day:"2-digit", month:"short" });
 }
 
-function notifEmoji(type:string){
-  if(type==="error") return "❌";
-  if(type==="warning") return "⚠️";
-  if(type==="success") return "✅";
-  if(type==="email") return "✉️";
-  if(type==="procurement") return "📋";
-  if(type==="grn") return "📦";
-  if(type==="voucher") return "💰";
-  if(type==="tender") return "⚖️";
-  return "🔔";
-}
+const TYPE_COLOR: Record<string, string> = {
+  error:"#ef4444", warning:"#f59e0b", success:"#22c55e",
+  email:"#8b5cf6", procurement:"#0369a1", grn:"#059669",
+  voucher:"#C45911", tender:"#1d4ed8", quality:"#0891b2",
+  inventory:"#7c3aed", system:"#374151", info:"#0369a1",
+};
 
-function notifColor(type:string){
-  if(type==="error") return "#dc2626";
-  if(type==="warning") return "#d97706";
-  if(type==="success") return "#16a34a";
-  if(type==="email") return "#7c3aed";
-  if(type==="procurement") return "#0078d4";
-  if(type==="grn") return "#107c10";
-  if(type==="voucher") return "#C45911";
-  if(type==="tender") return "#1F6090";
-  return "#0078d4";
-}
+const TYPE_EMOJI: Record<string, string> = {
+  error:"❌", warning:"⚠️", success:"✅", email:"✉️",
+  procurement:"📋", grn:"📦", voucher:"💰", tender:"⚖️",
+  quality:"🔍", inventory:"📊", system:"⚙️", info:"🔔",
+};
 
-/* Win98 Toast */
-function Win98Toast({ n, onClose }: { n:Notif; onClose:()=>void }) {
+// ─── Individual toast-style notification (popup style from image 1) ────────
+function NotifToast({ n, onClose }: { n: Notif; onClose: () => void }) {
   const navigate = useNavigate();
-  const [vis, setVis] = useState(false);
-  const [prog, setProg] = useState(100);
+  const [visible, setVisible] = useState(false);
 
-  useEffect(()=>{
-    const t1=setTimeout(()=>setVis(true),50);
-    const t2=setTimeout(()=>{ setVis(false); setTimeout(onClose,320); },7000);
-    const iv=setInterval(()=>setProg(p=>Math.max(0,p-100/70)),100);
-    return()=>{ clearTimeout(t1); clearTimeout(t2); clearInterval(iv); };
-  },[]);
+  useEffect(() => {
+    setTimeout(() => setVisible(true), 50);
+    const t = setTimeout(() => { setVisible(false); setTimeout(onClose, 300); }, 5000);
+    return () => clearTimeout(t);
+  }, []);
 
-  const dismiss=()=>{ setVis(false); setTimeout(onClose,300); };
-  const isErr=n.type==="error", isWarn=n.type==="warning";
-  const titleBar=isErr?"SYSTEM ERROR":isWarn?"WARNING":n.type==="success"?"Operation Complete":n.module||"Notification";
-  const titleBg=isErr?"linear-gradient(90deg,#800000,#c00000)":isWarn?"linear-gradient(90deg,#808000,#b8a000)":"linear-gradient(90deg,#000082,#1086d8)";
+  const typeColor = TYPE_COLOR[n.type] || "#0369a1";
 
-  return(
-    <div style={{width:320,fontFamily:"'Tahoma','MS Sans Serif',Arial,sans-serif",transform:vis?"translateX(0)":"translateX(120%)",opacity:vis?1:0,transition:"transform 0.28s cubic-bezier(0.4,0,0.2,1),opacity 0.28s",filter:"drop-shadow(3px 5px 14px rgba(0,0,0,0.5))",cursor:n.action_url?"pointer":"default"}}
-      onClick={n.action_url?()=>{navigate(n.action_url!);dismiss();}:undefined}>
-      <div style={{background:"#c0c0c0",border:"2px solid",borderColor:"#ffffff #404040 #404040 #ffffff",boxShadow:"inset 1px 1px 0 #dfdfdf,inset -1px -1px 0 #808080"}}>
-        <div style={{background:titleBg,padding:"2px 4px",display:"flex",alignItems:"center",gap:5}}>
-          <span style={{fontSize:9}}>{isErr?"🔴":isWarn?"🟡":"🔵"}</span>
-          <span style={{flex:1,fontSize:11,fontWeight:700,color:"#fff",letterSpacing:"0.02em"}}>{titleBar}</span>
-          <button onClick={e=>{e.stopPropagation();dismiss();}} style={{width:14,height:13,background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",cursor:"pointer",fontSize:8,fontWeight:900,padding:0,color:"#000",fontFamily:"Tahoma,sans-serif",lineHeight:1}}>✕</button>
-        </div>
-        <div style={{padding:"10px 12px",display:"flex",gap:10,alignItems:"flex-start"}}>
-          <div style={{fontSize:26,flexShrink:0,lineHeight:1}}>{notifEmoji(n.type)}</div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#000",marginBottom:3,lineHeight:1.3}}>{n.title}</div>
-            <div style={{fontSize:11,color:"#333",lineHeight:1.4}}>{n.message.slice(0,100)}{n.message.length>100?"…":""}</div>
+  return (
+    <div
+      style={{
+        position: "fixed", bottom: 80, right: 20, zIndex: 9999,
+        transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.9)",
+      }}>
+      {/* Card matching image 1 design */}
+      <div style={{
+        width: 300, background: "#fff", borderRadius: 20,
+        boxShadow: "0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)",
+        padding: "24px 20px 20px",
+        border: "1px solid #f0f0f0",
+        position: "relative",
+        textAlign: "center",
+      }}>
+        {/* Close button */}
+        <button onClick={() => { setVisible(false); setTimeout(onClose, 300); }}
+          style={{ position:"absolute", top:12, right:12, background:"#f3f4f6", border:"none", borderRadius:"50%", width:24, height:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <X style={{ width:12, height:12, color:"#6b7280" }} />
+        </button>
+
+        {/* Logo badge at top (Image 1 style) */}
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:16, position:"relative", marginTop:-8 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: "50%",
+            background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            border: "3px solid #f8f8f8",
+            position: "relative",
+          }}>
+            <img src={logoImg} alt="EL5H" style={{ width:52, height:52, borderRadius:"50%", objectFit:"contain" }} />
+            {/* Red badge count */}
+            <div style={{
+              position:"absolute", top:-4, right:-4,
+              background:"#ef4444", color:"#fff", borderRadius:"50%",
+              width:22, height:22, display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:11, fontWeight:900, border:"2px solid #fff",
+              boxShadow:"0 2px 6px rgba(239,68,68,0.5)",
+            }}>
+              <Bell style={{ width:11, height:11 }} />
+            </div>
           </div>
         </div>
-        <div style={{margin:"0 10px 6px",height:8,background:"#808080",border:"inset 1px solid #404040"}}>
-          <div style={{height:"100%",background:"#000082",width:`${prog}%`,transition:"width 0.1s linear"}}/>
+
+        {/* Type emoji */}
+        <div style={{ fontSize:18, marginBottom:4 }}>{TYPE_EMOJI[n.type]||"🔔"}</div>
+
+        {/* Title */}
+        <div style={{ fontSize:15, fontWeight:800, color:"#1a1a2e", marginBottom:4, lineHeight:1.3 }}>
+          {n.title}
         </div>
-        <div style={{display:"flex",justifyContent:"center",gap:8,padding:"4px 12px 8px"}}>
-          <button onClick={e=>{e.stopPropagation();dismiss();}} style={{padding:"3px 20px",background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",cursor:"pointer",fontSize:11,fontFamily:"Tahoma,sans-serif",color:"#000",boxShadow:"inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf"}}>OK</button>
-          {n.action_url&&<button onClick={e=>{e.stopPropagation();navigate(n.action_url!);dismiss();}} style={{padding:"3px 14px",background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",cursor:"pointer",fontSize:11,fontFamily:"Tahoma,sans-serif",color:"#000",boxShadow:"inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf"}}>View</button>}
+
+        {/* Message */}
+        <div style={{ fontSize:12, color:"#6b7280", marginBottom:16, lineHeight:1.5 }}>
+          {n.message?.slice(0, 80)}{n.message?.length > 80 ? "…" : ""}
         </div>
+
+        {/* Open button (Image 1 style — pink/red gradient) */}
+        {n.action_url && (
+          <button
+            onClick={() => { navigate(n.action_url!); onClose(); }}
+            style={{
+              width: "80%", padding: "10px 0", borderRadius: 50, border: "none",
+              background: "linear-gradient(135deg, #e91e8c, #d10069)",
+              color: "#fff", fontWeight: 800, fontSize: 14,
+              cursor: "pointer", boxShadow: "0 4px 16px rgba(233,30,140,0.35)",
+              transition: "transform 0.15s",
+            }}
+            onMouseEnter={e=>(e.currentTarget.style.transform="scale(1.03)")}
+            onMouseLeave={e=>(e.currentTarget.style.transform="scale(1)")}>
+            Open
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-/* Win98 Panel */
-function Win98Panel({ onClose,notifs,loading,onMarkAll,onMarkOne,onRefresh,sysName,hospitalName }:{
-  onClose:()=>void;notifs:Notif[];loading:boolean;
-  onMarkAll:()=>void;onMarkOne:(id:string,src:string)=>void;onRefresh:()=>void;
-  sysName?:string;hospitalName?:string;logoUrl?:string|null;
-}) {
-  const navigate=useNavigate();
-  const [filter,setFilter]=useState<"all"|"unread"|"email"|"system">("all");
-  const unread=notifs.filter(n=>!n.is_read).length;
-  const filtered=notifs.filter(n=>{
-    if(filter==="unread") return !n.is_read;
-    if(filter==="email")  return n.type==="email"||n.source==="inbox";
-    if(filter==="system") return ["info","warning","error","success","system"].includes(n.type);
-    return true;
-  });
+// ─── Main notification dropdown panel ─────────────────────────────────────
+export default function NotificationPopup({ onClose }: { onClose?: () => void }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const ref = useRef<HTMLDivElement>(null);
+  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState<Notif[]>([]);
+  const prevCount = useRef(0);
 
-  return(
+  const load = useCallback(async () => {
+    if (!user) return;
+    const { data } = await (supabase as any)
+      .from("notifications").select("*")
+      .or(`recipient_id.eq.${user.id},recipient_id.is.null`)
+      .order("created_at", { ascending: false }).limit(40);
+    const items = data || [];
+    setNotifs(items);
+    setLoading(false);
+
+    // Show toast for new unread notifications
+    const unread = items.filter((n: Notif) => !n.is_read);
+    if (unread.length > prevCount.current && prevCount.current > 0) {
+      const newest = unread[0];
+      setToasts(t => [...t, newest]);
+    }
+    prevCount.current = unread.length;
+  }, [user]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Real-time subscription
+  useEffect(() => {
+    const ch = (supabase as any).channel("notif-popup")
+      .on("postgres_changes", { event:"INSERT", schema:"public", table:"notifications" }, load)
+      .subscribe();
+    return () => (supabase as any).removeChannel(ch);
+  }, [load]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose?.();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  async function markRead(id: string) {
+    await (supabase as any).from("notifications").update({ is_read: true }).eq("id", id);
+    setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: true } : n));
+  }
+
+  async function markAllRead() {
+    if (!user) return;
+    await (supabase as any).from("notifications").update({ is_read: true })
+      .or(`recipient_id.eq.${user.id},recipient_id.is.null`).eq("is_read", false);
+    setNotifs(p => p.map(n => ({ ...n, is_read: true })));
+  }
+
+  const unread = notifs.filter(n => !n.is_read).length;
+  const today = new Date().toLocaleDateString();
+
+  return (
     <>
-      <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1200}}/>
-      <div style={{position:"fixed",top:56,right:12,width:390,zIndex:1300,fontFamily:"'Tahoma','MS Sans Serif',Arial,sans-serif",filter:"drop-shadow(4px 6px 20px rgba(0,0,0,0.5))"}}>
-        <div style={{background:"#c0c0c0",border:"2px solid",borderColor:"#ffffff #404040 #404040 #ffffff",boxShadow:"inset 1px 1px 0 #dfdfdf,inset -1px -1px 0 #808080"}}>
-          {/* Title bar */}
-          <div style={{background:"linear-gradient(90deg,#000082,#1086d8)",padding:"3px 4px",display:"flex",alignItems:"center",gap:5}}>
-            <span style={{fontSize:11}}>🔔</span>
-            <span style={{flex:1,fontSize:11,fontWeight:700,color:"#fff"}}>Notification Center — {sysName||"EL5 MediProcure"}</span>
-            <button onClick={onRefresh} style={{width:14,height:13,background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",cursor:"pointer",fontSize:9,padding:0,color:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>↻</button>
-            <button onClick={onClose} style={{width:14,height:13,background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",cursor:"pointer",fontSize:9,fontWeight:900,padding:0,color:"#000"}}>✕</button>
-          </div>
-          {/* Filter toolbar */}
-          <div style={{padding:"4px 6px",borderBottom:"1px solid #808080",display:"flex",alignItems:"center",gap:4,background:"#d4d0c8",flexWrap:"wrap" as const}}>
-            {(["all","unread","email","system"] as const).map(f=>(
-              <button key={f} onClick={()=>setFilter(f)} style={{padding:"2px 8px",fontSize:10,cursor:"pointer",fontFamily:"Tahoma,sans-serif",background:"#c0c0c0",color:"#000",border:"1px solid",borderColor:filter===f?"#404040 #ffffff #ffffff #404040":"#ffffff #404040 #404040 #ffffff",boxShadow:filter===f?"inset 1px 1px 0 #808080":"inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf",fontWeight:filter===f?700:400}}>
-                {f==="all"?`All (${notifs.length})`:f==="unread"?`Unread (${unread})`:f.charAt(0).toUpperCase()+f.slice(1)}
-              </button>
-            ))}
-            <div style={{flex:1}}/>
-            {unread>0&&<button onClick={onMarkAll} style={{padding:"2px 8px",fontSize:9,cursor:"pointer",background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",color:"#000",boxShadow:"inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf",fontFamily:"Tahoma,sans-serif"}}>Mark all read</button>}
-          </div>
-          {/* Info bar */}
-          <div style={{padding:"2px 8px",background:"#d4d0c8",borderBottom:"1px solid #808080",fontSize:9,color:"#444"}}>{hospitalName||"Embu Level 5 Hospital"} · {unread} unread</div>
-          {/* List */}
-          <div style={{height:400,overflowY:"auto",background:"#fff",border:"inset 2px solid #808080",margin:6}}>
-            {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:60,gap:8,color:"#444",fontSize:11}}>Loading…</div>}
-            {!loading&&filtered.length===0&&<div style={{textAlign:"center",padding:"30px 20px",fontSize:11,color:"#808080"}}><div style={{fontSize:28,marginBottom:8}}>📭</div>No notifications</div>}
-            {filtered.map((n,i)=>(
-              <div key={n.id}
-                onClick={()=>{ if(!n.is_read)onMarkOne(n.id,n.source||"notification"); if(n.action_url){navigate(n.action_url);onClose();} }}
-                style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 8px",background:n.is_read?"#fff":i%2===0?"#ddeeff":"#cce0ff",borderBottom:"1px solid #e0e0e0",cursor:"pointer"}}
-                onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="#316ac5";(e.currentTarget as HTMLElement).style.color="#fff";}}
-                onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=n.is_read?"#fff":i%2===0?"#ddeeff":"#cce0ff";(e.currentTarget as HTMLElement).style.color="";}} >
-                <div style={{fontSize:16,flexShrink:0,marginTop:2}}>{notifEmoji(n.type)}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
-                    <span style={{fontSize:11,fontWeight:n.is_read?400:700,color:"inherit",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,maxWidth:220}}>{n.title}</span>
-                    <span style={{fontSize:9,color:"inherit",opacity:0.7,flexShrink:0}}>{timeAgo(n.created_at)}</span>
-                  </div>
-                  <div style={{fontSize:10,color:"inherit",opacity:0.85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{n.message}</div>
-                  {n.module&&<div style={{fontSize:9,fontWeight:600,color:notifColor(n.type),marginTop:1}}>[{n.module}]</div>}
-                </div>
-                {!n.is_read&&<div style={{width:6,height:6,borderRadius:"50%",background:"#0078d4",flexShrink:0,marginTop:7}}/>}
+      {/* Toast popups */}
+      {toasts.map(t => (
+        <NotifToast key={t.id} n={t} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />
+      ))}
+
+      {/* Dropdown panel */}
+      <div ref={ref} style={{
+        width: 380, background: "#fff", borderRadius: 18,
+        boxShadow: "0 12px 50px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06)",
+        border: "1px solid #e5e7eb",
+        overflow: "hidden",
+        fontFamily: "'Segoe UI', system-ui, sans-serif",
+      }}>
+        {/* Panel header with logo badge */}
+        <div style={{
+          background: "linear-gradient(135deg, #1a3a6b, #0a2558)",
+          padding: "16px 18px 20px",
+          position: "relative",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            {/* Logo badge (Image 1 style) */}
+            <div style={{ position:"relative", flexShrink:0 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: "50%",
+                background: "#fff", display:"flex", alignItems:"center", justifyContent:"center",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              }}>
+                <img src={logoImg} alt="EL5H" style={{ width:38, height:38, borderRadius:"50%", objectFit:"contain" }} />
               </div>
-            ))}
-          </div>
-          {/* Status bar */}
-          <div style={{padding:"3px 8px 5px",display:"flex",alignItems:"center",gap:6}}>
-            <div style={{flex:1,background:"#c0c0c0",border:"inset 1px solid #808080",padding:"1px 6px",fontSize:9,color:"#000"}}>{filtered.length} item{filtered.length!==1?"s":""} · {unread} unread</div>
-            <button onClick={()=>{navigate("/email");onClose();}} style={{padding:"2px 10px",fontSize:10,cursor:"pointer",background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",color:"#000",fontFamily:"Tahoma,sans-serif",boxShadow:"inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf"}}>Open Inbox</button>
-            <button onClick={onClose} style={{padding:"2px 10px",fontSize:10,cursor:"pointer",background:"#c0c0c0",border:"1px solid",borderColor:"#ffffff #404040 #404040 #ffffff",color:"#000",fontFamily:"Tahoma,sans-serif",boxShadow:"inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf"}}>Close</button>
+              {unread > 0 && (
+                <div style={{
+                  position:"absolute", top:-4, right:-4,
+                  background:"#ef4444", color:"#fff", borderRadius:"50%",
+                  width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:10, fontWeight:900, border:"2px solid #1a3a6b",
+                }}>
+                  {unread > 9 ? "9+" : unread}
+                </div>
+              )}
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:800, color:"#fff" }}>Notifications</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.65)", marginTop:2 }}>
+                {unread > 0 ? `You have ${unread} new notification${unread>1?"s":""}` : "All caught up!"}
+              </div>
+            </div>
+            <button onClick={() => { markAllRead(); onClose?.(); }}
+              style={{ background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:8, padding:"4px 8px", color:"#fff", fontSize:10, fontWeight:700, cursor:"pointer" }}>
+              <CheckCheck style={{ width:12, height:12, display:"inline", marginRight:3 }} />
+              Mark all read
+            </button>
+            {onClose && (
+              <button onClick={onClose} style={{ background:"rgba(255,255,255,0.1)", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <X style={{ width:13, height:13, color:"rgba(255,255,255,0.7)" }} />
+              </button>
+            )}
           </div>
         </div>
-      </div>
-    </>
-  );
-}
 
-export function NotificationBell({ logoUrl, sysName, hospitalName }:{logoUrl?:string|null;sysName?:string;hospitalName?:string;}) {
-  const { user } = useAuth();
-  const [panelOpen,setPanelOpen]=useState(false);
-  const [notifs,setNotifs]=useState<Notif[]>([]);
-  const [loading,setLoading]=useState(false);
-  const [toasts,setToasts]=useState<Notif[]>([]);
-  const prevIds=useRef<Set<string>>(new Set());
+        {/* Notification list */}
+        <div style={{ maxHeight: 380, overflowY:"auto" }}>
+          {loading && (
+            <div style={{ padding:30, textAlign:"center", color:"#9ca3af", fontSize:13 }}>Loading…</div>
+          )}
+          {!loading && notifs.length === 0 && (
+            <div style={{ padding:40, textAlign:"center" }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>🔔</div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#374151" }}>No notifications</div>
+              <div style={{ fontSize:11, color:"#9ca3af", marginTop:4 }}>You're all caught up!</div>
+            </div>
+          )}
+          {!loading && notifs.map(n => {
+            const tc = TYPE_COLOR[n.type] || "#0369a1";
+            const isToday = new Date(n.created_at).toLocaleDateString() === today;
+            return (
+              <div key={n.id}
+                style={{
+                  padding:"12px 16px",
+                  borderBottom:"1px solid #f3f4f6",
+                  background: n.is_read ? "#fff" : "#fafbff",
+                  cursor:"pointer",
+                  transition:"background 0.15s",
+                  display:"flex",
+                  gap:12,
+                  alignItems:"flex-start",
+                }}
+                onClick={() => { markRead(n.id); if (n.action_url) navigate(n.action_url); }}
+                onMouseEnter={e=>(e.currentTarget.style.background="#f0f4ff")}
+                onMouseLeave={e=>(e.currentTarget.style.background=n.is_read?"#fff":"#fafbff")}>
+                {/* Type dot */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: tc+"15", display:"flex", alignItems:"center", justifyContent:"center",
+                  flexShrink:0, fontSize:16, border:`1px solid ${tc}22`,
+                }}>
+                  {TYPE_EMOJI[n.type]||"🔔"}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
+                    <div style={{ fontSize:12.5, fontWeight: n.is_read ? 500 : 700, color:"#111", lineHeight:1.3, flex:1 }}>
+                      {n.title}
+                    </div>
+                    <div style={{ fontSize:10, color:"#9ca3af", whiteSpace:"nowrap", flexShrink:0 }}>
+                      {timeAgo(n.created_at)}
+                    </div>
+                  </div>
+                  <div style={{ fontSize:11.5, color:"#6b7280", marginTop:3, lineHeight:1.4 }}>
+                    {n.message?.slice(0, 70)}{n.message?.length > 70 ? "…" : ""}
+                  </div>
+                  {n.action_url && (
+                    <div style={{ marginTop:6 }}>
+                      <span style={{ fontSize:10, color:tc, fontWeight:700, display:"inline-flex", alignItems:"center", gap:3 }}>
+                        <ExternalLink style={{ width:9, height:9 }} /> Open
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {!n.is_read && (
+                  <div style={{ width:7, height:7, borderRadius:"50%", background:tc, flexShrink:0, marginTop:4 }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-  const toNotif=(n:any,source:"notification"|"inbox"):Notif=>({
-    id:source==="inbox"?`inbox-${n.id}`:n.id,
-    title:source==="inbox"?(n.subject||"New message"):(n.title||"Notification"),
-    message:source==="inbox"?`From ${n.from_name||"System"}: ${(n.body||"").slice(0,80)}`:(n.message||n.body||""),
-    type:source==="inbox"?"email":((n.type||n.notification_type||"info") as NType),
-    is_read:source==="inbox"?n.status==="read":!!n.is_read,
-    created_at:n.created_at||new Date().toISOString(),
-    action_url:source==="inbox"?"/email":(n.action_url||n.link),
-    module:source==="inbox"?"Email":(n.module||n.category),
-    source,
-  });
-
-  const load=useCallback(async()=>{
-    if(!user)return;
-    setLoading(true);
-    const [nr,ir]=await Promise.all([
-      (supabase as any).from("notifications").select("*").order("created_at",{ascending:false}).limit(40),
-      (supabase as any).from("inbox_items").select("*").eq("to_user_id",user.id).neq("status","sent").order("created_at",{ascending:false}).limit(20),
-    ]);
-    const ns:Notif[]=[
-      ...(nr.data||[]).map((n:any)=>toNotif(n,"notification")),
-      ...(ir.data||[]).map((n:any)=>toNotif(n,"inbox")),
-    ].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
-    setNotifs(ns);setLoading(false);
-    ns.forEach(n=>prevIds.current.add(n.id));
-  },[user]);
-
-  useEffect(()=>{load();},[load]);
-
-  useEffect(()=>{
-    if(!user)return;
-    const ch=(supabase as any).channel(`notif-bell-${user.id}`)
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},(p:any)=>{
-        const n=p.new as any;
-        if(n.user_id&&n.user_id!==user.id)return;
-        const notif=toNotif(n,"notification");
-        if(!prevIds.current.has(notif.id)){prevIds.current.add(notif.id);setToasts(prev=>[notif,...prev.slice(0,3)]);setNotifs(prev=>[notif,...prev]);}
-      })
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"inbox_items"},(p:any)=>{
-        const n=p.new as any;
-        if(n.to_user_id!==user.id)return;
-        const notif=toNotif(n,"inbox");
-        if(!prevIds.current.has(notif.id)){prevIds.current.add(notif.id);setToasts(prev=>[notif,...prev.slice(0,3)]);setNotifs(prev=>[notif,...prev]);}
-      })
-      .subscribe();
-    return()=>(supabase as any).removeChannel(ch);
-  },[user]);
-
-  const markAll=async()=>{
-    if(!user)return;
-    await (supabase as any).from("notifications").update({is_read:true}).eq("is_read",false);
-    await (supabase as any).from("inbox_items").update({status:"read"}).eq("to_user_id",user.id).eq("status","unread");
-    setNotifs(p=>p.map(n=>({...n,is_read:true})));
-  };
-  const markOne=async(id:string,source:string)=>{
-    if(source==="inbox"){
-      await (supabase as any).from("inbox_items").update({status:"read"}).eq("id",id.replace("inbox-",""));
-    } else {
-      await (supabase as any).from("notifications").update({is_read:true}).eq("id",id);
-    }
-    setNotifs(p=>p.map(n=>n.id===id?{...n,is_read:true}:n));
-  };
-
-  const unread=notifs.filter(n=>!n.is_read).length;
-
-  return(
-    <>
-      <button onClick={()=>setPanelOpen(v=>!v)} title="Notifications"
-        style={{position:"relative",padding:6,borderRadius:6,background:panelOpen?"#e2e8f0":"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}
-        onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f1f5f9"}
-        onMouseLeave={e=>{if(!panelOpen)(e.currentTarget as HTMLElement).style.background="transparent";}}>
-        <Bell style={{width:15,height:15}}/>
-        {unread>0&&<span style={{position:"absolute",top:-2,right:-2,minWidth:15,height:15,borderRadius:8,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,padding:"0 3px",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread>99?"99+":unread}</span>}
-      </button>
-
-      {panelOpen&&<Win98Panel onClose={()=>setPanelOpen(false)} notifs={notifs} loading={loading} onMarkAll={markAll} onMarkOne={markOne} onRefresh={load} logoUrl={logoUrl} sysName={sysName} hospitalName={hospitalName}/>}
-
-      <div style={{position:"fixed",bottom:20,right:20,display:"flex",flexDirection:"column",gap:10,zIndex:1400,pointerEvents:"none"}}>
-        {toasts.map(t=>(
-          <div key={t.id} style={{pointerEvents:"all"}}>
-            <Win98Toast n={t} onClose={()=>setToasts(p=>p.filter(x=>x.id!==t.id))}/>
-          </div>
-        ))}
+        {/* Footer */}
+        <div style={{ padding:"10px 16px", borderTop:"1px solid #f3f4f6", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ fontSize:11, color:"#9ca3af" }}>{notifs.length} total · {unread} unread</span>
+          <button onClick={() => { navigate("/notifications"); onClose?.(); }}
+            style={{ fontSize:11, color:"#0369a1", fontWeight:700, background:"none", border:"none", cursor:"pointer" }}>
+            View all →
+          </button>
+        </div>
       </div>
     </>
   );
