@@ -448,7 +448,7 @@ export default function PurchaseOrdersPage() {
                 {/* Supplier */}
                 <div style={{gridColumn:"1/-1"}}>
                   <label style={lbl}>Supplier *</label>
-                  <select value={form.supplier_id}
+                  <select value={form.supplier_name||form.supplier_id||"—"}
                     onChange={e=>{
                       const s = suppliers.find(x=>x.id===e.target.value);
                       setForm((p:any)=>({...p,supplier_id:e.target.value,supplier_name:s?.name||""}));

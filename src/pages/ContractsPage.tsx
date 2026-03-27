@@ -261,7 +261,7 @@ export default function ContractsPage() {
                 </div>
                 <div style={{gridColumn:"span 2"}}><LBL>Title *</LBL>{INP(form.title,v=>setForm(p=>({...p,title:v})),"Contract title / scope")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Supplier</LBL>
-                  <select value={form.supplier_id} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
+                  <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
                     <option value="">Select supplier...</option>
                     {supOpts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>

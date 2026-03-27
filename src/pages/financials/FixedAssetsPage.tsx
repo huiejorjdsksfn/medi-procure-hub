@@ -197,7 +197,7 @@ export default function FixedAssetsPage() {
                     <option value="">— Select —</option>{CATS.map(c=><option key={c}>{c}</option>)}
                   </select></div>
                 <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
-                  <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  <select value={form.department_name||form.department||form.department_id||"—"} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
                     <option value="">— Select —</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select></div>
                 <F label="Purchase Date" k="purchase_date" type="date"/>
