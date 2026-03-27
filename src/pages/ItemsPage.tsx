@@ -42,9 +42,14 @@ export default function ItemsPage() {
   // sysName now from useSystemSettings
 
   const [form, setForm] = useState({
-    name:"",sku:"",item_type:"pharmaceutical",category_id:"",
-    unit_price:"",quantity_in_stock:"",reorder_level:"10",
-    unit_of_measure:"",description:"",status:"active"
+    name:"", sku:"", item_type:"pharmaceutical", category_id:"",
+    unit_price:"", quantity_in_stock:"", reorder_level:"10",
+    unit_of_measure:"pcs", description:"", status:"active",
+    brand:"", manufacturer:"", country_of_origin:"",
+    storage_conditions:"", shelf_life_days:"", batch_number:"",
+    expiry_date:"", supplier_id:"", cost_price:"",
+    location_in_store:"", is_controlled:false, is_consumable:true,
+    notes:"",
   });
 
   useEffect(()=>{
@@ -142,7 +147,7 @@ export default function ItemsPage() {
   const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f4f6fa",minHeight:"100vh",padding:16}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",padding:16}}>
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         .item-row:hover td{background:#f0fdf4!important}

@@ -43,7 +43,16 @@ export default function TendersPage() {
   const [detail,   setDetail]   = useState<any>(null);
   const [editing,  setEditing]  = useState<any>(null);
   const [saving,   setSaving]   = useState(false);
-  const [form, setForm] = useState({title:"",description:"",category:"",tender_type:"Open Tender",estimated_value:"",opening_date:"",closing_date:"",evaluation_criteria:"",contact_person:""});
+  const [form, setForm] = useState({
+    title:"", description:"", category:"",
+    tender_type:"Open Tender", estimated_value:"",
+    opening_date:"", closing_date:"",
+    evaluation_criteria:"", contact_person:"",
+    contact_email:"", contact_phone:"",
+    bid_bond_required:false, bid_bond_amount:"",
+    performance_bond:false, currency:"KES",
+    procurement_method:"Open Tender",
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,8 +66,30 @@ export default function TendersPage() {
   },[load]);
 
   const openNew = (v?:any) => {
-    if(v){ setEditing(v); setForm({title:v.title||"",description:v.description||"",category:v.category||"",tender_type:v.tender_type||"Open Tender",estimated_value:String(v.estimated_value||""),opening_date:v.opening_date||"",closing_date:v.closing_date||"",evaluation_criteria:v.evaluation_criteria||"",contact_person:v.contact_person||""}); }
-    else { setEditing(null); setForm({title:"",description:"",category:"",tender_type:"Open Tender",estimated_value:"",opening_date:"",closing_date:"",evaluation_criteria:"",contact_person:""}); }
+    if(v){ setEditing(v); setForm({
+      title:v.title||"", description:v.description||"", category:v.category||"",
+      tender_type:v.tender_type||"Open Tender",
+      estimated_value:String(v.estimated_value||""),
+      opening_date:v.opening_date||"", closing_date:v.closing_date||"",
+      evaluation_criteria:v.evaluation_criteria||"",
+      contact_person:v.contact_person||"",
+      contact_email:v.contact_email||"", contact_phone:v.contact_phone||"",
+      bid_bond_required:v.bid_bond_required||false,
+      bid_bond_amount:String(v.bid_bond_amount||""),
+      performance_bond:v.performance_bond||false,
+      currency:v.currency||"KES",
+      procurement_method:v.procurement_method||"Open Tender",
+    }); }
+    else { setEditing(null); setForm({
+      title:"", description:"", category:"",
+      tender_type:"Open Tender", estimated_value:"",
+      opening_date:"", closing_date:"",
+      evaluation_criteria:"", contact_person:"",
+      contact_email:"", contact_phone:"",
+      bid_bond_required:false, bid_bond_amount:"",
+      performance_bond:false, currency:"KES",
+      procurement_method:"Open Tender",
+    }); }
     setShowNew(true);
   };
 
@@ -195,7 +226,7 @@ export default function TendersPage() {
               return(
                 <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
-                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#1F6090",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.tender_number}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#111827",maxWidth:200}} onClick={()=>setDetail(r)}>{r.title}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.category||"—"}</td>
@@ -227,7 +258,7 @@ export default function TendersPage() {
           <div style={{background:"#fff",borderRadius:14,width:"min(680px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
               <Gavel style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Tender</span>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -273,7 +304,7 @@ export default function TendersPage() {
           <div style={{width:"min(460px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",gap:8,alignItems:"center"}}>
               <Gavel style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.tender_number}</span>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:18,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div><div style={{fontSize:18,fontWeight:800,color:"#111827",lineHeight:1.3}}>{detail.title}</div>

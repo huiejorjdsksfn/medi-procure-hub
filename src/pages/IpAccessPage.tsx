@@ -99,7 +99,7 @@ export default function IpAccessPage() {
       <div style={{padding:20,maxWidth:1200,margin:"0 auto"}}>
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:14,padding:"18px 24px",marginBottom:20,color:"#fff",display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:48,height:48,borderRadius:12,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}><Shield style={{width:26,height:26,color:"#fff"}}/></div>
+          <div style={{width:48,height:48,borderRadius:12,background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}><Shield style={{width:26,height:26,color:"#fff"}}/></div>
           <div>
             <div style={{fontSize:20,fontWeight:800}}>IP Access Control</div>
             <div style={{fontSize:12,opacity:.8}}>Network whitelist · IP logs · Real-time restriction enforcement</div>
@@ -113,11 +113,11 @@ export default function IpAccessPage() {
               <div style={{fontSize:18,fontWeight:800,color:"#f87171"}}>{denied}</div>
               <div style={{fontSize:10,opacity:.8}}>Denied</div>
             </div>
-            <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 12px"}}>
+            <div style={{textAlign:"center",background:"#f1f5f9",borderRadius:8,padding:"6px 12px"}}>
               <div style={{fontSize:18,fontWeight:800}}>{whitelist.filter(e=>e.active).length}</div>
               <div style={{fontSize:10,opacity:.8}}>Rules</div>
             </div>
-            <button onClick={load} style={btn("rgba(255,255,255,0.15)")}><RefreshCw style={{width:14,height:14}}/></button>
+            <button onClick={load} style={btn("#e2e8f0")}><RefreshCw style={{width:14,height:14}}/></button>
           </div>
         </div>
 

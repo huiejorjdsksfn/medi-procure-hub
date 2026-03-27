@@ -13,7 +13,7 @@ export default function NotFound() {
           Please navigate using the sidebar menu.
         </div>
         <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-          <button onClick={()=>navigate(-1)} style={{display:"flex",alignItems:"center",gap:8,padding:"11px 22px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff"}}>
+          <button onClick={()=>navigate(-1)} style={{display:"flex",alignItems:"center",gap:8,padding:"11px 22px",background:"#e2e8f0",border:"1px solid rgba(255,255,255,0.25)",borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff"}}>
             <ArrowLeft style={{width:14,height:14}}/> Go Back
           </button>
           <button onClick={()=>navigate("/dashboard")} style={{display:"flex",alignItems:"center",gap:8,padding:"11px 22px",background:"#fff",border:"none",borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,color:"#0a2558"}}>

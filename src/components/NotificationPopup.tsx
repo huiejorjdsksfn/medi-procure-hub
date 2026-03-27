@@ -241,8 +241,8 @@ export function NotificationBell({ logoUrl, sysName, hospitalName }:{logoUrl?:st
   return(
     <>
       <button onClick={()=>setPanelOpen(v=>!v)} title="Notifications"
-        style={{position:"relative",padding:6,borderRadius:6,background:panelOpen?"rgba(255,255,255,0.15)":"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}
-        onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.1)"}
+        style={{position:"relative",padding:6,borderRadius:6,background:panelOpen?"#e2e8f0":"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}
+        onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f1f5f9"}
         onMouseLeave={e=>{if(!panelOpen)(e.currentTarget as HTMLElement).style.background="transparent";}}>
         <Bell style={{width:15,height:15}}/>
         {unread>0&&<span style={{position:"absolute",top:-2,right:-2,minWidth:15,height:15,borderRadius:8,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,padding:"0 3px",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread>99?"99+":unread}</span>}

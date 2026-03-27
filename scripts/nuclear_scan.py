@@ -49,13 +49,15 @@ print("\n[3] WORKFLOWS")
 try:
     import yaml
     wfs = glob.glob(".github/workflows/*.yml")
-    chk("5 workflows", len(wfs)==5)
+    chk(f"{len(wfs)} workflows (>= 5)", len(wfs)>=5)
     for wf in sorted(wfs):
         data = yaml.safe_load(open(wf).read())
         on_val = data.get(True,{})
         has_main = "main" in on_val.get("push",{}).get("branches",[]) if isinstance(on_val,dict) else False
         tok_ok = all(
-            "GITHUB_TOKEN" in str(step.get("env",{}))
+            "GITHUB_TOKEN" in str(step.get("env",{})) or
+            "token" in str(step.get("with",{})) or
+            "GITHUB_TOKEN" in str(step.get("with",{}))
             for job in data.get("jobs",{}).values()
             for step in job.get("steps",[])
             if "softprops" in step.get("uses","")

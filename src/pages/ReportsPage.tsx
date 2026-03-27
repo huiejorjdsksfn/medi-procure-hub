@@ -144,7 +144,7 @@ export default function ReportsPage() {
   };
 
   return (
-      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"100%",display:"flex",flexDirection:"column"}}>
+      <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",display:"flex",flexDirection:"column"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -165,14 +165,14 @@ export default function ReportsPage() {
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>Start Date</label>
               <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
-                  style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
+                  style={{border:"none",background:"#f8fafc",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>End Date</label>
               <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
-                  style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
+                  style={{border:"none",background:"#f8fafc",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
               </div>
             </div>
             <button onClick={loadReport}
@@ -241,7 +241,7 @@ export default function ReportsPage() {
             <div style={{fontSize:10,color:"#555",marginBottom:2}}>Search</div>
             <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"1px 4px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
               <input value={stockSearch} onChange={e=>setStockSearch(e.target.value)} placeholder=""
-                style={{border:"none",background:"transparent",fontSize:10,outline:"none",flex:1,color:"#1a1a2e"}}/>
+                style={{border:"none",background:"#f8fafc",fontSize:10,outline:"none",flex:1,color:"#1a1a2e"}}/>
             </div>
           </div>
           {/* Stock table */}
@@ -282,7 +282,7 @@ export default function ReportsPage() {
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
                   <Search style={{width:12,height:12,color:"#888"}}/>
                   <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records..."
-                    style={{border:"none",background:"transparent",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
+                    style={{border:"none",background:"#f8fafc",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
                   {search&&<button onClick={()=>setSearch("")}><X style={{width:10,height:10,color:"#888"}}/></button>}
                 </div>
               </div>
@@ -290,7 +290,7 @@ export default function ReportsPage() {
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Type</label>
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",borderRadius:2}}>
                   <select value={txFilter} onChange={e=>setTxFilter(e.target.value)}
-                    style={{border:"none",background:"transparent",fontSize:10,padding:"2px 6px",outline:"none",color:"#1a1a2e"}}>
+                    style={{border:"none",background:"#f8fafc",fontSize:10,padding:"2px 6px",outline:"none",color:"#1a1a2e"}}>
                     {TX_TYPE_FILTER.map(t=><option key={t}>{t}</option>)}
                   </select>
                 </div>

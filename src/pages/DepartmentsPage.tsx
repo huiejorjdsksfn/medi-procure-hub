@@ -64,7 +64,7 @@ export default function DepartmentsPage() {
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} departments</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
             <Download style={{width:13,height:13}}/>Export
           </button>
           {canManage&&<button onClick={()=>{setEditing(null);setForm({name:"",code:"",description:"",head_of_department:"",phone:"",email:"",budget_center:""});setShowNew(true);}}

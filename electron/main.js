@@ -20,7 +20,11 @@ const fs   = require('fs');
 const APP_NAME    = 'ProcurBosse';
 const APP_VERSION = app.getVersion();
 const IS_DEV      = process.env.ELECTRON_DEV === '1' || !app.isPackaged;
-const IS_WIN7     = process.platform === 'win32' && parseInt(require('os').release()) < 10;
+const IS_WIN7     = process.platform === 'win32' && (() => {
+  const parts = require('os').release().split('.').map(Number);
+  // NT 6.0 = Vista, 6.1 = Win7, 6.2 = Win8, 6.3 = Win8.1, 10.0 = Win10+
+  return parts[0] < 10;
+})();
 
 // ── Paths ─────────────────────────────────────────────────────
 const DIST_PATH   = IS_DEV
@@ -96,7 +100,7 @@ function createWindow() {
     win.show();
     win.focus();
     // Check for updates after 3s (don't block startup)
-    setTimeout(checkForUpdates, 3000);
+    setTimeout(() => { if (win) checkForUpdates(); }, 3000);
   });
 
   // Open external links in system browser
@@ -113,6 +117,8 @@ function createWindow() {
       'http://localhost:8080',
       `file://${DIST_PATH}`,
       'https://yvjfehnzbzjliizjvuhq.supabase.co',
+      'wss://yvjfehnzbzjliizjvuhq.supabase.co',
+      'https://api.anthropic.com',
     ];
     if (!allowed.some(a => url.startsWith(a))) {
       event.preventDefault();

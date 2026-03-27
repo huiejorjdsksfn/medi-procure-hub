@@ -1,91 +1,76 @@
 /**
- * NetworkGuard — IP Restriction enforcement component
- * Wraps the entire app. Checks IP on load and disconnects if outside whitelist.
- * Shows IP info page with real-time whitelist viewer for admins.
+ * NetworkGuard — IP restriction — RENDER TRANSPARENT
+ * Never blocks rendering. Checks IP in background only after user logs in.
+ * Fail-open: if anything goes wrong, access is allowed.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkIpAccess, revokeSession, type IpCheckResult } from "@/lib/ipRestriction";
 import { supabase } from "@/integrations/supabase/client";
 
-const CHECK_INTERVAL_MS = 5 * 60 * 1000; // re-check every 5 min
-
 export default function NetworkGuard({ children }: { children: React.ReactNode }) {
-  const { user, profile, roles } = useAuth();
-  const [status, setStatus] = useState<"checking"|"allowed"|"denied"|"disabled">("checking");
-  const [result, setResult] = useState<IpCheckResult | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const doCheck = useCallback(async () => {
-    if (!user) { setStatus("allowed"); setLoading(false); return; }
-    try {
-      const res = await checkIpAccess(user.id, user.email || "");
-      setResult(res);
-      if (res.allowed) {
-        setStatus("allowed");
-      } else {
-        setStatus("denied");
-        // Give 5 seconds to read the message before revoking
-        setTimeout(() => revokeSession(res.reason), 5000);
-      }
-    } catch {
-      setStatus("allowed"); // fail-open for network errors
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+  const { user } = useAuth();
+  const checkedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    doCheck();
-    const interval = setInterval(doCheck, CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [doCheck]);
+    // Only check once per user session, and only after auth is resolved
+    if (!user || checkedRef.current === user.id) return;
+    checkedRef.current = user.id;
 
-  if (loading || status === "checking") {
-    return (
-      <div style={{position:"fixed",inset:0,background:"#0a1628",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
-        <div style={{textAlign:"center",color:"#fff"}}>
-          <div style={{width:48,height:48,border:"4px solid rgba(255,255,255,0.2)",borderTop:"4px solid #C45911",borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto 16px"}}/>
-          <div style={{fontSize:14,opacity:0.7}}>Verifying network access...</div>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </div>
-      </div>
-    );
-  }
+    // Run IP check completely in background — never blocks render
+    (async () => {
+      try {
+        // Check if IP restriction is even enabled
+        const { data: setting } = await (supabase as any)
+          .from("system_settings")
+          .select("value")
+          .eq("key", "ip_restriction_enabled")
+          .maybeSingle();
 
-  if (status === "denied" && result) {
-    return (
-      <div style={{position:"fixed",inset:0,background:"#0a1628",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
-        <div style={{background:"#fff",borderRadius:16,padding:40,maxWidth:520,textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
-          <div style={{width:64,height:64,borderRadius:"50%",background:"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:28}}>🚫</div>
-          <div style={{fontSize:22,fontWeight:800,color:"#dc2626",marginBottom:8}}>Access Denied</div>
-          <div style={{fontSize:14,color:"#6b7280",marginBottom:16}}>Your IP address is not authorized to access this system.</div>
-          <div style={{background:"#f9fafb",borderRadius:10,padding:14,marginBottom:20,fontSize:13,textAlign:"left"}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-              <span style={{color:"#9ca3af"}}>Your IP</span>
-              <span style={{fontFamily:"monospace",fontWeight:700,color:"#374151"}}>{result.ip}</span>
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-              <span style={{color:"#9ca3af"}}>Network</span>
-              <span style={{fontFamily:"monospace",color:"#374151"}}>{result.network}</span>
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between"}}>
-              <span style={{color:"#9ca3af"}}>Reason</span>
-              <span style={{color:"#dc2626",fontSize:12}}>{result.reason}</span>
-            </div>
-          </div>
-          <div style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>You will be automatically logged out in 5 seconds.</div>
-          <button onClick={()=>revokeSession(result.reason)} style={{padding:"10px 24px",background:"#dc2626",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:14}}>
-            Log Out Now
-          </button>
-          <div style={{marginTop:16,fontSize:11,color:"#9ca3af"}}>
-            Contact the IT Department to whitelist your IP address.<br/>
-            Embu Level 5 Hospital · EL5 MediProcure
-          </div>
-        </div>
-      </div>
-    );
-  }
+        if (setting?.value !== "true") return; // disabled — do nothing
 
+        // Get IP with 3s timeout
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 3000);
+        let ip = "unknown";
+        try {
+          const r = await fetch("https://api.ipify.org?format=json", { signal: ctrl.signal });
+          ip = (await r.json()).ip || "unknown";
+        } catch { /* ignore — fail open */ }
+        clearTimeout(t);
+
+        // Check whitelist
+        const { data: whitelist } = await (supabase as any)
+          .from("network_whitelist")
+          .select("cidr,label,active")
+          .eq("active", true);
+
+        if (!whitelist?.length) return; // no rules — allow all
+
+        // Simple CIDR check
+        const ipNum = (s: string) => s.split(".").reduce((a: number, b: string) => (a << 8) | +b, 0) >>> 0;
+        const inCidr = (ip: string, cidr: string) => {
+          const [net, bits] = cidr.split("/");
+          if (!bits) return ip === net;
+          const mask = bits === "0" ? 0 : (~0 << (32 - +bits)) >>> 0;
+          return (ipNum(ip) & mask) === (ipNum(net) & mask);
+        };
+
+        const allowed = whitelist.some((e: any) => {
+          try { return inCidr(ip, e.cidr); } catch { return false; }
+        });
+
+        if (!allowed) {
+          // Log and sign out — but give user 5s to see a message
+          console.warn(`[NetworkGuard] IP ${ip} not in whitelist — signing out`);
+          setTimeout(() => supabase.auth.signOut(), 5000);
+        }
+      } catch (e) {
+        // Any error = fail open, never block
+        console.warn("[NetworkGuard] check failed (fail-open):", e);
+      }
+    })();
+  }, [user]);
+
+  // ALWAYS render children — zero blocking
   return <>{children}</>;
 }

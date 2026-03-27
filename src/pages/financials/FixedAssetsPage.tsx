@@ -132,7 +132,7 @@ export default function FixedAssetsPage() {
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} assets · Cost: {fmtKES(totalCost)} · NBV: {fmtKES(totalNBV)}</p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canManage&&<button onClick={()=>{setEditing(null);setForm({asset_number:"",asset_name:"",category:"",department_id:"",purchase_date:"",purchase_cost:"",useful_life:"",residual_value:"",depreciation_method:"Straight Line",location:"",serial_number:"",supplier_name:"",warranty_expiry:"",condition:"good",status:"active",description:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1a3a6b"}}><Plus style={{width:14,height:14}}/>Register Asset</button>}
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function FixedAssetsPage() {
       {/* Table */}
       <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead><tr style={{background:"#0a2558"}}>
+          <thead><tr style={{background:"#1e3a6b"}}>
             {["Asset No.","Name","Category","Dept.","Purchase Cost","Net Book Value","Condition","Status","Actions"].map(h=>(
               <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px",whiteSpace:"nowrap"}}>{h}</th>
             ))}
@@ -187,7 +187,7 @@ export default function FixedAssetsPage() {
           <div style={{background:"#fff",borderRadius:16,width:"min(640px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#1a3a6b,#0a2558)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit Asset":"Register Fixed Asset"}</span>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{flex:1,overflowY:"auto",padding:18}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -251,7 +251,7 @@ export default function FixedAssetsPage() {
           <div style={{background:"#fff",borderRadius:16,width:"min(540px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#1a3a6b,#0a2558)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.asset_name}</span>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{flex:1,overflowY:"auto",padding:18}}>
               {[["Asset No.",detail.asset_number],["Category",detail.category],["Department",detail.department_name],["Location",detail.location],["Serial No.",detail.serial_number],["Purchase Cost",fmtKES(detail.purchase_cost||0)],["Net Book Value",fmtKES(detail.net_book_value||0)],["Annual Depreciation",fmtKES(detail.annual_depreciation||0)],["Useful Life",`${detail.useful_life||0} years`],["Residual Value",fmtKES(detail.residual_value||0)],["Supplier",detail.supplier_name],["Warranty Expires",detail.warranty_expiry],["Condition",detail.condition],["Status",(detail.status||"").replace(/_/g," ")],["Registered By",detail.created_by_name]].filter(([_l,v])=>v).map(([l,v])=>(

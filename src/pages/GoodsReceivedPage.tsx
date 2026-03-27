@@ -31,7 +31,13 @@ export default function GoodsReceivedPage() {
   const [viewGrn, setViewGrn]     = useState<any>(null);
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [form, setForm] = useState({grn_number:"",po_reference:"",supplier_id:"",supplier_name:"",received_date:new Date().toISOString().slice(0,10),delivery_note_number:"",carrier_name:"",remarks:"",status:"received"});
+  const [form, setForm] = useState({
+    grn_number:"", po_reference:"", supplier_id:"", supplier_name:"",
+    received_date:new Date().toISOString().slice(0,10),
+    delivery_note_number:"", invoice_number:"", waybill_number:"",
+    carrier_name:"", received_by:"", store_location:"Main Store",
+    inspection_done:false, remarks:"", status:"received"
+  });
   const [grnItems, setGrnItems]   = useState<GrnItem[]>([{...EMPTY_ITEM}]);
 
   const load = async()=>{
@@ -72,7 +78,13 @@ export default function GoodsReceivedPage() {
     setGrnItems(prev=>prev.map((it,i)=>i===idx?{...it,[field]:val}:it));
 
   const resetForm = () => {
-    setForm({grn_number:"",po_reference:"",supplier_id:"",supplier_name:"",received_date:new Date().toISOString().slice(0,10),delivery_note_number:"",carrier_name:"",remarks:"",status:"received"});
+    setForm({
+    grn_number:"", po_reference:"", supplier_id:"", supplier_name:"",
+    received_date:new Date().toISOString().slice(0,10),
+    delivery_note_number:"", invoice_number:"", waybill_number:"",
+    carrier_name:"", received_by:"", store_location:"Main Store",
+    inspection_done:false, remarks:"", status:"received"
+  });
     setGrnItems([{...EMPTY_ITEM}]);
   };
 
@@ -112,7 +124,7 @@ export default function GoodsReceivedPage() {
   const tinp: React.CSSProperties = {padding:"5px 7px",border:"1.5px solid #e5e7eb",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box",fontFamily:"inherit",width:"100%"};
 
   return (
-    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui",minHeight:"100%"}}>
+    <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui",minHeight:"100%",background:"#f8fafc",background:"#f8fafc"}}>
       <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
       {/* KPI TILES */}
       {(()=>{
@@ -147,7 +159,7 @@ export default function GoodsReceivedPage() {
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={load} disabled={loading} style={{padding:"6px 12px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",lineHeight:0}}>
+          <button onClick={load} disabled={loading} style={{padding:"6px 12px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",lineHeight:0}}>
             <RefreshCw style={{width:13,height:13,...(loading?{animation:"spin 1s linear infinite"}:{})}}/>
           </button>
           {canReceive&&<button onClick={()=>{resetForm();setShowForm(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.92)",color:"#065f46",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
@@ -199,8 +211,8 @@ export default function GoodsReceivedPage() {
             <div style={{padding:"12px 16px",background:"linear-gradient(90deg,#065f46,#047857)",display:"flex",alignItems:"center",gap:8}}>
               <Package style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>{viewGrn.grn_number}</span>
-              <button onClick={()=>printGrn(viewGrn)} style={{display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"5px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}><Printer style={{width:11,height:11}}/>Print GRN</button>
-              <button onClick={()=>setViewGrn(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
+              <button onClick={()=>printGrn(viewGrn)} style={{display:"flex",alignItems:"center",gap:5,background:"#e2e8f0",border:"none",borderRadius:6,padding:"5px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}><Printer style={{width:11,height:11}}/>Print GRN</button>
+              <button onClick={()=>setViewGrn(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
               {[["PO Reference",viewGrn.po_reference],["Supplier",viewGrn.supplier_name],["Received Date",viewGrn.received_date?new Date(viewGrn.received_date).toLocaleDateString("en-KE"):"—"],["Delivery Note",viewGrn.delivery_note_number||"—"],["Carrier/Driver",viewGrn.carrier_name||"—"],["Status",viewGrn.status],["Created By",viewGrn.created_by_name||"—"]].map(([l,v])=>(
@@ -239,7 +251,7 @@ export default function GoodsReceivedPage() {
             <div style={{padding:"14px 18px",background:"linear-gradient(90deg,#065f46,#047857)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
               <Package style={{width:16,height:16,color:"#fff",marginRight:8}}/>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>New Goods Received Note</span>
-              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:14,height:14}}/></button>
+              <button onClick={()=>setShowForm(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{padding:18}}>
               <div style={{fontSize:11,fontWeight:800,color:"#065f46",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,paddingBottom:6,borderBottom:"2px solid #d1fae5"}}>Header Information</div>

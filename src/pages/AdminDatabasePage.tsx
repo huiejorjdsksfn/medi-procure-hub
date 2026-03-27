@@ -34,7 +34,7 @@ const TABLE_GROUPS = [
 
 // ── Styles (white background, black font, Times New Roman) ────────────────────
 const S = {
-  font:  "'Times New Roman', Times, serif",
+  font:  "'Segoe UI', system-ui, -apple-system, sans-serif",
   bg:    "#ffffff",
   fg:    "#000000",
   border:"#b0b0b0",
@@ -293,7 +293,7 @@ ORDER BY t.table_name;`);
         <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
           <div style={{ background:realtimeOn?"#00cc44":"#666",width:8,height:8,borderRadius:"50%" }} />
           <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
-          <button onClick={loadTable} style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
+          <button onClick={loadTable} style={{ background:"#e2e8f0",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
             <RefreshCw style={{ width:12,height:12 }} />
           </button>
         </div>
@@ -303,7 +303,7 @@ ORDER BY t.table_name;`);
       <div style={{ display:"flex",borderBottom:`2px solid #003087`,background:S.head,flexShrink:0 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #003087`:"3px solid transparent",background:activeTab===t.id?"#fff":S.head,cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#003087":S.fg }}>
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #1e3a6b`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"#f1f5f9",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"#374151" }}>
             <t.icon style={{ width:13,height:13 }} />
             {t.label}
           </button>
@@ -376,7 +376,7 @@ ORDER BY t.table_name;`);
 
             {/* New row form */}
             {newRow && (
-              <div style={{ padding:"8px 12px",background:"#fffde7",borderBottom:`1px solid ${S.border}`,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center" }}>
+              <div style={{ padding:"8px 12px",background:"#fef3c7",borderBottom:`1px solid ${S.border}`,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center" }}>
                 <span style={{ fontSize:11,fontWeight:700,fontFamily:S.font }}>New Row:</span>
                 {Object.keys(newRow).slice(0,8).map(k => (
                   <div key={k} style={{ display:"flex",alignItems:"center",gap:3 }}>
@@ -639,7 +639,7 @@ ORDER BY t.table_name;`);
               </button>
               <button onClick={()=>setRealtimeLog([])} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Clear Log</button>
             </div>
-            <div style={{ flex:1,overflow:"auto",background:"#0a0a1a",padding:10 }}>
+            <div style={{ flex:1,overflow:"auto",background:"#1e1e1e",padding:10 }}>
               {realtimeLog.length === 0 ? (
                 <div style={{ color:"#4ade80",fontFamily:S.mono,fontSize:12,padding:10 }}>
                   {realtimeOn ? "▶ Listening for changes on " + selectedTable + "…" : "Click 'Start Listening' to monitor real-time changes"}
@@ -649,7 +649,7 @@ ORDER BY t.table_name;`);
                   <span style={{ color:"#60a5fa" }}>[{log.time}]</span>{" "}
                   <span style={{ color:log.event==="INSERT"?"#4ade80":log.event==="UPDATE"?"#fbbf24":"#f87171",fontWeight:700 }}>{log.event}</span>{" "}
                   <span style={{ color:"#c084fc" }}>{log.table}</span>{" "}
-                  <span style={{ color:"#e2e8f0" }}>{log.data}</span>
+                  <span style={{ color:"#1e293b" }}>{log.data}</span>
                 </div>
               ))}
             </div>
