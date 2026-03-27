@@ -166,7 +166,7 @@ export default function InspectionsPage() {
             <div style={{padding:18,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Inspection Date</label><input type="date" value={form.inspection_date} onChange={e=>setForm(p=>({...p,inspection_date:e.target.value}))} style={inp}/></div>
               <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Supplier</label>
-                <select value={form.supplier_id} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||""}))} style={inp}>
+                <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||""}))} style={inp}>
                   <option value="">Select supplier...</option>
                   {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
