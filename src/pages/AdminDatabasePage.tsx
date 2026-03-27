@@ -34,29 +34,30 @@ const TABLE_GROUPS = [
 
 // ── Styles (white background, black font, Times New Roman) ────────────────────
 const S = {
-  font:  "'Segoe UI', system-ui, -apple-system, sans-serif",
+  font:  "'Segoe UI', Arial, system-ui, sans-serif",
   bg:    "#ffffff",
   fg:    "#000000",
-  border:"#b0b0b0",
-  head:  "#f0f0f0",
+  border:"#999999",
+  head:  "#e8e8e8",
   blue:  "#003087",
-  sel:   "#e8eef8",
-  err:   "#cc0000",
-  ok:    "#006600",
-  warn:  "#cc6600",
+  sel:   "#cce0ff",
+  err:   "#aa0000",
+  ok:    "#005500",
+  warn:  "#aa5500",
   mono:  "'Courier New', Courier, monospace",
 };
 
 const CELL: React.CSSProperties = {
   border: `1px solid ${S.border}`,
-  padding: "4px 8px",
+  padding: "5px 10px",
   fontSize: 12,
   fontFamily: S.font,
-  color: S.fg,
+  color: "#000000",
   whiteSpace: "nowrap",
-  maxWidth: 200,
+  maxWidth: 220,
   overflow: "hidden",
   textOverflow: "ellipsis",
+  background: "#ffffff",
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -529,7 +530,7 @@ ORDER BY t.table_name;`);
                 value={sql}
                 onChange={e=>setSql(e.target.value)}
                 onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
-                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:S.fg,background:"#fdfdf8",resize:"none",outline:"none",boxSizing:"border-box" }}
+                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#000000",background:"#fffffe",resize:"none",outline:"none",boxSizing:"border-box" }}
                 placeholder="-- Write SQL here (Ctrl+Enter to run)"
                 spellCheck={false}
               />

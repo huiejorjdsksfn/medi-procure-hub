@@ -116,6 +116,7 @@ const SEGS: Seg[] = [
     links:[
       {label:"Users",               path:"/users",                   roles:["admin"]},
       {label:"Departments",         path:"/departments",             roles:["admin","procurement_manager"]},
+      {label:"Reception Desk",      path:"/reception",           roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
       {label:"Email / Inbox",       path:"/email",                   roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
       {label:"Notifications",       path:"/notifications",           roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
       {label:"Profile",             path:"/profile",                 roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
@@ -151,6 +152,52 @@ const ALL_QUICK = [
   {label:"Users",          path:"/users",           roles:["admin"]},
   {label:"Settings",       path:"/settings",        roles:["admin"]},
 ];
+
+
+// ── Module icons for wheel panel ─────────────────────────────────────────────
+const MODULE_ICONS: Record<string, string> = {
+  "/requisitions":             "📋",
+  "/purchase-orders":          "🛒",
+  "/goods-received":           "📦",
+  "/suppliers":                "🏭",
+  "/tenders":                  "⚖️",
+  "/contracts":                "📝",
+  "/bid-evaluations":          "🏆",
+  "/procurement-planning":     "📅",
+  "/documents":                "📄",
+  "/vouchers/payment":         "💵",
+  "/vouchers/journal":         "📒",
+  "/vouchers/purchase":        "🧾",
+  "/vouchers/receipt":         "🧾",
+  "/vouchers/sales":           "💰",
+  "/financials/budgets":       "💹",
+  "/financials/chart-of-accounts":"📊",
+  "/financials/fixed-assets":  "🏗️",
+  "/financials/banks":         "🏦",
+  "/items":                    "📦",
+  "/stock-movements":          "🔄",
+  "/categories":               "🏷️",
+  "/departments":              "🏥",
+  "/scanner":                  "📷",
+  "/reports":                  "📈",
+  "/quality/dashboard":        "✅",
+  "/quality/inspections":      "🔍",
+  "/quality/non-conformance":  "⚠️",
+  "/audit-log":                "🔐",
+  "/reception":                "🛎️",
+  "/email":                    "✉️",
+  "/notifications":            "🔔",
+  "/profile":                  "👤",
+  "/documents/editor":         "✏️",
+  "/admin/panel":              "⚙️",
+  "/settings":                 "🔧",
+  "/admin/database":           "🗄️",
+  "/admin/ip-access":          "🛡️",
+  "/odbc":                     "🔌",
+  "/webmaster":                "🌐",
+  "/backup":                   "💾",
+  "/users":                    "👥",
+};
 
 const CX = 300, CY = 300, OR = 248, IR = 100;
 
@@ -475,10 +522,10 @@ export default function DashboardPage() {
                 <div style={{flex:1,overflowY:"auto",padding:"6px 8px"}}>
                   {visLinks(seg).map(lk=>(
                     <button key={lk.path} onClick={()=>nav(lk.path)} className="panel-link"
-                      style={{width:"100%",display:"flex",alignItems:"center",gap:11,padding:"10px 12px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:3,transition:"background 0.12s"}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:seg.g3,flexShrink:0,boxShadow:`0 0 6px ${seg.glow}`}}/>
-                      <span style={{flex:1,fontSize:12.5,fontWeight:500,color:"rgba(255,255,255,0.84)"}}>{lk.label}</span>
-                      <ChevronRight style={{width:12,height:12,color:"rgba(255,255,255,0.25)"}}/>
+                      style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:2,transition:"background 0.12s"}}>
+                      <span style={{fontSize:15,flexShrink:0,lineHeight:1}}>{MODULE_ICONS[lk.path]||"▸"}</span>
+                      <span style={{flex:1,fontSize:12.5,fontWeight:500,color:"rgba(255,255,255,0.88)"}}>{lk.label}</span>
+                      <ChevronRight style={{width:11,height:11,color:"rgba(255,255,255,0.22)"}}/>
                     </button>
                   ))}
                 </div>
