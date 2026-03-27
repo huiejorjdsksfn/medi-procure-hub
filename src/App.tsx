@@ -49,6 +49,7 @@ import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AuditLogPage from "@/pages/AuditLogPage";
 import AdminDatabasePage from "@/pages/AdminDatabasePage";
+import ReceptionPage from "@/pages/ReceptionPage";
 import WebmasterPage from "@/pages/WebmasterPage";
 import InboxPage from "@/pages/InboxPage";
 import EmailPage from "@/pages/EmailPage";
@@ -140,7 +141,8 @@ const App = () => (
             <Route path="/users" element={<P><RoleGuard allowed={["admin"]}><UsersPage /></RoleGuard></P>} />
             <Route path="/settings" element={<P><RoleGuard allowed={["admin"]}><SettingsPage /></RoleGuard></P>} />
             <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><AuditLogPage /></RoleGuard></P>} />
-            <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
+            <Route path="/reception" element={<P><ReceptionPage /></P>} />
+              <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin"]}><AdminPanelPage /></RoleGuard></P>} />
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/backup" element={<P><RoleGuard allowed={["admin"]}><BackupPage /></RoleGuard></P>} />
