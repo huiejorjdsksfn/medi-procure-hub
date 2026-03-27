@@ -35,29 +35,31 @@ const TABLE_GROUPS = [
 // ── Styles (white background, black font, Times New Roman) ────────────────────
 const S = {
   font:  "'Segoe UI', Arial, system-ui, sans-serif",
-  bg:    "#ffffff",
-  fg:    "#000000",
-  border:"#999999",
-  head:  "#e8e8e8",
-  blue:  "#003087",
-  sel:   "#cce0ff",
-  err:   "#aa0000",
-  ok:    "#005500",
-  warn:  "#aa5500",
+  bg:    "#0d1b35",
+  bg2:   "#0a1628",
+  fg:    "#f1f5f9",
+  fg2:   "#cbd5e1",
+  border:"rgba(255,255,255,0.1)",
+  head:  "rgba(255,255,255,0.05)",
+  blue:  "#3b82f6",
+  sel:   "rgba(59,130,246,0.2)",
+  err:   "#f87171",
+  ok:    "#4ade80",
+  warn:  "#fbbf24",
   mono:  "'Courier New', Courier, monospace",
 };
 
 const CELL: React.CSSProperties = {
-  border: `1px solid ${S.border}`,
-  padding: "5px 10px",
+  border: `1px solid rgba(255,255,255,0.08)`,
+  padding: "6px 12px",
   fontSize: 12,
   fontFamily: S.font,
-  color: "#000000",
+  color: "#f1f5f9",
   whiteSpace: "nowrap",
   maxWidth: 220,
   overflow: "hidden",
   textOverflow: "ellipsis",
-  background: "#ffffff",
+  background: "transparent",
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -282,10 +284,10 @@ ORDER BY t.table_name;`);
   ];
 
   return (
-    <div style={{ height:"100vh",display:"flex",flexDirection:"column",background:S.bg,fontFamily:S.font,color:S.fg }}>
+    <div style={{ height:"100vh",display:"flex",flexDirection:"column",background:S.bg,fontFamily:S.font,color:S.fg,minHeight:"100vh" }}>
 
       {/* ── Header ── */}
-      <div style={{ background:"#003087",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
+      <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
         <Database style={{ width:20,height:20 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:700,fontFamily:S.font }}>Database Administration</div>
@@ -301,10 +303,10 @@ ORDER BY t.table_name;`);
       </div>
 
       {/* ── Tab bar ── */}
-      <div style={{ display:"flex",borderBottom:`2px solid #003087`,background:S.head,flexShrink:0 }}>
+      <div style={{ display:"flex",borderBottom:`2px solid #003087`,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #1e3a6b`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"#f1f5f9",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"#374151" }}>
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"#f1f5f9",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"#374151" }}>
             <t.icon style={{ width:13,height:13 }} />
             {t.label}
           </button>
@@ -316,7 +318,7 @@ ORDER BY t.table_name;`);
 
         {/* Left sidebar — table tree */}
         {activeTab === "tables" && (
-          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"#f8f8f8",flexShrink:0 }}>
+          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables…"
                 style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
@@ -328,14 +330,14 @@ ORDER BY t.table_name;`);
               return (
                 <div key={grp.id}>
                   <button onClick={() => setOpenGroups(p => { const s=new Set(p); s.has(grp.id)?s.delete(grp.id):s.add(grp.id); return s; })}
-                    style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"transparent",border:"none",cursor:"pointer",borderBottom:`1px solid ${S.border}` }}>
+                    style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"transparent",border:"none",cursor:"pointer",borderBottom:`1px solid rgba(255,255,255,0.05)` }}>
                     {isOpen ? <ChevronDown style={{ width:11,height:11,color:grp.color }} /> : <ChevronRight style={{ width:11,height:11,color:grp.color }} />}
                     <span style={{ fontSize:11,fontWeight:700,color:grp.color,fontFamily:S.font }}>{grp.label}</span>
                     <span style={{ fontSize:9,color:"#888",marginLeft:"auto",fontFamily:S.font }}>({filtered.length})</span>
                   </button>
                   {isOpen && filtered.map(t => (
                     <button key={t} onClick={() => { setSelectedTable(t); setPage(0); setSearch(""); }}
-                      style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 4px 22px",background:selectedTable===t?S.sel:"transparent",border:"none",borderBottom:`1px solid #e8e8e8`,cursor:"pointer" }}>
+                      style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 4px 22px",background:selectedTable===t?"rgba(59,130,246,0.2)":"transparent",border:"none",borderBottom:`1px solid #e8e8e8`,cursor:"pointer" }}>
                       <div style={{ display:"flex",alignItems:"center",gap:5 }}>
                         <TableIcon style={{ width:10,height:10,color:grp.color,flexShrink:0 }} />
                         <span style={{ fontSize:11,fontFamily:S.font,color:S.fg,fontWeight:selectedTable===t?700:400 }}>{t}</span>
@@ -355,9 +357,9 @@ ORDER BY t.table_name;`);
         {activeTab === "tables" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
             {/* Toolbar */}
-            <div style={{ padding:"6px 12px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:8,background:S.head,flexShrink:0 }}>
+            <div style={{ padding:"6px 12px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
-              <span style={{ fontSize:11,color:"#666",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
+              <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
                 <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font }}>
                   {[25,50,100,200,500].map(n=><option key={n}>{n}</option>)}
@@ -399,10 +401,10 @@ ORDER BY t.table_name;`);
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
                     <tr>
-                      <th style={{ ...CELL,background:"#003087",color:"#fff",fontWeight:700,width:60 }}>Actions</th>
+                      <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
                       {tableColumns.map(col => (
                         <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
-                          style={{ ...CELL,background:"#003087",color:"#fff",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
+                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
                           {col}{sortCol===col?(sortAsc?" ▲":" ▼"):""}
                         </th>
                       ))}
@@ -410,9 +412,9 @@ ORDER BY t.table_name;`);
                   </thead>
                   <tbody>
                     {tableData.map((row, ri) => (
-                      <tr key={row.id||ri} style={{ background:ri%2===0?S.bg:"#fafafa" }}
-                        onMouseEnter={e=>(e.currentTarget.style.background=S.sel)}
-                        onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?S.bg:"#fafafa")}>
+                      <tr key={row.id||ri} style={{ background:ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)" }}
+                        onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
+                        onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)")}>
                         <td style={{ ...CELL,width:60,textAlign:"center" }}>
                           <div style={{ display:"flex",gap:3,justifyContent:"center" }}>
                             <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
@@ -451,7 +453,7 @@ ORDER BY t.table_name;`);
             </div>
 
             {/* Pagination */}
-            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:10,background:S.head,flexShrink:0,fontFamily:S.font,fontSize:11 }}>
+            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)",fontFamily:S.font,fontSize:11 }}>
               <span>Page {page+1} of {Math.ceil(totalRows/pageSize)} ({totalRows.toLocaleString()} rows)</span>
               <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
                 <button disabled={page===0} onClick={()=>setPage(0)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>«</button>
@@ -464,9 +466,9 @@ ORDER BY t.table_name;`);
             {/* Edit modal */}
             {editingRow && (
               <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
-                <div style={{ background:S.bg,border:`2px solid #003087`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto",fontFamily:S.font }}>
+                <div style={{ background:"#1e293b",border:`2px solid #3b82f6`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto",fontFamily:S.font }}>
                   <div style={{ display:"flex",justifyContent:"space-between",marginBottom:14 }}>
-                    <span style={{ fontSize:14,fontWeight:700,color:"#003087",fontFamily:S.font }}>Edit Row — {selectedTable}</span>
+                    <span style={{ fontSize:14,fontWeight:700,color:"#60a5fa",fontFamily:S.font }}>Edit Row — {selectedTable}</span>
                     <button onClick={()=>setEditingRow(null)} style={{ background:"none",border:"none",cursor:"pointer" }}><X style={{ width:16,height:16 }} /></button>
                   </div>
                   <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
@@ -490,7 +492,7 @@ ORDER BY t.table_name;`);
             {/* Delete confirm */}
             {deleteConfirm && (
               <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
-                <div style={{ background:S.bg,border:`2px solid #cc0000`,padding:24,maxWidth:400,fontFamily:S.font }}>
+                <div style={{ background:"#1e293b",border:`2px solid #ef4444`,padding:24,maxWidth:400,fontFamily:S.font }}>
                   <div style={{ fontSize:14,fontWeight:700,color:"#cc0000",marginBottom:12 }}>Confirm Delete</div>
                   <p style={{ fontSize:12,marginBottom:16 }}>Delete row ID: <code style={{ fontFamily:S.mono }}>{deleteConfirm.slice(0,20)}…</code>?<br/>This cannot be undone.</p>
                   <div style={{ display:"flex",gap:8,justifyContent:"flex-end" }}>
@@ -506,9 +508,9 @@ ORDER BY t.table_name;`);
         {/* ── SQL EDITOR tab ── */}
         {activeTab === "sql" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-            <div style={{ padding:"6px 12px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:8,background:S.head,flexShrink:0 }}>
+            <div style={{ padding:"6px 12px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real SQL Editor — PostgreSQL</span>
-              {sqlMs !== null && <span style={{ fontSize:11,color:"#666",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
+              {sqlMs !== null && <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
                 <button onClick={()=>setSql("SELECT * FROM " + selectedTable + " LIMIT 50;")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   Select *
@@ -530,7 +532,7 @@ ORDER BY t.table_name;`);
                 value={sql}
                 onChange={e=>setSql(e.target.value)}
                 onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
-                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#000000",background:"#fffffe",resize:"none",outline:"none",boxSizing:"border-box" }}
+                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#e2e8f0",background:"#0a1628",resize:"none",outline:"none",boxSizing:"border-box" }}
                 placeholder="-- Write SQL here (Ctrl+Enter to run)"
                 spellCheck={false}
               />
@@ -538,20 +540,20 @@ ORDER BY t.table_name;`);
             </div>
             <div style={{ flex:1,overflow:"auto",padding:0 }}>
               {sqlError && (
-                <div style={{ padding:"8px 14px",background:"#fff0f0",borderBottom:`1px solid #cc0000`,fontFamily:S.mono,fontSize:12,color:"#cc0000" }}>
+                <div style={{ padding:"8px 14px",background:"rgba(248,113,113,0.1)",borderBottom:`1px solid #cc0000`,fontFamily:S.mono,fontSize:12,color:"#cc0000" }}>
                   <AlertTriangle style={{ width:12,height:12,display:"inline",marginRight:6 }} />Error: {sqlError}
                 </div>
               )}
               {sqlResult.length > 0 && (
                 <div>
-                  <div style={{ padding:"4px 12px",background:"#f0f8f0",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600" }}>
+                  <div style={{ padding:"4px 12px",background:"rgba(74,222,128,0.1)",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600" }}>
                     <CheckCircle style={{ width:11,height:11,display:"inline",marginRight:6 }} />{sqlResult.length} row(s) returned in {sqlMs}ms
                   </div>
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                     <thead style={{ position:"sticky",top:0 }}>
                       <tr>
                         {Object.keys(sqlResult[0]).map(k => (
-                          <th key={k} style={{ ...CELL,background:"#003087",color:"#fff",fontWeight:700,textAlign:"left" }}>{k}</th>
+                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{k}</th>
                         ))}
                       </tr>
                     </thead>
@@ -579,7 +581,7 @@ ORDER BY t.table_name;`);
               <thead>
                 <tr>
                   {["Column","Data Type","Nullable","Default"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"#003087",color:"#fff",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -608,7 +610,7 @@ ORDER BY t.table_name;`);
               <thead>
                 <tr>
                   {["Trigger Name","Table","Event","Timing"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"#003087",color:"#fff",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -669,7 +671,7 @@ ORDER BY t.table_name;`);
                 <thead>
                   <tr>
                     {["Table","Columns","Policies","Triggers","Rows"].map(h=>(
-                      <th key={h} style={{ ...CELL,background:"#003087",color:"#fff",fontWeight:700,textAlign:"left" }}>{h}</th>
+                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>

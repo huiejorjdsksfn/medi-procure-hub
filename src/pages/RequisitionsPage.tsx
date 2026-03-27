@@ -172,10 +172,10 @@ export default function RequisitionsPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{minHeight:"100vh",background:"#f0f4f8",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#0d1b35",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
       {/* ── KPI TILES ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid #e5e7eb"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
         {[
           {label:"Total Value",     val:fmtKES(totalValue),    bg:"#dc2626",  icon:"💰"},
           {label:"Approved Value",  val:fmtKES(approvedValue), bg:"#059669",  icon:"✅"},
@@ -191,21 +191,21 @@ export default function RequisitionsPage() {
       </div>
 
       {/* ── PAGE HEADER ── */}
-      <div style={{padding:"16px 20px 0",display:"flex",alignItems:"center",gap:10}}>
+      <div style={{padding:"16px 20px 0",display:"flex",alignItems:"center",gap:10,background:"transparent"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
           <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
           </div>
           <div>
             <div style={{fontSize:16,fontWeight:800,color:"#1a1a2e"}}>Requisitions</div>
-            <div style={{fontSize:11,color:"#6b7280"}}>Purchase requisition management · {reqs.length} records</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Purchase requisition management · {reqs.length} records</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
+          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>
             <Download style={{width:13,height:13}}/> Export
           </button>
-          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>
             <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canCreate&&(
@@ -218,7 +218,7 @@ export default function RequisitionsPage() {
       </div>
 
       {/* ── STATUS TABS ── */}
-      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" as const,background:"transparent"}}>
         {Object.entries({all:"All",...Object.fromEntries(Object.entries(STATUS_CFG).map(([k,v])=>[k,v.label]))}).map(([key,label])=>{
           const cnt=COUNTS[key as keyof typeof COUNTS]??0;
           const isActive=statusTab===key;
@@ -232,7 +232,7 @@ export default function RequisitionsPage() {
           );
         })}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",fontSize:12,color:"#374151",cursor:"pointer"}}>
+          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",fontSize:12,color:"#cbd5e1",cursor:"pointer"}}>
             <option value="all">All Priority</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
@@ -247,13 +247,13 @@ export default function RequisitionsPage() {
         <div style={{position:"relative",maxWidth:"100%"}}>
           <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisition number, title, requester, department…"
-            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid #e5e7eb",borderRadius:10,background:"#fff",fontSize:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
+            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* ── TABLE ── */}
-      <div style={{margin:"0 20px 20px",background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",overflow:"hidden"}}>
+      <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
@@ -295,25 +295,25 @@ export default function RequisitionsPage() {
                 const prioColor={urgent:"#dc2626",high:"#d97706",normal:"#059669",low:"#6b7280"}[r.priority as string]||"#6b7280";
 
                 return (
-                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"#fff":"#fafafa",transition:"background 0.1s"}}
-                    onMouseEnter={e=>(e.currentTarget.style.background="#f0f9ff")}
-                    onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#fff":"#fafafa")}>
+                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)",transition:"background 0.1s"}}
+                    onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
+                    onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)")}>
 
-                    <td style={{padding:"10px 14px",fontWeight:700,color:"#003087",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
+                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
                       {r.requisition_number||"—"}
                     </td>
                     <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      <div style={{fontWeight:600,color:"#1f2937",fontSize:12}}>{r.title||"Untitled"}</div>
+                      <div style={{fontWeight:600,color:"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
                       {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
                     </td>
-                    <td style={{padding:"10px 14px",color:"#6b7280",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"—"}</td>
                     <td style={{padding:"10px 14px"}}>
                       <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
                     </td>
-                    <td style={{padding:"10px 14px",color:"#374151",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"—"}</td>
-                    <td style={{padding:"10px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
-                    <td style={{padding:"10px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
-                    <td style={{padding:"10px 14px",fontWeight:600,color:"#1f2937",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
+                    <td style={{padding:"10px 14px",color:"#cbd5e1",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
+                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
                       {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"—"}
                     </td>
                     <td style={{padding:"10px 14px"}}>
@@ -359,7 +359,7 @@ export default function RequisitionsPage() {
           </table>
         </div>
         {/* Footer */}
-        <div style={{padding:"8px 16px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:"#9ca3af"}}>
+        <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:"#9ca3af"}}>
           <span>Showing {filtered.length} of {reqs.length} requisitions</span>
           <span>{reqs.length>0&&`Total value: ${fmtKES(totalValue)}`}</span>
         </div>
@@ -375,10 +375,10 @@ export default function RequisitionsPage() {
               </div>
               <div>
                 <div style={{fontSize:16,fontWeight:800,color:"#1a1a2e"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
-                <div style={{fontSize:11,color:"#6b7280"}}>Embu Level 5 Hospital · {editReq?.requisition_number||"New"}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>Embu Level 5 Hospital · {editReq?.requisition_number||"New"}</div>
               </div>
               <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"#6b7280"}}/>
+                <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
               </button>
             </div>
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -393,7 +393,7 @@ export default function RequisitionsPage() {
                 {k:"notes",l:"Additional Notes",p:"Any other information…",span:2,type:"textarea"},
               ].map(field=>(
                 <div key={field.k} style={{gridColumn:field.span===2?"span 2":"span 1"}}>
-                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>{field.l}</label>
+                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#cbd5e1",marginBottom:4}}>{field.l}</label>
                   {field.type==="select"?(
                     <select value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
                       {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize"}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
@@ -407,7 +407,7 @@ export default function RequisitionsPage() {
               ))}
             </div>
             <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#cbd5e1"}}>Cancel</button>
               <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                 {saving?"Saving…":editReq?"Update Requisition":"Create Requisition"}
               </button>
@@ -431,13 +431,13 @@ export default function RequisitionsPage() {
               </div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:800,color:"#1a1a2e"}}>{viewReq.requisition_number}</div>
-                <div style={{fontSize:11,color:"#6b7280"}}>{viewReq.title}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>{viewReq.title}</div>
               </div>
               <span style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
                 {STATUS_CFG[viewReq.status]?.label||viewReq.status}
               </span>
               <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"#6b7280"}}/>
+                <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
               </button>
             </div>
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -474,8 +474,8 @@ export default function RequisitionsPage() {
               {viewReq.status==="draft"&&(
                 <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>⇪ Submit for Approval</button>
               )}
-              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>🖨 Print</button>
-              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>Close</button>
+              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>🖨 Print</button>
+              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>Close</button>
             </div>
           </div>
         </div>
@@ -491,7 +491,7 @@ export default function RequisitionsPage() {
             </div>
             <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#cbd5e1"}}>Cancel</button>
               <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
             </div>
           </div>
