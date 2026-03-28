@@ -277,7 +277,7 @@ export default function ScannerPage() {
                             {foundItem.item_type && <span style={{background:"#dbeafe",color:"#1d4ed8",padding:"1px 6px",borderRadius:4,fontSize:10,fontWeight:700}}>{foundItem.item_type}</span>}
                           </div>
                         </div>
-                        <div style={{textAlign:"right"}}>
+                        <div style={{textAlign:"right" as const}}>
                           <div style={{fontSize:20,fontWeight:800,color:foundItem.quantity_in_stock<=foundItem.reorder_level?"#dc2626":"#15803d"}}>{foundItem.quantity_in_stock||0}</div>
                           <div style={{fontSize:9,color:"#9ca3af"}}>in stock</div>
                         </div>
@@ -285,7 +285,7 @@ export default function ScannerPage() {
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
                         {[["Unit Price","KES "+(foundItem.unit_price||0),"#374151"],["Unit",""+foundItem.unit_of_measure,"#374151"],["Reorder At",""+foundItem.reorder_level,"#374151"]].map(([l,v,c])=>(
                           <div key={l} style={{background:"#f9fafb",borderRadius:6,padding:"8px 10px"}}>
-                            <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{l}</div>
+                            <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase" as const,marginBottom:2}}>{l}</div>
                             <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
                           </div>
                         ))}
@@ -305,7 +305,7 @@ export default function ScannerPage() {
                   ) : onlineInfo ? (
                     <div>
                       <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                        {onlineInfo.imageUrl && <img src={onlineInfo.imageUrl} alt="" style={{width:60,height:60,objectFit:"contain",borderRadius:6,border:"1px solid #e5e7eb"}} onError={e=>(e.target as HTMLImageElement).style.display="none"}/>}
+                        {onlineInfo.imageUrl && <img src={onlineInfo.imageUrl} alt="" style={{width:60,height:60,objectFit:"contain" as const,borderRadius:6,border:"1px solid #e5e7eb"}} onError={e=>(e.target as HTMLImageElement).style.display="none"}/>}
                         <div style={{flex:1}}>
                           <div style={{fontSize:14,fontWeight:800,color:"#111827"}}>{onlineInfo.name}</div>
                           {onlineInfo.brand && <div style={{fontSize:11,color:"#6b7280",marginTop:1}}>{onlineInfo.brand}</div>}
@@ -318,7 +318,7 @@ export default function ScannerPage() {
                       </button>
                     </div>
                   ) : (
-                    <div style={{textAlign:"center",padding:"8px 0"}}>
+                    <div style={{textAlign:"center" as const,padding:"8px 0"}}>
                       <AlertTriangle style={{width:28,height:28,color:"#f59e0b",margin:"0 auto 8px"}}/>
                       <div style={{fontSize:13,fontWeight:600,color:"#374151"}}>Item not found anywhere</div>
                       <div style={{fontSize:11,color:"#9ca3af",marginBottom:12}}>Barcode: {barcode}</div>
@@ -338,7 +338,7 @@ export default function ScannerPage() {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[{label:"Total Items",value:allItems.length,color:"#0078d4",icon:Package},{label:"Low Stock",value:allItems.filter(i=>(i.quantity_in_stock||0)<=(i.reorder_level||10)).length,color:"#f59e0b",icon:AlertTriangle},{label:"Out of Stock",value:allItems.filter(i=>(i.quantity_in_stock||0)===0).length,color:"#dc2626",icon:X},{label:"Categories",value:categories.length,color:"#107c10",icon:Database}].map(s=>(
                 <div key={s.label} style={{background:"#fff",borderRadius:8,padding:"12px",border:"1px solid #e5e7eb",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-                  <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{s.label}</div>
+                  <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase" as const,marginBottom:4}}>{s.label}</div>
                   <div style={{fontSize:22,fontWeight:800,color:s.color}}>{s.value}</div>
                 </div>
               ))}
@@ -353,9 +353,9 @@ export default function ScannerPage() {
                   <RefreshCw style={{width:11,height:11}}/>
                 </button>
               </div>
-              <div style={{overflowY:"auto",maxHeight:300}}>
+              <div style={{overflowY:"auto" as const,maxHeight:300}}>
                 {recentScans.length===0
-                  ? <div style={{padding:"20px",textAlign:"center",color:"#9ca3af",fontSize:12}}>No recent activity</div>
+                  ? <div style={{padding:"20px",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No recent activity</div>
                   : recentScans.map((m,i)=>(
                     <div key={i} style={{padding:"9px 14px",borderBottom:"1px solid #f9fafb",display:"flex",gap:8,alignItems:"center"}}>
                       <div style={{width:6,height:6,borderRadius:"50%",background:m.movement_type==="stock_in"?"#22c55e":m.movement_type==="stock_out"?"#ef4444":"#0078d4",flexShrink:0}}/>
@@ -379,10 +379,10 @@ export default function ScannerPage() {
           <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr style={{background:"#f9fafb",borderBottom:"2px solid #f3f4f6"}}>
-                {["Item","Type","Qty","Notes","Date","By"].map(h=><th key={h} style={{padding:"9px 14px",textAlign:"left",fontWeight:700,color:"#9ca3af",fontSize:10,textTransform:"uppercase",letterSpacing:"0.04em"}}>{h}</th>)}
+                {["Item","Type","Qty","Notes","Date","By"].map(h=><th key={h} style={{padding:"9px 14px",textAlign:"left" as const,fontWeight:700,color:"#9ca3af",fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{h}</th>)}
               </tr></thead>
               <tbody>
-                {recentScans.length===0?<tr><td colSpan={6} style={{padding:"24px",textAlign:"center",color:"#9ca3af"}}>No history</td></tr>
+                {recentScans.length===0?<tr><td colSpan={6} style={{padding:"24px",textAlign:"center" as const,color:"#9ca3af"}}>No history</td></tr>
                 :recentScans.map((m,i)=>(
                   <tr key={i} style={{borderBottom:"1px solid #f9fafb"}} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
                     <td style={{padding:"9px 14px",fontWeight:600,color:"#374151"}}>{m.items?.name||"—"}</td>
@@ -418,10 +418,10 @@ export default function ScannerPage() {
                 <RefreshCw style={{width:12,height:12}}/>
               </button>
             </div>
-            <div style={{overflowX:"auto"}}>
+            <div style={{overflowX:"auto" as const}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f9fafb",borderBottom:"2px solid #f3f4f6"}}>
-                  {["Name","Barcode","Category","Department","Stock","Unit","Price","Status"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:"#9ca3af",fontSize:10,textTransform:"uppercase",letterSpacing:"0.04em",whiteSpace:"nowrap"}}>{h}</th>)}
+                  {["Name","Barcode","Category","Department","Stock","Unit","Price","Status"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left" as const,fontWeight:700,color:"#9ca3af",fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.04em",whiteSpace:"nowrap" as const}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {filteredItems.map((item,i)=>(
@@ -475,13 +475,13 @@ export default function ScannerPage() {
                 {label:"Storage Location",key:"location",type:"text"},
               ].map(f=>(
                 <div key={f.key} style={{gridColumn:f.full?"1 / -1":"auto"}}>
-                  <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>{f.label}</label>
+                  <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{f.label}</label>
                   <input type={f.type} value={(addForm as any)[f.key]||""} onChange={e=>setAddForm(p=>({...p,[f.key]:e.target.value}))}
                     style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
                 </div>
               ))}
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Category</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Category</label>
                 <select value={addForm.category_id} onChange={e=>setAddForm(p=>({...p,category_id:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   <option value="">Select...</option>
@@ -489,7 +489,7 @@ export default function ScannerPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Department</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Department</label>
                 <select value={addForm.department_id} onChange={e=>setAddForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   <option value="">Select...</option>
@@ -497,14 +497,14 @@ export default function ScannerPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Unit of Measure</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Unit of Measure</label>
                 <select value={addForm.unit_of_measure} onChange={e=>setAddForm(p=>({...p,unit_of_measure:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   {["piece","box","carton","litre","kg","pack","vial","ampoule","tablet","capsule"].map(u=><option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>Item Type</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Item Type</label>
                 <select value={addForm.item_type} onChange={e=>setAddForm(p=>({...p,item_type:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   {["consumable","medical_supply","equipment","drug","stationery","ppe","other"].map(t=><option key={t} value={t}>{t}</option>)}

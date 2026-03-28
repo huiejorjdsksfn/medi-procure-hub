@@ -121,7 +121,7 @@ export default function VouchersPage() {
               {label:"Approved",val:approved,bg:"#0e6655"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -129,7 +129,7 @@ export default function VouchersPage() {
           </div>
         );
       })()}
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap" as const,gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#5C2D91,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <FileText style={{width:21,height:21,color:"#fff"}}/>
@@ -139,7 +139,7 @@ export default function VouchersPage() {
             <p style={{fontSize:13,color:"#6b7280",margin:0}}>Issue vouchers · {rows.length} total</p>
           </div>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
           {/* Quick links to voucher types */}
           {[{label:"Payment",path:"/vouchers/payment"},{label:"Receipt",path:"/vouchers/receipt"},{label:"Journal",path:"/vouchers/journal"}].map(l=>(
             <button key={l.path} onClick={()=>navigate(l.path)} style={{padding:"7px 12px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0369a1"}}>{l.label} Vouchers →</button>
@@ -152,7 +152,7 @@ export default function VouchersPage() {
       </div>
 
       {/* Status tabs */}
-      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap" as const}}>
         {[{id:"all",label:"All"},{id:"pending",label:"Pending"},{id:"approved",label:"Approved"},{id:"issued",label:"Issued"},{id:"rejected",label:"Rejected"}].map(f=>(
           <button key={f.id} onClick={()=>setStFilter(f.id)} style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${stFilter===f.id?"#5C2D91":"#e5e7eb"}`,background:stFilter===f.id?"#5C2D91":"#fff",color:stFilter===f.id?"#fff":"#374151",fontSize:12,fontWeight:700,cursor:"pointer"}}>
             {f.label} ({rows.filter(r=>f.id==="all"||r.status===f.id).length})
@@ -197,7 +197,7 @@ export default function VouchersPage() {
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.date?new Date(r.date).toLocaleDateString("en-KE"):"—"}</td>
                   <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
                       <button onClick={()=>setPrint(r)} title="Print" style={{padding:"4px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",lineHeight:0}}><Printer style={{width:11,height:11,color:"#6b7280"}}/></button>
                       {canApprove&&r.status==="pending"&&<>
                         <button onClick={()=>approve(r)} style={{padding:"4px 8px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:5,cursor:"pointer",lineHeight:0}}><CheckCircle style={{width:11,height:11,color:"#15803d"}}/></button>
@@ -216,7 +216,7 @@ export default function VouchersPage() {
       {/* New Voucher Modal */}
       {showNew&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(800px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(800px,100%)",maxHeight:"92vh",overflowY:"auto" as const,boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
               <FileText style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>New Store Requisition Voucher</span>
               <button onClick={()=>setShowNew(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
@@ -289,7 +289,7 @@ export default function VouchersPage() {
       {/* Print modal */}
       {print&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:12,width:"min(700px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.3)"}}>
+          <div style={{background:"#fff",borderRadius:12,width:"min(700px,100%)",maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 24px 64px rgba(0,0,0,0.3)"}}>
             <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e5e7eb"}}>
               <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Store Requisition Voucher</span>
               <div style={{display:"flex",gap:8}}>
@@ -299,7 +299,7 @@ export default function VouchersPage() {
             </div>
             <div id="print-area" style={{padding:24,fontFamily:"serif"}}>
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:8,paddingBottom:8,borderBottom:"2px solid #111"}}>
-                <img src={logo} alt="logo" style={{width:70,height:70,objectFit:"contain"}}/>
+                <img src={logo} alt="logo" style={{width:70,height:70,objectFit:"contain" as const}}/>
                 <div>
                   <div style={{fontSize:15,fontWeight:900,textTransform:"uppercase" as const}}>Embu County Government</div>
                   <div style={{fontSize:13,fontWeight:700}}>Embu Level 5 Hospital</div>

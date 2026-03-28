@@ -81,7 +81,7 @@ export default function NonConformancePage() {
         </div>
       </div>
       {/* Filters */}
-      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,alignItems:"center"}}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginBottom:14,alignItems:"center"}}>
         {[{id:"all",label:`All (${rows.length})`},{id:"open",label:`Open (${stats.open})`},{id:"under_review",label:`Under Review (${stats.under_review})`},{id:"closed",label:`Closed (${stats.closed})`}].map(f=>(
           <button key={f.id} onClick={()=>setStatusFilter(f.id)}
             style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${statusFilter===f.id?"#c2410c":"#e5e7eb"}`,background:statusFilter===f.id?"#c2410c":"#fff",color:statusFilter===f.id?"#fff":"#374151",fontSize:11,fontWeight:700,cursor:"pointer"}}>
@@ -98,23 +98,23 @@ export default function NonConformancePage() {
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead><tr style={{background:"linear-gradient(90deg,#7c2d12,#c2410c)"}}>
             {["NCR No.","Title","Severity","Supplier","Item","Status","Date","Actions"].map(h=>(
-              <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
+              <th key={h} style={{padding:"10px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase" as const,letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
             ))}
           </tr></thead>
           <tbody>
-            {loading?(<tr><td colSpan={8} style={{padding:24,textAlign:"center"}}><RefreshCw style={{width:16,height:16,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/></td></tr>):
-            filtered.length===0?(<tr><td colSpan={8} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>No NCRs found</td></tr>):
+            {loading?(<tr><td colSpan={8} style={{padding:24,textAlign:"center" as const}}><RefreshCw style={{width:16,height:16,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/></td></tr>):
+            filtered.length===0?(<tr><td colSpan={8} style={{padding:40,textAlign:"center" as const,color:"#9ca3af"}}>No NCRs found</td></tr>):
             filtered.map((r,i)=>{
               const sc=SC[r.status]||{bg:"#f3f4f6",color:"#6b7280"};
               return(<tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fff7ed"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}>
                 <td style={{padding:"9px 12px",fontWeight:700,color:"#c2410c",fontFamily:"monospace",fontSize:11}}>{r.ncr_number||"—"}</td>
-                <td style={{padding:"9px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:`${SEV[r.severity]||"#6b7280"}18`,color:SEV[r.severity]||"#6b7280"}}>{r.severity||"minor"}</span></td>
+                <td style={{padding:"9px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.title}</td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:`${SEV[r.severity]||"#6b7280"}18`,color:SEV[r.severity]||"#6b7280"}}>{r.severity||"minor"}</span></td>
                 <td style={{padding:"9px 12px",color:"#374151"}}>{r.supplier_name||"—"}</td>
                 <td style={{padding:"9px 12px",color:"#374151"}}>{r.item_name||"—"}</td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,textTransform:"capitalize"}}>{r.status?.replace("_"," ")||"—"}</span></td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,textTransform:"capitalize" as const}}>{r.status?.replace("_"," ")||"—"}</span></td>
                 <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.ncr_date?new Date(r.ncr_date).toLocaleDateString("en-KE"):"—"}</td>
                 <td style={{padding:"9px 12px"}}>
                   <div style={{display:"flex",gap:4}}>
@@ -131,7 +131,7 @@ export default function NonConformancePage() {
       {/* Detail side panel */}
       {detail&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:50,display:"flex",justifyContent:"flex-end"}} onClick={()=>setDetail(null)}>
-          <div style={{width:"min(440px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
+          <div style={{width:"min(440px,100%)",background:"#fff",height:"100%",overflowY:"auto" as const,boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"12px 16px",background:"linear-gradient(90deg,#7c2d12,#c2410c)",display:"flex",alignItems:"center",gap:8}}>
               <AlertTriangle style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>{detail.ncr_number}</span>
               <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
@@ -141,7 +141,7 @@ export default function NonConformancePage() {
               {[["Severity",detail.severity],["Status",detail.status?.replace("_"," ")],["Source",detail.source],["Supplier",detail.supplier_name||"—"],["Item",detail.item_name||"—"],["GRN Ref",detail.grn_reference||"—"],["Responsible",detail.responsible_person||"—"],["Target Date",detail.target_date||"—"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f3f4f6"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize"}}>{v||"—"}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize" as const}}>{v||"—"}</span>
                 </div>
               ))}
               {detail.description&&<div style={{padding:10,background:"#fef2f2",borderRadius:8,fontSize:12,color:"#374151"}}><b>Description:</b> {detail.description}</div>}
@@ -156,25 +156,25 @@ export default function NonConformancePage() {
       {/* New NCR form */}
       {showNew&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:16,width:"min(620px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.2)"}}>
+          <div style={{background:"#fff",borderRadius:16,width:"min(620px,100%)",maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 24px 64px rgba(0,0,0,0.2)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(90deg,#7c2d12,#c2410c)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>New Non-Conformance Report</span>
               <button onClick={()=>setShowNew(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:18,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Title *</label><input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={inp}/></div>
+              <div style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,marginBottom:4}}>Title *</label><input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={inp}/></div>
               {[["NCR Date","ncr_date","date"],["Source","source","text"],["Supplier Name","supplier_name","text"],["Item Name","item_name","text"],["GRN Reference","grn_reference","text"],["Responsible Person","responsible_person","text"],["Target Date","target_date","date"]].map(([l,k,t])=>(
-                <div key={k}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
+                <div key={k}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,marginBottom:4}}>{l}</label>
                   {t==="date"?<input type="date" value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>:<input value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>}
                 </div>
               ))}
-              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Severity</label>
+              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,marginBottom:4}}>Severity</label>
                 <select value={form.severity} onChange={e=>setForm(p=>({...p,severity:e.target.value}))} style={inp}>
                   {["minor","major","critical"].map(v=><option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               {[["Description","description"],["Root Cause","root_cause"],["Corrective Action","corrective_action"],["Preventive Action","preventive_action"]].map(([l,k])=>(
-                <div key={k} style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
+                <div key={k} style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,marginBottom:4}}>{l}</label>
                   <textarea value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} rows={2} style={{...inp,resize:"vertical" as const,fontFamily:"inherit"}}/>
                 </div>
               ))}

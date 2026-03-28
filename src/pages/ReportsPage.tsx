@@ -147,17 +147,17 @@ export default function ReportsPage() {
       <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",display:"flex",flexDirection:"column"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap" as const,gap:8}}>
           {/* Logo + Title */}
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain"}} alt=""/>}
+            {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain" as const}} alt=""/>}
             <div>
               <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
               <p style={{fontSize:11,color:"#555",margin:0}}>Reports & Data Extraction — {reportType.label}</p>
             </div>
           </div>
           {/* Date Range controls — retro style */}
-          <div style={{background:"#ececec",border:"1px solid #aaa",borderRadius:4,padding:"6px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div style={{background:"#ececec",border:"1px solid #aaa",borderRadius:4,padding:"6px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
             <div style={{border:"1px solid #aaa",padding:"2px 4px",borderRadius:3}}>
               <span style={{fontSize:10,color:"#555",fontWeight:700}}>Date Range</span>
             </div>
@@ -189,10 +189,10 @@ export default function ReportsPage() {
                 {reportType.label} <ChevronDown style={{width:14,height:14,marginLeft:"auto"}}/>
               </button>
               {showDropdown && (
-                <div style={{position:"absolute",top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto",background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",borderRadius:8,boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
+                <div style={{position:"absolute",top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto" as const,background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",borderRadius:8,boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
                   {REPORT_TYPES.map(rt=>(
                     <button key={rt.id} onClick={()=>{setReportType(rt);setShowDropdown(false);}}
-                      style={{display:"block",width:"100%",textAlign:"left",padding:"6px 12px",fontSize:12,background:"none",border:"none",cursor:"pointer",color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
+                      style={{display:"block",width:"100%",textAlign:"left" as const,padding:"6px 12px",fontSize:12,background:"none",border:"none",cursor:"pointer",color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
                       {rt.label}
                     </button>
                   ))}
@@ -221,7 +221,7 @@ export default function ReportsPage() {
             { label:"Record Count",   value:filteredRows.length.toLocaleString(), bg:"#6c3483" },
             { label:"Inventory Amt.", value:fmtKES(kpi.invAmt),   bg:"#1a252f" },
           ].map(k => (
-            <div key={k.label} style={{borderRadius:8,padding:12,color:"#fff",textAlign:"center",background:k.bg,border:`3px outset ${k.bg}`}}>
+            <div key={k.label} style={{borderRadius:8,padding:12,color:"#fff",textAlign:"center" as const,background:k.bg,border:`3px outset ${k.bg}`}}>
               <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.value}</div>
               <div style={{fontSize:10,fontWeight:700,marginTop:4,opacity:0.9,letterSpacing:"0.05em"}}>{k.label}</div>
             </div>
@@ -249,15 +249,15 @@ export default function ReportsPage() {
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
               <thead>
                 <tr style={{background:"#4472C4",color:"#fff"}}>
-                  <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,borderRight:"1px solid #6698d4"}}>Product Name</th>
-                  <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700}}>Stock</th>
+                  <th style={{padding:"3px 6px",textAlign:"left" as const,fontWeight:700,borderRight:"1px solid #6698d4"}}>Product Name</th>
+                  <th style={{padding:"3px 6px",textAlign:"right" as const,fontWeight:700}}>Stock</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredStock.slice(0,50).map((s,i) => (
                   <tr key={s.id} style={{background:i%2===0?"#dce6f1":"#c9d9ef"}}>
-                    <td style={{padding:"2px 6px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:130}}>{s.name}</td>
-                    <td style={{padding:"2px 6px",textAlign:"right",fontWeight:600}}>{s.quantity_in_stock||0}</td>
+                    <td style={{padding:"2px 6px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap" as const,overflow:"hidden",textOverflow:"ellipsis",maxWidth:130}}>{s.name}</td>
+                    <td style={{padding:"2px 6px",textAlign:"right" as const,fontWeight:600}}>{s.quantity_in_stock||0}</td>
                   </tr>
                 ))}
               </tbody>
@@ -276,7 +276,7 @@ export default function ReportsPage() {
           {/* Transaction controls (Add/Update row) */}
           <div style={{background:"#d4d0c8",border:"2px inset #aaa",margin:"6px 8px 4px",padding:"6px 10px",borderRadius:3}}>
             <div style={{fontSize:11,fontWeight:700,color:"#1a1a2e",marginBottom:6}}>{reportType.label} — Add / Extract</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"flex-end"}}>
+            <div style={{display:"flex",flexWrap:"wrap" as const,gap:12,alignItems:"flex-end"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
@@ -330,7 +330,7 @@ export default function ReportsPage() {
                 <thead>
                   <tr style={{background:"#4472C4",color:"#fff",position:"sticky",top:0}}>
                     {columns.map(c=>(
-                      <th key={c} style={{padding:"5px 8px",textAlign:"left",fontWeight:700,fontSize:10,whiteSpace:"nowrap",borderRight:"1px solid #6698d4",textTransform:"capitalize"}}>
+                      <th key={c} style={{padding:"5px 8px",textAlign:"left" as const,fontWeight:700,fontSize:10,whiteSpace:"nowrap" as const,borderRight:"1px solid #6698d4",textTransform:"capitalize" as const}}>
                         {c.replace(/_/g," ")}
                       </th>
                     ))}
@@ -340,7 +340,7 @@ export default function ReportsPage() {
                   {filteredRows.slice(0,200).map((row,i) => (
                     <tr key={i} style={{background:i%2===0?"#dce6f1":"#c9d9ef",borderBottom:"1px solid #b8cce4"}}>
                       {columns.map(c=>(
-                        <td key={c} style={{padding:"3px 8px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",color:"#1a1a2e"}}>
+                        <td key={c} style={{padding:"3px 8px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap" as const,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",color:"#1a1a2e"}}>
                           {row[c]===null||row[c]===undefined?"":
                             typeof row[c]==="string"&&row[c].match(/^\d{4}-\d{2}-\d{2}/)?new Date(row[c]).toLocaleDateString("en-KE"):
                             typeof row[c]==="number"?row[c].toLocaleString():

@@ -89,7 +89,7 @@ function NotifToast({ n, onClose }: { n: Notif; onClose: () => void }) {
             border: "3px solid #f8f8f8",
             position: "relative",
           }}>
-            <img src={logoImg} alt="EL5H" style={{ width:52, height:52, borderRadius:"50%", objectFit:"contain" }} />
+            <img src={logoImg} alt="EL5H" style={{ width:52, height:52, borderRadius:"50%", objectFit:"contain" as const }} />
             {/* Red badge count */}
             <div style={{
               position:"absolute", top:-4, right:-4,
@@ -229,7 +229,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                 background: "#fff", display:"flex", alignItems:"center", justifyContent:"center",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}>
-                <img src={logoImg} alt="EL5H" style={{ width:38, height:38, borderRadius:"50%", objectFit:"contain" }} />
+                <img src={logoImg} alt="EL5H" style={{ width:38, height:38, borderRadius:"50%", objectFit:"contain" as const }} />
               </div>
               {unread > 0 && (
                 <div style={{
@@ -262,12 +262,12 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         </div>
 
         {/* Notification list */}
-        <div style={{ maxHeight: 380, overflowY:"auto" }}>
+        <div style={{ maxHeight: 380, overflowY:"auto" as const }}>
           {loading && (
-            <div style={{ padding:30, textAlign:"center", color:"#9ca3af", fontSize:13 }}>Loading…</div>
+            <div style={{ padding:30, textAlign:"center" as const, color:"#9ca3af", fontSize:13 }}>Loading…</div>
           )}
           {!loading && notifs.length === 0 && (
-            <div style={{ padding:40, textAlign:"center" }}>
+            <div style={{ padding:40, textAlign:"center" as const }}>
               <div style={{ fontSize:32, marginBottom:8 }}>🔔</div>
               <div style={{ fontSize:13, fontWeight:700, color:"#374151" }}>No notifications</div>
               <div style={{ fontSize:11, color:"#9ca3af", marginTop:4 }}>You're all caught up!</div>
@@ -304,7 +304,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                     <div style={{ fontSize:12.5, fontWeight: n.is_read ? 500 : 700, color:"#111", lineHeight:1.3, flex:1 }}>
                       {n.title}
                     </div>
-                    <div style={{ fontSize:10, color:"#9ca3af", whiteSpace:"nowrap", flexShrink:0 }}>
+                    <div style={{ fontSize:10, color:"#9ca3af", whiteSpace:"nowrap" as const, flexShrink:0 }}>
                       {timeAgo(n.created_at)}
                     </div>
                   </div>

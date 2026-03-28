@@ -35,7 +35,7 @@ function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:
           <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>{title}</span>
           <button onClick={onClose} style={{background:"rgba(255,255,255,0.18)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:16}}>{children}</div>
+        <div style={{flex:1,overflowY:"auto" as const,padding:16}}>{children}</div>
       </div>
     </div>
   );
@@ -157,7 +157,7 @@ function UsersInner() {
   if(!isAdmin) return <div style={{padding:32,textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>Admin access required</div>;
 
   return (
-    <div style={{minHeight:"100%",background:"#f8fafc",fontFamily:"'Inter','Segoe UI',sans-serif",background:"#f8fafc",minHeight:"100%"}}>
+    <div style={{minHeight:"100%",background:"#f8fafc",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
         <Users style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
@@ -201,7 +201,7 @@ function UsersInner() {
 
       {/* Table */}
       <div style={{background:"#fff",margin:16,borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{overflowX:"auto"}}>
+        <div style={{overflowX:"auto" as const}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
               <tr style={{background:"#f9fafb",borderBottom:"2px solid #e5e7eb"}}>

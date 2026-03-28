@@ -69,14 +69,14 @@ export default function CategoriesPage() {
           <thead>
             <tr style={{background:"#374151"}}>
               {["Category Name","Description","Parent Category","Actions"].map(h=>(
-                <th key={h} style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>
+                <th key={h} style={{padding:"10px 14px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading?(<tr><td colSpan={4} style={{padding:24,textAlign:"center"}}>
+            {loading?(<tr><td colSpan={4} style={{padding:24,textAlign:"center" as const}}>
               <RefreshCw style={{width:16,height:16,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/>
-            </td></tr>):filtered.length===0?(<tr><td colSpan={4} style={{padding:32,textAlign:"center",color:"#9ca3af"}}>No categories found</td></tr>):
+            </td></tr>):filtered.length===0?(<tr><td colSpan={4} style={{padding:32,textAlign:"center" as const,color:"#9ca3af"}}>No categories found</td></tr>):
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0f9ff"}
@@ -111,7 +111,7 @@ export default function CategoriesPage() {
             </div>
             {[["Category Name *","name"],["Description","description"],["Parent Category","parent_category"]].map(([l,k])=>(
               <div key={k} style={{marginBottom:12}}>
-                <label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
+                <label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,marginBottom:4}}>{l}</label>
                 <input value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>
               </div>
             ))}

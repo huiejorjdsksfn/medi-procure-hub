@@ -126,7 +126,7 @@ export default function SalesVouchersPage() {
               {label:"Pending",val:rows.filter((r:any)=>r.status==="pending").length,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -148,16 +148,16 @@ export default function SalesVouchersPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#ecfdf5"}}>
             {["Voucher No.","Customer","Type","Date","Amount","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
+              <th key={h} style={{padding:"12px 16px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase" as const}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No sales vouchers</td></tr>:
+            {loading?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No sales vouchers</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#065f46"}}>{r.voucher_number}</td>
                 <td style={{padding:"10px 16px",fontWeight:500}}>{r.customer_name}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280",textTransform:"capitalize"}}>{r.customer_type}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280",textTransform:"capitalize" as const}}>{r.customer_type}</td>
                 <td style={{padding:"10px 16px"}}>{new Date(r.voucher_date).toLocaleDateString("en-KE")}</td>
                 <td style={{padding:"10px 16px",fontWeight:700}}>{fmtKES(r.amount)}</td>
                 <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
@@ -179,7 +179,7 @@ export default function SalesVouchersPage() {
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Sales Voucher</h3>
               <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[["Customer Name *","customer_name"],["Patient No.","patient_number"],["Date","voucher_date","date"],["Due Date","due_date","date"],["Income Account","income_account"]].map(([l,k,t])=>(
                 <div key={k}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
                   <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
@@ -187,7 +187,7 @@ export default function SalesVouchersPage() {
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Customer Type</label>
                 <select value={form.customer_type} onChange={e=>setForm(p=>({...p,customer_type:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  {["walk_in","inpatient","outpatient","insurance","government","corporate"].map(t=><option key={t} value={t} style={{textTransform:"capitalize"}}>{t.replace(/_/g," ")}</option>)}
+                  {["walk_in","inpatient","outpatient","insurance","government","corporate"].map(t=><option key={t} value={t} style={{textTransform:"capitalize" as const}}>{t.replace(/_/g," ")}</option>)}
                 </select></div>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Payment Method</label>
                 <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))}
@@ -205,11 +205,11 @@ export default function SalesVouchersPage() {
             </div>
             <div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase"}}>Line Items</label>
+                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase" as const}}>Line Items</label>
                 <button onClick={()=>setLineItems(p=>[...p,{item_id:"",item_name:"",qty:"1",rate:"",amount:""}])} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,color:"#0f766e",background:"none",border:"none",cursor:"pointer"}}><Plus style={{width:12,height:12}}/>Add</button>
               </div>
               <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"#ecfdf5"}}>{["Item","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"#ecfdf5"}}>{["Item","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {lineItems.map((it,i)=>(
                     <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
@@ -226,7 +226,7 @@ export default function SalesVouchersPage() {
                     </tr>
                   ))}
                   <tr style={{background:"#d1fae5",fontWeight:900}}>
-                    <td colSpan={3} style={{padding:"6px 8px",textAlign:"right",fontSize:14,fontWeight:900}}>TOTAL</td>
+                    <td colSpan={3} style={{padding:"6px 8px",textAlign:"right" as const,fontSize:14,fontWeight:900}}>TOTAL</td>
                     <td style={{padding:"6px 8px",fontSize:14,fontWeight:900}}>{fmtKES(total)}</td><td/>
                   </tr>
                 </tbody>

@@ -152,7 +152,7 @@ export default function TendersPage() {
               {label:"Awarded",val:awarded,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -161,7 +161,7 @@ export default function TendersPage() {
         );
       })()}
       {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap" as const,gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#1F6090,#2980b9)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <Gavel style={{width:21,height:21,color:"#fff"}}/>
@@ -185,7 +185,7 @@ export default function TendersPage() {
       </div>
 
       {/* Status chips */}
-      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap" as const}}>
         {[{id:"all",label:"All",cnt:rows.length},
           ...Object.entries(STATUS_CFG).map(([id,c])=>({id,label:c.label,cnt:counts[id]||0}))].map(f=>(
           <button key={f.id} onClick={()=>setStFilter(f.id)} style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${stFilter===f.id?"#1a3a6b":"#e5e7eb"}`,background:stFilter===f.id?"#1a3a6b":"#fff",color:stFilter===f.id?"#fff":"#374151",fontSize:12,fontWeight:700,cursor:"pointer"}}>
@@ -236,7 +236,7 @@ export default function TendersPage() {
                   <td style={{padding:"12px 14px",fontSize:12,color:expired?"#dc2626":"#374151",fontWeight:expired?700:400}} onClick={()=>setDetail(r)}>{fmtDate(r.closing_date)}</td>
                   <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
                       <button onClick={()=>setDetail(r)} style={{padding:"4px 9px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}><Eye style={{width:10,height:10,display:"inline"}}/></button>
                       {canManage&&<button onClick={()=>openNew(r)} style={{padding:"4px 9px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:700,color:"#1d4ed8"}}>Edit</button>}
                       {canManage&&r.status==="draft"&&<button onClick={()=>publish(r)} style={{display:"flex",alignItems:"center",gap:3,padding:"4px 9px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:700,color:"#15803d"}}>
@@ -255,7 +255,7 @@ export default function TendersPage() {
       {/* Create/Edit Modal */}
       {showNew&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(680px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(680px,100%)",maxHeight:"92vh",overflowY:"auto" as const,boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",gap:10,alignItems:"center",position:"sticky" as const,top:0,zIndex:1}}>
               <Gavel style={{width:16,height:16,color:"#fff"}}/><span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Tender</span>
               <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
@@ -301,7 +301,7 @@ export default function TendersPage() {
       {/* Detail */}
       {detail&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",justifyContent:"flex-end"}} onClick={()=>setDetail(null)}>
-          <div style={{width:"min(460px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
+          <div style={{width:"min(460px,100%)",background:"#fff",height:"100%",overflowY:"auto" as const,boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",gap:8,alignItems:"center"}}>
               <Gavel style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.tender_number}</span>
               <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>

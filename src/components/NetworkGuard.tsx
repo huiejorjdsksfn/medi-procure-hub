@@ -71,7 +71,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
           ].map(row => (
             <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"5px 0", borderBottom:"1px solid #f0f0f0", gap:16 }}>
               <span style={{ fontSize:13, color:"#6b7280", fontWeight:500, flexShrink:0 }}>{row.label}</span>
-              <span style={{ fontSize:13, color:row.red?"#dc2626":"#374151", fontWeight:row.red?700:600, textAlign:"right" }}>{row.value}</span>
+              <span style={{ fontSize:13, color:row.red?"#dc2626":"#374151", fontWeight:row.red?700:600, textAlign:"right" as const }}>{row.value}</span>
             </div>
           ))}
         </div>
@@ -101,7 +101,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
 
         {/* Logo watermark */}
         <div style={{ marginTop:14, display:"flex", justifyContent:"center" }}>
-          <img src={logoImg} alt="EL5H" style={{ width:28, height:28, borderRadius:"50%", objectFit:"contain", opacity:0.4 }} />
+          <img src={logoImg} alt="EL5H" style={{ width:28, height:28, borderRadius:"50%", objectFit:"contain" as const, opacity:0.4 }} />
         </div>
       </div>
     </div>

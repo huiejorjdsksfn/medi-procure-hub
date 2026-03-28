@@ -375,7 +375,7 @@ ${html}
         <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.9)",cursor:"pointer",padding:0 }}>
           <X style={{ width:18,height:18 }} />
         </button>
-        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain",background:"#e2e8f0",padding:2 }} />
+        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain" as const,background:"#e2e8f0",padding:2 }} />
         <input value={meta.name} onChange={e=>setMeta(p=>({...p,name:e.target.value}))}
           style={{ background:"#f8fafc",border:"none",color:"#fff",fontSize:15,fontWeight:600,outline:"none",flex:1,minWidth:200 }} />
         <div style={{ display:"flex",gap:8,marginLeft:"auto" }}>
@@ -402,7 +402,7 @@ ${html}
 
       {/* ── Templates Panel ── */}
       {showTemplates && (
-        <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"12px 20px",display:"flex",gap:10,flexWrap:"wrap",alignItems:"center" }}>
+        <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"12px 20px",display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center" }}>
           <span style={{ fontSize:12,fontWeight:700,color:"#374151",marginRight:4 }}>Choose template:</span>
           {TEMPLATES.map(t => (
             <button key={t.name} onClick={() => loadTemplate(t)}
@@ -489,19 +489,19 @@ ${html}
       </div>
 
       {/* ── Editor Area ── */}
-      <div style={{ flex:1,padding:"20px",overflowY:"auto" }}>
+      <div style={{ flex:1,padding:"20px",overflowY:"auto" as const }}>
         {mode === "edit" ? (
           <div style={S.paper}>
             {/* Letterhead */}
             <div style={{ display:"flex",alignItems:"center",gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
-              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" }} />
+              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" as const }} />
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:16,fontWeight:900,color:"#1a3a6b" }}>{hospitalName}</div>
                 <div style={{ fontSize:11,color:"#6b7280" }}>{countyName}</div>
               </div>
-              <div style={{ textAlign:"right",fontSize:10,color:"#9ca3af" }}>
+              <div style={{ textAlign:"right" as const,fontSize:10,color:"#9ca3af" }}>
                 <div>{new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</div>
-                <div style={{ fontStyle:"italic" }}>{meta.category} Document</div>
+                <div style={{ fontStyle:"italic" as const }}>{meta.category} Document</div>
               </div>
             </div>
             {/* Editable content */}
@@ -512,7 +512,7 @@ ${html}
         ) : (
           <div style={S.paper}>
             <div style={{ display:"flex",alignItems:"center",gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
-              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" }} />
+              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" as const }} />
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:16,fontWeight:900,color:"#1a3a6b" }}>{hospitalName}</div>
                 <div style={{ fontSize:11,color:"#6b7280" }}>{countyName}</div>

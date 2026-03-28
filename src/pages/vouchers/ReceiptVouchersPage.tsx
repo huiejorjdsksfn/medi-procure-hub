@@ -115,7 +115,7 @@ export default function ReceiptVouchersPage() {
               {label:"This Month",val:rows.filter(r=>r.receipt_date&&new Date(r.receipt_date).getMonth()===new Date().getMonth()).length,bg:"#6c3483"},
               {label:"Avg Amount",val:fmtK(rows.length?totalAll/rows.length:0),bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -141,11 +141,11 @@ export default function ReceiptVouchersPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#f0fdf4"}}>
             {["Receipt No.","Received From","Amount","Method","Date","Status","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
+              <th key={h} style={{textAlign:"left" as const,fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase" as const,padding:"10px 12px"}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={7} style={{padding:"32px 16px",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 16px",textAlign:"center",color:"#9ca3af",fontSize:12}}>No receipt vouchers yet</td></tr>:
+            {loading?<tr><td colSpan={7} style={{padding:"32px 16px",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 16px",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No receipt vouchers yet</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#065f46"}}>{r.receipt_number}</td>
@@ -173,7 +173,7 @@ export default function ReceiptVouchersPage() {
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Receipt Voucher</h3>
               <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{gridColumn:"1/-1"}}><F label="Received From" k="received_from" req/></div>
               <F label="Amount (KES)" k="amount" type="number" req/>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Payment Method</label>

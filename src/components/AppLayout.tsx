@@ -240,7 +240,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Logo + App name */}
         <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:14,borderRight:"1px solid rgba(255,255,255,0.12)",height:"100%"}}>
-          <img src={logoUrl||logoImg} alt="" style={{width:22,height:22,borderRadius:3,objectFit:"contain",flexShrink:0}}/>
+          <img src={logoUrl||logoImg} alt="" style={{width:22,height:22,borderRadius:3,objectFit:"contain" as const,flexShrink:0}}/>
           <div>
             <div style={{fontSize:12,fontWeight:700,color:"#fff",lineHeight:1,letterSpacing:"0.01em"}}>{sysName}</div>
             {!isMobile&&<div style={{fontSize:8.5,color:"rgba(255,255,255,0.45)",letterSpacing:"0.04em"}}>{hospitalName}</div>}
@@ -372,7 +372,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           background:"var(--color-nav-bg, #ffffff)",
           borderBottom:"1px solid var(--color-border, #e2e8f0)",
           display:"flex", alignItems:"stretch",
-          overflowX:"auto", overflowY:"hidden",
+          overflowX:"auto" as const, overflowY:"hidden" as const,
         }}>
           {visibleMods.map((m, idx)=>{
             const isAct = activeModule===m.id;
@@ -444,7 +444,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
           {/* Close tiles */}
           <button onClick={()=>setTileDropOpen(false)}
-            style={{display:"flex",alignItems:"center",justifyContent:"center",width:32,height:32,background:"#f0f0f0",border:"1px solid #e0e0e0",borderRadius:4,cursor:"pointer",marginLeft:"auto",alignSelf:"flex-end"}}
+            style={{display:"flex",alignItems:"center",justifyContent:"center",width:32,height:32,background:"#f0f0f0",border:"1px solid #e0e0e0",borderRadius:4,cursor:"pointer",marginLeft:"auto",alignSelf:"flex-end" as const}}
             onMouseEnter={e=>hov(e,true,"#f1f5f9")}
             onMouseLeave={e=>hov(e,false)}>
             <X style={{width:14,height:14,color:"#666"}}/>
@@ -468,7 +468,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{sysName}</div></div>
               <button onClick={()=>setMobileOpen(false)} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:4,padding:5,cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
-            <nav style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
+            <nav style={{flex:1,overflowY:"auto" as const,padding:"8px 0"}}>
               {visibleMods.map(m=>{
                 const isCur = activeModule===m.id;
                 const fs = m.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r)));
@@ -505,7 +505,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ════════════════════════════════════════════
           PAGE CONTENT
       ════════════════════════════════════════════ */}
-      <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f8fafc"}}>
+      <main style={{flex:1,overflowY:"auto" as const,overflowX:"hidden" as const,background:"#f8fafc"}}>
         {children}
       </main>
     </div>

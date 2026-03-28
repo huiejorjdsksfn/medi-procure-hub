@@ -82,7 +82,7 @@ export default function FacilitiesPage() {
   };
 
   const inp: React.CSSProperties = { width:"100%", padding:"8px 10px", border:"1.5px solid #e2e8f0", borderRadius:7, fontSize:12.5, outline:"none", background:"#fff", color:"#1e293b", boxSizing:"border-box" };
-  const lbl: React.CSSProperties = { display:"block", fontSize:9.5, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em", color:"#64748b", marginBottom:4 };
+  const lbl: React.CSSProperties = { display:"block", fontSize:9.5, fontWeight:700, textTransform:"uppercase" as const, letterSpacing:"0.06em", color:"#64748b", marginBottom:4 };
 
   const typeColors: Record<string,string> = {
     hospital:"#1e3a6b", health_centre:"#065f46", dispensary:"#7c2d12", clinic:"#4c1d95", nursing_home:"#0f766e"
@@ -153,7 +153,7 @@ export default function FacilitiesPage() {
                 </div>
                 <div>
                   <div style={{ fontSize:13.5, fontWeight:800, color:"#1e293b", lineHeight:1.2 }}>{f.name}</div>
-                  <div style={{ display:"flex", gap:6, marginTop:4, flexWrap:"wrap" }}>
+                  <div style={{ display:"flex", gap:6, marginTop:4, flexWrap:"wrap" as const }}>
                     <span style={{ fontSize:9.5, fontWeight:700, padding:"1px 7px", borderRadius:20,
                       background: typeColors[f.type] || "#1e3a6b", color:"#fff" }}>
                       {f.type.replace("_"," ").toUpperCase()}
@@ -226,7 +226,7 @@ export default function FacilitiesPage() {
 
       {/* ═══ ADD/EDIT MODAL ═══ */}
       {showForm && (
-        <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"flex-start", justifyContent:"center", paddingTop:24, paddingBottom:24, overflowY:"auto" }}>
+        <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"flex-start", justifyContent:"center", paddingTop:24, paddingBottom:24, overflowY:"auto" as const }}>
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)" }} onClick={() => setShowForm(false)}/>
           <div style={{ position:"relative", background:"#fff", borderRadius:16, width:"min(680px,97%)", boxShadow:"0 24px 80px rgba(0,0,0,0.2)", border:"1px solid #e2e8f0", overflow:"hidden" }}>
             {/* Modal header */}

@@ -32,7 +32,7 @@ export function Toaster() {
             }}>
             {/* Logo badge (small) */}
             <div style={{ width:32, height:32, borderRadius:"50%", background:"#f8f8f8", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"1px solid #e5e7eb" }}>
-              <img src={logoImg} alt="" style={{ width:24, height:24, borderRadius:"50%", objectFit:"contain" }} />
+              <img src={logoImg} alt="" style={{ width:24, height:24, borderRadius:"50%", objectFit:"contain" as const }} />
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               {title && (
@@ -47,7 +47,7 @@ export function Toaster() {
               )}
             </div>
             {action}
-            <ToastClose style={{ position:"static", alignSelf:"flex-start", padding:3, borderRadius:6, border:"none", background:"transparent", cursor:"pointer", color:isErr?"#dc2626":"#16a34a", opacity:0.6, lineHeight:0 }} />
+            <ToastClose style={{ position:"static", alignSelf:"flex-start" as const, padding:3, borderRadius:6, border:"none", background:"transparent", cursor:"pointer", color:isErr?"#dc2626":"#16a34a", opacity:0.6, lineHeight:0 }} />
           </Toast>
         );
       })}

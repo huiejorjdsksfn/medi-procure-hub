@@ -129,7 +129,7 @@ export default function JournalVouchersPage() {
               {label:"Unbalanced",val:rows.length-balanced,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -152,11 +152,11 @@ export default function JournalVouchersPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#eef2ff"}}>
             {["Journal No.","Date","Reference","Narration","Debit","Credit","Balanced","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
+              <th key={h} style={{padding:"12px 16px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase" as const}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={9} style={{padding:"32px 16px",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={9} style={{padding:"32px 16px",textAlign:"center",color:"#9ca3af"}}>No journal vouchers</td></tr>:
+            {loading?<tr><td colSpan={9} style={{padding:"32px 16px",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={9} style={{padding:"32px 16px",textAlign:"center" as const,color:"#9ca3af"}}>No journal vouchers</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#312e81"}}>{r.journal_number}</td>
@@ -187,7 +187,7 @@ export default function JournalVouchersPage() {
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Journal Voucher</h3>
               <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Date *</label>
                 <input type="date" value={form.journal_date} onChange={e=>setForm(p=>({...p,journal_date:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
@@ -201,7 +201,7 @@ export default function JournalVouchersPage() {
             {/* Entries table */}
             <div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em"}}>Journal Entries</label>
+                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Journal Entries</label>
                 <button onClick={()=>setEntries(p=>[...p,{account_code:"",account_name:"",debit:"",credit:"",description:""}])}
                   style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,color:"#4f46e5",background:"none",border:"none",cursor:"pointer"}}>
                   <Plus style={{width:12,height:12}}/>Add Line
@@ -209,7 +209,7 @@ export default function JournalVouchersPage() {
               </div>
               <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
                 <thead><tr style={{background:"#eef2ff"}}>
-                  {["Account Code","Account Name","Description","Debit","Credit",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}
+                  {["Account Code","Account Name","Description","Debit","Credit",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {entries.map((e,i)=>(
@@ -221,15 +221,15 @@ export default function JournalVouchersPage() {
                       </td>
                       <td style={{padding:"4px"}}><input value={e.account_name} onChange={ev=>updateEntry(i,"account_name",ev.target.value)} style={{width:128,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
                       <td style={{padding:"4px"}}><input value={e.description} onChange={ev=>updateEntry(i,"description",ev.target.value)} style={{width:112,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
-                      <td style={{padding:"4px"}}><input type="number" value={e.debit} onChange={ev=>updateEntry(i,"debit",ev.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",textAlign:"right"}}/></td>
-                      <td style={{padding:"4px"}}><input type="number" value={e.credit} onChange={ev=>updateEntry(i,"credit",ev.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",textAlign:"right"}}/></td>
+                      <td style={{padding:"4px"}}><input type="number" value={e.debit} onChange={ev=>updateEntry(i,"debit",ev.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",textAlign:"right" as const}}/></td>
+                      <td style={{padding:"4px"}}><input type="number" value={e.credit} onChange={ev=>updateEntry(i,"credit",ev.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",textAlign:"right" as const}}/></td>
                       <td style={{padding:"4px"}}><button onClick={()=>setEntries(p=>p.filter((_,j)=>j!==i))} style={{color:"#f87171",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12}}/></button></td>
                     </tr>
                   ))}
                   <tr style={{background:"#f0fdf4",fontWeight:800}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700,color:"#374151"}}>TOTALS</td>
-                    <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right",color:"#1a3a6b"}}>{fmtKES(totalDebit)}</td>
-                    <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right",color:"#1a3a6b"}}>{fmtKES(totalCredit)}</td>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700,color:"#374151"}}>TOTALS</td>
+                    <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right" as const,color:"#1a3a6b"}}>{fmtKES(totalDebit)}</td>
+                    <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right" as const,color:"#1a3a6b"}}>{fmtKES(totalCredit)}</td>
                     <td style={{padding:"8px",fontSize:12,fontWeight:700,color:isBalanced?"#15803d":"#dc2626"}}>{isBalanced?"✓ Balanced":"✗ Unbalanced"}</td>
                   </tr>
                 </tbody>

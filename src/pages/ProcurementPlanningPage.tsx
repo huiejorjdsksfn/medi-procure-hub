@@ -91,7 +91,7 @@ export default function ProcurementPlanningPage() {
               {label:"Active",val:active,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -115,21 +115,21 @@ export default function ProcurementPlanningPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#ffffff"}}>
             {["Plan No.","Title","Dept.","Category","Method","Budget","FY","Status","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
+              <th key={h} style={{textAlign:"left" as const,fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase" as const,padding:"10px 12px"}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={9} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={9} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No procurement plans yet</td></tr>:
+            {loading?<tr><td colSpan={9} style={{padding:"32px 0",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={9} style={{padding:"32px 0",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No procurement plans yet</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontFamily:"monospace",fontSize:10,color:"#1e40af"}}>{r.plan_number}</td>
-                <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</td>
+                <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.title}</td>
                 <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||"—"}</td>
                 <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||"—"}</td>
                 <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.procurement_method||"—"}</td>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#374151"}}>{fmtKES(r.estimated_budget||0)}</td>
                 <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.financial_year}</td>
-                <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,textTransform:"capitalize",background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
+                <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,textTransform:"capitalize" as const,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
                 <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
                   {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
                   {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
@@ -144,7 +144,7 @@ export default function ProcurementPlanningPage() {
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
           <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}><h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Plan":"New Procurement Plan"}</h3><button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button></div>
-            <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{overflowY:"auto" as const,flex:1,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Plan Title *</label>
                 <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
               {[["Financial Year","financial_year"],["Start Date","start_date","date"],["End Date","end_date","date"],["Estimated Budget (KES)","estimated_budget","number"]].map(([l,k,t])=>(
@@ -165,7 +165,7 @@ export default function ProcurementPlanningPage() {
                 </select></div>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
                 <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  {["draft","approved","active","completed","cancelled"].map(s=><option key={s} style={{textTransform:"capitalize"}}>{s}</option>)}
+                  {["draft","approved","active","completed","cancelled"].map(s=><option key={s} style={{textTransform:"capitalize" as const}}>{s}</option>)}
                 </select></div>
               <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
                 <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>

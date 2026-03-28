@@ -90,7 +90,7 @@ export default function ChartOfAccountsPage() {
           {label:"Total Expenses",val:fmtKES(totalExpense),bg:"#6c3483"},
           {label:"Active Accounts",val:activeAccounts,bg:"#1a252f"},
         ].map(k=>(
-          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
             <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
             <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
           </div>
@@ -107,13 +107,13 @@ export default function ChartOfAccountsPage() {
           {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus style={{width:14,height:14}}/>New Account</button>}
         </div>
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
         <div style={{position:"relative"}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search code or name..." style={{paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",width:208}}/></div>
         <div style={{display:"flex",gap:4}}>
           {TYPES.map(t=>(
             <button key={t} onClick={()=>setTypeFilter(t)}
-              style={{padding:"6px 10px",borderRadius:10,fontSize:12,fontWeight:600,textTransform:"capitalize",border:"none",cursor:"pointer",background:typeFilter===t?(TYPE_COLORS[t]||"#1a3a6b"):"#f3f4f6",color:typeFilter===t?"#fff":"#6b7280"}}>
+              style={{padding:"6px 10px",borderRadius:10,fontSize:12,fontWeight:600,textTransform:"capitalize" as const,border:"none",cursor:"pointer",background:typeFilter===t?(TYPE_COLORS[t]||"#1a3a6b"):"#f3f4f6",color:typeFilter===t?"#fff":"#6b7280"}}>
               {t}
             </button>
           ))}
@@ -123,11 +123,11 @@ export default function ChartOfAccountsPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#ffffff"}}>
             {["Code","Account Name","Type","Category","Parent","Balance","Active","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
+              <th key={h} style={{textAlign:"left" as const,fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase" as const,padding:"10px 12px"}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No accounts found</td></tr>:
+            {loading?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No accounts found</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontFamily:"monospace",fontWeight:700,color:"#1e3a5f"}}>{r.account_code}</td>
@@ -154,7 +154,7 @@ export default function ChartOfAccountsPage() {
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Account":"New Account"}</h3>
               <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[["Account Code *","account_code","",1],["Account Name *","account_name","",2],["Category","category","",1],["Parent Code","parent_code","",1],["Opening Balance","balance","number",1]].map(([l,k,t,span])=>(
                 <div key={k} style={{gridColumn:`span ${span}`}}>
                   <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>

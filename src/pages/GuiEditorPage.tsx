@@ -164,7 +164,7 @@ export default function GuiEditorPage() {
   };
   const lbl: React.CSSProperties = {
     display:"block", fontSize:9.5, fontWeight:700,
-    textTransform:"uppercase", letterSpacing:"0.06em",
+    textTransform:"uppercase" as const, letterSpacing:"0.06em",
     color:"#64748b", marginBottom:4,
   };
 
@@ -229,7 +229,7 @@ export default function GuiEditorPage() {
         {/* Header */}
         <div style={{ padding:"12px 14px", background:`linear-gradient(135deg,${cfg.primary_color},${cfg.accent_color}80)`, flexShrink:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <img src={logoImg} alt="" style={{ width:28, height:28, borderRadius:6, objectFit:"contain", background:"rgba(255,255,255,0.2)", padding:2 }}/>
+            <img src={logoImg} alt="" style={{ width:28, height:28, borderRadius:6, objectFit:"contain" as const, background:"rgba(255,255,255,0.2)", padding:2 }}/>
             <div>
               <div style={{ fontSize:13, fontWeight:800, color:"#fff" }}>GUI Editor</div>
               <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
@@ -256,13 +256,13 @@ export default function GuiEditorPage() {
                 color: tab === t.id ? cfg.primary_color : "#94a3b8",
                 fontWeight: tab === t.id ? 700 : 400, transition:"all 0.12s" }}>
               <t.icon style={{ width:14, height:14 }}/>
-              <span style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.04em" }}>{t.label}</span>
+              <span style={{ fontSize:9, textTransform:"uppercase" as const, letterSpacing:"0.04em" }}>{t.label}</span>
             </button>
           ))}
         </div>
 
         {/* Scrollable panel content */}
-        <div style={{ flex:1, overflowY:"auto", padding:"12px 12px 0" }}>
+        <div style={{ flex:1, overflowY:"auto" as const, padding:"12px 12px 0" }}>
 
           {tab === "colors" && <>
             <label style={{ ...lbl, marginBottom:8 }}>One-Click Presets</label>
@@ -272,7 +272,7 @@ export default function GuiEditorPage() {
                   style={{ padding:"7px 8px", borderRadius:8,
                     border:`1.5px solid ${p.primary}30`,
                     background:`linear-gradient(135deg,${p.primary}15,${p.accent}15)`,
-                    cursor:"pointer", textAlign:"left", transition:"all 0.12s" }}>
+                    cursor:"pointer", textAlign:"left" as const, transition:"all 0.12s" }}>
                   <div style={{ height:4, borderRadius:3, background:`linear-gradient(90deg,${p.primary},${p.accent})`, marginBottom:5 }}/>
                   <span style={{ fontSize:10, fontWeight:600, color:"#374151" }}>{p.name}</span>
                 </button>
@@ -301,7 +301,7 @@ export default function GuiEditorPage() {
             <SelectRow k="font_size_sm"  label="Small Font Size"  opts={SIZES}/>
             <SelectRow k="font_size_lg"  label="Large Font Size"  opts={SIZES}/>
             <div style={{ marginTop:12, padding:14, border:"1px solid #e2e8f0", borderRadius:8, background:"#f8fafc" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"#64748b", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.05em" }}>Live Font Preview</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"#64748b", marginBottom:8, textTransform:"uppercase" as const, letterSpacing:"0.05em" }}>Live Font Preview</div>
               <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_lg, fontWeight:700, color:"#1e293b", marginBottom:4 }}>Sample Heading Text</div>
               <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_base, color:"#374151", marginBottom:4 }}>Body text — EL5 MediProcure Procurement System, Embu County</div>
               <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_sm, color:"#64748b" }}>Caption text · Sub-heading · Secondary information</div>
@@ -339,7 +339,7 @@ export default function GuiEditorPage() {
                   style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 10px",
                     borderRadius:7, border:`1px solid ${item.visible ? "#e2e8f0" : "#f1f5f9"}`,
                     background: item.visible ? "#fff" : "#f8fafc",
-                    cursor:"grab", userSelect:"none",
+                    cursor:"grab", userSelect:"none" as const,
                     borderLeft:`3px solid ${item.color}`,
                     opacity: item.visible ? 1 : 0.5 }}>
                   <Move style={{ width:11, height:11, color:"#94a3b8", flexShrink:0 }}/>
@@ -430,7 +430,7 @@ export default function GuiEditorPage() {
             {/* Top bar */}
             <div style={{ height:cfg.topbar_height, background:"#1f1f1f", display:"flex", alignItems:"center", padding:"0 12px", gap:8 }}>
               {on("show_logo_nav") && (
-                <img src={logoImg} alt="" style={{ height:22, width:22, borderRadius:4, objectFit:"contain", background:"rgba(255,255,255,0.12)", padding:2 }}/>
+                <img src={logoImg} alt="" style={{ height:22, width:22, borderRadius:4, objectFit:"contain" as const, background:"rgba(255,255,255,0.12)", padding:2 }}/>
               )}
               <span style={{ fontSize:11, fontWeight:700, color:"#fff", fontFamily:cfg.font_family }}>EL5 MediProcure</span>
               {on("show_search_bar") && device !== "mobile" && (
@@ -445,10 +445,10 @@ export default function GuiEditorPage() {
 
             {/* Module nav */}
             <div style={{ height:cfg.nav_height, background:cfg.nav_bg_color, display:"flex", alignItems:"center",
-              borderBottom:`1px solid ${cfg.border_color}`, overflowX:"auto", flexShrink:0 }}>
+              borderBottom:`1px solid ${cfg.border_color}`, overflowX:"auto" as const, flexShrink:0 }}>
               {visNav.map((m, i) => (
                 <div key={m.id} style={{ padding:`0 ${device === "mobile" ? "10px" : "16px"}`, height:"100%",
-                  display:"flex", alignItems:"center", whiteSpace:"nowrap", flexShrink:0,
+                  display:"flex", alignItems:"center", whiteSpace:"nowrap" as const, flexShrink:0,
                   borderBottom: i === 0 ? `3px solid ${m.color}` : "3px solid transparent",
                   background:   i === 0 ? m.color : cfg.nav_bg_color,
                   color:        i === 0 ? "#fff"  : cfg.nav_text_color,
@@ -497,8 +497,8 @@ export default function GuiEditorPage() {
                     <tr style={{ background:cfg.primary_color }}>
                       {["Req No.","Title","Status","Amount"].map(h => (
                         <th key={h} style={{ padding: compact ? "5px 10px" : "8px 12px",
-                          textAlign:"left", color:"rgba(255,255,255,0.8)",
-                          fontSize:9.5, fontWeight:700, textTransform:"uppercase" }}>{h}</th>
+                          textAlign:"left" as const, color:"rgba(255,255,255,0.8)",
+                          fontSize:9.5, fontWeight:700, textTransform:"uppercase" as const }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -527,7 +527,7 @@ export default function GuiEditorPage() {
                 </div>
               </div>
               {/* Buttons */}
-              <div style={{ marginTop:10, display:"flex", gap:8, flexWrap:"wrap" }}>
+              <div style={{ marginTop:10, display:"flex", gap:8, flexWrap:"wrap" as const }}>
                 <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.primary_color, color:"#fff", fontSize:cfg.font_size_base, fontWeight:700, cursor:"pointer" }}>
                   + New Requisition
                 </div>

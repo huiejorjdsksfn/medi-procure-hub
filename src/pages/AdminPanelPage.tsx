@@ -213,7 +213,7 @@ function AdminInner() {
 
       {/* Top bar */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
-        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"#f1f5f9",padding:4 }} />
+        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain" as const,background:"#f1f5f9",padding:4 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:700,color:"#1e293b" }}>Admin Control Panel</div>
           <div style={{ fontSize:10,color:"#64748b" }}>EL5 MediProcure · Embu Level 5 Hospital</div>
@@ -249,7 +249,7 @@ function AdminInner() {
         </div>
 
         {/* Content */}
-        <div style={{ padding:"20px 26px",overflowY:"auto",maxHeight:"calc(100vh - 60px)" }}>
+        <div style={{ padding:"20px 26px",overflowY:"auto" as const,maxHeight:"calc(100vh - 60px)" }}>
 
           {/* OVERVIEW */}
           {sec === "overview" && (
@@ -257,7 +257,7 @@ function AdminInner() {
               <div style={{ fontSize:15,fontWeight:700,marginBottom:14,color:"#1e293b" }}>System Overview</div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20 }}>
                 {KPI.map(k => (
-                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",textAlign:"left" }}>
+                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",textAlign:"left" as const }}>
                     <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
                       <div style={{ width:26,height:26,borderRadius:7,background:k.color,display:"flex",alignItems:"center",justifyContent:"center" }}>
                         <k.icon style={{ width:13,height:13,color:"#fff" }} />
@@ -518,7 +518,7 @@ function AdminInner() {
               </FR>
               <div style={{ padding:"10px 0",borderBottom:"1px solid #f1f5f9" }}>
                 <div style={{ fontSize:12,fontWeight:500,color:"#1e293b",marginBottom:6 }}>Message</div>
-                <textarea value={bcast.body} onChange={e=>setBcast(p=>({...p,body:e.target.value}))} placeholder="Message to all active users…" style={{...inp,height:80,resize:"vertical"}} />
+                <textarea value={bcast.body} onChange={e=>setBcast(p=>({...p,body:e.target.value}))} placeholder="Message to all active users…" style={{...inp,height:80,resize:"vertical" as const}} />
               </div>
               <FR label="Type" color="#d97706">
                 <select value={bcast.type} onChange={e=>setBcast(p=>({...p,type:e.target.value}))} style={{...inp,width:160}}>
@@ -545,7 +545,7 @@ function AdminInner() {
               <FR label="PostgreSQL" color="#374151">
                 <span style={{ color:"#64748b" }}>57+ tables · RLS enabled on all</span>
               </FR>
-              <div style={{ marginTop:14,display:"flex",gap:8,flexWrap:"wrap" }}>
+              <div style={{ marginTop:14,display:"flex",gap:8,flexWrap:"wrap" as const }}>
                 {[
                   {l:"DB Admin →",    p:"/admin/database",  c:"#374151"},
                   {l:"ODBC / SQL →",  p:"/odbc",            c:"#0a2558"},

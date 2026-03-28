@@ -404,7 +404,7 @@ export default function DocumentsPage() {
         </div>
 
         {/* DOCUMENT LIST */}
-        <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",display:"flex",flexDirection:"column"}}>
+        <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto" as const,display:"flex",flexDirection:"column"}}>
           <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
             <span style={{fontSize:13,fontWeight:700,color:"#111827",flex:1}}>{catFilter==="all"?"All":catFilter} Documents</span>
             <span style={{fontSize:11,color:"#9ca3af"}}>{filtered.length}</span>
@@ -486,7 +486,7 @@ export default function DocumentsPage() {
 
               {/* HTML preview */}
               {(selected.html||selected.template_html) ? (
-                <div style={{flex:1,overflowY:"auto",padding:"20px",background:"#f9fafb"}}>
+                <div style={{flex:1,overflowY:"auto" as const,padding:"20px",background:"#f9fafb"}}>
                   <div style={{maxWidth:800,margin:"0 auto",background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.08)",padding:"24px 32px"}}>
                     <style>{DOC_PRINT_CSS}</style>
                     <div dangerouslySetInnerHTML={{__html:selected.html||selected.template_html||""}}/>
@@ -565,7 +565,7 @@ export default function DocumentsPage() {
             </div>
 
             {/* Content */}
-            <div style={{flex:1,overflowY:"auto",padding:16}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:16}}>
               {editTab==="metadata"&&(
                 <div style={{display:"grid",gap:12}}>
                   <div>
@@ -576,7 +576,7 @@ export default function DocumentsPage() {
                   <div>
                     <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Description</label>
                     <textarea value={editDoc.description} onChange={e=>setEditDoc((p:any)=>({...p,description:e.target.value}))} rows={3}
-                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"inherit",resize:"none"}}/>
+                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"inherit",resize:"none" as const}}/>
                   </div>
                   <div>
                     <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Category</label>
@@ -594,7 +594,7 @@ export default function DocumentsPage() {
               {editTab==="html"&&(
                 <div style={{display:"flex",flexDirection:"column" as const,gap:10,height:"100%"}}>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-                    <span style={{fontSize:11,color:"#6b7280",fontWeight:600,alignSelf:"center"}}>Insert:</span>
+                    <span style={{fontSize:11,color:"#6b7280",fontWeight:600,alignSelf:"center" as const}}>Insert:</span>
                     {PLACEHOLDERS.slice(0,16).map(ph=>(
                       <button key={ph} onClick={()=>setEditDoc((p:any)=>({...p,html:p.html+ph}))}
                         style={{padding:"3px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"monospace",color:"#374151"}}>

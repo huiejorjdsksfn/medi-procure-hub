@@ -183,8 +183,8 @@ export default function RequisitionsPage() {
           {label:"Total Records",   val:String(reqs.length),   bg:"#6366f1",  icon:"📋"},
           {label:"Approved",        val:String(COUNTS.approved),bg:"#0078d4", icon:"👍"},
         ].map((kpi,i)=>(
-          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
-            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase"}}>{kpi.label}</div>
+          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center" as const,borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
+            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase" as const}}>{kpi.label}</div>
             <div style={{fontSize:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums"}}>{kpi.val}</div>
           </div>
         ))}
@@ -254,7 +254,7 @@ export default function RequisitionsPage() {
 
       {/* ── TABLE ── */}
       <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
+        <div style={{overflowX:"auto" as const}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
               <tr style={{borderBottom:"2px solid #e5e7eb",background:"#f9fafb"}}>
@@ -271,7 +271,7 @@ export default function RequisitionsPage() {
                   {col:"",                 label:"ACTIONS",    w:90},
                 ].map(h=>(
                   <th key={h.col} onClick={()=>h.col&&toggleSort(h.col)}
-                    style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap",cursor:h.col?"pointer":"default",userSelect:"none",width:h.w}}>
+                    style={{padding:"10px 14px",textAlign:"left" as const,fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap" as const,cursor:h.col?"pointer":"default",userSelect:"none" as const,width:h.w}}>
                     {h.label}{h.col&&<SortInd col={h.col}/>}
                   </th>
                 ))}
@@ -279,10 +279,10 @@ export default function RequisitionsPage() {
             </thead>
             <tbody>
               {loading&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center",color:"#9ca3af",fontSize:13}}>Loading requisitions…</td></tr>
+                <tr><td colSpan={10} style={{padding:40,textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>Loading requisitions…</td></tr>
               )}
               {!loading&&filtered.length===0&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
+                <tr><td colSpan={10} style={{padding:40,textAlign:"center" as const}}>
                   <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
                   <div style={{fontSize:13,color:"#9ca3af"}}>No requisitions found{search?` for "${search}"`:""}.</div>
                   {canCreate&&!search&&<button onClick={()=>setShowForm(true)} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
@@ -299,21 +299,21 @@ export default function RequisitionsPage() {
                     onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
                     onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)")}>
 
-                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
+                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap" as const,fontSize:12}}>
                       {r.requisition_number||"—"}
                     </td>
-                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>
                       <div style={{fontWeight:600,color:"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
                       {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
                     </td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap" as const}}>{r.department||"—"}</td>
                     <td style={{padding:"10px 14px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize" as const}}>{r.priority||"normal"}</span>
                     </td>
-                    <td style={{padding:"10px 14px",color:"#cbd5e1",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"—"}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
-                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
+                    <td style={{padding:"10px 14px",color:"#cbd5e1",fontSize:12,whiteSpace:"nowrap" as const}}>{r.requester_name||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap" as const}}>{fmtDate(r.created_at)}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap" as const}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
+                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap" as const,fontVariantNumeric:"tabular-nums"}}>
                       {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"—"}
                     </td>
                     <td style={{padding:"10px 14px"}}>
@@ -368,7 +368,7 @@ export default function RequisitionsPage() {
       {/* ── CREATE / EDIT MODAL ── */}
       {showForm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
@@ -396,10 +396,10 @@ export default function RequisitionsPage() {
                   <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#cbd5e1",marginBottom:4}}>{field.l}</label>
                   {field.type==="select"?(
                     <select value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
-                      {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize"}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
+                      {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize" as const}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
                     </select>
                   ):field.type==="textarea"?(
-                    <textarea value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+                    <textarea value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical" as const,boxSizing:"border-box"}}/>
                   ):(
                     <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   )}
@@ -424,7 +424,7 @@ export default function RequisitionsPage() {
       {/* ── VIEW DETAIL MODAL ── */}
       {viewReq&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
@@ -459,12 +459,12 @@ export default function RequisitionsPage() {
                 ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"—",span:2,warn:true}]:[]),
               ].map((row:any,i:number)=>(
                 <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"#fff1f2":"#f9fafb",borderRadius:8,border:`1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase" as const,marginBottom:2}}>{row.l}</div>
                   <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
                 </div>
               ))}
             </div>
-            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" as const}}>
               {(viewReq.status==="submitted"||viewReq.status==="pending")&&canApprove&&(
                 <>
                   <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>✓ Approve</button>
@@ -489,7 +489,7 @@ export default function RequisitionsPage() {
               <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
               <div style={{fontSize:15,fontWeight:800,color:"#1a1a2e"}}>Reject Requisition</div>
             </div>
-            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
+            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical" as const,boxSizing:"border-box",marginBottom:14}}/>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
               <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#cbd5e1"}}>Cancel</button>
               <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>

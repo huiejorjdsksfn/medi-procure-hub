@@ -5,7 +5,7 @@ export default function NotFound() {
   const navigate = useNavigate();
   return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#0f3460 100%)",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
-      <div style={{textAlign:"center",color:"#fff",padding:32,maxWidth:480}}>
+      <div style={{textAlign:"center" as const,color:"#fff",padding:32,maxWidth:480}}>
         <div style={{fontSize:120,fontWeight:900,lineHeight:1,background:"linear-gradient(135deg,rgba(255,255,255,0.9),rgba(255,255,255,0.4))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>404</div>
         <div style={{fontSize:22,fontWeight:800,marginBottom:10,color:"#fff"}}>Page Not Found</div>
         <div style={{fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:32,lineHeight:1.7}}>

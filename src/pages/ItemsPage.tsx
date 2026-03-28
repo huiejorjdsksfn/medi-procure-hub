@@ -18,7 +18,7 @@ const SC: Record<string,{bg:string;color:string}> = {
 
 const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
 const sel: React.CSSProperties = {...inp};
-const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:4,display:"block"};
 
 export default function ItemsPage() {
   const { user, profile, roles } = useAuth();
@@ -168,7 +168,7 @@ export default function ItemsPage() {
               {label:"Low Stock",val:lowStock,bg:"#6c3483"},
               {label:"Categories",val:cats.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -187,7 +187,7 @@ export default function ItemsPage() {
             </div>
           </div>
         </div>
-        <div  style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <div  style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
           <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
@@ -206,14 +206,14 @@ export default function ItemsPage() {
       </div>
 
       {/* Filters */}
-      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
         <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...sel,width:"auto",padding:"5px 10px",fontSize:12}}>
           <option value="all">All Types</option>
           {TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}
         </select>
         <div style={{display:"flex",gap:4}}>
           {["all","active","inactive","discontinued"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3d12":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize" as const,background:statusFilter===s?"#1a3d12":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
               {s}
             </button>
           ))}
@@ -231,23 +231,23 @@ export default function ItemsPage() {
 
       {/* Table */}
       <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
+        <div style={{overflowX:"auto" as const}}>
           <table  style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:"#1a3d12"}}>
                 {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left" as const,color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase" as const,whiteSpace:"nowrap" as const}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
+                <tr><td colSpan={12} style={{padding:"40px",textAlign:"center" as const}}>
                   <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
                   <span style={{fontSize:12,color:"#9ca3af"}}>Loading items...</span>
                 </td></tr>
               ) : filtered.length===0 ? (
-                <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No items found</td></tr>
+                <tr><td colSpan={12} style={{padding:"50px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>No items found</td></tr>
               ) : filtered.map((it,i)=>{
                 const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
                 const s=SC[it.status]||{bg:"#f3f4f6",color:"#6b7280"};
@@ -256,7 +256,7 @@ export default function ItemsPage() {
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{it.name}</td>
                     <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.sku||"—"}</td>
-                    <td style={{padding:"7px 12px",color:"#374151",textTransform:"capitalize",background:i%2===0?"#fff":"#f9fafb"}}>{(it.item_type||"").replace(/_/g," ")}</td>
+                    <td style={{padding:"7px 12px",color:"#374151",textTransform:"capitalize" as const,background:i%2===0?"#fff":"#f9fafb"}}>{(it.item_type||"").replace(/_/g," ")}</td>
                     <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.item_categories?.name||"—"}</td>
                     <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.unit_of_measure||"—"}</td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
@@ -266,7 +266,7 @@ export default function ItemsPage() {
                     </td>
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{it.reorder_level||10}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color,textTransform:"capitalize"}}>{it.status||"active"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color,textTransform:"capitalize" as const}}>{it.status||"active"}</span>
                     </td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>KES {(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
@@ -288,7 +288,7 @@ export default function ItemsPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap"}}>
+        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap" as const}}>
           <span>{filtered.length} items</span>
           <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
           {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>⚠ {lowStockCount} low stock</span>}
@@ -305,9 +305,9 @@ export default function ItemsPage() {
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[["SKU",viewItem.sku],["Type",(viewItem.item_type||"").replace(/_/g," ")],["Category",viewItem.item_categories?.name],["Unit of Measure",viewItem.unit_of_measure],["Unit Price",`KES ${Number(viewItem.unit_price||0).toLocaleString()}`],["Qty in Stock",viewItem.quantity_in_stock],["Reorder Level",viewItem.reorder_level],["Status",viewItem.status]].map(([k,v])=>(
-                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"—"}</div></div>
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"—"}</div></div>
               ))}
-              {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:"#374151"}}>{viewItem.description}</div></div>}
+              {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:"#374151"}}>{viewItem.description}</div></div>}
             </div>
             <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
               {canEdit&&<button onClick={()=>{setViewItem(null);openEdit(viewItem);}} style={{padding:"7px 16px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
@@ -325,7 +325,7 @@ export default function ItemsPage() {
               <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Item":"New Item"}</div>
               <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{overflowY:"auto",padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{overflowY:"auto" as const,padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               <div style={{gridColumn:"1/-1"}}><label style={lbl}>Item Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Amoxicillin 500mg"/></div>
               <div><label style={lbl}>SKU / Code</label><input value={form.sku} onChange={e=>setForm(p=>({...p,sku:e.target.value}))} style={inp} placeholder="ITEM-001"/></div>
               <div><label style={lbl}>Item Type</label><select value={form.item_type} onChange={e=>setForm(p=>({...p,item_type:e.target.value}))} style={sel}>{TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}</select></div>
@@ -335,7 +335,7 @@ export default function ItemsPage() {
               <div><label style={lbl}>Quantity in Stock</label><input type="number" value={form.quantity_in_stock} onChange={e=>setForm(p=>({...p,quantity_in_stock:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Reorder Level</label><input type="number" value={form.reorder_level} onChange={e=>setForm(p=>({...p,reorder_level:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={sel}><option value="active">Active</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></div>
-              <div style={{gridColumn:"1/-1"}}><label style={lbl}>Description</label><textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={lbl}>Description</label><textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{...inp,resize:"none" as const}}/></div>
             </div>
             <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
               <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>

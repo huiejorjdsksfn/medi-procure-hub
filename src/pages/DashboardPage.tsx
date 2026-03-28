@@ -279,7 +279,7 @@ export default function DashboardPage() {
       {/* ── TOP BAR ── */}
       <div style={{position:"relative",zIndex:100,height:52,flexShrink:0,display:"flex",alignItems:"center",padding:"0 18px",background:"rgba(0,0,0,0.60)",backdropFilter:"blur(14px)",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <img src={logoImg} alt="" style={{width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.08)",padding:3}} />
+          <img src={logoImg} alt="" style={{width:32,height:32,borderRadius:8,objectFit:"contain" as const,background:"rgba(255,255,255,0.08)",padding:3}} />
           <div>
             <div style={{fontSize:12,fontWeight:800,color:"#fff",lineHeight:1}}>{sysName}</div>
             <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:2,letterSpacing:"0.05em"}}>{hospital}</div>
@@ -287,9 +287,9 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI alert pills */}
-        <div style={{display:"flex",gap:5,marginRight:12,flexWrap:"nowrap",overflow:"hidden"}}>
+        <div style={{display:"flex",gap:5,marginRight:12,flexWrap:"nowrap" as const,overflow:"hidden"}}>
           {kpiAlerts.slice(0,3).map((a,i) => (
-            <div key={i} style={{padding:"2px 9px",borderRadius:20,background:a.bg,border:`1px solid ${a.color}44`,fontSize:9,fontWeight:700,color:a.color,whiteSpace:"nowrap"}}>
+            <div key={i} style={{padding:"2px 9px",borderRadius:20,background:a.bg,border:`1px solid ${a.color}44`,fontSize:9,fontWeight:700,color:a.color,whiteSpace:"nowrap" as const}}>
               {a.label}
             </div>
           ))}
@@ -354,7 +354,7 @@ export default function DashboardPage() {
 
           {/* Greeting */}
           {!active&&(
-            <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",textAlign:"center",pointerEvents:"none",zIndex:10,animation:"slideIn 0.4s ease-out"}}>
+            <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",textAlign:"center" as const,pointerEvents:"none" as const,zIndex:10,animation:"slideIn 0.4s ease-out"}}>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.38)",letterSpacing:"0.05em"}}>
                 {greeting}, <span style={{color:"rgba(255,255,255,0.78)",fontWeight:700}}>{profile?.full_name?.split(" ")[0]||"Staff"}</span>
               </div>
@@ -445,7 +445,7 @@ export default function DashboardPage() {
                       textAnchor="middle" dominantBaseline="central"
                       fill={isActive?"#fff":"rgba(255,255,255,0.92)"}
                       fontSize={12} fontWeight={900} letterSpacing={1.8}
-                      style={{pointerEvents:"none",userSelect:"none",textShadow:"0 2px 10px rgba(0,0,0,0.9)",filter:isActive?"drop-shadow(0 0 6px rgba(255,255,255,0.7))":"none"}}>
+                      style={{pointerEvents:"none" as const,userSelect:"none" as const,textShadow:"0 2px 10px rgba(0,0,0,0.9)",filter:isActive?"drop-shadow(0 0 6px rgba(255,255,255,0.7))":"none"}}>
                       {word}
                     </text>
                   ))}
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                     textAnchor="middle" dominantBaseline="central"
                     fill={isActive?"rgba(255,255,255,0.85)":"rgba(255,255,255,0.4)"}
                     fontSize={7.5} fontWeight={500} letterSpacing={0.5}
-                    style={{pointerEvents:"none",userSelect:"none"}}>
+                    style={{pointerEvents:"none" as const,userSelect:"none" as const}}>
                     {s.sub}
                   </text>
 
@@ -466,7 +466,7 @@ export default function DashboardPage() {
                       <g filter={isActive?"url(#softGlow)":""}>
                         <circle cx={cp.x} cy={cp.y} r={13} fill={isActive?s.g3:s.g2} stroke="rgba(255,255,255,0.3)" strokeWidth={1.5}/>
                         <text x={cp.x} y={cp.y} textAnchor="middle" dominantBaseline="central"
-                          fill="#fff" fontSize={9} fontWeight={800} style={{pointerEvents:"none"}}>
+                          fill="#fff" fontSize={9} fontWeight={800} style={{pointerEvents:"none" as const}}>
                           {cnt}
                         </text>
                       </g>
@@ -490,16 +490,16 @@ export default function DashboardPage() {
             {/* Logo in center */}
             <image href={logoImg} x={CX-28} y={CY-42} width={56} height={56} style={{filter:"drop-shadow(0 3px 6px rgba(0,0,0,0.5))"}}/>
 
-            <text x={CX} y={CY+24} textAnchor="middle" fill="rgba(255,255,255,0.92)" fontSize={7} fontWeight={800} letterSpacing={1.5} style={{pointerEvents:"none"}}>
+            <text x={CX} y={CY+24} textAnchor="middle" fill="rgba(255,255,255,0.92)" fontSize={7} fontWeight={800} letterSpacing={1.5} style={{pointerEvents:"none" as const}}>
               {sysName.toUpperCase()}
             </text>
-            <text x={CX} y={CY+35} textAnchor="middle" fill="rgba(255,255,255,0.38)" fontSize={5.5} letterSpacing={0.8} style={{pointerEvents:"none"}}>
+            <text x={CX} y={CY+35} textAnchor="middle" fill="rgba(255,255,255,0.38)" fontSize={5.5} letterSpacing={0.8} style={{pointerEvents:"none" as const}}>
               EMBU LEVEL 5 HOSPITAL
             </text>
 
             {/* LIVE dot */}
             <circle cx={CX-6} cy={CY+48} r={3.5} fill="#ef4444" style={{animation:"pulse 2s ease-in-out infinite"}}/>
-            <text x={CX+4} y={CY+48} dominantBaseline="central" fill="rgba(255,255,255,0.45)" fontSize={7} fontWeight={700} style={{pointerEvents:"none"}}>LIVE</text>
+            <text x={CX+4} y={CY+48} dominantBaseline="central" fill="rgba(255,255,255,0.45)" fontSize={7} fontWeight={700} style={{pointerEvents:"none" as const}}>LIVE</text>
 
             {/* KPI arcs on outer ring */}
             {kpi.reqs>0&&<path d={arc(CX,CY,OR+28,OR+24,0,Math.min(60,kpi.reqs*8),0)} fill="#fbbf24"/>}
@@ -512,7 +512,7 @@ export default function DashboardPage() {
               <div style={{width:310,padding:"14px 0",height:"100%",display:"flex",flexDirection:"column"}}>
                 <div style={{padding:"0 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.14em",textTransform:"uppercase"}}>{seg.sub}</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.14em",textTransform:"uppercase" as const}}>{seg.sub}</div>
                     <div style={{fontSize:16,fontWeight:900,color:"#fff",marginTop:2}}>{seg.label}</div>
                     <div style={{fontSize:9.5,color:"rgba(255,255,255,0.3)",marginTop:3}}>{visLinks(seg).length} accessible modules</div>
                   </div>
@@ -521,7 +521,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div style={{height:2.5,background:`linear-gradient(90deg,${seg.g1},${seg.g3},transparent)`,opacity:0.7}}/>
-                <div style={{flex:1,overflowY:"auto",padding:"6px 8px"}}>
+                <div style={{flex:1,overflowY:"auto" as const,padding:"6px 8px"}}>
                   {visLinks(seg).map(lk=>(
                     <button key={lk.path} onClick={()=>nav(lk.path)} className="panel-link"
                       style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:2,transition:"background 0.12s"}}>
@@ -531,7 +531,7 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
-                <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.05)",fontSize:8.5,color:"rgba(255,255,255,0.18)",textAlign:"center"}}>
+                <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.05)",fontSize:8.5,color:"rgba(255,255,255,0.18)",textAlign:"center" as const}}>
                   Role: {ROLE_LABELS[primaryRole]||"Staff"} · {hospital}
                 </div>
               </div>
@@ -543,7 +543,7 @@ export default function DashboardPage() {
         <div style={{position:"relative",zIndex:100,height:46,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"center",gap:4,paddingBottom:2,flexShrink:0}}>
           {QUICK.map(lk=>(
             <button key={lk.path} onClick={()=>nav(lk.path)}
-              style={{padding:"5px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)",cursor:"pointer",fontSize:"10.5px",fontWeight:600,color:"rgba(255,255,255,0.68)",whiteSpace:"nowrap",transition:"all 0.15s",fontFamily:"inherit"}}
+              style={{padding:"5px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)",cursor:"pointer",fontSize:"10.5px",fontWeight:600,color:"rgba(255,255,255,0.68)",whiteSpace:"nowrap" as const,transition:"all 0.15s",fontFamily:"inherit"}}
               onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.15)";(e.currentTarget as HTMLElement).style.color="#fff";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.3)";}}
               onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.05)";(e.currentTarget as HTMLElement).style.color="rgba(255,255,255,0.68)";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.12)";}}>
               {lk.label}
