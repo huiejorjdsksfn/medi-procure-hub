@@ -47,7 +47,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin + "/dashboard",
+      redirectTo: window.location.origin + "/reset-password",
     });
     setLoading(false);
     if (error) {
@@ -66,7 +66,7 @@ export default function LoginPage() {
       fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
       overflow: "hidden",
     }}>
-      {/* ── Full-screen background photo ── */}
+      {/* -- Full-screen background photo -- */}
       <div style={{
         position: "absolute", inset: 0,
         backgroundImage: `url(${procurementBg})`,
@@ -75,13 +75,13 @@ export default function LoginPage() {
         filter: "brightness(0.88) saturate(1.1)",
       }}/>
 
-      {/* Subtle dark gradient overlay — lighter than before */}
+      {/* Subtle dark gradient overlay - lighter than before */}
       <div style={{
         position: "absolute", inset: 0,
         background: "linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.55) 100%)",
       }}/>
 
-      {/* ── Centered card ── */}
+      {/* -- Centered card -- */}
       <div style={{
         position: "absolute", inset: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
@@ -98,7 +98,7 @@ export default function LoginPage() {
           transition: "opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)",
         }}>
 
-          {/* ── Logo area ── */}
+          {/* -- Logo area -- */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "center",
             gap: 10, marginBottom: 6,
@@ -130,7 +130,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* ── SIGN IN heading ── */}
+          {/* -- SIGN IN heading -- */}
           <div style={{
             textAlign: "center" as const,
             fontSize: 13, fontWeight: 700,
@@ -142,10 +142,10 @@ export default function LoginPage() {
             {forgotMode ? "RESET PASSWORD" : "SIGN IN"}
           </div>
 
-          {/* ── Form ── */}
+          {/* -- Form -- */}
           {forgotSent ? (
             <div style={{ textAlign: "center" as const, padding: "16px 0" }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>✉️</div>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>&#x2709;</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#0e2a4a", marginBottom: 6 }}>
                 Check your email
               </div>
@@ -283,7 +283,7 @@ export default function LoginPage() {
                       padding: 0,
                     }}
                   >
-                    ← Back
+                    &larr; Back
                   </button>
                 )}
 
@@ -318,13 +318,13 @@ export default function LoginPage() {
           <div style={{ borderTop: "1px solid #f3f4f6", marginTop: 24, paddingTop: 14 }}>
             <div style={{ fontSize: 10, color: "#c4c9d4", textAlign: "center" as const, lineHeight: 1.6 }}>
               For account creation or access issues,<br/>
-              contact ICT — Embu Level 5 Hospital
+              contact ICT - Embu Level 5 Hospital
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Bottom footer bar (like BackOffice bar in template) ── */}
+      {/* -- Bottom footer bar (like BackOffice bar in template) -- */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
         background: "rgba(10,20,40,0.82)",
@@ -350,36 +350,14 @@ export default function LoginPage() {
         }}>
           Embu County Government
         </span>
-        <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>·</span>
+        <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>.</span>
         <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.03em" }}>
-          Health Procurement Division · v2.1
+          Health Procurement Division - v2.1
         </span>
       </div>
 
-      {/* ── Subtle UI corner decorations (like the template's faint grid marks) ── */}
-      {[
-        { top: 18, left: 18 }, { top: 18, right: 18 },
-        { bottom: 52, left: 18 }, { bottom: 52, right: 18 },
-      ].map((pos, i) => (
-        <div key={i} style={{
-          position: "absolute", ...pos,
-          width: 18, height: 18,
-          border: "1.5px solid rgba(255,255,255,0.22)",
-          borderRadius: 2,
-          opacity: mounted ? 0.7 : 0,
-          transition: "opacity 1s 0.5s",
-          pointerEvents: "none",
-        }}/>
-      ))}
+      {/* Corner decorations removed */}
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        input::placeholder { color: #aab0bb; font-weight: 600; letter-spacing: 0.08em; font-size: 11px; }
-        input:focus::placeholder { color: #b0c8d4; }
-        @media (max-width: 480px) {
-          div[style*="max-width: 380px"] { padding: 28px 20px 24px !important; }
-        }
-      `}</style>
     </div>
       </div>
     </div>

@@ -12,7 +12,7 @@ import {
   PiggyBank, Layers, Receipt, BookMarked, Calendar, Scale,
   Search, Mail, Activity, Menu, X, UserCircle, ChevronRight,
   Globe, Archive, TrendingUp, LayoutDashboard, Sliders, Eye,
-  Cpu, Home, AlertTriangle, Wrench, Code2, Bug
+  Cpu, Home, AlertTriangle, Wrench, Code2, Bug, CreditCard
 } from "lucide-react";
 
 /* ─── Module colour palette (D365 tile colours) ─── */
@@ -25,13 +25,14 @@ const MOD_COLORS = {
   reports:        "#8764b8",
   admin:          "#ca5010",
   database_admin: "#8b0000",
+  accountant:     "#059669",
 };
 
 const ROLE_LABELS: Record<string,string> = {
   admin:"Administrator", database_admin:"DB Administrator",
   procurement_manager:"Proc. Manager", procurement_officer:"Proc. Officer",
   inventory_manager:"Inventory Mgr", warehouse_officer:"Warehouse",
-  requisitioner:"Requisitioner",
+  requisitioner:"Requisitioner", accountant:"Accountant",
 };
 
 /* ─── Module + sub-item definitions ─── */
@@ -85,12 +86,25 @@ const MODULES = [
       {label:"Inspections",     path:"/quality/inspections",     icon:Eye,    roles:[]},
       {label:"Non-Conformance", path:"/quality/non-conformance", icon:Shield, roles:[]},
     ]},
+  { id:"accountant", label:"Accountant", icon:DollarSign, color:MOD_COLORS.accountant,
+    path:"/accountant",
+    roles:["admin","accountant","procurement_manager"],
+    sub:[
+      {label:"Workspace",       path:"/accountant",                    icon:BarChart3,     roles:[]},
+      {label:"Invoice Matching",path:"/accountant",                    icon:FileCheck,     roles:[]},
+      {label:"Payments",        path:"/vouchers/payment",              icon:CreditCard,    roles:[]},
+      {label:"Budget Control",  path:"/financials/budgets",            icon:PiggyBank,     roles:[]},
+      {label:"ERP Sync",        path:"/accountant",                    icon:Database,      roles:[]},
+      {label:"Journal/Ledger",  path:"/vouchers/journal",              icon:BookOpen,      roles:[]},
+      {label:"Chart of Accounts",path:"/financials/chart-of-accounts",icon:BookOpen,      roles:[]},
+      {label:"Fixed Assets",    path:"/financials/fixed-assets",       icon:Building2,     roles:[]},
+    ]},
   { id:"reports", label:"Reports & BI", icon:BarChart3, color:MOD_COLORS.reports,
     path:"/reports",
-    roles:["admin","procurement_manager","procurement_officer"],
+    roles:["admin","procurement_manager","procurement_officer","accountant"],
     sub:[
       {label:"Analytics",   path:"/reports",    icon:BarChart3, roles:[]},
-      {label:"Audit Log",   path:"/audit-log",  icon:Activity,  roles:["admin","procurement_manager"]},
+      {label:"Audit Log",   path:"/audit-log",  icon:Activity,  roles:["admin","procurement_manager","accountant"]},
       {label:"Documents",   path:"/documents",  icon:FileText,  roles:[]},
     ]},
   { id:"admin", label:"Administration", icon:Settings, color:MOD_COLORS.admin,

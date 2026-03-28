@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap');
 
 /* ── ProcurBosse Theme CSS Variables ──────────────────────────────
    Set by GUI Editor via useSystemSettings.applyThemeToDOM()
@@ -24,7 +25,12 @@
   --content-padding:  16px;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap');
+
+/* ── LoginPage styles ─────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.login-page input::placeholder { color: #aab0bb; font-weight: 600; letter-spacing: 0.08em; font-size: 11px; }
+.login-page input:focus::placeholder { color: #b0c8d4; }
+@media (max-width: 480px) { .login-card { padding: 28px 20px 24px !important; } }
 
 @tailwind base;
 @tailwind components;
