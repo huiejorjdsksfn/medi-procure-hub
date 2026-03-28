@@ -197,15 +197,15 @@ export default function RequisitionsPage() {
             <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
           </div>
           <div>
-            <div style={{fontSize:16,fontWeight:800,color:"#1a1a2e"}}>Requisitions</div>
+            <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>Requisitions</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Purchase requisition management · {reqs.length} records</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>
+          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
             <Download style={{width:13,height:13}}/> Export
           </button>
-          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
             <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canCreate&&(
@@ -225,14 +225,14 @@ export default function RequisitionsPage() {
           const cfg=STATUS_CFG[key];
           return (
             <button key={key} onClick={()=>setStatusTab(key)}
-              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"#fff",cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex",alignItems:"center",gap:5}}>
+              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"rgba(255,255,255,0.06)",cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex",alignItems:"center",gap:5}}>
               {cfg?.dot&&isActive&&<span style={{width:6,height:6,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>}
               {label} ({key==="all"?reqs.length:cnt})
             </button>
           );
         })}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #d1d5db",background:"#fff",fontSize:12,color:"#cbd5e1",cursor:"pointer"}}>
+          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",fontSize:12,color:"#e2e8f0",cursor:"pointer"}}>
             <option value="all">All Priority</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
@@ -257,7 +257,7 @@ export default function RequisitionsPage() {
         <div style={{overflowX:"auto" as const}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
-              <tr style={{borderBottom:"2px solid #e5e7eb",background:"#f9fafb"}}>
+              <tr style={{borderBottom:"2px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)"}}>
                 {[
                   {col:"requisition_number",label:"REQ NO",    w:150},
                   {col:"title",            label:"TITLE",      w:220},
@@ -310,7 +310,7 @@ export default function RequisitionsPage() {
                     <td style={{padding:"10px 14px"}}>
                       <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize" as const}}>{r.priority||"normal"}</span>
                     </td>
-                    <td style={{padding:"10px 14px",color:"#cbd5e1",fontSize:12,whiteSpace:"nowrap" as const}}>{r.requester_name||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"#94a3b8",fontSize:12,whiteSpace:"nowrap" as const}}>{r.requester_name||"—"}</td>
                     <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap" as const}}>{fmtDate(r.created_at)}</td>
                     <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap" as const}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
                     <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap" as const,fontVariantNumeric:"tabular-nums"}}>
@@ -374,7 +374,7 @@ export default function RequisitionsPage() {
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div>
-                <div style={{fontSize:16,fontWeight:800,color:"#1a1a2e"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
+                <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>Embu Level 5 Hospital · {editReq?.requisition_number||"New"}</div>
               </div>
               <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
@@ -393,7 +393,7 @@ export default function RequisitionsPage() {
                 {k:"notes",l:"Additional Notes",p:"Any other information…",span:2,type:"textarea"},
               ].map(field=>(
                 <div key={field.k} style={{gridColumn:field.span===2?"span 2":"span 1"}}>
-                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#cbd5e1",marginBottom:4}}>{field.l}</label>
+                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#94a3b8",marginBottom:4}}>{field.l}</label>
                   {field.type==="select"?(
                     <select value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
                       {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize" as const}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
@@ -407,7 +407,7 @@ export default function RequisitionsPage() {
               ))}
             </div>
             <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#cbd5e1"}}>Cancel</button>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
               <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                 {saving?"Saving…":editReq?"Update Requisition":"Create Requisition"}
               </button>
@@ -430,7 +430,7 @@ export default function RequisitionsPage() {
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:800,color:"#1a1a2e"}}>{viewReq.requisition_number}</div>
+                <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>{viewReq.requisition_number}</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>{viewReq.title}</div>
               </div>
               <span style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
@@ -458,7 +458,7 @@ export default function RequisitionsPage() {
                 {l:"Notes",v:viewReq.notes||"—",span:2},
                 ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"—",span:2,warn:true}]:[]),
               ].map((row:any,i:number)=>(
-                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"#fff1f2":"#f9fafb",borderRadius:8,border:`1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
+                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"rgba(239,68,68,0.15)":"rgba(255,255,255,0.05)",borderRadius:8,border: `1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
                   <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase" as const,marginBottom:2}}>{row.l}</div>
                   <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
                 </div>
@@ -474,8 +474,8 @@ export default function RequisitionsPage() {
               {viewReq.status==="draft"&&(
                 <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>⇪ Submit for Approval</button>
               )}
-              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>🖨 Print</button>
-              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#cbd5e1"}}>Close</button>
+              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>🖨 Print</button>
+              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>Close</button>
             </div>
           </div>
         </div>
@@ -487,11 +487,11 @@ export default function RequisitionsPage() {
           <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:440,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
               <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
-              <div style={{fontSize:15,fontWeight:800,color:"#1a1a2e"}}>Reject Requisition</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>Reject Requisition</div>
             </div>
             <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical" as const,boxSizing:"border-box",marginBottom:14}}/>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#cbd5e1"}}>Cancel</button>
+              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
               <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
             </div>
           </div>

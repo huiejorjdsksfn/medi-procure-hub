@@ -296,7 +296,7 @@ ORDER BY t.table_name;`);
         <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
           <div style={{ background:realtimeOn?"#00cc44":"#666",width:8,height:8,borderRadius:"50%" }} />
           <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
-          <button onClick={loadTable} style={{ background:"#e2e8f0",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
+          <button onClick={loadTable} style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
             <RefreshCw style={{ width:12,height:12 }} />
           </button>
         </div>
@@ -306,7 +306,7 @@ ORDER BY t.table_name;`);
       <div style={{ display:"flex",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"#f1f5f9",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"#374151" }}>
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"rgba(255,255,255,0.05)",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"rgba(255,255,255,0.6)" }}>
             <t.icon style={{ width:13,height:13 }} />
             {t.label}
           </button>
