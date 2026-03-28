@@ -316,7 +316,7 @@ export default function EmailPage() {
         </div>
 
         {/* Folders */}
-        <nav style={{flex:1,overflowY:"auto",padding:"6px 6px 0"}}>
+        <nav style={{flex:1,overflowY:"auto" as const,padding:"6px 6px 0"}}>
           {FOLDERS.map(f=>{
             const count=f.id==="inbox"?unreadCount:f.id==="starred"?starredIds.size:0;
             const isAct=folder===f.id;
@@ -335,7 +335,7 @@ export default function EmailPage() {
           })}
 
           <div style={{borderTop:"1px solid #e0e0e0",margin:"8px 4px",paddingTop:8}}>
-            <div style={{fontSize:9.5,fontWeight:700,color:"#888",letterSpacing:"0.07em",textTransform:"uppercase",padding:"0 6px 6px"}}>System Folders</div>
+            <div style={{fontSize:9.5,fontWeight:700,color:"#888",letterSpacing:"0.07em",textTransform:"uppercase" as const,padding:"0 6px 6px"}}>System Folders</div>
             {[{id:"procurement",label:"Procurement",icon:Layers},{id:"system",label:"System Alerts",icon:Shield}].map(f=>{
               const isAct=folder===f.id;
               return (
@@ -409,11 +409,11 @@ export default function EmailPage() {
         </div>
 
         {/* Messages */}
-        <div style={{flex:1,overflowY:"auto"}}>
+        <div style={{flex:1,overflowY:"auto" as const}}>
           {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"28px",gap:8,color:"#999",fontSize:12}}>
             <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading…
           </div>}
-          {!loading&&filtered.length===0&&<div style={{textAlign:"center",padding:"40px 16px",color:"#999"}}>
+          {!loading&&filtered.length===0&&<div style={{textAlign:"center" as const,padding:"40px 16px",color:"#999"}}>
             <Mail style={{width:32,height:32,margin:"0 auto 10px",color:"#e0e0e0"}}/><div style={{fontSize:13,fontWeight:600,color:"#555"}}>No messages</div>
           </div>}
           {filtered.map(msg=>{
@@ -463,7 +463,7 @@ export default function EmailPage() {
             <div style={{position:"absolute",inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.22)"}}/>
             <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(0,30,80,0.75),rgba(0,0,0,0.55))"}}/>
             {/* Content */}
-            <div style={{position:"relative",textAlign:"center",padding:"40px 32px"}}>
+            <div style={{position:"relative",textAlign:"center" as const,padding:"40px 32px"}}>
               <div style={{width:64,height:64,borderRadius:16,background:"rgba(0,120,212,0.85)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",backdropFilter:"blur(4px)"}}>
                 <Mail style={{width:30,height:30,color:"#fff"}}/>
               </div>
@@ -506,29 +506,29 @@ export default function EmailPage() {
                 <X style={{width:15,height:15,color:"#666"}}/>
               </button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"20px 24px"}}>
               <div style={{maxWidth:700,display:"flex",flexDirection:"column",gap:12}}>
                 {/* To */}
                 <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>To</label>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>To</label>
                   <input value={compose.to} onChange={e=>setCompose(p=>({...p,to:e.target.value}))} placeholder="recipient@email.com or internal user email"
                     style={{...inp,border:"none",flex:1,padding:"6px 0"}}/>
                 </div>
                 {/* CC */}
                 <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>CC</label>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>CC</label>
                   <input value={compose.cc} onChange={e=>setCompose(p=>({...p,cc:e.target.value}))} placeholder="cc@email.com (optional)"
                     style={{...inp,border:"none",flex:1,padding:"6px 0"}}/>
                 </div>
                 {/* Subject */}
                 <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>Sub</label>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Sub</label>
                   <input value={compose.subject} onChange={e=>setCompose(p=>({...p,subject:e.target.value}))} placeholder="Message subject"
                     style={{...inp,border:"none",flex:1,fontWeight:600,padding:"6px 0"}}/>
                 </div>
                 {/* Priority */}
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pri</label>
+                  <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Pri</label>
                   <select value={compose.priority} onChange={e=>setCompose(p=>({...p,priority:e.target.value}))}
                     style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
                     <option value="low">Low Priority</option>
@@ -627,7 +627,7 @@ export default function EmailPage() {
             </div>
 
             {/* Body */}
-            <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"24px"}}>
               <div style={{maxWidth:700,fontSize:13.5,color:"#374151",lineHeight:1.85,whiteSpace:"pre-wrap" as const}}>{selected.body}</div>
               {selected.action_url&&(
                 <div style={{marginTop:20}}>

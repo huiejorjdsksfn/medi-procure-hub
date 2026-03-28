@@ -101,7 +101,7 @@ export default function BudgetsPage() {
           {label:"Utilization %",val:`${utilizationPct}%`,bg:"#6c3483"},
           {label:"Active Budgets",val:activeCount,bg:"#1a252f"},
         ].map(k=>(
-          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
             <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
             <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
           </div>
@@ -124,11 +124,11 @@ export default function BudgetsPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#eef2ff"}}>
             {["Code","Budget Name","Department","FY","Allocated","Spent","Committed","% Used","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
+              <th key={h} style={{padding:"12px 16px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase" as const}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={10} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={10} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No budgets yet. Create one to get started.</td></tr>:
+            {loading?<tr><td colSpan={10} style={{padding:"32px 0",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={10} style={{padding:"32px 0",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No budgets yet. Create one to get started.</td></tr>:
             filtered.map((r,i)=>{
               const pct = r.allocated_amount>0?Math.round((r.spent_amount||0)/r.allocated_amount*100):0;
               return (
@@ -165,7 +165,7 @@ export default function BudgetsPage() {
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Budget":"New Budget"}</h3>
               <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[["Budget Name *","budget_name","",2],["Financial Year","financial_year","",1],["Allocated Amount (KES) *","allocated_amount","number",1]].map(([l,k,t,span])=>(
                 <div key={k} style={{gridColumn:`span ${span}`}}>
                   <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
@@ -187,7 +187,7 @@ export default function BudgetsPage() {
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
                 <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  {["active","draft","closed"].map(s=><option key={s} value={s} style={{textTransform:"capitalize"}}>{s}</option>)}
+                  {["active","draft","closed"].map(s=><option key={s} value={s} style={{textTransform:"capitalize" as const}}>{s}</option>)}
                 </select></div>
               <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Notes</label>
                 <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>

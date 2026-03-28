@@ -22,7 +22,7 @@ const INP: React.CSSProperties = {
 };
 const LBL: React.CSSProperties = {
   display:"block", fontSize:9.5, fontWeight:700,
-  textTransform:"uppercase", letterSpacing:"0.06em",
+  textTransform:"uppercase" as const, letterSpacing:"0.06em",
   color:"#64748b", marginBottom:4,
 };
 
@@ -84,7 +84,7 @@ export function renderField(
           placeholder={field.placeholder || ""}
           required={field.required}
           rows={3}
-          style={{ ...INP, resize:"vertical" }}
+          style={{ ...INP, resize:"vertical" as const }}
           disabled={disabled}
         />
       );

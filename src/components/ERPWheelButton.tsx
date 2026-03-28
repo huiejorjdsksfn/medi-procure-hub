@@ -72,7 +72,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           return(
             <g key={i} style={{cursor:"pointer"}} onMouseEnter={()=>setHo(i)} onMouseLeave={()=>setHo(null)} onClick={()=>navigate(seg.path)}>
               <path d={arc(CX,CY,r2,sd,ed,IR+4)} fill={isH?seg.color:`url(#wbS${i})`} filter={isH?"url(#wbOGlow)":undefined} style={{transition:"all 0.2s",opacity:isH?1:0.82}}/>
-              <text x={mp.x} y={mp.y} textAnchor="middle" dominantBaseline="middle" style={{fontSize:isH?9.5:8.5,fontWeight:700,fill:"#fff",fontFamily:"'Inter',sans-serif",pointerEvents:"none",textTransform:"uppercase",letterSpacing:"0.03em"}}>
+              <text x={mp.x} y={mp.y} textAnchor="middle" dominantBaseline="middle" style={{fontSize:isH?9.5:8.5,fontWeight:700,fill:"#fff",fontFamily:"'Inter',sans-serif",pointerEvents:"none" as const,textTransform:"uppercase" as const,letterSpacing:"0.03em"}}>
                 {seg.label.split(" ").map((w,wi)=>(
                   <tspan key={wi} x={mp.x} dy={wi===0&&seg.label.includes(" ")?"-6":wi>0?"13":"0"}>{w}</tspan>
                 ))}
@@ -92,7 +92,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
             <g key={n.label} style={{cursor:"pointer"}} onMouseEnter={()=>setHi(n.label)} onMouseLeave={()=>setHi(null)} onClick={()=>navigate(n.path)}>
               {isH&&<circle cx={pt.x} cy={pt.y} r={NR+7} fill="none" stroke={n.color} strokeWidth="2" opacity="0.4" filter="url(#wbGlow)"/>}
               <circle cx={pt.x} cy={pt.y} r={NR+(isH?3:0)} fill={isH?n.color:"#fff"} stroke={n.color} strokeWidth={isH?0:2.5} filter={isH?"url(#wbGlow)":undefined} style={{transition:"all 0.2s"}}/>
-              <text x={pt.x} y={pt.y} textAnchor="middle" dominantBaseline="middle" style={{fontSize:7.5,fontWeight:800,fill:isH?"#fff":n.color,pointerEvents:"none",fontFamily:"'Inter',sans-serif",textTransform:"uppercase",letterSpacing:"0.02em"}}>
+              <text x={pt.x} y={pt.y} textAnchor="middle" dominantBaseline="middle" style={{fontSize:7.5,fontWeight:800,fill:isH?"#fff":n.color,pointerEvents:"none" as const,fontFamily:"'Inter',sans-serif",textTransform:"uppercase" as const,letterSpacing:"0.02em"}}>
                 {n.label.length>8?n.label.slice(0,7)+"…":n.label}
               </text>
             </g>
@@ -106,11 +106,11 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
             ?<image href={logoUrl} x={CX-22} y={CY-22} width={44} height={44} clipPath="circle()"/>
             :<><rect x={CX-7} y={CY-18} width={14} height={36} rx="3" fill="rgba(255,255,255,0.9)"/><rect x={CX-18} y={CY-7} width={36} height={14} rx="3" fill="rgba(255,255,255,0.9)"/></>
           }
-          <text x={CX} y={CY+HUB+14} textAnchor="middle" style={{fontSize:9,fontWeight:800,fill:"#1a3a6b",fontFamily:"'Inter',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase"}}>PROCUREMENT HUB</text>
+          <text x={CX} y={CY+HUB+14} textAnchor="middle" style={{fontSize:9,fontWeight:800,fill:"#1a3a6b",fontFamily:"'Inter',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase" as const}}>PROCUREMENT HUB</text>
         </g>
         <circle cx={CX} cy={CY} r={IR} fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 5"/>
       </svg>
-      <div style={{display:"flex",gap:16,flexWrap:"wrap",justifyContent:"center",maxWidth:420}}>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap" as const,justifyContent:"center",maxWidth:420}}>
         <span style={{fontSize:9,color:"#6b7280",fontWeight:600}}>⬤ Inner: Quick Access &nbsp;|&nbsp; ⬛ Outer: {visOuter.length} accessible modules for your role</span>
       </div>
     </div>

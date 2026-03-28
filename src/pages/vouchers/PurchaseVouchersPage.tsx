@@ -129,7 +129,7 @@ export default function PurchaseVouchersPage() {
               {label:"Unpaid/Pending",val:rows.length-paid,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -151,11 +151,11 @@ export default function PurchaseVouchersPage() {
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#fff7ed"}}>
             {["Voucher No.","Supplier","Invoice No.","Date","Amount","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
+              <th key={h} style={{padding:"12px 16px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase" as const}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No purchase vouchers</td></tr>:
+            {loading?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No purchase vouchers</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#7c2d12"}}>{r.voucher_number}</td>
@@ -184,7 +184,7 @@ export default function PurchaseVouchersPage() {
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Purchase Voucher</h3>
               <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Supplier *</label>
                 <select value={form.supplier_id} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,supplier_name:s?.name||""}));}}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
@@ -199,29 +199,29 @@ export default function PurchaseVouchersPage() {
             {/* Line items */}
             <div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase"}}>Line Items</label>
+                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase" as const}}>Line Items</label>
                 <button onClick={()=>setItems(p=>[...p,{description:"",qty:"1",rate:"",amount:""}])} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer"}}><Plus style={{width:12,height:12}}/>Add</button>
               </div>
               <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"#fff7ed"}}>{["Description","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"#fff7ed"}}>{["Description","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {items.map((it,i)=>(
                     <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
                       <td style={{padding:"4px"}}><input value={it.description} onChange={e=>updateItem(i,"description",e.target.value)} style={{width:"100%",padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",boxSizing:"border-box"}}/></td>
                       <td style={{padding:"4px"}}><input type="number" value={it.qty} onChange={e=>updateItem(i,"qty",e.target.value)} style={{width:56,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
                       <td style={{padding:"4px"}}><input type="number" value={it.rate} onChange={e=>updateItem(i,"rate",e.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
-                      <td style={{padding:"4px",fontWeight:600,textAlign:"right"}}>{fmtKES(Number(it.amount||0))}</td>
+                      <td style={{padding:"4px",fontWeight:600,textAlign:"right" as const}}>{fmtKES(Number(it.amount||0))}</td>
                       <td style={{padding:"4px"}}><button onClick={()=>setItems(p=>p.filter((_,j)=>j!==i))} style={{color:"#f87171"}}><X style={{width:12,height:12}}/></button></td>
                     </tr>
                   ))}
                   <tr style={{background:"#fff7ed"}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>Subtotal</td><td style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>{fmtKES(subtotal)}</td><td/>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>Subtotal</td><td style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>{fmtKES(subtotal)}</td><td/>
                   </tr>
                   <tr style={{background:"#fff7ed"}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>VAT {form.tax_rate||16}%</td><td style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>{fmtKES(taxAmt)}</td><td/>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>VAT {form.tax_rate||16}%</td><td style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>{fmtKES(taxAmt)}</td><td/>
                   </tr>
                   <tr style={{background:"#fde68a",fontWeight:900}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:14,fontWeight:900}}>TOTAL</td><td style={{padding:"8px",textAlign:"right",fontSize:14,fontWeight:900}}>{fmtKES(total)}</td><td/>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:14,fontWeight:900}}>TOTAL</td><td style={{padding:"8px",textAlign:"right" as const,fontSize:14,fontWeight:900}}>{fmtKES(total)}</td><td/>
                   </tr>
                 </tbody>
               </table>

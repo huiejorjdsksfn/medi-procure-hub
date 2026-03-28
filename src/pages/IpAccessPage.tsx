@@ -174,7 +174,7 @@ export default function IpAccessPage() {
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {[{n:allowed,l:"Allowed",c:"#4ade80"},{n:denied,l:"Denied",c:"#f87171"},{n:wlActive,l:"Active Rules",c:"#93c5fd"},{n:activeSessions.length,l:"Live Users",c:"#fde68a"}].map((k,i)=>(
-              <div key={i} style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,0.15)"}}>
+              <div key={i} style={{textAlign:"center" as const,background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,0.15)"}}>
                 <div style={{fontSize:18,fontWeight:900,color:k.c}}>{k.n}</div>
                 <div style={{fontSize:9,opacity:.7,fontWeight:600}}>{k.l}</div>
               </div>
@@ -268,10 +268,10 @@ export default function IpAccessPage() {
               )}
 
               {/* Whitelist entries */}
-              {loading?<div style={{textAlign:"center",padding:40,color:"#6b7280"}}>Loading…</div>:(
+              {loading?<div style={{textAlign:"center" as const,padding:40,color:"#6b7280"}}>Loading…</div>:(
                 <div style={{display:"grid",gap:8}}>
                   {whitelist.length===0&&(
-                    <div style={{textAlign:"center",padding:60,color:"#9ca3af"}}>
+                    <div style={{textAlign:"center" as const,padding:60,color:"#9ca3af"}}>
                       <Shield style={{width:40,height:40,color:"#d1d5db",display:"block",margin:"0 auto 12px"}}/>
                       No whitelist entries yet. Add IP ranges to control access.
                       <br/><button onClick={()=>setShowForm(true)} style={{...B(),display:"inline-flex",marginTop:12}}>Add First Entry</button>
@@ -324,7 +324,7 @@ export default function IpAccessPage() {
                 </div>
               </div>
               <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                <div style={{overflowX:"auto"}}>
+                <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead>
                       <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>

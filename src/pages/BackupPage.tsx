@@ -175,13 +175,13 @@ function BackupInner() {
       {/* Table list */}
       <div style={{borderRadius:16}}>
         <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6"}}>
-          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563"}}>Tables to Backup ({BACKUP_TABLES.length})</h2>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase" as const,letterSpacing:"0.1em",color:"#4b5563"}}>Tables to Backup ({BACKUP_TABLES.length})</h2>
         </div>
         <div style={{padding:16,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
           {BACKUP_TABLES.map(t => (
             <div key={t} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:8,fontSize:12, background:"#f8fafc", border:"1px solid #e5e7eb" }}>
               <Database style={{width:12,height:12,flexShrink:0, color:"#1a3a6b" }} />
-              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#4b5563"}}>{t}</span>
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"#4b5563"}}>{t}</span>
             </div>
           ))}
         </div>
@@ -190,16 +190,16 @@ function BackupInner() {
       {/* Backup history */}
       <div style={{borderRadius:16}}>
         <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563"}}>Backup History</h2>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase" as const,letterSpacing:"0.1em",color:"#4b5563"}}>Backup History</h2>
           <button onClick={loadJobs} style={{padding:5,borderRadius:6,background:"transparent",border:"none",cursor:"pointer"}}>
             <RefreshCw style={{animation:loading?"spin 1s linear infinite":"none",width:14,height:14}} />
           </button>
         </div>
         <div style={{}}>
           {loading ? (
-            <div style={{padding:"24px 20px",textAlign:"center",fontSize:12,color:"#9ca3af"}}><RefreshCw style={{animation:"spin 1s linear infinite"}} />Loading...</div>
+            <div style={{padding:"24px 20px",textAlign:"center" as const,fontSize:12,color:"#9ca3af"}}><RefreshCw style={{animation:"spin 1s linear infinite"}} />Loading...</div>
           ) : jobs.length === 0 ? (
-            <div style={{padding:"24px 20px",textAlign:"center",fontSize:12,color:"#9ca3af"}}>No backup history yet. Run your first backup above.</div>
+            <div style={{padding:"24px 20px",textAlign:"center" as const,fontSize:12,color:"#9ca3af"}}>No backup history yet. Run your first backup above.</div>
           ) : jobs.map(j => (
             <div key={j.id} style={{display:"flex",alignItems:"center",gap:16,padding:"14px 20px"}}>
               <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0, background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7" }}>
@@ -208,7 +208,7 @@ function BackupInner() {
                  <RefreshCw style={{animation:"spin 1s linear infinite"}} />}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:600,color:"#1f2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.label}</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#1f2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{j.label}</div>
                 <div style={{fontSize:10,color:"#9ca3af",display:"flex",alignItems:"center",gap:8,marginTop:2}}>
                   <Clock style={{width:12,height:12}} />
                   {new Date(j.started_at).toLocaleString("en-KE",{dateStyle:"medium",timeStyle:"short"})}
@@ -216,7 +216,7 @@ function BackupInner() {
                   {j.row_counts && <span>• {Object.values(j.row_counts as Record<string,number>).reduce((a,b)=>a+b,0).toLocaleString()} records</span>}
                 </div>
               </div>
-              <span style={{fontSize:9,padding:"2px 8px",borderRadius:20,fontWeight:700,textTransform:"capitalize", background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7", color:j.status==="completed"?"#065f46":j.status==="failed"?"#991b1b":"#92400e" }}>
+              <span style={{fontSize:9,padding:"2px 8px",borderRadius:20,fontWeight:700,textTransform:"capitalize" as const, background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7", color:j.status==="completed"?"#065f46":j.status==="failed"?"#991b1b":"#92400e" }}>
                 {j.status}
               </span>
             </div>
@@ -227,7 +227,7 @@ function BackupInner() {
       {/* Backup Options */}
       <div style={{borderRadius:16}}>
         <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6"}}>
-          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563"}}>Backup Options & Schedule</h2>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase" as const,letterSpacing:"0.1em",color:"#4b5563"}}>Backup Options & Schedule</h2>
         </div>
         <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -250,7 +250,7 @@ function BackupInner() {
           </div>
           <div style={{gridColumn:"1/-1",paddingTop:12,borderTop:"1px solid #f3f4f6",display:"flex",flexDirection:"column",gap:8}}>
             <h3 style={{fontSize:12,fontWeight:900,color:"#374151",marginBottom:8}}>Backup Scope</h3>
-            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            <div style={{display:"flex",flexWrap:"wrap" as const,gap:8}}>
               {["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"].map(scope=>(
                 <label key={scope} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,cursor:"pointer",background:backupScope.includes(scope)?"#f0f9ff":"#f9fafb",border:`1px solid ${backupScope.includes(scope)?"#bae6fd":"#e5e7eb"}`}}>
                   <input type="checkbox" checked={backupScope.includes(scope)} onChange={e=>setBackupScope(p=>e.target.checked?[...p,scope]:p.filter(s=>s!==scope))} style={{accentColor:"#2563eb",width:12,height:12}}/>
@@ -262,10 +262,10 @@ function BackupInner() {
               <button onClick={runBackup} disabled={running} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,color:"#fff",border:"none",cursor:"pointer",background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
                 <Download style={{width:14,height:14}}/> Full Backup Now
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
                 <Shield style={{width:14,height:14}}/> Verify Last Backup
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
                 <Settings style={{width:14,height:14}}/> Save Schedule
               </button>
             </div>
@@ -276,7 +276,7 @@ function BackupInner() {
       {/* Restore section */}
       <div style={{borderRadius:16}}>
         <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6"}}>
-          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563",display:"flex",alignItems:"center",gap:8}}>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase" as const,letterSpacing:"0.1em",color:"#4b5563",display:"flex",alignItems:"center",gap:8}}>
             <Zap style={{width:14,height:14,color:"#f97316"}}/> Restore from Backup
           </h2>
         </div>

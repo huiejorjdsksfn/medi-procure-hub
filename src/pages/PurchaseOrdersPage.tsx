@@ -292,7 +292,7 @@ export default function PurchaseOrdersPage() {
               {label:"Total Orders",   val:orders.length, bg:"#6c3483",path:null},
               {label:"Pending / Draft",val:orders.filter(r=>["draft","pending"].includes(r.status||"")).length,bg:"#1a252f",path:null},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -329,10 +329,10 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* ── FILTERS ── */}
-      <div style={{display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
+      <div style={{display:"flex",flexWrap:"wrap" as const,gap:8,alignItems:"center"}}>
         {["all","draft","pending","approved","sent","partial","received","cancelled"].map(s=>(
           <button key={s} onClick={()=>setStatusFilter(s)}
-            style={{padding:"4px 10px",borderRadius:20,fontSize:10,fontWeight:600,textTransform:"capitalize",border:"none",cursor:"pointer",background:statusFilter===s?"#C45911":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            style={{padding:"4px 10px",borderRadius:20,fontSize:10,fontWeight:600,textTransform:"capitalize" as const,border:"none",cursor:"pointer",background:statusFilter===s?"#C45911":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
             {s==="all"?"All":STATUS_CFG[s]?.label||s}
             {s!=="all"&&<span style={{marginLeft:4,opacity:0.7}}>({orders.filter(o=>o.status===s).length})</span>}
           </button>
@@ -347,12 +347,12 @@ export default function PurchaseOrdersPage() {
 
       {/* ── TABLE ── */}
       <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
+        <div style={{overflowX:"auto" as const}}>
           <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#92400e"}}>
                 {["#","PO Number","Supplier","Department","Status","Total","Delivery","Actions"].map(h=>(
-                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
+                  <th key={h} style={{textAlign:"left" as const,padding:"10px 12px",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -360,7 +360,7 @@ export default function PurchaseOrdersPage() {
               {loading ? Array(4).fill(0).map((_,i)=>(
                 <tr key={i}><td colSpan={8} style={{padding:"12px 16px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:6,animation:"pulse 1.5s infinite"}}/></td></tr>
               )) : filtered.length===0 ? (
-                <tr><td colSpan={8} style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af",fontSize:13}}>
+                <tr><td colSpan={8} style={{padding:"40px 16px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>
                   {orders.length===0?"No purchase orders yet — create your first one":"No orders match your filter"}
                 </td></tr>
               ) : filtered.map((po,i)=>{
@@ -376,8 +376,8 @@ export default function PurchaseOrdersPage() {
                     <td style={{padding:"10px 12px"}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label||po.status}</span>
                     </td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap"}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
-                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{po.delivery_date||"—"}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap" as const}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
+                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap" as const}}>{po.delivery_date||"—"}</td>
                     <td style={{padding:"10px 12px"}}>
                       <div style={{display:"flex",gap:4}}>
                         <button onClick={()=>setViewPO(po)} title="View" style={{padding:5,borderRadius:6,background:"#fff7ed",color:"#ea580c",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
@@ -410,7 +410,7 @@ export default function PurchaseOrdersPage() {
       {showForm&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:40,paddingBottom:20}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={closeForm}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(760px,98%)",maxHeight:"calc(100vh-60px)",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
+          <div style={{position:"relative",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(760px,98%)",maxHeight:"calc(100vh-60px)",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
 
             {/* Modal header */}
             <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)",flexShrink:0}}>
@@ -427,7 +427,7 @@ export default function PurchaseOrdersPage() {
             </div>
 
             {/* Form body */}
-            <div style={{overflowY:"auto",flex:1,padding:20}}>
+            <div style={{overflowY:"auto" as const,flex:1,padding:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
 
                 {/* PO Number */}
@@ -518,7 +518,7 @@ export default function PurchaseOrdersPage() {
                     <thead>
                       <tr style={{background:"#92400e"}}>
                         {["#","Description *","Qty","Unit","Unit Price (KES)","Total",""].map(h=>(
-                          <th key={h} style={{padding:"7px 10px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:9,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
+                          <th key={h} style={{padding:"7px 10px",textAlign:"left" as const,color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:9,textTransform:"uppercase" as const,letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -534,7 +534,7 @@ export default function PurchaseOrdersPage() {
                           <td style={{padding:"4px 6px",width:70}}>
                             <input type="number" min="0.01" step="0.01" value={it.quantity}
                               onChange={e=>setItem(i,"quantity",e.target.value)}
-                              style={{width:"100%",border:errors[`qty_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right",color:"#111827"}}/>
+                              style={{width:"100%",border:errors[`qty_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right" as const,color:"#111827"}}/>
                             {errors[`qty_${i}`]&&<div style={{color:"#dc2626",fontSize:9}}>{errors[`qty_${i}`]}</div>}
                           </td>
                           <td style={{padding:"4px 6px",width:70}}>
@@ -546,9 +546,9 @@ export default function PurchaseOrdersPage() {
                           <td style={{padding:"4px 6px",width:110}}>
                             <input type="number" min="0" step="0.01" value={it.unit_price}
                               onChange={e=>setItem(i,"unit_price",e.target.value)}
-                              style={{width:"100%",border:errors[`price_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right",color:"#111827"}}/>
+                              style={{width:"100%",border:errors[`price_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right" as const,color:"#111827"}}/>
                           </td>
-                          <td style={{padding:"6px 10px",fontWeight:700,color:"#92400e",whiteSpace:"nowrap",width:90}}>
+                          <td style={{padding:"6px 10px",fontWeight:700,color:"#92400e",whiteSpace:"nowrap" as const,width:90}}>
                             KES {((Number(it.quantity)||0)*(Number(it.unit_price)||0)).toLocaleString()}
                           </td>
                           <td style={{padding:"4px 6px",width:32}}>
@@ -561,8 +561,8 @@ export default function PurchaseOrdersPage() {
                         </tr>
                       ))}
                       <tr style={{background:"#fff7ed"}}>
-                        <td colSpan={5} style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:"#92400e",fontSize:12}}>TOTAL</td>
-                        <td style={{padding:"8px 10px",fontWeight:900,color:"#92400e",fontSize:13,whiteSpace:"nowrap"}}>KES {computedTotal.toLocaleString()}</td>
+                        <td colSpan={5} style={{padding:"8px 10px",textAlign:"right" as const,fontWeight:700,color:"#92400e",fontSize:12}}>TOTAL</td>
+                        <td style={{padding:"8px 10px",fontWeight:900,color:"#92400e",fontSize:13,whiteSpace:"nowrap" as const}}>KES {computedTotal.toLocaleString()}</td>
                         <td/>
                       </tr>
                     </tbody>
@@ -602,7 +602,7 @@ export default function PurchaseOrdersPage() {
       {viewPO&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={()=>setViewPO(null)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(620px,98%)",maxHeight:"90vh",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
+          <div style={{position:"relative",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(620px,98%)",maxHeight:"90vh",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
             <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)"}}>
               <div>
                 <h3 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>{viewPO.po_number}</h3>
@@ -622,7 +622,7 @@ export default function PurchaseOrdersPage() {
                 </button>
               </div>
             </div>
-            <div style={{overflowY:"auto",padding:20,flex:1}}>
+            <div style={{overflowY:"auto" as const,padding:20,flex:1}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                 {[
                   {l:"Supplier",v:viewPO.suppliers?.name||viewPO.supplier_name},
@@ -635,7 +635,7 @@ export default function PurchaseOrdersPage() {
                   {l:"Supplier Phone",v:viewPO.suppliers?.phone||"—"},
                 ].map(r=>(
                   <div key={r.l}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
+                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
                     <div style={{fontSize:13,color:"#1f2937",fontWeight:500,marginTop:2}}>{r.v||"—"}</div>
                   </div>
                 ))}
@@ -644,12 +644,12 @@ export default function PurchaseOrdersPage() {
               {/* Line items */}
               {viewPO.line_items?.length>0&&(
                 <div style={{marginBottom:14}}>
-                  <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af",marginBottom:8}}>Line Items</div>
+                  <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#9ca3af",marginBottom:8}}>Line Items</div>
                   <table style={{width:"100%",fontSize:11,borderCollapse:"collapse",border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
                     <thead>
                       <tr style={{background:"#92400e"}}>
                         {["Description","Qty","Unit","Unit Price","Total"].map(h=>(
-                          <th key={h} style={{padding:"6px 10px",textAlign:"left",color:"#fff",fontWeight:700,fontSize:9}}>{h}</th>
+                          <th key={h} style={{padding:"6px 10px",textAlign:"left" as const,color:"#fff",fontWeight:700,fontSize:9}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -657,15 +657,15 @@ export default function PurchaseOrdersPage() {
                       {viewPO.line_items.map((it:any,i:number)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                           <td style={{padding:"5px 10px"}}>{it.description}</td>
-                          <td style={{padding:"5px 10px",textAlign:"right"}}>{it.quantity}</td>
+                          <td style={{padding:"5px 10px",textAlign:"right" as const}}>{it.quantity}</td>
                           <td style={{padding:"5px 10px",color:"#6b7280"}}>{it.unit}</td>
-                          <td style={{padding:"5px 10px",textAlign:"right"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
-                          <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700,color:"#92400e"}}>KES {((Number(it.quantity)||0)*(Number(it.unit_price)||0)).toLocaleString()}</td>
+                          <td style={{padding:"5px 10px",textAlign:"right" as const}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
+                          <td style={{padding:"5px 10px",textAlign:"right" as const,fontWeight:700,color:"#92400e"}}>KES {((Number(it.quantity)||0)*(Number(it.unit_price)||0)).toLocaleString()}</td>
                         </tr>
                       ))}
                       <tr style={{background:"#fff7ed"}}>
-                        <td colSpan={4} style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:"#92400e"}}>TOTAL</td>
-                        <td style={{padding:"8px 10px",textAlign:"right",fontWeight:900,color:"#92400e"}}>KES {Number(viewPO.total_amount||0).toLocaleString()}</td>
+                        <td colSpan={4} style={{padding:"8px 10px",textAlign:"right" as const,fontWeight:700,color:"#92400e"}}>TOTAL</td>
+                        <td style={{padding:"8px 10px",textAlign:"right" as const,fontWeight:900,color:"#92400e"}}>KES {Number(viewPO.total_amount||0).toLocaleString()}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -674,7 +674,7 @@ export default function PurchaseOrdersPage() {
 
               {viewPO.notes&&(
                 <div style={{padding:12,borderRadius:10,background:"#f8fafc",border:"1px solid #e5e7eb"}}>
-                  <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",margin:"0 0 4px"}}>Notes</p>
+                  <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase" as const,color:"#9ca3af",margin:"0 0 4px"}}>Notes</p>
                   <p style={{fontSize:13,color:"#374151",margin:0}}>{viewPO.notes}</p>
                 </div>
               )}

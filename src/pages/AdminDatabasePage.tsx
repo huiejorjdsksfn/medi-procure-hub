@@ -303,7 +303,7 @@ ORDER BY t.table_name;`);
       </div>
 
       {/* ── Tab bar ── */}
-      <div style={{ display:"flex",borderBottom:`2px solid #003087`,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+      <div style={{ display:"flex",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
             style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"#f1f5f9",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"#374151" }}>
@@ -318,7 +318,7 @@ ORDER BY t.table_name;`);
 
         {/* Left sidebar — table tree */}
         {activeTab === "tables" && (
-          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto" as const,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables…"
                 style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
@@ -357,7 +357,7 @@ ORDER BY t.table_name;`);
         {activeTab === "tables" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
             {/* Toolbar */}
-            <div style={{ padding:"6px 12px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
               <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
@@ -379,7 +379,7 @@ ORDER BY t.table_name;`);
 
             {/* New row form */}
             {newRow && (
-              <div style={{ padding:"8px 12px",background:"#fef3c7",borderBottom:`1px solid ${S.border}`,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center" }}>
+              <div style={{ padding:"8px 12px",background:"#fef3c7",borderBottom:`1px solid ${S.border}`,display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center" }}>
                 <span style={{ fontSize:11,fontWeight:700,fontFamily:S.font }}>New Row:</span>
                 {Object.keys(newRow).slice(0,8).map(k => (
                   <div key={k} style={{ display:"flex",alignItems:"center",gap:3 }}>
@@ -396,7 +396,7 @@ ORDER BY t.table_name;`);
             {/* Table */}
             <div style={{ flex:1,overflow:"auto" }}>
               {loading ? (
-                <div style={{ padding:20,textAlign:"center",fontFamily:S.font }}>Loading {selectedTable}…</div>
+                <div style={{ padding:20,textAlign:"center" as const,fontFamily:S.font }}>Loading {selectedTable}…</div>
               ) : (
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
@@ -404,7 +404,7 @@ ORDER BY t.table_name;`);
                       <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
                       {tableColumns.map(col => (
                         <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
-                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
+                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" as const }}>
                           {col}{sortCol===col?(sortAsc?" ▲":" ▼"):""}
                         </th>
                       ))}
@@ -415,7 +415,7 @@ ORDER BY t.table_name;`);
                       <tr key={row.id||ri} style={{ background:ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)" }}
                         onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
                         onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)")}>
-                        <td style={{ ...CELL,width:60,textAlign:"center" }}>
+                        <td style={{ ...CELL,width:60,textAlign:"center" as const }}>
                           <div style={{ display:"flex",gap:3,justifyContent:"center" }}>
                             <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
                               <Edit3 style={{ width:12,height:12,color:"#003087" }} />
@@ -439,7 +439,7 @@ ORDER BY t.table_name;`);
                                   if (typeof v === "boolean") return <span style={{ color:v?"#006600":"#cc0000",fontWeight:700 }}>{v?"true":"false"}</span>;
                                   const sv = String(v);
                                   if (sv.includes("T") && sv.includes(":") && sv.length > 16) return sv.slice(0,16).replace("T"," ");
-                                  if (typeof v === "object") return <span style={{ color:"#555",fontStyle:"italic" }}>[JSON]</span>;
+                                  if (typeof v === "object") return <span style={{ color:"#555",fontStyle:"italic" as const }}>[JSON]</span>;
                                   return sv.slice(0,100);
                                 })()
                             }
@@ -466,7 +466,7 @@ ORDER BY t.table_name;`);
             {/* Edit modal */}
             {editingRow && (
               <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
-                <div style={{ background:"#1e293b",border:`2px solid #3b82f6`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto",fontFamily:S.font }}>
+                <div style={{ background:"#1e293b",border:`2px solid #3b82f6`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto" as const,fontFamily:S.font }}>
                   <div style={{ display:"flex",justifyContent:"space-between",marginBottom:14 }}>
                     <span style={{ fontSize:14,fontWeight:700,color:"#60a5fa",fontFamily:S.font }}>Edit Row — {selectedTable}</span>
                     <button onClick={()=>setEditingRow(null)} style={{ background:"none",border:"none",cursor:"pointer" }}><X style={{ width:16,height:16 }} /></button>
@@ -508,7 +508,7 @@ ORDER BY t.table_name;`);
         {/* ── SQL EDITOR tab ── */}
         {activeTab === "sql" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-            <div style={{ padding:"6px 12px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real SQL Editor — PostgreSQL</span>
               {sqlMs !== null && <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
@@ -532,7 +532,7 @@ ORDER BY t.table_name;`);
                 value={sql}
                 onChange={e=>setSql(e.target.value)}
                 onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
-                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#e2e8f0",background:"#0a1628",resize:"none",outline:"none",boxSizing:"border-box" }}
+                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#e2e8f0",background:"#0a1628",resize:"none" as const,outline:"none",boxSizing:"border-box" }}
                 placeholder="-- Write SQL here (Ctrl+Enter to run)"
                 spellCheck={false}
               />
@@ -553,7 +553,7 @@ ORDER BY t.table_name;`);
                     <thead style={{ position:"sticky",top:0 }}>
                       <tr>
                         {Object.keys(sqlResult[0]).map(k => (
-                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{k}</th>
+                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{k}</th>
                         ))}
                       </tr>
                     </thead>
@@ -581,7 +581,7 @@ ORDER BY t.table_name;`);
               <thead>
                 <tr>
                   {["Column","Data Type","Nullable","Default"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -610,7 +610,7 @@ ORDER BY t.table_name;`);
               <thead>
                 <tr>
                   {["Trigger Name","Table","Event","Timing"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -671,7 +671,7 @@ ORDER BY t.table_name;`);
                 <thead>
                   <tr>
                     {["Table","Columns","Policies","Triggers","Rows"].map(h=>(
-                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -679,10 +679,10 @@ ORDER BY t.table_name;`);
                   {stats.map((row,i) => (
                     <tr key={i} style={{ background:i%2===0?S.bg:"#fafafa",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
                       <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{row.table_name}</td>
-                      <td style={{ ...CELL,textAlign:"center" }}>{row.column_count}</td>
-                      <td style={{ ...CELL,textAlign:"center",color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
-                      <td style={{ ...CELL,textAlign:"center",color:row.trigger_count>0?"#cc6600":"#666" }}>{row.trigger_count}</td>
-                      <td style={{ ...CELL,textAlign:"right" }}>{(tableCounts[row.table_name]||0).toLocaleString()}</td>
+                      <td style={{ ...CELL,textAlign:"center" as const }}>{row.column_count}</td>
+                      <td style={{ ...CELL,textAlign:"center" as const,color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
+                      <td style={{ ...CELL,textAlign:"center" as const,color:row.trigger_count>0?"#cc6600":"#666" }}>{row.trigger_count}</td>
+                      <td style={{ ...CELL,textAlign:"right" as const }}>{(tableCounts[row.table_name]||0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

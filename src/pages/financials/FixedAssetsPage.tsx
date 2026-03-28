@@ -119,7 +119,7 @@ export default function FixedAssetsPage() {
           {label:"Asset Count",val:rows.length,bg:"#6c3483"},
           {label:"Active Assets",val:rows.filter(r=>r.status==="active").length,bg:"#1a252f"},
         ].map(k=>(
-          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
             <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
             <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
           </div>
@@ -137,7 +137,7 @@ export default function FixedAssetsPage() {
         </div>
       </div>
       {/* Filters */}
-      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" as const}}>
         <div style={{position:"relative"}}><Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search assets..." style={{paddingLeft:30,paddingRight:12,paddingTop:7,paddingBottom:7,border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",width:220}}/></div>
         <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{padding:"7px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",cursor:"pointer"}}>
@@ -150,25 +150,25 @@ export default function FixedAssetsPage() {
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead><tr style={{background:"#1e3a6b"}}>
             {["Asset No.","Name","Category","Dept.","Purchase Cost","Net Book Value","Condition","Status","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px",whiteSpace:"nowrap"}}>{h}</th>
+              <th key={h} style={{textAlign:"left" as const,fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase" as const,padding:"10px 12px",whiteSpace:"nowrap" as const}}>{h}</th>
             ))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={9} style={{padding:40,textAlign:"center"}}><RefreshCw style={{width:18,height:18,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/></td></tr>
-            :filtered.length===0?<tr><td colSpan={9} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>No assets found</td></tr>
+            {loading?<tr><td colSpan={9} style={{padding:40,textAlign:"center" as const}}><RefreshCw style={{width:18,height:18,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/></td></tr>
+            :filtered.length===0?<tr><td colSpan={9} style={{padding:40,textAlign:"center" as const,color:"#9ca3af"}}>No assets found</td></tr>
             :filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa",cursor:"pointer"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#eff6ff"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}
                 onClick={()=>setDetail(r)}>
                 <td style={{padding:"9px 12px",fontFamily:"monospace",fontSize:10,fontWeight:700,color:"#1a3a6b"}}>{r.asset_number}</td>
-                <td style={{padding:"9px 12px",fontWeight:700,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.asset_name}</td>
+                <td style={{padding:"9px 12px",fontWeight:700,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.asset_name}</td>
                 <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.category||"—"}</td>
                 <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.department_name||"—"}</td>
                 <td style={{padding:"9px 12px",fontWeight:600,color:"#374151"}}>{fmtKES(r.purchase_cost||0)}</td>
                 <td style={{padding:"9px 12px",fontWeight:700,color:"#15803d"}}>{fmtKES(r.net_book_value||0)}</td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:"#f3f4f6",color:"#374151"}}>{r.condition||"—"}</span></td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:`${SC[r.status]||"#9ca3af"}18`,color:SC[r.status]||"#9ca3af"}}>{(r.status||"").replace(/_/g," ")}</span></td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:"#f3f4f6",color:"#374151"}}>{r.condition||"—"}</span></td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:`${SC[r.status]||"#9ca3af"}18`,color:SC[r.status]||"#9ca3af"}}>{(r.status||"").replace(/_/g," ")}</span></td>
                 <td style={{padding:"9px 12px"}} onClick={e=>e.stopPropagation()}>
                   <div style={{display:"flex",gap:4}}>
                     {canManage&&<button onClick={()=>openEdit(r)} style={{padding:"4px 8px",background:"#dbeafe",border:"none",borderRadius:6,cursor:"pointer",lineHeight:0}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
@@ -189,7 +189,7 @@ export default function FixedAssetsPage() {
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit Asset":"Register Fixed Asset"}</span>
               <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:18}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:18}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 <F label="Asset Name *" k="asset_name" span={2} req/>
                 <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category *</label>
@@ -214,7 +214,7 @@ export default function FixedAssetsPage() {
                 <F label="Warranty Expiry" k="warranty_expiry" type="date"/>
                 <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Condition</label>
                   <select value={form.condition} onChange={e=>setForm(p=>({...p,condition:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                    {["excellent","good","fair","poor"].map(c=><option key={c} style={{textTransform:"capitalize"}}>{c}</option>)}
+                    {["excellent","good","fair","poor"].map(c=><option key={c} style={{textTransform:"capitalize" as const}}>{c}</option>)}
                   </select></div>
                 <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
                   <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
@@ -231,7 +231,7 @@ export default function FixedAssetsPage() {
                   </div>
                 )}
                 <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
-                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box",resize:"vertical",fontFamily:"inherit"}}/></div>
+                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box",resize:"vertical" as const,fontFamily:"inherit"}}/></div>
               </div>
             </div>
             <div style={{padding:"12px 18px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,justifyContent:"flex-end"}}>
@@ -253,11 +253,11 @@ export default function FixedAssetsPage() {
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.asset_name}</span>
               <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:18}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:18}}>
               {[["Asset No.",detail.asset_number],["Category",detail.category],["Department",detail.department_name],["Location",detail.location],["Serial No.",detail.serial_number],["Purchase Cost",fmtKES(detail.purchase_cost||0)],["Net Book Value",fmtKES(detail.net_book_value||0)],["Annual Depreciation",fmtKES(detail.annual_depreciation||0)],["Useful Life",`${detail.useful_life||0} years`],["Residual Value",fmtKES(detail.residual_value||0)],["Supplier",detail.supplier_name],["Warranty Expires",detail.warranty_expiry],["Condition",detail.condition],["Status",(detail.status||"").replace(/_/g," ")],["Registered By",detail.created_by_name]].filter(([_l,v])=>v).map(([l,v])=>(
                 <div key={l as string} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
                   <span style={{fontSize:12,fontWeight:600,color:"#9ca3af"}}>{l}</span>
-                  <span style={{fontSize:12,fontWeight:700,color:"#1f2937",textAlign:"right",textTransform:"capitalize"}}>{v}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#1f2937",textAlign:"right" as const,textTransform:"capitalize" as const}}>{v}</span>
                 </div>
               ))}
             </div>

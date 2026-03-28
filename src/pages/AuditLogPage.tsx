@@ -108,10 +108,10 @@ export default function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid #f1f5f9",borderRadius:12,padding:"10px 16px",display:"flex",flexWrap:"wrap",gap:10,marginBottom:14,alignItems:"center"}}>
-        <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>From</label>
+      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid #f1f5f9",borderRadius:12,padding:"10px 16px",display:"flex",flexWrap:"wrap" as const,gap:10,marginBottom:14,alignItems:"center"}}>
+        <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase" as const}}>From</label>
         <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={inp}/>
-        <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>To</label>
+        <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase" as const}}>To</label>
         <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={inp}/>
         <select value={filterModule} onChange={e=>{setFilterModule(e.target.value);setPage(1);}} style={sel}>
           <option value="all" style={{background:"#ffffff"}}>All Modules</option>
@@ -134,23 +134,23 @@ export default function AuditLogPage() {
       {/* Table */}
       <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid #f1f5f9",borderRadius:14,overflow:"hidden"}}>
         {loading?(
-          <div style={{padding:40,textAlign:"center"}}>
+          <div style={{padding:40,textAlign:"center" as const}}>
             <RefreshCw style={{width:28,height:28,color:"rgba(255,255,255,0.3)",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 10px"}}/>
             <p style={{color:"rgba(255,255,255,0.4)",fontSize:12}}>Loading audit trail...</p>
           </div>
         ):(
-          <div style={{overflowX:"auto"}}>
+          <div style={{overflowX:"auto" as const}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
               <thead>
                 <tr style={{background:"rgba(10,25,70,0.9)"}}>
                   {["#","Date & Time","User","Action","Module","Record ID","IP Address","Details"].map(h=>(
-                    <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:9,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.07em",whiteSpace:"nowrap"}}>{h}</th>
+                    <th key={h} style={{padding:"10px 12px",textAlign:"left" as const,fontSize:9,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase" as const,letterSpacing:"0.07em",whiteSpace:"nowrap" as const}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {paged.length===0?(
-                  <tr><td colSpan={8} style={{padding:40,textAlign:"center",color:"rgba(255,255,255,0.3)"}}>No audit records found</td></tr>
+                  <tr><td colSpan={8} style={{padding:40,textAlign:"center" as const,color:"rgba(255,255,255,0.3)"}}>No audit records found</td></tr>
                 ):paged.map((l,i)=>{
                   const st=ACTION_STYLE[l.action]||ACTION_STYLE.default;
                   return(
@@ -158,17 +158,17 @@ export default function AuditLogPage() {
                       onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(96,165,250,0.07)"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.3)"}}>{(page-1)*PAGE_SIZE+i+1}</td>
-                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap"}}>
+                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap" as const}}>
                         {l.created_at?new Date(l.created_at).toLocaleString("en-KE",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—"}
                       </td>
-                      <td style={{padding:"8px 12px",fontWeight:700,color:"rgba(255,255,255,0.85)",whiteSpace:"nowrap"}}>{l.user_name||"System"}</td>
+                      <td style={{padding:"8px 12px",fontWeight:700,color:"rgba(255,255,255,0.85)",whiteSpace:"nowrap" as const}}>{l.user_name||"System"}</td>
                       <td style={{padding:"8px 12px"}}>
-                        <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:st.bg,color:st.color}}>{l.action||"—"}</span>
+                        <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:st.bg,color:st.color}}>{l.action||"—"}</span>
                       </td>
-                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize"}}>{l.module||"—"}</td>
+                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize" as const}}>{l.module||"—"}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"...":"—"}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"—"}</td>
-                      <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"rgba(255,255,255,0.35)"}}>
+                      <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"rgba(255,255,255,0.35)"}}>
                         {l.details?JSON.stringify(l.details).slice(0,60):"—"}
                       </td>
                     </tr>

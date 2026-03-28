@@ -291,7 +291,7 @@ export default function WebmasterPage(){
   const modGroups=Array.from(new Set(ALL_MODULES.map(m=>m.group)));
 
   // ── Styles ────────────────────────────────────────────────────────────
-  const lbl:React.CSSProperties={fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#64748b",display:"block",marginBottom:4};
+  const lbl:React.CSSProperties={fontSize:10,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#64748b",display:"block",marginBottom:4};
   const inp:React.CSSProperties={width:"100%",padding:"7px 10px",border:"1.5px solid #cbd5e1",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1e293b",background:"#f8fafc"};
   const sectionContent=SECTIONS.find(s=>s.id===activeSection);
 
@@ -301,7 +301,7 @@ export default function WebmasterPage(){
         <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
         {/* ── Top action bar ────────────────────────────────────────── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",background:"#fff",borderBottom:"1px solid #1e293b",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",background:"#fff",borderBottom:"1px solid #1e293b",flexWrap:"wrap" as const,gap:8}}>
           <div>
             <h1 style={{fontSize:16,fontWeight:900,color:"#1e293b",margin:0}}>Webmaster Control Panel</h1>
             <div style={{fontSize:11,color:"#64748b",marginTop:2}}>Manage system capabilities, modules, and configuration · {profile?.full_name}</div>
@@ -327,19 +327,19 @@ export default function WebmasterPage(){
         <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
           {/* Left nav */}
-          <div style={{width:220,flexShrink:0,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",padding:"6px 0"}}>
+          <div style={{width:220,flexShrink:0,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto" as const,padding:"6px 0"}}>
             {SECTIONS.map(s=>(
               <button key={s.id}
                 onClick={()=>setActiveSection(s.id)}
                 style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",
                   borderLeft:activeSection===s.id?"3px solid #0a2558":"3px solid transparent",
                   background:activeSection===s.id?"#e8edf5":"transparent",
-                  textAlign:"left",cursor:"pointer",transition:"background 0.12s"}}
+                  textAlign:"left" as const,cursor:"pointer",transition:"background 0.12s"}}
                 onMouseEnter={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="#e8edf5";}}
                 onMouseLeave={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="transparent";}}>
                 <s.icon style={{width:14,height:14,color:activeSection===s.id?"#60a5fa":"#94a3b8",flexShrink:0}}/>
                 <div>
-                  <div style={{fontSize:11,fontWeight:700,color:activeSection===s.id?"#f1f5f9":"#cbd5e1",textTransform:"uppercase",letterSpacing:"0.05em"}}>{s.label}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:activeSection===s.id?"#f1f5f9":"#cbd5e1",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{s.label}</div>
                   <div style={{fontSize:9.5,color:"#64748b",marginTop:1}}>{s.sub}</div>
                 </div>
               </button>
@@ -347,7 +347,7 @@ export default function WebmasterPage(){
           </div>
 
           {/* Right content */}
-          <div style={{flex:1,overflowY:"auto",padding:"24px 28px"}}>
+          <div style={{flex:1,overflowY:"auto" as const,padding:"24px 28px"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
               {sectionContent&&<sectionContent.icon style={{width:18,height:18,color:"#0a2558"}}/>}
               <div>
@@ -362,9 +362,9 @@ export default function WebmasterPage(){
               <div style={{display:"flex",flexDirection:"column",gap:20}}>
                 {modGroups.map(grp=>(
                   <div key={grp}>
-                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
                       <span style={{flex:1,borderBottom:"1px solid #1e293b",paddingBottom:4}}>{grp} Modules</span>
-                      <span style={{fontSize:10,color:"#9ca3af",fontWeight:500,whiteSpace:"nowrap"}}>
+                      <span style={{fontSize:10,color:"#9ca3af",fontWeight:500,whiteSpace:"nowrap" as const}}>
                         {ALL_MODULES.filter(m=>m.group===grp&&(modEnabled[m.id]!==false)).length}/{ALL_MODULES.filter(m=>m.group===grp).length} enabled
                       </span>
                     </h3>
@@ -395,10 +395,10 @@ export default function WebmasterPage(){
             {activeSection==="roles"&&(
               <div>
                 {/* Role selector */}
-                <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+                <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap" as const}}>
                   {ROLES_LIST.map(r=>(
                     <button key={r} onClick={()=>setSelectedRole(r)}
-                      style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"capitalize",
+                      style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"capitalize" as const,
                         borderColor:selectedRole===r?"#0a2558":"#e5e7eb",
                         background:selectedRole===r?"#0a2558":"#fff",
                         color:selectedRole===r?"#fff":"#cbd5e1"}}>
@@ -417,7 +417,7 @@ export default function WebmasterPage(){
 
                 {CAP_GROUPS.map(cg=>(
                   <div key={cg.group} style={{marginBottom:16}}>
-                    <h3 style={{fontSize:11,fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>
+                    <h3 style={{fontSize:11,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:8}}>
                       {cg.group}
                     </h3>
                     <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
@@ -499,7 +499,7 @@ export default function WebmasterPage(){
                   ]},
                 ].map(section=>(
                   <div key={section.group}>
-                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>{section.group}</h3>
+                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:10}}>{section.group}</h3>
                     <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
                       {section.items.map((item,i,arr)=>(
                         <div key={item.label}
@@ -561,7 +561,7 @@ export default function WebmasterPage(){
                     <div>
                       <label style={lbl}>Message Type</label>
                       <select value={broadcast.type} onChange={e=>setBroadcast(p=>({...p,type:e.target.value}))} style={inp}>
-                        {["info","warning","error","success"].map(t=><option key={t} value={t} style={{textTransform:"capitalize"}}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+                        {["info","warning","error","success"].map(t=><option key={t} value={t} style={{textTransform:"capitalize" as const}}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
                       </select>
                     </div>
                     <div>
@@ -571,7 +571,7 @@ export default function WebmasterPage(){
                   </div>
                   <div>
                     <label style={lbl}>Target Roles (leave empty for all)</label>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginTop:4}}>
                       {ROLES_LIST.map(r=>{
                         const sel=broadcast.roles.includes(r);
                         return(
@@ -658,7 +658,7 @@ export default function WebmasterPage(){
                       <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>Recent Activity — Last 50 entries</span>
                       <button onClick={()=>navigate("/audit-log")} style={{fontSize:11,color:"#0a2558",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>View Full Log →</button>
                     </div>
-                    {logs.length===0&&<div style={{padding:"30px 20px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No audit records found</div>}
+                    {logs.length===0&&<div style={{padding:"30px 20px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>No audit records found</div>}
                     {logs.map((log,i)=>(
                       <div key={log.id||i} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"9px 16px",borderBottom:"1px solid #f3f4f6"}}>
                         <div style={{width:28,height:28,borderRadius:"50%",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -685,9 +685,9 @@ export default function WebmasterPage(){
                     <div style={{width:12,height:12,borderRadius:"50%",background:"#28c840"}}/>
                     <span style={{fontSize:11,color:"#8b949e",marginLeft:8,fontFamily:"monospace"}}>MediProcure Console — Webmaster</span>
                   </div>
-                  <div ref={termRef} style={{padding:"14px 16px",height:320,overflowY:"auto",fontFamily:"'Cascadia Code','Consolas','Courier New',monospace",fontSize:12,lineHeight:1.7,color:"#c9d1d9"}}>
+                  <div ref={termRef} style={{padding:"14px 16px",height:320,overflowY:"auto" as const,fontFamily:"'Cascadia Code','Consolas','Courier New',monospace",fontSize:12,lineHeight:1.7,color:"#c9d1d9"}}>
                     {termHistory.map((line,i)=>(
-                      <div key={i} style={{whiteSpace:"pre-wrap",color:line.startsWith("$")?"#79c0ff":line.startsWith("Unknown")||line.startsWith("Error")?"#ff7b72":"#c9d1d9"}}>{line}</div>
+                      <div key={i} style={{whiteSpace:"pre-wrap" as const,color:line.startsWith("$")?"#79c0ff":line.startsWith("Unknown")||line.startsWith("Error")?"#ff7b72":"#c9d1d9"}}>{line}</div>
                     ))}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderTop:"1px solid #30363d"}}>

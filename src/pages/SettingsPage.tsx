@@ -158,7 +158,7 @@ function SettingsInner() {
 
       {/* Header */}
       <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
-        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"#f1f5f9",padding:4 }} />
+        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain" as const,background:"#f1f5f9",padding:4 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:800,color:"#1e293b" }}>System Settings</div>
           <div style={{ fontSize:10,color:"#64748b" }}>Changes propagate to all users via Supabase Realtime</div>
@@ -197,7 +197,7 @@ function SettingsInner() {
         </div>
 
         {/* Content */}
-        <div style={{ padding:"20px 26px",overflowY:"auto",maxHeight:"calc(100vh - 60px)" }}>
+        <div style={{ padding:"20px 26px",overflowY:"auto" as const,maxHeight:"calc(100vh - 60px)" }}>
 
           {tab === "hospital" && (
             <Card title="Hospital Information" sub="Used in all documents, letterheads and prints" color="#0078d4" icon={Building2}

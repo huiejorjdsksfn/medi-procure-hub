@@ -15,7 +15,7 @@ const SS: Record<string,{bg:string;color:string}> = {
 };
 const CATS = ["pharmaceutical","medical_equipment","consumables","reagents","laboratory","surgical","general","other"];
 const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
-const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:4,display:"block"};
 
 export default function SuppliersPage() {
   const { user, profile, roles } = useAuth();
@@ -184,7 +184,7 @@ export default function SuppliersPage() {
               {label:"Top Rated (4+)",val:ratedS,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -201,7 +201,7 @@ export default function SuppliersPage() {
             <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>{filtered.length} of {suppliers.length} suppliers</div>
           </div>
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
           <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
@@ -218,14 +218,14 @@ export default function SuppliersPage() {
       </div>
 
       {/* Filters */}
-      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
         <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
           <option value="all">All Categories</option>
           {CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
         </select>
         <div style={{display:"flex",gap:4}}>
           {["all","active","inactive","suspended"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3a6b":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize" as const,background:statusFilter===s?"#1a3a6b":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
               {s}
             </button>
           ))}
@@ -240,23 +240,23 @@ export default function SuppliersPage() {
 
       {/* Table */}
       <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
+        <div style={{overflowX:"auto" as const}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:"#1a3a6b"}}>
                 {["#","Name","Contact","Email","Phone","Category","Status","Rating","Actions"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left" as const,color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase" as const,whiteSpace:"nowrap" as const}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading?(
-                <tr><td colSpan={9} style={{padding:"40px",textAlign:"center"}}>
+                <tr><td colSpan={9} style={{padding:"40px",textAlign:"center" as const}}>
                   <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
                   <span style={{fontSize:12,color:"#9ca3af"}}>Loading suppliers...</span>
                 </td></tr>
               ):filtered.length===0?(
-                <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
+                <tr><td colSpan={9} style={{padding:"50px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
               ):filtered.map((s,i)=>{
                 const st=SS[s.status]||{bg:"#f3f4f6",color:"#6b7280"};
                 return (
@@ -266,9 +266,9 @@ export default function SuppliersPage() {
                     <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"—"}</td>
                     <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.email||"—"}</td>
                     <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.phone||"—"}</td>
-                    <td style={{padding:"7px 12px",textTransform:"capitalize",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
+                    <td style={{padding:"7px 12px",textTransform:"capitalize" as const,color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize"}}>{s.status||"active"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize" as const}}>{s.status||"active"}</span>
                     </td>
                     <td style={{padding:"7px 12px",color:"#f59e0b",fontSize:13,background:i%2===0?"#fff":"#f9fafb"}}>{"★".repeat(Math.min(s.rating||3,5))}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
@@ -299,9 +299,9 @@ export default function SuppliersPage() {
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Rating","★".repeat(viewSupplier.rating||3)],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
-                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
               ))}
-              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
+              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
             </div>
             <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
               <button onClick={()=>printOne(viewSupplier)} style={{...btnSm,padding:"7px 14px",background:"#f3f4f6",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8}}><Printer style={{width:13,height:13}}/>Print</button>
@@ -320,7 +320,7 @@ export default function SuppliersPage() {
               <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Supplier":"New Supplier"}</div>
               <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{overflowY:"auto",padding:20}}>
+            <div style={{overflowY:"auto" as const,padding:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Supplier Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Pharmed Kenya Ltd"/></div>
                 <div><label style={lbl}>Contact Person</label><input value={form.contact_person} onChange={e=>setForm(p=>({...p,contact_person:e.target.value}))} style={inp}/></div>
@@ -335,8 +335,8 @@ export default function SuppliersPage() {
                 <div><label style={lbl}>Website</label><input value={form.website} onChange={e=>setForm(p=>({...p,website:e.target.value}))} style={inp} placeholder="https://"/></div>
                 <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}</select></div>
                 <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none" as const}}/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none" as const}}/></div>
               </div>
             </div>
             <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>

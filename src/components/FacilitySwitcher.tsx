@@ -22,7 +22,7 @@ export default function FacilitySwitcher() {
     return (
       <div style={{ display:"flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:3, background:"rgba(255,255,255,0.08)" }}>
         <Building2 style={{ width:11, height:11, color:"rgba(255,255,255,0.5)" }}/>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+        <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>
           {facility?.short_name || facility?.name || "EL5H"}
         </span>
       </div>
@@ -37,7 +37,7 @@ export default function FacilitySwitcher() {
           background: open ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)",
           border:"none", cursor:"pointer" }}>
         <Building2 style={{ width:11, height:11, color:"rgba(255,255,255,0.6)" }}/>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.85)", fontWeight:600, maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+        <span style={{ fontSize:11, color:"rgba(255,255,255,0.85)", fontWeight:600, maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>
           {facility.short_name}
         </span>
         <ChevronDown style={{ width:9, height:9, color:"rgba(255,255,255,0.4)" }}/>
@@ -48,7 +48,7 @@ export default function FacilitySwitcher() {
           background:"#fff", borderRadius:8, boxShadow:"0 8px 32px rgba(0,0,0,0.2)",
           border:"1px solid #e2e8f0", overflow:"hidden", zIndex:700 }}>
           <div style={{ padding:"8px 12px", borderBottom:"1px solid #f1f5f9", background:"#f8fafc" }}>
-            <div style={{ fontSize:9.5, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em", color:"#64748b" }}>
+            <div style={{ fontSize:9.5, fontWeight:700, textTransform:"uppercase" as const, letterSpacing:"0.06em", color:"#64748b" }}>
               Switch Facility
             </div>
           </div>
@@ -56,7 +56,7 @@ export default function FacilitySwitcher() {
             <button key={f.id}
               onClick={() => { switchFacility(f.id); setOpen(false); }}
               style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"9px 12px",
-                border:"none", cursor:"pointer", textAlign:"left",
+                border:"none", cursor:"pointer", textAlign:"left" as const,
                 background: f.id === facility.id ? "#eff6ff" : "#fff",
                 borderBottom:"1px solid #f8fafc" }}
               onMouseEnter={e => { if(f.id !== facility.id)(e.currentTarget as HTMLElement).style.background = "#f8fafc"; }}
@@ -65,7 +65,7 @@ export default function FacilitySwitcher() {
               <div style={{ width:8, height:8, borderRadius:"50%", background:f.primary_color, flexShrink:0 }}/>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:12.5, fontWeight:f.id === facility.id ? 700 : 500, color:"#1e293b",
-                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>
                   {f.name}
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:1 }}>

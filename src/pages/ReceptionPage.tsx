@@ -173,7 +173,7 @@ export default function ReceptionPage() {
         </div>
       </div>
       <div style={{margin:"12px 20px 20px",background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
+        <div style={{overflowX:"auto" as const}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
               <tr style={{background:"#f9fafb",borderBottom:"2px solid #e5e7eb"}}>
@@ -249,7 +249,7 @@ export default function ReceptionPage() {
 
       {showVF&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}><LogIn style={{width:18,height:18,color:"#fff"}}/></div>
               <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800}}>Visitor Check-In</div><div style={{fontSize:11,color:"#6b7280"}}>Badge auto-assigned · SMS sent to host if phone provided</div></div>

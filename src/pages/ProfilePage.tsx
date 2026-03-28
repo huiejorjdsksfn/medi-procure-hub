@@ -77,7 +77,7 @@ export default function ProfilePage() {
             </div>
             {[["Full Name","text",fullName,setFullName],["Phone","tel",phone,setPhone],["Department","text",department,setDepartment]].map(([l,t,v,sv]:any)=>(
               <div key={l} style={{marginBottom:12}}>
-                <label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
+                <label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,marginBottom:4}}>{l}</label>
                 <input type={t} value={v} onChange={e=>sv(e.target.value)} style={inp}/>
               </div>
             ))}
@@ -119,7 +119,7 @@ export default function ProfilePage() {
               </div>
               {activityLog.map((a,i)=>(
                 <div key={i} style={{padding:"7px 14px",display:"flex",justifyContent:"space-between",borderBottom:"1px solid #f9fafb",fontSize:11}}>
-                  <span style={{color:"#374151",fontWeight:600,textTransform:"capitalize"}}>{a.action} · <span style={{color:"#6b7280"}}>{a.module}</span></span>
+                  <span style={{color:"#374151",fontWeight:600,textTransform:"capitalize" as const}}>{a.action} · <span style={{color:"#6b7280"}}>{a.module}</span></span>
                   <span style={{color:"#9ca3af"}}>{a.created_at?new Date(a.created_at).toLocaleDateString("en-KE"):""}</span>
                 </div>
               ))}

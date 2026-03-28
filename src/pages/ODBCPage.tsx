@@ -229,9 +229,9 @@ export default function ODBCPage() {
       {/* ── CONNECTIONS TAB ── */}
       {tab==="connections" && (
         <div>
-          {loading ? <div style={{textAlign:"center",padding:40,color:"#6b7280"}}>Loading connections…</div> : (
+          {loading ? <div style={{textAlign:"center" as const,padding:40,color:"#6b7280"}}>Loading connections…</div> : (
             <div style={{display:"grid",gap:12}}>
-              {conns.length===0 && <div style={{...S,textAlign:"center",padding:40,color:"#9ca3af"}}>No connections yet. Add a SQL Server ODBC connection to get started.</div>}
+              {conns.length===0 && <div style={{...S,textAlign:"center" as const,padding:40,color:"#9ca3af"}}>No connections yet. Add a SQL Server ODBC connection to get started.</div>}
               {conns.map(c=>{
                 const st = STATUS_CFG[c.status]||STATUS_CFG.inactive;
                 const dbType = DB_TYPES.find(d=>d.value===c.type);
@@ -244,14 +244,14 @@ export default function ODBCPage() {
                         <span style={{padding:"2px 8px",borderRadius:12,fontSize:11,fontWeight:700,background:st.bg,color:st.color}}>{st.label}</span>
                         <span style={{fontSize:11,color:"#6b7280"}}>{dbType?.label||c.type}</span>
                       </div>
-                      <div style={{fontSize:12,color:"#6b7280",display:"flex",gap:16,flexWrap:"wrap"}}>
+                      <div style={{fontSize:12,color:"#6b7280",display:"flex",gap:16,flexWrap:"wrap" as const}}>
                         <span><Server style={{width:11,height:11,display:"inline"}}/> {c.host}:{c.port}</span>
                         <span><Database style={{width:11,height:11,display:"inline"}}/> {c.database_name}</span>
                         {c.last_tested && <span><Clock style={{width:11,height:11,display:"inline"}}/> Tested: {new Date(c.last_tested).toLocaleString("en-KE")}</span>}
                       </div>
                       {c.description && <div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{c.description}</div>}
                       {/* ODBC string */}
-                      <div style={{marginTop:6,padding:"5px 8px",background:"#f8f9fa",borderRadius:5,fontSize:10,fontFamily:"monospace",color:"#374151",wordBreak:"break-all"}}>
+                      <div style={{marginTop:6,padding:"5px 8px",background:"#f8f9fa",borderRadius:5,fontSize:10,fontFamily:"monospace",color:"#374151",wordBreak:"break-all" as const}}>
                         {buildOdbcString({serverHost:c.host,serverPort:c.port,database:c.database_name,username:c.username})}
                       </div>
                     </div>
@@ -295,15 +295,15 @@ export default function ODBCPage() {
                     <span style={{fontSize:10,padding:"1px 6px",borderRadius:8,background:"#e0e7ff",color:"#3730a3"}}>SQL Server: dbo.{tbl}</span>
                   </div>
                   {expanded && regCols.length>0 && (
-                    <div style={{overflowX:"auto",borderTop:"1px solid #e5e7eb"}}>
+                    <div style={{overflowX:"auto" as const,borderTop:"1px solid #e5e7eb"}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                         <thead>
                           <tr style={{background:"#f8fafc"}}>
-                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Column</th>
-                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Postgres Type</th>
-                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>SQL Server Type</th>
-                            <th style={{padding:"5px 10px",textAlign:"center",color:"#374151",fontWeight:600}}>Nullable</th>
-                            {data.length>0 && <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Sample</th>}
+                            <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>Column</th>
+                            <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>Postgres Type</th>
+                            <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>SQL Server Type</th>
+                            <th style={{padding:"5px 10px",textAlign:"center" as const,color:"#374151",fontWeight:600}}>Nullable</th>
+                            {data.length>0 && <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>Sample</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -312,8 +312,8 @@ export default function ODBCPage() {
                               <td style={{padding:"4px 10px",fontFamily:"monospace",fontWeight:600,color:"#1a3a6b"}}>{c.name}</td>
                               <td style={{padding:"4px 10px",fontFamily:"monospace",color:"#6b7280"}}>{c.supaType}</td>
                               <td style={{padding:"4px 10px",fontFamily:"monospace",color:"#059669"}}>{mapToSqlServerType(c.supaType,c.maxLength)}</td>
-                              <td style={{padding:"4px 10px",textAlign:"center"}}>{c.nullable?"✓":""}</td>
-                              {data.length>0 && <td style={{padding:"4px 10px",color:"#9ca3af",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{String(data[0]?.[c.name]??"").slice(0,60)}</td>}
+                              <td style={{padding:"4px 10px",textAlign:"center" as const}}>{c.nullable?"✓":""}</td>
+                              {data.length>0 && <td style={{padding:"4px 10px",color:"#9ca3af",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{String(data[0]?.[c.name]??"").slice(0,60)}</td>}
                             </tr>
                           ))}
                         </tbody>
@@ -384,22 +384,22 @@ export default function ODBCPage() {
               <div style={{fontWeight:700,fontSize:14,marginBottom:10,color:"#1a3a6b"}}>Migration Results</div>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f8fafc"}}>
-                  <th style={{padding:"6px 10px",textAlign:"left"}}>Table</th>
-                  <th style={{padding:"6px 10px",textAlign:"center"}}>Rows</th>
-                  <th style={{padding:"6px 10px",textAlign:"center"}}>Status</th>
-                  <th style={{padding:"6px 10px",textAlign:"right"}}>Duration</th>
+                  <th style={{padding:"6px 10px",textAlign:"left" as const}}>Table</th>
+                  <th style={{padding:"6px 10px",textAlign:"center" as const}}>Rows</th>
+                  <th style={{padding:"6px 10px",textAlign:"center" as const}}>Status</th>
+                  <th style={{padding:"6px 10px",textAlign:"right" as const}}>Duration</th>
                 </tr></thead>
                 <tbody>
                   {migResults.map(r=>(
                     <tr key={r.table} style={{borderTop:"1px solid #f0f0f0"}}>
                       <td style={{padding:"5px 10px",fontFamily:"monospace"}}>{r.table}</td>
-                      <td style={{padding:"5px 10px",textAlign:"center"}}>{r.rows.toLocaleString()}</td>
-                      <td style={{padding:"5px 10px",textAlign:"center"}}>
+                      <td style={{padding:"5px 10px",textAlign:"center" as const}}>{r.rows.toLocaleString()}</td>
+                      <td style={{padding:"5px 10px",textAlign:"center" as const}}>
                         <span style={{padding:"2px 8px",borderRadius:10,fontSize:11,background:r.success?"#dcfce7":"#fee2e2",color:r.success?"#15803d":"#dc2626"}}>
                           {r.success?"✓ OK":`✗ ${r.error||"Error"}`}
                         </span>
                       </td>
-                      <td style={{padding:"5px 10px",textAlign:"right",color:"#6b7280"}}>{r.duration}ms</td>
+                      <td style={{padding:"5px 10px",textAlign:"right" as const,color:"#6b7280"}}>{r.duration}ms</td>
                     </tr>
                   ))}
                 </tbody>
@@ -454,7 +454,7 @@ export default function ODBCPage() {
           </div>
           {generatedScript && (
             <div style={{...S}}>
-              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto",maxHeight:500,fontSize:11,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{generatedScript}</pre>
+              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto",maxHeight:500,fontSize:11,lineHeight:1.6,whiteSpace:"pre-wrap" as const}}>{generatedScript}</pre>
             </div>
           )}
           {/* Setup guide */}
@@ -479,7 +479,7 @@ export default function ODBCPage() {
 
       {/* ── MONITOR TAB ── */}
       {tab==="monitor" && (
-        <div style={{...S,textAlign:"center",padding:40}}>
+        <div style={{...S,textAlign:"center" as const,padding:40}}>
           <Activity style={{width:40,height:40,color:"#d1d5db",margin:"0 auto 12px"}}/>
           <div style={{fontWeight:700,fontSize:16,color:"#374151",marginBottom:6}}>Sync Monitor</div>
           <div style={{fontSize:13,color:"#9ca3af"}}>Real-time sync logs appear here once ODBC connections are active.</div>
@@ -492,7 +492,7 @@ export default function ODBCPage() {
       {/* ── FORM MODAL ── */}
       {showForm && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+          <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div style={{fontWeight:800,fontSize:17,color:"#1a3a6b"}}>{editing?"Edit Connection":"New External Connection"}</div>
               <button onClick={()=>{setShowForm(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#6b7280"}}/></button>
@@ -535,7 +535,7 @@ export default function ODBCPage() {
             </div>
             {/* ODBC Preview */}
             {form.host && (
-              <div style={{marginTop:12,padding:"6px 10px",background:"#f0f4ff",borderRadius:6,fontSize:11,fontFamily:"monospace",color:"#374151",wordBreak:"break-all"}}>
+              <div style={{marginTop:12,padding:"6px 10px",background:"#f0f4ff",borderRadius:6,fontSize:11,fontFamily:"monospace",color:"#374151",wordBreak:"break-all" as const}}>
                 <strong>ODBC String:</strong> {buildOdbcString({serverHost:form.host,serverPort:parseInt(form.port),database:form.database_name,username:form.username})}
               </div>
             )}

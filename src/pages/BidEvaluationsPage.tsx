@@ -119,14 +119,14 @@ export default function BidEvaluationsPage() {
           {label:"Highest Score",val:highest,bg:"#6c3483"},
           {label:"Showing",val:filtered.length,bg:"#1a252f"},
         ].map(k=>(
-          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
             <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
             <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
           </div>
         ))}
       </div>
       {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap" as const,gap:12}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:42,height:42,borderRadius:10,background:"linear-gradient(135deg,#c0185a,#e91e8c)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -149,7 +149,7 @@ export default function BidEvaluationsPage() {
       </div>
 
       {/* Filters */}
-      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center"}}>
         <div style={{position:"relative",flex:1,minWidth:200}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search supplier, tender..."
@@ -230,7 +230,7 @@ export default function BidEvaluationsPage() {
       {/* Modal */}
       {showModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"14px 14px 0 0",display:"flex",alignItems:"center",gap:10}}>
               <Scale style={{width:16,height:16,color:"#fff"}}/>
               <span style={{fontSize:15,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit":"New"} Bid Evaluation</span>
@@ -282,7 +282,7 @@ export default function BidEvaluationsPage() {
       {/* Detail drawer */}
       {detail&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",justifyContent:"flex-end"}} onClick={()=>setDetail(null)}>
-          <div style={{width:"min(420px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
+          <div style={{width:"min(420px,100%)",background:"#fff",height:"100%",overflowY:"auto" as const,boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",display:"flex",alignItems:"center",gap:8}}>
               <Scale style={{width:14,height:14,color:"#fff"}}/><span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>Evaluation Detail</span>
               <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
