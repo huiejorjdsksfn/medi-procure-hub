@@ -5,7 +5,8 @@ import { supabase, db } from "@/integrations/supabase/client";
 export type ProcurementRole =
   | "admin" | "database_admin" | "requisitioner"
   | "procurement_officer" | "procurement_manager"
-  | "warehouse_officer" | "inventory_manager";
+  | "warehouse_officer" | "inventory_manager"
+  | "accountant";
 
 interface AuthContextType {
   session: Session | null;

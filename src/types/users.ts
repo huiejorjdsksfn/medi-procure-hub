@@ -1,10 +1,12 @@
 export type AppRole =
   | 'admin'
+  | 'database_admin'
   | 'requisitioner'
   | 'procurement_officer'
   | 'procurement_manager'
   | 'warehouse_officer'
-  | 'inventory_manager';
+  | 'inventory_manager'
+  | 'accountant';
 
 export interface UserProfile {
   id: string;

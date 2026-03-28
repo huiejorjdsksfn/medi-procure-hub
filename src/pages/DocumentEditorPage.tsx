@@ -288,9 +288,9 @@ export default function DocumentEditorPage() {
     if (res.error) {
       toast({ title: "Save failed: " + res.error.message, variant: "destructive" });
     } else {
-      if (!docId) setDocId(res.data.id);
+      if (!docId) setDocId(res.data?.id);
       toast({ title: "✅ Document saved to library" });
-      logAudit(user?.id, profile?.full_name, docId?"update":"create", "documents", res.data.id, { name: meta.name });
+      logAudit(user?.id, profile?.full_name, docId?"update":"create", "documents", res.data?.id, { name: meta.name });
     }
     setSaving(false);
   };
