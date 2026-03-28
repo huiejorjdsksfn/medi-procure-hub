@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { Package, Plus, RefreshCw, Search, Eye, Printer, X, Save, CheckCircle, Trash2 } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printGRN } from "@/lib/printDocument";
+import { triggerGrnEvent } from "@/lib/notify";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   pending:    {bg:"#fef3c7",color:"#92400e",label:"Pending"},
@@ -111,6 +112,7 @@ export default function GoodsReceivedPage() {
     }
     logAudit(user?.id,profile?.full_name,"create","goods_received",data?.id,{grn:num});
     toast({title:"GRN created ✓",description:num});
+    if(data?.id) triggerGrnEvent(data.id).catch(()=>{});
     setShowForm(false); resetForm(); setSaving(false); load();
   };
 

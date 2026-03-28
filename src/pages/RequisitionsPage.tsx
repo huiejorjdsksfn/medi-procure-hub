@@ -14,7 +14,7 @@ import {
   Download, Edit3, ChevronDown
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { notifyProcurement, sendNotification } from "@/lib/notify";
+import { notifyProcurement, sendNotification, triggerRequisitionEvent } from "@/lib/notify";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
@@ -94,6 +94,7 @@ export default function RequisitionsPage() {
     const req=reqs.find(r=>r.id===id);
     await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",id);
     logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
+    triggerRequisitionEvent("approved", id, { approvedBy: user?.id }).catch(()=>{});
     toast({title:"✅ Requisition Approved"});
     if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Approved ✓",message:`Your requisition "${req.title||req.requisition_number}" has been approved.`,type:"success",module:"Procurement",actionUrl:"/requisitions"});
     load();
