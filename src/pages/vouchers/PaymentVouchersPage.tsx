@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
-import { notifyProcurement } , triggerVoucherEvent } from "@/lib/notify";
+import { notifyProcurement, triggerVoucherEvent } from "@/lib/notify";
 import { Plus, Search, RefreshCw, Eye, Printer, Download, X, Save, CheckCircle, XCircle, DollarSign, Trash2 } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
 import * as XLSX from "xlsx";
