@@ -60,7 +60,6 @@ const DEFAULTS = {
   show_search_bar:"true",
 };
 
-    </div>
 export default function GuiEditorPage() {
   const { get } = useSystemSettings();
   const [saving, setSaving] = useState(false);
