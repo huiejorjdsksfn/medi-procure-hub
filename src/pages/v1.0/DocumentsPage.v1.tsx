@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import {
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import {
   FileText, Upload, Eye, Download, Search, X, Plus, Filter,
   Printer, RefreshCw, Edit3, Trash2, FileCheck, Settings, Save,
   ChevronDown, Shield, CheckCircle, AlertTriangle, Image, Code,
@@ -200,16 +200,19 @@ export default function DocumentsPage() {
 
   const [docs,       setDocs]       = useState<any[]>([]);
   const [loading,    setLoading]    = useState(true);
+import {
   const [catFilter,  setCatFilter]  = useState("all");
   const [search,     setSearch]     = useState("");
   const [selected,   setSelected]   = useState<any|null>(null);
   const [editModal,  setEditModal]  = useState(false);
   const [editDoc,    setEditDoc]    = useState<any|null>(null);
   const [previewDoc, setPreviewDoc] = useState<any|null>(null);
+import {
   const [uploadModal,setUploadModal]= useState(false);
   const [saving,     setSaving]     = useState(false);
   const [editTab,    setEditTab]    = useState<"metadata"|"html"|"preview"|"sigs">("metadata");
 
+import {
   // Upload form
   const [upFile,     setUpFile]     = useState<File|null>(null);
   const [upName,     setUpName]     = useState("");
@@ -239,6 +242,7 @@ export default function DocumentsPage() {
   ];
 
   const filtered = allDocs.filter(d=>{
+import {
     const catMatch = catFilter==="all" || d.category===catFilter || (catFilter==="system"&&d.is_system);
     const searchMatch = !search || [d.name,d.description,d.category].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()));
     return catMatch && searchMatch;
@@ -293,6 +297,7 @@ export default function DocumentsPage() {
       file_data: fileData, file_type: upFile?.type||"html",
       template_html: upHtml||null, created_by: user?.id,
     });
+import {
     if(error){ toast({title:"Upload failed",description:error.message,variant:"destructive"}); }
     else { toast({title:"Document uploaded ✓"}); setUploadModal(false); setUpFile(null); setUpName(""); setUpDesc(""); setUpHtml(""); loadDocs(); }
     setSaving(false);
@@ -332,14 +337,17 @@ export default function DocumentsPage() {
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
+import {
         <FileText style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Documents & Templates</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>System templates, forms, contracts, and uploaded files</div>
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
+import {
           {isAdmin&&<button onClick={()=>setUploadModal(true)}
             style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+import {
             <Upload style={{width:13,height:13}}/> Upload
           </button>}
           <button onClick={loadDocs} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
@@ -352,9 +360,11 @@ export default function DocumentsPage() {
 
         {/* LEFT PANEL */}
         <div style={{width:260,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>
+import {
           {/* Search */}
           <div style={{padding:"10px 12px",borderBottom:"1px solid #f3f4f6"}}>
             <div style={{position:"relative"}}>
+import {
               <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents..."
                 style={{width:"100%",paddingLeft:28,padding:"8px 10px 8px 28px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",background:"#f9fafb"}}/>
@@ -363,8 +373,10 @@ export default function DocumentsPage() {
           {/* Category filter */}
           <div style={{padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
             {CATS.map(c=>(
+import {
               <button key={c} onClick={()=>setCatFilter(c)}
                 style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,width:"100%",padding:"8px 14px",border:"none",background:catFilter===c?"#eff6ff":"transparent",cursor:"pointer",textAlign:"left" as const,borderLeft:catFilter===c?"3px solid #1a3a6b":"3px solid transparent",transition:"all 0.1s"}}>
+import {
                 <span style={{fontSize:13,fontWeight:catFilter===c?700:500,color:catFilter===c?"#1a3a6b":"#374151",textTransform:"capitalize" as const}}>{c==="all"?"All Documents":c}</span>
                 <span style={{fontSize:10,color:"#9ca3af",background:"#f3f4f6",padding:"1px 6px",borderRadius:4}}>
                   {c==="all"?allDocs.length:allDocs.filter(d=>d.category===c||(c==="system"&&d.is_system)).length}
@@ -381,6 +393,7 @@ export default function DocumentsPage() {
         {/* DOCUMENT LIST */}
         <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",display:"flex",flexDirection:"column"}}>
           <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+import {
             <span style={{fontSize:13,fontWeight:700,color:"#111827",flex:1}}>{catFilter==="all"?"All":catFilter} Documents</span>
             <span style={{fontSize:11,color:"#9ca3af"}}>{filtered.length}</span>
           </div>
@@ -399,6 +412,7 @@ export default function DocumentsPage() {
                 onMouseLeave={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background="transparent";}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <div style={{width:36,height:36,borderRadius:8,background:catC.bg,border:`1px solid ${catC.color}28`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+import {
                     <FileText style={{width:16,height:16,color:catC.color}}/>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
@@ -436,6 +450,7 @@ export default function DocumentsPage() {
                     <>
                       <button onClick={()=>setPreviewDoc(selected)}
                         style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#1d4ed8"}}>
+import {
                         <Eye style={{width:13,height:13}}/> Preview
                       </button>
                       <button onClick={()=>printFromDoc(selected)}
@@ -472,6 +487,7 @@ export default function DocumentsPage() {
                   {selected.file_type?.startsWith("image/")
                     ? <img src={selected.file_data} alt={selected.name} style={{maxWidth:"100%",maxHeight:"100%",borderRadius:8,boxShadow:"0 4px 20px rgba(0,0,0,0.1)"}}/>
                     : <div style={{textAlign:"center" as const,color:"#6b7280"}}>
+import {
                         <FileText style={{width:48,height:48,color:"#d1d5db",margin:"0 auto 12px"}}/>
                         <div style={{fontSize:14,fontWeight:600}}>{selected.name}</div>
                         <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>{selected.file_type}</div>
@@ -488,12 +504,14 @@ export default function DocumentsPage() {
               {/* Footer */}
               <div style={{padding:"6px 18px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",fontSize:10,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
                 <span>Embu Level 5 Hospital · EL5 MediProcure</span>
+import {
                 <span>{selected.is_system?"System template":"Uploaded "}{selected.created_at&&new Date(selected.created_at).toLocaleDateString("en-KE")}</span>
               </div>
             </>
           ) : (
             <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,color:"#9ca3af",padding:32}}>
               <div style={{width:64,height:64,borderRadius:16,background:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center"}}>
+import {
                 <FileText style={{width:28,height:28,color:"#d1d5db"}}/>
               </div>
               <div style={{textAlign:"center" as const}}>
@@ -610,6 +628,7 @@ export default function DocumentsPage() {
                         <div style={{fontSize:11,color:"#9ca3af",fontFamily:"monospace"}}>{"{{SIG_"+role+"}}"}</div>
                       </div>
                       <label style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+import {
                         <Upload style={{width:11,height:11}}/> Upload Sig
                         <input type="file" accept="image/*" style={{display:"none"}}/>
                       </label>
@@ -641,8 +660,10 @@ export default function DocumentsPage() {
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"#fff",borderRadius:12,width:"min(580px,100%)",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
             <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
+import {
               <Upload style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Upload Document</span>
+import {
               <button onClick={()=>setUploadModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column" as const,gap:12}}>
@@ -661,6 +682,7 @@ export default function DocumentsPage() {
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>File (PDF, Word, Image...)</label>
                 <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:"#f9fafb",border:"2px dashed #e5e7eb",borderRadius:8,cursor:"pointer"}}>
+import {
                   <Upload style={{width:16,height:16,color:"#9ca3af"}}/>
                   <span style={{fontSize:12,color:upFile?"#374151":"#9ca3af"}}>{upFile?upFile.name:"Click to choose file..."}</span>
                   <input type="file" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){setUpFile(f);if(!upName)setUpName(f.name.replace(/\.[^/.]+$/,""));}}}/>
@@ -674,8 +696,10 @@ export default function DocumentsPage() {
             </div>
             <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
               <button onClick={uploadFile} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
+import {
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Upload style={{width:13,height:13}}/>} Upload
               </button>
+import {
               <button onClick={()=>setUploadModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
             </div>
           </div>
