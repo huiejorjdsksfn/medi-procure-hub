@@ -303,6 +303,5 @@ export default function BidEvaluationsPage() {
           </div>
         </div>
       )}
-    </div>
   );
 }

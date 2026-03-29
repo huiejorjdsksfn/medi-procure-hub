@@ -15,7 +15,6 @@ import { Facility } from "@/contexts/FacilityContext";
 const LEVELS = ["2","3","4","5","6"];
 const TYPES  = ["hospital","health_centre","dispensary","clinic","nursing_home"];
 
-    </div>
 export default function FacilitiesPage() {
   const { roles } = useAuth();
   const isAdmin = roles.includes("admin");

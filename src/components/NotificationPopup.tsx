@@ -443,7 +443,6 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
             View all →
           </button>
         </div>
-      </div>
     </>
   );
 }
