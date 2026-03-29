@@ -12,6 +12,7 @@ import RoleGuard from "@/components/RoleGuard";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AccountantWorkspacePage from "@/pages/AccountantWorkspacePage";
+import NotificationsPage from "@/pages/NotificationsPage";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
 import NotFound from "@/pages/NotFound";
@@ -156,6 +157,8 @@ const App = () => (
             <Route path="/facilities" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FacilitiesPage /></RoleGuard></P>} />
 
             <Route path="/accountant" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
+            <Route path="/accountant-workspace" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
+            <Route path="/notifications" element={<P><NotificationsPage /></P>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
           </NetworkGuard>

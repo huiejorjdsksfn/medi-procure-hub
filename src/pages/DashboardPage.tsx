@@ -28,14 +28,15 @@ const arc = (cx: number, cy: number, OR: number, IR: number, s: number, e: numbe
 
 /* ── Role access ── */
 const ROLE_ACCESS: Record<string, string[]> = {
-  admin:               ["procurement","finance","operations","quality","admin","hr"],
-  webmaster:           ["procurement","finance","operations","quality","admin","hr"],
-  procurement_manager: ["procurement","finance","operations","quality"],
+  admin:               ["procurement","finance","operations","quality","admin","hr","accountant"],
+  webmaster:           ["procurement","finance","operations","quality","admin","hr","accountant"],
+  procurement_manager: ["procurement","finance","operations","quality","accountant"],
   procurement_officer: ["procurement","operations"],
   inventory_manager:   ["operations","procurement","quality"],
   warehouse_officer:   ["operations"],
   requisitioner:       ["procurement"],
   database_admin:      ["admin","operations"],
+  accountant:          ["accountant","finance","procurement"],
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -43,6 +44,7 @@ const ROLE_LABELS: Record<string, string> = {
   procurement_officer: "Procurement Officer", inventory_manager: "Inventory Manager",
   warehouse_officer: "Warehouse Officer", requisitioner: "Requisitioner",
   webmaster: "Webmaster", database_admin: "Database Admin",
+  accountant: "Accountant",
 };
 
 type Link = { label: string; path: string; roles?: string[] };
@@ -53,7 +55,7 @@ const SEGS: Seg[] = [
   {
     id:"procurement", label:"PROCUREMENT", sub:"Orders & Sourcing",
     g1:"#1a6bb5", g2:"#0d4a87", g3:"#5ba0d4", glow:"#3b82f680",
-    start:0, end:60,
+    start:0, end:51,
     links:[
       {label:"Requisitions",        path:"/requisitions",         roles:["admin","procurement_manager","procurement_officer","requisitioner","inventory_manager","warehouse_officer"]},
       {label:"Purchase Orders",     path:"/purchase-orders",      roles:["admin","procurement_manager","procurement_officer"]},
@@ -69,7 +71,7 @@ const SEGS: Seg[] = [
   {
     id:"finance", label:"FINANCE", sub:"Vouchers & Accounts",
     g1:"#C45911", g2:"#8B3A07", g3:"#E8842A", glow:"#f9731680",
-    start:60, end:120,
+    start:51, end:103,
     links:[
       {label:"Payment Vouchers",    path:"/vouchers/payment",             roles:["admin","procurement_manager","procurement_officer"]},
       {label:"Journal Vouchers",    path:"/vouchers/journal",             roles:["admin","procurement_manager"]},
@@ -85,7 +87,7 @@ const SEGS: Seg[] = [
   {
     id:"operations", label:"OPERATIONS", sub:"Inventory & Logistics",
     g1:"#107c10", g2:"#0a5c0a", g3:"#3cb33c", glow:"#22c55e80",
-    start:120, end:180,
+    start:103, end:154,
     links:[
       {label:"Inventory / Items",   path:"/items",                   roles:["admin","inventory_manager","warehouse_officer","procurement_manager","procurement_officer"]},
       {label:"Stock Movements",     path:"/stock-movements",         roles:["admin","inventory_manager","warehouse_officer"]},
@@ -100,7 +102,7 @@ const SEGS: Seg[] = [
   {
     id:"quality", label:"QUALITY", sub:"QC & Compliance",
     g1:"#00695C", g2:"#004D40", g3:"#26A69A", glow:"#10b98180",
-    start:180, end:240,
+    start:154, end:206,
     links:[
       {label:"QC Dashboard",        path:"/quality/dashboard",       roles:["admin","procurement_manager","inventory_manager"]},
       {label:"Inspections",         path:"/quality/inspections",     roles:["admin","procurement_manager","inventory_manager","warehouse_officer"]},
@@ -112,21 +114,39 @@ const SEGS: Seg[] = [
   {
     id:"hr", label:"HR & COMMS", sub:"People & Communication",
     g1:"#7c3aed", g2:"#5b21b6", g3:"#a78bfa", glow:"#8b5cf680",
-    start:240, end:300,
+    start:206, end:257,
     links:[
       {label:"Users",               path:"/users",                   roles:["admin"]},
       {label:"Departments",         path:"/departments",             roles:["admin","procurement_manager"]},
       {label:"Reception Desk",      path:"/reception",           roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
-      {label:"Email / Inbox",       path:"/email",                   roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
-      {label:"Notifications",       path:"/notifications",           roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
-      {label:"Profile",             path:"/profile",                 roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"]},
-      {label:"Document Editor",     path:"/documents/editor",        roles:["admin","procurement_manager","procurement_officer"]},
+      {label:"Email / Inbox",       path:"/email",                   roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner","accountant"]},
+      {label:"Notifications",       path:"/notifications",           roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner","accountant"]},
+      {label:"Profile",             path:"/profile",                 roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner","accountant"]},
+      {label:"Document Editor",     path:"/documents/editor",        roles:["admin","procurement_manager","procurement_officer","accountant"]},
+    ],
+  },
+  {
+    id:"accountant", label:"ACCOUNTANT", sub:"Finance & ERP Sync",
+    g1:"#059669", g2:"#047857", g3:"#34d399", glow:"#22c55e80",
+    start:257, end:309,
+    links:[
+      {label:"Accountant Workspace",path:"/accountant-workspace",             roles:["admin","accountant","procurement_manager"]},
+      {label:"Invoice Matching",    path:"/accountant-workspace",             roles:["admin","accountant","procurement_manager"]},
+      {label:"Payment Management",  path:"/vouchers/payment",                roles:["admin","accountant","procurement_manager"]},
+      {label:"Budget Control",      path:"/financials/budgets",              roles:["admin","accountant","procurement_manager"]},
+      {label:"ERP Sync",            path:"/accountant-workspace",             roles:["admin","accountant","procurement_manager"]},
+      {label:"Journal & Ledger",    path:"/vouchers/journal",                roles:["admin","accountant","procurement_manager"]},
+      {label:"Quotation Creator",   path:"/accountant-workspace",             roles:["admin","accountant","procurement_manager"]},
+      {label:"Chart of Accounts",   path:"/financials/chart-of-accounts",    roles:["admin","accountant","procurement_manager"]},
+      {label:"Fixed Assets",        path:"/financials/fixed-assets",         roles:["admin","accountant","procurement_manager"]},
+      {label:"Audit Log",           path:"/audit-log",                       roles:["admin","accountant","procurement_manager"]},
+      {label:"Reports",             path:"/reports",                         roles:["admin","accountant","procurement_manager"]},
     ],
   },
   {
     id:"admin", label:"ADMIN", sub:"System & Database",
     g1:"#374151", g2:"#1f2937", g3:"#9ca3af", glow:"#6b728080",
-    start:300, end:360,
+    start:309, end:360,
     links:[
       {label:"Admin Panel",         path:"/admin/panel",             roles:["admin","webmaster"]},
       {label:"Settings",            path:"/settings",                roles:["admin"]},
@@ -144,15 +164,16 @@ const SEGS: Seg[] = [
 ];
 
 const ALL_QUICK = [
-  {label:"Requisitions",  path:"/requisitions",    roles:[] as string[]},
-  {label:"Purchase Orders",path:"/purchase-orders", roles:["admin","procurement_manager","procurement_officer"]},
-  {label:"Payment Vouchers",path:"/vouchers/payment",roles:["admin","procurement_manager","procurement_officer"]},
-  {label:"GRN",            path:"/goods-received",  roles:["admin","procurement_manager","procurement_officer","warehouse_officer"]},
-  {label:"Reports",        path:"/reports",         roles:["admin","procurement_manager","procurement_officer"]},
-  {label:"Mail",           path:"/email",           roles:[] as string[]},
-  {label:"Documents",      path:"/documents",       roles:[] as string[]},
-  {label:"Users",          path:"/users",           roles:["admin"]},
-  {label:"Settings",       path:"/settings",        roles:["admin"]},
+  {label:"Requisitions",    path:"/requisitions",      roles:[] as string[]},
+  {label:"Purchase Orders", path:"/purchase-orders",   roles:["admin","procurement_manager","procurement_officer","accountant"]},
+  {label:"Payment Vouchers",path:"/vouchers/payment",  roles:["admin","procurement_manager","procurement_officer","accountant"]},
+  {label:"GRN",             path:"/goods-received",    roles:["admin","procurement_manager","procurement_officer","warehouse_officer","accountant"]},
+  {label:"Reports",         path:"/reports",           roles:["admin","procurement_manager","procurement_officer","accountant"]},
+  {label:"Mail",            path:"/email",             roles:[] as string[]},
+  {label:"Documents",       path:"/documents",         roles:[] as string[]},
+  {label:"Accountant",      path:"/accountant-workspace", roles:["admin","accountant","procurement_manager"]},
+  {label:"Users",           path:"/users",             roles:["admin"]},
+  {label:"Settings",        path:"/settings",          roles:["admin"]},
 ];
 
 
@@ -199,6 +220,8 @@ const MODULE_ICONS: Record<string, string> = {
   "/webmaster":                "🌐",
   "/backup":                   "💾",
   "/users":                    "👥",
+  "/accountant-workspace":     "💼",
+  "/accountant":               "💼",
 };
 
 const CX = 300, CY = 300, OR = 248, IR = 100;
@@ -502,8 +525,8 @@ export default function DashboardPage() {
             <text x={CX+4} y={CY+48} dominantBaseline="central" fill="rgba(255,255,255,0.45)" fontSize={7} fontWeight={700} style={{pointerEvents:"none" as const}}>LIVE</text>
 
             {/* KPI arcs on outer ring */}
-            {kpi.reqs>0&&<path d={arc(CX,CY,OR+28,OR+24,0,Math.min(60,kpi.reqs*8),0)} fill="#fbbf24"/>}
-            {kpi.lowStock>0&&<path d={arc(CX,CY,OR+28,OR+24,180,Math.min(240,180+kpi.lowStock*5),0)} fill="#ef4444"/>}
+            {kpi.reqs>0&&<path d={arc(CX,CY,OR+28,OR+24,0,Math.min(51,kpi.reqs*7),0)} fill="#fbbf24"/>}
+            {kpi.lowStock>0&&<path d={arc(CX,CY,OR+28,OR+24,154,Math.min(206,154+kpi.lowStock*4),0)} fill="#ef4444"/>}
           </svg>
 
           {/* ── SLIDE-IN PANEL ── */}
