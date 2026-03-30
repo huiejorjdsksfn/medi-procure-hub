@@ -332,31 +332,31 @@ export default function DocumentsPage() {
       <div style={{minHeight:"calc(100vh - 82px)",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex" as const,alignItems:"center" as const,gap:12,flexWrap:"wrap" as const}}>
         <FileText style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Documents & Templates</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>System templates, forms, contracts, and uploaded files</div>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
+        <div style={{display:"flex" as const,gap:8,flexWrap:"wrap" as const}}>
           {isAdmin&&<button onClick={()=>setUploadModal(true)}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
+            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
             <Upload style={{width:13,height:13}}/> Upload
           </button>}
-          <button onClick={loadDocs} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+          <button onClick={loadDocs} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer" as const,color:"rgba(255,255,255,0.6)",lineHeight:0}}>
             <RefreshCw style={{width:13,height:13}}/>
           </button>
         </div>
       </div>
 
-      <div style={{display:"flex",gap:0,height:"calc(100vh - 148px)"}}>
+      <div style={{display:"flex" as const,gap:0,height:"calc(100vh - 148px)"}}>
 
         {/* LEFT PANEL */}
-        <div style={{width:260,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{width:260,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex" as const,flexDirection:"column" as const,flexShrink:0}}>
           {/* Search */}
           <div style={{padding:"10px 12px",borderBottom:"1px solid #f3f4f6"}}>
-            <div style={{position:"relative"}}>
-              <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
+            <div style={{position:"relative" as const}}>
+              <Search style={{position:"absolute" as const,left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents..."
                 style={{width:"100%",paddingLeft:28,padding:"8px 10px 8px 28px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",background:"#f9fafb"}}/>
             </div>
@@ -365,7 +365,7 @@ export default function DocumentsPage() {
           <div style={{padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
             {CATS.map(c=>(
               <button key={c} onClick={()=>setCatFilter(c)}
-                style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,width:"100%",padding:"8px 14px",border:"none",background:catFilter===c?"#eff6ff":"transparent",cursor:"pointer",textAlign:"left" as const,borderLeft:catFilter===c?"3px solid #1a3a6b":"3px solid transparent",transition:"all 0.1s"}}>
+                style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,gap:8,width:"100%",padding:"8px 14px",border:"none",background:catFilter===c?"#eff6ff":"transparent",cursor:"pointer" as const,textAlign:"left" as const,borderLeft:catFilter===c?"3px solid #1a3a6b":"3px solid transparent",transition:"all 0.1s"}}>
                 <span style={{fontSize:13,fontWeight:catFilter===c?700:500,color:catFilter===c?"#1a3a6b":"#374151",textTransform:"capitalize" as const}}>{c==="all"?"All Documents":c}</span>
                 <span style={{fontSize:10,color:"#9ca3af",background:"#f3f4f6",padding:"1px 6px",borderRadius:4}}>
                   {c==="all"?allDocs.length:allDocs.filter(d=>d.category===c||(c==="system"&&d.is_system)).length}
@@ -380,13 +380,13 @@ export default function DocumentsPage() {
         </div>
 
         {/* DOCUMENT LIST */}
-        <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",display:"flex",flexDirection:"column"}}>
-          <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+        <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto" as const,display:"flex" as const,flexDirection:"column" as const}}>
+          <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:8,flexShrink:0}}>
             <span style={{fontSize:13,fontWeight:700,color:"#111827",flex:1}}>{catFilter==="all"?"All":catFilter} Documents</span>
             <span style={{fontSize:11,color:"#9ca3af"}}>{filtered.length}</span>
           </div>
           {loading?[1,2,3,4].map(i=>(
-            <div key={i} style={{padding:"12px 14px",borderBottom:"1px solid #f9fafb",display:"flex",gap:10}}>
+            <div key={i} style={{padding:"12px 14px",borderBottom:"1px solid #f9fafb",display:"flex" as const,gap:10}}>
               <div style={{width:36,height:36,borderRadius:8,background:"#f3f4f6",animation:"pulse 1.5s infinite"}}/>
               <div style={{flex:1}}><div style={{height:11,background:"#f3f4f6",borderRadius:4,marginBottom:6,width:"65%",animation:"pulse 1.5s infinite"}}/><div style={{height:9,background:"#f3f4f6",borderRadius:4,width:"45%",animation:"pulse 1.5s infinite"}}/></div>
             </div>
@@ -395,19 +395,19 @@ export default function DocumentsPage() {
             const isActive = selected?.id===doc.id;
             return (
               <div key={doc.id} onClick={()=>setSelected(doc)}
-                style={{padding:"12px 14px",borderBottom:"1px solid #f9fafb",cursor:"pointer",background:isActive?"#eff6ff":"transparent",borderLeft:isActive?"3px solid #1a3a6b":"3px solid transparent",transition:"background 0.1s"}}
+                style={{padding:"12px 14px",borderBottom:"1px solid #f9fafb",cursor:"pointer" as const,background:isActive?"#eff6ff":"transparent",borderLeft:isActive?"3px solid #1a3a6b":"3px solid transparent",transition:"background 0.1s"}}
                 onMouseEnter={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background="#f9fafb";}}
                 onMouseLeave={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background="transparent";}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:catC.bg,border:`1px solid ${catC.color}28`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{display:"flex" as const,alignItems:"center" as const,gap:10}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:catC.bg,border:`1px solid ${catC.color}28`,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                     <FileText style={{width:16,height:16,color:catC.color}}/>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{doc.name}</div>
-                    <div style={{fontSize:11,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{doc.description||"No description"}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:"#111827",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{doc.name}</div>
+                    <div style={{fontSize:11,color:"#9ca3af",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{doc.description||"No description"}</div>
                   </div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7}}>
+                <div style={{display:"flex" as const,alignItems:"center" as const,gap:6,marginTop:7}}>
                   <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:3,background:catC.bg,color:catC.color}}>{catC.label}</span>
                   {doc.is_system&&<span style={{fontSize:9,color:"#1a3a6b",background:"#eff6ff",padding:"1px 6px",borderRadius:3,fontWeight:700}}>SYSTEM</span>}
                   {(doc.html||doc.template_html)&&<span style={{fontSize:9,color:"#107c10",background:"#dcfce7",padding:"1px 6px",borderRadius:3,fontWeight:700}}>PRINTABLE</span>}
@@ -418,43 +418,43 @@ export default function DocumentsPage() {
         </div>
 
         {/* DOCUMENT VIEWER */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff"}}>
+        <div style={{flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const,background:"#fff"}}>
           {selected ? (
             <>
               {/* Viewer header */}
-              <div style={{padding:"12px 18px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12,flexShrink:0,flexWrap:"wrap" as const}}>
+              <div style={{padding:"12px 18px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:12,flexShrink:0,flexWrap:"wrap" as const}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:16,fontWeight:800,color:"#111827"}}>{selected.name}</div>
                   <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{selected.description}</div>
-                  <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap" as const}}>
+                  <div style={{display:"flex" as const,gap:6,marginTop:6,flexWrap:"wrap" as const}}>
                     <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:4,...CAT_CFG[selected.category]||CAT_CFG.general}}>{selected.category}</span>
                     {selected.is_system&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:4,background:"#eff6ff",color:"#1a3a6b"}}>System Template</span>}
                     {(selected.html||selected.template_html)&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:4,background:"#dcfce7",color:"#107c10",fontWeight:700}}>✓ HTML Template</span>}
                   </div>
                 </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
+                <div style={{display:"flex" as const,gap:6,flexWrap:"wrap" as const}}>
                   {(selected.html||selected.template_html)&&(
                     <>
                       <button onClick={()=>setPreviewDoc(selected)}
-                        style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#1d4ed8"}}>
+                        style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#1d4ed8"}}>
                         <Eye style={{width:13,height:13}}/> Preview
                       </button>
                       <button onClick={()=>printFromDoc(selected)}
-                        style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#107c10",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
+                        style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"#107c10",border:"none",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#fff"}}>
                         <Printer style={{width:13,height:13}}/> Print
                       </button>
                     </>
                   )}
                   <button onClick={()=>downloadDoc(selected)}
-                    style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
+                    style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#374151"}}>
                     <Download style={{width:13,height:13}}/> Download
                   </button>
                   {isAdmin&&<button onClick={()=>openEdit(selected)}
-                    style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#92400e"}}>
+                    style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#92400e"}}>
                     <Edit3 style={{width:13,height:13}}/> Edit
                   </button>}
                   {!selected.is_system&&isAdmin&&<button onClick={()=>deleteDoc(selected)}
-                    style={{padding:"7px 10px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:7,cursor:"pointer",color:"#dc2626",lineHeight:0}}>
+                    style={{padding:"7px 10px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:7,cursor:"pointer" as const,color:"#dc2626",lineHeight:0}}>
                     <Trash2 style={{width:13,height:13}}/>
                   </button>}
                 </div>
@@ -462,49 +462,49 @@ export default function DocumentsPage() {
 
               {/* HTML preview */}
               {(selected.html||selected.template_html) ? (
-                <div style={{flex:1,overflowY:"auto",padding:"20px",background:"#f9fafb"}}>
+                <div style={{flex:1,overflowY:"auto" as const,padding:"20px",background:"#f9fafb"}}>
                   <div style={{maxWidth:800,margin:"0 auto",background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.08)",padding:"24px 32px"}}>
                     <style>{DOC_PRINT_CSS}</style>
                     <div dangerouslySetInnerHTML={{__html:selected.html||selected.template_html||""}}/>
                   </div>
                 </div>
               ) : selected.file_data ? (
-                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+                <div style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:20}}>
                   {selected.file_type?.startsWith("image/")
                     ? <img src={selected.file_data} alt={selected.name} style={{maxWidth:"100%",maxHeight:"100%",borderRadius:8,boxShadow:"0 4px 20px rgba(0,0,0,0.1)"}}/>
                     : <div style={{textAlign:"center" as const,color:"#6b7280"}}>
                         <FileText style={{width:48,height:48,color:"#d1d5db",margin:"0 auto 12px"}}/>
                         <div style={{fontSize:14,fontWeight:600}}>{selected.name}</div>
                         <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>{selected.file_type}</div>
-                        <button onClick={()=>downloadDoc(selected)} style={{marginTop:14,display:"inline-flex",alignItems:"center",gap:6,padding:"9px 18px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
+                        <button onClick={()=>downloadDoc(selected)} style={{marginTop:14,display:"inline-flex" as const,alignItems:"center" as const,gap:6,padding:"9px 18px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:7,cursor:"pointer" as const,fontSize:13,fontWeight:700}}>
                           <Download style={{width:14,height:14}}/> Download File
                         </button>
                       </div>
                   }
                 </div>
               ) : (
-                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af",fontSize:13}}>No preview available</div>
+                <div style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,color:"#9ca3af",fontSize:13}}>No preview available</div>
               )}
 
               {/* Footer */}
-              <div style={{padding:"6px 18px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",fontSize:10,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
+              <div style={{padding:"6px 18px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",fontSize:10,color:"#9ca3af",display:"flex" as const,justifyContent:"space-between" as const}}>
                 <span>Embu Level 5 Hospital · EL5 MediProcure</span>
                 <span>{selected.is_system?"System template":"Uploaded "}{selected.created_at&&new Date(selected.created_at).toLocaleDateString("en-KE")}</span>
               </div>
             </>
           ) : (
-            <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,color:"#9ca3af",padding:32}}>
-              <div style={{width:64,height:64,borderRadius:16,background:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{flex:1,display:"flex" as const,flexDirection:"column" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:14,color:"#9ca3af",padding:32}}>
+              <div style={{width:64,height:64,borderRadius:16,background:"#f3f4f6",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
                 <FileText style={{width:28,height:28,color:"#d1d5db"}}/>
               </div>
               <div style={{textAlign:"center" as const}}>
                 <div style={{fontSize:15,fontWeight:700,color:"#374151"}}>Select a document</div>
                 <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>Choose from the list to preview, print, or edit</div>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:400}}>
+              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:400}}>
                 {SYSTEM_TEMPLATES.slice(0,4).map(t=>(
                   <button key={t.id} onClick={()=>setSelected(t)}
-                    style={{padding:"10px 14px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151",textAlign:"left" as const,transition:"all 0.12s"}}
+                    style={{padding:"10px 14px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#374151",textAlign:"left" as const,transition:"all 0.12s"}}
                     onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#eff6ff"}
                     onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}>
                     {t.name}
@@ -518,44 +518,44 @@ export default function DocumentsPage() {
 
       {/* ── EDIT MODAL ── */}
       {editModal&&editDoc&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:12,width:"min(900px,100%)",height:"min(90vh,700px)",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
+          <div style={{background:"#fff",borderRadius:12,width:"min(900px,100%)",height:"min(90vh,700px)",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             {/* Modal header */}
-            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex" as const,alignItems:"center" as const,gap:8}}>
               <Edit3 style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Edit Document: {editDoc.name}</span>
               {editDoc.is_system&&<span style={{fontSize:10,fontWeight:700,background:"#fef3c7",color:"#92400e",padding:"2px 8px",borderRadius:4}}>SYSTEM TEMPLATE</span>}
-              <button onClick={()=>setEditModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}>
+              <button onClick={()=>setEditModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer" as const,color:"#fff",lineHeight:0}}>
                 <X style={{width:13,height:13}}/>
               </button>
             </div>
 
             {/* Tabs */}
-            <div style={{display:"flex",borderBottom:"1px solid #e5e7eb",background:"#f9fafb"}}>
+            <div style={{display:"flex" as const,borderBottom:"1px solid #e5e7eb",background:"#f9fafb"}}>
               {([["metadata","Details"],["html","HTML Editor"],["preview","Preview"],["sigs","Signatures"]] as const).map(([id,lbl])=>(
                 <button key={id} onClick={()=>setEditTab(id as any)}
-                  style={{padding:"10px 18px",border:"none",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:editTab===id?700:500,color:editTab===id?"#1a3a6b":"#6b7280",borderBottom:editTab===id?"2px solid #1a3a6b":"2px solid transparent",transition:"all 0.1s"}}>
+                  style={{padding:"10px 18px",border:"none",background:"transparent",cursor:"pointer" as const,fontSize:12,fontWeight:editTab===id?700:500,color:editTab===id?"#1a3a6b":"#6b7280",borderBottom:editTab===id?"2px solid #1a3a6b":"2px solid transparent",transition:"all 0.1s"}}>
                   {lbl}
                 </button>
               ))}
             </div>
 
             {/* Content */}
-            <div style={{flex:1,overflowY:"auto",padding:16}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:16}}>
               {editTab==="metadata"&&(
-                <div style={{display:"grid",gap:12}}>
+                <div style={{display:"grid" as const,gap:12}}>
                   <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Document Name</label>
+                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Document Name</label>
                     <input value={editDoc.name} onChange={e=>setEditDoc((p:any)=>({...p,name:e.target.value}))}
                       style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
                   </div>
                   <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Description</label>
+                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Description</label>
                     <textarea value={editDoc.description} onChange={e=>setEditDoc((p:any)=>({...p,description:e.target.value}))} rows={3}
-                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"inherit",resize:"none"}}/>
+                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"inherit",resize:"none" as const}}/>
                   </div>
                   <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Category</label>
+                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Category</label>
                     <select value={editDoc.category} onChange={e=>setEditDoc((p:any)=>({...p,category:e.target.value}))}
                       style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
                       {["general","policy","template","contract","report","letter","form","procedure","system"].map(c=><option key={c} value={c}>{c}</option>)}
@@ -568,12 +568,12 @@ export default function DocumentsPage() {
               )}
 
               {editTab==="html"&&(
-                <div style={{display:"flex",flexDirection:"column" as const,gap:10,height:"100%"}}>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
+                <div style={{display:"flex" as const,flexDirection:"column" as const,gap:10,height:"100%"}}>
+                  <div style={{display:"flex" as const,gap:6,flexWrap:"wrap" as const}}>
                     <span style={{fontSize:11,color:"#6b7280",fontWeight:600,alignSelf:"center"}}>Insert:</span>
                     {PLACEHOLDERS.slice(0,16).map(ph=>(
                       <button key={ph} onClick={()=>setEditDoc((p:any)=>({...p,html:p.html+ph}))}
-                        style={{padding:"3px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"monospace",color:"#374151"}}>
+                        style={{padding:"3px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:4,cursor:"pointer" as const,fontSize:10,fontFamily:"monospace",color:"#374151"}}>
                         {ph}
                       </button>
                     ))}
@@ -597,22 +597,22 @@ export default function DocumentsPage() {
               )}
 
               {editTab==="sigs"&&(
-                <div style={{display:"grid",gap:16}}>
+                <div style={{display:"grid" as const,gap:16}}>
                   <div style={{padding:"10px 14px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,fontSize:12,color:"#1d4ed8"}}>
                     Use <strong>{"{{SIG_AUTHORIZED}}"}</strong>, <strong>{"{{SIG_APPROVED}}"}</strong>, <strong>{"{{SIG_SUPPLIER}}"}</strong>, <strong>{"{{SIG_RECEIVED}}"}</strong> placeholders in your HTML template to insert signature fields.
                   </div>
                   {["AUTHORIZED","APPROVED","SUPPLIER","RECEIVED","INSPECTED","STORE","PREPARED","VERIFIED","HOD","PROCUREMENT"].map(role=>(
-                    <div key={role} style={{padding:"10px 14px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{width:40,height:40,borderRadius:6,border:"2px dashed #d1d5db",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <div key={role} style={{padding:"10px 14px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,display:"flex" as const,alignItems:"center" as const,gap:12}}>
+                      <div style={{width:40,height:40,borderRadius:6,border:"2px dashed #d1d5db",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                         <Pen style={{width:16,height:16,color:"#9ca3af"}}/>
                       </div>
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>{role.charAt(0)+role.slice(1).toLowerCase().replace(/_/g," ")}</div>
                         <div style={{fontSize:11,color:"#9ca3af",fontFamily:"monospace"}}>{"{{SIG_"+role+"}}"}</div>
                       </div>
-                      <label style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+                      <label style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"6px 12px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer" as const,fontSize:11,fontWeight:600,color:"#374151"}}>
                         <Upload style={{width:11,height:11}}/> Upload Sig
-                        <input type="file" accept="image/*" style={{display:"none"}}/>
+                        <input type="file" accept="image/*" style={{display:"none" as const}}/>
                       </label>
                     </div>
                   ))}
@@ -621,16 +621,16 @@ export default function DocumentsPage() {
             </div>
 
             {/* Modal footer */}
-            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex" as const,gap:8,alignItems:"center" as const,flexShrink:0}}>
               <button onClick={saveDoc} disabled={saving}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
+                style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save Document
               </button>
               {(editDoc.html)&&<button onClick={()=>printDoc(editDoc.html,editDoc.name)}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:"#107c10",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
+                style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"9px 16px",background:"#107c10",color:"#fff",border:"none",borderRadius:7,cursor:"pointer" as const,fontSize:13,fontWeight:700}}>
                 <Printer style={{width:13,height:13}}/> Print
               </button>}
-              <button onClick={()=>setEditModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>setEditModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,fontSize:13,color:"#374151"}}>Cancel</button>
               {editDoc.is_system&&<span style={{marginLeft:4,fontSize:11,color:"#9ca3af"}}>Saving creates a custom copy of this system template</span>}
             </div>
           </div>
@@ -639,45 +639,45 @@ export default function DocumentsPage() {
 
       {/* ── UPLOAD MODAL ── */}
       {uploadModal&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:12,width:"min(580px,100%)",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
+        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
+          <div style={{background:"#fff",borderRadius:12,width:"min(580px,100%)",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex" as const,alignItems:"center" as const,gap:8}}>
               <Upload style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Upload Document</span>
-              <button onClick={()=>setUploadModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setUploadModal(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer" as const,color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
-            <div style={{padding:16,display:"flex",flexDirection:"column" as const,gap:12}}>
+            <div style={{padding:16,display:"flex" as const,flexDirection:"column" as const,gap:12}}>
               {[{l:"Document Name",k:"upName",v:upName,s:(v:string)=>setUpName(v)},{l:"Description",k:"upDesc",v:upDesc,s:(v:string)=>setUpDesc(v)}].map(f=>(
                 <div key={f.k}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>
+                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>
                   <input value={f.v} onChange={e=>f.s(e.target.value)} style={{width:"100%",padding:"8px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
                 </div>
               ))}
               <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Category</label>
+                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Category</label>
                 <select value={upCat} onChange={e=>setUpCat(e.target.value)} style={{width:"100%",padding:"8px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   {["general","policy","template","contract","report","letter","form","procedure"].map(c=><option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>File (PDF, Word, Image...)</label>
-                <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:"#f9fafb",border:"2px dashed #e5e7eb",borderRadius:8,cursor:"pointer"}}>
+                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>File (PDF, Word, Image...)</label>
+                <label style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"10px 14px",background:"#f9fafb",border:"2px dashed #e5e7eb",borderRadius:8,cursor:"pointer" as const}}>
                   <Upload style={{width:16,height:16,color:"#9ca3af"}}/>
                   <span style={{fontSize:12,color:upFile?"#374151":"#9ca3af"}}>{upFile?upFile.name:"Click to choose file..."}</span>
-                  <input type="file" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){setUpFile(f);if(!upName)setUpName(f.name.replace(/\.[^/.]+$/,""));}}}/>
+                  <input type="file" style={{display:"none" as const}} onChange={e=>{const f=e.target.files?.[0];if(f){setUpFile(f);if(!upName)setUpName(f.name.replace(/\.[^/.]+$/,""));}}}/>
                 </label>
               </div>
               <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Or Paste HTML Content</label>
+                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Or Paste HTML Content</label>
                 <textarea value={upHtml} onChange={e=>setUpHtml(e.target.value)} rows={4} placeholder="Optional: paste HTML template content..."
                   style={{width:"100%",padding:"8px 12px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"monospace",resize:"none" as const}}/>
               </div>
             </div>
-            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
-              <button onClick={uploadFile} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
+            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex" as const,gap:8}}>
+              <button onClick={uploadFile} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer" as const,fontSize:13,fontWeight:700}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Upload style={{width:13,height:13}}/>} Upload
               </button>
-              <button onClick={()=>setUploadModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>setUploadModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,fontSize:13,color:"#374151"}}>Cancel</button>
             </div>
           </div>
         </div>

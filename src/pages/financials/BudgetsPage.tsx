@@ -91,9 +91,9 @@ export default function BudgetsPage() {
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}}
       `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{padding:16,display:"flex" as const,flexDirection:"column" as const,gap:12,fontFamily:"'Segoe UI',system-ui"}}>
       {/* KPI TILES */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+      <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
         {[
           {label:"Total Allocated",val:fmtKES(totalAllocated),bg:"#c0392b"},
           {label:"Total Spent",val:fmtKES(totalSpent),bg:"#7d6608"},
@@ -108,19 +108,19 @@ export default function BudgetsPage() {
         ))}
       </div>
       {/* HEADER BAR */}
-      <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e1b4b,#3730a3)"}}>
+      <div style={{borderRadius:12,padding:"10px 18px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"linear-gradient(90deg,#1e1b4b,#3730a3)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Budgets</h1>
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} records · {exceededCount} exceeded</p>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#3730a3"}}><Plus style={{width:14,height:14}}/>New Budget</button>}
+        <div style={{display:"flex" as const,gap:8}}>
+          <button onClick={exportExcel} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer" as const,background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});setShowNew(true);}} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer" as const,background:"rgba(255,255,255,0.92)",color:"#3730a3"}}><Plus style={{width:14,height:14}}/>New Budget</button>}
         </div>
       </div>
-      <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search budgets..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+      <div style={{position:"relative" as const,maxWidth:384}}><Search style={{position:"absolute" as const,left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search budgets..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box" as const}}/></div>
+      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden" as const}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#eef2ff"}}>
             {["Code","Budget Name","Department","FY","Allocated","Spent","Committed","% Used","Status","Actions"].map(h=>(
@@ -141,15 +141,15 @@ export default function BudgetsPage() {
                   <td style={{padding:"10px 16px",color:pct>90?"#dc2626":pct>70?"#d97706":"#374151"}}>{fmtKES(r.spent_amount||0)}</td>
                   <td style={{padding:"10px 16px",color:"#6b7280"}}>{fmtKES(r.committed_amount||0)}</td>
                   <td style={{padding:"10px 16px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:64,height:6,borderRadius:3,background:"#e5e7eb",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:`${Math.min(100,pct)}%`,background:pct>90?"#dc2626":pct>70?"#d97706":"#15803d"}}/></div>
+                    <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
+                      <div style={{width:64,height:6,borderRadius:3,background:"#e5e7eb",overflow:"hidden" as const}}><div style={{height:"100%",borderRadius:3,width:`${Math.min(100,pct)}%`,background:pct>90?"#dc2626":pct>70?"#d97706":"#15803d"}}/></div>
                       <span style={{fontSize:10,color:pct>90?"#dc2626":pct>70?"#d97706":"#374151",fontWeight:700}}>{pct}%</span>
                     </div>
                   </td>
                   <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                  <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
-                    {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                    {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                  <td style={{padding:"10px 16px"}}><div style={{display:"flex" as const,gap:4}}>
+                    {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer" as const}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
+                    {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer" as const}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                   </div></td>
                 </tr>
               );
@@ -158,43 +158,43 @@ export default function BudgetsPage() {
         </table>
       </div>
       {showNew&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
+        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+          <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
+          <div style={{position:"relative" as const,background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const}}>
+            <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"16px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Budget":"New Budget"}</h3>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[["Budget Name *","budget_name","",2],["Financial Year","financial_year","",1],["Allocated Amount (KES) *","allocated_amount","number",1]].map(([l,k,t,span])=>(
                 <div key={k} style={{gridColumn:`span ${span}`}}>
-                  <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                  <label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
+                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/>
                 </div>
               ))}
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
+              <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
                 <select value={form.department_name||form.department||form.department_id||"—"} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                   <option value="">— Select —</option>
                   {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category</label>
+              <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category</label>
                 <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                   <option value="">— Select —</option>
                   {["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction","ICT","Staff Training","Utilities","Maintenance","Other"].map(c=><option key={c}>{c}</option>)}
                 </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
+              <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
                 <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                   {["active","draft","closed"].map(s=><option key={s} value={s} style={{textTransform:"capitalize" as const}}>{s}</option>)}
                 </select></div>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Notes</label>
-                <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Notes</label>
+                <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/></div>
             </div></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#3730a3"}}>
+            <div style={{display:"flex" as const,gap:8,justifyContent:"flex-end" as const,padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer" as const}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer" as const,background:"#3730a3"}}>
                 {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
                 {saving?"Saving...":editing?"Update Budget":"Create Budget"}
               </button>

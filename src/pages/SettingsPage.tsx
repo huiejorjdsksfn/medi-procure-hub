@@ -2,7 +2,7 @@
             <Card title="Email & SMTP" sub="Supabase SMTP via Resend — active for password resets & notifications" color="#059669" icon={Mail}
               onSave={() => save(["smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from_name","smtp_from_email","smtp_tls","smtp_enabled","smtp_provider","supabase_smtp_active","email_test_address"])} saving={saving}>
 
-              <div style={{ margin:"0 0 14px",padding:"10px 14px",borderRadius:10,background:"rgba(5,150,105,0.12)",border:"1px solid rgba(5,150,105,0.35)",display:"flex",alignItems:"center",gap:10 }}>
+              <div style={{ margin:"0 0 14px",padding:"10px 14px",borderRadius:10,background:"rgba(5,150,105,0.12)",border:"1px solid rgba(5,150,105,0.35)",display:"flex" as const,alignItems:"center" as const,gap:10 }}>
                 <CheckCircle style={{ width:16,height:16,color:"#10b981",flexShrink:0 }} />
                 <div>
                   <div style={{ fontSize:12.5,fontWeight:700,color:"#10b981" }}>Supabase SMTP Active — Powered by Resend</div>
@@ -33,9 +33,9 @@
                 </FR>
               ))}
               <FR label="SMTP Password / API Key" sub="Resend API key (re_...)" color="#059669">
-                <div style={{ position:"relative",width:260 }}>
+                <div style={{ position:"relative" as const,width:260 }}>
                   <input type={showPw?"text":"password"} value={get("smtp_pass")} onChange={e=>set("smtp_pass",e.target.value)} style={{...inp,paddingRight:34}} placeholder="re_xxxxxxxxxxxx" />
-                  <button onClick={() => setShowPw(p=>!p)} style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" }}>
+                  <button onClick={() => setShowPw(p=>!p)} style={{ position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const }}>
                     {showPw ? <EyeOff style={{ width:14,height:14,color:"#64748b" }} /> : <Eye style={{ width:14,height:14,color:"#64748b" }} />}
                   </button>
                 </div>
@@ -54,7 +54,7 @@
                 Host: smtp.resend.com &nbsp; Port: 465 &nbsp; User: resend &nbsp; Pass: Resend API key.
               </div>
               {testRes && (
-                <div style={{ margin:"10px 0",padding:"8px 12px",borderRadius:8,background:testRes.ok?"rgba(5,150,105,0.15)":"rgba(220,38,38,0.15)",border:`1px solid ${testRes.ok?"#059669":"#dc2626"}`,display:"flex",alignItems:"center",gap:8 }}>
+                <div style={{ margin:"10px 0",padding:"8px 12px",borderRadius:8,background:testRes.ok?"rgba(5,150,105,0.15)":"rgba(220,38,38,0.15)",border:`1px solid ${testRes.ok?"#059669":"#dc2626"}`,display:"flex" as const,alignItems:"center" as const,gap:8 }}>
                   {testRes.ok ? <CheckCircle style={{ width:14,height:14,color:"#10b981" }} /> : <AlertTriangle style={{ width:14,height:14,color:"#ef4444" }} />}
                   <span style={{ fontSize:12,color:testRes.ok?"#10b981":"#ef4444" }}>{testRes.msg}</span>
                 </div>

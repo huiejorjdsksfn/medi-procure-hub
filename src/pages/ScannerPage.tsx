@@ -190,15 +190,15 @@ export default function ScannerPage() {
   return (
       <div style={{background:"#f8fafc",minHeight:"100%",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 12px rgba(26,58,107,0.3)"}}>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex" as const,alignItems:"center" as const,gap:12,boxShadow:"0 2px 12px rgba(26,58,107,0.3)"}}>
         <ScanBarcode style={{width:20,height:20,color:"#fff"}}/>
         <div>
           <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Inventory Scanner</div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.55)"}}>Barcode scanning · Real-time lookup · Stock management</div>
         </div>
-        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+        <div style={{marginLeft:"auto",display:"flex" as const,gap:8}}>
           {(["scanner","history","inventory"] as const).map(tab=>(
-            <button key={tab} onClick={()=>setActiveTab(tab)} style={{padding:"5px 14px",background:activeTab===tab?"rgba(255,255,255,0.2)":"transparent",border:"1px solid",borderColor:activeTab===tab?"rgba(255,255,255,0.3)":"transparent",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff",textTransform:"capitalize" as const}}>
+            <button key={tab} onClick={()=>setActiveTab(tab)} style={{padding:"5px 14px",background:activeTab===tab?"rgba(255,255,255,0.2)":"transparent",border:"1px solid",borderColor:activeTab===tab?"rgba(255,255,255,0.3)":"transparent",borderRadius:6,cursor:"pointer" as const,fontSize:11,fontWeight:700,color:"#fff",textTransform:"capitalize" as const}}>
               {tab}
             </button>
           ))}
@@ -207,38 +207,38 @@ export default function ScannerPage() {
 
       {/* ══ SCANNER TAB ══ */}
       {activeTab==="scanner" && (
-        <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 380px",gap:14,maxWidth:1200,margin:"0 auto"}}>
+        <div style={{padding:"16px",display:"grid" as const,gridTemplateColumns:"1fr 380px",gap:14,maxWidth:1200,margin:"0 auto"}}>
           {/* Left: Camera + result */}
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{display:"flex" as const,flexDirection:"column" as const,gap:12}}>
             {/* Camera area */}
-            <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-              <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+            <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden" as const,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:8}}>
                 <Camera style={{width:14,height:14,color:"#6b7280"}}/>
                 <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Camera Scanner</span>
-                {scanning && <span style={{display:"flex",alignItems:"center",gap:4,marginLeft:"auto",fontSize:10,color:"#22c55e",fontWeight:700}}><div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",animation:"pulse 1.5s infinite"}}/>LIVE</span>}
+                {scanning && <span style={{display:"flex" as const,alignItems:"center" as const,gap:4,marginLeft:"auto",fontSize:10,color:"#22c55e",fontWeight:700}}><div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",animation:"pulse 1.5s infinite"}}/>LIVE</span>}
               </div>
               <div id={scanDivId} style={{width:"100%",minHeight:scanning?260:0,background:"#000"}}/>
-              <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:8}}>
-                <div style={{display:"flex",gap:8}}>
+              <div style={{padding:"12px 16px",display:"flex" as const,flexDirection:"column" as const,gap:8}}>
+                <div style={{display:"flex" as const,gap:8}}>
                   {!scanning
-                    ? <button onClick={startScanner} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"11px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(26,58,107,0.25)"}}>
+                    ? <button onClick={startScanner} style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:7,padding:"11px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(26,58,107,0.25)"}}>
                         <Camera style={{width:16,height:16}}/> Start Camera
                       </button>
-                    : <button onClick={stopScanner} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"11px",background:"#dc2626",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                    : <button onClick={stopScanner} style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:7,padding:"11px",background:"#dc2626",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
                         <X style={{width:16,height:16}}/> Stop Scanner
                       </button>
                   }
                 </div>
                 {/* Manual input */}
-                <div style={{display:"flex",gap:6}}>
-                  <div style={{flex:1,position:"relative"}}>
-                    <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+                <div style={{display:"flex" as const,gap:6}}>
+                  <div style={{flex:1,position:"relative" as const}}>
+                    <Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
                     <input value={manualInput} onChange={e=>setManualInput(e.target.value)}
                       onKeyDown={e=>e.key==="Enter"&&manualInput&&handleBarcode(manualInput)}
                       placeholder="Enter barcode or item name manually..."
                       style={{width:"100%",paddingLeft:30,paddingRight:10,paddingTop:8,paddingBottom:8,fontSize:12,border:"1px solid #e5e7eb",borderRadius:8,outline:"none"}}/>
                   </div>
-                  <button onClick={()=>manualInput&&handleBarcode(manualInput)} style={{padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  <button onClick={()=>manualInput&&handleBarcode(manualInput)} style={{padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
                     Lookup
                   </button>
                 </div>
@@ -248,7 +248,7 @@ export default function ScannerPage() {
             {/* Result panel */}
             {(lookingUp||foundItem||onlineInfo||barcode) && (
               <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:8}}>
                   {lookingUp ? <RefreshCw style={{width:13,height:13,color:"#6b7280",animation:"spin 1s linear infinite"}}/> : foundItem ? <CheckCircle style={{width:13,height:13,color:"#22c55e"}}/> : onlineInfo ? <Globe style={{width:13,height:13,color:"#0078d4"}}/> : <AlertTriangle style={{width:13,height:13,color:"#f59e0b"}}/>}
                   <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>
                     {lookingUp?"Looking up...":foundItem?"Found in Inventory":onlineInfo?"Found Online":"Not Found"}
@@ -257,17 +257,17 @@ export default function ScannerPage() {
                 </div>
                 <div style={{padding:"14px 16px"}}>
                   {lookingUp ? (
-                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    <div style={{display:"flex" as const,flexDirection:"column" as const,gap:8}}>
                       {["Checking local inventory...","Searching Open Food Facts...","Searching UPC database..."].map((s,i)=>(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:"#6b7280"}}>
+                        <div key={i} style={{display:"flex" as const,alignItems:"center" as const,gap:8,fontSize:11,color:"#6b7280"}}>
                           <RefreshCw style={{width:10,height:10,animation:"spin 1s linear infinite"}}/> {s}
                         </div>
                       ))}
                     </div>
                   ) : foundItem ? (
                     <div>
-                      <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                        <div style={{width:50,height:50,borderRadius:8,background:"#dbeafe",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <div style={{display:"flex" as const,alignItems:"flex-start" as const,gap:12}}>
+                        <div style={{width:50,height:50,borderRadius:8,background:"#dbeafe",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                           <Package style={{width:24,height:24,color:"#0078d4"}}/>
                         </div>
                         <div style={{flex:1}}>
@@ -282,7 +282,7 @@ export default function ScannerPage() {
                           <div style={{fontSize:9,color:"#9ca3af"}}>in stock</div>
                         </div>
                       </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
+                      <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
                         {[["Unit Price","KES "+(foundItem.unit_price||0),"#374151"],["Unit",""+foundItem.unit_of_measure,"#374151"],["Reorder At",""+foundItem.reorder_level,"#374151"]].map(([l,v,c])=>(
                           <div key={l} style={{background:"#f9fafb",borderRadius:6,padding:"8px 10px"}}>
                             <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase" as const,marginBottom:2}}>{l}</div>
@@ -291,30 +291,30 @@ export default function ScannerPage() {
                         ))}
                       </div>
                       {/* Stock action buttons */}
-                      <div style={{display:"flex",gap:6,marginTop:12}}>
-                        <button onClick={()=>updateStock(foundItem.id,1,"stock_in")} style={{flex:1,padding:"8px",background:"#dcfce7",color:"#15803d",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>+ Add Stock</button>
-                        <button onClick={()=>updateStock(foundItem.id,-1,"stock_out")} style={{flex:1,padding:"8px",background:"#fee2e2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>- Issue Stock</button>
-                        <button onClick={()=>{setEditMode(true);setEditValues({...foundItem});}} style={{flex:1,padding:"8px",background:"#dbeafe",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>✏ Edit</button>
+                      <div style={{display:"flex" as const,gap:6,marginTop:12}}>
+                        <button onClick={()=>updateStock(foundItem.id,1,"stock_in")} style={{flex:1,padding:"8px",background:"#dcfce7",color:"#15803d",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer" as const,fontSize:11,fontWeight:700}}>+ Add Stock</button>
+                        <button onClick={()=>updateStock(foundItem.id,-1,"stock_out")} style={{flex:1,padding:"8px",background:"#fee2e2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer" as const,fontSize:11,fontWeight:700}}>- Issue Stock</button>
+                        <button onClick={()=>{setEditMode(true);setEditValues({...foundItem});}} style={{flex:1,padding:"8px",background:"#dbeafe",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:6,cursor:"pointer" as const,fontSize:11,fontWeight:700}}>✏ Edit</button>
                       </div>
                       {foundItem.expiry_date && new Date(foundItem.expiry_date) < new Date(Date.now()+30*86400000) && (
-                        <div style={{marginTop:8,padding:"8px 10px",background:"#fef3c7",borderRadius:6,display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{marginTop:8,padding:"8px 10px",background:"#fef3c7",borderRadius:6,display:"flex" as const,alignItems:"center" as const,gap:6}}>
                           <AlertTriangle style={{width:12,height:12,color:"#f59e0b"}}/><span style={{fontSize:11,color:"#92400e",fontWeight:600}}>Expiring soon: {new Date(foundItem.expiry_date).toLocaleDateString("en-KE")}</span>
                         </div>
                       )}
                     </div>
                   ) : onlineInfo ? (
                     <div>
-                      <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                      <div style={{display:"flex" as const,alignItems:"flex-start" as const,gap:12}}>
                         {onlineInfo.imageUrl && <img src={onlineInfo.imageUrl} alt="" style={{width:60,height:60,objectFit:"contain" as const,borderRadius:6,border:"1px solid #e5e7eb"}} onError={e=>(e.target as HTMLImageElement).style.display="none"}/>}
                         <div style={{flex:1}}>
                           <div style={{fontSize:14,fontWeight:800,color:"#111827"}}>{onlineInfo.name}</div>
                           {onlineInfo.brand && <div style={{fontSize:11,color:"#6b7280",marginTop:1}}>{onlineInfo.brand}</div>}
                           {onlineInfo.description && <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{onlineInfo.description}</div>}
-                          <div style={{fontSize:9,color:"#0078d4",marginTop:4,display:"flex",alignItems:"center",gap:3}}><Globe style={{width:9,height:9}}/> Source: {onlineInfo.source}</div>
+                          <div style={{fontSize:9,color:"#0078d4",marginTop:4,display:"flex" as const,alignItems:"center" as const,gap:3}}><Globe style={{width:9,height:9}}/> Source: {onlineInfo.source}</div>
                         </div>
                       </div>
-                      <button onClick={()=>setShowAdd(true)} style={{width:"100%",marginTop:12,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                        <Plus style={{width:13,height:13,display:"inline",marginRight:6}}/>Add to Inventory
+                      <button onClick={()=>setShowAdd(true)} style={{width:"100%",marginTop:12,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
+                        <Plus style={{width:13,height:13,display:"inline" as const,marginRight:6}}/>Add to Inventory
                       </button>
                     </div>
                   ) : (
@@ -322,8 +322,8 @@ export default function ScannerPage() {
                       <AlertTriangle style={{width:28,height:28,color:"#f59e0b",margin:"0 auto 8px"}}/>
                       <div style={{fontSize:13,fontWeight:600,color:"#374151"}}>Item not found anywhere</div>
                       <div style={{fontSize:11,color:"#9ca3af",marginBottom:12}}>Barcode: {barcode}</div>
-                      <button onClick={()=>setShowAdd(true)} style={{padding:"8px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                        <Plus style={{width:13,height:13,display:"inline",marginRight:6}}/>Add as New Item
+                      <button onClick={()=>setShowAdd(true)} style={{padding:"8px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
+                        <Plus style={{width:13,height:13,display:"inline" as const,marginRight:6}}/>Add as New Item
                       </button>
                     </div>
                   )}
@@ -333,9 +333,9 @@ export default function ScannerPage() {
           </div>
 
           {/* Right: Stats + recent */}
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{display:"flex" as const,flexDirection:"column" as const,gap:12}}>
             {/* Stats */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[{label:"Total Items",value:allItems.length,color:"#0078d4",icon:Package},{label:"Low Stock",value:allItems.filter(i=>(i.quantity_in_stock||0)<=(i.reorder_level||10)).length,color:"#f59e0b",icon:AlertTriangle},{label:"Out of Stock",value:allItems.filter(i=>(i.quantity_in_stock||0)===0).length,color:"#dc2626",icon:X},{label:"Categories",value:categories.length,color:"#107c10",icon:Database}].map(s=>(
                 <div key={s.label} style={{background:"#fff",borderRadius:8,padding:"12px",border:"1px solid #e5e7eb",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
                   <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase" as const,marginBottom:4}}>{s.label}</div>
@@ -345,11 +345,11 @@ export default function ScannerPage() {
             </div>
 
             {/* Recent scans */}
-            <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden",flex:1}}>
-              <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:6}}>
+            <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden" as const,flex:1}}>
+              <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:6}}>
                 <Clock style={{width:12,height:12,color:"#6b7280"}}/>
                 <span style={{fontSize:12,fontWeight:700,color:"#111827"}}>Recent Activity</span>
-                <button onClick={fetchHistory} style={{marginLeft:"auto",background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+                <button onClick={fetchHistory} style={{marginLeft:"auto",background:"#f8fafc",border:"none",cursor:"pointer" as const,color:"#9ca3af"}}>
                   <RefreshCw style={{width:11,height:11}}/>
                 </button>
               </div>
@@ -357,7 +357,7 @@ export default function ScannerPage() {
                 {recentScans.length===0
                   ? <div style={{padding:"20px",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No recent activity</div>
                   : recentScans.map((m,i)=>(
-                    <div key={i} style={{padding:"9px 14px",borderBottom:"1px solid #f9fafb",display:"flex",gap:8,alignItems:"center"}}>
+                    <div key={i} style={{padding:"9px 14px",borderBottom:"1px solid #f9fafb",display:"flex" as const,gap:8,alignItems:"center" as const}}>
                       <div style={{width:6,height:6,borderRadius:"50%",background:m.movement_type==="stock_in"?"#22c55e":m.movement_type==="stock_out"?"#ef4444":"#0078d4",flexShrink:0}}/>
                       <div style={{flex:1}}>
                         <div style={{fontSize:11,fontWeight:600,color:"#374151"}}>{m.items?.name||"Item"}</div>
@@ -376,7 +376,7 @@ export default function ScannerPage() {
       {/* ══ HISTORY TAB ══ */}
       {activeTab==="history" && (
         <div style={{padding:"16px"}}>
-          <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden"}}>
+          <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden" as const}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr style={{background:"#f9fafb",borderBottom:"2px solid #f3f4f6"}}>
                 {["Item","Type","Qty","Notes","Date","By"].map(h=><th key={h} style={{padding:"9px 14px",textAlign:"left" as const,fontWeight:700,color:"#9ca3af",fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{h}</th>)}
@@ -406,15 +406,15 @@ export default function ScannerPage() {
       {/* ══ INVENTORY TAB ══ */}
       {activeTab==="inventory" && (
         <div style={{padding:"16px"}}>
-          <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+          <div style={{background:"#fff",borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden" as const}}>
+            <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:8}}>
               <Search style={{width:12,height:12,color:"#9ca3af"}}/>
               <input value={itemSearch} onChange={e=>setItemSearch(e.target.value)} placeholder="Search inventory..."
                 style={{flex:1,border:"none",outline:"none",fontSize:12,color:"#374151"}}/>
-              <button onClick={()=>{setShowAdd(true);setBarcode("");}} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>
+              <button onClick={()=>{setShowAdd(true);setBarcode("");}} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"6px 12px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer" as const,fontSize:11,fontWeight:700}}>
                 <Plus style={{width:11,height:11}}/> Add Item
               </button>
-              <button onClick={fetchAllItems} style={{background:"#f8fafc",border:"none",cursor:"pointer",color:"#9ca3af"}}>
+              <button onClick={fetchAllItems} style={{background:"#f8fafc",border:"none",cursor:"pointer" as const,color:"#9ca3af"}}>
                 <RefreshCw style={{width:12,height:12}}/>
               </button>
             </div>
@@ -425,7 +425,7 @@ export default function ScannerPage() {
                 </tr></thead>
                 <tbody>
                   {filteredItems.map((item,i)=>(
-                    <tr key={item.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
+                    <tr key={item.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer" as const}}
                       onClick={()=>{setBarcode(item.barcode||"");setFoundItem(item);setActiveTab("scanner");}}
                       onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
@@ -454,15 +454,15 @@ export default function ScannerPage() {
 
       {/* ══ ADD ITEM MODAL ══ */}
       {showAdd && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{background:"#fff",borderRadius:12,width:560,maxHeight:"85vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
+        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+          <div style={{background:"#fff",borderRadius:12,width:560,maxHeight:"85vh",overflow:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex" as const,alignItems:"center" as const,gap:8}}>
               <Plus style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:13,fontWeight:700,color:"#fff",flex:1}}>Add Item to Inventory</span>
               {onlineInfo && <span style={{fontSize:9,background:"rgba(255,255,255,0.2)",padding:"2px 8px",borderRadius:4,color:"#fff"}}>Pre-filled from {onlineInfo.source}</span>}
-              <button onClick={()=>setShowAdd(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff"}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setShowAdd(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer" as const,color:"#fff"}}><X style={{width:13,height:13}}/></button>
             </div>
-            <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{padding:"16px",display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[
                 {label:"Item Name *",key:"name",type:"text",full:true},
                 {label:"Barcode",key:"barcode",type:"text",full:true},
@@ -475,13 +475,13 @@ export default function ScannerPage() {
                 {label:"Storage Location",key:"location",type:"text"},
               ].map(f=>(
                 <div key={f.key} style={{gridColumn:f.full?"1 / -1":"auto"}}>
-                  <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{f.label}</label>
+                  <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{f.label}</label>
                   <input type={f.type} value={(addForm as any)[f.key]||""} onChange={e=>setAddForm(p=>({...p,[f.key]:e.target.value}))}
                     style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
                 </div>
               ))}
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Category</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Category</label>
                 <select value={addForm.category_id} onChange={e=>setAddForm(p=>({...p,category_id:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   <option value="">Select...</option>
@@ -489,7 +489,7 @@ export default function ScannerPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Department</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Department</label>
                 <select value={addForm.department_id} onChange={e=>setAddForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   <option value="">Select...</option>
@@ -497,26 +497,26 @@ export default function ScannerPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Unit of Measure</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Unit of Measure</label>
                 <select value={addForm.unit_of_measure} onChange={e=>setAddForm(p=>({...p,unit_of_measure:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   {["piece","box","carton","litre","kg","pack","vial","ampoule","tablet","capsule"].map(u=><option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Item Type</label>
+                <label style={{fontSize:10,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>Item Type</label>
                 <select value={addForm.item_type} onChange={e=>setAddForm(p=>({...p,item_type:e.target.value}))}
                   style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
                   {["consumable","medical_supply","equipment","drug","stationery","ppe","other"].map(t=><option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </div>
-            <div style={{padding:"12px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
-              <button onClick={saveItem} disabled={saving} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+            <div style={{padding:"12px 16px",borderTop:"1px solid #f3f4f6",display:"flex" as const,gap:8}}>
+              <button onClick={saveItem} disabled={saving} style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:6,padding:"9px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
                 {saving?"Saving...":"Save to Inventory"}
               </button>
-              <button onClick={()=>setShowAdd(false)} style={{padding:"9px 16px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:12}}>Cancel</button>
+              <button onClick={()=>setShowAdd(false)} style={{padding:"9px 16px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer" as const,fontSize:12}}>Cancel</button>
             </div>
           </div>
         </div>

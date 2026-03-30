@@ -50,8 +50,8 @@ const emptyLQC  = (): LQCRow  => ({ line:"", defect_type:"", qty_rejected:"", re
 const border = "1px solid #4472c4";
 
 const tdBase: React.CSSProperties = {
-  border, padding:"2px 3px", fontSize:9.5, textAlign:"center",
-  verticalAlign:"middle", lineHeight:1.3, background:"#fff", color:"#1a1a2e",
+  border, padding:"2px 3px", fontSize:9.5, textAlign:"center" as const,
+  verticalAlign:"middle" as const, lineHeight:1.3, background:"#fff", color:"#1a1a2e",
 };
 const thBase: React.CSSProperties = {
   ...tdBase, background:"#bdd7ee", fontWeight:700,
@@ -60,15 +60,15 @@ const darkTh: React.CSSProperties = {
   ...thBase, background:"#2e75b6", color:"#fff",
 };
 const sectionHd: React.CSSProperties = {
-  ...darkTh, fontSize:11, padding:"5px 8px", textAlign:"center",
+  ...darkTh, fontSize:11, padding:"5px 8px", textAlign:"center" as const,
 };
 const inpStyle: React.CSSProperties = {
   width:"100%", border:"none", outline:"none", background:"transparent",
   fontSize:9.5, fontFamily:"inherit", padding:"2px 4px",
-  textAlign:"center", color:"#1a1a2e", boxSizing:"border-box",
+  textAlign:"center" as const, color:"#1a1a2e", boxSizing:"border-box" as const,
 };
 const selStyle: React.CSSProperties = {
-  ...inpStyle, cursor:"pointer",
+  ...inpStyle, cursor:"pointer" as const,
 };
 
 export default function QualityDashboardPage() {
@@ -258,7 +258,7 @@ export default function QualityDashboardPage() {
   const lqcUsed     = lqcRows.filter(r=>r.line).length;
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"70vh",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,height:"70vh",flexDirection:"column" as const,gap:12,fontFamily:"'Segoe UI',system-ui"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       <RefreshCw style={{width:30,height:30,color:"#2e75b6",animation:"spin 1s linear infinite"}}/>
       <span style={{color:"#6b7280",fontSize:13}}>Loading Quality Dashboard...</span>
@@ -279,32 +279,32 @@ export default function QualityDashboardPage() {
       `}</style>
 
       {/* ══ TOP TOOLBAR ══ */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#2e75b6)",padding:"10px 18px",display:"flex",alignItems:"center",gap:10,boxShadow:"0 2px 10px rgba(0,0,0,0.2)",flexShrink:0}}>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#2e75b6)",padding:"10px 18px",display:"flex" as const,alignItems:"center" as const,gap:10,boxShadow:"0 2px 10px rgba(0,0,0,0.2)",flexShrink:0}}>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>Quality Dashboard</div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{hospitalName} · IQC &amp; LQC Tracking Form</div>
         </div>
         {/* Month / Year */}
-        <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 12px",border:"1px solid rgba(255,255,255,0.2)"}}>
+        <div style={{display:"flex" as const,alignItems:"center" as const,gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 12px",border:"1px solid rgba(255,255,255,0.2)"}}>
           <Calendar style={{width:12,height:12,color:"rgba(255,255,255,0.7)"}}/>
           <select value={month} onChange={e=>setMonth(e.target.value)}
-            style={{background:"transparent",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",cursor:"pointer"}}>
+            style={{background:"transparent",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",cursor:"pointer" as const}}>
             {MONTHS.map(m=><option key={m} value={m} style={{color:"#1a1a2e"}}>{m}</option>)}
           </select>
           <input value={year} onChange={e=>setYear(e.target.value)}
-            style={{background:"transparent",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",width:46,textAlign:"center"}}
+            style={{background:"transparent",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",width:46,textAlign:"center" as const}}
             maxLength={4}/>
         </div>
-        <button onClick={load} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+        <button onClick={load} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:600}}>
           <RefreshCw style={{width:12,height:12}}/>Refresh
         </button>
-        <button onClick={doExport} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+        <button onClick={doExport} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:600}}>
           <Download style={{width:12,height:12}}/>Excel
         </button>
-        <button onClick={doPrint} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+        <button onClick={doPrint} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:600}}>
           <Printer style={{width:12,height:12}}/>Print
         </button>
-        <button onClick={saveAll} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#C45911",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",color:"#fff",fontSize:12,fontWeight:800,opacity:saving?0.75:1}}>
+        <button onClick={saveAll} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 18px",background:"#C45911",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",color:"#fff",fontSize:12,fontWeight:800,opacity:saving?0.75:1}}>
           {saving
             ? <RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>
             : <Save style={{width:12,height:12}}/>}
@@ -313,7 +313,7 @@ export default function QualityDashboardPage() {
       </div>
 
       {/* ══ KPI STRIP ══ */}
-      <div style={{display:"flex",background:"#fff",borderBottom:"2px solid #2e75b6"}}>
+      <div style={{display:"flex" as const,background:"#fff",borderBottom:"2px solid #2e75b6"}}>
         {[
           {label:"Total Rejected",    val:totalRej,   col:"#dc2626"},
           {label:"IQC Rows Used",     val:usedIQC,    col:"#2563eb"},
@@ -322,7 +322,7 @@ export default function QualityDashboardPage() {
           {label:"Pending Returns",   val:pendingMat, col:"#7c3aed"},
           {label:"LQC Lines Active",  val:lqcUsed,    col:"#0369a1"},
         ].map((k,i)=>(
-          <div key={i} style={{flex:1,borderRight:"1px solid #e5e7eb",padding:"7px 10px",textAlign:"center"}}>
+          <div key={i} style={{flex:1,borderRight:"1px solid #e5e7eb",padding:"7px 10px",textAlign:"center" as const}}>
             <div style={{fontSize:20,fontWeight:900,color:k.col,lineHeight:1}}>{k.val}</div>
             <div style={{fontSize:8.5,color:"#6b7280",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.04em",marginTop:2}}>{k.label}</div>
           </div>
@@ -330,22 +330,22 @@ export default function QualityDashboardPage() {
       </div>
 
       {/* ══ PRINTABLE FORM AREA ══ */}
-      <div style={{padding:"10px 12px",overflowX:"auto"}} ref={printRef}>
+      <div style={{padding:"10px 12px",overflowX:"auto" as const}} ref={printRef}>
         <div style={{minWidth:900}}>
 
           {/* ── Title row ── */}
           <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
             <tbody>
               <tr>
-                <td style={{...tdBase,width:130,padding:6,textAlign:"center"}}>
+                <td style={{...tdBase,width:130,padding:6,textAlign:"center" as const}}>
                   <div style={{fontSize:8,color:"#9ca3af",fontStyle:"italic"}}>Hospital Logo</div>
                   <div style={{fontWeight:700,fontSize:9,color:"#2e75b6",marginTop:2}}>EL5H</div>
                 </td>
-                <td style={{...tdBase,textAlign:"center",padding:"6px 0"}}>
+                <td style={{...tdBase,textAlign:"center" as const,padding:"6px 0"}}>
                   <div style={{fontSize:17,fontWeight:900,color:"#1a1a2e",letterSpacing:"0.02em"}}>Quality Dashboard</div>
                   <div style={{fontSize:9.5,color:"#6b7280",marginTop:2}}>{hospitalName}</div>
                 </td>
-                <td style={{...tdBase,width:200,padding:"6px 10px",textAlign:"left"}}>
+                <td style={{...tdBase,width:200,padding:"6px 10px",textAlign:"left" as const}}>
                   <div style={{fontSize:9,color:"#6b7280",fontWeight:600}}>Month:</div>
                   <div style={{fontSize:13,fontWeight:900,color:"#2e75b6"}}>{month} {year}</div>
                   <div style={{fontSize:8.5,color:"#9ca3af",marginTop:2}}>Doc Ref: QD/EL5H/{year}</div>
@@ -386,9 +386,9 @@ export default function QualityDashboardPage() {
                   {/* Sr No */}
                   <td style={{...tdBase,background:"#dce6f1",fontWeight:700}}>{i+1}</td>
                   {/* Supplier */}
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.supplier_name} placeholder="Supplier..."
-                      onChange={e=>updIQC(i,"supplier_name",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updIQC(i,"supplier_name",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
                   {/* Item Code */}
                   <td style={{...tdBase,padding:0}}>
@@ -407,9 +407,9 @@ export default function QualityDashboardPage() {
                       style={{color:Number(row.rej_qty||0)>0?"#dc2626":"inherit",fontWeight:Number(row.rej_qty||0)>0?700:400}}/>
                   </td>
                   {/* Problem Description */}
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.problem_description} placeholder="Describe issue..."
-                      onChange={e=>updIQC(i,"problem_description",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updIQC(i,"problem_description",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
                   {/* Severity */}
                   <td style={{...tdBase,padding:0}}>
@@ -436,14 +436,14 @@ export default function QualityDashboardPage() {
                     </select>
                   </td>
                   {/* Proposed Actions */}
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.proposed_actions} placeholder="Action..."
-                      onChange={e=>updIQC(i,"proposed_actions",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updIQC(i,"proposed_actions",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
                   {/* Corrective Actions */}
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.corrective_action} placeholder="Corrective..."
-                      onChange={e=>updIQC(i,"corrective_action",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updIQC(i,"corrective_action",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
                   {/* SCAR Required */}
                   <td style={{...tdBase,padding:0}}>
@@ -482,11 +482,11 @@ export default function QualityDashboardPage() {
             <tbody>
               <tr>
                 {/* Left: NOT RETURNED table */}
-                <td style={{width:"54%",padding:0,verticalAlign:"top",border}}>
+                <td style={{width:"54%",padding:0,verticalAlign:"top" as const,border}}>
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
                     <thead>
                       <tr>
-                        <th colSpan={4} style={{...darkTh,fontSize:9.5,textAlign:"left",padding:"4px 8px"}}>
+                        <th colSpan={4} style={{...darkTh,fontSize:9.5,textAlign:"left" as const,padding:"4px 8px"}}>
                           Sr. No. Of material NOT RETURNED to Supplier:
                           <span style={{color:"#ffd700",marginLeft:8,fontSize:12}}>{pendingMat}</span>
                         </th>
@@ -507,10 +507,10 @@ export default function QualityDashboardPage() {
                               onChange={e=>updPend(i,"date_of_rejection",e.target.value)}
                               style={{fontSize:9}}/>
                           </td>
-                          <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                          <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                             <input className="qinp" value={row.reason_for_pendency} placeholder="Reason..."
                               onChange={e=>updPend(i,"reason_for_pendency",e.target.value)}
-                              style={{textAlign:"left",paddingLeft:4}}/>
+                              style={{textAlign:"left" as const,paddingLeft:4}}/>
                           </td>
                           <td style={{...tdBase,padding:0}}>
                             <input className="qinp" value={row.responsible} placeholder="Name..."
@@ -523,16 +523,16 @@ export default function QualityDashboardPage() {
                 </td>
 
                 {/* Right: Photo area */}
-                <td style={{width:"46%",padding:0,verticalAlign:"top",border}}>
-                  <div style={{...darkTh,fontSize:9.5,textAlign:"center",padding:"4px 8px",
-                    textDecoration:"underline",cursor:"pointer"}}>
+                <td style={{width:"46%",padding:0,verticalAlign:"top" as const,border}}>
+                  <div style={{...darkTh,fontSize:9.5,textAlign:"center" as const,padding:"4px 8px",
+                    textDecoration:"underline" as const,cursor:"pointer" as const}}>
                     Photo Of Material Not returned to Supplier
                   </div>
                   <div style={{background:"#f8fafc",minHeight:112,padding:8,
-                    display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5}}>
+                    display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr",gap:5}}>
                     {pendRows.filter(r=>r.date_of_rejection||r.reason_for_pendency).map((r,i)=>(
                       <div key={i} style={{background:"#dce6f1",borderRadius:5,padding:5,
-                        fontSize:8.5,color:"#374151",textAlign:"center",border:"1px solid #bdd7ee"}}>
+                        fontSize:8.5,color:"#374151",textAlign:"center" as const,border:"1px solid #bdd7ee"}}>
                         <div style={{fontWeight:700,color:"#1d4ed8",marginBottom:2}}>#{i+1}</div>
                         <div style={{color:"#374151",lineHeight:1.3,marginBottom:2}}>
                           {r.reason_for_pendency?.slice(0,40)||"Pending material"}
@@ -542,8 +542,8 @@ export default function QualityDashboardPage() {
                       </div>
                     ))}
                     {pendRows.filter(r=>r.date_of_rejection||r.reason_for_pendency).length===0&&(
-                      <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",
-                        justifyContent:"center",height:80,color:"#d1d5db",fontSize:10,fontStyle:"italic"}}>
+                      <div style={{gridColumn:"1/-1",display:"flex" as const,alignItems:"center" as const,
+                        justifyContent:"center" as const,height:80,color:"#d1d5db",fontSize:10,fontStyle:"italic"}}>
                         No pending returns recorded
                       </div>
                     )}
@@ -576,9 +576,9 @@ export default function QualityDashboardPage() {
                     <input className="qinp" value={row.line} placeholder="Line/Dept"
                       onChange={e=>updLQC(i,"line",e.target.value)}/>
                   </td>
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.defect_type} placeholder="Defect type..."
-                      onChange={e=>updLQC(i,"defect_type",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updLQC(i,"defect_type",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
                   <td style={{...tdBase,padding:0}}>
                     <input className="qinp" type="number" min={0} value={row.qty_rejected} placeholder="0"
@@ -590,13 +590,13 @@ export default function QualityDashboardPage() {
                     <input className="qinp" value={row.rejection_rate} placeholder="e.g. 2.5%"
                       onChange={e=>updLQC(i,"rejection_rate",e.target.value)}/>
                   </td>
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.root_cause} placeholder="Root cause..."
-                      onChange={e=>updLQC(i,"root_cause",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updLQC(i,"root_cause",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
-                  <td style={{...tdBase,padding:0,textAlign:"left"}}>
+                  <td style={{...tdBase,padding:0,textAlign:"left" as const}}>
                     <input className="qinp" value={row.corrective_action} placeholder="Corrective action..."
-                      onChange={e=>updLQC(i,"corrective_action",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                      onChange={e=>updLQC(i,"corrective_action",e.target.value)} style={{textAlign:"left" as const,paddingLeft:4}}/>
                   </td>
                   <td style={{...tdBase,padding:0,
                     background:row.status?(STATUS_BG[row.status]||"#fff"):"#fff"}}>
@@ -614,9 +614,9 @@ export default function QualityDashboardPage() {
               ))}
               {/* LQC footer */}
               <tr>
-                <td colSpan={3} style={{...tdBase,padding:5,textAlign:"left",background:"#f8fafc",verticalAlign:"top"}}>
+                <td colSpan={3} style={{...tdBase,padding:5,textAlign:"left" as const,background:"#f8fafc",verticalAlign:"top" as const}}>
                   <div style={{fontSize:9,fontWeight:700,color:"#374151",marginBottom:4}}>Line rejection summary Graph:</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                  <div style={{display:"flex" as const,flexWrap:"wrap",gap:4}}>
                     {lqcRows.filter(r=>r.line&&r.rejection_rate).map((r,i)=>(
                       <div key={i} style={{background:"#dbeafe",borderRadius:4,padding:"2px 7px",
                         fontSize:8.5,color:"#1d4ed8",fontWeight:700,border:"1px solid #bdd7ee"}}>
@@ -628,11 +628,11 @@ export default function QualityDashboardPage() {
                     )}
                   </div>
                 </td>
-                <td colSpan={4} style={{...tdBase,padding:5,textAlign:"left",background:"#f8fafc",verticalAlign:"top"}}>
+                <td colSpan={4} style={{...tdBase,padding:5,textAlign:"left" as const,background:"#f8fafc",verticalAlign:"top" as const}}>
                   <div style={{fontSize:9,fontWeight:700,color:"#374151",marginBottom:4}}>Comments:</div>
                   <textarea value={lqcComments} onChange={e=>setLqcComments(e.target.value)}
                     placeholder="Quality comments, observations, action items..."
-                    style={{width:"100%",border:"none",outline:"none",resize:"none",
+                    style={{width:"100%",border:"none",outline:"none",resize:"none" as const,
                       fontSize:9.5,fontFamily:"inherit",color:"#374151",background:"transparent",
                       minHeight:36,lineHeight:1.4}}/>
                 </td>
@@ -650,7 +650,7 @@ export default function QualityDashboardPage() {
                   {label:"Reviewed By",   val:""},
                   {label:"Approved By",   val:""},
                 ].map((s,i)=>(
-                  <td key={i} style={{...tdBase,padding:"6px 10px",textAlign:"left"}}>
+                  <td key={i} style={{...tdBase,padding:"6px 10px",textAlign:"left" as const}}>
                     <div style={{fontSize:8.5,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.04em"}}>{s.label}</div>
                     <div style={{borderBottom:"1px solid #9ca3af",minHeight:20,marginTop:5,paddingBottom:2,
                       fontSize:10,color:"#374151",fontStyle:s.val?"normal":"italic",color:s.val?"#1f2937":"#9ca3af"}}>
@@ -661,7 +661,7 @@ export default function QualityDashboardPage() {
                 ))}
               </tr>
               <tr>
-                <td colSpan={4} style={{...tdBase,background:"#2e75b6",color:"#fff",fontSize:8.5,padding:"4px 10px",textAlign:"center"}}>
+                <td colSpan={4} style={{...tdBase,background:"#2e75b6",color:"#fff",fontSize:8.5,padding:"4px 10px",textAlign:"center" as const}}>
                   {hospitalName} · Quality Dashboard · {month} {year} · Generated by {sysName} · Doc Ref: QD/EL5H/{year}
                 </td>
               </tr>
@@ -672,21 +672,21 @@ export default function QualityDashboardPage() {
       </div>{/* padding wrapper */}
 
       {/* ══ QUICK NAV FOOTER ══ */}
-      <div style={{display:"flex",gap:8,padding:"10px 12px",background:"#fff",borderTop:"2px solid #2e75b6",flexWrap:"wrap"}}>
+      <div style={{display:"flex" as const,gap:8,padding:"10px 12px",background:"#fff",borderTop:"2px solid #2e75b6",flexWrap:"wrap"}}>
         <button onClick={()=>navigate("/quality/inspections")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#0f766e,#134e4a)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#0f766e,#134e4a)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           + New IQC Inspection
         </button>
         <button onClick={()=>navigate("/quality/non-conformance")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           + Raise NCR / SCAR
         </button>
         <button onClick={()=>navigate("/quality/inspections")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#1d4ed8,#1e40af)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#1d4ed8,#1e40af)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           View All Inspections →
         </button>
         <button onClick={()=>navigate("/quality/non-conformance")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           Manage Non-Conformances →
         </button>
       </div>

@@ -48,8 +48,8 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
   const CX=220,CY=220,HUB=52,SPK=100,NR=20,IR=128,OR=192;
   const N=visOuter.length||1;
   return(
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
-      <svg width={440} height={440} viewBox="0 0 440 440" style={{overflow:"visible"}}>
+    <div style={{display:"flex" as const,flexDirection:"column" as const,alignItems:"center" as const,gap:10}}>
+      <svg width={440} height={440} viewBox="0 0 440 440" style={{overflow:"visible" as const}}>
         <defs>
           <radialGradient id="wbHub" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#1d4a87"/><stop offset="100%" stopColor="#0a2558"/>
@@ -70,7 +70,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           const mp=px(CX,CY,(IR+OR)/2,md);
           const isH=ho===i,r2=isH?OR+14:OR;
           return(
-            <g key={i} style={{cursor:"pointer"}} onMouseEnter={()=>setHo(i)} onMouseLeave={()=>setHo(null)} onClick={()=>navigate(seg.path)}>
+            <g key={i} style={{cursor:"pointer" as const}} onMouseEnter={()=>setHo(i)} onMouseLeave={()=>setHo(null)} onClick={()=>navigate(seg.path)}>
               <path d={arc(CX,CY,r2,sd,ed,IR+4)} fill={isH?seg.color:`url(#wbS${i})`} filter={isH?"url(#wbOGlow)":undefined} style={{transition:"all 0.2s",opacity:isH?1:0.82}}/>
               <text x={mp.x} y={mp.y} textAnchor="middle" dominantBaseline="middle" style={{fontSize:isH?9.5:8.5,fontWeight:700,fill:"#fff",fontFamily:"'Inter',sans-serif",pointerEvents:"none" as const,textTransform:"uppercase" as const,letterSpacing:"0.03em"}}>
                 {seg.label.split(" ").map((w,wi)=>(
@@ -89,7 +89,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
         {visInner.map((n)=>{
           const pt=px(CX,CY,SPK,n.angle),isH=hi===n.label;
           return(
-            <g key={n.label} style={{cursor:"pointer"}} onMouseEnter={()=>setHi(n.label)} onMouseLeave={()=>setHi(null)} onClick={()=>navigate(n.path)}>
+            <g key={n.label} style={{cursor:"pointer" as const}} onMouseEnter={()=>setHi(n.label)} onMouseLeave={()=>setHi(null)} onClick={()=>navigate(n.path)}>
               {isH&&<circle cx={pt.x} cy={pt.y} r={NR+7} fill="none" stroke={n.color} strokeWidth="2" opacity="0.4" filter="url(#wbGlow)"/>}
               <circle cx={pt.x} cy={pt.y} r={NR+(isH?3:0)} fill={isH?n.color:"#fff"} stroke={n.color} strokeWidth={isH?0:2.5} filter={isH?"url(#wbGlow)":undefined} style={{transition:"all 0.2s"}}/>
               <text x={pt.x} y={pt.y} textAnchor="middle" dominantBaseline="middle" style={{fontSize:7.5,fontWeight:800,fill:isH?"#fff":n.color,pointerEvents:"none" as const,fontFamily:"'Inter',sans-serif",textTransform:"uppercase" as const,letterSpacing:"0.02em"}}>
@@ -99,7 +99,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           );
         })}
         {/* Hub */}
-        <g style={{cursor:"pointer"}} onMouseEnter={()=>setHh(true)} onMouseLeave={()=>setHh(false)} onClick={()=>navigate("/dashboard")}>
+        <g style={{cursor:"pointer" as const}} onMouseEnter={()=>setHh(true)} onMouseLeave={()=>setHh(false)} onClick={()=>navigate("/dashboard")}>
           {hh&&<circle cx={CX} cy={CY} r={HUB+10} fill="none" stroke="#1a3a6b" strokeWidth="2" opacity="0.3" filter="url(#wbGlow)"><animate attributeName="r" values={`${HUB+6};${HUB+12};${HUB+6}`} dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0.1;0.4" dur="1.5s" repeatCount="indefinite"/></circle>}
           <circle cx={CX} cy={CY} r={HUB} fill="url(#wbHub)" stroke={hh?"#60a5fa":"#1a3a6b"} strokeWidth={hh?3:2} filter={hh?"url(#wbGlow)":undefined} style={{transition:"all 0.2s"}}/>
           {logoUrl
@@ -110,7 +110,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
         </g>
         <circle cx={CX} cy={CY} r={IR} fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 5"/>
       </svg>
-      <div style={{display:"flex",gap:16,flexWrap:"wrap" as const,justifyContent:"center",maxWidth:420}}>
+      <div style={{display:"flex" as const,gap:16,flexWrap:"wrap" as const,justifyContent:"center" as const,maxWidth:420}}>
         <span style={{fontSize:9,color:"#6b7280",fontWeight:600}}>⬤ Inner: Quick Access &nbsp;|&nbsp; ⬛ Outer: {visOuter.length} accessible modules for your role</span>
       </div>
     </div>

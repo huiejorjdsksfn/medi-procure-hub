@@ -169,25 +169,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = ({forMobile=false}:{forMobile?:boolean}) => (
     <div style={{
-      display:"flex", flexDirection:"column", height:"100%",
+      display:"flex" as const, flexDirection:"column" as const, height:"100%",
       width: forMobile ? 260 : "100%",
       backgroundImage:`linear-gradient(180deg,rgba(6,14,35,0.93) 0%,rgba(10,22,54,0.89) 100%),url(${procBg})`,
       backgroundSize:"cover", backgroundPosition:"center top",
     }}>
       {/* Logo */}
-      <div style={{padding:collapsed&&!forMobile?"12px 0":"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9,justifyContent:collapsed&&!forMobile?"center":"flex-start",flexShrink:0}}>
-        <img src={logoImg} alt="" style={{width:28,height:28,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.1)",padding:3,flexShrink:0}}/>
+      <div style={{padding:collapsed&&!forMobile?"12px 0":"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex" as const,alignItems:"center" as const,gap:9,justifyContent:collapsed&&!forMobile?"center":"flex-start",flexShrink:0}}>
+        <img src={logoImg} alt="" style={{width:28,height:28,borderRadius:6,objectFit:"contain" as const,background:"rgba(255,255,255,0.1)",padding:3,flexShrink:0}}/>
         {(!collapsed||forMobile)&&(
           <div style={{minWidth:0}}>
-            <div style={{fontSize:11.5,fontWeight:800,color:"#fff",letterSpacing:"0.02em",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{sysName}</div>
-            <div style={{fontSize:8.5,color:"rgba(255,255,255,0.4)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{hospitalName}</div>
+            <div style={{fontSize:11.5,fontWeight:800,color:"#fff",letterSpacing:"0.02em",lineHeight:1.2,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{sysName}</div>
+            <div style={{fontSize:8.5,color:"rgba(255,255,255,0.4)",marginTop:1,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{hospitalName}</div>
           </div>
         )}
-        {forMobile&&<button onClick={()=>setMobileOpen(false)} style={{marginLeft:"auto",background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:5,cursor:"pointer",color:"rgba(255,255,255,0.7)",lineHeight:0}}><X style={{width:13,height:13}}/></button>}
+        {forMobile&&<button onClick={()=>setMobileOpen(false)} style={{marginLeft:"auto",background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:5,cursor:"pointer" as const,color:"rgba(255,255,255,0.7)",lineHeight:0}}><X style={{width:13,height:13}}/></button>}
       </div>
 
       {/* Nav */}
-      <nav style={{flex:1,overflowY:"auto",padding:"6px 0"}} className="sb-scroll">
+      <nav style={{flex:1,overflowY:"auto" as const,padding:"6px 0"}} className="sb-scroll">
         {MODULES.filter(canSee).map(m=>{
           const isActive = activeMenu===m.id;
           const isCurrent = location.pathname===m.path||m.sub.some(s=>location.pathname.startsWith(s.path));
@@ -199,7 +199,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 else navigate(m.path);
               }}
                 title={collapsed?m.label:undefined}
-                style={{display:"flex",alignItems:"center",width:"100%",padding:collapsed&&!forMobile?"10px 0":"8px 12px",justifyContent:collapsed&&!forMobile?"center":"flex-start",gap:8,border:"none",cursor:"pointer",textAlign:"left" as const,borderLeft:isCurrent?`3px solid ${m.color}`:"3px solid transparent",background:isCurrent?"rgba(255,255,255,0.12)":"transparent",transition:"all 0.14s"}}
+                style={{display:"flex" as const,alignItems:"center" as const,width:"100%",padding:collapsed&&!forMobile?"10px 0":"8px 12px",justifyContent:collapsed&&!forMobile?"center":"flex-start",gap:8,border:"none",cursor:"pointer" as const,textAlign:"left" as const,borderLeft:isCurrent?`3px solid ${m.color}`:"3px solid transparent",background:isCurrent?"rgba(255,255,255,0.12)":"transparent",transition:"all 0.14s"}}
                 onMouseEnter={e=>{if(!isCurrent)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.07)";}}
                 onMouseLeave={e=>{if(!isCurrent)(e.currentTarget as HTMLElement).style.background="transparent";}}>
                 <m.icon style={{width:14,height:14,color:isCurrent?m.color:"rgba(255,255,255,0.6)",flexShrink:0}}/>
@@ -212,7 +212,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {isActive&&(!collapsed||forMobile)&&filteredSub.map(s=>{
                 const sa=location.pathname.startsWith(s.path);
                 return(
-                  <Link key={s.path} to={s.path} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px 7px 28px",textDecoration:"none",background:sa?"rgba(255,255,255,0.13)":"transparent",borderLeft:sa?`3px solid ${m.color}`:"3px solid transparent",transition:"all 0.1s"}}
+                  <Link key={s.path} to={s.path} style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"7px 12px 7px 28px",textDecoration:"none" as const,background:sa?"rgba(255,255,255,0.13)":"transparent",borderLeft:sa?`3px solid ${m.color}`:"3px solid transparent",transition:"all 0.1s"}}
                     onMouseEnter={e=>{if(!sa)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.06)";}}
                     onMouseLeave={e=>{if(!sa)(e.currentTarget as HTMLElement).style.background="transparent";}}>
                     <s.icon style={{width:11,height:11,color:sa?m.color:"rgba(255,255,255,0.45)",flexShrink:0}}/>
@@ -228,20 +228,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* User */}
       <div style={{borderTop:"1px solid rgba(255,255,255,0.08)",flexShrink:0,padding:collapsed&&!forMobile?"10px 0":"9px 12px"}}>
         {(!collapsed||forMobile)?(
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#C45911,#e07830)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
+          <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
+            <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#C45911,#e07830)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0,fontSize:11,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
+              <div style={{fontSize:11,fontWeight:700,color:"#fff",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
               <div style={{fontSize:8.5,color:"rgba(255,255,255,0.4)",marginTop:1}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
             </div>
             <button onClick={()=>{signOut();navigate("/login");}} title="Sign out"
-              style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:5,padding:"4px 5px",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+              style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:5,padding:"4px 5px",cursor:"pointer" as const,color:"rgba(255,255,255,0.6)",lineHeight:0}}>
               <LogOut style={{width:11,height:11}}/>
             </button>
           </div>
         ):(
           <button onClick={()=>{signOut();navigate("/login");}} title="Sign out"
-            style={{display:"flex",justifyContent:"center",width:"100%",background:"transparent",border:"none",cursor:"pointer",padding:8,color:"rgba(255,255,255,0.5)",lineHeight:0}}>
+            style={{display:"flex" as const,justifyContent:"center" as const,width:"100%",background:"transparent",border:"none",cursor:"pointer" as const,padding:8,color:"rgba(255,255,255,0.5)",lineHeight:0}}>
             <LogOut style={{width:13,height:13}}/>
           </button>
         )}
@@ -252,15 +252,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sidebarW = isMobile ? 0 : (collapsed ? 54 : 230);
 
   return (
-    <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{display:"flex" as const,height:"100vh",overflow:"hidden" as const,background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
 
       {/* Desktop sidebar */}
       {!isMobile&&!isDashboard&&(
-        <div style={{width:sidebarW,flexShrink:0,height:"100vh",transition:"width 0.2s cubic-bezier(0.4,0,0.2,1)",overflow:"hidden",boxShadow:"2px 0 14px rgba(0,0,0,0.18)",zIndex:100,position:"relative"}}>
+        <div style={{width:sidebarW,flexShrink:0,height:"100vh",transition:"width 0.2s cubic-bezier(0.4,0,0.2,1)",overflow:"hidden" as const,boxShadow:"2px 0 14px rgba(0,0,0,0.18)",zIndex:100,position:"relative" as const}}>
           <SidebarContent/>
           {/* Collapse toggle */}
           <button onClick={()=>setCollapsed(v=>!v)} title={collapsed?"Expand":"Collapse"}
-            style={{position:"absolute",bottom:58,right:collapsed?"50%":-10,transform:collapsed?"translateX(50%)":"none",width:20,height:20,borderRadius:"50%",background:"#1a3a6b",border:"2px solid #fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,0.3)",zIndex:10,transition:"all 0.2s"}}>
+            style={{position:"absolute" as const,bottom:58,right:collapsed?"50%":-10,transform:collapsed?"translateX(50%)":"none",width:20,height:20,borderRadius:"50%",background:"#1a3a6b",border:"2px solid #fff",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,0.3)",zIndex:10,transition:"all 0.2s"}}>
             {collapsed?<ChevronRight style={{width:9,height:9}}/>:<ChevronLeft style={{width:9,height:9}}/>}
           </button>
         </div>
@@ -268,45 +268,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile drawer */}
       {isMobile&&mobileOpen&&!isDashboard&&(
-        <div style={{position:"fixed",inset:0,zIndex:500,display:"flex"}}>
+        <div style={{position:"fixed" as const,inset:0,zIndex:500,display:"flex" as const}}>
           <div><SidebarContent forMobile/></div>
           <div onClick={()=>setMobileOpen(false)} style={{flex:1,background:"rgba(0,0,0,0.5)"}}/>
         </div>
       )}
 
       {/* Main */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
+      <div style={{flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const,minWidth:0}}>
         <SystemBroadcastBanner/>
 
         {/* Topbar */}
-        <header style={{height:50,flexShrink:0,background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",padding:"0 14px",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,0.2)",zIndex:90,position:"relative"}}>
+        <header style={{height:50,flexShrink:0,background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex" as const,alignItems:"center" as const,padding:"0 14px",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,0.2)",zIndex:90,position:"relative" as const}}>
           {isMobile&&!isDashboard&&(
-            <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:7,cursor:"pointer",color:"#fff",lineHeight:0,flexShrink:0}}>
+            <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:6,padding:7,cursor:"pointer" as const,color:"#fff",lineHeight:0,flexShrink:0}}>
               <Menu style={{width:15,height:15}}/>
             </button>
           )}
           {isMobile&&(
-            <div style={{display:"flex",alignItems:"center",gap:5}}>
+            <div style={{display:"flex" as const,alignItems:"center" as const,gap:5}}>
               <img src={logoImg} alt="" style={{width:22,height:22,borderRadius:4}}/>
               <span style={{fontSize:11,fontWeight:800,color:"#fff",whiteSpace:"nowrap" as const}}>{sysName}</span>
             </div>
           )}
 
           {/* Search */}
-          <div style={{flex:1,maxWidth:isMobile?undefined:380,position:"relative"}}>
-            <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.38)",pointerEvents:"none"}}/>
+          <div style={{flex:1,maxWidth:isMobile?undefined:380,position:"relative" as const}}>
+            <Search style={{position:"absolute" as const,left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.38)",pointerEvents:"none" as const}}/>
             <input value={searchQuery} onChange={e=>{setSearchQuery(e.target.value);setSearchOpen(true);}}
               onFocus={()=>setSearchOpen(true)} onBlur={()=>setTimeout(()=>setSearchOpen(false),180)}
               placeholder="Search modules & pages…"
               style={{width:"100%",paddingLeft:28,paddingRight:8,height:30,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.14)",borderRadius:6,outline:"none",fontSize:11.5,color:"#fff",fontFamily:"inherit"}}/>
             {searchOpen&&searchResults.length>0&&(
-              <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#fff",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.18)",border:"1px solid #e5e7eb",overflow:"hidden",zIndex:200}}>
+              <div style={{position:"absolute" as const,top:"calc(100% + 4px)",left:0,right:0,background:"#fff",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.18)",border:"1px solid #e5e7eb",overflow:"hidden" as const,zIndex:200}}>
                 {searchResults.map(r=>(
                   <button key={r.path} onMouseDown={()=>{navigate(r.path);setSearchQuery("");setSearchOpen(false);}}
-                    style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"8px 12px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const}}
+                    style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"8px 12px",border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const}}
                     onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
                     onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
-                    <div style={{width:24,height:24,borderRadius:5,background:`${r.color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <div style={{width:24,height:24,borderRadius:5,background:`${r.color}18`,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                       <r.icon style={{width:12,height:12,color:r.color}}/>
                     </div>
                     <span style={{fontSize:12,color:"#111827",fontWeight:500}}>{r.label}</span>
@@ -316,9 +316,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          <div style={{display:"flex",alignItems:"center",gap:3,marginLeft:"auto",flexShrink:0}}>
+          <div style={{display:"flex" as const,alignItems:"center" as const,gap:3,marginLeft:"auto",flexShrink:0}}>
             <button onClick={()=>navigate("/email")} title="Mail & Inbox"
-              style={{padding:"4px 8px",borderRadius:5,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0,display:"flex",alignItems:"center",gap:4}}
+              style={{padding:"4px 8px",borderRadius:5,background:"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.6)",lineHeight:0,display:"flex" as const,alignItems:"center" as const,gap:4}}
               onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.1)"}
               onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
               <Mail style={{width:14,height:14}}/>
@@ -330,21 +330,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{width:1,height:18,background:"rgba(255,255,255,0.15)",margin:"0 3px"}}/>
 
             {/* User menu */}
-            <div style={{position:"relative"}} ref={userMenuRef}>
+            <div style={{position:"relative" as const}} ref={userMenuRef}>
               <button onClick={()=>setUserMenuOpen(v=>!v)}
-                style={{display:"flex",alignItems:"center",gap:5,padding:"3px 7px",borderRadius:5,border:"none",background:"rgba(255,255,255,0.08)",cursor:"pointer"}}
+                style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"3px 7px",borderRadius:5,border:"none",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.14)"}
                 onMouseLeave={e=>{if(!userMenuOpen)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.08)";}}>
-                <div style={{width:24,height:24,borderRadius:"50%",background:"linear-gradient(135deg,#C45911,#e07830)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"linear-gradient(135deg,#C45911,#e07830)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:10,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
                 {!isMobile&&<div style={{textAlign:"left" as const,lineHeight:1}}>
-                  <div style={{fontSize:10.5,fontWeight:700,color:"#fff",maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name?.split(" ")[0]||"User"}</div>
+                  <div style={{fontSize:10.5,fontWeight:700,color:"#fff",maxWidth:80,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name?.split(" ")[0]||"User"}</div>
                   <div style={{fontSize:8,color:"rgba(255,255,255,0.42)",marginTop:1}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
                 </div>}
                 <ChevronDown style={{width:9,height:9,color:"rgba(255,255,255,0.38)"}}/>
               </button>
 
               {userMenuOpen&&(
-                <div style={{position:"absolute",right:0,top:"calc(100% + 5px)",minWidth:200,background:"#fff",boxShadow:"0 8px 28px rgba(0,0,0,0.18)",border:"1px solid #e5e7eb",borderRadius:9,overflow:"hidden",zIndex:300}}>
+                <div style={{position:"absolute" as const,right:0,top:"calc(100% + 5px)",minWidth:200,background:"#fff",boxShadow:"0 8px 28px rgba(0,0,0,0.18)",border:"1px solid #e5e7eb",borderRadius:9,overflow:"hidden" as const,zIndex:300}}>
                   <div style={{padding:"10px 14px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
                     <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{profile?.full_name}</div>
                     <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:1}}>{profile?.email||user?.email}</div>
@@ -359,7 +359,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     ]:[]),
                   ].map(item=>(
                     <button key={item.path} onClick={()=>{navigate(item.path);setUserMenuOpen(false);}}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:12,color:"#374151"}}
+                      style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const,fontSize:12,color:"#374151"}}
                       onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
                       <item.icon style={{width:13,height:13,color:"#6b7280"}}/>{item.label}
@@ -367,7 +367,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   ))}
                   <div style={{borderTop:"1px solid #f3f4f6"}}>
                     <button onClick={()=>{signOut();navigate("/login");}}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left" as const,fontSize:12,color:"#dc2626"}}
+                      style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const,fontSize:12,color:"#dc2626"}}
                       onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fef2f2"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
                       <LogOut style={{width:13,height:13}}/> Sign Out
@@ -380,7 +380,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Breadcrumb */}
-        {!isDashboard&&<div style={{height:28,flexShrink:0,background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",padding:"0 14px",gap:5,fontSize:10,color:"#9ca3af"}}>
+        {!isDashboard&&<div style={{height:28,flexShrink:0,background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex" as const,alignItems:"center" as const,padding:"0 14px",gap:5,fontSize:10,color:"#9ca3af"}}>
           <Home style={{width:10,height:10}}/><span style={{color:"#e5e7eb"}}>/</span>
           {(()=>{
             const active = MODULES.find(m=>m.sub.some(s=>location.pathname.startsWith(s.path))||location.pathname===m.path);
@@ -391,14 +391,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {!active&&<span style={{fontWeight:600,color:"#374151"}}>Dashboard</span>}
             </>;
           })()}
-          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5}}>
+          <div style={{marginLeft:"auto",display:"flex" as const,alignItems:"center" as const,gap:5}}>
             <div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}}/>
             <span style={{fontSize:9,color:"#9ca3af"}}>{hospitalName}</span>
           </div>
         </div>}
 
         {/* Content */}
-        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f0f2f5"}}>
+        <main style={{flex:1,overflowY:"auto" as const,overflowX:"hidden" as const,background:"#f0f2f5"}}>
           {children}
         </main>
       </div>

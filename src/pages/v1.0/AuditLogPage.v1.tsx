@@ -19,7 +19,7 @@ const ACTION_STYLE: Record<string,{bg:string;color:string}> = {
   default: {bg:"#f3f4f6",color:"#6b7280"},
 };
 
-const spin: React.CSSProperties = {animation:"spin 1s linear infinite",display:"inline-block"};
+const spin: React.CSSProperties = {animation:"spin 1s linear infinite",display:"inline-block" as const};
 
 export default function AuditLogPage() {
   const { hasRole } = useAuth();
@@ -47,7 +47,7 @@ export default function AuditLogPage() {
   useEffect(()=>{ if(hasRole("admin")) fetchLogs(); },[fetchLogs]);
 
   if(!hasRole("admin")) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200}}>
+    <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,height:200}}>
       <p style={{color:"#9ca3af",fontSize:14}}>Administrator access required to view audit trail.</p>
     </div>
   );
@@ -79,35 +79,35 @@ export default function AuditLogPage() {
   };
 
   const inp: React.CSSProperties = {background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",borderRadius:8,padding:"5px 10px",fontSize:12,outline:"none"};
-  const sel: React.CSSProperties = {...inp,cursor:"pointer"};
+  const sel: React.CSSProperties = {...inp,cursor:"pointer" as const};
 
   return (
     <div style={{padding:"16px 20px",fontFamily:"'Segoe UI',system-ui,sans-serif",minHeight:"calc(100vh - 60px)"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* Header */}
-      <div style={{background:"linear-gradient(90deg,#374151,#4b5563)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,boxShadow:"0 4px 16px rgba(55,65,81,0.3)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{background:"linear-gradient(90deg,#374151,#4b5563)",borderRadius:14,padding:"12px 20px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,marginBottom:14,boxShadow:"0 4px 16px rgba(55,65,81,0.3)"}}>
+        <div style={{display:"flex" as const,alignItems:"center" as const,gap:10}}>
           <Activity style={{width:20,height:20,color:"#fff"}}/>
           <div>
             <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Audit Trail</h1>
             <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length.toLocaleString()} records matching filters</p>
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex" as const,gap:8}}>
           <button onClick={fetchLogs} disabled={loading}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 14px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:600}}>
             <RefreshCw style={{width:13,height:13,...(loading?{animation:"spin 1s linear infinite"}:{})}}/>Refresh
           </button>
           <button onClick={exportExcel}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"#16a34a",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 14px",background:"#16a34a",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
             <FileSpreadsheet style={{width:13,height:13}}/>Export Excel
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"10px 16px",display:"flex",flexWrap:"wrap",gap:10,marginBottom:14,alignItems:"center"}}>
+      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"10px 16px",display:"flex" as const,flexWrap:"wrap",gap:10,marginBottom:14,alignItems:"center" as const}}>
         <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>From</label>
         <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={inp}/>
         <label style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>To</label>
@@ -120,36 +120,36 @@ export default function AuditLogPage() {
           <option value="all" style={{background:"#0f172a"}}>All Actions</option>
           {actions.map(a=><option key={a} value={a} style={{background:"#0f172a"}}>{a}</option>)}
         </select>
-        <div style={{position:"relative",flex:1,minWidth:200}}>
-          <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.3)"}}/>
+        <div style={{position:"relative" as const,flex:1,minWidth:200}}>
+          <Search style={{position:"absolute" as const,left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"rgba(255,255,255,0.3)"}}/>
           <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Search user, module, record..."
-            style={{...inp,width:"100%",paddingLeft:28,boxSizing:"border-box"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
+            style={{...inp,width:"100%",paddingLeft:28,boxSizing:"border-box" as const}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const}}>
             <X style={{width:10,height:10,color:"rgba(255,255,255,0.4)"}}/>
           </button>}
         </div>
       </div>
 
       {/* Table */}
-      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:14,overflow:"hidden"}}>
+      <div style={{background:"rgba(8,20,55,0.82)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:14,overflow:"hidden" as const}}>
         {loading?(
-          <div style={{padding:40,textAlign:"center"}}>
-            <RefreshCw style={{width:28,height:28,color:"rgba(255,255,255,0.3)",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 10px"}}/>
+          <div style={{padding:40,textAlign:"center" as const}}>
+            <RefreshCw style={{width:28,height:28,color:"rgba(255,255,255,0.3)",animation:"spin 1s linear infinite",display:"block" as const,margin:"0 auto 10px"}}/>
             <p style={{color:"rgba(255,255,255,0.4)",fontSize:12}}>Loading audit trail...</p>
           </div>
         ):(
-          <div style={{overflowX:"auto"}}>
+          <div style={{overflowX:"auto" as const}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
               <thead>
                 <tr style={{background:"rgba(10,25,70,0.9)"}}>
                   {["#","Date & Time","User","Action","Module","Record ID","IP Address","Details"].map(h=>(
-                    <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:9,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.07em",whiteSpace:"nowrap"}}>{h}</th>
+                    <th key={h} style={{padding:"10px 12px",textAlign:"left" as const,fontSize:9,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.07em",whiteSpace:"nowrap" as const}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {paged.length===0?(
-                  <tr><td colSpan={8} style={{padding:40,textAlign:"center",color:"rgba(255,255,255,0.3)"}}>No audit records found</td></tr>
+                  <tr><td colSpan={8} style={{padding:40,textAlign:"center" as const,color:"rgba(255,255,255,0.3)"}}>No audit records found</td></tr>
                 ):paged.map((l,i)=>{
                   const st=ACTION_STYLE[l.action]||ACTION_STYLE.default;
                   return(
@@ -157,17 +157,17 @@ export default function AuditLogPage() {
                       onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="rgba(96,165,250,0.07)"}
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.3)"}}>{(page-1)*PAGE_SIZE+i+1}</td>
-                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap"}}>
+                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap" as const}}>
                         {l.created_at?new Date(l.created_at).toLocaleString("en-KE",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—"}
                       </td>
-                      <td style={{padding:"8px 12px",fontWeight:700,color:"rgba(255,255,255,0.85)",whiteSpace:"nowrap"}}>{l.user_name||"System"}</td>
+                      <td style={{padding:"8px 12px",fontWeight:700,color:"rgba(255,255,255,0.85)",whiteSpace:"nowrap" as const}}>{l.user_name||"System"}</td>
                       <td style={{padding:"8px 12px"}}>
                         <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:st.bg,color:st.color}}>{l.action||"—"}</span>
                       </td>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize"}}>{l.module||"—"}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"...":"—"}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"—"}</td>
-                      <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"rgba(255,255,255,0.35)"}}>
+                      <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"rgba(255,255,255,0.35)"}}>
                         {l.details?JSON.stringify(l.details).slice(0,60):"—"}
                       </td>
                     </tr>
@@ -178,14 +178,14 @@ export default function AuditLogPage() {
           </div>
         )}
         {totalPages>1&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+          <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
             <span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
-            <div style={{display:"flex",gap:4}}>
+            <div style={{display:"flex" as const,gap:4}}>
               <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>‹</button>
+                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer" as const,fontSize:12,opacity:page===1?0.4:1}}>‹</button>
               <span style={{padding:"4px 10px",background:"rgba(96,165,250,0.2)",border:"1px solid rgba(96,165,250,0.3)",color:"#93c5fd",borderRadius:6,fontSize:12,fontWeight:700}}>{page}/{totalPages}</span>
               <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>›</button>
+                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer" as const,fontSize:12,opacity:page===totalPages?0.4:1}}>›</button>
             </div>
           </div>
         )}

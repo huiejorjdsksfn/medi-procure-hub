@@ -59,24 +59,24 @@ export default function LoginPage() {
 
   /* ---- Styles (extracted to avoid JSX depth issues) ---- */
   const rootStyle: React.CSSProperties = {
-    position: "fixed", inset: 0,
+    position: "fixed" as const, inset: 0,
     fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
-    overflow: "hidden",
+    overflow: "hidden" as const,
   };
   const bgStyle: React.CSSProperties = {
-    position: "absolute", inset: 0,
+    position: "absolute" as const, inset: 0,
     backgroundImage: `url(${procurementBg})`,
     backgroundSize: "cover",
     backgroundPosition: "center 40%",
     filter: "brightness(0.88) saturate(1.1)",
   };
   const overlayStyle: React.CSSProperties = {
-    position: "absolute", inset: 0,
+    position: "absolute" as const, inset: 0,
     background: "linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.55) 100%)",
   };
   const centerWrapStyle: React.CSSProperties = {
-    position: "absolute", inset: 0,
-    display: "flex", alignItems: "center", justifyContent: "center",
+    position: "absolute" as const, inset: 0,
+    display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
     padding: "20px",
   };
   const cardStyle: React.CSSProperties = {
@@ -90,10 +90,10 @@ export default function LoginPage() {
     transition: "opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)",
   };
   const footerBarStyle: React.CSSProperties = {
-    position: "absolute", bottom: 0, left: 0, right: 0,
+    position: "absolute" as const, bottom: 0, left: 0, right: 0,
     background: "rgba(10,20,40,0.82)",
     backdropFilter: "blur(6px)",
-    display: "flex", alignItems: "center", justifyContent: "center",
+    display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
     gap: 10, padding: "10px 20px",
     opacity: mounted ? 1 : 0,
     transition: "opacity 0.8s 0.3s",
@@ -113,11 +113,11 @@ export default function LoginPage() {
         <div style={cardStyle}>
 
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, gap: 10, marginBottom: 6 }}>
             <img
               src={embuLogo}
               alt="EL5H"
-              style={{ height: 36, width: 36, borderRadius: 6, objectFit: "contain", background: "#f0f9ff", border: "1.5px solid #e0f2fe", padding: 3 }}
+              style={{ height: 36, width: 36, borderRadius: 6, objectFit: "contain" as const, background: "#f0f9ff", border: "1.5px solid #e0f2fe", padding: 3 }}
               onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
             <div>
@@ -146,13 +146,13 @@ export default function LoginPage() {
               </div>
               <button
                 onClick={() => { setForgotMode(false); setForgotSent(false); }}
-                style={{ marginTop: 18, fontSize: 12, fontWeight: 700, color: TEAL, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                style={{ marginTop: 18, fontSize: 12, fontWeight: 700, color: TEAL, background: "none", border: "none", cursor: "pointer" as const, textDecoration: "underline" as const }}
               >
                 Back to Sign In
               </button>
             </div>
           ) : (
-            <form onSubmit={forgotMode ? handleForgot : handleSubmit} style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
+            <form onSubmit={forgotMode ? handleForgot : handleSubmit} style={{ display: "flex" as const, flexDirection: "column" as const, gap: 0 }}>
 
               <input
                 type="email"
@@ -167,7 +167,7 @@ export default function LoginPage() {
               />
 
               {!forgotMode && (
-                <div style={{ position: "relative" }}>
+                <div style={{ position: "relative" as const }}>
                   <input
                     type={showPass ? "text" : "password"}
                     value={password}
@@ -181,27 +181,27 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPass(v => !v)}
-                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: "#9ca3af", lineHeight: 0, padding: 2 }}
+                    style={{ position: "absolute" as const, right: 10, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer" as const, color: "#9ca3af", lineHeight: 0, padding: 2 }}
                   >
                     {showPass ? <EyeOff style={{ width: 13, height: 13 }} /> : <Eye style={{ width: 13, height: 13 }} />}
                   </button>
                 </div>
               )}
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+              <div style={{ display: "flex" as const, alignItems: "center" as const, justifyContent: "space-between" as const, marginTop: 12 }}>
                 {!forgotMode ? (
-                  <button type="button" onClick={() => setForgotMode(true)} style={{ fontSize: 11, fontWeight: 600, color: TEAL, background: "none", border: "none", cursor: "pointer", padding: 0, letterSpacing: "0.01em" }}>
+                  <button type="button" onClick={() => setForgotMode(true)} style={{ fontSize: 11, fontWeight: 600, color: TEAL, background: "none", border: "none", cursor: "pointer" as const, padding: 0, letterSpacing: "0.01em" }}>
                     Forgot password
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setForgotMode(false)} style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                  <button type="button" onClick={() => setForgotMode(false)} style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", background: "none", border: "none", cursor: "pointer" as const, padding: 0 }}>
                     &larr; Back
                   </button>
                 )}
                 <button
                   type="submit"
                   disabled={loading}
-                  style={{ fontSize: 12, fontWeight: 800, color: loading ? "#9ca3af" : TEAL, background: "none", border: "none", cursor: loading ? "not-allowed" : "pointer", letterSpacing: "0.12em", textTransform: "uppercase" as const, padding: 0, display: "flex", alignItems: "center", gap: 6, transition: "color 0.15s" }}
+                  style={{ fontSize: 12, fontWeight: 800, color: loading ? "#9ca3af" : TEAL, background: "none", border: "none", cursor: loading ? "not-allowed" : "pointer", letterSpacing: "0.12em", textTransform: "uppercase" as const, padding: 0, display: "flex" as const, alignItems: "center" as const, gap: 6, transition: "color 0.15s" }}
                   onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLElement).style.color = TEAL_D; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = loading ? "#9ca3af" : TEAL; }}
                 >
@@ -229,7 +229,7 @@ export default function LoginPage() {
         <img
           src={embuLogo}
           alt="Embu"
-          style={{ height: 22, width: 22, borderRadius: 3, objectFit: "contain", opacity: 0.85 }}
+          style={{ height: 22, width: 22, borderRadius: 3, objectFit: "contain" as const, opacity: 0.85 }}
           onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
         <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: "0.04em" }}>

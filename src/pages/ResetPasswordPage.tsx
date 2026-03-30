@@ -59,9 +59,9 @@ export default function ResetPasswordPage() {
   const containerStyle: React.CSSProperties = {
     minHeight: "100vh",
     background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     fontFamily: "'Segoe UI', system-ui, sans-serif",
     padding: "24px",
   };
@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
   };
 
   const logoStyle: React.CSSProperties = {
-    textAlign: "center",
+    textAlign: "center" as const,
     marginBottom: "32px",
   };
 
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
     fontSize: "14px",
     outline: "none",
     transition: "border-color 0.2s",
-    boxSizing: "border-box",
+    boxSizing: "border-box" as const,
   };
 
   const btnStyle: React.CSSProperties = {
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
   };
 
   const labelStyle: React.CSSProperties = {
-    display: "block",
+    display: "block" as const,
     color: "rgba(255,255,255,0.7)",
     fontSize: "13px",
     marginBottom: "6px",
@@ -140,7 +140,7 @@ export default function ResetPasswordPage() {
           <div style={{
             width: 56, height: 56, borderRadius: "14px",
             background: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
-            display: "flex", alignItems: "center", justifyContent: "center",
+            display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
             margin: "0 auto 16px",
             boxShadow: "0 8px 24px rgba(59,130,246,0.35)",
           }}>
@@ -184,8 +184,8 @@ export default function ResetPasswordPage() {
             <button style={btnStyle} onClick={handleRequest} disabled={loading}>
               {loading ? "Sending Reset Link…" : "Send Reset Link →"}
             </button>
-            <div style={{ textAlign: "center", marginTop: 20 }}>
-              <a href="/login" style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", textDecoration: "none" }}>
+            <div style={{ textAlign: "center" as const, marginTop: 20 }}>
+              <a href="/login" style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", textDecoration: "none" as const }}>
                 ← Back to Login
               </a>
             </div>
@@ -200,7 +200,7 @@ export default function ResetPasswordPage() {
               border: "1px solid rgba(34,197,94,0.3)",
               borderRadius: "12px",
               padding: "20px",
-              textAlign: "center",
+              textAlign: "center" as const,
               marginBottom: "24px",
             }}>
               <div style={{ fontSize: "36px", marginBottom: "8px" }}>📧</div>
@@ -210,16 +210,16 @@ export default function ResetPasswordPage() {
                 Check your inbox and click the link to continue.
               </div>
             </div>
-            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", textAlign: "center", marginBottom: 16 }}>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", textAlign: "center" as const, marginBottom: 16 }}>
               Didn't receive it? Check spam, or{" "}
               <span
-                style={{ color: "#60a5fa", cursor: "pointer" }}
+                style={{ color: "#60a5fa", cursor: "pointer" as const }}
                 onClick={() => setStage("request")}
               >
                 try again
               </span>
             </div>
-            <a href="/login" style={{ ...btnStyle, display: "block", textAlign: "center", textDecoration: "none" }}>
+            <a href="/login" style={{ ...btnStyle, display: "block" as const, textAlign: "center" as const, textDecoration: "none" as const }}>
               Back to Login
             </a>
           </>
@@ -243,7 +243,7 @@ export default function ResetPasswordPage() {
               />
               {password && (
                 <div style={{ marginTop: 8 }}>
-                  <div style={{ display: "flex", gap: 4 }}>
+                  <div style={{ display: "flex" as const, gap: 4 }}>
                     {[0,1,2,3].map(i => (
                       <div key={i} style={{
                         height: 3, flex: 1, borderRadius: 2,
@@ -279,7 +279,7 @@ export default function ResetPasswordPage() {
               {["8+ characters","Uppercase letter","Number","Special character (!@#$)"].map((req,i) => {
                 const checks = [password.length>=8,/[A-Z]/.test(password),/[0-9]/.test(password),/[^A-Za-z0-9]/.test(password)];
                 return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <div key={i} style={{ display: "flex" as const, alignItems: "center" as const, gap: 6, marginBottom: 4 }}>
                     <span style={{ color: checks[i] ? "#22c55e" : "rgba(255,255,255,0.25)", fontSize: "12px" }}>
                       {checks[i] ? "✓" : "○"}
                     </span>
@@ -304,7 +304,7 @@ export default function ResetPasswordPage() {
               border: "1px solid rgba(34,197,94,0.3)",
               borderRadius: "12px",
               padding: "24px",
-              textAlign: "center",
+              textAlign: "center" as const,
               marginBottom: "24px",
             }}>
               <div style={{ fontSize: "40px", marginBottom: "8px" }}>🎉</div>
@@ -315,7 +315,7 @@ export default function ResetPasswordPage() {
                 Redirecting you to login in 3 seconds…
               </div>
             </div>
-            <a href="/login" style={{ ...btnStyle, display: "block", textAlign: "center", textDecoration: "none" }}>
+            <a href="/login" style={{ ...btnStyle, display: "block" as const, textAlign: "center" as const, textDecoration: "none" as const }}>
               Go to Login Now
             </a>
           </>
