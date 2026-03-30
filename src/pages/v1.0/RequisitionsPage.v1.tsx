@@ -112,7 +112,7 @@ export default function RequisitionsPage() {
       printFontSize: getSetting('print_font_size','11'),
       showStamp:    getSetting('show_stamp','true') === 'true',
     });
-  };;
+  };
 
   const filtered = reqs.filter(r=>{
     if(statusFilter!=="all"&&r.status!==statusFilter) return false;
