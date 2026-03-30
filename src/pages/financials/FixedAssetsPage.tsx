@@ -101,17 +101,17 @@ export default function FixedAssetsPage() {
 
   const F = ({label,k,type="text",span=1,req=false}:{label:string;k:string;type?:string;span?:number;req?:boolean}) => (
     <div style={{gridColumn:`span ${span}`}}>
-      <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{label}{req&&" *"}</label>
+      <label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{label}{req&&" *"}</label>
       <input type={type} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-        style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+        style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/>
     </div>
   );
 
   return (
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{padding:16,display:"flex" as const,flexDirection:"column" as const,gap:12,fontFamily:"'Segoe UI',system-ui"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       {/* KPI TILES */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+      <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
         {[
           {label:"Total Asset Cost",val:fmtKES(totalCost),bg:"#c0392b"},
           {label:"Net Book Value",val:fmtKES(totalNBV),bg:"#0e6655"},
@@ -126,27 +126,27 @@ export default function FixedAssetsPage() {
         ))}
       </div>
       {/* Header */}
-      <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1a3a6b,#0a2558)"}}>
+      <div style={{borderRadius:12,padding:"10px 18px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"linear-gradient(90deg,#1a3a6b,#0a2558)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Fixed Assets Register</h1>
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} assets · Cost: {fmtKES(totalCost)} · NBV: {fmtKES(totalNBV)}</p>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({asset_number:"",asset_name:"",category:"",department_id:"",purchase_date:"",purchase_cost:"",useful_life:"",residual_value:"",depreciation_method:"Straight Line",location:"",serial_number:"",supplier_name:"",warranty_expiry:"",condition:"good",status:"active",description:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1a3a6b"}}><Plus style={{width:14,height:14}}/>Register Asset</button>}
+        <div style={{display:"flex" as const,gap:8}}>
+          <button onClick={exportExcel} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer" as const,background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({asset_number:"",asset_name:"",category:"",department_id:"",purchase_date:"",purchase_cost:"",useful_life:"",residual_value:"",depreciation_method:"Straight Line",location:"",serial_number:"",supplier_name:"",warranty_expiry:"",condition:"good",status:"active",description:""});setShowNew(true);}} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer" as const,background:"rgba(255,255,255,0.92)",color:"#1a3a6b"}}><Plus style={{width:14,height:14}}/>Register Asset</button>}
         </div>
       </div>
       {/* Filters */}
-      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" as const}}>
-        <div style={{position:"relative"}}><Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+      <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,flexWrap:"wrap" as const}}>
+        <div style={{position:"relative" as const}}><Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search assets..." style={{paddingLeft:30,paddingRight:12,paddingTop:7,paddingBottom:7,border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",width:220}}/></div>
-        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{padding:"7px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",cursor:"pointer"}}>
+        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{padding:"7px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",cursor:"pointer" as const}}>
           <option value="all">All Categories</option>{CATS.map(c=><option key={c}>{c}</option>)}
         </select>
-        <button onClick={load} style={{padding:"7px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12,cursor:"pointer",background:"#f9fafb"}}><RefreshCw style={{width:12,height:12}}/></button>
+        <button onClick={load} style={{padding:"7px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12,cursor:"pointer" as const,background:"#f9fafb"}}><RefreshCw style={{width:12,height:12}}/></button>
       </div>
       {/* Table */}
-      <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+      <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden" as const,boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead><tr style={{background:"#1e3a6b"}}>
             {["Asset No.","Name","Category","Dept.","Purchase Cost","Net Book Value","Condition","Status","Actions"].map(h=>(
@@ -154,15 +154,15 @@ export default function FixedAssetsPage() {
             ))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={9} style={{padding:40,textAlign:"center" as const}}><RefreshCw style={{width:18,height:18,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/></td></tr>
+            {loading?<tr><td colSpan={9} style={{padding:40,textAlign:"center" as const}}><RefreshCw style={{width:18,height:18,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block" as const,margin:"0 auto"}}/></td></tr>
             :filtered.length===0?<tr><td colSpan={9} style={{padding:40,textAlign:"center" as const,color:"#9ca3af"}}>No assets found</td></tr>
             :filtered.map((r,i)=>(
-              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa",cursor:"pointer"}}
+              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa",cursor:"pointer" as const}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#eff6ff"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}
                 onClick={()=>setDetail(r)}>
                 <td style={{padding:"9px 12px",fontFamily:"monospace",fontSize:10,fontWeight:700,color:"#1a3a6b"}}>{r.asset_number}</td>
-                <td style={{padding:"9px 12px",fontWeight:700,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.asset_name}</td>
+                <td style={{padding:"9px 12px",fontWeight:700,color:"#1f2937",maxWidth:160,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.asset_name}</td>
                 <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.category||"—"}</td>
                 <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.department_name||"—"}</td>
                 <td style={{padding:"9px 12px",fontWeight:600,color:"#374151"}}>{fmtKES(r.purchase_cost||0)}</td>
@@ -170,9 +170,9 @@ export default function FixedAssetsPage() {
                 <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:"#f3f4f6",color:"#374151"}}>{r.condition||"—"}</span></td>
                 <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:`${SC[r.status]||"#9ca3af"}18`,color:SC[r.status]||"#9ca3af"}}>{(r.status||"").replace(/_/g," ")}</span></td>
                 <td style={{padding:"9px 12px"}} onClick={e=>e.stopPropagation()}>
-                  <div style={{display:"flex",gap:4}}>
-                    {canManage&&<button onClick={()=>openEdit(r)} style={{padding:"4px 8px",background:"#dbeafe",border:"none",borderRadius:6,cursor:"pointer",lineHeight:0}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                    {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"none",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
+                  <div style={{display:"flex" as const,gap:4}}>
+                    {canManage&&<button onClick={()=>openEdit(r)} style={{padding:"4px 8px",background:"#dbeafe",border:"none",borderRadius:6,cursor:"pointer" as const,lineHeight:0}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
+                    {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"none",borderRadius:6,cursor:"pointer" as const,lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
                   </div>
                 </td>
               </tr>
@@ -183,60 +183,60 @@ export default function FixedAssetsPage() {
 
       {/* New/Edit Modal */}
       {showNew&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:16,width:"min(640px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#1a3a6b,#0a2558)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
+        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,width:"min(640px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#1a3a6b,#0a2558)",borderRadius:"16px 16px 0 0",display:"flex" as const,alignItems:"center" as const}}>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{editing?"Edit Asset":"Register Fixed Asset"}</span>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer" as const,color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{flex:1,overflowY:"auto" as const,padding:18}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12}}>
                 <F label="Asset Name *" k="asset_name" span={2} req/>
-                <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category *</label>
-                  <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category *</label>
+                  <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                     <option value="">— Select —</option>{CATS.map(c=><option key={c}>{c}</option>)}
                   </select></div>
-                <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
-                  <select value={form.department_name||form.department||form.department_id||"—"} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
+                  <select value={form.department_name||form.department||form.department_id||"—"} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                     <option value="">— Select —</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select></div>
                 <F label="Purchase Date" k="purchase_date" type="date"/>
                 <F label="Purchase Cost (KES)" k="purchase_cost" type="number"/>
                 <F label="Useful Life (years)" k="useful_life" type="number"/>
                 <F label="Residual Value (KES)" k="residual_value" type="number"/>
-                <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Depreciation Method</label>
-                  <select value={form.depreciation_method} onChange={e=>setForm(p=>({...p,depreciation_method:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Depreciation Method</label>
+                  <select value={form.depreciation_method} onChange={e=>setForm(p=>({...p,depreciation_method:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                     {["Straight Line","Reducing Balance","Sum of Years"].map(m=><option key={m}>{m}</option>)}
                   </select></div>
                 <F label="Location" k="location"/>
                 <F label="Serial Number" k="serial_number"/>
                 <F label="Supplier Name" k="supplier_name"/>
                 <F label="Warranty Expiry" k="warranty_expiry" type="date"/>
-                <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Condition</label>
-                  <select value={form.condition} onChange={e=>setForm(p=>({...p,condition:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Condition</label>
+                  <select value={form.condition} onChange={e=>setForm(p=>({...p,condition:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                     {["excellent","good","fair","poor"].map(c=><option key={c} style={{textTransform:"capitalize" as const}}>{c}</option>)}
                   </select></div>
-                <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
-                  <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
+                  <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                     {["active","under_maintenance","disposed","written_off"].map(s=><option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
                   </select></div>
                 {form.purchase_cost&&form.useful_life&&(
                   <div style={{gridColumn:"1/-1",padding:12,borderRadius:12,background:"#f0fdf4",border:"1px solid #bbf7d0"}}>
                     <p style={{fontSize:12,fontWeight:700,color:"#166534",marginBottom:4}}>Depreciation Preview</p>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,fontSize:12}}>
+                    <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr",gap:12,fontSize:12}}>
                       {[["Annual Dep.",fmtKES(calcDepreciation().annual)],["Accumulated",fmtKES(calcDepreciation().accumulated)],["Net Book Value",fmtKES(calcDepreciation().nbv)]].map(([l,v])=>(
                         <div key={l}><p style={{color:"#6b7280",margin:"0 0 2px"}}>{l}</p><p style={{fontWeight:700,color:"#1f2937",margin:0}}>{v}</p></div>
                       ))}
                     </div>
                   </div>
                 )}
-                <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
-                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box",resize:"vertical" as const,fontFamily:"inherit"}}/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
+                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,resize:"vertical" as const,fontFamily:"inherit"}}/></div>
               </div>
             </div>
-            <div style={{padding:"12px 18px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+            <div style={{padding:"12px 18px",borderTop:"1px solid #e5e7eb",display:"flex" as const,gap:8,justifyContent:"flex-end" as const}}>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer" as const,fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
                 {saving?"Saving...":editing?"Update Asset":"Register Asset"}
               </button>
@@ -247,23 +247,23 @@ export default function FixedAssetsPage() {
 
       {/* Detail Modal */}
       {detail&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:16,width:"min(540px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#1a3a6b,#0a2558)",borderRadius:"16px 16px 0 0",display:"flex",alignItems:"center"}}>
+        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,width:"min(540px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#1a3a6b,#0a2558)",borderRadius:"16px 16px 0 0",display:"flex" as const,alignItems:"center" as const}}>
               <span style={{fontSize:14,fontWeight:800,color:"#fff",flex:1}}>{detail.asset_name}</span>
-              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer" as const,color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
             <div style={{flex:1,overflowY:"auto" as const,padding:18}}>
               {[["Asset No.",detail.asset_number],["Category",detail.category],["Department",detail.department_name],["Location",detail.location],["Serial No.",detail.serial_number],["Purchase Cost",fmtKES(detail.purchase_cost||0)],["Net Book Value",fmtKES(detail.net_book_value||0)],["Annual Depreciation",fmtKES(detail.annual_depreciation||0)],["Useful Life",`${detail.useful_life||0} years`],["Residual Value",fmtKES(detail.residual_value||0)],["Supplier",detail.supplier_name],["Warranty Expires",detail.warranty_expiry],["Condition",detail.condition],["Status",(detail.status||"").replace(/_/g," ")],["Registered By",detail.created_by_name]].filter(([_l,v])=>v).map(([l,v])=>(
-                <div key={l as string} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
+                <div key={l as string} style={{display:"flex" as const,justifyContent:"space-between" as const,padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
                   <span style={{fontSize:12,fontWeight:600,color:"#9ca3af"}}>{l}</span>
                   <span style={{fontSize:12,fontWeight:700,color:"#1f2937",textAlign:"right" as const,textTransform:"capitalize" as const}}>{v}</span>
                 </div>
               ))}
             </div>
-            <div style={{padding:"12px 18px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8}}>
-              <button onClick={()=>setDetail(null)} style={{flex:1,padding:"8px",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
-              {canManage&&<button onClick={()=>{setDetail(null);openEdit(detail);}} style={{flex:2,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"8px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700}}><Edit style={{width:13,height:13}}/>Edit Asset</button>}
+            <div style={{padding:"12px 18px",borderTop:"1px solid #e5e7eb",display:"flex" as const,gap:8}}>
+              <button onClick={()=>setDetail(null)} style={{flex:1,padding:"8px",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer" as const,fontSize:13}}>Close</button>
+              {canManage&&<button onClick={()=>{setDetail(null);openEdit(detail);}} style={{flex:2,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:6,padding:"8px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:13,fontWeight:700}}><Edit style={{width:13,height:13}}/>Edit Asset</button>}
             </div>
           </div>
         </div>

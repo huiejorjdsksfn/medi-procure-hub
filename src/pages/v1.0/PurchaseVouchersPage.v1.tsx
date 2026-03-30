@@ -107,14 +107,14 @@ export default function PurchaseVouchersPage() {
         @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}.vpage-filters{flex-wrap:wrap!important}.vpage-table{font-size:11px!important}}
         @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
       `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{padding:16,display:"flex" as const,flexDirection:"column" as const,gap:16,fontFamily:"'Segoe UI',system-ui"}}>
       {/* KPI TILES */}
       {(()=>{
         const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
         const totalAll=rows.reduce((s:number,r:any)=>s+Number(r.amount||0),0);
         const paid=rows.filter((r:any)=>r.status==="paid").length;
         return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+          <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
             {[
               {label:"Total Value",val:fmtK(totalAll),bg:"#c0392b"},
               {label:"Total Records",val:rows.length,bg:"#7d6608"},
@@ -122,7 +122,7 @@ export default function PurchaseVouchersPage() {
               {label:"Unpaid/Pending",val:rows.length-paid,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -130,25 +130,25 @@ export default function PurchaseVouchersPage() {
           </div>
         );
       })()}
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#7c2d12,#b45309)"}}>
+      <div style={{borderRadius:16,padding:"12px 20px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"linear-gradient(90deg,#7c2d12,#b45309)"}}>
         <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Purchase Vouchers</h1>
           <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records · Total: {fmtKES(totalAmt)}</p></div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#7c2d12"}}><Plus style={{width:14,height:14}}/>New Voucher</button>}
+        <div style={{display:"flex" as const,gap:8}}>
+          <button onClick={exportExcel} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer" as const,background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer" as const,background:"rgba(255,255,255,0.92)",color:"#7c2d12"}}><Plus style={{width:14,height:14}}/>New Voucher</button>}
         </div>
       </div>
-      <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+      <div style={{position:"relative" as const,maxWidth:384}}><Search style={{position:"absolute" as const,left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box" as const}}/></div>
+      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden" as const}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#fff7ed"}}>
             {["Voucher No.","Supplier","Invoice No.","Date","Amount","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
+              <th key={h} style={{padding:"12px 16px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No purchase vouchers</td></tr>:
+            {loading?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center" as const}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 0",textAlign:"center" as const,color:"#9ca3af",fontSize:12}}>No purchase vouchers</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#7c2d12"}}>{r.voucher_number}</td>
@@ -157,11 +157,11 @@ export default function PurchaseVouchersPage() {
                 <td style={{padding:"10px 16px"}}>{new Date(r.voucher_date).toLocaleDateString("en-KE")}</td>
                 <td style={{padding:"10px 16px",fontWeight:700}}>{fmtKES(r.amount)}</td>
                 <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
-                  <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
-                  <button onClick={()=>printVoucher(r)} style={{padding:5,borderRadius:6,background:"#dcfce7",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12,color:"#16a34a"}}/></button>
-                  {canApprove&&r.status==="pending"&&<button onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,background:"#d1fae5",border:"none",cursor:"pointer"}} title="Approve"><CheckCircle style={{width:12,height:12,color:"#059669"}}/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                <td style={{padding:"10px 16px"}}><div style={{display:"flex" as const,gap:4}}>
+                  <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer" as const}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
+                  <button onClick={()=>printVoucher(r)} style={{padding:5,borderRadius:6,background:"#dcfce7",border:"none",cursor:"pointer" as const}}><Printer style={{width:12,height:12,color:"#16a34a"}}/></button>
+                  {canApprove&&r.status==="pending"&&<button onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,background:"#d1fae5",border:"none",cursor:"pointer" as const}} title="Approve"><CheckCircle style={{width:12,height:12,color:"#059669"}}/></button>}
+                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer" as const}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                 </div></td>
               </tr>
             ))}
@@ -170,59 +170,59 @@ export default function PurchaseVouchersPage() {
       </div>
       {/* New Modal */}
       {showNew&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>setShowNew(false)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
+        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+          <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>setShowNew(false)}/>
+          <div style={{position:"relative" as const,background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const}}>
+            <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"14px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
               <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Purchase Voucher</h3>
-              <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
+              <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Supplier *</label>
+            <div style={{flex:1,overflowY:"auto" as const,padding:"16px 20px"}}><div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Supplier *</label>
                 <select value={form.supplier_id} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,supplier_name:s?.name||""}));}}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
                   <option value="">— Select —</option>
                   {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select></div>
               {[["Invoice No.","invoice_number"],["Date","voucher_date","date"],["Due Date","due_date","date"],["PO Reference","po_reference"],["Expense Account","expense_account"],["Tax Rate (%)","tax_rate","number"]].map(([l,k,t])=>(
-                <div key={k}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
+                <div key={k}><label style={{display:"block" as const,marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
+                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/></div>
               ))}
             </div>
             {/* Line items */}
             <div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,marginBottom:8}}>
                 <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase"}}>Line Items</label>
-                <button onClick={()=>setItems(p=>[...p,{description:"",qty:"1",rate:"",amount:""}])} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer"}}><Plus style={{width:12,height:12}}/>Add</button>
+                <button onClick={()=>setItems(p=>[...p,{description:"",qty:"1",rate:"",amount:""}])} style={{display:"flex" as const,alignItems:"center" as const,gap:4,fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer" as const}}><Plus style={{width:12,height:12}}/>Add</button>
               </div>
               <table style={{width:"100%",fontSize:12,borderCollapse:"collapse",borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"#fff7ed"}}>{["Description","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"#fff7ed"}}>{["Description","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left" as const,fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {items.map((it,i)=>(
                     <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                      <td style={{padding:"4px"}}><input value={it.description} onChange={e=>updateItem(i,"description",e.target.value)} style={{width:"100%",padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",boxSizing:"border-box"}}/></td>
+                      <td style={{padding:"4px"}}><input value={it.description} onChange={e=>updateItem(i,"description",e.target.value)} style={{width:"100%",padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",boxSizing:"border-box" as const}}/></td>
                       <td style={{padding:"4px"}}><input type="number" value={it.qty} onChange={e=>updateItem(i,"qty",e.target.value)} style={{width:56,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
                       <td style={{padding:"4px"}}><input type="number" value={it.rate} onChange={e=>updateItem(i,"rate",e.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
-                      <td style={{padding:"4px",fontWeight:600,textAlign:"right"}}>{fmtKES(Number(it.amount||0))}</td>
+                      <td style={{padding:"4px",fontWeight:600,textAlign:"right" as const}}>{fmtKES(Number(it.amount||0))}</td>
                       <td style={{padding:"4px"}}><button onClick={()=>setItems(p=>p.filter((_,j)=>j!==i))} style={{color:"#f87171"}}><X style={{width:12,height:12}}/></button></td>
                     </tr>
                   ))}
                   <tr style={{background:"#fff7ed"}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>Subtotal</td><td style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>{fmtKES(subtotal)}</td><td/>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>Subtotal</td><td style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>{fmtKES(subtotal)}</td><td/>
                   </tr>
                   <tr style={{background:"#fff7ed"}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>VAT {form.tax_rate||16}%</td><td style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700}}>{fmtKES(taxAmt)}</td><td/>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>VAT {form.tax_rate||16}%</td><td style={{padding:"8px",textAlign:"right" as const,fontSize:12,fontWeight:700}}>{fmtKES(taxAmt)}</td><td/>
                   </tr>
                   <tr style={{background:"#fde68a",fontWeight:900}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:14,fontWeight:900}}>TOTAL</td><td style={{padding:"8px",textAlign:"right",fontSize:14,fontWeight:900}}>{fmtKES(total)}</td><td/>
+                    <td colSpan={3} style={{padding:"8px",textAlign:"right" as const,fontSize:14,fontWeight:900}}>TOTAL</td><td style={{padding:"8px",textAlign:"right" as const,fontSize:14,fontWeight:900}}>{fmtKES(total)}</td><td/>
                   </tr>
                 </tbody>
               </table>
             </div>
             </div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
-              <button onClick={()=>setShowNew(false)} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#7c2d12"}}>
+            <div style={{display:"flex" as const,gap:8,justifyContent:"flex-end" as const,padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
+              <button onClick={()=>setShowNew(false)} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer" as const}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer" as const,background:"#7c2d12"}}>
                 {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
                 {saving?"Saving...":"Create Voucher"}
               </button>

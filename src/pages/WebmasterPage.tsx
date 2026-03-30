@@ -134,8 +134,8 @@ const LIVE_CONTROLS = [
 // ── Helper Toggle ────────────────────────────────────────────────────────
 function Toggle({on,onChange}:{on:boolean;onChange:(v:boolean)=>void}){
   return(
-    <button onClick={()=>onChange(!on)} style={{background:"#f8fafc",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
-      <div style={{width:42,height:22,borderRadius:11,background:on?"#0a2558":"#d1d5db",display:"flex",alignItems:"center",padding:"2px",transition:"background 0.2s"}}>
+    <button onClick={()=>onChange(!on)} style={{background:"#f8fafc",border:"none",cursor:"pointer" as const,padding:0,lineHeight:0,flexShrink:0}}>
+      <div style={{width:42,height:22,borderRadius:11,background:on?"#0a2558":"#d1d5db",display:"flex" as const,alignItems:"center" as const,padding:"2px",transition:"background 0.2s"}}>
         <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.22)",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)"}}/>
       </div>
     </button>
@@ -146,7 +146,7 @@ function Toggle({on,onChange}:{on:boolean;onChange:(v:boolean)=>void}){
 function CB({checked,onChange,disabled=false}:{checked:boolean;onChange:(v:boolean)=>void;disabled?:boolean}){
   return(
     <button onClick={()=>!disabled&&onChange(!checked)} disabled={disabled}
-      style={{width:18,height:18,borderRadius:4,border:`2px solid ${checked?"#0a2558":"#d1d5db"}`,background:checked?"#0a2558":"#fff",cursor:disabled?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0,lineHeight:0,transition:"all 0.15s"}}>
+      style={{width:18,height:18,borderRadius:4,border:`2px solid ${checked?"#0a2558":"#d1d5db"}`,background:checked?"#0a2558":"#fff",cursor:disabled?"not-allowed":"pointer",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0,padding:0,lineHeight:0,transition:"all 0.15s"}}>
       {checked&&<svg width={10} height={8} viewBox="0 0 10 8"><path d="M1 4L3.5 7L9 1" stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
     </button>
   );
@@ -291,50 +291,50 @@ export default function WebmasterPage(){
   const modGroups=Array.from(new Set(ALL_MODULES.map(m=>m.group)));
 
   // ── Styles ────────────────────────────────────────────────────────────
-  const lbl:React.CSSProperties={fontSize:10,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#64748b",display:"block",marginBottom:4};
-  const inp:React.CSSProperties={width:"100%",padding:"7px 10px",border:"1.5px solid #cbd5e1",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1e293b",background:"#f8fafc"};
+  const lbl:React.CSSProperties={fontSize:10,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#64748b",display:"block" as const,marginBottom:4};
+  const inp:React.CSSProperties={width:"100%",padding:"7px 10px",border:"1.5px solid #cbd5e1",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#1e293b",background:"#f8fafc"};
   const sectionContent=SECTIONS.find(s=>s.id===activeSection);
 
   return(
     <RoleGuard allowed={["admin"]}>
-      <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      <div style={{display:"flex" as const,flexDirection:"column" as const,height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
         {/* ── Top action bar ────────────────────────────────────────── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",background:"#fff",borderBottom:"1px solid #1e293b",flexWrap:"wrap" as const,gap:8}}>
+        <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"10px 20px",background:"#fff",borderBottom:"1px solid #1e293b",flexWrap:"wrap" as const,gap:8}}>
           <div>
             <h1 style={{fontSize:16,fontWeight:900,color:"#1e293b",margin:0}}>Webmaster Control Panel</h1>
             <div style={{fontSize:11,color:"#64748b",marginTop:2}}>Manage system capabilities, modules, and configuration · {profile?.full_name}</div>
           </div>
-          <div style={{display:"flex",gap:8}}>
+          <div style={{display:"flex" as const,gap:8}}>
             <button onClick={saveSection} disabled={saving}
-              style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+              style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 18px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
               {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
               SAVE CHANGES
             </button>
             <button onClick={resetSection}
-              style={{padding:"8px 14px",border:"1.5px solid #0a2558",borderRadius:8,background:"#f8fafc",cursor:"pointer",fontSize:12,fontWeight:600,color:"#60a5fa"}}>
+              style={{padding:"8px 14px",border:"1.5px solid #0a2558",borderRadius:8,background:"#f8fafc",cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#60a5fa"}}>
               RESET SECTION
             </button>
             <button onClick={()=>{resetSection();}}
-              style={{padding:"8px 14px",border:"1.5px solid #cbd5e1",borderRadius:8,background:"#f8fafc",cursor:"pointer",fontSize:12,fontWeight:600,color:"#64748b"}}>
+              style={{padding:"8px 14px",border:"1.5px solid #cbd5e1",borderRadius:8,background:"#f8fafc",cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#64748b"}}>
               RESET ALL
             </button>
           </div>
         </div>
 
         {/* ── Body: left nav + right content ────────────────────────── */}
-        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+        <div style={{display:"flex" as const,flex:1,overflow:"hidden" as const}}>
 
           {/* Left nav */}
           <div style={{width:220,flexShrink:0,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto" as const,padding:"6px 0"}}>
             {SECTIONS.map(s=>(
               <button key={s.id}
                 onClick={()=>setActiveSection(s.id)}
-                style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",
+                style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"10px 16px",border:"none",
                   borderLeft:activeSection===s.id?"3px solid #0a2558":"3px solid transparent",
                   background:activeSection===s.id?"#e8edf5":"transparent",
-                  textAlign:"left" as const,cursor:"pointer",transition:"background 0.12s"}}
+                  textAlign:"left" as const,cursor:"pointer" as const,transition:"background 0.12s"}}
                 onMouseEnter={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="#e8edf5";}}
                 onMouseLeave={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="transparent";}}>
                 <s.icon style={{width:14,height:14,color:activeSection===s.id?"#60a5fa":"#94a3b8",flexShrink:0}}/>
@@ -348,7 +348,7 @@ export default function WebmasterPage(){
 
           {/* Right content */}
           <div style={{flex:1,overflowY:"auto" as const,padding:"24px 28px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+            <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,marginBottom:20}}>
               {sectionContent&&<sectionContent.icon style={{width:18,height:18,color:"#0a2558"}}/>}
               <div>
                 <h2 style={{fontSize:16,fontWeight:800,color:"#1e293b",margin:0}}>{sectionContent?.label}</h2>
@@ -359,22 +359,22 @@ export default function WebmasterPage(){
 
             {/* ── MODULES ──────────────────────────────────────────── */}
             {activeSection==="modules"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <div style={{display:"flex" as const,flexDirection:"column" as const,gap:20}}>
                 {modGroups.map(grp=>(
                   <div key={grp}>
-                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:10,display:"flex" as const,alignItems:"center" as const,gap:8}}>
                       <span style={{flex:1,borderBottom:"1px solid #1e293b",paddingBottom:4}}>{grp} Modules</span>
                       <span style={{fontSize:10,color:"#9ca3af",fontWeight:500,whiteSpace:"nowrap" as const}}>
                         {ALL_MODULES.filter(m=>m.group===grp&&(modEnabled[m.id]!==false)).length}/{ALL_MODULES.filter(m=>m.group===grp).length} enabled
                       </span>
                     </h3>
-                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
+                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" as const}}>
                       {ALL_MODULES.filter(m=>m.group===grp).map((m,i,arr)=>(
                         <div key={m.id}
-                          style={{display:"flex",alignItems:"center",gap:14,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
+                          style={{display:"flex" as const,alignItems:"center" as const,gap:14,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
                           onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
                           onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
-                          <div style={{width:32,height:32,borderRadius:8,background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <div style={{width:32,height:32,borderRadius:8,background:"#f0f2f5",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                             <m.icon style={{width:15,height:15,color:"#374151"}}/>
                           </div>
                           <div style={{flex:1,minWidth:0}}>
@@ -382,7 +382,7 @@ export default function WebmasterPage(){
                             {m.path&&<div style={{fontSize:10,color:"#9ca3af"}}>{m.path}</div>}
                           </div>
                           <Toggle on={modEnabled[m.id]!==false} onChange={v=>setModEnabled(p=>({...p,[m.id]:v}))}/>
-                          {m.path&&<button onClick={()=>navigate(m.path)} style={{background:"none",border:"none",cursor:"pointer",color:"#0a2558",padding:3,lineHeight:0}}><ChevronRight style={{width:14,height:14}}/></button>}
+                          {m.path&&<button onClick={()=>navigate(m.path)} style={{background:"none",border:"none",cursor:"pointer" as const,color:"#0a2558",padding:3,lineHeight:0}}><ChevronRight style={{width:14,height:14}}/></button>}
                         </div>
                       ))}
                     </div>
@@ -395,10 +395,10 @@ export default function WebmasterPage(){
             {activeSection==="roles"&&(
               <div>
                 {/* Role selector */}
-                <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap" as const}}>
+                <div style={{display:"flex" as const,gap:8,marginBottom:20,flexWrap:"wrap" as const}}>
                   {ROLES_LIST.map(r=>(
                     <button key={r} onClick={()=>setSelectedRole(r)}
-                      style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"capitalize" as const,
+                      style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid",fontSize:11,fontWeight:700,cursor:"pointer" as const,textTransform:"capitalize" as const,
                         borderColor:selectedRole===r?"#0a2558":"#e5e7eb",
                         background:selectedRole===r?"#0a2558":"#fff",
                         color:selectedRole===r?"#fff":"#cbd5e1"}}>
@@ -407,7 +407,7 @@ export default function WebmasterPage(){
                   ))}
                 </div>
 
-                <div style={{background:"#f0f2f5",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{background:"#f0f2f5",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex" as const,alignItems:"center" as const,gap:10}}>
                   <Info style={{width:14,height:14,color:"#0a2558",flexShrink:0}}/>
                   <span style={{fontSize:12,color:"#374151"}}>
                     Showing capabilities for: <strong style={{color:"#60a5fa"}}>{selectedRole.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}</strong>
@@ -420,12 +420,12 @@ export default function WebmasterPage(){
                     <h3 style={{fontSize:11,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:8}}>
                       {cg.group}
                     </h3>
-                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
+                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" as const}}>
                       {cg.caps.map((cap,i,arr)=>{
                         const checked=(caps[selectedRole]||[]).includes(cap.id);
                         return(
                           <div key={cap.id}
-                            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",cursor:"pointer",transition:"background 0.1s"}}
+                            style={{display:"flex" as const,alignItems:"center" as const,gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",cursor:"pointer" as const,transition:"background 0.1s"}}
                             onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
                             onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}
                             onClick={()=>setCaps(p=>{
@@ -446,10 +446,10 @@ export default function WebmasterPage(){
 
             {/* ── THEME & BRAND ─────────────────────────────────────── */}
             {activeSection==="theme"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:680}}>
+              <div style={{display:"flex" as const,flexDirection:"column" as const,gap:20,maxWidth:680}}>
                 <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
                   <h3 style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:16}}>Hospital Identity</h3>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
                     {[{k:"system_name",l:"System Name",ph:"EL5 MediProcure"},{k:"hospital_name",l:"Hospital Name",ph:"Embu Level 5 Hospital"},{k:"county",l:"County / Authority",ph:"Embu County Government"},{k:"address",l:"Address",ph:"Embu Town, Embu County"},{k:"phone",l:"Phone",ph:"+254 060 000000"},{k:"email",l:"Email",ph:"info@embu-l5.go.ke"}].map(f=>(
                       <div key={f.k}>
                         <label style={lbl}>{f.l}</label>
@@ -460,19 +460,19 @@ export default function WebmasterPage(){
                 </div>
                 <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
                   <h3 style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:16}}>Brand Colors</h3>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
                     {[{k:"primary_color",l:"Primary Color"},{k:"accent_color",l:"Accent Color"}].map(f=>(
                       <div key={f.k}>
                         <label style={lbl}>{f.l}</label>
-                        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                          <input type="color" value={(theme as any)[f.k]||"#0a2558"} onChange={e=>setTheme(p=>({...p,[f.k]:e.target.value}))} style={{width:36,height:34,border:"1.5px solid #cbd5e1",borderRadius:6,padding:2,cursor:"pointer"}}/>
+                        <div style={{display:"flex" as const,gap:8,alignItems:"center" as const}}>
+                          <input type="color" value={(theme as any)[f.k]||"#0a2558"} onChange={e=>setTheme(p=>({...p,[f.k]:e.target.value}))} style={{width:36,height:34,border:"1.5px solid #cbd5e1",borderRadius:6,padding:2,cursor:"pointer" as const}}/>
                           <input value={(theme as any)[f.k]||""} onChange={e=>setTheme(p=>({...p,[f.k]:e.target.value}))} style={{...inp,flex:1}} placeholder="#0a2558"/>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div style={{background:"#f0f2f5",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{background:"#f0f2f5",borderRadius:10,padding:"12px 16px",display:"flex" as const,alignItems:"center" as const,gap:10}}>
                   <Palette style={{width:14,height:14,color:"#0a2558",flexShrink:0}}/>
                   <span style={{fontSize:12,color:"#374151"}}>Color changes take effect on next page load. Saved to <code style={{background:"#e5e7eb",padding:"1px 4px",borderRadius:3,fontSize:11}}>system_settings</code> table.</span>
                 </div>
@@ -481,7 +481,7 @@ export default function WebmasterPage(){
 
             {/* ── USERS ────────────────────────────────────────────── */}
             {activeSection==="users_cap"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:680}}>
+              <div style={{display:"flex" as const,flexDirection:"column" as const,gap:16,maxWidth:680}}>
                 {[
                   {group:"User Account Capabilities",items:[
                     {label:"View all users",desc:"See full user list and profiles"},
@@ -500,10 +500,10 @@ export default function WebmasterPage(){
                 ].map(section=>(
                   <div key={section.group}>
                     <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase" as const,letterSpacing:"0.06em",marginBottom:10}}>{section.group}</h3>
-                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
+                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" as const}}>
                       {section.items.map((item,i,arr)=>(
                         <div key={item.label}
-                          style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
+                          style={{display:"flex" as const,alignItems:"center" as const,gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
                           onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
                           onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                           <CB checked={true} onChange={()=>{}} disabled/>
@@ -517,8 +517,8 @@ export default function WebmasterPage(){
                     </div>
                   </div>
                 ))}
-                <div style={{marginTop:8,display:"flex",gap:8}}>
-                  <button onClick={()=>navigate("/users")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                <div style={{marginTop:8,display:"flex" as const,gap:8}}>
+                  <button onClick={()=>navigate("/users")} style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
                     <Users style={{width:13,height:13}}/>Manage Users
                   </button>
                 </div>
@@ -527,13 +527,13 @@ export default function WebmasterPage(){
 
             {/* ── LIVE CONTROLS ────────────────────────────────────── */}
             {activeSection==="controls"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:680}}>
-                <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",gap:10,alignItems:"flex-start"}}>
+              <div style={{display:"flex" as const,flexDirection:"column" as const,gap:8,maxWidth:680}}>
+                <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex" as const,gap:10,alignItems:"flex-start" as const}}>
                   <AlertTriangle style={{width:14,height:14,color:"#d97706",flexShrink:0,marginTop:2}}/>
                   <span style={{fontSize:12,color:"#92400e"}}>Controls marked in <strong>red</strong> affect all users. Changes take effect immediately.</span>
                 </div>
                 {LIVE_CONTROLS.map(ctrl=>(
-                  <div key={ctrl.key} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"#f8fafc",borderRadius:10,border:`1px solid ${ctrl.danger?"#fee2e2":"#e5e7eb"}`}}>
+                  <div key={ctrl.key} style={{display:"flex" as const,alignItems:"center" as const,gap:14,padding:"12px 16px",background:"#f8fafc",borderRadius:10,border:`1px solid ${ctrl.danger?"#fee2e2":"#e5e7eb"}`}}>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:700,color:ctrl.danger?"#dc2626":"#111827"}}>{ctrl.label}</div>
                       <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{ctrl.sub}</div>
@@ -548,7 +548,7 @@ export default function WebmasterPage(){
             {/* ── BROADCAST ────────────────────────────────────────── */}
             {activeSection==="broadcast"&&(
               <div style={{maxWidth:640}}>
-                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20,display:"flex",flexDirection:"column",gap:14}}>
+                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20,display:"flex" as const,flexDirection:"column" as const,gap:14}}>
                   <div>
                     <label style={lbl}>Message Title *</label>
                     <input value={broadcast.title} onChange={e=>setBroadcast(p=>({...p,title:e.target.value}))} placeholder="e.g. System Maintenance Tonight" style={inp}/>
@@ -557,7 +557,7 @@ export default function WebmasterPage(){
                     <label style={lbl}>Message Body *</label>
                     <textarea value={broadcast.message} onChange={e=>setBroadcast(p=>({...p,message:e.target.value}))} rows={4} placeholder="Write your broadcast message..." style={{...inp,resize:"none" as const}}/>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
                     <div>
                       <label style={lbl}>Message Type</label>
                       <select value={broadcast.type} onChange={e=>setBroadcast(p=>({...p,type:e.target.value}))} style={inp}>
@@ -571,12 +571,12 @@ export default function WebmasterPage(){
                   </div>
                   <div>
                     <label style={lbl}>Target Roles (leave empty for all)</label>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginTop:4}}>
+                    <div style={{display:"flex" as const,gap:8,flexWrap:"wrap" as const,marginTop:4}}>
                       {ROLES_LIST.map(r=>{
                         const sel=broadcast.roles.includes(r);
                         return(
                           <button key={r} onClick={()=>setBroadcast(p=>({...p,roles:sel?p.roles.filter(x=>x!==r):[...p.roles,r]}))}
-                            style={{padding:"4px 12px",borderRadius:20,border:"1.5px solid",fontSize:11,cursor:"pointer",
+                            style={{padding:"4px 12px",borderRadius:20,border:"1.5px solid",fontSize:11,cursor:"pointer" as const,
                               borderColor:sel?"#0a2558":"#e5e7eb",background:sel?"#0a2558":"#f9fafb",color:sel?"#fff":"#374151",fontWeight:600}}>
                             {r.replace(/_/g," ")}
                           </button>
@@ -585,7 +585,7 @@ export default function WebmasterPage(){
                     </div>
                   </div>
                   <button onClick={sendBroadcast} disabled={saving}
-                    style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px 20px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+                    style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:8,padding:"10px 20px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:10,cursor:"pointer" as const,fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                     {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<SendIcon style={{width:13,height:13}}/>}
                     Send System Broadcast
                   </button>
@@ -595,8 +595,8 @@ export default function WebmasterPage(){
 
             {/* ── SYSTEM HEALTH ───────────────────────────────────── */}
             {activeSection==="system"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:720}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              <div style={{display:"flex" as const,flexDirection:"column" as const,gap:16,maxWidth:720}}>
+                <div style={{display:"grid" as const,gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
                   {[
                     {label:"Total Users",      value:sysStats.users,     icon:Users,      color:"#0a2558"},
                     {label:"Requisitions",      value:sysStats.req,       icon:ClipboardList, color:"#C45911"},
@@ -605,8 +605,8 @@ export default function WebmasterPage(){
                     {label:"DB Tables",         value:sysStats.tables,    icon:Database,    color:"#374151"},
                     {label:"System Status",     value:"Online",           icon:CheckCircle, color:"#059669"},
                   ].map(stat=>(
-                    <div key={stat.label} style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{width:36,height:36,borderRadius:9,background:`${stat.color}14`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <div key={stat.label} style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",padding:"14px 16px",display:"flex" as const,alignItems:"center" as const,gap:12}}>
+                      <div style={{width:36,height:36,borderRadius:9,background:`${stat.color}14`,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                         <stat.icon style={{width:17,height:17,color:stat.color}}/>
                       </div>
                       <div>
@@ -628,17 +628,17 @@ export default function WebmasterPage(){
                     ["Roles","6 role levels configured"],
                     ["Build","React 18 + TypeScript + Tailwind"],
                   ].map(([k,v])=>(
-                    <div key={k} style={{display:"flex",padding:"7px 0",borderBottom:"1px solid #f3f4f6"}}>
+                    <div key={k} style={{display:"flex" as const,padding:"7px 0",borderBottom:"1px solid #f3f4f6"}}>
                       <span style={{width:180,fontSize:12,fontWeight:700,color:"#64748b",flexShrink:0}}>{k}</span>
                       <span style={{fontSize:12,color:"#1e293b"}}>{v}</span>
                     </div>
                   ))}
                 </div>
-                <div style={{display:"flex",gap:10}}>
-                  <button onClick={()=>navigate("/admin/database")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                <div style={{display:"flex" as const,gap:10}}>
+                  <button onClick={()=>navigate("/admin/database")} style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
                     <Database style={{width:13,height:13}}/>Database Admin
                   </button>
-                  <button onClick={()=>navigate("/backup")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",border:"1.5px solid #0a2558",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:"#0a2558"}}>
+                  <button onClick={()=>navigate("/backup")} style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 16px",border:"1.5px solid #0a2558",borderRadius:8,background:"#fff",cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#0a2558"}}>
                     <Archive style={{width:13,height:13}}/>Backup Manager
                   </button>
                 </div>
@@ -649,19 +649,19 @@ export default function WebmasterPage(){
             {activeSection==="audit"&&(
               <div style={{maxWidth:800}}>
                 {logsLoading?(
-                  <div style={{display:"flex",alignItems:"center",gap:8,color:"#9ca3af",padding:"30px 0"}}>
+                  <div style={{display:"flex" as const,alignItems:"center" as const,gap:8,color:"#9ca3af",padding:"30px 0"}}>
                     <RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>Loading audit log...
                   </div>
                 ):(
-                  <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",overflow:"hidden"}}>
-                    <div style={{padding:"10px 16px",background:"#f8fafc",borderBottom:"1px solid #1e293b",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",overflow:"hidden" as const}}>
+                    <div style={{padding:"10px 16px",background:"#f8fafc",borderBottom:"1px solid #1e293b",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const}}>
                       <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>Recent Activity — Last 50 entries</span>
-                      <button onClick={()=>navigate("/audit-log")} style={{fontSize:11,color:"#0a2558",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>View Full Log →</button>
+                      <button onClick={()=>navigate("/audit-log")} style={{fontSize:11,color:"#0a2558",background:"none",border:"none",cursor:"pointer" as const,fontWeight:600}}>View Full Log →</button>
                     </div>
                     {logs.length===0&&<div style={{padding:"30px 20px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>No audit records found</div>}
                     {logs.map((log,i)=>(
-                      <div key={log.id||i} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"9px 16px",borderBottom:"1px solid #f3f4f6"}}>
-                        <div style={{width:28,height:28,borderRadius:"50%",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <div key={log.id||i} style={{display:"flex" as const,alignItems:"flex-start" as const,gap:12,padding:"9px 16px",borderBottom:"1px solid #f3f4f6"}}>
+                        <div style={{width:28,height:28,borderRadius:"50%",background:"#f0f2f5",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
                           <Activity style={{width:12,height:12,color:"#374151"}}/>
                         </div>
                         <div style={{flex:1,minWidth:0}}>
@@ -678,8 +678,8 @@ export default function WebmasterPage(){
             {/* ── CONSOLE ─────────────────────────────────────────── */}
             {activeSection==="terminal"&&(
               <div style={{maxWidth:760}}>
-                <div style={{background:"#0d1117",borderRadius:12,border:"1px solid #30363d",overflow:"hidden"}}>
-                  <div style={{padding:"8px 14px",background:"#161b22",borderBottom:"1px solid #30363d",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{background:"#0d1117",borderRadius:12,border:"1px solid #30363d",overflow:"hidden" as const}}>
+                  <div style={{padding:"8px 14px",background:"#161b22",borderBottom:"1px solid #30363d",display:"flex" as const,alignItems:"center" as const,gap:8}}>
                     <div style={{width:12,height:12,borderRadius:"50%",background:"#ff5f57"}}/>
                     <div style={{width:12,height:12,borderRadius:"50%",background:"#febc2e"}}/>
                     <div style={{width:12,height:12,borderRadius:"50%",background:"#28c840"}}/>
@@ -690,14 +690,14 @@ export default function WebmasterPage(){
                       <div key={i} style={{whiteSpace:"pre-wrap" as const,color:line.startsWith("$")?"#79c0ff":line.startsWith("Unknown")||line.startsWith("Error")?"#ff7b72":"#c9d1d9"}}>{line}</div>
                     ))}
                   </div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderTop:"1px solid #30363d"}}>
+                  <div style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"8px 14px",borderTop:"1px solid #30363d"}}>
                     <span style={{color:"#79c0ff",fontFamily:"monospace",fontSize:13,flexShrink:0}}>$</span>
                     <input value={termInput} onChange={e=>setTermInput(e.target.value)}
                       onKeyDown={e=>{if(e.key==="Enter"&&termInput.trim()){runCmd(termInput);setTermInput("");}}}
                       placeholder="Type a command and press Enter..." autoComplete="off"
                       style={{flex:1,background:"#f8fafc",border:"none",outline:"none",fontFamily:"'Cascadia Code','Consolas',monospace",fontSize:12,color:"#c9d1d9"}}/>
                     <button onClick={()=>{if(termInput.trim()){runCmd(termInput);setTermInput("");}}}
-                      style={{background:"#238636",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>
+                      style={{background:"#238636",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:700}}>
                       <Play style={{width:11,height:11}}/>
                     </button>
                   </div>
@@ -716,10 +716,10 @@ export default function WebmasterPage(){
 
             {/* ── LICENSING ───────────────────────────────────────── */}
             {activeSection==="licensing"&&(
-              <div style={{maxWidth:680,display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{maxWidth:680,display:"flex" as const,flexDirection:"column" as const,gap:16}}>
                 <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
-                  <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
-                    <div style={{width:48,height:48,borderRadius:10,background:"#1e3a6b",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{display:"flex" as const,alignItems:"center" as const,gap:14,marginBottom:16}}>
+                    <div style={{width:48,height:48,borderRadius:10,background:"#1e3a6b",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
                       <Monitor style={{width:24,height:24,color:"#fff"}}/>
                     </div>
                     <div>
@@ -737,7 +737,7 @@ export default function WebmasterPage(){
                     ["Support","IT Department — Embu Level 5 Hospital"],
                     ["Last Updated",new Date().toLocaleDateString("en-KE")],
                   ].map(([k,v])=>(
-                    <div key={k} style={{display:"flex",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
+                    <div key={k} style={{display:"flex" as const,padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
                       <span style={{width:160,fontSize:12,fontWeight:700,color:"#64748b",flexShrink:0}}>{k}</span>
                       <span style={{fontSize:12,color:"#1e293b"}}>{v}</span>
                     </div>

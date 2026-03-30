@@ -272,7 +272,7 @@ export default function EmailPage() {
   };
 
   /* ── Shared input style ──────────────────────────────────── */
-  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"#f8fafc",fontFamily:"inherit"};
+  const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#1f1f1f",background:"#f8fafc",fontFamily:"inherit"};
 
   /* ── Hover helpers ───────────────────────────────────────── */
   const hoverBg = (e:React.MouseEvent, on:boolean, bg="#f0f0f0") => {
@@ -283,15 +283,15 @@ export default function EmailPage() {
       RENDER
   ────────────────────────────────────────────────────────── */
   return (
-    <div style={{display:"flex",height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
+    <div style={{display:"flex" as const,height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden" as const,position:"relative" as const}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────── */}
-      <div style={{width:210,flexShrink:0,background:"#f8fafc",borderRight:"1px solid #f1f5f9",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{width:210,flexShrink:0,background:"#f8fafc",borderRight:"1px solid #f1f5f9",display:"flex" as const,flexDirection:"column" as const,height:"100%",overflow:"hidden" as const}}>
         {/* Header */}
         <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e0e0e0"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-            <div style={{width:32,height:32,borderRadius:6,background:"#0078d4",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{display:"flex" as const,alignItems:"center" as const,gap:8,marginBottom:14}}>
+            <div style={{width:32,height:32,borderRadius:6,background:"#0078d4",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
               <Mail style={{width:16,height:16,color:"#fff"}}/>
             </div>
             <div>
@@ -301,12 +301,12 @@ export default function EmailPage() {
           </div>
           {/* Compose */}
           <button onClick={()=>{ setComposing(true); setSelected(null); }}
-            style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"8px",borderRadius:4,background:"#0078d4",border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,color:"#fff"}}>
+            style={{width:"100%",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:7,padding:"8px",borderRadius:4,background:"#0078d4",border:"none",cursor:"pointer" as const,fontSize:12.5,fontWeight:600,color:"#fff"}}>
             <Edit3 style={{width:13,height:13}}/> New Message
           </button>
           {/* SMTP mode badge */}
           {smtpStatus&&(
-            <div style={{marginTop:8,padding:"5px 8px",borderRadius:4,background:smtpStatus.ready?"#f0fff0":"#fff8f0",border:`1px solid ${smtpStatus.ready?"#86efac":"#fdba74"}`,display:"flex",alignItems:"center",gap:5}}>
+            <div style={{marginTop:8,padding:"5px 8px",borderRadius:4,background:smtpStatus.ready?"#f0fff0":"#fff8f0",border:`1px solid ${smtpStatus.ready?"#86efac":"#fdba74"}`,display:"flex" as const,alignItems:"center" as const,gap:5}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:smtpStatus.ready?"#16a34a":"#d97706",flexShrink:0}}/>
               <span style={{fontSize:9.5,fontWeight:600,color:smtpStatus.ready?"#15803d":"#92400e",lineHeight:1.3}}>
                 {smtpStatus.ready?`${smtpStatus.provider} · ${smtpStatus.mode==="external"||smtpStatus.mode==="both"?"External Active":"Internal + External"}` : "SMTP Off — Internal Only"}
@@ -322,14 +322,14 @@ export default function EmailPage() {
             const isAct=folder===f.id;
             return (
               <button key={f.id} onClick={()=>{setFolder(f.id);setSelected(null);setComposing(false);}}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:4,border:"none",
-                  background:isAct?"#e8f0fe":"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:1,
+                style={{width:"100%",display:"flex" as const,alignItems:"center" as const,gap:9,padding:"8px 10px",borderRadius:4,border:"none",
+                  background:isAct?"#e8f0fe":"transparent",cursor:"pointer" as const,textAlign:"left" as const,marginBottom:1,
                   borderLeft:isAct?"2px solid #0078d4":"2px solid transparent"}}
                 onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#f0f0f0"; }}
                 onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
                 <f.icon style={{width:14,height:14,color:isAct?"#0078d4":"#666",flexShrink:0}}/>
                 <span style={{flex:1,fontSize:12.5,fontWeight:isAct?600:400,color:isAct?"#0078d4":"#1f1f1f"}}>{f.label}</span>
-                {count>0&&<span style={{minWidth:18,height:18,borderRadius:9,background:"#0078d4",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px"}}>{count}</span>}
+                {count>0&&<span style={{minWidth:18,height:18,borderRadius:9,background:"#0078d4",color:"#fff",fontSize:9,fontWeight:700,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:"0 4px"}}>{count}</span>}
               </button>
             );
           })}
@@ -340,8 +340,8 @@ export default function EmailPage() {
               const isAct=folder===f.id;
               return (
                 <button key={f.id} onClick={()=>{setFolder(f.id);setSelected(null);setComposing(false);}}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"7px 10px",borderRadius:4,border:"none",
-                    background:isAct?"#e8f0fe":"transparent",cursor:"pointer",textAlign:"left" as const,marginBottom:1}}
+                  style={{width:"100%",display:"flex" as const,alignItems:"center" as const,gap:9,padding:"7px 10px",borderRadius:4,border:"none",
+                    background:isAct?"#e8f0fe":"transparent",cursor:"pointer" as const,textAlign:"left" as const,marginBottom:1}}
                   onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#f0f0f0"; }}
                   onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="transparent"; }}>
                   <f.icon style={{width:13,height:13,color:"#888",flexShrink:0}}/>
@@ -353,30 +353,30 @@ export default function EmailPage() {
         </nav>
 
         {/* User strip */}
-        <div style={{padding:"10px 16px",borderTop:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:26,height:26,borderRadius:"50%",background:avatarBg(profile?.full_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:9.5,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(profile?.full_name)}</div>
+        <div style={{padding:"10px 16px",borderTop:"1px solid #e0e0e0",display:"flex" as const,alignItems:"center" as const,gap:8}}>
+          <div style={{width:26,height:26,borderRadius:"50%",background:avatarBg(profile?.full_name),display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:9.5,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(profile?.full_name)}</div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:11,fontWeight:600,color:"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
-            <div style={{fontSize:9,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.email||""}</div>
+            <div style={{fontSize:11,fontWeight:600,color:"#1f1f1f",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name||"User"}</div>
+            <div style={{fontSize:9,color:"#888",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.email||""}</div>
           </div>
         </div>
       </div>
 
       {/* ── MIDDLE: Message list ──────────────────────────────── */}
-      <div style={{width:300,flexShrink:0,borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",background:"#fff",height:"100%",overflow:"hidden"}}>
+      <div style={{width:300,flexShrink:0,borderRight:"1px solid #e0e0e0",display:"flex" as const,flexDirection:"column" as const,background:"#fff",height:"100%",overflow:"hidden" as const}}>
         {/* Header + search */}
         <div style={{padding:"12px 14px 8px",borderBottom:"1px solid #e0e0e0"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,marginBottom:10}}>
             <h2 style={{fontSize:14,fontWeight:700,color:"#1f1f1f",margin:0}}>{FOLDERS.find(f=>f.id===folder)?.label||folder}</h2>
-            <div style={{display:"flex",gap:2}}>
+            <div style={{display:"flex" as const,gap:2}}>
               <button onClick={load}
-                style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer",lineHeight:0}}
+                style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer" as const,lineHeight:0}}
                 onMouseEnter={e=>hoverBg(e,true)}
                 onMouseLeave={e=>hoverBg(e,false)}>
                 <RefreshCw style={{width:13,height:13,color:"#666",animation:loading?"spin 1s linear infinite":undefined}}/>
               </button>
               <button onClick={()=>{ setComposing(true); setSelected(null); }}
-                style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer",lineHeight:0}}
+                style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer" as const,lineHeight:0}}
                 onMouseEnter={e=>hoverBg(e,true)}
                 onMouseLeave={e=>hoverBg(e,false)}>
                 <Plus style={{width:13,height:13,color:"#666"}}/>
@@ -384,21 +384,21 @@ export default function EmailPage() {
             </div>
           </div>
           {/* Search */}
-          <div style={{position:"relative"}}>
-            <Search style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#999"}}/>
+          <div style={{position:"relative" as const}}>
+            <Search style={{position:"absolute" as const,left:8,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#999"}}/>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages…"
               style={{...inp,paddingLeft:28,height:30,fontSize:12,background:"#f5f5f5",border:"1px solid #e0e0e0"}}/>
-            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",lineHeight:0}}>
+            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const,lineHeight:0}}>
               <X style={{width:11,height:11,color:"#999"}}/>
             </button>}
           </div>
           {/* Tabs */}
           {folder==="inbox"&&(
-            <div style={{display:"flex",gap:0,marginTop:8,borderBottom:"2px solid #e0e0e0"}}>
+            <div style={{display:"flex" as const,gap:0,marginTop:8,borderBottom:"2px solid #e0e0e0"}}>
               {(["all","unread","read"] as const).map(t=>(
                 <button key={t} onClick={()=>setTab(t)}
                   style={{padding:"5px 12px",fontSize:11.5,fontWeight:tab===t?700:400,border:"none",background:"#f8fafc",
-                    cursor:"pointer",color:tab===t?"#0078d4":"#555",
+                    cursor:"pointer" as const,color:tab===t?"#0078d4":"#555",
                     borderBottom:tab===t?"2px solid #0078d4":"2px solid transparent",
                     marginBottom:-2,transition:"all 0.12s"}}>
                   {t.charAt(0).toUpperCase()+t.slice(1)}
@@ -410,7 +410,7 @@ export default function EmailPage() {
 
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto" as const}}>
-          {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"28px",gap:8,color:"#999",fontSize:12}}>
+          {loading&&<div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:"28px",gap:8,color:"#999",fontSize:12}}>
             <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading…
           </div>}
           {!loading&&filtered.length===0&&<div style={{textAlign:"center" as const,padding:"40px 16px",color:"#999"}}>
@@ -424,8 +424,8 @@ export default function EmailPage() {
                 onClick={()=>openMsg(msg)}
                 onContextMenu={e=>{e.preventDefault();setCtx({x:e.clientX,y:e.clientY,msg});}}
                 style={{
-                  display:"flex",alignItems:"flex-start",gap:9,padding:"10px 12px",
-                  borderBottom:"1px solid #f0f0f0",cursor:"pointer",
+                  display:"flex" as const,alignItems:"flex-start" as const,gap:9,padding:"10px 12px",
+                  borderBottom:"1px solid #f0f0f0",cursor:"pointer" as const,
                   background:isActive?"#e8f0fe":msg.is_read?"#fff":"#f8f9ff",
                   borderLeft:isActive?"2px solid #0078d4":"2px solid transparent",
                   transition:"background 0.08s",
@@ -435,16 +435,16 @@ export default function EmailPage() {
                 {/* Unread dot */}
                 <div style={{width:6,height:6,borderRadius:"50%",background:msg.is_read?"transparent":"#0078d4",flexShrink:0,marginTop:7}}/>
                 {/* Avatar */}
-                <div style={{width:32,height:32,borderRadius:"50%",background:avatarBg(msg.from_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"#fff",flexShrink:0}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarBg(msg.from_name),display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:10.5,fontWeight:700,color:"#fff",flexShrink:0}}>
                   {initials(msg.from_name)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:4}}>
-                    <span style={{fontSize:12,fontWeight:msg.is_read?500:700,color:"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,maxWidth:140}}>{msg.from_name||"System"}</span>
+                  <div style={{display:"flex" as const,alignItems:"baseline" as const,justifyContent:"space-between" as const,gap:4}}>
+                    <span style={{fontSize:12,fontWeight:msg.is_read?500:700,color:"#1f1f1f",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const,maxWidth:140}}>{msg.from_name||"System"}</span>
                     <span style={{fontSize:9.5,color:"#999",flexShrink:0}}>{timeStr(msg.created_at)}</span>
                   </div>
-                  <div style={{fontSize:11.5,fontWeight:msg.is_read?400:600,color:msg.is_read?"#555":"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:1}}>{msg.subject}</div>
-                  <div style={{fontSize:10.5,color:"#999",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:2}}>{msg.body.slice(0,55)}…</div>
+                  <div style={{fontSize:11.5,fontWeight:msg.is_read?400:600,color:msg.is_read?"#555":"#1f1f1f",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:1}}>{msg.subject}</div>
+                  <div style={{fontSize:10.5,color:"#999",overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const,marginTop:2}}>{msg.body.slice(0,55)}…</div>
                 </div>
                 {isStarred&&<Star style={{width:11,height:11,color:"#f59e0b",fill:"#f59e0b",flexShrink:0,marginTop:5}}/>}
               </div>
@@ -454,36 +454,36 @@ export default function EmailPage() {
       </div>
 
       {/* ── RIGHT: Reader / Compose / Empty ──────────────────── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",background:"#fff",position:"relative"}}>
+      <div style={{flex:1,display:"flex" as const,flexDirection:"column" as const,height:"100%",overflow:"hidden" as const,background:"#fff",position:"relative" as const}}>
 
         {/* ── EMPTY STATE with procurement wallpaper ── */}
         {!selected&&!composing&&(
-          <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{flex:1,position:"relative" as const,overflow:"hidden" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
             {/* Background */}
-            <div style={{position:"absolute",inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.22)"}}/>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(0,30,80,0.75),rgba(0,0,0,0.55))"}}/>
+            <div style={{position:"absolute" as const,inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.22)"}}/>
+            <div style={{position:"absolute" as const,inset:0,background:"linear-gradient(135deg,rgba(0,30,80,0.75),rgba(0,0,0,0.55))"}}/>
             {/* Content */}
-            <div style={{position:"relative",textAlign:"center" as const,padding:"40px 32px"}}>
-              <div style={{width:64,height:64,borderRadius:16,background:"rgba(0,120,212,0.85)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",backdropFilter:"blur(4px)"}}>
+            <div style={{position:"relative" as const,textAlign:"center" as const,padding:"40px 32px"}}>
+              <div style={{width:64,height:64,borderRadius:16,background:"rgba(0,120,212,0.85)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,margin:"0 auto 20px",backdropFilter:"blur(4px)"}}>
                 <Mail style={{width:30,height:30,color:"#fff"}}/>
               </div>
               <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:8,letterSpacing:"-0.3px"}}>Mail & Inbox</div>
               <div style={{fontSize:12.5,color:"rgba(255,255,255,0.55)",marginBottom:24,maxWidth:300,lineHeight:1.6}}>
                 Select a message from the list to read it, or compose a new message to get started.
               </div>
-              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <div style={{display:"flex" as const,gap:10,justifyContent:"center" as const}}>
                 <button onClick={()=>setComposing(true)}
-                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:600}}>
+                  style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"10px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer" as const,fontSize:13,fontWeight:600}}>
                   <Edit3 style={{width:13,height:13}}/> New Message
                 </button>
                 <button onClick={load}
-                  style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:"#e2e8f0",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
+                  style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"10px 16px",background:"#e2e8f0",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:4,cursor:"pointer" as const,fontSize:13,fontWeight:500,backdropFilter:"blur(4px)"}}>
                   <RefreshCw style={{width:13,height:13}}/> Refresh
                 </button>
               </div>
               {/* System status */}
               {smtpStatus&&(
-                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"#e2e8f0",border:"1px solid #e2e8f0",display:"inline-flex",alignItems:"center",gap:8}}>
+                <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"#e2e8f0",border:"1px solid #e2e8f0",display:"inline-flex" as const,alignItems:"center" as const,gap:8}}>
                   <div style={{width:7,height:7,borderRadius:"50%",background:smtpStatus.ready?"#4ade80":"#fbbf24"}}/>
                   <span style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>
                     Email: {smtpStatus.ready?`${smtpStatus.provider} Active`:"Internal Only"} · {unreadCount} unread
@@ -496,38 +496,38 @@ export default function EmailPage() {
 
         {/* ── COMPOSE WINDOW ── */}
         {composing&&(
-          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const}}>
             {/* Compose header */}
-            <div style={{padding:"12px 20px",borderBottom:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:10,background:"#faf9f8"}}>
+            <div style={{padding:"12px 20px",borderBottom:"1px solid #e0e0e0",display:"flex" as const,alignItems:"center" as const,gap:10,background:"#faf9f8"}}>
               <Edit3 style={{width:15,height:15,color:"#0078d4"}}/>
               <h3 style={{fontSize:14,fontWeight:700,color:"#1f1f1f",margin:0,flex:1}}>New Message</h3>
-              <button onClick={()=>setComposing(false)} style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer",lineHeight:0}}
+              <button onClick={()=>setComposing(false)} style={{padding:5,borderRadius:4,border:"none",background:"#f8fafc",cursor:"pointer" as const,lineHeight:0}}
                 onMouseEnter={e=>hoverBg(e,true)} onMouseLeave={e=>hoverBg(e,false)}>
                 <X style={{width:15,height:15,color:"#666"}}/>
               </button>
             </div>
             <div style={{flex:1,overflowY:"auto" as const,padding:"20px 24px"}}>
-              <div style={{maxWidth:700,display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{maxWidth:700,display:"flex" as const,flexDirection:"column" as const,gap:12}}>
                 {/* To */}
-                <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
+                <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
                   <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>To</label>
                   <input value={compose.to} onChange={e=>setCompose(p=>({...p,to:e.target.value}))} placeholder="recipient@email.com or internal user email"
                     style={{...inp,border:"none",flex:1,padding:"6px 0"}}/>
                 </div>
                 {/* CC */}
-                <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
+                <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
                   <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>CC</label>
                   <input value={compose.cc} onChange={e=>setCompose(p=>({...p,cc:e.target.value}))} placeholder="cc@email.com (optional)"
                     style={{...inp,border:"none",flex:1,padding:"6px 0"}}/>
                 </div>
                 {/* Subject */}
-                <div style={{display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
+                <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,borderBottom:"1px solid #e0e0e0",paddingBottom:10}}>
                   <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Sub</label>
                   <input value={compose.subject} onChange={e=>setCompose(p=>({...p,subject:e.target.value}))} placeholder="Message subject"
                     style={{...inp,border:"none",flex:1,fontWeight:600,padding:"6px 0"}}/>
                 </div>
                 {/* Priority */}
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{display:"flex" as const,alignItems:"center" as const,gap:10}}>
                   <label style={{fontSize:11,fontWeight:700,color:"#888",width:40,flexShrink:0,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Pri</label>
                   <select value={compose.priority} onChange={e=>setCompose(p=>({...p,priority:e.target.value}))}
                     style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
@@ -542,24 +542,24 @@ export default function EmailPage() {
                   placeholder="Write your message here…" rows={12}
                   style={{...inp,resize:"vertical" as const,minHeight:220,marginTop:4}}/>
                 {/* Actions */}
-                <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center"}}>
+                <div style={{display:"flex" as const,gap:8,flexWrap:"wrap" as const,alignItems:"center" as const}}>
                   <button onClick={()=>sendCompose(false)} disabled={sending||testSending}
-                    style={{display:"flex",alignItems:"center",gap:7,padding:"9px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:600,opacity:(sending||testSending)?0.7:1}}>
+                    style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"9px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer" as const,fontSize:13,fontWeight:600,opacity:(sending||testSending)?0.7:1}}>
                     {sending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
                     {sending?"Sending…":"Send"}
                   </button>
                   <button onClick={()=>sendCompose(true)} disabled={sending||testSending}
                     title="Send test email to yourself to verify SMTP configuration"
-                    style={{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",background:"#f8fafc",color:"#0078d4",border:"1px solid #0078d4",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:500,opacity:(sending||testSending)?0.7:1}}>
+                    style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"9px 14px",background:"#f8fafc",color:"#0078d4",border:"1px solid #0078d4",borderRadius:4,cursor:"pointer" as const,fontSize:12,fontWeight:500,opacity:(sending||testSending)?0.7:1}}>
                     {testSending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Activity style={{width:12,height:12}}/>}
                     {testSending?"Testing…":"Test Send"}
                   </button>
                   <button onClick={()=>setComposing(false)}
-                    style={{padding:"9px 14px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#555"}}>
+                    style={{padding:"9px 14px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer" as const,fontSize:12,color:"#555"}}>
                     Discard
                   </button>
                   {smtpStatus&&(
-                    <div style={{marginLeft:"auto",fontSize:10.5,color:"#888",display:"flex",alignItems:"center",gap:5}}>
+                    <div style={{marginLeft:"auto",fontSize:10.5,color:"#888",display:"flex" as const,alignItems:"center" as const,gap:5}}>
                       <div style={{width:6,height:6,borderRadius:"50%",background:smtpStatus.ready?"#22c55e":"#f59e0b"}}/>
                       {smtpStatus.ready?`External via ${smtpStatus.provider}`:"Internal only — configure SMTP in Settings"}
                     </div>
@@ -574,7 +574,7 @@ export default function EmailPage() {
         {selected&&!composing&&(
           <>
             {/* Toolbar */}
-            <div style={{padding:"10px 16px",borderBottom:"1px solid #e0e0e0",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap" as const,background:"#faf9f8"}}>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid #e0e0e0",display:"flex" as const,alignItems:"center" as const,gap:4,flexWrap:"wrap" as const,background:"#faf9f8"}}>
               {[
                 {icon:CornerUpLeft,label:"Reply",action:()=>{setReplyMode(true);setReplyBody(`\n\n--- Original ---\n${selected.body}`);}},
                 {icon:Users,       label:"Reply All",action:()=>{setReplyMode(true);setReplyBody(`\n\n--- Original ---\n${selected.body}`);}},
@@ -582,7 +582,7 @@ export default function EmailPage() {
                 {icon:Trash2,      label:"Delete",action:()=>deleteMsg(selected.id)},
               ].map(btn=>(
                 <button key={btn.label} onClick={btn.action}
-                  style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#1f1f1f",fontWeight:500}}
+                  style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"6px 10px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer" as const,fontSize:12,color:"#1f1f1f",fontWeight:500}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
                   onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <btn.icon style={{width:13,height:13,color:"#555"}}/>{btn.label}
@@ -590,13 +590,13 @@ export default function EmailPage() {
               ))}
               <div style={{flex:1}}/>
               <button onClick={()=>toggleStar(selected.id)}
-                style={{padding:6,border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",lineHeight:0}}
+                style={{padding:6,border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer" as const,lineHeight:0}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                 <Star style={{width:14,height:14,color:starredIds.has(selected.id)?"#f59e0b":"#999",fill:starredIds.has(selected.id)?"#f59e0b":"none"}}/>
               </button>
               <button onClick={()=>markUnread(selected)}
-                style={{padding:6,border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",lineHeight:0}}
+                style={{padding:6,border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer" as const,lineHeight:0}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f5f5f5"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                 <EyeOff style={{width:14,height:14,color:"#999"}}/>
@@ -606,10 +606,10 @@ export default function EmailPage() {
             {/* Email header */}
             <div style={{padding:"20px 24px 16px",borderBottom:"1px solid #e0e0e0"}}>
               <h2 style={{fontSize:18,fontWeight:700,color:"#1f1f1f",margin:"0 0 14px"}}>{selected.subject}</h2>
-              <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                <div style={{width:40,height:40,borderRadius:"50%",background:avatarBg(selected.from_name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(selected.from_name)}</div>
+              <div style={{display:"flex" as const,alignItems:"flex-start" as const,gap:12}}>
+                <div style={{width:40,height:40,borderRadius:"50%",background:avatarBg(selected.from_name),display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:13,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(selected.from_name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between"}}>
+                  <div style={{display:"flex" as const,alignItems:"baseline" as const,justifyContent:"space-between" as const}}>
                     <span style={{fontSize:13,fontWeight:700,color:"#1f1f1f"}}>{selected.from_name||"System"}</span>
                     <span style={{fontSize:11,color:"#999"}}>{timeStr(selected.created_at)}</span>
                   </div>
@@ -617,7 +617,7 @@ export default function EmailPage() {
                     <span style={{color:"#999"}}>From:</span> {selected.from_email}
                     {selected.to_email&&<span style={{marginLeft:12}}><span style={{color:"#999"}}>To:</span> {selected.to_email}</span>}
                   </div>}
-                  <div style={{marginTop:6,display:"flex",gap:5,flexWrap:"wrap" as const}}>
+                  <div style={{marginTop:6,display:"flex" as const,gap:5,flexWrap:"wrap" as const}}>
                     <span style={{padding:"2px 8px",borderRadius:3,fontSize:10,fontWeight:600,background:`${msgColor(selected.type)}18`,color:msgColor(selected.type)}}>{selected.type}</span>
                     {selected.module&&<span style={{padding:"2px 8px",borderRadius:3,fontSize:10,background:"#f0f0f0",color:"#666"}}>{selected.module}</span>}
                     {selected.priority!=="normal"&&<span style={{padding:"2px 8px",borderRadius:3,fontSize:10,fontWeight:600,background:selected.priority==="urgent"?"#fef2f2":"#fff8f0",color:selected.priority==="urgent"?"#dc2626":"#d97706"}}>{selected.priority}</span>}
@@ -631,7 +631,7 @@ export default function EmailPage() {
               <div style={{maxWidth:700,fontSize:13.5,color:"#374151",lineHeight:1.85,whiteSpace:"pre-wrap" as const}}>{selected.body}</div>
               {selected.action_url&&(
                 <div style={{marginTop:20}}>
-                  <a href={selected.action_url} style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",borderRadius:4,textDecoration:"none",fontSize:12,fontWeight:600}}>
+                  <a href={selected.action_url} style={{display:"inline-flex" as const,alignItems:"center" as const,gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",borderRadius:4,textDecoration:"none" as const,fontSize:12,fontWeight:600}}>
                     <ChevronRight style={{width:12,height:12}}/> View in System
                   </a>
                 </div>
@@ -644,12 +644,12 @@ export default function EmailPage() {
                 <div style={{fontSize:11.5,color:"#666",marginBottom:8}}>Replying to <strong style={{color:"#1f1f1f"}}>{selected.from_name}</strong></div>
                 <textarea value={replyBody} onChange={e=>setReplyBody(e.target.value)} rows={5}
                   placeholder="Write your reply…" style={{...inp,resize:"none" as const}}/>
-                <div style={{display:"flex",gap:8,marginTop:10}}>
+                <div style={{display:"flex" as const,gap:8,marginTop:10}}>
                   <button onClick={sendReply} disabled={sending}
-                    style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:600,opacity:sending?0.7:1}}>
+                    style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer" as const,fontSize:12,fontWeight:600,opacity:sending?0.7:1}}>
                     {sending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Send style={{width:12,height:12}}/>} Send Reply
                   </button>
-                  <button onClick={()=>setReplyMode(false)} style={{padding:"8px 12px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#555"}}>Cancel</button>
+                  <button onClick={()=>setReplyMode(false)} style={{padding:"8px 12px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer" as const,fontSize:12,color:"#555"}}>Cancel</button>
                 </div>
               </div>
             )}
@@ -659,7 +659,7 @@ export default function EmailPage() {
 
       {/* ── CONTEXT MENU ──────────────────────────────────────── */}
       {ctx&&(
-        <div ref={ctxRef} style={{position:"fixed",left:Math.min(ctx.x,window.innerWidth-210),top:Math.min(ctx.y,window.innerHeight-360),width:200,background:"#fff",borderRadius:4,border:"1px solid #e0e0e0",boxShadow:"0 8px 24px rgba(0,0,0,0.15)",zIndex:2000,overflow:"hidden",fontFamily:"'Segoe UI',sans-serif"}}>
+        <div ref={ctxRef} style={{position:"fixed" as const,left:Math.min(ctx.x,window.innerWidth-210),top:Math.min(ctx.y,window.innerHeight-360),width:200,background:"#fff",borderRadius:4,border:"1px solid #e0e0e0",boxShadow:"0 8px 24px rgba(0,0,0,0.15)",zIndex:2000,overflow:"hidden" as const,fontFamily:"'Segoe UI',sans-serif"}}>
           {[
             {label:"Open",        icon:Eye,          action:()=>openMsg(ctx.msg)},
             {label:"Reply",       icon:CornerUpLeft, action:()=>{openMsg(ctx.msg);setTimeout(()=>setReplyMode(true),50);}},
@@ -673,7 +673,7 @@ export default function EmailPage() {
             const it=item as any;
             return (
               <button key={i} onClick={it.action}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",border:"none",background:"#f8fafc",cursor:"pointer",width:"100%",textAlign:"left" as const,fontSize:12.5,color:it.danger?"#dc2626":"#1f1f1f"}}
+                style={{display:"flex" as const,alignItems:"center" as const,gap:10,padding:"8px 14px",border:"none",background:"#f8fafc",cursor:"pointer" as const,width:"100%",textAlign:"left" as const,fontSize:12.5,color:it.danger?"#dc2626":"#1f1f1f"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=it.danger?"#fdf4f4":"#f5f5f5"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                 <it.icon style={{width:13,height:13,color:it.danger?"#dc2626":"#666"}}/>{it.label}

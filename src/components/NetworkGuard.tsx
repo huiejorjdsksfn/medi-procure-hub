@@ -29,23 +29,23 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
 
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 99999,
+      position: "fixed" as const, inset: 0, zIndex: 99999,
       background: "rgba(10,14,26,0.88)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
+      display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
       fontFamily: "'Segoe UI', system-ui, sans-serif",
     }}>
       {/* Card — matches Image 3 */}
       <div style={{
         background: "#fff", borderRadius: 20, padding: "40px 36px",
-        maxWidth: 420, width: "90%", textAlign: "center",
+        maxWidth: 420, width: "90%", textAlign: "center" as const,
         boxShadow: "0 24px 80px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.15)",
       }}>
         {/* Red circle with ban icon */}
-        <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}>
+        <div style={{ display:"flex" as const, justifyContent:"center" as const, marginBottom:20 }}>
           <div style={{
             width: 72, height: 72, borderRadius: "50%",
             background: "#fee2e2",
-            display: "flex", alignItems: "center", justifyContent: "center",
+            display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
           }}>
             <div style={{ fontSize: 36, lineHeight: 1 }}>🚫</div>
           </div>
@@ -62,14 +62,14 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
         {/* Info box */}
         <div style={{
           background: "#f8fafc", borderRadius: 12, padding: "14px 18px",
-          border: "1px solid #e5e7eb", marginBottom: 22, textAlign: "left",
+          border: "1px solid #e5e7eb", marginBottom: 22, textAlign: "left" as const,
         }}>
           {[
             { label: "Your IP",  value: denied.ip },
             { label: "Network",  value: denied.network },
             { label: "Reason",   value: denied.reason, red: true },
           ].map(row => (
-            <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"5px 0", borderBottom:"1px solid #f0f0f0", gap:16 }}>
+            <div key={row.label} style={{ display:"flex" as const, justifyContent:"space-between" as const, alignItems:"flex-start" as const, padding:"5px 0", borderBottom:"1px solid #f0f0f0", gap:16 }}>
               <span style={{ fontSize:13, color:"#6b7280", fontWeight:500, flexShrink:0 }}>{row.label}</span>
               <span style={{ fontSize:13, color:row.red?"#dc2626":"#374151", fontWeight:row.red?700:600, textAlign:"right" as const }}>{row.value}</span>
             </div>
@@ -86,7 +86,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
           style={{
             width:"100%", padding:"13px 0", borderRadius:50, border:"none",
             background: "linear-gradient(135deg,#dc2626,#b91c1c)",
-            color: "#fff", fontWeight:800, fontSize:15, cursor:"pointer",
+            color: "#fff", fontWeight:800, fontSize:15, cursor:"pointer" as const,
             boxShadow: "0 4px 18px rgba(220,38,38,0.4)",
             marginBottom:16,
           }}>
@@ -100,7 +100,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
         </div>
 
         {/* Logo watermark */}
-        <div style={{ marginTop:14, display:"flex", justifyContent:"center" }}>
+        <div style={{ marginTop:14, display:"flex" as const, justifyContent:"center" as const }}>
           <img src={logoImg} alt="EL5H" style={{ width:28, height:28, borderRadius:"50%", objectFit:"contain" as const, opacity:0.4 }} />
         </div>
       </div>

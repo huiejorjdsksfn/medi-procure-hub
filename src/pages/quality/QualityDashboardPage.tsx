@@ -52,7 +52,7 @@ const border = "1px solid #4472c4";
 
 const tdBase: React.CSSProperties = {
   border, padding:"2px 3px", fontSize:9.5, textAlign:"center" as const,
-  verticalAlign:"middle", lineHeight:1.3, background:"#fff", color:"#1a1a2e",
+  verticalAlign:"middle" as const, lineHeight:1.3, background:"#fff", color:"#1a1a2e",
 };
 const thBase: React.CSSProperties = {
   ...tdBase, background:"#bdd7ee", fontWeight:700,
@@ -66,10 +66,10 @@ const sectionHd: React.CSSProperties = {
 const inpStyle: React.CSSProperties = {
   width:"100%", border:"none", outline:"none", background:"#f8fafc",
   fontSize:9.5, fontFamily:"inherit", padding:"2px 4px",
-  textAlign:"center" as const, color:"#1a1a2e", boxSizing:"border-box",
+  textAlign:"center" as const, color:"#1a1a2e", boxSizing:"border-box" as const,
 };
 const selStyle: React.CSSProperties = {
-  ...inpStyle, cursor:"pointer",
+  ...inpStyle, cursor:"pointer" as const,
 };
 
 export default function QualityDashboardPage() {
@@ -260,7 +260,7 @@ export default function QualityDashboardPage() {
   const lqcUsed     = lqcRows.filter(r=>r.line).length;
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"70vh",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+    <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,height:"70vh",flexDirection:"column" as const,gap:12,fontFamily:"'Segoe UI',system-ui"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       <RefreshCw style={{width:30,height:30,color:"#2e75b6",animation:"spin 1s linear infinite"}}/>
       <span style={{color:"#6b7280",fontSize:13}}>Loading Quality Dashboard...</span>
@@ -275,32 +275,32 @@ export default function QualityDashboardPage() {
       `}</style>
 
       {/* ══ TOP TOOLBAR ══ */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#2e75b6)",padding:"10px 18px",display:"flex",alignItems:"center",gap:10,boxShadow:"0 2px 10px rgba(0,0,0,0.2)",flexShrink:0}}>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#2e75b6)",padding:"10px 18px",display:"flex" as const,alignItems:"center" as const,gap:10,boxShadow:"0 2px 10px rgba(0,0,0,0.2)",flexShrink:0}}>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>Quality Dashboard</div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{hospitalName} · IQC &amp; LQC Tracking Form</div>
         </div>
         {/* Month / Year */}
-        <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 12px",border:"1px solid rgba(255,255,255,0.2)"}}>
+        <div style={{display:"flex" as const,alignItems:"center" as const,gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 12px",border:"1px solid rgba(255,255,255,0.2)"}}>
           <Calendar style={{width:12,height:12,color:"rgba(255,255,255,0.9)"}}/>
           <select value={month} onChange={e=>setMonth(e.target.value)}
-            style={{background:"#f8fafc",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",cursor:"pointer"}}>
+            style={{background:"#f8fafc",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",cursor:"pointer" as const}}>
             {MONTHS.map(m=><option key={m} value={m} style={{color:"#1a1a2e"}}>{m}</option>)}
           </select>
           <input value={year} onChange={e=>setYear(e.target.value)}
             style={{background:"#f8fafc",border:"none",color:"#fff",fontSize:12,fontWeight:700,outline:"none",width:46,textAlign:"center" as const}}
             maxLength={4}/>
         </div>
-        <button onClick={load} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+        <button onClick={load} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:600}}>
           <RefreshCw style={{width:12,height:12}}/>Refresh
         </button>
-        <button onClick={doExport} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+        <button onClick={doExport} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:600}}>
           <Download style={{width:12,height:12}}/>Excel
         </button>
-        <button onClick={doPrint} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:600}}>
+        <button onClick={doPrint} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"7px 13px",background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:7,cursor:"pointer" as const,color:"#fff",fontSize:11,fontWeight:600}}>
           <Printer style={{width:12,height:12}}/>Print
         </button>
-        <button onClick={saveAll} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",background:"#C45911",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",color:"#fff",fontSize:12,fontWeight:800,opacity:saving?0.75:1}}>
+        <button onClick={saveAll} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 18px",background:"#C45911",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",color:"#fff",fontSize:12,fontWeight:800,opacity:saving?0.75:1}}>
           {saving
             ? <RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>
             : <Save style={{width:12,height:12}}/>}
@@ -309,7 +309,7 @@ export default function QualityDashboardPage() {
       </div>
 
       {/* ══ KPI STRIP ══ */}
-      <div style={{display:"flex",background:"#fff",borderBottom:"2px solid #2e75b6"}}>
+      <div style={{display:"flex" as const,background:"#fff",borderBottom:"2px solid #2e75b6"}}>
         {[
           {label:"Total Rejected",    val:totalRej,   col:"#dc2626"},
           {label:"IQC Rows Used",     val:usedIQC,    col:"#2563eb"},
@@ -334,7 +334,7 @@ export default function QualityDashboardPage() {
             <tbody>
               <tr>
                 <td style={{...tdBase,width:130,padding:6,textAlign:"center" as const}}>
-                  <img src={logoImg} alt="EL5H Logo" style={{width:60,height:60,objectFit:"contain" as const,display:"block",margin:"0 auto 2px"}} />
+                  <img src={logoImg} alt="EL5H Logo" style={{width:60,height:60,objectFit:"contain" as const,display:"block" as const,margin:"0 auto 2px"}} />
                   <div style={{fontWeight:700,fontSize:9,color:"#2e75b6",marginTop:2}}>EL5H</div>
                 </td>
                 <td style={{...tdBase,textAlign:"center" as const,padding:"6px 0"}}>
@@ -409,7 +409,7 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* Severity */}
                   <td style={{...tdBase,padding:0}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer",color:"#111827"}} value={row.severity}
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer" as const,color:"#111827"}} value={row.severity}
                       onChange={e=>updIQC(i,"severity",e.target.value)}
                       style={{color:row.severity ? SEV_COL[row.severity]||"#1a1a2e" : "#9ca3af",
                               fontWeight:row.severity?700:400}}>
@@ -421,7 +421,7 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* Stage of Issue */}
                   <td style={{...tdBase,padding:0}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer",color:"#111827"}} value={row.stage_of_issue}
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer" as const,color:"#111827"}} value={row.stage_of_issue}
                       onChange={e=>updIQC(i,"stage_of_issue",e.target.value)}>
                       <option value="">—</option>
                       <option>Incoming</option>
@@ -443,7 +443,7 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* SCAR Required */}
                   <td style={{...tdBase,padding:0}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer",color:"#111827"}} value={row.scar_required}
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer" as const,color:"#111827"}} value={row.scar_required}
                       onChange={e=>updIQC(i,"scar_required",e.target.value)}>
                       <option value="">—</option>
                       <option>Yes</option>
@@ -454,7 +454,7 @@ export default function QualityDashboardPage() {
                   {/* Status */}
                   <td style={{...tdBase,padding:0,
                     background: row.status ? (STATUS_BG[row.status]||"#fff") : "#fff"}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer",color:"#111827"}} value={row.status}
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer" as const,color:"#111827"}} value={row.status}
                       onChange={e=>updIQC(i,"status",e.target.value)}
                       style={{color: row.status ? (STATUS_COL[row.status]||"#1a1a2e") : "#9ca3af",
                               fontWeight:row.status?700:400,
@@ -478,7 +478,7 @@ export default function QualityDashboardPage() {
             <tbody>
               <tr>
                 {/* Left: NOT RETURNED table */}
-                <td style={{width:"54%",padding:0,verticalAlign:"top",border}}>
+                <td style={{width:"54%",padding:0,verticalAlign:"top" as const,border}}>
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
                     <thead>
                       <tr>
@@ -519,13 +519,13 @@ export default function QualityDashboardPage() {
                 </td>
 
                 {/* Right: Photo area */}
-                <td style={{width:"46%",padding:0,verticalAlign:"top",border}}>
+                <td style={{width:"46%",padding:0,verticalAlign:"top" as const,border}}>
                   <div style={{...darkTh,fontSize:9.5,textAlign:"center" as const,padding:"4px 8px",
-                    textDecoration:"underline",cursor:"pointer"}}>
+                    textDecoration:"underline" as const,cursor:"pointer" as const}}>
                     Photo Of Material Not returned to Supplier
                   </div>
                   <div style={{background:"#f8fafc",minHeight:112,padding:8,
-                    display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5}}>
+                    display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr",gap:5}}>
                     {pendRows.filter(r=>r.date_of_rejection||r.reason_for_pendency).map((r,i)=>(
                       <div key={i} style={{background:"#dce6f1",borderRadius:5,padding:5,
                         fontSize:8.5,color:"#374151",textAlign:"center" as const,border:"1px solid #bdd7ee"}}>
@@ -538,8 +538,8 @@ export default function QualityDashboardPage() {
                       </div>
                     ))}
                     {pendRows.filter(r=>r.date_of_rejection||r.reason_for_pendency).length===0&&(
-                      <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",
-                        justifyContent:"center",height:80,color:"#d1d5db",fontSize:10,fontStyle:"italic" as const}}>
+                      <div style={{gridColumn:"1/-1",display:"flex" as const,alignItems:"center" as const,
+                        justifyContent:"center" as const,height:80,color:"#d1d5db",fontSize:10,fontStyle:"italic" as const}}>
                         No pending returns recorded
                       </div>
                     )}
@@ -596,7 +596,7 @@ export default function QualityDashboardPage() {
                   </td>
                   <td style={{...tdBase,padding:0,
                     background:row.status?(STATUS_BG[row.status]||"#fff"):"#fff"}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer",color:"#111827"}} value={row.status}
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center" as const,cursor:"pointer" as const,color:"#111827"}} value={row.status}
                       onChange={e=>updLQC(i,"status",e.target.value)}
                       style={{color:row.status?(STATUS_COL[row.status]||"#1a1a2e"):"#9ca3af",
                               fontWeight:row.status?700:400,background:"#f8fafc"}}>
@@ -610,9 +610,9 @@ export default function QualityDashboardPage() {
               ))}
               {/* LQC footer */}
               <tr>
-                <td colSpan={3} style={{...tdBase,padding:5,textAlign:"left" as const,background:"#f8fafc",verticalAlign:"top"}}>
+                <td colSpan={3} style={{...tdBase,padding:5,textAlign:"left" as const,background:"#f8fafc",verticalAlign:"top" as const}}>
                   <div style={{fontSize:9,fontWeight:700,color:"#374151",marginBottom:4}}>Line rejection summary Graph:</div>
-                  <div style={{display:"flex",flexWrap:"wrap" as const,gap:4}}>
+                  <div style={{display:"flex" as const,flexWrap:"wrap" as const,gap:4}}>
                     {lqcRows.filter(r=>r.line&&r.rejection_rate).map((r,i)=>(
                       <div key={i} style={{background:"#dbeafe",borderRadius:4,padding:"2px 7px",
                         fontSize:8.5,color:"#1d4ed8",fontWeight:700,border:"1px solid #bdd7ee"}}>
@@ -624,7 +624,7 @@ export default function QualityDashboardPage() {
                     )}
                   </div>
                 </td>
-                <td colSpan={4} style={{...tdBase,padding:5,textAlign:"left" as const,background:"#f8fafc",verticalAlign:"top"}}>
+                <td colSpan={4} style={{...tdBase,padding:5,textAlign:"left" as const,background:"#f8fafc",verticalAlign:"top" as const}}>
                   <div style={{fontSize:9,fontWeight:700,color:"#374151",marginBottom:4}}>Comments:</div>
                   <textarea value={lqcComments} onChange={e=>setLqcComments(e.target.value)}
                     placeholder="Quality comments, observations, action items..."
@@ -668,21 +668,21 @@ export default function QualityDashboardPage() {
       </div>{/* padding wrapper */}
 
       {/* ══ QUICK NAV FOOTER ══ */}
-      <div style={{display:"flex",gap:8,padding:"10px 12px",background:"#fff",borderTop:"2px solid #2e75b6",flexWrap:"wrap" as const}}>
+      <div style={{display:"flex" as const,gap:8,padding:"10px 12px",background:"#fff",borderTop:"2px solid #2e75b6",flexWrap:"wrap" as const}}>
         <button onClick={()=>navigate("/quality/inspections")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#0f766e,#134e4a)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#0f766e,#134e4a)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           + New IQC Inspection
         </button>
         <button onClick={()=>navigate("/quality/non-conformance")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           + Raise NCR / SCAR
         </button>
         <button onClick={()=>navigate("/quality/inspections")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#1d4ed8,#1e40af)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#1d4ed8,#1e40af)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           View All Inspections →
         </button>
         <button onClick={()=>navigate("/quality/non-conformance")}
-          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
+          style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
           Manage Non-Conformances →
         </button>
       </div>

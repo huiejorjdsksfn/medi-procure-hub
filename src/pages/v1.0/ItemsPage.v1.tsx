@@ -16,9 +16,9 @@ const SC: Record<string,{bg:string;color:string}> = {
   discontinued:{bg:"#f3f4f6",color:"#6b7280"},
 };
 
-const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
+const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const};
 const sel: React.CSSProperties = {...inp};
-const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block" as const};
 
 export default function ItemsPage() {
   const { user, profile, roles } = useAuth();
@@ -133,7 +133,7 @@ export default function ItemsPage() {
   const totalValue=filtered.reduce((s,it)=>s+Number(it.unit_price||0)*Number(it.quantity_in_stock||0),0);
   const lowStockCount=items.filter(it=>Number(it.quantity_in_stock)<=Number(it.reorder_level||10)).length;
 
-  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
+  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer" as const,fontSize:12,fontWeight:600,display:"flex" as const,alignItems:"center" as const,gap:5};
 
   return (
     <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f4f6fa",minHeight:"100vh",padding:16}}>
@@ -149,7 +149,7 @@ export default function ItemsPage() {
         const lowStock=items.filter(it=>Number(it.quantity_in_stock||0)<=Number(it.reorder_level||10)).length;
         const activeItems=items.filter(it=>it.status==="active").length;
         return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
+          <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
             {[
               {label:"Total Stock Value",val:fmtK(totalValue),bg:"#c0392b"},
               {label:"Total Items",val:items.length,bg:"#7d6608"},
@@ -157,7 +157,7 @@ export default function ItemsPage() {
               {label:"Low Stock",val:lowStock,bg:"#6c3483"},
               {label:"Categories",val:cats.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -166,8 +166,8 @@ export default function ItemsPage() {
         );
       })()}
       {/* Header */}
-      <div  style={{background:"linear-gradient(90deg,#1a3d12,#375623,#4d7c30)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(55,86,35,0.35)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
+      <div  style={{background:"linear-gradient(90deg,#1a3d12,#375623,#4d7c30)",borderRadius:12,padding:"12px 18px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(55,86,35,0.35)"}}>
+        <div style={{display:"flex" as const,alignItems:"center" as const,gap:12}}>
           <Package style={{width:22,height:22,color:"#fff"}}/>
           <div>
             <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Items &amp; Inventory</div>
@@ -176,8 +176,8 @@ export default function ItemsPage() {
             </div>
           </div>
         </div>
-        <div  style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
+        <div  style={{display:"flex" as const,gap:6,flexWrap:"wrap"}}>
+          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center" as const}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={printAll} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff"}}>
@@ -195,14 +195,14 @@ export default function ItemsPage() {
       </div>
 
       {/* Filters */}
-      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex" as const,gap:10,alignItems:"center" as const,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap"}}>
         <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...sel,width:"auto",padding:"5px 10px",fontSize:12}}>
           <option value="all">All Types</option>
           {TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}
         </select>
-        <div style={{display:"flex",gap:4}}>
+        <div style={{display:"flex" as const,gap:4}}>
           {["all","active","inactive","discontinued"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3d12":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer" as const,textTransform:"capitalize",background:statusFilter===s?"#1a3d12":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
               {s}
             </button>
           ))}
@@ -210,33 +210,33 @@ export default function ItemsPage() {
         <button onClick={()=>setLowOnly(v=>!v)} style={{...btnSm,background:lowOnly?"#ef4444":"#f3f4f6",color:lowOnly?"#fff":"#6b7280",fontSize:11,padding:"4px 10px",borderRadius:20}}>
           <AlertTriangle style={{width:12,height:12}}/> Low Stock {lowStockCount>0&&`(${lowStockCount})`}
         </button>
-        <div style={{flex:1,minWidth:180,position:"relative"}}>
-          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+        <div style={{flex:1,minWidth:180,position:"relative" as const}}>
+          <Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items..."
             style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* Table */}
-      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
+      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden" as const}}>
+        <div style={{overflowX:"auto" as const}}>
           <table  style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:"#1a3d12"}}>
                 {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left" as const,color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap" as const}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
-                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
+                <tr><td colSpan={12} style={{padding:"40px",textAlign:"center" as const}}>
+                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block" as const,margin:"0 auto 8px"}}/>
                   <span style={{fontSize:12,color:"#9ca3af"}}>Loading items...</span>
                 </td></tr>
               ) : filtered.length===0 ? (
-                <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No items found</td></tr>
+                <tr><td colSpan={12} style={{padding:"50px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>No items found</td></tr>
               ) : filtered.map((it,i)=>{
                 const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
                 const s=SC[it.status]||{bg:"#f3f4f6",color:"#6b7280"};
@@ -251,7 +251,7 @@ export default function ItemsPage() {
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
                       <span style={{fontWeight:700,color:isLow?"#dc2626":"#15803d"}}>{it.quantity_in_stock||0}</span>
-                      {isLow&&<AlertTriangle style={{width:11,height:11,color:"#ef4444",marginLeft:4,verticalAlign:"middle"}}/>}
+                      {isLow&&<AlertTriangle style={{width:11,height:11,color:"#ef4444",marginLeft:4,verticalAlign:"middle" as const}}/>}
                     </td>
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{it.reorder_level||10}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
@@ -259,14 +259,14 @@ export default function ItemsPage() {
                     </td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>KES {(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <div style={{display:"flex",gap:4}}>
-                        <button onClick={()=>setViewItem(it)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}>
+                      <div style={{display:"flex" as const,gap:4}}>
+                        <button onClick={()=>setViewItem(it)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#dbeafe",color:"#1d4ed8"}}>
                           <Eye style={{width:12,height:12}}/>
                         </button>
-                        {canEdit&&<button onClick={()=>openEdit(it)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dcfce7",color:"#15803d"}}>
+                        {canEdit&&<button onClick={()=>openEdit(it)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#dcfce7",color:"#15803d"}}>
                           <Edit style={{width:12,height:12}}/>
                         </button>}
-                        {canEdit&&<button onClick={()=>deleteItem(it)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}>
+                        {canEdit&&<button onClick={()=>deleteItem(it)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#fee2e2",color:"#dc2626"}}>
                           <Trash2 style={{width:12,height:12}}/>
                         </button>}
                       </div>
@@ -277,7 +277,7 @@ export default function ItemsPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap"}}>
+        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex" as const,gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap"}}>
           <span>{filtered.length} items</span>
           <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
           {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>⚠ {lowStockCount} low stock</span>}
@@ -286,21 +286,21 @@ export default function ItemsPage() {
 
       {/* View Modal */}
       {viewItem&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(540px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
+        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(540px,100%)",maxHeight:"88vh",overflow:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,borderRadius:"14px 14px 0 0"}}>
               <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewItem.name}</div>
-              <button onClick={()=>setViewItem(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+              <button onClick={()=>setViewItem(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer" as const,color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{padding:20,display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[["SKU",viewItem.sku],["Type",(viewItem.item_type||"").replace(/_/g," ")],["Category",viewItem.item_categories?.name],["Unit of Measure",viewItem.unit_of_measure],["Unit Price",`KES ${Number(viewItem.unit_price||0).toLocaleString()}`],["Qty in Stock",viewItem.quantity_in_stock],["Reorder Level",viewItem.reorder_level],["Status",viewItem.status]].map(([k,v])=>(
                 <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"—"}</div></div>
               ))}
               {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:"#374151"}}>{viewItem.description}</div></div>}
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
-              {canEdit&&<button onClick={()=>{setViewItem(null);openEdit(viewItem);}} style={{padding:"7px 16px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
-              <button onClick={()=>setViewItem(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex" as const,justifyContent:"flex-end" as const,gap:8}}>
+              {canEdit&&<button onClick={()=>{setViewItem(null);openEdit(viewItem);}} style={{padding:"7px 16px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontWeight:700,fontSize:13}}>Edit</button>}
+              <button onClick={()=>setViewItem(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer" as const,fontSize:13}}>Close</button>
             </div>
           </div>
         </div>
@@ -308,13 +308,13 @@ export default function ItemsPage() {
 
       {/* Add/Edit Modal */}
       {showForm&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.55)"}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
+        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16,background:"rgba(0,0,0,0.55)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,borderRadius:"14px 14px 0 0"}}>
               <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Item":"New Item"}</div>
-              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer" as const,color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{overflowY:"auto",padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{overflowY:"auto" as const,padding:20,display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
               <div style={{gridColumn:"1/-1"}}><label style={lbl}>Item Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Amoxicillin 500mg"/></div>
               <div><label style={lbl}>SKU / Code</label><input value={form.sku} onChange={e=>setForm(p=>({...p,sku:e.target.value}))} style={inp} placeholder="ITEM-001"/></div>
               <div><label style={lbl}>Item Type</label><select value={form.item_type} onChange={e=>setForm(p=>({...p,item_type:e.target.value}))} style={sel}>{TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}</select></div>
@@ -324,11 +324,11 @@ export default function ItemsPage() {
               <div><label style={lbl}>Quantity in Stock</label><input type="number" value={form.quantity_in_stock} onChange={e=>setForm(p=>({...p,quantity_in_stock:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Reorder Level</label><input type="number" value={form.reorder_level} onChange={e=>setForm(p=>({...p,reorder_level:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={sel}><option value="active">Active</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></div>
-              <div style={{gridColumn:"1/-1"}}><label style={lbl}>Description</label><textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={lbl}>Description</label><textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{...inp,resize:"none" as const}}/></div>
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex" as const,justifyContent:"flex-end" as const,gap:8}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer" as const,fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 20px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Package style={{width:13,height:13}}/>}
                 {saving?"Saving...":"Save Item"}
               </button>

@@ -50,30 +50,30 @@ export default function SystemBroadcastBanner() {
   if (banners.length === 0) return null;
 
   return (
-    <div style={{ position: "fixed", top: 52, left: 0, right: 0, zIndex: 500, display: "flex", flexDirection: "column", gap: 3, pointerEvents: "none" }}>
+    <div style={{ position: "fixed" as const, top: 52, left: 0, right: 0, zIndex: 500, display: "flex" as const, flexDirection: "column" as const, gap: 3, pointerEvents: "none" as const }}>
       {banners.map(b => {
         const cfg = TYPE_CFG[b.type] || TYPE_CFG.info;
         const pct = Math.max(0, (b.remaining / (b.expiresIn ?? 30)) * 100);
         return (
           <div key={b.id} className="broadcast-banner"
-            style={{ background: cfg.bg, borderBottom: `3px solid ${cfg.border}`, padding: "10px 20px", display: "flex", alignItems: "center", gap: 12, pointerEvents: "all", position: "relative", overflow: "hidden" }}>
+            style={{ background: cfg.bg, borderBottom: `3px solid ${cfg.border}`, padding: "10px 20px", display: "flex" as const, alignItems: "center" as const, gap: 12, pointerEvents: "all" as const, position: "relative" as const, overflow: "hidden" as const }}>
             {/* Progress bar */}
-            <div style={{ position: "absolute", bottom: 0, left: 0, height: 3, background: cfg.color, width: `${pct}%`, transition: "width 1s linear", opacity: 0.4 }} />
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: cfg.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ position: "absolute" as const, bottom: 0, left: 0, height: 3, background: cfg.color, width: `${pct}%`, transition: "width 1s linear", opacity: 0.4 }} />
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: cfg.color, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, flexShrink: 0 }}>
               <cfg.icon style={{ width: 15, height: 15, color: "#fff" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: cfg.color }}>{b.title}</div>
               <div style={{ fontSize: 12, color: cfg.color, opacity: 0.8, marginTop: 1 }}>{b.message}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 8, flexShrink: 0 }}>
               {b.actionUrl && (
-                <a href={b.actionUrl} style={{ fontSize: 11, fontWeight: 800, color: cfg.color, textDecoration: "none", padding: "4px 10px", border: `1px solid ${cfg.color}`, borderRadius: 5 }}>
+                <a href={b.actionUrl} style={{ fontSize: 11, fontWeight: 800, color: cfg.color, textDecoration: "none" as const, padding: "4px 10px", border: `1px solid ${cfg.color}`, borderRadius: 5 }}>
                   View →
                 </a>
               )}
-              <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, opacity: 0.6, minWidth: 24, textAlign: "center" }}>{b.remaining}s</span>
-              <button onClick={() => dismiss(b.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 3, lineHeight: 0, color: cfg.color, opacity: 0.6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, opacity: 0.6, minWidth: 24, textAlign: "center" as const }}>{b.remaining}s</span>
+              <button onClick={() => dismiss(b.id)} style={{ background: "transparent", border: "none", cursor: "pointer" as const, padding: 3, lineHeight: 0, color: cfg.color, opacity: 0.6 }}>
                 <X style={{ width: 13, height: 13 }} />
               </button>
             </div>

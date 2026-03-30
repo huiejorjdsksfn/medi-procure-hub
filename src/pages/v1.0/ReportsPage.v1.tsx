@@ -152,28 +152,28 @@ export default function ReportsPage() {
       <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"calc(100vh-80px)"}}>
       {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,flexWrap:"wrap",gap:8}}>
           {/* Logo + Title */}
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain"}} alt=""/>}
+          <div style={{display:"flex" as const,alignItems:"center" as const,gap:12}}>
+            {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain" as const}} alt=""/>}
             <div>
               <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
               <p style={{fontSize:11,color:"#555",margin:0}}>Reports & Data Extraction — {reportType.label}</p>
             </div>
           </div>
           {/* Date Range controls — retro style */}
-          <div style={{background:"#ececec",border:"1px solid #aaa",borderRadius:4,padding:"6px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div style={{background:"#ececec",border:"1px solid #aaa",borderRadius:4,padding:"6px 12px",display:"flex" as const,alignItems:"center" as const,gap:12,flexWrap:"wrap"}}>
             <div style={{border:"1px solid #aaa",padding:"2px 4px",borderRadius:3}}>
               <span style={{fontSize:10,color:"#555",fontWeight:700}}>Date Range</span>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>Start Date</label>
               <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
                   style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
               </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
               <label style={{fontSize:11,color:"#333",fontWeight:600}}>End Date</label>
               <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
                 <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
@@ -181,23 +181,23 @@ export default function ReportsPage() {
               </div>
             </div>
             <button onClick={loadReport}
-              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e"}}>
               Refresh
             </button>
           </div>
           {/* Action buttons */}
-          <div style={{display:"flex",gap:8}}>
+          <div style={{display:"flex" as const,gap:8}}>
             {/* Report type selector */}
-            <div style={{position:"relative"}}>
+            <div style={{position:"relative" as const}}>
               <button onClick={()=>setShowDropdown(v=>!v)}
-                style={{display:"flex",alignItems:"center",gap:8,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 12px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",minWidth:160}}>
+                style={{display:"flex" as const,alignItems:"center" as const,gap:8,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 12px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e",minWidth:160}}>
                 {reportType.label} <ChevronDown style={{width:14,height:14,marginLeft:"auto"}}/>
               </button>
               {showDropdown && (
-                <div style={{position:"absolute",top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto",background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
+                <div style={{position:"absolute" as const,top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto" as const,background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
                   {REPORT_TYPES.map(rt=>(
                     <button key={rt.id} onClick={()=>{setReportType(rt);setShowDropdown(false);}}
-                      style={{display:"block",width:"100%",textAlign:"left",padding:"6px 12px",fontSize:12,background:"none",border:"none",cursor:"pointer",color:"#374151",color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
+                      style={{display:"block" as const,width:"100%",textAlign:"left" as const,padding:"6px 12px",fontSize:12,background:"none",border:"none",cursor:"pointer" as const,color:"#374151",color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
                       {rt.label}
                     </button>
                   ))}
@@ -205,11 +205,11 @@ export default function ReportsPage() {
               )}
             </div>
             <button onClick={printReport}
-              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e"}}>
               🖨 Print
             </button>
             <button onClick={exportExcel}
-              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e"}}>
               💾 Save
             </button>
           </div>
@@ -218,7 +218,7 @@ export default function ReportsPage() {
 
       {/* ── KPI TILES (colored boxes like Inventory Management System V2.0) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"8px 12px"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+        <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
           {[
             { label:"Total Value",    value:fmtKES(kpi.purchase), bg:"#c0392b" },
             { label:"Received Amt.",  value:fmtKES(kpi.received), bg:"#7d6608" },
@@ -226,7 +226,7 @@ export default function ReportsPage() {
             { label:"Record Count",   value:filteredRows.length.toLocaleString(), bg:"#6c3483" },
             { label:"Inventory Amt.", value:fmtKES(kpi.invAmt),   bg:"#1a252f" },
           ].map(k => (
-            <div key={k.label} style={{borderRadius:8,padding:12,color:"#fff",textAlign:"center",background:k.bg,border:`3px outset ${k.bg}`}}>
+            <div key={k.label} style={{borderRadius:8,padding:12,color:"#fff",textAlign:"center" as const,background:k.bg,border:`3px outset ${k.bg}`}}>
               <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.value}</div>
               <div style={{fontSize:10,fontWeight:700,marginTop:4,opacity:0.9,letterSpacing:"0.05em"}}>{k.label}</div>
             </div>
@@ -235,63 +235,63 @@ export default function ReportsPage() {
       </div>
 
       {/* ── MAIN LAYOUT: Left stock panel + Right transaction grid ── */}
-      <div style={{display:"flex",gap:0,height:"calc(100vh - 230px)"}}>
+      <div style={{display:"flex" as const,gap:0,height:"calc(100vh - 230px)"}}>
 
         {/* LEFT PANEL — Available Stocks (like original image) */}
-        <div style={{width:200,background:"#d4d0c8",borderRight:"2px solid #999",display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{width:200,background:"#d4d0c8",borderRight:"2px solid #999",display:"flex" as const,flexDirection:"column" as const,flexShrink:0}}>
           <div style={{background:"#d4d0c8",borderBottom:"1px solid #aaa",padding:"6px 8px"}}>
             <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Available Stocks</span>
           </div>
           <div style={{padding:"4px 6px",borderBottom:"1px solid #aaa",background:"#d4d0c8"}}>
             <div style={{fontSize:10,color:"#555",marginBottom:2}}>Search</div>
-            <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"1px 4px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
+            <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"1px 4px",borderRadius:2,display:"flex" as const,alignItems:"center" as const,gap:4}}>
               <input value={stockSearch} onChange={e=>setStockSearch(e.target.value)} placeholder=""
                 style={{border:"none",background:"transparent",fontSize:10,outline:"none",flex:1,color:"#1a1a2e"}}/>
             </div>
           </div>
           {/* Stock table */}
-          <div style={{overflow:"auto",flex:1}}>
+          <div style={{overflow:"auto" as const,flex:1}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
               <thead>
                 <tr style={{background:"#4472C4",color:"#fff"}}>
-                  <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,borderRight:"1px solid #6698d4"}}>Product Name</th>
-                  <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700}}>Stock</th>
+                  <th style={{padding:"3px 6px",textAlign:"left" as const,fontWeight:700,borderRight:"1px solid #6698d4"}}>Product Name</th>
+                  <th style={{padding:"3px 6px",textAlign:"right" as const,fontWeight:700}}>Stock</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredStock.slice(0,50).map((s,i) => (
                   <tr key={s.id} style={{background:i%2===0?"#dce6f1":"#c9d9ef"}}>
-                    <td style={{padding:"2px 6px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:130}}>{s.name}</td>
-                    <td style={{padding:"2px 6px",textAlign:"right",fontWeight:600}}>{s.quantity_in_stock||0}</td>
+                    <td style={{padding:"2px 6px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap" as const,overflow:"hidden" as const,textOverflow:"ellipsis",maxWidth:130}}>{s.name}</td>
+                    <td style={{padding:"2px 6px",textAlign:"right" as const,fontWeight:600}}>{s.quantity_in_stock||0}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div style={{padding:"4px 6px",borderTop:"1px solid #aaa",background:"#d4d0c8",display:"flex",gap:4}}>
+          <div style={{padding:"4px 6px",borderTop:"1px solid #aaa",background:"#d4d0c8",display:"flex" as const,gap:4}}>
             <button onClick={()=>setStockSearch("")}
-              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Refresh</button>
+              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer" as const}}>Refresh</button>
             <button
-              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Extract</button>
+              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer" as const}}>Extract</button>
           </div>
         </div>
 
         {/* RIGHT PANEL — Transactions */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",background:"#d4d0c8"}}>
+        <div style={{flex:1,display:"flex" as const,flexDirection:"column" as const,background:"#d4d0c8"}}>
           {/* Transaction controls (Add/Update row) */}
           <div style={{background:"#d4d0c8",border:"2px inset #aaa",margin:"6px 8px 4px",padding:"6px 10px",borderRadius:3}}>
             <div style={{fontSize:11,fontWeight:700,color:"#1a1a2e",marginBottom:6}}>{reportType.label} — Add / Extract</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"flex-end"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{display:"flex" as const,flexWrap:"wrap",gap:12,alignItems:"flex-end" as const}}>
+              <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
-                <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
+                <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex" as const,alignItems:"center" as const,gap:4}}>
                   <Search style={{width:12,height:12,color:"#888"}}/>
                   <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records..."
                     style={{border:"none",background:"transparent",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
                   {search&&<button onClick={()=>setSearch("")}><X style={{width:10,height:10,color:"#888"}}/></button>}
                 </div>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Type</label>
                 <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",borderRadius:2}}>
                   <select value={txFilter} onChange={e=>setTxFilter(e.target.value)}
@@ -300,9 +300,9 @@ export default function ReportsPage() {
                   </select>
                 </div>
               </div>
-              <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+              <div style={{marginLeft:"auto",display:"flex" as const,gap:8}}>
                 <button onClick={loadReport} disabled={loading}
-                  style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+                  style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e"}}>
                   {loading?"Loading...":"Extract"}
                 </button>
               </div>
@@ -310,10 +310,10 @@ export default function ReportsPage() {
           </div>
 
           {/* Transaction type radio — Show ALL / specific */}
-          <div style={{padding:"2px 12px 4px",display:"flex",gap:16,alignItems:"center"}}>
+          <div style={{padding:"2px 12px 4px",display:"flex" as const,gap:16,alignItems:"center" as const}}>
             <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Show Records:</span>
             {["ALL","Latest 100","This Month"].map(v=>(
-              <label key={v} style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:11}}>
+              <label key={v} style={{display:"flex" as const,alignItems:"center" as const,gap:4,cursor:"pointer" as const,fontSize:11}}>
                 <input type="radio" name="txview" value={v} defaultChecked={v==="ALL"} style={{accentColor:"#1a3a6b"}}/>
                 {v}
               </label>
@@ -322,20 +322,20 @@ export default function ReportsPage() {
           </div>
 
           {/* Transaction DATA TABLE — classic blue header */}
-          <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",overflow:"auto"}}>
+          <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",overflow:"auto" as const}}>
             {loading ? (
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128}}>
+              <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,height:128}}>
                 <RefreshCw style={{animation:"spin 1s linear infinite",color:"#888"}}/>
                 <span style={{fontSize:11,color:"#888",marginLeft:8}}>Loading...</span>
               </div>
             ) : filteredRows.length === 0 ? (
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128,fontSize:11,color:"#888"}}>No data. Select a report and click Extract.</div>
+              <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,height:128,fontSize:11,color:"#888"}}>No data. Select a report and click Extract.</div>
             ) : (
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,minWidth:"max-content"}}>
                 <thead>
-                  <tr style={{background:"#4472C4",color:"#fff",position:"sticky",top:0}}>
+                  <tr style={{background:"#4472C4",color:"#fff",position:"sticky" as const,top:0}}>
                     {columns.map(c=>(
-                      <th key={c} style={{padding:"5px 8px",textAlign:"left",fontWeight:700,fontSize:10,whiteSpace:"nowrap",borderRight:"1px solid #6698d4",textTransform:"capitalize"}}>
+                      <th key={c} style={{padding:"5px 8px",textAlign:"left" as const,fontWeight:700,fontSize:10,whiteSpace:"nowrap" as const,borderRight:"1px solid #6698d4",textTransform:"capitalize"}}>
                         {c.replace(/_/g," ")}
                       </th>
                     ))}
@@ -345,7 +345,7 @@ export default function ReportsPage() {
                   {filteredRows.slice(0,200).map((row,i) => (
                     <tr key={i} style={{background:i%2===0?"#dce6f1":"#c9d9ef",borderBottom:"1px solid #b8cce4"}}>
                       {columns.map(c=>(
-                        <td key={c} style={{padding:"3px 8px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",color:"#1a1a2e"}}>
+                        <td key={c} style={{padding:"3px 8px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap" as const,maxWidth:180,overflow:"hidden" as const,textOverflow:"ellipsis",color:"#1a1a2e"}}>
                           {row[c]===null||row[c]===undefined?"":
                             typeof row[c]==="string"&&row[c].match(/^\d{4}-\d{2}-\d{2}/)?new Date(row[c]).toLocaleDateString("en-KE"):
                             typeof row[c]==="number"?row[c].toLocaleString():
@@ -360,13 +360,13 @@ export default function ReportsPage() {
           </div>
 
           {/* Bottom action bar */}
-          <div style={{borderTop:"2px solid #999",background:"#d4d0c8",padding:"4px 8px",display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{borderTop:"2px solid #999",background:"#d4d0c8",padding:"4px 8px",display:"flex" as const,gap:8,alignItems:"center" as const}}>
             <button onClick={printReport}
-              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",display:"flex",alignItems:"center",gap:6}}>
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e",display:"flex" as const,alignItems:"center" as const,gap:6}}>
               🖨 Print Report
             </button>
             <button onClick={exportExcel}
-              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",display:"flex",alignItems:"center",gap:6}}>
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer" as const,color:"#1a1a2e",display:"flex" as const,alignItems:"center" as const,gap:6}}>
               📊 Export Excel
             </button>
             <span style={{fontSize:10,color:"#666",marginLeft:8}}>{filteredRows.length} records · {startDate} to {endDate}</span>

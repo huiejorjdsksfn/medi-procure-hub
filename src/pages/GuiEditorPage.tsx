@@ -159,10 +159,10 @@ export default function GuiEditorPage() {
   const inp: React.CSSProperties = {
     width:"100%", padding:"7px 10px", border:"1.5px solid #e2e8f0",
     borderRadius:6, fontSize:12.5, outline:"none", background:"#fff",
-    color:"#1e293b", boxSizing:"border-box",
+    color:"#1e293b", boxSizing:"border-box" as const,
   };
   const lbl: React.CSSProperties = {
-    display:"block", fontSize:9.5, fontWeight:700,
+    display:"block" as const, fontSize:9.5, fontWeight:700,
     textTransform:"uppercase" as const, letterSpacing:"0.06em",
     color:"#64748b", marginBottom:4,
   };
@@ -171,11 +171,11 @@ export default function GuiEditorPage() {
   const ColorRow = ({ k, label }: { k: string; label: string }) => (
     <div style={{ marginBottom:10 }}>
       <label style={lbl}>{label}</label>
-      <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+      <div style={{ display:"flex" as const, gap:6, alignItems:"center" as const }}>
         <input type="color"
           value={cfg[k as keyof typeof cfg] || "#000000"}
           onChange={e => setVal(k, e.target.value)}
-          style={{ width:36, height:32, borderRadius:6, border:"1.5px solid #e2e8f0", cursor:"pointer", padding:2, flexShrink:0 }}/>
+          style={{ width:36, height:32, borderRadius:6, border:"1.5px solid #e2e8f0", cursor:"pointer" as const, padding:2, flexShrink:0 }}/>
         <input value={cfg[k as keyof typeof cfg] || ""}
           onChange={e => setVal(k, e.target.value)}
           style={{ ...inp, fontFamily:"monospace", fontSize:12, flex:1 }}
@@ -194,17 +194,17 @@ export default function GuiEditorPage() {
   );
 
   const ToggleRow = ({ k, label }: { k: string; label: string }) => (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+    <div style={{ display:"flex" as const, alignItems:"center" as const, justifyContent:"space-between" as const,
       padding:"9px 12px", borderRadius:8, border:"1px solid #e2e8f0",
       background:"#fff", marginBottom:6 }}>
       <span style={{ fontSize:12.5, color:"#1e293b", fontWeight:500 }}>{label}</span>
       <button onClick={() => toggle(k)} style={{
-        width:44, height:24, borderRadius:12, border:"none", cursor:"pointer",
-        position:"relative", transition:"background 0.2s",
+        width:44, height:24, borderRadius:12, border:"none", cursor:"pointer" as const,
+        position:"relative" as const, transition:"background 0.2s",
         background: on(k) ? cfg.primary_color : "#e2e8f0",
       }}>
         <div style={{
-          position:"absolute", width:20, height:20, borderRadius:"50%",
+          position:"absolute" as const, width:20, height:20, borderRadius:"50%",
           background:"#fff", top:2, transition:"left 0.15s",
           left: on(k) ? "calc(100% - 22px)" : "2px",
           boxShadow:"0 1px 3px rgba(0,0,0,0.2)",
@@ -218,20 +218,20 @@ export default function GuiEditorPage() {
   const visNav = navItems.filter(m => m.visible).sort((a, b) => a.order - b.order);
 
   return (
-    <div style={{ display:"flex", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
+    <div style={{ display:"flex" as const, height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" as const }}>
 
       {/* ══ LEFT PANEL — Controls ═══════════════════════════════ */}
       <div style={{ width:296, flexShrink:0, background:"#fff", borderRight:"1px solid #e2e8f0",
-        display:"flex", flexDirection:"column", overflow:"hidden",
+        display:"flex" as const, flexDirection:"column" as const, overflow:"hidden" as const,
         boxShadow:"2px 0 12px rgba(0,0,0,0.06)" }}>
 
         {/* Header */}
         <div style={{ padding:"12px 14px", background:`linear-gradient(135deg,${cfg.primary_color},${cfg.accent_color}80)`, flexShrink:0 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ display:"flex" as const, alignItems:"center" as const, gap:8 }}>
             <img src={logoImg} alt="" style={{ width:28, height:28, borderRadius:6, objectFit:"contain" as const, background:"rgba(255,255,255,0.2)", padding:2 }}/>
             <div>
               <div style={{ fontSize:13, fontWeight:800, color:"#fff" }}>GUI Editor</div>
-              <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
+              <div style={{ display:"flex" as const, alignItems:"center" as const, gap:4, marginTop:2 }}>
                 <Zap style={{ width:9, height:9, color:"#fbbf24" }}/>
                 <span style={{ fontSize:9, color:"rgba(255,255,255,0.7)" }}>Changes apply LIVE to the app</span>
               </div>
@@ -240,7 +240,7 @@ export default function GuiEditorPage() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display:"flex", borderBottom:"1px solid #e2e8f0", flexShrink:0, background:"#f8fafc" }}>
+        <div style={{ display:"flex" as const, borderBottom:"1px solid #e2e8f0", flexShrink:0, background:"#f8fafc" }}>
           {([
             { id:"colors", label:"Colors", icon:Palette },
             { id:"fonts",  label:"Fonts",  icon:Type    },
@@ -248,8 +248,8 @@ export default function GuiEditorPage() {
             { id:"ui",     label:"UI",     icon:Settings2 },
           ] as const).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ flex:1, padding:"9px 0", border:"none", cursor:"pointer",
-                display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+              style={{ flex:1, padding:"9px 0", border:"none", cursor:"pointer" as const,
+                display:"flex" as const, flexDirection:"column" as const, alignItems:"center" as const, gap:2,
                 background: tab === t.id ? "#fff" : "transparent",
                 borderBottom: tab === t.id ? `2px solid ${cfg.primary_color}` : "2px solid transparent",
                 color: tab === t.id ? cfg.primary_color : "#94a3b8",
@@ -265,13 +265,13 @@ export default function GuiEditorPage() {
 
           {tab === "colors" && <>
             <label style={{ ...lbl, marginBottom:8 }}>One-Click Presets</label>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:14 }}>
+            <div style={{ display:"grid" as const, gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:14 }}>
               {PRESETS.map(p => (
                 <button key={p.name} onClick={() => applyPreset(p)}
                   style={{ padding:"7px 8px", borderRadius:8,
                     border:`1.5px solid ${p.primary}30`,
                     background:`linear-gradient(135deg,${p.primary}15,${p.accent}15)`,
-                    cursor:"pointer", textAlign:"left" as const, transition:"all 0.12s" }}>
+                    cursor:"pointer" as const, textAlign:"left" as const, transition:"all 0.12s" }}>
                   <div style={{ height:4, borderRadius:3, background:`linear-gradient(90deg,${p.primary},${p.accent})`, marginBottom:5 }}/>
                   <span style={{ fontSize:10, fontWeight:600, color:"#374151" }}>{p.name}</span>
                 </button>
@@ -313,21 +313,21 @@ export default function GuiEditorPage() {
             <SelectRow k="topbar_height"   label="Top Bar Height"       opts={HEIGHTS}/>
             <SelectRow k="nav_height"      label="Module Nav Height"    opts={HEIGHTS}/>
             {/* Preview of border radius on buttons */}
-            <div style={{ display:"flex", gap:8, marginBottom:14, marginTop:4 }}>
-              <div style={{ flex:1, height:32, background:cfg.primary_color, borderRadius:cfg.border_radius, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ display:"flex" as const, gap:8, marginBottom:14, marginTop:4 }}>
+              <div style={{ flex:1, height:32, background:cfg.primary_color, borderRadius:cfg.border_radius, display:"flex" as const, alignItems:"center" as const, justifyContent:"center" as const }}>
                 <span style={{ color:"#fff", fontSize:11, fontWeight:700 }}>Button</span>
               </div>
-              <div style={{ flex:1, height:32, border:`1.5px solid ${cfg.border_color}`, borderRadius:cfg.border_radius, display:"flex", alignItems:"center", justifyContent:"center", background:"#fff" }}>
+              <div style={{ flex:1, height:32, border:`1.5px solid ${cfg.border_color}`, borderRadius:cfg.border_radius, display:"flex" as const, alignItems:"center" as const, justifyContent:"center" as const, background:"#fff" }}>
                 <span style={{ color:"#374151", fontSize:11 }}>Input</span>
               </div>
-              <div style={{ flex:1, height:32, background:cfg.accent_color, borderRadius:cfg.border_radius, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ flex:1, height:32, background:cfg.accent_color, borderRadius:cfg.border_radius, display:"flex" as const, alignItems:"center" as const, justifyContent:"center" as const }}>
                 <span style={{ color:"#fff", fontSize:11, fontWeight:700 }}>Accent</span>
               </div>
             </div>
             <div style={{ height:1, background:"#e2e8f0", margin:"0 0 12px" }}/>
             {/* Nav reorder */}
             <label style={{ ...lbl, marginBottom:8 }}>Navigation Order — Drag to Reorder</label>
-            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+            <div style={{ display:"flex" as const, flexDirection:"column" as const, gap:3 }}>
               {[...navItems].sort((a, b) => a.order - b.order).map((item, i) => (
                 <div key={item.id}
                   draggable
@@ -335,22 +335,22 @@ export default function GuiEditorPage() {
                   onDragEnter={() => onDragEnter(i)}
                   onDragEnd={onDrop}
                   onDragOver={e => e.preventDefault()}
-                  style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 10px",
+                  style={{ display:"flex" as const, alignItems:"center" as const, gap:6, padding:"7px 10px",
                     borderRadius:7, border:`1px solid ${item.visible ? "#e2e8f0" : "#f1f5f9"}`,
                     background: item.visible ? "#fff" : "#f8fafc",
-                    cursor:"grab", userSelect:"none" as const,
+                    cursor:"grab" as const, userSelect:"none" as const,
                     borderLeft:`3px solid ${item.color}`,
                     opacity: item.visible ? 1 : 0.5 }}>
                   <Move style={{ width:11, height:11, color:"#94a3b8", flexShrink:0 }}/>
                   <span style={{ flex:1, fontSize:12, color:"#1e293b", fontWeight:500 }}>{item.label}</span>
-                  <button onClick={() => moveItem(i, -1)} style={{ padding:2, border:"none", background:"none", cursor:"pointer", color:"#94a3b8" }}>
+                  <button onClick={() => moveItem(i, -1)} style={{ padding:2, border:"none", background:"none", cursor:"pointer" as const, color:"#94a3b8" }}>
                     <ChevronUp style={{ width:11, height:11 }}/>
                   </button>
-                  <button onClick={() => moveItem(i, 1)} style={{ padding:2, border:"none", background:"none", cursor:"pointer", color:"#94a3b8" }}>
+                  <button onClick={() => moveItem(i, 1)} style={{ padding:2, border:"none", background:"none", cursor:"pointer" as const, color:"#94a3b8" }}>
                     <ChevronDown style={{ width:11, height:11 }}/>
                   </button>
                   <button onClick={() => setNavItems(p => p.map(it => it.id === item.id ? { ...it, visible:!it.visible } : it))}
-                    style={{ width:22, height:22, borderRadius:4, flexShrink:0, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                    style={{ width:22, height:22, borderRadius:4, flexShrink:0, cursor:"pointer" as const, display:"flex" as const, alignItems:"center" as const, justifyContent:"center" as const,
                       border:`1px solid ${item.visible ? item.color : "#e2e8f0"}`,
                       background: item.visible ? item.color : "#f1f5f9" }}>
                     {item.visible
@@ -374,15 +374,15 @@ export default function GuiEditorPage() {
         </div>
 
         {/* Footer */}
-        <div style={{ padding:"10px 12px", borderTop:"1px solid #e2e8f0", display:"flex", gap:8, flexShrink:0, background:"#f8fafc" }}>
+        <div style={{ padding:"10px 12px", borderTop:"1px solid #e2e8f0", display:"flex" as const, gap:8, flexShrink:0, background:"#f8fafc" }}>
           <button onClick={resetAll}
-            style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px",
+            style={{ display:"flex" as const, alignItems:"center" as const, gap:5, padding:"7px 12px",
               borderRadius:7, border:"1px solid #e2e8f0", background:"#fff",
-              color:"#64748b", cursor:"pointer", fontSize:12, fontWeight:600 }}>
+              color:"#64748b", cursor:"pointer" as const, fontSize:12, fontWeight:600 }}>
             <RotateCcw style={{ width:12, height:12 }}/>Reset
           </button>
           <button onClick={handleSave} disabled={saving}
-            style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+            style={{ flex:1, display:"flex" as const, alignItems:"center" as const, justifyContent:"center" as const, gap:6,
               padding:"8px 0", borderRadius:7, border:"none",
               background:`linear-gradient(135deg,${cfg.primary_color},${cfg.accent_color}aa)`,
               color:"#fff", cursor: saving ? "not-allowed" : "pointer",
@@ -396,20 +396,20 @@ export default function GuiEditorPage() {
       </div>
 
       {/* ══ RIGHT — LIVE PREVIEW ════════════════════════════════ */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <div style={{ flex:1, display:"flex" as const, flexDirection:"column" as const, overflow:"hidden" as const }}>
         {/* Preview bar */}
         <div style={{ padding:"8px 16px", background:"#fff", borderBottom:"1px solid #e2e8f0",
-          display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+          display:"flex" as const, alignItems:"center" as const, gap:10, flexShrink:0 }}>
           <Eye style={{ width:14, height:14, color:"#64748b" }}/>
           <span style={{ fontSize:12, fontWeight:700, color:"#374151" }}>Live Preview</span>
           <span style={{ fontSize:11, color:"#94a3b8" }}>Reflects the real app — changes apply instantly</span>
-          <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
+          <div style={{ marginLeft:"auto", display:"flex" as const, gap:4 }}>
             {(["desktop","tablet","mobile"] as Device[]).map(d => {
               const icons = { desktop:Monitor, tablet:Tablet, mobile:Smartphone };
               const Icon  = icons[d];
               return (
                 <button key={d} onClick={() => setDevice(d)}
-                  style={{ padding:"5px 8px", borderRadius:6, border:"1px solid #e2e8f0", cursor:"pointer",
+                  style={{ padding:"5px 8px", borderRadius:6, border:"1px solid #e2e8f0", cursor:"pointer" as const,
                     background: device === d ? cfg.primary_color : "#fff",
                     color:      device === d ? "#fff" : "#64748b" }}>
                   <Icon style={{ width:13, height:13 }}/>
@@ -420,14 +420,14 @@ export default function GuiEditorPage() {
         </div>
 
         {/* Preview frame */}
-        <div style={{ flex:1, overflow:"auto", padding:20, background:"#cbd5e1",
-          display:"flex", justifyContent:"center", alignItems:"flex-start" }}>
+        <div style={{ flex:1, overflow:"auto" as const, padding:20, background:"#cbd5e1",
+          display:"flex" as const, justifyContent:"center" as const, alignItems:"flex-start" as const }}>
           <div style={{ width:pw, maxWidth:"100%", borderRadius:10,
-            boxShadow:"0 8px 32px rgba(0,0,0,0.2)", overflow:"hidden",
+            boxShadow:"0 8px 32px rgba(0,0,0,0.2)", overflow:"hidden" as const,
             minHeight:560, background:cfg.page_bg_color, fontFamily:cfg.font_family }}>
 
             {/* Top bar */}
-            <div style={{ height:cfg.topbar_height, background:"#1f1f1f", display:"flex", alignItems:"center", padding:"0 12px", gap:8 }}>
+            <div style={{ height:cfg.topbar_height, background:"#1f1f1f", display:"flex" as const, alignItems:"center" as const, padding:"0 12px", gap:8 }}>
               {on("show_logo_nav") && (
                 <img src={logoImg} alt="" style={{ height:22, width:22, borderRadius:4, objectFit:"contain" as const, background:"rgba(255,255,255,0.12)", padding:2 }}/>
               )}
@@ -439,20 +439,20 @@ export default function GuiEditorPage() {
               )}
               <div style={{ marginLeft: on("show_search_bar") && device !== "mobile" ? 8 : "auto",
                 width:22, height:22, borderRadius:"50%", background:"#0078d4",
-                display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:"#fff", fontWeight:800 }}>A</div>
+                display:"flex" as const, alignItems:"center" as const, justifyContent:"center" as const, fontSize:9, color:"#fff", fontWeight:800 }}>A</div>
             </div>
 
             {/* Module nav */}
-            <div style={{ height:cfg.nav_height, background:cfg.nav_bg_color, display:"flex", alignItems:"center",
+            <div style={{ height:cfg.nav_height, background:cfg.nav_bg_color, display:"flex" as const, alignItems:"center" as const,
               borderBottom:`1px solid ${cfg.border_color}`, overflowX:"auto" as const, flexShrink:0 }}>
               {visNav.map((m, i) => (
                 <div key={m.id} style={{ padding:`0 ${device === "mobile" ? "10px" : "16px"}`, height:"100%",
-                  display:"flex", alignItems:"center", whiteSpace:"nowrap" as const, flexShrink:0,
+                  display:"flex" as const, alignItems:"center" as const, whiteSpace:"nowrap" as const, flexShrink:0,
                   borderBottom: i === 0 ? `3px solid ${m.color}` : "3px solid transparent",
                   background:   i === 0 ? m.color : cfg.nav_bg_color,
                   color:        i === 0 ? "#fff"  : cfg.nav_text_color,
                   fontSize: device === "mobile" ? 10 : 11.5,
-                  fontWeight: i === 0 ? 700 : 500, cursor:"pointer",
+                  fontWeight: i === 0 ? 700 : 500, cursor:"pointer" as const,
                   fontFamily: cfg.font_family }}>
                   {m.label}
                 </div>
@@ -463,7 +463,7 @@ export default function GuiEditorPage() {
             <div style={{ padding:cfg.content_padding, fontFamily:cfg.font_family }}>
               {/* KPI */}
               {on("show_kpi_tiles") && (
-                <div style={{ display:"grid", gridTemplateColumns: device === "mobile" ? "1fr 1fr" : "repeat(4,1fr)", gap:8, marginBottom:12 }}>
+                <div style={{ display:"grid" as const, gridTemplateColumns: device === "mobile" ? "1fr 1fr" : "repeat(4,1fr)", gap:8, marginBottom:12 }}>
                   {[
                     { l:"Total Value",  v:"KES 4.2M", bg:cfg.primary_color },
                     { l:"Approved",     v:"18",        bg:cfg.success_color },
@@ -481,12 +481,12 @@ export default function GuiEditorPage() {
               )}
               {/* Table */}
               <div style={{ background:cfg.card_bg, borderRadius:cfg.border_radius,
-                border:`1px solid ${cfg.border_color}`, overflow:"hidden",
+                border:`1px solid ${cfg.border_color}`, overflow:"hidden" as const,
                 boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
                 <div style={{ padding: compact ? "7px 12px" : "9px 14px", background:cfg.primary_color,
-                  display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  display:"flex" as const, alignItems:"center" as const, justifyContent:"space-between" as const }}>
                   <span style={{ fontSize:12, fontWeight:700, color:"#fff", fontFamily:cfg.font_family }}>Requisitions</span>
-                  <div style={{ display:"flex", gap:6 }}>
+                  <div style={{ display:"flex" as const, gap:6 }}>
                     <span style={{ padding:"3px 10px", borderRadius:cfg.border_radius, background:"rgba(255,255,255,0.2)", fontSize:10, color:"#fff" }}>Export</span>
                     <span style={{ padding:"3px 10px", borderRadius:cfg.border_radius, background:"rgba(255,255,255,0.9)", fontSize:10, color:cfg.primary_color, fontWeight:700 }}>+ New</span>
                   </div>
@@ -526,14 +526,14 @@ export default function GuiEditorPage() {
                 </div>
               </div>
               {/* Buttons */}
-              <div style={{ marginTop:10, display:"flex", gap:8, flexWrap:"wrap" as const }}>
-                <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.primary_color, color:"#fff", fontSize:cfg.font_size_base, fontWeight:700, cursor:"pointer" }}>
+              <div style={{ marginTop:10, display:"flex" as const, gap:8, flexWrap:"wrap" as const }}>
+                <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.primary_color, color:"#fff", fontSize:cfg.font_size_base, fontWeight:700, cursor:"pointer" as const }}>
                   + New Requisition
                 </div>
-                <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.accent_color, color:"#fff", fontSize:cfg.font_size_base, fontWeight:700, cursor:"pointer" }}>
+                <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.accent_color, color:"#fff", fontSize:cfg.font_size_base, fontWeight:700, cursor:"pointer" as const }}>
                   Export Excel
                 </div>
-                <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.card_bg, color:cfg.text_secondary, fontSize:cfg.font_size_base, cursor:"pointer", border:`1px solid ${cfg.border_color}` }}>
+                <div style={{ padding:`7px 16px`, borderRadius:cfg.border_radius, background:cfg.card_bg, color:cfg.text_secondary, fontSize:cfg.font_size_base, cursor:"pointer" as const, border:`1px solid ${cfg.border_color}` }}>
                   Cancel
                 </div>
               </div>

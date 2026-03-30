@@ -18,10 +18,10 @@ interface FormRendererProps {
 const INP: React.CSSProperties = {
   width:"100%", padding:"8px 10px", border:"1.5px solid #e2e8f0",
   borderRadius:7, fontSize:12.5, outline:"none", background:"#fff",
-  color:"#1e293b", boxSizing:"border-box",
+  color:"#1e293b", boxSizing:"border-box" as const,
 };
 const LBL: React.CSSProperties = {
-  display:"block", fontSize:9.5, fontWeight:700,
+  display:"block" as const, fontSize:9.5, fontWeight:700,
   textTransform:"uppercase" as const, letterSpacing:"0.06em",
   color:"#64748b", marginBottom:4,
 };
@@ -106,7 +106,7 @@ export function renderField(
 
     case "checkbox":
       return (
-        <label style={{ display:"flex", alignItems:"center", gap:8, cursor:disabled?"default":"pointer" }}>
+        <label style={{ display:"flex" as const, alignItems:"center" as const, gap:8, cursor:disabled?"default":"pointer" }}>
           <input
             type="checkbox"
             checked={value === true || value === "true"}
@@ -129,7 +129,7 @@ export function FormRenderer({
   const grid = columns === 1 ? "1fr" : columns === 3 ? "1fr 1fr 1fr" : "1fr 1fr";
 
   return (
-    <div style={{ display:"grid", gridTemplateColumns:grid, gap:12 }}>
+    <div style={{ display:"grid" as const, gridTemplateColumns:grid, gap:12 }}>
       {fields.map(f => (
         <div key={f.key}
           style={{ gridColumn: f.type === "textarea" ? "1 / -1" : undefined }}>
