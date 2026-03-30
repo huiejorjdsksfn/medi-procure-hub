@@ -1,4 +1,4 @@
-// Build: 2026-03-30 04:06:02 UTC
+// Build: 2026-03-30 09:08:54 UTC v2.0.1
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
