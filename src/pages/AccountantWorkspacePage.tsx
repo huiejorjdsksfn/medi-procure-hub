@@ -137,10 +137,10 @@ export default function AccountantWorkspacePage() {
     border: tab === t ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.1)",
     borderRadius: "8px",
     color: tab === t ? "#fff" : "rgba(255,255,255,0.6)",
-    cursor: "pointer" as const,
+    cursor: "pointer",
     fontSize: "13px",
     fontWeight: tab === t ? 600 : 400,
-    whiteSpace: "nowrap" as const,
+    whiteSpace: "nowrap",
   });
 
   const statusChip = (s: string) => {
@@ -162,17 +162,17 @@ export default function AccountantWorkspacePage() {
   const inputS: React.CSSProperties = {
     width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.07)",
     border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px",
-    color: "#fff", fontSize: "13px", outline: "none", boxSizing: "border-box" as const,
+    color: "#fff", fontSize: "13px", outline: "none", boxSizing: "border-box",
   };
   const btnPrimary: React.CSSProperties = {
     padding: "9px 20px", background: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
-    border: "none", borderRadius: "8px", color: "#fff", cursor: "pointer" as const,
+    border: "none", borderRadius: "8px", color: "#fff", cursor: "pointer",
     fontSize: "13px", fontWeight: 600,
   };
   const btnSecondary: React.CSSProperties = {
     padding: "9px 20px", background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.15)", borderRadius: "8px", color: "#e2e8f0",
-    cursor: "pointer" as const, fontSize: "13px",
+    cursor: "pointer", fontSize: "13px",
   };
 
   return (
@@ -180,7 +180,7 @@ export default function AccountantWorkspacePage() {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: "fixed" as const, top: 80, right: 24, zIndex: 9999,
+          position: "fixed", top: 80, right: 24, zIndex: 9999,
           background: "#1e3a5f", border: "1px solid #3b82f6", borderRadius: "10px",
           padding: "12px 20px", color: "#fff", fontSize: "14px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
@@ -190,11 +190,11 @@ export default function AccountantWorkspacePage() {
 
       {/* Header */}
       <div style={{ marginBottom: "28px" }}>
-        <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <div style={{
             width: 44, height: 44, borderRadius: "12px",
             background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
-            display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, fontSize: "22px",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px",
           }}>💼</div>
           <div>
             <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>Accountant Workspace</h1>
@@ -202,7 +202,7 @@ export default function AccountantWorkspacePage() {
               Financial Oversight · ERP Integration · ProcurBosse EL5
             </div>
           </div>
-          <div style={{ marginLeft: "auto", display: "flex" as const, gap: 8 }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             <button style={btnSecondary} onClick={fetchAll}>↻ Refresh</button>
             <button
               style={{ ...btnPrimary, opacity: syncing ? 0.6 : 1 }}
@@ -216,13 +216,13 @@ export default function AccountantWorkspacePage() {
       </div>
 
       {/* KPI Row */}
-      <div style={{ display: "grid" as const, gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16, marginBottom: 28 }}>
         {kpis.map((k, i) => (
           <div key={i} style={{
             ...card,
             marginBottom: 0,
             borderLeft: `3px solid ${k.color}`,
-            cursor: "pointer" as const,
+            cursor: "pointer",
           }}
             onClick={() => {
               if (i === 0) setTab("invoice_matching");
@@ -231,7 +231,7 @@ export default function AccountantWorkspacePage() {
               if (i === 3) setTab("payments");
             }}
           >
-            <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "flex-start" as const }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "12px", marginBottom: 6 }}>{k.label}</div>
                 <div style={{ fontSize: "24px", fontWeight: 700, color: "#fff" }}>{k.value}</div>
@@ -245,7 +245,7 @@ export default function AccountantWorkspacePage() {
       </div>
 
       {/* Tab Bar */}
-      <div style={{ display: "flex" as const, gap: 8, flexWrap: "wrap", marginBottom: 24, overflowX: "auto" as const, paddingBottom: 4 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
         {([
           ["workspace","🏠 Overview"],
           ["invoice_matching","📋 Invoice Matching"],
@@ -260,28 +260,28 @@ export default function AccountantWorkspacePage() {
       </div>
 
       {loading && (
-        <div style={{ textAlign: "center" as const, padding: "60px", color: "rgba(255,255,255,0.4)" }}>
+        <div style={{ textAlign: "center", padding: "60px", color: "rgba(255,255,255,0.4)" }}>
           Loading financial data…
         </div>
       )}
 
       {/* ── OVERVIEW TAB ── */}
       {!loading && tab === "workspace" && (
-        <div style={{ display: "grid" as const, gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {/* ERP Status */}
           <div style={card}>
             <div style={{ fontWeight: 600, marginBottom: 14, color: "#3b82f6" }}>🔗 ERP Connection Status</div>
-            <div style={{ display: "flex" as const, flexDirection: "column" as const, gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 { name: "Dynamics 365 Finance", status: "connected", color: "#22c55e" },
                 { name: "GL Account Sync", status: "active", color: "#22c55e" },
                 { name: "Vendor Master Pull", status: "active", color: "#22c55e" },
                 { name: "Payment Status Feed", status: "syncing", color: "#f59e0b" },
               ].map((s, i) => (
-                <div key={i} style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const }}>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)" }}>{s.name}</span>
-                  <span style={{ display: "flex" as const, alignItems: "center" as const, gap: 6, color: s.color, fontSize: "12px", fontWeight: 600 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, display: "inline-block" as const }}/>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, color: s.color, fontSize: "12px", fontWeight: 600 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, display: "inline-block" }}/>
                     {s.status.toUpperCase()}
                   </span>
                 </div>
@@ -293,7 +293,7 @@ export default function AccountantWorkspacePage() {
           <div style={card}>
             <div style={{ fontWeight: 600, marginBottom: 14, color: "#f97316" }}>⏳ Pending Approval Tasks</div>
             {invoiceMatches.filter(m => m.status === "pending").slice(0,4).map((m, i) => (
-              <div key={i} style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 <div>
                   <div style={{ fontSize: "13px", fontWeight: 500 }}>{m.invoice_number || "Invoice #" + m.id.slice(0,8)}</div>
                   <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px" }}>KES {(m.amount||0).toLocaleString()}</div>
@@ -312,7 +312,7 @@ export default function AccountantWorkspacePage() {
           <div style={card}>
             <div style={{ fontWeight: 600, marginBottom: 14, color: "#ef4444" }}>⚠️ Budget Alerts</div>
             {budgetAlerts.filter(a => !a.override_approved).slice(0,4).map((a, i) => (
-              <div key={i} style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 10 }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: "13px" }}>{a.message?.slice(0, 50) || "Budget exceeded"}</div>
                   {a.consumed_pct && (
@@ -333,7 +333,7 @@ export default function AccountantWorkspacePage() {
           <div style={card}>
             <div style={{ fontWeight: 600, marginBottom: 14, color: "#3b82f6" }}>🔄 Recent ERP Sync Activity</div>
             {syncQueue.slice(0, 5).map((s, i) => (
-              <div key={i} style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 8 }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div>
                   <div style={{ fontSize: "13px", fontWeight: 500 }}>{s.entity_type?.replace(/_/g," ")}</div>
                   <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px" }}>
@@ -353,7 +353,7 @@ export default function AccountantWorkspacePage() {
       {/* ── INVOICE MATCHING TAB ── */}
       {!loading && tab === "invoice_matching" && (
         <div style={card}>
-          <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
               <h2 style={{ margin: 0, fontSize: "18px" }}>📋 Invoice Matching Queue</h2>
               <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginTop: 4 }}>
@@ -363,30 +363,30 @@ export default function AccountantWorkspacePage() {
           </div>
 
           {/* Three-way match legend */}
-          <div style={{ display: "flex" as const, gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
             {[["PO","Purchase Order","#3b82f6"],["GRN","Goods Received Note","#22c55e"],["INV","Supplier Invoice","#f97316"]].map(([code,label,color]) => (
-              <div key={code} style={{ display: "flex" as const, alignItems: "center" as const, gap: 6, background: `${color}18`, border: `1px solid ${color}33`, borderRadius: 8, padding: "6px 12px" }}>
+              <div key={code} style={{ display: "flex", alignItems: "center", gap: 6, background: `${color}18`, border: `1px solid ${color}33`, borderRadius: 8, padding: "6px 12px" }}>
                 <span style={{ fontWeight: 700, color, fontSize: "12px" }}>{code}</span>
                 <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "12px" }}>{label}</span>
               </div>
             ))}
-            <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 4, color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>
               ↔ All three must match for approval
             </div>
           </div>
 
           {invoiceMatches.length === 0 ? (
-            <div style={{ textAlign: "center" as const, padding: "48px", color: "rgba(255,255,255,0.3)" }}>
+            <div style={{ textAlign: "center", padding: "48px", color: "rgba(255,255,255,0.3)" }}>
               <div style={{ fontSize: "40px", marginBottom: 12 }}>✅</div>
               No invoices in matching queue
             </div>
           ) : (
-            <div style={{ overflowX: "auto" as const }}>
+            <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                     {["Invoice #","PO Ref","GRN Ref","Amount (KES)","Status","PO ✓","GRN ✓","INV ✓","Actions"].map(h => (
-                      <th key={h} style={{ padding: "10px 12px", textAlign: "left" as const, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{h}</th>
+                      <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -405,7 +405,7 @@ export default function AccountantWorkspacePage() {
                       <td style={{ padding: "10px 12px", color: m.invoice_number ? "#22c55e" : "#ef4444" }}>{m.invoice_number ? "✓" : "✗"}</td>
                       <td style={{ padding: "10px 12px" }}>
                         {m.status === "pending" && (
-                          <div style={{ display: "flex" as const, gap: 6 }}>
+                          <div style={{ display: "flex", gap: 6 }}>
                             <button style={{ ...btnPrimary, padding: "4px 10px", fontSize: "11px" }} onClick={() => approveInvoiceMatch(m.id)}>Approve</button>
                             <button style={{ ...btnSecondary, padding: "4px 10px", fontSize: "11px" }}
                               onClick={async () => {
@@ -430,7 +430,7 @@ export default function AccountantWorkspacePage() {
       {!loading && tab === "erp_sync" && (
         <div>
           <div style={card}>
-            <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: "18px" }}>🔄 ERP Synchronisation Module</h2>
                 <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginTop: 4 }}>
@@ -443,11 +443,11 @@ export default function AccountantWorkspacePage() {
             </div>
 
             {/* Sync direction cards */}
-            <div style={{ display: "grid" as const, gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
               <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 12, padding: 16 }}>
                 <div style={{ fontWeight: 600, color: "#60a5fa", marginBottom: 10 }}>⬆️ PUSH to Dynamics 365</div>
                 {["Purchase Orders","Goods Receipt Notes","Supplier Invoices","Payment Vouchers","Journal Entries"].map(e => (
-                  <div key={e} style={{ color: "rgba(255,255,255,0.65)", fontSize: "13px", marginBottom: 6, display: "flex" as const, alignItems: "center" as const, gap: 6 }}>
+                  <div key={e} style={{ color: "rgba(255,255,255,0.65)", fontSize: "13px", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ color: "#22c55e" }}>→</span> {e}
                   </div>
                 ))}
@@ -455,7 +455,7 @@ export default function AccountantWorkspacePage() {
               <div style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 12, padding: 16 }}>
                 <div style={{ fontWeight: 600, color: "#a78bfa", marginBottom: 10 }}>⬇️ PULL from Dynamics 365</div>
                 {["Vendor Master Data","GL Account Codes","Payment Statuses","Budget Balances","Exchange Rates"].map(e => (
-                  <div key={e} style={{ color: "rgba(255,255,255,0.65)", fontSize: "13px", marginBottom: 6, display: "flex" as const, alignItems: "center" as const, gap: 6 }}>
+                  <div key={e} style={{ color: "rgba(255,255,255,0.65)", fontSize: "13px", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ color: "#a78bfa" }}>←</span> {e}
                   </div>
                 ))}
@@ -465,14 +465,14 @@ export default function AccountantWorkspacePage() {
             {/* Sync Queue Table */}
             <div style={{ fontWeight: 600, marginBottom: 12, color: "rgba(255,255,255,0.7)" }}>Sync Queue ({syncQueue.length})</div>
             {syncQueue.length === 0 ? (
-              <div style={{ textAlign: "center" as const, padding: "32px", color: "rgba(255,255,255,0.3)" }}>Queue is empty</div>
+              <div style={{ textAlign: "center", padding: "32px", color: "rgba(255,255,255,0.3)" }}>Queue is empty</div>
             ) : (
-              <div style={{ overflowX: "auto" as const }}>
+              <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                       {["Entity","Direction","GL Verified","Type","Status","Queued At"].map(h => (
-                        <th key={h} style={{ padding: "8px 12px", textAlign: "left" as const, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{h}</th>
+                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -510,18 +510,18 @@ export default function AccountantWorkspacePage() {
         <div style={card}>
           <h2 style={{ margin: "0 0 20px", fontSize: "18px" }}>📊 Budget Control</h2>
           {budgetAlerts.length === 0 ? (
-            <div style={{ textAlign: "center" as const, padding: "48px", color: "rgba(255,255,255,0.3)" }}>
+            <div style={{ textAlign: "center", padding: "48px", color: "rgba(255,255,255,0.3)" }}>
               <div style={{ fontSize: "40px", marginBottom: 12 }}>✅</div>
               All budgets within approved limits
             </div>
           ) : (
-            <div style={{ display: "flex" as const, flexDirection: "column" as const, gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {budgetAlerts.map((a, i) => (
                 <div key={i} style={{
                   background: a.override_approved ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
                   border: `1px solid ${a.override_approved ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
                   borderRadius: 12, padding: 16,
-                  display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const,
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
                 }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: 4 }}>
@@ -530,18 +530,18 @@ export default function AccountantWorkspacePage() {
                     {a.budget_code && <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>Code: {a.budget_code}</div>}
                     {a.consumed_pct && (
                       <div style={{ marginTop: 8 }}>
-                        <div style={{ display: "flex" as const, justifyContent: "space-between" as const, marginBottom: 4 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                           <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>Consumption</span>
                           <span style={{ color: a.consumed_pct > 100 ? "#ef4444" : "#f97316", fontWeight: 600, fontSize: "12px" }}>{a.consumed_pct}%</span>
                         </div>
-                        <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" as const }}>
+                        <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${Math.min(a.consumed_pct, 100)}%`, background: a.consumed_pct > 100 ? "#ef4444" : "#f97316", borderRadius: 3 }}/>
                         </div>
                       </div>
                     )}
                   </div>
                   {!a.override_approved && (
-                    <button style={{ ...btnPrimary, background: "linear-gradient(135deg,#ef4444,#b91c1c)", whiteSpace: "nowrap" as const }} onClick={() => approveOverBudget(a.id)}>
+                    <button style={{ ...btnPrimary, background: "linear-gradient(135deg,#ef4444,#b91c1c)", whiteSpace: "nowrap" }} onClick={() => approveOverBudget(a.id)}>
                       Approve Override
                     </button>
                   )}
@@ -563,17 +563,17 @@ export default function AccountantWorkspacePage() {
             View-only access to ERP GL postings. Use ERP Sync to push entries to Dynamics 365.
           </div>
           {glEntries.length === 0 ? (
-            <div style={{ textAlign: "center" as const, padding: "48px", color: "rgba(255,255,255,0.3)" }}>
+            <div style={{ textAlign: "center", padding: "48px", color: "rgba(255,255,255,0.3)" }}>
               <div style={{ fontSize: "40px", marginBottom: 12 }}>📖</div>
               No GL entries found. Sync with ERP to populate ledger data.
             </div>
           ) : (
-            <div style={{ overflowX: "auto" as const }}>
+            <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                     {["Date","Account Code","Description","Debit (KES)","Credit (KES)","Reference","Status"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left" as const, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -605,32 +605,32 @@ export default function AccountantWorkspacePage() {
       {/* ── QUOTATIONS TAB ── */}
       {!loading && tab === "quotations" && (
         <div>
-          <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <h2 style={{ margin: 0, fontSize: "18px" }}>📝 Quotation Creator</h2>
             <button style={btnPrimary} onClick={() => setShowNewQuotation(true)}>+ New Quotation</button>
           </div>
 
           {/* New Quotation Modal */}
           {showNewQuotation && (
-            <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const }}>
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{ background: "#1a2744", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: 32, width: "100%", maxWidth: 480 }}>
                 <h3 style={{ margin: "0 0 20px", color: "#fff" }}>Create New Quotation</h3>
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block" as const, color: "rgba(255,255,255,0.6)", fontSize: "12px", marginBottom: 6 }}>Supplier</label>
+                  <label style={{ display: "block", color: "rgba(255,255,255,0.6)", fontSize: "12px", marginBottom: 6 }}>Supplier</label>
                   <select style={{ ...inputS, color: "#fff" }} value={newQuote.supplier_id} onChange={e => setNewQuote(q => ({ ...q, supplier_id: e.target.value }))}>
                     <option value="">— Select Supplier —</option>
                     {supplierList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block" as const, color: "rgba(255,255,255,0.6)", fontSize: "12px", marginBottom: 6 }}>Valid Until</label>
+                  <label style={{ display: "block", color: "rgba(255,255,255,0.6)", fontSize: "12px", marginBottom: 6 }}>Valid Until</label>
                   <input style={inputS} type="date" value={newQuote.valid_until} onChange={e => setNewQuote(q => ({ ...q, valid_until: e.target.value }))} />
                 </div>
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block" as const, color: "rgba(255,255,255,0.6)", fontSize: "12px", marginBottom: 6 }}>Notes</label>
-                  <textarea style={{ ...inputS, height: 80, resize: "vertical" as const }} value={newQuote.notes} onChange={e => setNewQuote(q => ({ ...q, notes: e.target.value }))} placeholder="Quotation notes…"/>
+                  <label style={{ display: "block", color: "rgba(255,255,255,0.6)", fontSize: "12px", marginBottom: 6 }}>Notes</label>
+                  <textarea style={{ ...inputS, height: 80, resize: "vertical" }} value={newQuote.notes} onChange={e => setNewQuote(q => ({ ...q, notes: e.target.value }))} placeholder="Quotation notes…"/>
                 </div>
-                <div style={{ display: "flex" as const, gap: 10 }}>
+                <div style={{ display: "flex", gap: 10 }}>
                   <button style={btnPrimary} onClick={createQuotation}>Create Quotation</button>
                   <button style={btnSecondary} onClick={() => setShowNewQuotation(false)}>Cancel</button>
                 </div>
@@ -640,17 +640,17 @@ export default function AccountantWorkspacePage() {
 
           <div style={card}>
             {quotations.length === 0 ? (
-              <div style={{ textAlign: "center" as const, padding: "48px", color: "rgba(255,255,255,0.3)" }}>
+              <div style={{ textAlign: "center", padding: "48px", color: "rgba(255,255,255,0.3)" }}>
                 <div style={{ fontSize: "40px", marginBottom: 12 }}>📝</div>
                 No quotations yet. Create your first one.
               </div>
             ) : (
-              <div style={{ overflowX: "auto" as const }}>
+              <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                       {["Quotation #","Status","Total (KES)","Valid Until","Created","Actions"].map(h => (
-                        <th key={h} style={{ padding: "8px 12px", textAlign: "left" as const, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{h}</th>
+                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -669,7 +669,7 @@ export default function AccountantWorkspacePage() {
                           {new Date(q.created_at).toLocaleDateString("en-KE")}
                         </td>
                         <td style={{ padding: "8px 12px" }}>
-                          <div style={{ display: "flex" as const, gap: 6 }}>
+                          <div style={{ display: "flex", gap: 6 }}>
                             {q.status === "draft" && (
                               <button style={{ ...btnPrimary, padding: "4px 10px", fontSize: "11px" }}
                                 onClick={async () => {
@@ -705,8 +705,8 @@ export default function AccountantWorkspacePage() {
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginBottom: 20 }}>
             Create and export payment proposals. All approved payments are queued for ERP sync.
           </div>
-          <div style={{ display: "flex" as const, gap: 12, marginBottom: 24 }}>
-            <a href="/payment-vouchers" style={{ ...btnPrimary, textDecoration: "none" as const }}>View Payment Vouchers →</a>
+          <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+            <a href="/payment-vouchers" style={{ ...btnPrimary, textDecoration: "none" }}>View Payment Vouchers →</a>
             <button style={btnSecondary} onClick={triggerManualSync}>Export Payment Proposal</button>
           </div>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>
@@ -719,6 +719,7 @@ export default function AccountantWorkspacePage() {
         @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
         select option { background: #1a2744; color: #fff; }
       `}</style>
+    </div>
     </div>
   );
 }

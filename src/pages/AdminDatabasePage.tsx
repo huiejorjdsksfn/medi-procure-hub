@@ -55,9 +55,9 @@ const CELL: React.CSSProperties = {
   fontSize: 12,
   fontFamily: S.font,
   color: "#f1f5f9",
-  whiteSpace: "nowrap" as const,
+  whiteSpace: "nowrap",
   maxWidth: 220,
-  overflow: "hidden" as const,
+  overflow: "hidden",
   textOverflow: "ellipsis",
   background: "transparent",
 };
@@ -284,29 +284,29 @@ ORDER BY t.table_name;`);
   ];
 
   return (
-    <div style={{ height:"100vh",display:"flex" as const,flexDirection:"column" as const,background:S.bg,fontFamily:S.font,color:S.fg,minHeight:"100vh" }}>
+    <div style={{ height:"100vh",display:"flex",flexDirection:"column",background:S.bg,fontFamily:S.font,color:S.fg,minHeight:"100vh" }}>
 
       {/* ── Header ── */}
-      <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex" as const,alignItems:"center" as const,gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
+      <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
         <Database style={{ width:20,height:20 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:700,fontFamily:S.font }}>Database Administration</div>
           <div style={{ fontSize:10,opacity:0.7,fontFamily:S.font }}>EL5 MediProcure · Supabase · yvjfehnzbzjliizjvuhq</div>
         </div>
-        <div style={{ marginLeft:"auto",display:"flex" as const,gap:6,alignItems:"center" as const }}>
+        <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
           <div style={{ background:realtimeOn?"#00cc44":"#666",width:8,height:8,borderRadius:"50%" }} />
           <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
-          <button onClick={loadTable} style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:12,borderRadius:3 }}>
+          <button onClick={loadTable} style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
             <RefreshCw style={{ width:12,height:12 }} />
           </button>
         </div>
       </div>
 
       {/* ── Tab bar ── */}
-      <div style={{ display:"flex" as const,borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+      <div style={{ display:"flex",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
-            style={{ display:"flex" as const,alignItems:"center" as const,gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"rgba(255,255,255,0.05)",cursor:"pointer" as const,fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"rgba(255,255,255,0.6)" }}>
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"rgba(255,255,255,0.05)",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"rgba(255,255,255,0.6)" }}>
             <t.icon style={{ width:13,height:13 }} />
             {t.label}
           </button>
@@ -314,14 +314,14 @@ ORDER BY t.table_name;`);
       </div>
 
       {/* ── Main content ── */}
-      <div style={{ flex:1,display:"flex" as const,overflow:"hidden" as const }}>
+      <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
 
         {/* Left sidebar — table tree */}
         {activeTab === "tables" && (
-          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto" as const,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables…"
-                style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" as const }} />
+                style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
             </div>
             {TABLE_GROUPS.map(grp => {
               const filtered = grp.tables.filter(t => t.toLowerCase().includes(search.toLowerCase()));
@@ -330,15 +330,15 @@ ORDER BY t.table_name;`);
               return (
                 <div key={grp.id}>
                   <button onClick={() => setOpenGroups(p => { const s=new Set(p); s.has(grp.id)?s.delete(grp.id):s.add(grp.id); return s; })}
-                    style={{ width:"100%",display:"flex" as const,alignItems:"center" as const,gap:6,padding:"5px 8px",background:"transparent",border:"none",cursor:"pointer" as const,borderBottom:`1px solid rgba(255,255,255,0.05)` }}>
+                    style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"transparent",border:"none",cursor:"pointer",borderBottom:`1px solid rgba(255,255,255,0.05)` }}>
                     {isOpen ? <ChevronDown style={{ width:11,height:11,color:grp.color }} /> : <ChevronRight style={{ width:11,height:11,color:grp.color }} />}
                     <span style={{ fontSize:11,fontWeight:700,color:grp.color,fontFamily:S.font }}>{grp.label}</span>
                     <span style={{ fontSize:9,color:"#888",marginLeft:"auto",fontFamily:S.font }}>({filtered.length})</span>
                   </button>
                   {isOpen && filtered.map(t => (
                     <button key={t} onClick={() => { setSelectedTable(t); setPage(0); setSearch(""); }}
-                      style={{ width:"100%",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"4px 8px 4px 22px",background:selectedTable===t?"rgba(59,130,246,0.2)":"transparent",border:"none",borderBottom:`1px solid #e8e8e8`,cursor:"pointer" as const }}>
-                      <div style={{ display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+                      style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 4px 22px",background:selectedTable===t?"rgba(59,130,246,0.2)":"transparent",border:"none",borderBottom:`1px solid #e8e8e8`,cursor:"pointer" }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:5 }}>
                         <TableIcon style={{ width:10,height:10,color:grp.color,flexShrink:0 }} />
                         <span style={{ fontSize:11,fontFamily:S.font,color:S.fg,fontWeight:selectedTable===t?700:400 }}>{t}</span>
                       </div>
@@ -355,23 +355,23 @@ ORDER BY t.table_name;`);
 
         {/* ── TABLES tab ── */}
         {activeTab === "tables" && (
-          <div style={{ flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const }}>
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
             {/* Toolbar */}
-            <div style={{ padding:"6px 12px",display:"flex" as const,alignItems:"center" as const,gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
               <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
-              <div style={{ marginLeft:"auto",display:"flex" as const,gap:6 }}>
+              <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
                 <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font }}>
                   {[25,50,100,200,500].map(n=><option key={n}>{n}</option>)}
                 </select>
                 <button onClick={() => setNewRow(Object.fromEntries(tableColumns.filter(c=>c!=="id"&&c!=="created_at"&&c!=="updated_at").map(c=>[c,""])))}
-                  style={{ border:`1px solid #003087`,background:"#003087",color:"#fff",padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11,display:"flex" as const,alignItems:"center" as const,gap:4 }}>
+                  style={{ border:`1px solid #003087`,background:"#003087",color:"#fff",padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Plus style={{ width:11,height:11 }} /> New Row
                 </button>
-                <button onClick={exportExcel} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11,display:"flex" as const,alignItems:"center" as const,gap:4 }}>
+                <button onClick={exportExcel} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Download style={{ width:11,height:11 }} /> Export
                 </button>
-                <button onClick={toggleRealtime} style={{ border:`1px solid ${realtimeOn?"#006600":"#b0b0b0"}`,background:realtimeOn?"#006600":S.bg,color:realtimeOn?"#fff":S.fg,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>
+                <button onClick={toggleRealtime} style={{ border:`1px solid ${realtimeOn?"#006600":"#b0b0b0"}`,background:realtimeOn?"#006600":S.bg,color:realtimeOn?"#fff":S.fg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   {realtimeOn?"Stop RT":"Live RT"}
                 </button>
               </div>
@@ -379,32 +379,32 @@ ORDER BY t.table_name;`);
 
             {/* New row form */}
             {newRow && (
-              <div style={{ padding:"8px 12px",background:"#fef3c7",borderBottom:`1px solid ${S.border}`,display:"flex" as const,gap:8,flexWrap:"wrap" as const,alignItems:"center" as const }}>
+              <div style={{ padding:"8px 12px",background:"#fef3c7",borderBottom:`1px solid ${S.border}`,display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center" }}>
                 <span style={{ fontSize:11,fontWeight:700,fontFamily:S.font }}>New Row:</span>
                 {Object.keys(newRow).slice(0,8).map(k => (
-                  <div key={k} style={{ display:"flex" as const,alignItems:"center" as const,gap:3 }}>
+                  <div key={k} style={{ display:"flex",alignItems:"center",gap:3 }}>
                     <label style={{ fontSize:10,fontFamily:S.font,color:"#666" }}>{k}:</label>
                     <input value={newRow[k]} onChange={e=>setNewRow((p:any)=>({...p,[k]:e.target.value}))}
                       style={{ border:`1px solid ${S.border}`,padding:"2px 5px",fontSize:11,fontFamily:S.font,width:100 }} />
                   </div>
                 ))}
-                <button onClick={saveNew} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 12px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>Insert</button>
-                <button onClick={()=>setNewRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"4px 12px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>Cancel</button>
+                <button onClick={saveNew} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Insert</button>
+                <button onClick={()=>setNewRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Cancel</button>
               </div>
             )}
 
             {/* Table */}
-            <div style={{ flex:1,overflow:"auto" as const }}>
+            <div style={{ flex:1,overflow:"auto" }}>
               {loading ? (
-                <div style={{ padding:20,textAlign:"center" as const,fontFamily:S.font }}>Loading {selectedTable}…</div>
+                <div style={{ padding:20,textAlign:"center",fontFamily:S.font }}>Loading {selectedTable}…</div>
               ) : (
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                  <thead style={{ position:"sticky" as const,top:0,zIndex:10,background:S.head }}>
+                  <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
                     <tr>
                       <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
                       {tableColumns.map(col => (
                         <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
-                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer" as const,userSelect:"none" as const }}>
+                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
                           {col}{sortCol===col?(sortAsc?" ▲":" ▼"):""}
                         </th>
                       ))}
@@ -415,15 +415,15 @@ ORDER BY t.table_name;`);
                       <tr key={row.id||ri} style={{ background:ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)" }}
                         onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
                         onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)")}>
-                        <td style={{ ...CELL,width:60,textAlign:"center" as const }}>
-                          <div style={{ display:"flex" as const,gap:3,justifyContent:"center" as const }}>
-                            <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer" as const,padding:2 }}>
+                        <td style={{ ...CELL,width:60,textAlign:"center" }}>
+                          <div style={{ display:"flex",gap:3,justifyContent:"center" }}>
+                            <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
                               <Edit3 style={{ width:12,height:12,color:"#003087" }} />
                             </button>
-                            <button title="Delete" onClick={() => setDeleteConfirm(row.id)} style={{ background:"none",border:"none",cursor:"pointer" as const,padding:2 }}>
+                            <button title="Delete" onClick={() => setDeleteConfirm(row.id)} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
                               <Trash2 style={{ width:12,height:12,color:"#cc0000" }} />
                             </button>
-                            <button title="Copy ID" onClick={() => { navigator.clipboard.writeText(row.id||""); toast({title:"ID copied"}); }} style={{ background:"none",border:"none",cursor:"pointer" as const,padding:2 }}>
+                            <button title="Copy ID" onClick={() => { navigator.clipboard.writeText(row.id||""); toast({title:"ID copied"}); }} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
                               <Copy style={{ width:11,height:11,color:"#666" }} />
                             </button>
                           </div>
@@ -453,37 +453,37 @@ ORDER BY t.table_name;`);
             </div>
 
             {/* Pagination */}
-            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex" as const,alignItems:"center" as const,gap:10,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)",fontFamily:S.font,fontSize:11 }}>
+            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)",fontFamily:S.font,fontSize:11 }}>
               <span>Page {page+1} of {Math.ceil(totalRows/pageSize)} ({totalRows.toLocaleString()} rows)</span>
-              <div style={{ marginLeft:"auto",display:"flex" as const,gap:4 }}>
-                <button disabled={page===0} onClick={()=>setPage(0)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>«</button>
-                <button disabled={page===0} onClick={()=>setPage(p=>p-1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>‹</button>
-                <button disabled={(page+1)*pageSize>=totalRows} onClick={()=>setPage(p=>p+1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>›</button>
-                <button disabled={(page+1)*pageSize>=totalRows} onClick={()=>setPage(Math.ceil(totalRows/pageSize)-1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>»</button>
+              <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
+                <button disabled={page===0} onClick={()=>setPage(0)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>«</button>
+                <button disabled={page===0} onClick={()=>setPage(p=>p-1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>‹</button>
+                <button disabled={(page+1)*pageSize>=totalRows} onClick={()=>setPage(p=>p+1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>›</button>
+                <button disabled={(page+1)*pageSize>=totalRows} onClick={()=>setPage(Math.ceil(totalRows/pageSize)-1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>»</button>
               </div>
             </div>
 
             {/* Edit modal */}
             {editingRow && (
-              <div style={{ position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const }}>
-                <div style={{ background:"#1e293b",border:`2px solid #3b82f6`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto" as const,fontFamily:S.font }}>
-                  <div style={{ display:"flex" as const,justifyContent:"space-between" as const,marginBottom:14 }}>
+              <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <div style={{ background:"#1e293b",border:`2px solid #3b82f6`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto",fontFamily:S.font }}>
+                  <div style={{ display:"flex",justifyContent:"space-between",marginBottom:14 }}>
                     <span style={{ fontSize:14,fontWeight:700,color:"#60a5fa",fontFamily:S.font }}>Edit Row — {selectedTable}</span>
-                    <button onClick={()=>setEditingRow(null)} style={{ background:"none",border:"none",cursor:"pointer" as const }}><X style={{ width:16,height:16 }} /></button>
+                    <button onClick={()=>setEditingRow(null)} style={{ background:"none",border:"none",cursor:"pointer" }}><X style={{ width:16,height:16 }} /></button>
                   </div>
-                  <div style={{ display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
                     {Object.keys(editingRow).map(k => (
                       <div key={k}>
-                        <label style={{ fontSize:10,fontWeight:700,color:"#333",fontFamily:S.font,display:"block" as const,marginBottom:2 }}>{k}</label>
+                        <label style={{ fontSize:10,fontWeight:700,color:"#333",fontFamily:S.font,display:"block",marginBottom:2 }}>{k}</label>
                         <input value={editingRow[k]??""} onChange={e=>setEditingRow((p:any)=>({...p,[k]:e.target.value}))}
                           disabled={k==="id"||k==="created_at"}
-                          style={{ width:"100%",border:`1px solid ${k==="id"?"#ccc":S.border}`,padding:"5px 8px",fontSize:12,fontFamily:S.font,background:k==="id"||k==="created_at"?"#f5f5f5":S.bg,boxSizing:"border-box" as const }} />
+                          style={{ width:"100%",border:`1px solid ${k==="id"?"#ccc":S.border}`,padding:"5px 8px",fontSize:12,fontFamily:S.font,background:k==="id"||k==="created_at"?"#f5f5f5":S.bg,boxSizing:"border-box" }} />
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop:14,display:"flex" as const,gap:8,justifyContent:"flex-end" as const }}>
-                    <button onClick={saveEdit} style={{ background:"#003087",color:"#fff",border:"none",padding:"7px 20px",cursor:"pointer" as const,fontFamily:S.font,fontSize:12,fontWeight:700 }}>Save Changes</button>
-                    <button onClick={()=>setEditingRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"7px 16px",cursor:"pointer" as const,fontFamily:S.font,fontSize:12 }}>Cancel</button>
+                  <div style={{ marginTop:14,display:"flex",gap:8,justifyContent:"flex-end" }}>
+                    <button onClick={saveEdit} style={{ background:"#003087",color:"#fff",border:"none",padding:"7px 20px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700 }}>Save Changes</button>
+                    <button onClick={()=>setEditingRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"7px 16px",cursor:"pointer",fontFamily:S.font,fontSize:12 }}>Cancel</button>
                   </div>
                 </div>
               </div>
@@ -491,13 +491,13 @@ ORDER BY t.table_name;`);
 
             {/* Delete confirm */}
             {deleteConfirm && (
-              <div style={{ position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const }}>
+              <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
                 <div style={{ background:"#1e293b",border:`2px solid #ef4444`,padding:24,maxWidth:400,fontFamily:S.font }}>
                   <div style={{ fontSize:14,fontWeight:700,color:"#cc0000",marginBottom:12 }}>Confirm Delete</div>
                   <p style={{ fontSize:12,marginBottom:16 }}>Delete row ID: <code style={{ fontFamily:S.mono }}>{deleteConfirm.slice(0,20)}…</code>?<br/>This cannot be undone.</p>
-                  <div style={{ display:"flex" as const,gap:8,justifyContent:"flex-end" as const }}>
-                    <button onClick={()=>deleteRow(deleteConfirm)} style={{ background:"#cc0000",color:"#fff",border:"none",padding:"6px 16px",cursor:"pointer" as const,fontFamily:S.font,fontWeight:700 }}>Delete</button>
-                    <button onClick={()=>setDeleteConfirm(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"6px 14px",cursor:"pointer" as const,fontFamily:S.font }}>Cancel</button>
+                  <div style={{ display:"flex",gap:8,justifyContent:"flex-end" }}>
+                    <button onClick={()=>deleteRow(deleteConfirm)} style={{ background:"#cc0000",color:"#fff",border:"none",padding:"6px 16px",cursor:"pointer",fontFamily:S.font,fontWeight:700 }}>Delete</button>
+                    <button onClick={()=>setDeleteConfirm(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"6px 14px",cursor:"pointer",fontFamily:S.font }}>Cancel</button>
                   </div>
                 </div>
               </div>
@@ -507,53 +507,53 @@ ORDER BY t.table_name;`);
 
         {/* ── SQL EDITOR tab ── */}
         {activeTab === "sql" && (
-          <div style={{ flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const }}>
-            <div style={{ padding:"6px 12px",display:"flex" as const,alignItems:"center" as const,gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real SQL Editor — PostgreSQL</span>
               {sqlMs !== null && <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
-              <div style={{ marginLeft:"auto",display:"flex" as const,gap:6 }}>
-                <button onClick={()=>setSql("SELECT * FROM " + selectedTable + " LIMIT 50;")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>
+              <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
+                <button onClick={()=>setSql("SELECT * FROM " + selectedTable + " LIMIT 50;")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   Select *
                 </button>
-                <button onClick={()=>setSql("SELECT COUNT(*) FROM " + selectedTable + ";")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>
+                <button onClick={()=>setSql("SELECT COUNT(*) FROM " + selectedTable + ";")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   Count
                 </button>
-                <button onClick={()=>setSql(`SELECT table_name, column_count, policy_count, trigger_count FROM db_stats ORDER BY table_name;`)} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>
+                <button onClick={()=>setSql(`SELECT table_name, column_count, policy_count, trigger_count FROM db_stats ORDER BY table_name;`)} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   DB Stats
                 </button>
-                <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer" as const,fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+                <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
                   <Play style={{ width:12,height:12 }} />{sqlRunning?"Running…":"Run ▶"}
                 </button>
               </div>
             </div>
-            <div style={{ flex:"0 0 220px",borderBottom:`2px solid #003087`,position:"relative" as const }}>
+            <div style={{ flex:"0 0 220px",borderBottom:`2px solid #003087`,position:"relative" }}>
               <textarea
                 ref={sqlRef}
                 value={sql}
                 onChange={e=>setSql(e.target.value)}
                 onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
-                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#e2e8f0",background:"#0a1628",resize:"none" as const,outline:"none",boxSizing:"border-box" as const }}
+                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#e2e8f0",background:"#0a1628",resize:"none",outline:"none",boxSizing:"border-box" }}
                 placeholder="-- Write SQL here (Ctrl+Enter to run)"
                 spellCheck={false}
               />
-              <div style={{ position:"absolute" as const,bottom:4,right:8,fontSize:10,color:"#999",fontFamily:S.font }}>Ctrl+Enter to run</div>
+              <div style={{ position:"absolute",bottom:4,right:8,fontSize:10,color:"#999",fontFamily:S.font }}>Ctrl+Enter to run</div>
             </div>
-            <div style={{ flex:1,overflow:"auto" as const,padding:0 }}>
+            <div style={{ flex:1,overflow:"auto",padding:0 }}>
               {sqlError && (
                 <div style={{ padding:"8px 14px",background:"rgba(248,113,113,0.1)",borderBottom:`1px solid #cc0000`,fontFamily:S.mono,fontSize:12,color:"#cc0000" }}>
-                  <AlertTriangle style={{ width:12,height:12,display:"inline" as const,marginRight:6 }} />Error: {sqlError}
+                  <AlertTriangle style={{ width:12,height:12,display:"inline",marginRight:6 }} />Error: {sqlError}
                 </div>
               )}
               {sqlResult.length > 0 && (
                 <div>
                   <div style={{ padding:"4px 12px",background:"rgba(74,222,128,0.1)",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600" }}>
-                    <CheckCircle style={{ width:11,height:11,display:"inline" as const,marginRight:6 }} />{sqlResult.length} row(s) returned in {sqlMs}ms
+                    <CheckCircle style={{ width:11,height:11,display:"inline",marginRight:6 }} />{sqlResult.length} row(s) returned in {sqlMs}ms
                   </div>
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                    <thead style={{ position:"sticky" as const,top:0 }}>
+                    <thead style={{ position:"sticky",top:0 }}>
                       <tr>
                         {Object.keys(sqlResult[0]).map(k => (
-                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{k}</th>
+                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{k}</th>
                         ))}
                       </tr>
                     </thead>
@@ -575,13 +575,13 @@ ORDER BY t.table_name;`);
 
         {/* ── SCHEMA tab ── */}
         {activeTab === "schema" && (
-          <div style={{ flex:1,overflow:"auto" as const,padding:14 }}>
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
             <div style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087",marginBottom:10 }}>Schema: {selectedTable}</div>
             <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
               <thead>
                 <tr>
                   {["Column","Data Type","Nullable","Default"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{h}</th>
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -601,16 +601,16 @@ ORDER BY t.table_name;`);
 
         {/* ── TRIGGERS tab ── */}
         {activeTab === "triggers" && (
-          <div style={{ flex:1,overflow:"auto" as const,padding:14 }}>
-            <div style={{ display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,marginBottom:10 }}>
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Database Triggers ({triggers.length})</span>
-              <button onClick={loadTriggers} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>Refresh</button>
+              <button onClick={loadTriggers} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
             </div>
             <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
               <thead>
                 <tr>
                   {["Trigger Name","Table","Event","Timing"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{h}</th>
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -630,19 +630,19 @@ ORDER BY t.table_name;`);
 
         {/* ── REALTIME tab ── */}
         {activeTab === "realtime" && (
-          <div style={{ flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const }}>
-            <div style={{ padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.head,display:"flex" as const,alignItems:"center" as const,gap:10,flexShrink:0 }}>
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+            <div style={{ padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.head,display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real-time Monitor — {selectedTable}</span>
-              <div style={{ display:"flex" as const,alignItems:"center" as const,gap:6 }}>
+              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
                 <div style={{ width:8,height:8,borderRadius:"50%",background:realtimeOn?"#00cc44":"#cc0000" }} />
                 <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Connected":"Disconnected"}</span>
               </div>
-              <button onClick={toggleRealtime} style={{ background:realtimeOn?"#cc0000":"#006600",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11,fontWeight:700 }}>
+              <button onClick={toggleRealtime} style={{ background:realtimeOn?"#cc0000":"#006600",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:700 }}>
                 {realtimeOn?"Stop Listening":"Start Listening"}
               </button>
-              <button onClick={()=>setRealtimeLog([])} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"4px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>Clear Log</button>
+              <button onClick={()=>setRealtimeLog([])} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Clear Log</button>
             </div>
-            <div style={{ flex:1,overflow:"auto" as const,background:"#1e1e1e",padding:10 }}>
+            <div style={{ flex:1,overflow:"auto",background:"#1e1e1e",padding:10 }}>
               {realtimeLog.length === 0 ? (
                 <div style={{ color:"#4ade80",fontFamily:S.mono,fontSize:12,padding:10 }}>
                   {realtimeOn ? "▶ Listening for changes on " + selectedTable + "…" : "Click 'Start Listening' to monitor real-time changes"}
@@ -661,28 +661,28 @@ ORDER BY t.table_name;`);
 
         {/* ── STATS tab ── */}
         {activeTab === "stats" && (
-          <div style={{ flex:1,overflow:"auto" as const,padding:14 }}>
-            <div style={{ display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,marginBottom:10 }}>
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Database Statistics ({stats.length || "—"} tables)</span>
-              <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer" as const,fontFamily:S.font,fontSize:11 }}>Refresh</button>
+              <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
             </div>
             {stats.length > 0 ? (
               <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                 <thead>
                   <tr>
                     {["Table","Columns","Policies","Triggers","Rows"].map(h=>(
-                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" as const }}>{h}</th>
+                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {stats.map((row,i) => (
-                    <tr key={i} style={{ background:i%2===0?S.bg:"#fafafa",cursor:"pointer" as const }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
+                    <tr key={i} style={{ background:i%2===0?S.bg:"#fafafa",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
                       <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{row.table_name}</td>
-                      <td style={{ ...CELL,textAlign:"center" as const }}>{row.column_count}</td>
-                      <td style={{ ...CELL,textAlign:"center" as const,color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
-                      <td style={{ ...CELL,textAlign:"center" as const,color:row.trigger_count>0?"#cc6600":"#666" }}>{row.trigger_count}</td>
-                      <td style={{ ...CELL,textAlign:"right" as const }}>{(tableCounts[row.table_name]||0).toLocaleString()}</td>
+                      <td style={{ ...CELL,textAlign:"center" }}>{row.column_count}</td>
+                      <td style={{ ...CELL,textAlign:"center",color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
+                      <td style={{ ...CELL,textAlign:"center",color:row.trigger_count>0?"#cc6600":"#666" }}>{row.trigger_count}</td>
+                      <td style={{ ...CELL,textAlign:"right" }}>{(tableCounts[row.table_name]||0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

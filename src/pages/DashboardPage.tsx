@@ -284,7 +284,7 @@ export default function DashboardPage() {
   ].filter(Boolean) as any[];
 
   return (
-    <div style={{position:"fixed" as const,inset:0,overflow:"hidden" as const,fontFamily:"'Segoe UI',system-ui,sans-serif",display:"flex" as const,flexDirection:"column" as const}}>
+    <div style={{position:"fixed",inset:0,overflow:"hidden",fontFamily:"'Segoe UI',system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
         @keyframes ringPulse{0%,100%{opacity:0.25}50%{opacity:0.6}}
@@ -295,14 +295,14 @@ export default function DashboardPage() {
       `}</style>
 
       {/* Background */}
-      <div style={{position:"absolute" as const,inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.25)"}} />
-      <div style={{position:"absolute" as const,inset:0,background:"linear-gradient(135deg,rgba(4,16,52,0.90) 0%,rgba(0,0,0,0.70) 100%)"}} />
-      <div style={{position:"absolute" as const,inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)",backgroundSize:"40px 40px"}} />
+      <div style={{position:"absolute",inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.25)"}} />
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(4,16,52,0.90) 0%,rgba(0,0,0,0.70) 100%)"}} />
+      <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)",backgroundSize:"40px 40px"}} />
 
       {/* ── TOP BAR ── */}
-      <div style={{position:"relative" as const,zIndex:100,height:52,flexShrink:0,display:"flex" as const,alignItems:"center" as const,padding:"0 18px",background:"rgba(0,0,0,0.60)",backdropFilter:"blur(14px)",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,flex:1}}>
-          <img src={logoImg} alt="" style={{width:32,height:32,borderRadius:8,objectFit:"contain" as const,background:"rgba(255,255,255,0.08)",padding:3}} />
+      <div style={{position:"relative",zIndex:100,height:52,flexShrink:0,display:"flex",alignItems:"center",padding:"0 18px",background:"rgba(0,0,0,0.60)",backdropFilter:"blur(14px)",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+          <img src={logoImg} alt="" style={{width:32,height:32,borderRadius:8,objectFit:"contain",background:"rgba(255,255,255,0.08)",padding:3}} />
           <div>
             <div style={{fontSize:12,fontWeight:800,color:"#fff",lineHeight:1}}>{sysName}</div>
             <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:2,letterSpacing:"0.05em"}}>{hospital}</div>
@@ -310,16 +310,16 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI alert pills */}
-        <div style={{display:"flex" as const,gap:5,marginRight:12,flexWrap:"nowrap" as const,overflow:"hidden" as const}}>
+        <div style={{display:"flex",gap:5,marginRight:12,flexWrap:"nowrap",overflow:"hidden"}}>
           {kpiAlerts.slice(0,3).map((a,i) => (
-            <div key={i} style={{padding:"2px 9px",borderRadius:20,background:a.bg,border:`1px solid ${a.color}44`,fontSize:9,fontWeight:700,color:a.color,whiteSpace:"nowrap" as const}}>
+            <div key={i} style={{padding:"2px 9px",borderRadius:20,background:a.bg,border:`1px solid ${a.color}44`,fontSize:9,fontWeight:700,color:a.color,whiteSpace:"nowrap"}}>
               {a.label}
             </div>
           ))}
         </div>
 
         {/* Clock */}
-        <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.08em",fontVariantNumeric:"tabular-nums" as const,marginRight:14}}>{clock}</div>
+        <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.08em",fontVariantNumeric:"tabular-nums",marginRight:14}}>{clock}</div>
 
         {/* Role badge */}
         <div style={{padding:"3px 10px",borderRadius:20,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.55)",marginRight:8}}>
@@ -327,43 +327,43 @@ export default function DashboardPage() {
         </div>
 
         {/* Top buttons */}
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:2}}>
+        <div style={{display:"flex",alignItems:"center",gap:2}}>
           {[
             {icon:Mail,   path:"/email",   title:"Mail"},
             {icon:Shield, path:"/admin/panel", title:"Admin", roles:["admin","webmaster"]},
           ].filter(b=>!(b as any).roles||((b as any).roles as string[]).some((r:string)=>roles?.includes(r))).map(b=>(
             <button key={b.path} onClick={()=>nav(b.path)} title={b.title}
-              style={{padding:"5px 7px",borderRadius:6,background:"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.5)",lineHeight:0,display:"flex" as const,alignItems:"center" as const}}
+              style={{padding:"5px 7px",borderRadius:6,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.5)",lineHeight:0,display:"flex",alignItems:"center"}}
               onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.1)")}
               onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
               <b.icon style={{width:15,height:15}} />
             </button>
           ))}
           {/* Notification bell */}
-          <div style={{position:"relative" as const}}>
+          <div style={{position:"relative"}}>
             <button onClick={()=>setShowNotifs(p=>!p)} title="Notifications"
-              style={{padding:"5px 7px",borderRadius:6,background:showNotifs?"rgba(79,70,229,0.25)":"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.5)",lineHeight:0,display:"flex" as const,alignItems:"center" as const,position:"relative" as const}}
+              style={{padding:"5px 7px",borderRadius:6,background:showNotifs?"rgba(79,70,229,0.25)":"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.5)",lineHeight:0,display:"flex",alignItems:"center",position:"relative"}}
               onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.1)")}
               onMouseLeave={e=>(e.currentTarget.style.background=showNotifs?"rgba(79,70,229,0.25)":"transparent")}>
               <Bell style={{width:15,height:15}} />
               {kpi.reqs+kpi.pendPV>0&&(
-                <span style={{position:"absolute" as const,top:2,right:2,width:7,height:7,borderRadius:"50%",background:"#ef4444",border:"1px solid rgba(0,0,0,0.3)"}} />
+                <span style={{position:"absolute",top:2,right:2,width:7,height:7,borderRadius:"50%",background:"#ef4444",border:"1px solid rgba(0,0,0,0.3)"}} />
               )}
             </button>
             {showNotifs&&(
-              <div style={{position:"absolute" as const,top:"calc(100% + 8px)",right:0,zIndex:200,animation:"notifIn 0.2s ease-out"}}>
+              <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,zIndex:200,animation:"notifIn 0.2s ease-out"}}>
                 <NotificationPopup onClose={()=>setShowNotifs(false)} />
               </div>
             )}
           </div>
           <button onClick={()=>nav("/profile")} title="Profile"
-            style={{padding:"5px 7px",borderRadius:6,background:"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.5)",lineHeight:0}}
+            style={{padding:"5px 7px",borderRadius:6,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.5)",lineHeight:0}}
             onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.1)")}
             onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
             <User style={{width:15,height:15}} />
           </button>
           <button onClick={()=>{signOut();nav("/login");}} title="Sign Out"
-            style={{padding:"5px 7px",borderRadius:6,background:"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.5)",lineHeight:0}}
+            style={{padding:"5px 7px",borderRadius:6,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.5)",lineHeight:0}}
             onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.1)")}
             onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
             <LogOut style={{width:15,height:15}} />
@@ -372,12 +372,12 @@ export default function DashboardPage() {
       </div>
 
       {/* ── MAIN ── */}
-      <div style={{position:"relative" as const,flex:1,display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const}}>
-        <div style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,position:"relative" as const,minHeight:0}}>
+      <div style={{position:"relative",flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",minHeight:0}}>
 
           {/* Greeting */}
           {!active&&(
-            <div style={{position:"absolute" as const,top:10,left:"50%",transform:"translateX(-50%)",textAlign:"center" as const,pointerEvents:"none" as const,zIndex:10,animation:"slideIn 0.4s ease-out"}}>
+            <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",textAlign:"center",pointerEvents:"none",zIndex:10,animation:"slideIn 0.4s ease-out"}}>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.38)",letterSpacing:"0.05em"}}>
                 {greeting}, <span style={{color:"rgba(255,255,255,0.78)",fontWeight:700}}>{profile?.full_name?.split(" ")[0]||"Staff"}</span>
               </div>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
 
           {/* ── ENHANCED SVG WHEEL (600×600, OR=248, IR=100) ── */}
           <svg width={600} height={600} viewBox="0 0 600 600"
-            style={{filter:"drop-shadow(0 12px 48px rgba(0,0,0,0.7))",overflow:"visible" as const,flexShrink:0}}>
+            style={{filter:"drop-shadow(0 12px 48px rgba(0,0,0,0.7))",overflow:"visible",flexShrink:0}}>
             <defs>
               {SEGS.map(s=>(
                 <radialGradient key={s.id} id={`grad-${s.id}`} cx="50%" cy="50%" r="55%" fx="30%" fy="30%">
@@ -468,7 +468,7 @@ export default function DashboardPage() {
                       textAnchor="middle" dominantBaseline="central"
                       fill={isActive?"#fff":"rgba(255,255,255,0.92)"}
                       fontSize={12} fontWeight={900} letterSpacing={1.8}
-                      style={{pointerEvents:"none" as const,userSelect:"none" as const,textShadow:"0 2px 10px rgba(0,0,0,0.9)",filter:isActive?"drop-shadow(0 0 6px rgba(255,255,255,0.7))":"none"}}>
+                      style={{pointerEvents:"none",userSelect:"none",textShadow:"0 2px 10px rgba(0,0,0,0.9)",filter:isActive?"drop-shadow(0 0 6px rgba(255,255,255,0.7))":"none"}}>
                       {word}
                     </text>
                   ))}
@@ -478,7 +478,7 @@ export default function DashboardPage() {
                     textAnchor="middle" dominantBaseline="central"
                     fill={isActive?"rgba(255,255,255,0.85)":"rgba(255,255,255,0.4)"}
                     fontSize={7.5} fontWeight={500} letterSpacing={0.5}
-                    style={{pointerEvents:"none" as const,userSelect:"none" as const}}>
+                    style={{pointerEvents:"none",userSelect:"none"}}>
                     {s.sub}
                   </text>
 
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                       <g filter={isActive?"url(#softGlow)":""}>
                         <circle cx={cp.x} cy={cp.y} r={13} fill={isActive?s.g3:s.g2} stroke="rgba(255,255,255,0.3)" strokeWidth={1.5}/>
                         <text x={cp.x} y={cp.y} textAnchor="middle" dominantBaseline="central"
-                          fill="#fff" fontSize={9} fontWeight={800} style={{pointerEvents:"none" as const}}>
+                          fill="#fff" fontSize={9} fontWeight={800} style={{pointerEvents:"none"}}>
                           {cnt}
                         </text>
                       </g>
@@ -513,16 +513,16 @@ export default function DashboardPage() {
             {/* Logo in center */}
             <image href={logoImg} x={CX-28} y={CY-42} width={56} height={56} style={{filter:"drop-shadow(0 3px 6px rgba(0,0,0,0.5))"}}/>
 
-            <text x={CX} y={CY+24} textAnchor="middle" fill="rgba(255,255,255,0.92)" fontSize={7} fontWeight={800} letterSpacing={1.5} style={{pointerEvents:"none" as const}}>
+            <text x={CX} y={CY+24} textAnchor="middle" fill="rgba(255,255,255,0.92)" fontSize={7} fontWeight={800} letterSpacing={1.5} style={{pointerEvents:"none"}}>
               {sysName.toUpperCase()}
             </text>
-            <text x={CX} y={CY+35} textAnchor="middle" fill="rgba(255,255,255,0.38)" fontSize={5.5} letterSpacing={0.8} style={{pointerEvents:"none" as const}}>
+            <text x={CX} y={CY+35} textAnchor="middle" fill="rgba(255,255,255,0.38)" fontSize={5.5} letterSpacing={0.8} style={{pointerEvents:"none"}}>
               EMBU LEVEL 5 HOSPITAL
             </text>
 
             {/* LIVE dot */}
             <circle cx={CX-6} cy={CY+48} r={3.5} fill="#ef4444" style={{animation:"pulse 2s ease-in-out infinite"}}/>
-            <text x={CX+4} y={CY+48} dominantBaseline="central" fill="rgba(255,255,255,0.45)" fontSize={7} fontWeight={700} style={{pointerEvents:"none" as const}}>LIVE</text>
+            <text x={CX+4} y={CY+48} dominantBaseline="central" fill="rgba(255,255,255,0.45)" fontSize={7} fontWeight={700} style={{pointerEvents:"none"}}>LIVE</text>
 
             {/* KPI arcs on outer ring */}
             {kpi.reqs>0&&<path d={arc(CX,CY,OR+28,OR+24,0,Math.min(51,kpi.reqs*7),0)} fill="#fbbf24"/>}
@@ -530,31 +530,31 @@ export default function DashboardPage() {
           </svg>
 
           {/* ── SLIDE-IN PANEL ── */}
-          <div style={{position:"absolute" as const,right:0,top:0,bottom:0,width:seg&&active?310:0,background:"rgba(6,14,42,0.96)",backdropFilter:"blur(24px)",borderLeft:"1px solid rgba(255,255,255,0.08)",overflow:"hidden" as const,transition:"width 0.28s cubic-bezier(0.4,0,0.2,1)",zIndex:50}}>
+          <div style={{position:"absolute",right:0,top:0,bottom:0,width:seg&&active?310:0,background:"rgba(6,14,42,0.96)",backdropFilter:"blur(24px)",borderLeft:"1px solid rgba(255,255,255,0.08)",overflow:"hidden",transition:"width 0.28s cubic-bezier(0.4,0,0.2,1)",zIndex:50}}>
             {seg&&active&&(
-              <div style={{width:310,padding:"14px 0",height:"100%",display:"flex" as const,flexDirection:"column" as const}}>
-                <div style={{padding:"0 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const}}>
+              <div style={{width:310,padding:"14px 0",height:"100%",display:"flex",flexDirection:"column"}}>
+                <div style={{padding:"0 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.14em",textTransform:"uppercase" as const}}>{seg.sub}</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.14em",textTransform:"uppercase"}}>{seg.sub}</div>
                     <div style={{fontSize:16,fontWeight:900,color:"#fff",marginTop:2}}>{seg.label}</div>
                     <div style={{fontSize:9.5,color:"rgba(255,255,255,0.3)",marginTop:3}}>{visLinks(seg).length} accessible modules</div>
                   </div>
-                  <button onClick={()=>setActive(null)} style={{padding:7,borderRadius:8,background:"rgba(255,255,255,0.08)",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+                  <button onClick={()=>setActive(null)} style={{padding:7,borderRadius:8,background:"rgba(255,255,255,0.08)",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
                     <X style={{width:14,height:14}}/>
                   </button>
                 </div>
                 <div style={{height:2.5,background:`linear-gradient(90deg,${seg.g1},${seg.g3},transparent)`,opacity:0.7}}/>
-                <div style={{flex:1,overflowY:"auto" as const,padding:"6px 8px"}}>
+                <div style={{flex:1,overflowY:"auto",padding:"6px 8px"}}>
                   {visLinks(seg).map(lk=>(
                     <button key={lk.path} onClick={()=>nav(lk.path)} className="panel-link"
-                      style={{width:"100%",display:"flex" as const,alignItems:"center" as const,gap:10,padding:"9px 12px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const,marginBottom:2,transition:"background 0.12s"}}>
+                      style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left",marginBottom:2,transition:"background 0.12s"}}>
                       <span style={{fontSize:15,flexShrink:0,lineHeight:1}}>{MODULE_ICONS[lk.path]||"▸"}</span>
                       <span style={{flex:1,fontSize:12.5,fontWeight:500,color:"rgba(255,255,255,0.88)"}}>{lk.label}</span>
                       <ChevronRight style={{width:11,height:11,color:"rgba(255,255,255,0.22)"}}/>
                     </button>
                   ))}
                 </div>
-                <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.05)",fontSize:8.5,color:"rgba(255,255,255,0.18)",textAlign:"center" as const}}>
+                <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.05)",fontSize:8.5,color:"rgba(255,255,255,0.18)",textAlign:"center"}}>
                   Role: {ROLE_LABELS[primaryRole]||"Staff"} · {hospital}
                 </div>
               </div>
@@ -563,10 +563,10 @@ export default function DashboardPage() {
         </div>
 
         {/* ── QUICK LINKS BAR ── */}
-        <div style={{position:"relative" as const,zIndex:100,height:46,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:4,paddingBottom:2,flexShrink:0}}>
+        <div style={{position:"relative",zIndex:100,height:46,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"center",gap:4,paddingBottom:2,flexShrink:0}}>
           {QUICK.map(lk=>(
             <button key={lk.path} onClick={()=>nav(lk.path)}
-              style={{padding:"5px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)",cursor:"pointer" as const,fontSize:"10.5px",fontWeight:600,color:"rgba(255,255,255,0.68)",whiteSpace:"nowrap" as const,transition:"all 0.15s",fontFamily:"inherit"}}
+              style={{padding:"5px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)",cursor:"pointer",fontSize:"10.5px",fontWeight:600,color:"rgba(255,255,255,0.68)",whiteSpace:"nowrap",transition:"all 0.15s",fontFamily:"inherit"}}
               onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.15)";(e.currentTarget as HTMLElement).style.color="#fff";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.3)";}}
               onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.05)";(e.currentTarget as HTMLElement).style.color="rgba(255,255,255,0.68)";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.12)";}}>
               {lk.label}

@@ -181,7 +181,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ position: "fixed" as const, inset: 0, overflow: "hidden" as const, fontFamily: "'Segoe UI',system-ui,sans-serif", display: "flex" as const, flexDirection: "column" as const }}>
+    <div style={{ position: "fixed", inset: 0, overflow: "hidden", fontFamily: "'Segoe UI',system-ui,sans-serif", display: "flex", flexDirection: "column" }}>
       <style>{`
         @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.04)} }
         @keyframes ringPulse { 0%,100%{opacity:0.25} 50%{opacity:0.6} }
@@ -198,14 +198,14 @@ export default function DashboardPage() {
       `}</style>
 
       {/* ── BACKGROUND ── */}
-      <div style={{ position: "absolute" as const, inset: 0, backgroundImage: `url(${procBg})`, backgroundSize: "cover", backgroundPosition: "center", filter: "brightness(0.28)" }} />
-      <div style={{ position: "absolute" as const, inset: 0, background: "linear-gradient(135deg,rgba(4,16,52,0.88) 0%,rgba(0,0,0,0.68) 100%)" }} />
-      <div style={{ position: "absolute" as const, inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${procBg})`, backgroundSize: "cover", backgroundPosition: "center", filter: "brightness(0.28)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(4,16,52,0.88) 0%,rgba(0,0,0,0.68) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
 
       {/* ── TOP BAR ── */}
-      <div style={{ position: "relative" as const, zIndex: 100, height: 50, flexShrink: 0, display: "flex" as const, alignItems: "center" as const, padding: "0 20px", background: "rgba(0,0,0,0.58)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 10, flex: 1 }}>
-          <img src={logoUrl || logoImg} alt="" style={{ width: 30, height: 30, borderRadius: 6, objectFit: "contain" as const, background: "rgba(255,255,255,0.08)", padding: 3 }} />
+      <div style={{ position: "relative", zIndex: 100, height: 50, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 20px", background: "rgba(0,0,0,0.58)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+          <img src={logoUrl || logoImg} alt="" style={{ width: 30, height: 30, borderRadius: 6, objectFit: "contain", background: "rgba(255,255,255,0.08)", padding: 3 }} />
           <div>
             <div style={{ fontSize: 11.5, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{sysName}</div>
             <div style={{ fontSize: 8, color: "rgba(255,255,255,0.32)", marginTop: 2, letterSpacing: "0.04em" }}>{hospital}</div>
@@ -213,10 +213,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Clock */}
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", fontVariantNumeric: "tabular-nums" as const, marginRight: 14 }}>{clock}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", fontVariantNumeric: "tabular-nums", marginRight: 14 }}>{clock}</div>
 
         {/* Live alert pills */}
-        <div style={{ display: "flex" as const, gap: 6, marginRight: 10 }}>
+        <div style={{ display: "flex", gap: 6, marginRight: 10 }}>
           {kpi.reqs > 0 && <div style={{ padding: "2px 9px", borderRadius: 20, background: "rgba(245,158,11,0.18)", border: "1px solid rgba(245,158,11,0.4)", fontSize: 9.5, fontWeight: 700, color: "#fcd34d" }}>{kpi.reqs} Pending</div>}
           {kpi.lowStock > 0 && <div style={{ padding: "2px 9px", borderRadius: 20, background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.4)", fontSize: 9.5, fontWeight: 700, color: "#fca5a5" }}>{kpi.lowStock} Low Stock</div>}
         </div>
@@ -227,21 +227,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Actions — Mail + Profile + Logout (NO notification bell) */}
-        <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 2 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
           <button onClick={() => nav("/email")} title="Mail"
-            style={{ padding: "5px 8px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer" as const, color: "rgba(255,255,255,0.55)", lineHeight: 0, display: "flex" as const, alignItems: "center" as const, gap: 4 }}
+            style={{ padding: "5px 8px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", lineHeight: 0, display: "flex", alignItems: "center", gap: 4 }}
             onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
             <Mail style={{ width: 15, height: 15 }} />
           </button>
           <button onClick={() => nav("/profile")} title="Profile"
-            style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer" as const, color: "rgba(255,255,255,0.55)", lineHeight: 0 }}
+            style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", lineHeight: 0 }}
             onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
             <User style={{ width: 15, height: 15 }} />
           </button>
           <button onClick={() => { signOut(); nav("/login"); }} title="Sign Out"
-            style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer" as const, color: "rgba(255,255,255,0.55)", lineHeight: 0 }}
+            style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", lineHeight: 0 }}
             onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
             <LogOut style={{ width: 15, height: 15 }} />
@@ -250,14 +250,14 @@ export default function DashboardPage() {
       </div>
 
       {/* ── MAIN CONTENT AREA ── */}
-      <div style={{ position: "relative" as const, flex: 1, display: "flex" as const, flexDirection: "column" as const, overflow: "hidden" as const }}>
+      <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* ── WHEEL STAGE ── */}
-        <div style={{ flex: 1, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, position: "relative" as const, minHeight: 0 }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", minHeight: 0 }}>
 
           {/* Greeting overlay (when no panel) */}
           {!active && (
-            <div style={{ position: "absolute" as const, top: 12, left: "50%", transform: "translateX(-50%)", textAlign: "center" as const, pointerEvents: "none" as const, zIndex: 10 }}>
+            <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", textAlign: "center", pointerEvents: "none", zIndex: 10 }}>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.38)", letterSpacing: "0.05em" }}>
                 {greeting}, <span style={{ color: "rgba(255,255,255,0.75)", fontWeight: 700 }}>{profile?.full_name?.split(" ")[0] || "Staff"}</span>
               </div>
@@ -266,7 +266,7 @@ export default function DashboardPage() {
           )}
 
           <svg width={540} height={540} viewBox="0 0 540 540"
-            style={{ filter: "drop-shadow(0 10px 36px rgba(0,0,0,0.65))", overflow: "visible" as const, flexShrink: 0 }}>
+            style={{ filter: "drop-shadow(0 10px 36px rgba(0,0,0,0.65))", overflow: "visible", flexShrink: 0 }}>
             <defs>
               {SEGS.map(s => (
                 <radialGradient key={s.id} id={`grad-${s.id}`} cx="50%" cy="50%" r="55%" fx="35%" fy="35%">
@@ -340,7 +340,7 @@ export default function DashboardPage() {
                       textAnchor="middle" dominantBaseline="central"
                       fill={isActive ? "#fff" : "rgba(255,255,255,0.92)"}
                       fontSize={11.5} fontWeight={900} letterSpacing={2}
-                      style={{ pointerEvents: "none" as const, userSelect: "none" as const, textShadow: "0 2px 8px rgba(0,0,0,0.85)", filter: isActive ? "drop-shadow(0 0 5px rgba(255,255,255,0.7))" : "none" }}>
+                      style={{ pointerEvents: "none", userSelect: "none", textShadow: "0 2px 8px rgba(0,0,0,0.85)", filter: isActive ? "drop-shadow(0 0 5px rgba(255,255,255,0.7))" : "none" }}>
                       {word}
                     </text>
                   ))}
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                     textAnchor="middle" dominantBaseline="central"
                     fill={isActive ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.4)"}
                     fontSize={7} fontWeight={500} letterSpacing={0.5}
-                    style={{ pointerEvents: "none" as const, userSelect: "none" as const }}>
+                    style={{ pointerEvents: "none", userSelect: "none" }}>
                     {s.sub}
                   </text>
 
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                           stroke="rgba(255,255,255,0.28)" strokeWidth={1} />
                         <text x={bp.x} y={bp.y} textAnchor="middle" dominantBaseline="central"
                           fill="#fff" fontSize={8} fontWeight={800}
-                          style={{ pointerEvents: "none" as const }}>
+                          style={{ pointerEvents: "none" }}>
                           {visLinks(s).length}
                         </text>
                       </g>
@@ -396,12 +396,12 @@ export default function DashboardPage() {
 
             <text x={CX} y={CY + 22} textAnchor="middle" fill="rgba(255,255,255,0.9)"
               fontSize={6} fontWeight={800} letterSpacing={1.5}
-              style={{ pointerEvents: "none" as const }}>
+              style={{ pointerEvents: "none" }}>
               {sysName.toUpperCase()}
             </text>
             <text x={CX} y={CY + 32} textAnchor="middle" fill="rgba(255,255,255,0.38)"
               fontSize={5} letterSpacing={0.8}
-              style={{ pointerEvents: "none" as const }}>
+              style={{ pointerEvents: "none" }}>
               EMBU LEVEL 5 HOSPITAL
             </text>
 
@@ -410,35 +410,35 @@ export default function DashboardPage() {
               style={{ animation: "pulse 2s ease-in-out infinite" }} />
             <text x={CX + 3} y={CY + 43} dominantBaseline="central"
               fill="rgba(255,255,255,0.45)" fontSize={6} fontWeight={700}
-              style={{ pointerEvents: "none" as const }}>LIVE</text>
+              style={{ pointerEvents: "none" }}>LIVE</text>
           </svg>
 
           {/* ── SLIDE-IN PANEL ── */}
           <div style={{
-            position: "absolute" as const, right: 0, top: 0, bottom: 0,
+            position: "absolute", right: 0, top: 0, bottom: 0,
             width: seg && active ? 295 : 0,
             background: "rgba(6,14,42,0.95)",
             backdropFilter: "blur(22px)",
             borderLeft: "1px solid rgba(255,255,255,0.08)",
-            overflow: "hidden" as const,
+            overflow: "hidden",
             transition: "width 0.28s cubic-bezier(0.4,0,0.2,1)",
             zIndex: 50,
           }}>
             {seg && active && (
-              <div style={{ width: 295, padding: "14px 0", height: "100%", display: "flex" as const, flexDirection: "column" as const }}>
-                <div style={{ padding: "0 16px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex" as const, alignItems: "center" as const, justifyContent: "space-between" as const }}>
+              <div style={{ width: 295, padding: "14px 0", height: "100%", display: "flex", flexDirection: "column" }}>
+                <div style={{ padding: "0 16px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.14em", textTransform: "uppercase" as const }}>{seg.sub}</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.14em", textTransform: "uppercase" }}>{seg.sub}</div>
                     <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", marginTop: 2 }}>{seg.label}</div>
                     <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>{visLinks(seg).length} accessible modules</div>
                   </div>
                   <button onClick={() => setActive(null)}
-                    style={{ padding: 6, borderRadius: 7, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer" as const, color: "rgba(255,255,255,0.5)", lineHeight: 0 }}>
+                    style={{ padding: 6, borderRadius: 7, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", lineHeight: 0 }}>
                     <X style={{ width: 13, height: 13 }} />
                   </button>
                 </div>
                 <div style={{ height: 2, background: `linear-gradient(90deg,${seg.g1},${seg.g3},transparent)`, opacity: 0.65 }} />
-                <div style={{ flex: 1, overflowY: "auto" as const, padding: "8px" }}>
+                <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
                   {visLinks(seg).map(lk => (
                     <button key={lk.path} onClick={() => nav(lk.path)}
                       className="panel-link"
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
-                <div style={{ padding: "7px 16px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 8.5, color: "rgba(255,255,255,0.18)", textAlign: "center" as const }}>
+                <div style={{ padding: "7px 16px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 8.5, color: "rgba(255,255,255,0.18)", textAlign: "center" }}>
                   Role: {ROLE_LABELS[primaryRole] || "Staff"}
                 </div>
               </div>
@@ -459,30 +459,30 @@ export default function DashboardPage() {
         </div>
 
         {/* ── D365-STYLE KPI TILES ── */}
-        <div style={{ position: "relative" as const, zIndex: 80, padding: "8px 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "grid" as const, gridTemplateColumns: "repeat(6,1fr)", gap: 8 }}>
+        <div style={{ position: "relative", zIndex: 80, padding: "8px 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8 }}>
             {KPI_TILES.map((tile, i) => (
               <button key={i} onClick={() => nav(tile.path)}
                 className="kpi-tile"
                 style={{
-                  display: "flex" as const, flexDirection: "column" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   padding: "10px 6px", borderRadius: 10,
                   background: tile.bg,
                   border: `1px solid ${tile.border}`,
-                  cursor: "pointer" as const, minHeight: 72,
+                  cursor: "pointer", minHeight: 72,
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = `${tile.bg.replace("0.12", "0.22")}`)}
                 onMouseLeave={e => (e.currentTarget.style.background = tile.bg)}>
                 <span style={{ color: tile.col, marginBottom: 4 }}>{tile.icon}</span>
                 <div style={{ fontSize: 22, fontWeight: 900, color: tile.col, lineHeight: 1 }}>{fmtK(tile.val)}</div>
-                <div style={{ fontSize: 8.5, color: "rgba(255,255,255,0.45)", marginTop: 4, textAlign: "center" as const, lineHeight: 1.3 }}>{tile.label}</div>
+                <div style={{ fontSize: 8.5, color: "rgba(255,255,255,0.45)", marginTop: 4, textAlign: "center", lineHeight: 1.3 }}>{tile.label}</div>
               </button>
             ))}
           </div>
         </div>
 
         {/* ── QUICK LINKS BAR ── */}
-        <div style={{ position: "relative" as const, zIndex: 100, height: 44, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(14px)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, gap: 4, paddingBottom: 2, flexShrink: 0 }}>
+        <div style={{ position: "relative", zIndex: 100, height: 44, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(14px)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, paddingBottom: 2, flexShrink: 0 }}>
           {QUICK.map(lk => (
             <button key={lk.path} onClick={() => nav(lk.path)} className="qk-btn">{lk.label}</button>
           ))}

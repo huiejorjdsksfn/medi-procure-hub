@@ -198,29 +198,29 @@ export default function ODBCPage() {
 
   const S = { background:"rgba(255,255,255,0.97)", borderRadius:12, border:"1px solid #e2e8f0", padding:20 };
   const inp = { width:"100%", padding:"7px 10px", border:"1px solid #d1d5db", borderRadius:6, fontSize:13, color:"#111", background:"#fff", outline:"none" };
-  const btn = (c="#1a3a6b") => ({ padding:"7px 18px", borderRadius:7, border:"none", background:c, color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" as const });
+  const btn = (c="#1a3a6b") => ({ padding:"7px 18px", borderRadius:7, border:"none", background:c, color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" });
 
   const selConnOptions = conns.filter(c=>c.type==="mssql"||c.type==="odbc_dsn");
 
   return (
     <div style={{padding:20,maxWidth:1200,margin:"0 auto"}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:14,padding:"18px 24px",marginBottom:20,color:"#fff",display:"flex" as const,alignItems:"center" as const,gap:14}}>
-        <div style={{width:48,height:48,borderRadius:12,background:"#e2e8f0",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}><Globe style={{width:26,height:26,color:"#fff"}}/></div>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:14,padding:"18px 24px",marginBottom:20,color:"#fff",display:"flex",alignItems:"center",gap:14}}>
+        <div style={{width:48,height:48,borderRadius:12,background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}><Globe style={{width:26,height:26,color:"#fff"}}/></div>
         <div>
           <div style={{fontSize:20,fontWeight:800}}>ODBC & External Connections</div>
           <div style={{fontSize:13,opacity:.8}}>SQL Server integration, schema migration, and external database links</div>
         </div>
-        <div style={{marginLeft:"auto",display:"flex" as const,gap:8}}>
-          {isAdmin && <button onClick={()=>{setEditing(null);setForm(EMPTY_FORM);setShowForm(true);}} style={btn("#C45911")}><Plus style={{width:14,height:14,display:"inline" as const,marginRight:4}}/>New Connection</button>}
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          {isAdmin && <button onClick={()=>{setEditing(null);setForm(EMPTY_FORM);setShowForm(true);}} style={btn("#C45911")}><Plus style={{width:14,height:14,display:"inline",marginRight:4}}/>New Connection</button>}
           <button onClick={load} style={btn("#e2e8f0")} title="Refresh"><RefreshCw style={{width:14,height:14}}/></button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{display:"flex" as const,gap:2,marginBottom:16,background:"#f1f5f9",borderRadius:10,padding:4}}>
+      <div style={{display:"flex",gap:2,marginBottom:16,background:"#f1f5f9",borderRadius:10,padding:4}}>
         {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"8px 4px",border:"none",borderRadius:7,background:tab===t.id?"#fff":"transparent",color:tab===t.id?"#1a3a6b":"#6b7280",fontWeight:tab===t.id?700:500,fontSize:13,cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:5,boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,0.08)":"none"}}>
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"8px 4px",border:"none",borderRadius:7,background:tab===t.id?"#fff":"transparent",color:tab===t.id?"#1a3a6b":"#6b7280",fontWeight:tab===t.id?700:500,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,0.08)":"none"}}>
             <t.icon style={{width:14,height:14}}/>{t.label}
           </button>
         ))}
@@ -229,33 +229,33 @@ export default function ODBCPage() {
       {/* ── CONNECTIONS TAB ── */}
       {tab==="connections" && (
         <div>
-          {loading ? <div style={{textAlign:"center" as const,padding:40,color:"#6b7280"}}>Loading connections…</div> : (
-            <div style={{display:"grid" as const,gap:12}}>
-              {conns.length===0 && <div style={{...S,textAlign:"center" as const,padding:40,color:"#9ca3af"}}>No connections yet. Add a SQL Server ODBC connection to get started.</div>}
+          {loading ? <div style={{textAlign:"center",padding:40,color:"#6b7280"}}>Loading connections…</div> : (
+            <div style={{display:"grid",gap:12}}>
+              {conns.length===0 && <div style={{...S,textAlign:"center",padding:40,color:"#9ca3af"}}>No connections yet. Add a SQL Server ODBC connection to get started.</div>}
               {conns.map(c=>{
                 const st = STATUS_CFG[c.status]||STATUS_CFG.inactive;
                 const dbType = DB_TYPES.find(d=>d.value===c.type);
                 return (
-                  <div key={c.id} style={{...S,display:"flex" as const,alignItems:"flex-start" as const,gap:14}}>
-                    <div style={{width:42,height:42,borderRadius:10,background:"#f1f5f9",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:22,flexShrink:0}}>{dbType?.icon||"🔌"}</div>
+                  <div key={c.id} style={{...S,display:"flex",alignItems:"flex-start",gap:14}}>
+                    <div style={{width:42,height:42,borderRadius:10,background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{dbType?.icon||"🔌"}</div>
                     <div style={{flex:1}}>
-                      <div style={{display:"flex" as const,alignItems:"center" as const,gap:8,marginBottom:4}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                         <span style={{fontWeight:700,fontSize:15,color:"#111"}}>{c.name}</span>
                         <span style={{padding:"2px 8px",borderRadius:12,fontSize:11,fontWeight:700,background:st.bg,color:st.color}}>{st.label}</span>
                         <span style={{fontSize:11,color:"#6b7280"}}>{dbType?.label||c.type}</span>
                       </div>
-                      <div style={{fontSize:12,color:"#6b7280",display:"flex" as const,gap:16,flexWrap:"wrap" as const}}>
-                        <span><Server style={{width:11,height:11,display:"inline" as const}}/> {c.host}:{c.port}</span>
-                        <span><Database style={{width:11,height:11,display:"inline" as const}}/> {c.database_name}</span>
-                        {c.last_tested && <span><Clock style={{width:11,height:11,display:"inline" as const}}/> Tested: {new Date(c.last_tested).toLocaleString("en-KE")}</span>}
+                      <div style={{fontSize:12,color:"#6b7280",display:"flex",gap:16,flexWrap:"wrap" as const}}>
+                        <span><Server style={{width:11,height:11,display:"inline"}}/> {c.host}:{c.port}</span>
+                        <span><Database style={{width:11,height:11,display:"inline"}}/> {c.database_name}</span>
+                        {c.last_tested && <span><Clock style={{width:11,height:11,display:"inline"}}/> Tested: {new Date(c.last_tested).toLocaleString("en-KE")}</span>}
                       </div>
                       {c.description && <div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{c.description}</div>}
                       {/* ODBC string */}
-                      <div style={{marginTop:6,padding:"5px 8px",background:"#f8f9fa",borderRadius:5,fontSize:10,fontFamily:"monospace",color:"#374151",wordBreak:"break-all" as const}}>
+                      <div style={{marginTop:6,padding:"5px 8px",background:"#f8f9fa",borderRadius:5,fontSize:10,fontFamily:"monospace",color:"#374151",wordBreak:"break-all"}}>
                         {buildOdbcString({serverHost:c.host,serverPort:c.port,database:c.database_name,username:c.username})}
                       </div>
                     </div>
-                    <div style={{display:"flex" as const,gap:6,flexShrink:0}}>
+                    <div style={{display:"flex",gap:6,flexShrink:0}}>
                       <button onClick={()=>testConnection(c)} disabled={testing===c.id} style={{...btn("#0a2558"),padding:"5px 12px",fontSize:12}}>
                         {testing===c.id?"Testing…":"Test"}
                       </button>
@@ -275,19 +275,19 @@ export default function ODBCPage() {
       {/* ── SCHEMA VIEWER TAB ── */}
       {tab==="schema" && (
         <div>
-          <div style={{display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{fontWeight:700,fontSize:15,color:"#1a3a6b"}}>Supabase Schema — {CORE_TABLES.length} tables</div>
             <button onClick={loadSchema} disabled={schemaLoading} style={btn()}>{schemaLoading?"Loading…":"Refresh Schema"}</button>
           </div>
-          <div style={{display:"grid" as const,gap:8}}>
+          <div style={{display:"grid",gap:8}}>
             {CORE_TABLES.map(tbl=>{
               const regCols = SCHEMA_REGISTRY[tbl]||[];
               const data = schemaData[tbl]||[];
               const expanded = expandedTables.has(tbl);
               return (
-                <div key={tbl} style={{...S,padding:0,overflow:"hidden" as const}}>
+                <div key={tbl} style={{...S,padding:0,overflow:"hidden"}}>
                   <div onClick={()=>setExpandedTables(prev=>{const s=new Set(prev);s.has(tbl)?s.delete(tbl):s.add(tbl);return s;})}
-                    style={{display:"flex" as const,alignItems:"center" as const,gap:10,padding:"10px 14px",cursor:"pointer" as const,background:expanded?"#f0f4ff":"#fff"}}>
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",background:expanded?"#f0f4ff":"#fff"}}>
                     {expanded?<ChevronDown style={{width:14,height:14,color:"#1a3a6b"}}/>:<ChevronRight style={{width:14,height:14,color:"#6b7280"}}/>}
                     <Table style={{width:14,height:14,color:"#1a3a6b"}}/>
                     <span style={{fontWeight:600,fontSize:13,color:"#111"}}>{tbl}</span>
@@ -295,15 +295,15 @@ export default function ODBCPage() {
                     <span style={{fontSize:10,padding:"1px 6px",borderRadius:8,background:"#e0e7ff",color:"#3730a3"}}>SQL Server: dbo.{tbl}</span>
                   </div>
                   {expanded && regCols.length>0 && (
-                    <div style={{overflowX:"auto" as const,borderTop:"1px solid #e5e7eb"}}>
+                    <div style={{overflowX:"auto",borderTop:"1px solid #e5e7eb"}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                         <thead>
                           <tr style={{background:"#f8fafc"}}>
-                            <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>Column</th>
-                            <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>Postgres Type</th>
-                            <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>SQL Server Type</th>
-                            <th style={{padding:"5px 10px",textAlign:"center" as const,color:"#374151",fontWeight:600}}>Nullable</th>
-                            {data.length>0 && <th style={{padding:"5px 10px",textAlign:"left" as const,color:"#374151",fontWeight:600}}>Sample</th>}
+                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Column</th>
+                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Postgres Type</th>
+                            <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>SQL Server Type</th>
+                            <th style={{padding:"5px 10px",textAlign:"center",color:"#374151",fontWeight:600}}>Nullable</th>
+                            {data.length>0 && <th style={{padding:"5px 10px",textAlign:"left",color:"#374151",fontWeight:600}}>Sample</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -312,8 +312,8 @@ export default function ODBCPage() {
                               <td style={{padding:"4px 10px",fontFamily:"monospace",fontWeight:600,color:"#1a3a6b"}}>{c.name}</td>
                               <td style={{padding:"4px 10px",fontFamily:"monospace",color:"#6b7280"}}>{c.supaType}</td>
                               <td style={{padding:"4px 10px",fontFamily:"monospace",color:"#059669"}}>{mapToSqlServerType(c.supaType,c.maxLength)}</td>
-                              <td style={{padding:"4px 10px",textAlign:"center" as const}}>{c.nullable?"✓":""}</td>
-                              {data.length>0 && <td style={{padding:"4px 10px",color:"#9ca3af",maxWidth:200,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{String(data[0]?.[c.name]??"").slice(0,60)}</td>}
+                              <td style={{padding:"4px 10px",textAlign:"center"}}>{c.nullable?"✓":""}</td>
+                              {data.length>0 && <td style={{padding:"4px 10px",color:"#9ca3af",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{String(data[0]?.[c.name]??"").slice(0,60)}</td>}
                             </tr>
                           ))}
                         </tbody>
@@ -329,12 +329,12 @@ export default function ODBCPage() {
 
       {/* ── MIGRATION TAB ── */}
       {tab==="migration" && (
-        <div style={{display:"grid" as const,gap:16}}>
+        <div style={{display:"grid",gap:16}}>
           <div style={{...S}}>
             <div style={{fontWeight:700,fontSize:15,color:"#1a3a6b",marginBottom:12}}>🚀 Migrate Supabase → SQL Server</div>
-            <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
               <div>
-                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:4}}>Target SQL Server Connection</label>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Target SQL Server Connection</label>
                 <select value={migConn} onChange={e=>setMigConn(e.target.value)} style={{...inp}}>
                   <option value="">— Select SQL Server connection —</option>
                   {selConnOptions.map(c=><option key={c.id} value={c.id}>{c.name} ({c.host}/{c.database_name})</option>)}
@@ -342,15 +342,15 @@ export default function ODBCPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:4}}>Tables to Migrate</label>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Tables to Migrate</label>
                 <div style={{fontSize:12,color:"#6b7280"}}>{migTables.length} of {CORE_TABLES.length} tables selected</div>
               </div>
             </div>
             <div style={{marginBottom:12}}>
-              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:6}}>Select Tables</label>
-              <div style={{display:"grid" as const,gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:4}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Select Tables</label>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:4}}>
                 {CORE_TABLES.map(tbl=>(
-                  <label key={tbl} style={{display:"flex" as const,alignItems:"center" as const,gap:6,fontSize:12,cursor:"pointer" as const,padding:"3px 6px",borderRadius:4,background:migTables.includes(tbl)?"#e0e7ff":"transparent"}}>
+                  <label key={tbl} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer",padding:"3px 6px",borderRadius:4,background:migTables.includes(tbl)?"#e0e7ff":"transparent"}}>
                     <input type="checkbox" checked={migTables.includes(tbl)} onChange={e=>{
                       if(e.target.checked) setMigTables(p=>[...p,tbl]);
                       else setMigTables(p=>p.filter(t=>t!==tbl));
@@ -361,7 +361,7 @@ export default function ODBCPage() {
             </div>
             {migRunning && (
               <div style={{marginBottom:12}}>
-                <div style={{display:"flex" as const,justifyContent:"space-between" as const,fontSize:12,marginBottom:4}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
                   <span>Extracting data…</span><span>{migProgress}%</span>
                 </div>
                 <div style={{height:6,background:"#e5e7eb",borderRadius:3}}>
@@ -369,11 +369,11 @@ export default function ODBCPage() {
                 </div>
               </div>
             )}
-            <div style={{display:"flex" as const,gap:8}}>
+            <div style={{display:"flex",gap:8}}>
               <button onClick={runMigration} disabled={migRunning||!migConn} style={btn(migRunning?"#9ca3af":"#1a3a6b")}>
                 {migRunning ? "Generating…" : "Generate Migration Script"}
               </button>
-              {migScript && <button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([migScript],{type:"text/plain"}));a.download="MediProcure_SQLServer_Migration.sql";a.click();}} style={btn("#059669")}><Download style={{width:14,height:14,display:"inline" as const,marginRight:4}}/>Download .sql</button>}
+              {migScript && <button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([migScript],{type:"text/plain"}));a.download="MediProcure_SQLServer_Migration.sql";a.click();}} style={btn("#059669")}><Download style={{width:14,height:14,display:"inline",marginRight:4}}/>Download .sql</button>}
               <button onClick={()=>{setMigConn("");setMigResults([]);setMigScript("");}} style={btn("#6b7280")}>Reset</button>
             </div>
           </div>
@@ -384,22 +384,22 @@ export default function ODBCPage() {
               <div style={{fontWeight:700,fontSize:14,marginBottom:10,color:"#1a3a6b"}}>Migration Results</div>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f8fafc"}}>
-                  <th style={{padding:"6px 10px",textAlign:"left" as const}}>Table</th>
-                  <th style={{padding:"6px 10px",textAlign:"center" as const}}>Rows</th>
-                  <th style={{padding:"6px 10px",textAlign:"center" as const}}>Status</th>
-                  <th style={{padding:"6px 10px",textAlign:"right" as const}}>Duration</th>
+                  <th style={{padding:"6px 10px",textAlign:"left"}}>Table</th>
+                  <th style={{padding:"6px 10px",textAlign:"center"}}>Rows</th>
+                  <th style={{padding:"6px 10px",textAlign:"center"}}>Status</th>
+                  <th style={{padding:"6px 10px",textAlign:"right"}}>Duration</th>
                 </tr></thead>
                 <tbody>
                   {migResults.map(r=>(
                     <tr key={r.table} style={{borderTop:"1px solid #f0f0f0"}}>
                       <td style={{padding:"5px 10px",fontFamily:"monospace"}}>{r.table}</td>
-                      <td style={{padding:"5px 10px",textAlign:"center" as const}}>{r.rows.toLocaleString()}</td>
-                      <td style={{padding:"5px 10px",textAlign:"center" as const}}>
+                      <td style={{padding:"5px 10px",textAlign:"center"}}>{r.rows.toLocaleString()}</td>
+                      <td style={{padding:"5px 10px",textAlign:"center"}}>
                         <span style={{padding:"2px 8px",borderRadius:10,fontSize:11,background:r.success?"#dcfce7":"#fee2e2",color:r.success?"#15803d":"#dc2626"}}>
                           {r.success?"✓ OK":`✗ ${r.error||"Error"}`}
                         </span>
                       </td>
-                      <td style={{padding:"5px 10px",textAlign:"right" as const,color:"#6b7280"}}>{r.duration}ms</td>
+                      <td style={{padding:"5px 10px",textAlign:"right",color:"#6b7280"}}>{r.duration}ms</td>
                     </tr>
                   ))}
                 </tbody>
@@ -410,11 +410,11 @@ export default function ODBCPage() {
           {/* Script Preview */}
           {migScript && (
             <div style={{...S}}>
-              <div style={{display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontWeight:700,fontSize:14,color:"#1a3a6b"}}>Generated SQL Script</div>
-                <button onClick={()=>navigator.clipboard?.writeText(migScript).then(()=>toast({title:"Script copied!"}))} style={btn("#374151")}><Copy style={{width:12,height:12,display:"inline" as const,marginRight:4}}/>Copy</button>
+                <button onClick={()=>navigator.clipboard?.writeText(migScript).then(()=>toast({title:"Script copied!"}))} style={btn("#374151")}><Copy style={{width:12,height:12,display:"inline",marginRight:4}}/>Copy</button>
               </div>
-              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto" as const,maxHeight:400,fontSize:11,lineHeight:1.5}}>{migScript.slice(0,8000)}{migScript.length>8000?"…\n[truncated — download for full script]":""}</pre>
+              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto",maxHeight:400,fontSize:11,lineHeight:1.5}}>{migScript.slice(0,8000)}{migScript.length>8000?"…\n[truncated — download for full script]":""}</pre>
             </div>
           )}
         </div>
@@ -422,12 +422,12 @@ export default function ODBCPage() {
 
       {/* ── SCRIPTS TAB ── */}
       {tab==="scripts" && (
-        <div style={{display:"grid" as const,gap:14}}>
+        <div style={{display:"grid",gap:14}}>
           <div style={{...S}}>
             <div style={{fontWeight:700,fontSize:15,color:"#1a3a6b",marginBottom:12}}>SQL Script Generator</div>
-            <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
               <div>
-                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:4}}>Script Type</label>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Script Type</label>
                 <select value={scriptType} onChange={e=>setScriptType(e.target.value)} style={{...inp}}>
                   <option value="create_db">Create Database & Login</option>
                   <option value="create_tables">Create All Tables (DDL)</option>
@@ -435,26 +435,26 @@ export default function ODBCPage() {
                 </select>
               </div>
               <div>
-                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:4}}>Database Name</label>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Database Name</label>
                 <input value={scriptDb} onChange={e=>setScriptDb(e.target.value)} style={{...inp}} placeholder="MediProcureEL5"/>
               </div>
               <div>
-                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:4}}>Connection</label>
+                <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:4}}>Connection</label>
                 <select value={migConn} onChange={e=>setMigConn(e.target.value)} style={{...inp}}>
                   <option value="">— Optional: pre-fill from connection —</option>
                   {conns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
-            <div style={{display:"flex" as const,gap:8}}>
+            <div style={{display:"flex",gap:8}}>
               <button onClick={generateScript} style={btn()}>Generate Script</button>
-              {generatedScript && <button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([generatedScript],{type:"text/plain"}));a.download=`MediProcure_${scriptType}.sql`;a.click();}} style={btn("#059669")}><Download style={{width:14,height:14,display:"inline" as const,marginRight:4}}/>Download</button>}
-              {generatedScript && <button onClick={()=>navigator.clipboard?.writeText(generatedScript).then(()=>toast({title:"Copied!"}))} style={btn("#374151")}><Copy style={{width:14,height:14,display:"inline" as const,marginRight:4}}/>Copy</button>}
+              {generatedScript && <button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([generatedScript],{type:"text/plain"}));a.download=`MediProcure_${scriptType}.sql`;a.click();}} style={btn("#059669")}><Download style={{width:14,height:14,display:"inline",marginRight:4}}/>Download</button>}
+              {generatedScript && <button onClick={()=>navigator.clipboard?.writeText(generatedScript).then(()=>toast({title:"Copied!"}))} style={btn("#374151")}><Copy style={{width:14,height:14,display:"inline",marginRight:4}}/>Copy</button>}
             </div>
           </div>
           {generatedScript && (
             <div style={{...S}}>
-              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto" as const,maxHeight:500,fontSize:11,lineHeight:1.6,whiteSpace:"pre-wrap" as const}}>{generatedScript}</pre>
+              <pre style={{background:"#1e1e1e",color:"#d4d4d4",padding:14,borderRadius:8,overflow:"auto",maxHeight:500,fontSize:11,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{generatedScript}</pre>
             </div>
           )}
           {/* Setup guide */}
@@ -468,7 +468,7 @@ export default function ODBCPage() {
               ["5. Generate Script","Go to SQL Migration tab, select tables, generate & download the .sql file"],
               ["6. Run on SQL Server","Open SQL Server Management Studio, connect, open the .sql file and Execute"],
             ].map(([step,desc])=>(
-              <div key={step} style={{display:"flex" as const,gap:10,marginBottom:6}}>
+              <div key={step} style={{display:"flex",gap:10,marginBottom:6}}>
                 <span style={{fontWeight:700,fontSize:12,color:"#0369a1",minWidth:140}}>{step}</span>
                 <span style={{fontSize:12,color:"#374151"}}>{desc}</span>
               </div>
@@ -479,7 +479,7 @@ export default function ODBCPage() {
 
       {/* ── MONITOR TAB ── */}
       {tab==="monitor" && (
-        <div style={{...S,textAlign:"center" as const,padding:40}}>
+        <div style={{...S,textAlign:"center",padding:40}}>
           <Activity style={{width:40,height:40,color:"#d1d5db",margin:"0 auto 12px"}}/>
           <div style={{fontWeight:700,fontSize:16,color:"#374151",marginBottom:6}}>Sync Monitor</div>
           <div style={{fontSize:13,color:"#9ca3af"}}>Real-time sync logs appear here once ODBC connections are active.</div>
@@ -491,13 +491,13 @@ export default function ODBCPage() {
 
       {/* ── FORM MODAL ── */}
       {showForm && (
-        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:20}}>
-          <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,marginBottom:18}}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div style={{fontWeight:800,fontSize:17,color:"#1a3a6b"}}>{editing?"Edit Connection":"New External Connection"}</div>
-              <button onClick={()=>{setShowForm(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:20,height:20,color:"#6b7280"}}/></button>
+              <button onClick={()=>{setShowForm(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#6b7280"}}/></button>
             </div>
-            <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[
                 {label:"Connection Name",key:"name",full:true,placeholder:"e.g. Embu SQL Server Prod"},
                 {label:"Database Type",key:"type",type:"select"},
@@ -512,7 +512,7 @@ export default function ODBCPage() {
                 {label:"Description",key:"description",full:true,placeholder:"Purpose of this connection"},
               ].map(f=>(
                 <div key={f.key} style={{gridColumn:f.full?"1/-1":"auto"}}>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block" as const,marginBottom:3}}>{f.label}</label>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:3}}>{f.label}</label>
                   {f.type==="select" ? (
                     <select value={form[f.key]||""} onChange={e=>{
                       const db=DB_TYPES.find(d=>d.value===e.target.value);
@@ -521,9 +521,9 @@ export default function ODBCPage() {
                       {DB_TYPES.map(d=><option key={d.value} value={d.value}>{d.icon} {d.label} — {d.notes}</option>)}
                     </select>
                   ) : f.type==="password" ? (
-                    <div style={{position:"relative" as const}}>
+                    <div style={{position:"relative"}}>
                       <input type={showPass["form"]?"text":"password"} value={form[f.key]||""} onChange={e=>setForm((p:any)=>({...p,[f.key]:e.target.value}))} style={{...inp,paddingRight:34}} placeholder={f.placeholder}/>
-                      <button type="button" onClick={()=>setShowPass(p=>({...p,form:!p.form}))} style={{position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const}}>
+                      <button type="button" onClick={()=>setShowPass(p=>({...p,form:!p.form}))} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
                         {showPass["form"]?<EyeOff style={{width:14,height:14,color:"#9ca3af"}}/>:<Eye style={{width:14,height:14,color:"#9ca3af"}}/>}
                       </button>
                     </div>
@@ -535,11 +535,11 @@ export default function ODBCPage() {
             </div>
             {/* ODBC Preview */}
             {form.host && (
-              <div style={{marginTop:12,padding:"6px 10px",background:"#f0f4ff",borderRadius:6,fontSize:11,fontFamily:"monospace",color:"#374151",wordBreak:"break-all" as const}}>
+              <div style={{marginTop:12,padding:"6px 10px",background:"#f0f4ff",borderRadius:6,fontSize:11,fontFamily:"monospace",color:"#374151",wordBreak:"break-all"}}>
                 <strong>ODBC String:</strong> {buildOdbcString({serverHost:form.host,serverPort:parseInt(form.port),database:form.database_name,username:form.username})}
               </div>
             )}
-            <div style={{display:"flex" as const,gap:8,marginTop:16}}>
+            <div style={{display:"flex",gap:8,marginTop:16}}>
               <button onClick={save} disabled={saving} style={btn()}>{saving?"Saving…":"Save Connection"}</button>
               <button onClick={()=>{setShowForm(false);setEditing(null);}} style={btn("#6b7280")}>Cancel</button>
             </div>

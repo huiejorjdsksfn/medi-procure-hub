@@ -195,7 +195,7 @@ const FONT_FAMILIES = ["Times New Roman","Arial","Calibri","Georgia","Verdana","
 // ─── Toolbar Button ────────────────────────────────────────────────────────────
 const TB = ({ icon: Icon, title, onClick, active }: any) => (
   <button title={title} onClick={onClick}
-    style={{ padding:"4px 6px",border:"none",borderRadius:4,cursor:"pointer" as const,background:active?"#e0e7ff":"transparent",color:active?"#4f46e5":"#374151",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const }}
+    style={{ padding:"4px 6px",border:"none",borderRadius:4,cursor:"pointer",background:active?"#e0e7ff":"transparent",color:active?"#4f46e5":"#374151",display:"flex",alignItems:"center",justifyContent:"center" }}
     onMouseEnter={e=>(e.currentTarget.style.background=active?"#e0e7ff":"#f3f4f6")}
     onMouseLeave={e=>(e.currentTarget.style.background=active?"#e0e7ff":"transparent")}>
     <Icon style={{width:14,height:14}} />
@@ -360,9 +360,9 @@ ${html}
   };
 
   const S: any = {
-    page: { minHeight:"100vh",background:"#f8fafc",display:"flex" as const,flexDirection:"column" as const },
-    bar: { background:"#1a3a6b",color:"#fff",padding:"8px 16px",display:"flex" as const,alignItems:"center" as const,gap:12,position:"sticky" as const,top:0,zIndex:100 },
-    tb: { background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 12px",display:"flex" as const,alignItems:"center" as const,gap:2,flexWrap:"wrap" as const },
+    page: { minHeight:"100vh",background:"#f8fafc",display:"flex",flexDirection:"column" },
+    bar: { background:"#1a3a6b",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100 },
+    tb: { background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 12px",display:"flex",alignItems:"center",gap:2,flexWrap:"wrap" as const },
     sep: { width:1,height:20,background:"#e5e7eb",margin:"0 4px" },
     paper: { maxWidth:850,margin:"20px auto",background:"#fff",boxShadow:"0 2px 12px rgba(0,0,0,0.1)",borderRadius:4,padding:"40px 50px",minHeight:1000 },
     inp: { padding:"4px 8px",border:"1px solid #d1d5db",borderRadius:4,fontSize:12,outline:"none" },
@@ -372,29 +372,29 @@ ${html}
     <div style={S.page}>
       {/* ── Header ── */}
       <div style={S.bar}>
-        <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.9)",cursor:"pointer" as const,padding:0 }}>
+        <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.9)",cursor:"pointer",padding:0 }}>
           <X style={{ width:18,height:18 }} />
         </button>
-        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain" as const,background:"#e2e8f0",padding:2 }} />
+        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain",background:"#e2e8f0",padding:2 }} />
         <input value={meta.name} onChange={e=>setMeta(p=>({...p,name:e.target.value}))}
           style={{ background:"#f8fafc",border:"none",color:"#fff",fontSize:15,fontWeight:600,outline:"none",flex:1,minWidth:200 }} />
-        <div style={{ display:"flex" as const,gap:8,marginLeft:"auto" }}>
-          <button onClick={() => setShowTemplates(p=>!p)} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer" as const,fontSize:12,display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+        <div style={{ display:"flex",gap:8,marginLeft:"auto" }}>
+          <button onClick={() => setShowTemplates(p=>!p)} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <FileText style={{ width:13,height:13 }} /> Templates
           </button>
           <button onClick={() => setMode(m => m==="edit"?"preview":"edit")}
-            style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer" as const,fontSize:12,display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+            style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             {mode==="edit" ? <Eye style={{ width:13,height:13 }} /> : <Edit3 style={{ width:13,height:13 }} />}
             {mode==="edit" ? "Preview" : "Edit"}
           </button>
-          <button onClick={print} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer" as const,fontSize:12,display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+          <button onClick={print} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <Printer style={{ width:13,height:13 }} /> Print
           </button>
-          <button onClick={downloadHTML} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer" as const,fontSize:12,display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+          <button onClick={downloadHTML} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
             <Download style={{ width:13,height:13 }} /> Export
           </button>
           <button onClick={save} disabled={saving}
-            style={{ padding:"6px 14px",borderRadius:6,border:"none",background:"#C45911",color:"#fff",cursor:"pointer" as const,fontSize:12,fontWeight:700,display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+            style={{ padding:"6px 14px",borderRadius:6,border:"none",background:"#C45911",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
             <Save style={{ width:13,height:13 }} /> {saving ? "Saving…" : "Save"}
           </button>
         </div>
@@ -402,17 +402,17 @@ ${html}
 
       {/* ── Templates Panel ── */}
       {showTemplates && (
-        <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"12px 20px",display:"flex" as const,gap:10,flexWrap:"wrap" as const,alignItems:"center" as const }}>
+        <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"12px 20px",display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center" }}>
           <span style={{ fontSize:12,fontWeight:700,color:"#374151",marginRight:4 }}>Choose template:</span>
           {TEMPLATES.map(t => (
             <button key={t.name} onClick={() => loadTemplate(t)}
-              style={{ padding:"5px 12px",borderRadius:16,border:"1px solid #d1d5db",background:"#f9fafb",cursor:"pointer" as const,fontSize:12,color:"#374151" }}
+              style={{ padding:"5px 12px",borderRadius:16,border:"1px solid #d1d5db",background:"#f9fafb",cursor:"pointer",fontSize:12,color:"#374151" }}
               onMouseEnter={e=>{e.currentTarget.style.background="#eff6ff";e.currentTarget.style.borderColor="#4f46e5"}}
               onMouseLeave={e=>{e.currentTarget.style.background="#f9fafb";e.currentTarget.style.borderColor="#d1d5db"}}>
               {t.name}
             </button>
           ))}
-          <button onClick={() => setShowTemplates(false)} style={{ marginLeft:"auto",padding:"4px 8px",border:"none",background:"none",cursor:"pointer" as const,color:"#6b7280" }}>
+          <button onClick={() => setShowTemplates(false)} style={{ marginLeft:"auto",padding:"4px 8px",border:"none",background:"none",cursor:"pointer",color:"#6b7280" }}>
             <X style={{ width:14,height:14 }} />
           </button>
         </div>
@@ -450,36 +450,36 @@ ${html}
           {/* Heading buttons */}
           {["H1","H2","H3"].map(h=>(
             <button key={h} title={h} onClick={()=>exec("formatBlock",`<${h.toLowerCase()}>`)}
-              style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer" as const,background:"#f8fafc",fontSize:11,fontWeight:700,color:"#374151" }}>
+              style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"#f8fafc",fontSize:11,fontWeight:700,color:"#374151" }}>
               {h}
             </button>
           ))}
           <button title="Paragraph" onClick={()=>exec("formatBlock","<p>")}
-            style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer" as const,background:"#f8fafc",fontSize:11,color:"#374151" }}>P</button>
+            style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"#f8fafc",fontSize:11,color:"#374151" }}>P</button>
           <div style={S.sep}/>
           {/* Text color */}
           <input type="color" title="Text Color" defaultValue="#000000"
             onChange={e=>exec("foreColor",e.target.value)}
-            style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer" as const,padding:1 }} />
+            style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",padding:1 }} />
           {/* Highlight */}
           <input type="color" title="Highlight" defaultValue="#ffff00"
             onChange={e=>exec("hiliteColor",e.target.value)}
-            style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer" as const,padding:1 }} />
+            style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",padding:1 }} />
           <div style={S.sep}/>
           <button title="Clear Formatting" onClick={()=>exec("removeFormat")}
-            style={{ padding:"3px 7px",border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer" as const,fontSize:11,background:"#f8fafc" }}>
+            style={{ padding:"3px 7px",border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",fontSize:11,background:"#f8fafc" }}>
             Clear
           </button>
         </div>
       )}
 
       {/* ── Document Metadata Bar ── */}
-      <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 16px",display:"flex" as const,alignItems:"center" as const,gap:12,fontSize:12,color:"#6b7280" }}>
+      <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 16px",display:"flex",alignItems:"center",gap:12,fontSize:12,color:"#6b7280" }}>
         <span>Category:</span>
         <select value={meta.category} onChange={e=>setMeta(p=>({...p,category:e.target.value}))} style={{...S.inp,padding:"2px 6px",fontSize:11}}>
           {["General","Memo","Letter","Report","Minutes","RFQ","Contract","Policy","Template","Other"].map(c=><option key={c}>{c}</option>)}
         </select>
-        <label style={{ display:"flex" as const,alignItems:"center" as const,gap:5 }}>
+        <label style={{ display:"flex",alignItems:"center",gap:5 }}>
           <input type="checkbox" checked={meta.is_template} onChange={e=>setMeta(p=>({...p,is_template:e.target.checked}))} />
           Save as template
         </label>
@@ -489,17 +489,17 @@ ${html}
       </div>
 
       {/* ── Editor Area ── */}
-      <div style={{ flex:1,padding:"20px",overflowY:"auto" as const }}>
+      <div style={{ flex:1,padding:"20px",overflowY:"auto" }}>
         {mode === "edit" ? (
           <div style={S.paper}>
             {/* Letterhead */}
-            <div style={{ display:"flex" as const,alignItems:"center" as const,gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
-              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" as const }} />
+            <div style={{ display:"flex",alignItems:"center",gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
+              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" }} />
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:16,fontWeight:900,color:"#1a3a6b" }}>{hospitalName}</div>
                 <div style={{ fontSize:11,color:"#6b7280" }}>{countyName}</div>
               </div>
-              <div style={{ textAlign:"right" as const,fontSize:10,color:"#9ca3af" }}>
+              <div style={{ textAlign:"right",fontSize:10,color:"#9ca3af" }}>
                 <div>{new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</div>
                 <div style={{ fontStyle:"italic" as const }}>{meta.category} Document</div>
               </div>
@@ -511,8 +511,8 @@ ${html}
           </div>
         ) : (
           <div style={S.paper}>
-            <div style={{ display:"flex" as const,alignItems:"center" as const,gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
-              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" as const }} />
+            <div style={{ display:"flex",alignItems:"center",gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
+              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" }} />
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:16,fontWeight:900,color:"#1a3a6b" }}>{hospitalName}</div>
                 <div style={{ fontSize:11,color:"#6b7280" }}>{countyName}</div>
@@ -525,6 +525,5 @@ ${html}
       </div>
     </div>
       </div>
-    </div>
   );
 }

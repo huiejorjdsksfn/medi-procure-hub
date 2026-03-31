@@ -14,8 +14,8 @@ const SS: Record<string,{bg:string;color:string}> = {
   suspended:{bg:"#fef3c7",color:"#92400e"},
 };
 const CATS = ["pharmaceutical","medical_equipment","consumables","reagents","laboratory","surgical","general","other"];
-const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const};
-const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:4,display:"block" as const};
+const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
 
 export default function SuppliersPage() {
   const { user, profile, roles } = useAuth();
@@ -161,7 +161,7 @@ export default function SuppliersPage() {
     win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
 
-  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer" as const,fontSize:12,fontWeight:600,display:"flex" as const,alignItems:"center" as const,gap:5};
+  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
 
   return (
     <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",padding:16}}>
@@ -176,7 +176,7 @@ export default function SuppliersPage() {
         const suspendedS=suppliers.filter(s=>s.status==="suspended").length;
         const ratedS=suppliers.filter(s=>s.rating>=4).length;
         return(
-          <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
             {[
               {label:"Total Suppliers",val:suppliers.length,bg:"#c0392b"},
               {label:"Active",val:activeS,bg:"#0e6655"},
@@ -184,7 +184,7 @@ export default function SuppliersPage() {
               {label:"Top Rated (4+)",val:ratedS,bg:"#6c3483"},
               {label:"Showing",val:filtered.length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -193,16 +193,16 @@ export default function SuppliersPage() {
         );
       })()}
       {/* Header */}
-      <div  style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:12}}>
+      <div  style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Truck style={{width:22,height:22,color:"#fff"}}/>
           <div>
             <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Suppliers</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>{filtered.length} of {suppliers.length} suppliers</div>
           </div>
         </div>
-        <div style={{display:"flex" as const,gap:6,flexWrap:"wrap" as const}}>
-          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center" as const}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
+          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={printAll} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff"}}>
@@ -218,45 +218,45 @@ export default function SuppliersPage() {
       </div>
 
       {/* Filters */}
-      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex" as const,gap:10,alignItems:"center" as const,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
         <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
           <option value="all">All Categories</option>
           {CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
         </select>
-        <div style={{display:"flex" as const,gap:4}}>
+        <div style={{display:"flex",gap:4}}>
           {["all","active","inactive","suspended"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer" as const,textTransform:"capitalize" as const,background:statusFilter===s?"#1a3a6b":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3a6b":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
               {s}
             </button>
           ))}
         </div>
-        <div style={{flex:1,minWidth:180,position:"relative" as const}}>
-          <Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+        <div style={{flex:1,minWidth:180,position:"relative"}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, KRA PIN..."
             style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* Table */}
-      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden" as const}}>
-        <div style={{overflowX:"auto" as const}}>
+      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:"#1a3a6b"}}>
                 {["#","Name","Contact","Email","Phone","Category","Status","Rating","Actions"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left" as const,color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase" as const,whiteSpace:"nowrap" as const}}>{h}</th>
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading?(
-                <tr><td colSpan={9} style={{padding:"40px",textAlign:"center" as const}}>
-                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block" as const,margin:"0 auto 8px"}}/>
+                <tr><td colSpan={9} style={{padding:"40px",textAlign:"center"}}>
+                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
                   <span style={{fontSize:12,color:"#9ca3af"}}>Loading suppliers...</span>
                 </td></tr>
               ):filtered.length===0?(
-                <tr><td colSpan={9} style={{padding:"50px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
+                <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
               ):filtered.map((s,i)=>{
                 const st=SS[s.status]||{bg:"#f3f4f6",color:"#6b7280"};
                 return (
@@ -266,18 +266,18 @@ export default function SuppliersPage() {
                     <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"—"}</td>
                     <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.email||"—"}</td>
                     <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.phone||"—"}</td>
-                    <td style={{padding:"7px 12px",textTransform:"capitalize" as const,color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
+                    <td style={{padding:"7px 12px",textTransform:"capitalize",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize" as const}}>{s.status||"active"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize"}}>{s.status||"active"}</span>
                     </td>
                     <td style={{padding:"7px 12px",color:"#f59e0b",fontSize:13,background:i%2===0?"#fff":"#f9fafb"}}>{"★".repeat(Math.min(s.rating||3,5))}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <div style={{display:"flex" as const,gap:4}}>
-                        <button onClick={()=>setViewSupplier(s)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#dbeafe",color:"#1d4ed8"}}><Eye style={{width:12,height:12}}/></button>
-                        {isAdmin&&<button onClick={()=>openEdit(s)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#dcfce7",color:"#15803d"}}><Edit style={{width:12,height:12}}/></button>}
-                        {isAdmin&&<button onClick={()=>toggleStatus(s)} title={s.status==="active"?"Deactivate":"Activate"} style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:s.status==="active"?"#fef3c7":"#dcfce7",color:s.status==="active"?"#92400e":"#15803d"}}>{s.status==="active"?<XCircle style={{width:12,height:12}}/>:<CheckCircle style={{width:12,height:12}}/>}</button>}
-                        <button onClick={()=>printOne(s)} title="Print" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#f3f4f6",color:"#374151"}}><Printer style={{width:12,height:12}}/></button>
-                        {isAdmin&&<button onClick={()=>deleteSupplier(s)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer" as const,background:"#fee2e2",color:"#dc2626"}}><Trash2 style={{width:12,height:12}}/></button>}
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>setViewSupplier(s)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}><Eye style={{width:12,height:12}}/></button>
+                        {isAdmin&&<button onClick={()=>openEdit(s)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dcfce7",color:"#15803d"}}><Edit style={{width:12,height:12}}/></button>}
+                        {isAdmin&&<button onClick={()=>toggleStatus(s)} title={s.status==="active"?"Deactivate":"Activate"} style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:s.status==="active"?"#fef3c7":"#dcfce7",color:s.status==="active"?"#92400e":"#15803d"}}>{s.status==="active"?<XCircle style={{width:12,height:12}}/>:<CheckCircle style={{width:12,height:12}}/>}</button>}
+                        <button onClick={()=>printOne(s)} title="Print" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#f3f4f6",color:"#374151"}}><Printer style={{width:12,height:12}}/></button>
+                        {isAdmin&&<button onClick={()=>deleteSupplier(s)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}><Trash2 style={{width:12,height:12}}/></button>}
                       </div>
                     </td>
                   </tr>
@@ -291,22 +291,22 @@ export default function SuppliersPage() {
 
       {/* View Modal */}
       {viewSupplier&&(
-        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(560px,100%)",maxHeight:"88vh",overflow:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,borderRadius:"14px 14px 0 0"}}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(560px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
               <div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewSupplier.name}</div><div style={{fontSize:11,color:"rgba(255,255,255,0.9)",marginTop:2}}>{viewSupplier.category?.replace(/_/g," ")}</div></div>
-              <button onClick={()=>setViewSupplier(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer" as const,color:"#fff"}}><X style={{width:14,height:14}}/></button>
+              <button onClick={()=>setViewSupplier(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{padding:20,display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Rating","★".repeat(viewSupplier.rating||3)],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
-                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
               ))}
-              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
+              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex" as const,justifyContent:"flex-end" as const,gap:8}}>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
               <button onClick={()=>printOne(viewSupplier)} style={{...btnSm,padding:"7px 14px",background:"#f3f4f6",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8}}><Printer style={{width:13,height:13}}/>Print</button>
-              {isAdmin&&<button onClick={()=>{setViewSupplier(null);openEdit(viewSupplier);}} style={{padding:"7px 16px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer" as const,fontWeight:700,fontSize:13}}>Edit</button>}
-              <button onClick={()=>setViewSupplier(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer" as const,fontSize:13}}>Close</button>
+              {isAdmin&&<button onClick={()=>{setViewSupplier(null);openEdit(viewSupplier);}} style={{padding:"7px 16px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
+              <button onClick={()=>setViewSupplier(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
             </div>
           </div>
         </div>
@@ -314,14 +314,14 @@ export default function SuppliersPage() {
 
       {/* Add/Edit Modal */}
       {showForm&&(
-        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16,background:"rgba(0,0,0,0.55)"}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(640px,100%)",maxHeight:"92vh",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,borderRadius:"14px 14px 0 0"}}>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.55)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(640px,100%)",maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
               <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Supplier":"New Supplier"}</div>
-              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer" as const,color:"#fff"}}><X style={{width:14,height:14}}/></button>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{overflowY:"auto" as const,padding:20}}>
-              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{overflowY:"auto",padding:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Supplier Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Pharmed Kenya Ltd"/></div>
                 <div><label style={lbl}>Contact Person</label><input value={form.contact_person} onChange={e=>setForm(p=>({...p,contact_person:e.target.value}))} style={inp}/></div>
                 <div><label style={lbl}>Email</label><input type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} style={inp}/></div>
@@ -335,13 +335,13 @@ export default function SuppliersPage() {
                 <div><label style={lbl}>Website</label><input value={form.website} onChange={e=>setForm(p=>({...p,website:e.target.value}))} style={inp} placeholder="https://"/></div>
                 <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}</select></div>
                 <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none" as const}}/></div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none" as const}}/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
               </div>
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex" as const,justifyContent:"flex-end" as const,gap:8}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer" as const,fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Truck style={{width:13,height:13}}/>}
                 {saving?"Saving...":"Save Supplier"}
               </button>

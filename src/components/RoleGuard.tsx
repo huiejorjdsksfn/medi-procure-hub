@@ -12,14 +12,14 @@ export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
   const navigate = useNavigate();
   return (
     <div style={{
-      height: "100%", minHeight: 400, display: "flex" as const, alignItems: "center" as const,
-      justifyContent: "center" as const, background: "#f9fafb",
+      height: "100%", minHeight: 400, display: "flex", alignItems: "center",
+      justifyContent: "center", background: "#f9fafb",
       fontFamily: "'Segoe UI',system-ui,sans-serif",
     }}>
-      <div style={{ textAlign: "center" as const, maxWidth: 340, padding: "0 24px" }}>
+      <div style={{ textAlign: "center", maxWidth: 340, padding: "0 24px" }}>
         <div style={{
           width: 64, height: 64, borderRadius: 16, background: "#fee2e2",
-          display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+          display: "flex", alignItems: "center", justifyContent: "center",
           margin: "0 auto 16px",
         }}>
           <Lock style={{ width: 28, height: 28, color: "#dc2626" }}/>
@@ -36,9 +36,9 @@ export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
         <button
           onClick={() => navigate("/dashboard")}
           style={{
-            display: "inline-flex" as const, alignItems: "center" as const, gap: 8,
+            display: "inline-flex", alignItems: "center", gap: 8,
             padding: "10px 20px", background: "#0078d4", color: "#fff",
-            border: "none", borderRadius: 8, cursor: "pointer" as const,
+            border: "none", borderRadius: 8, cursor: "pointer",
             fontSize: 13, fontWeight: 600,
           }}
           onMouseEnter={e => (e.currentTarget.style.background = "#106ebe")}
@@ -60,7 +60,7 @@ export function RoleBanner({ message, type = "info" }: { message: string; type?:
   }[type];
   return (
     <div style={{
-      display: "flex" as const, alignItems: "center" as const, gap: 8,
+      display: "flex", alignItems: "center", gap: 8,
       padding: "8px 16px", fontSize: 12, borderBottom: `1px solid ${cfg.border}`,
       background: cfg.bg, color: cfg.text,
     }}>

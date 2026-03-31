@@ -93,10 +93,10 @@ export default function SmtpSettingsPanel() {
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "8px", color: "#fff", fontSize: "13px",
-    outline: "none", boxSizing: "border-box" as const,
+    outline: "none", boxSizing: "border-box",
   };
   const labelS: React.CSSProperties = {
-    display: "block" as const, color: "rgba(255,255,255,0.55)",
+    display: "block", color: "rgba(255,255,255,0.55)",
     fontSize: "12px", fontWeight: 500, marginBottom: 6,
   };
   const fieldWrap: React.CSSProperties = { marginBottom: 16 };
@@ -108,7 +108,7 @@ export default function SmtpSettingsPanel() {
   };
 
   if (loading) return (
-    <div style={{ padding: "40px", textAlign: "center" as const, color: "rgba(255,255,255,0.4)" }}>
+    <div style={{ padding: "40px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
       Loading SMTP configuration…
     </div>
   );
@@ -120,7 +120,7 @@ export default function SmtpSettingsPanel() {
       {/* Toast */}
       {toast.msg && (
         <div style={{
-          position: "fixed" as const, top: 80, right: 24, zIndex: 9999,
+          position: "fixed", top: 80, right: 24, zIndex: 9999,
           background: toast.ok ? "#1e3a5f" : "#3b0f0f",
           border: `1px solid ${toast.ok ? "#3b82f6" : "#ef4444"}`,
           borderRadius: "10px", padding: "12px 20px",
@@ -134,7 +134,7 @@ export default function SmtpSettingsPanel() {
         ...card,
         borderLeft: `4px solid ${isActive ? "#22c55e" : "#ef4444"}`,
         background: isActive ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)",
-        display: "flex" as const, alignItems: "center" as const, gap: 12,
+        display: "flex", alignItems: "center", gap: 12,
       }}>
         <div style={{ fontSize: "28px" }}>{isActive ? "✅" : "❌"}</div>
         <div>
@@ -148,18 +148,18 @@ export default function SmtpSettingsPanel() {
           </div>
         </div>
         <div style={{ marginLeft: "auto" }}>
-          <label style={{ display: "flex" as const, alignItems: "center" as const, gap: 8, cursor: "pointer" as const }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <div
               style={{
                 width: 44, height: 24, borderRadius: 12,
                 background: isActive ? "#22c55e" : "rgba(255,255,255,0.15)",
-                position: "relative" as const, transition: "background 0.2s", cursor: "pointer" as const,
+                position: "relative", transition: "background 0.2s", cursor: "pointer",
               }}
               onClick={() => setConfig(c => ({ ...c, smtp_enabled: c.smtp_enabled === "true" ? "false" : "true" }))}
             >
               <div style={{
                 width: 20, height: 20, borderRadius: "50%", background: "#fff",
-                position: "absolute" as const, top: 2,
+                position: "absolute", top: 2,
                 left: isActive ? 22 : 2,
                 transition: "left 0.2s",
               }}/>
@@ -174,15 +174,15 @@ export default function SmtpSettingsPanel() {
       {/* Provider selector */}
       <div style={card}>
         <div style={{ fontWeight: 600, marginBottom: 16, color: "#60a5fa" }}>📨 Email Provider</div>
-        <div style={{ display: "flex" as const, gap: 10 }}>
+        <div style={{ display: "flex", gap: 10 }}>
           {["supabase", "resend", "sendgrid", "mailgun", "custom"].map(p => (
             <button key={p} onClick={() => setConfig(c => ({ ...c, smtp_provider: p }))} style={{
               padding: "8px 16px",
               background: config.smtp_provider === p ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)",
               border: `1px solid ${config.smtp_provider === p ? "#3b82f6" : "rgba(255,255,255,0.1)"}`,
               borderRadius: 8, color: config.smtp_provider === p ? "#60a5fa" : "rgba(255,255,255,0.5)",
-              cursor: "pointer" as const, fontSize: "12px", fontWeight: config.smtp_provider === p ? 600 : 400,
-              textTransform: "capitalize" as const,
+              cursor: "pointer", fontSize: "12px", fontWeight: config.smtp_provider === p ? 600 : 400,
+              textTransform: "capitalize",
             }}>{p}</button>
           ))}
         </div>
@@ -191,7 +191,7 @@ export default function SmtpSettingsPanel() {
       {/* SMTP Configuration */}
       <div style={card}>
         <div style={{ fontWeight: 600, marginBottom: 16, color: "#60a5fa" }}>⚙️ SMTP Configuration</div>
-        <div style={{ display: "grid" as const, gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
           <div style={fieldWrap}>
             <label style={labelS}>SMTP Host</label>
             <input style={inputS} value={config.smtp_host}
@@ -246,7 +246,7 @@ export default function SmtpSettingsPanel() {
       {/* Test Email */}
       <div style={card}>
         <div style={{ fontWeight: 600, marginBottom: 16, color: "#22c55e" }}>🧪 Test Email</div>
-        <div style={{ display: "flex" as const, gap: 10, alignItems: "flex-end" as const }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
             <label style={labelS}>Send test to</label>
             <input style={inputS} type="email" value={config.email_test_address}
@@ -283,14 +283,14 @@ export default function SmtpSettingsPanel() {
       {/* Email templates note */}
       <div style={card}>
         <div style={{ fontWeight: 600, marginBottom: 12, color: "#a78bfa" }}>📧 Email Templates</div>
-        <div style={{ display: "flex" as const, flexDirection: "column" as const, gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
             { name: "Password Reset", status: "active", path: "Auth → Email Templates → Reset Password" },
             { name: "System Notifications", status: "active", path: "send-email Edge Function v4" },
             { name: "Requisition Alerts", status: "active", path: "notify-requisition Edge Function" },
             { name: "Accountant Alerts", status: "active", path: "send-email with category: finance" },
           ].map((t, i) => (
-            <div key={i} style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <div>
                 <div style={{ fontSize: "13px", fontWeight: 500 }}>{t.name}</div>
                 <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>{t.path}</div>
@@ -304,7 +304,7 @@ export default function SmtpSettingsPanel() {
       </div>
 
       {/* Save button */}
-      <div style={{ display: "flex" as const, gap: 12 }}>
+      <div style={{ display: "flex", gap: 12 }}>
         <button
           style={{
             padding: "12px 28px",

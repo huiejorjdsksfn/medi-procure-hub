@@ -67,8 +67,8 @@ function WBtn({ onClick, children, disabled, active, style }: any) {
         padding: "3px 10px", fontSize: 11, fontFamily: "'Tahoma','MS Sans Serif',sans-serif",
         color: disabled ? "#808080" : "#000",
         boxShadow: dn || active ? btnDown : raised,
-        display: "flex" as const, alignItems: "center" as const, gap: 4, whiteSpace: "nowrap" as const,
-        minHeight: 23, userSelect: "none" as const,
+        display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+        minHeight: 23, userSelect: "none",
         ...style,
       }}
     >{children}</button>
@@ -85,7 +85,7 @@ const winInp: React.CSSProperties = {
 /* ─── Classic panel / groupbox ──────────────────────────── */
 function GroupBox({ label, children, style }: any) {
   return (
-    <fieldset style={{ border: "none", padding: "12px 8px 8px", margin: 0, position: "relative" as const, boxShadow: sunken, ...style }}>
+    <fieldset style={{ border: "none", padding: "12px 8px 8px", margin: 0, position: "relative", boxShadow: sunken, ...style }}>
       <legend style={{ fontSize: 11, fontFamily: "'Tahoma','MS Sans Serif',sans-serif", padding: "0 4px", color: "#000", background: WIN_BG, marginLeft: 4 }}>
         {label}
       </legend>
@@ -102,8 +102,8 @@ function TBarBtn({ label, symbol, onClick }: { label: string; symbol: string; on
       onMouseDown={() => setDn(true)} onMouseUp={() => setDn(false)} onMouseLeave={() => setDn(false)}
       title={label} style={{
         width: 16, height: 14, fontSize: 9, fontWeight: 700, background: WIN_BG,
-        border: "none", boxShadow: dn ? btnDown : raised, cursor: "pointer" as const,
-        display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, padding: 0,
+        border: "none", boxShadow: dn ? btnDown : raised, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
         fontFamily: "Marlett, 'Wingdings', monospace", color: "#000", lineHeight: 1,
       }}>{symbol}</button>
   );
@@ -207,7 +207,7 @@ export default function FinancialDashboardPage() {
       case "Journal No":    return plain ? row.journal_number : <b style={{ color: "#400080", fontFamily: "monospace" }}>{row.journal_number || "—"}</b>;
       case "Payee":         return row.payee_name || "—";
       case "Received From": return row.received_from || "—";
-      case "Narration":     return <span style={{ maxWidth: 200, overflow: "hidden" as const, textOverflow: "ellipsis", whiteSpace: "nowrap" as const, display: "block" as const }}>{row.narration || "—"}</span>;
+      case "Narration":     return <span style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{row.narration || "—"}</span>;
       case "Method":        return row.payment_method || "—";
       case "Expense Acct":  return <span style={{ fontSize: 10, color: "#404040" }}>{row.expense_account || "—"}</span>;
       case "Status":        return chip(row.status || "—");
@@ -263,7 +263,7 @@ export default function FinancialDashboardPage() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Tahoma','MS Sans Serif',sans-serif", background: TEAL_DESK, minHeight: "100vh", display: "flex" as const, flexDirection: "column" as const, padding: 8 }}>
+    <div style={{ fontFamily: "'Tahoma','MS Sans Serif',sans-serif", background: TEAL_DESK, minHeight: "100vh", display: "flex", flexDirection: "column", padding: 8 }}>
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes marquee { 0%{background-position:0 0} 100%{background-position:20px 0} }
@@ -286,15 +286,15 @@ export default function FinancialDashboardPage() {
       `}</style>
 
       {/* ═══ MAIN APPLICATION WINDOW ═══ */}
-      <div style={{ background: WIN_BG, boxShadow: raised, display: "flex" as const, flexDirection: "column" as const, flex: 1, minHeight: 0 }}>
+      <div style={{ background: WIN_BG, boxShadow: raised, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
 
         {/* ── Title Bar ── */}
-        <div style={{ background: WIN_BLUE, padding: "3px 6px", display: "flex" as const, alignItems: "center" as const, gap: 4, userSelect: "none" as const }}>
-          <img src={logoImg} alt="" style={{ width: 16, height: 16, objectFit: "contain" as const, imageRendering: "pixelated" }}/>
+        <div style={{ background: WIN_BLUE, padding: "3px 6px", display: "flex", alignItems: "center", gap: 4, userSelect: "none" }}>
+          <img src={logoImg} alt="" style={{ width: 16, height: 16, objectFit: "contain", imageRendering: "pixelated" }}/>
           <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: 0.3 }}>
             EL5 MediProcure — Financial Management System &nbsp;[{MODS[activeMod]}]
           </span>
-          <div style={{ display: "flex" as const, gap: 2 }}>
+          <div style={{ display: "flex", gap: 2 }}>
             <TBarBtn label="Minimize"  symbol="0" />
             <TBarBtn label="Maximize"  symbol="1" />
             <TBarBtn label="Close"     symbol="r" onClick={() => navigate("/")} />
@@ -302,25 +302,25 @@ export default function FinancialDashboardPage() {
         </div>
 
         {/* ── Menu Bar ── */}
-        <div style={{ background: WIN_BG, boxShadow: "0 1px 0 #808080", display: "flex" as const, alignItems: "stretch" as const, fontSize: 11, userSelect: "none" as const, position: "relative" as const, zIndex: 200 }}>
+        <div style={{ background: WIN_BG, boxShadow: "0 1px 0 #808080", display: "flex", alignItems: "stretch", fontSize: 11, userSelect: "none", position: "relative", zIndex: 200 }}>
           {Object.keys(MENUS).map(key => (
-            <div key={key} style={{ position: "relative" as const }}>
+            <div key={key} style={{ position: "relative" }}>
               <div
                 onClick={() => setMenuOpen(menuOpen === key ? null : key)}
-                style={{ padding: "3px 10px", cursor: "default" as const, background: menuOpen === key ? "#000082" : "transparent", color: menuOpen === key ? "#fff" : "#000" }}
+                style={{ padding: "3px 10px", cursor: "default", background: menuOpen === key ? "#000082" : "transparent", color: menuOpen === key ? "#fff" : "#000" }}
                 
               >
                 {key}
               </div>
               {menuOpen === key && (
-                <div style={{ position: "absolute" as const, top: "100%", left: 0, background: WIN_BG, boxShadow: raised, zIndex: 300, minWidth: 180, border: "1px solid #808080" }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, background: WIN_BG, boxShadow: raised, zIndex: 300, minWidth: 180, border: "1px solid #808080" }}>
                   {MENUS[key].map((item, i) =>
                     item.label.startsWith("─") ? (
                       <div key={i} style={{ height: 1, background: "#808080", margin: "2px 0" }}/>
                     ) : (
                       <div key={i} 
                         onClick={() => { item.action?.(); setMenuOpen(null); }}
-                        style={{ padding: "3px 20px 3px 28px", cursor: "default" as const, fontSize: 11, whiteSpace: "nowrap" as const }}>
+                        style={{ padding: "3px 20px 3px 28px", cursor: "default", fontSize: 11, whiteSpace: "nowrap" }}>
                         {item.label}
                       </div>
                     )
@@ -332,9 +332,9 @@ export default function FinancialDashboardPage() {
         </div>
 
         {/* ── Toolbar ── */}
-        <div style={{ background: WIN_BG, borderBottom: "1px solid #808080", padding: "3px 6px", display: "flex" as const, alignItems: "center" as const, gap: 3, flexWrap: "wrap" }}>
+        <div style={{ background: WIN_BG, borderBottom: "1px solid #808080", padding: "3px 6px", display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
           {/* Logo + App name */}
-          <img src={logoImg} alt="" style={{ width: 24, height: 24, objectFit: "contain" as const, marginRight: 4 }}/>
+          <img src={logoImg} alt="" style={{ width: 24, height: 24, objectFit: "contain", marginRight: 4 }}/>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#000", marginRight: 8 }}>Embu Level 5 Hospital</span>
           
           <div style={{ width: 1, height: 22, background: "#808080", margin: "0 4px" }}/>
@@ -370,69 +370,69 @@ export default function FinancialDashboardPage() {
         </div>
 
         {/* ── KPI Panel ── */}
-        <div style={{ padding: "6px 8px", background: WIN_BG, borderBottom: "1px solid #808080", display: "flex" as const, gap: 6, flexWrap: "wrap" }}>
+        <div style={{ padding: "6px 8px", background: WIN_BG, borderBottom: "1px solid #808080", display: "flex", gap: 6, flexWrap: "wrap" }}>
           {KPIS.map(k => (
             <div key={k.label} style={{
               boxShadow: sunken, background: "#fff", padding: "6px 14px", minWidth: 160, flex: 1,
-              borderLeft: `3px solid ${k.borderColor}`, display: "flex" as const, alignItems: "center" as const, gap: 10,
+              borderLeft: `3px solid ${k.borderColor}`, display: "flex", alignItems: "center", gap: 10,
             }}>
               <span style={{ fontSize: 22 }}>{k.icon}</span>
               <div>
                 <div style={{ fontSize: k.big ? 26 : 18, fontWeight: 700, color: k.borderColor, lineHeight: 1.1, fontFamily: "'Courier New',monospace" }}>{k.value}</div>
-                <div style={{ fontSize: 10, color: "#404040", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 2 }}>{k.label}</div>
+                <div style={{ fontSize: 10, color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 2 }}>{k.label}</div>
               </div>
             </div>
           ))}
         </div>
 
         {/* ── Body: Sidebar + Main ── */}
-        <div style={{ display: "flex" as const, flex: 1, minHeight: 0, overflow: "hidden" as const }}>
+        <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
 
           {/* ── LEFT SIDEBAR: Chart of Accounts ── */}
-          <div style={{ width: 230, minWidth: 230, boxShadow: sunken, background: "#fff", display: "flex" as const, flexDirection: "column" as const, margin: 6, marginRight: 0 }}>
+          <div style={{ width: 230, minWidth: 230, boxShadow: sunken, background: "#fff", display: "flex", flexDirection: "column", margin: 6, marginRight: 0 }}>
             {/* Sidebar title bar */}
-            <div style={{ background: "#000082", padding: "3px 6px", display: "flex" as const, alignItems: "center" as const, gap: 4 }}>
+            <div style={{ background: "#000082", padding: "3px 6px", display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>📊 Chart of Accounts</span>
             </div>
             {/* Search */}
             <div style={{ padding: "4px 6px", background: WIN_BG, borderBottom: "1px solid #808080" }}>
               <input value={coaSearch} onChange={e => setCoaSearch(e.target.value)} placeholder="Search accounts..."
-                style={{ ...winInp, width: "100%", boxSizing: "border-box" as const }}/>
+                style={{ ...winInp, width: "100%", boxSizing: "border-box" }}/>
             </div>
             {/* Column headers */}
-            <div style={{ display: "grid" as const, gridTemplateColumns: "1fr 38px", background: WIN_BG, borderBottom: "1px solid #808080" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 38px", background: WIN_BG, borderBottom: "1px solid #808080" }}>
               {["Account Name", "Type"].map(h => (
                 <div key={h} style={{ padding: "2px 6px", fontSize: 10, fontWeight: 700, boxShadow: raised, margin: 1 }}>{h}</div>
               ))}
             </div>
             {/* Rows */}
-            <div style={{ flex: 1, overflowY: "auto" as const }}>
+            <div style={{ flex: 1, overflowY: "auto" }}>
               {filtCoa.length === 0 ? (
-                <div style={{ padding: 16, textAlign: "center" as const, color: "#808080", fontSize: 11 }}>No accounts found</div>
+                <div style={{ padding: 16, textAlign: "center", color: "#808080", fontSize: 11 }}>No accounts found</div>
               ) : filtCoa.map((c, i) => (
                 <div key={c.id || i} 
                   onClick={() => navigate("/financials/chart-of-accounts")}
-                  style={{ display: "grid" as const, gridTemplateColumns: "1fr 38px", borderBottom: "1px solid #d4d0c8", background: i % 2 === 0 ? "#fff" : "#f0f0f0", cursor: "default" as const }}>
-                  <span style={{ padding: "3px 6px", fontSize: 11, overflow: "hidden" as const, textOverflow: "ellipsis", whiteSpace: "nowrap" as const }} title={c.account_name}>{c.account_name || "—"}</span>
-                  <span style={{ padding: "3px 4px", fontSize: 10, color: "#404040", textAlign: "center" as const }}>{(c.account_type || "").slice(0, 3)}</span>
+                  style={{ display: "grid", gridTemplateColumns: "1fr 38px", borderBottom: "1px solid #d4d0c8", background: i % 2 === 0 ? "#fff" : "#f0f0f0", cursor: "default" }}>
+                  <span style={{ padding: "3px 6px", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.account_name}>{c.account_name || "—"}</span>
+                  <span style={{ padding: "3px 4px", fontSize: 10, color: "#404040", textAlign: "center" }}>{(c.account_type || "").slice(0, 3)}</span>
                 </div>
               ))}
             </div>
             {/* Sidebar status */}
             <div style={{ padding: "2px 6px", background: WIN_BG, borderTop: "1px solid #808080", fontSize: 10, color: "#404040" }}>
-              {filtCoa.length} accounts · <span style={{ cursor: "pointer" as const, color: "#000080", textDecoration: "underline" as const }} onClick={() => navigate("/financials/chart-of-accounts")}>View all →</span>
+              {filtCoa.length} accounts · <span style={{ cursor: "pointer", color: "#000080", textDecoration: "underline" }} onClick={() => navigate("/financials/chart-of-accounts")}>View all →</span>
             </div>
           </div>
 
           {/* ── MAIN PANEL ── */}
-          <div style={{ flex: 1, display: "flex" as const, flexDirection: "column" as const, margin: 6, minWidth: 0, overflow: "hidden" as const }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", margin: 6, minWidth: 0, overflow: "hidden" }}>
 
             {/* Filter / toolbar GroupBox */}
             <GroupBox label={`${MODS[activeMod]} — Filter & Extract`} style={{ background: WIN_BG, marginBottom: 6, padding: "16px 8px 8px" }}>
-              <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 11 }}>Search:</span>
-                <div style={{ position: "relative" as const }}>
-                  <Search style={{ position: "absolute" as const, left: 4, top: "50%", transform: "translateY(-50%)", width: 10, height: 10, color: "#808080" }}/>
+                <div style={{ position: "relative" }}>
+                  <Search style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: 10, height: 10, color: "#808080" }}/>
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter records..."
                     style={{ ...winInp, paddingLeft: 18, width: 180 }}/>
                 </div>
@@ -442,9 +442,9 @@ export default function FinancialDashboardPage() {
                   <option value="ALL">ALL</option>
                   {allStatuses.map(s => <option key={s} value={s.toUpperCase()}>{s.toUpperCase()}</option>)}
                 </select>
-                <div style={{ display: "flex" as const, gap: 2 }}>
+                <div style={{ display: "flex", gap: 2 }}>
                   {([["ALL", "All Records"], ["LATEST100", "Latest 100"], ["THISMONTH", "This Month"]] as [RecordFilter, string][]).map(([val, lbl]) => (
-                    <label key={val} style={{ display: "flex" as const, alignItems: "center" as const, gap: 3, fontSize: 11, cursor: "default" as const, padding: "1px 6px", background: recFilter === val ? "#d0e0ff" : "transparent", boxShadow: recFilter === val ? sunken : "none" }}>
+                    <label key={val} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, cursor: "default", padding: "1px 6px", background: recFilter === val ? "#d0e0ff" : "transparent", boxShadow: recFilter === val ? sunken : "none" }}>
                       <input type="radio" name="rf" value={val} checked={recFilter === val} onChange={() => setRecFilter(val)} style={{ accentColor: "#000080" }}/>
                       {lbl}
                     </label>
@@ -456,36 +456,36 @@ export default function FinancialDashboardPage() {
             </GroupBox>
 
             {/* Data ListView */}
-            <div style={{ flex: 1, boxShadow: sunken, background: "#fff", overflow: "hidden" as const, display: "flex" as const, flexDirection: "column" as const }}>
-              <div style={{ overflowX: "auto" as const, overflowY: "auto" as const, flex: 1 }}>
+            <div style={{ flex: 1, boxShadow: sunken, background: "#fff", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ overflowX: "auto", overflowY: "auto", flex: 1 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                   <thead>
                     <tr>
                       {COLS[activeMod].map(col => (
                         <th key={col} style={{
-                          padding: "3px 8px", textAlign: "left" as const, whiteSpace: "nowrap" as const,
-                          boxShadow: raised, background: WIN_BG, position: "sticky" as const, top: 0, zIndex: 2,
-                          fontWeight: 700, fontSize: 11, cursor: "default" as const, userSelect: "none" as const,
+                          padding: "3px 8px", textAlign: "left", whiteSpace: "nowrap",
+                          boxShadow: raised, background: WIN_BG, position: "sticky", top: 0, zIndex: 2,
+                          fontWeight: 700, fontSize: 11, cursor: "default", userSelect: "none",
                         }}>{col}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={COLS[activeMod].length} style={{ padding: 40, textAlign: "center" as const }}>
-                        <RefreshCw style={{ width: 20, height: 20, animation: "spin 1s linear infinite", display: "block" as const, margin: "0 auto 8px", color: "#808080" }}/>
+                      <tr><td colSpan={COLS[activeMod].length} style={{ padding: 40, textAlign: "center" }}>
+                        <RefreshCw style={{ width: 20, height: 20, animation: "spin 1s linear infinite", display: "block", margin: "0 auto 8px", color: "#808080" }}/>
                         <div style={{ fontSize: 11, color: "#808080" }}>Loading data...</div>
                       </td></tr>
                     ) : displayed.length === 0 ? (
-                      <tr><td colSpan={COLS[activeMod].length} style={{ padding: 40, textAlign: "center" as const, color: "#808080", fontSize: 11 }}>No records found</td></tr>
+                      <tr><td colSpan={COLS[activeMod].length} style={{ padding: 40, textAlign: "center", color: "#808080", fontSize: 11 }}>No records found</td></tr>
                     ) : displayed.map((row, i) => (
                       <tr key={row.id || i}
                         onClick={() => setSelRow(i)}
                         className={`win-row${selRow === i ? " win-row-sel" : ""}`}
-                        style={{ cursor: "default" as const }}>
+                        style={{ cursor: "default" }}>
                         {COLS[activeMod].map(col => (
                           <td key={col} style={{
-                            padding: "2px 8px", borderBottom: "1px solid #d4d0c8", whiteSpace: "nowrap" as const,
+                            padding: "2px 8px", borderBottom: "1px solid #d4d0c8", whiteSpace: "nowrap",
                             background: i % 2 === 0 ? "#fff" : "#f8f8f0",
                             color: "#000",
                           }}>
@@ -502,14 +502,14 @@ export default function FinancialDashboardPage() {
         </div>
 
         {/* ── Status Bar ── */}
-        <div style={{ background: WIN_BG, borderTop: "1px solid #808080", padding: "2px 6px", display: "flex" as const, alignItems: "center" as const, gap: 2 }}>
+        <div style={{ background: WIN_BG, borderTop: "1px solid #808080", padding: "2px 6px", display: "flex", alignItems: "center", gap: 2 }}>
           {[
             `${displayed.length} object${displayed.length !== 1 ? "s" : ""}`,
             `Module: ${MODS[activeMod]}`,
             `Date range: ${startDate} to ${endDate}`,
             loading ? "⏳ Loading..." : "✓ Ready",
           ].map((s, i) => (
-            <div key={i} style={{ boxShadow: sunken, padding: "1px 10px", fontSize: 10, color: "#000", marginRight: 2, whiteSpace: "nowrap" as const }}>{s}</div>
+            <div key={i} style={{ boxShadow: sunken, padding: "1px 10px", fontSize: 10, color: "#000", marginRight: 2, whiteSpace: "nowrap" }}>{s}</div>
           ))}
           <div style={{ flex: 1 }}/>
           <div style={{ boxShadow: sunken, padding: "1px 10px", fontSize: 10, color: "#000" }}>
@@ -520,8 +520,10 @@ export default function FinancialDashboardPage() {
 
       {/* Click-away for menus */}
       {menuOpen && (
-        <div style={{ position: "fixed" as const, inset: 0, zIndex: 190 }} onClick={() => setMenuOpen(null)}/>
+        <div style={{ position: "fixed", inset: 0, zIndex: 190 }} onClick={() => setMenuOpen(null)}/>
       )}
+    </div>
     </div>
   );
 }
+

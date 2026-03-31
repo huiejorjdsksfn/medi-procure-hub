@@ -176,7 +176,7 @@ export default function RequisitionsPage() {
     <div style={{minHeight:"100vh",background:"#0d1b35",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
       {/* ── KPI TILES ── */}
-      <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
         {[
           {label:"Total Value",     val:fmtKES(totalValue),    bg:"#dc2626",  icon:"💰"},
           {label:"Approved Value",  val:fmtKES(approvedValue), bg:"#059669",  icon:"✅"},
@@ -184,17 +184,17 @@ export default function RequisitionsPage() {
           {label:"Total Records",   val:String(reqs.length),   bg:"#6366f1",  icon:"📋"},
           {label:"Approved",        val:String(COUNTS.approved),bg:"#0078d4", icon:"👍"},
         ].map((kpi,i)=>(
-          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center" as const,borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
-            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase" as const}}>{kpi.label}</div>
-            <div style={{fontSize:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums" as const}}>{kpi.val}</div>
+          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
+            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase"}}>{kpi.label}</div>
+            <div style={{fontSize:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums"}}>{kpi.val}</div>
           </div>
         ))}
       </div>
 
       {/* ── PAGE HEADER ── */}
-      <div style={{padding:"16px 20px 0",display:"flex" as const,alignItems:"center" as const,gap:10,background:"transparent"}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,flex:1}}>
-          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+      <div style={{padding:"16px 20px 0",display:"flex",alignItems:"center",gap:10,background:"transparent"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
           </div>
           <div>
@@ -202,16 +202,16 @@ export default function RequisitionsPage() {
             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Purchase requisition management · {reqs.length} records</div>
           </div>
         </div>
-        <div style={{display:"flex" as const,gap:8}}>
-          <button onClick={()=>exportExcel()} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
             <Download style={{width:13,height:13}}/> Export
           </button>
-          <button onClick={load} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
             <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canCreate&&(
             <button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setShowForm(true);}}
-              style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(5,150,105,0.35)"}}>
+              style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(5,150,105,0.35)"}}>
               <Plus style={{width:14,height:14}}/> New Requisition
             </button>
           )}
@@ -219,21 +219,21 @@ export default function RequisitionsPage() {
       </div>
 
       {/* ── STATUS TABS ── */}
-      <div style={{padding:"10px 20px 0",display:"flex" as const,alignItems:"center" as const,gap:6,flexWrap:"wrap" as const,background:"transparent"}}>
+      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" as const,background:"transparent"}}>
         {Object.entries({all:"All",...Object.fromEntries(Object.entries(STATUS_CFG).map(([k,v])=>[k,v.label]))}).map(([key,label])=>{
           const cnt=COUNTS[key as keyof typeof COUNTS]??0;
           const isActive=statusTab===key;
           const cfg=STATUS_CFG[key];
           return (
             <button key={key} onClick={()=>setStatusTab(key)}
-              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"rgba(255,255,255,0.06)",cursor:"pointer" as const,fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex" as const,alignItems:"center" as const,gap:5}}>
+              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"rgba(255,255,255,0.06)",cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex",alignItems:"center",gap:5}}>
               {cfg?.dot&&isActive&&<span style={{width:6,height:6,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>}
               {label} ({key==="all"?reqs.length:cnt})
             </button>
           );
         })}
-        <div style={{marginLeft:"auto",display:"flex" as const,gap:6}}>
-          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",fontSize:12,color:"#e2e8f0",cursor:"pointer" as const}}>
+        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",fontSize:12,color:"#e2e8f0",cursor:"pointer"}}>
             <option value="all">All Priority</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
@@ -245,17 +245,17 @@ export default function RequisitionsPage() {
 
       {/* ── SEARCH BAR ── */}
       <div style={{padding:"10px 20px"}}>
-        <div style={{position:"relative" as const,maxWidth:"100%"}}>
-          <Search style={{position:"absolute" as const,left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
+        <div style={{position:"relative",maxWidth:"100%"}}>
+          <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisition number, title, requester, department…"
-            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:13,outline:"none",boxSizing:"border-box" as const,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const,padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
+            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* ── TABLE ── */}
-      <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden" as const}}>
-        <div style={{overflowX:"auto" as const}}>
+      <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
               <tr style={{borderBottom:"2px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)"}}>
@@ -272,7 +272,7 @@ export default function RequisitionsPage() {
                   {col:"",                 label:"ACTIONS",    w:90},
                 ].map(h=>(
                   <th key={h.col} onClick={()=>h.col&&toggleSort(h.col)}
-                    style={{padding:"10px 14px",textAlign:"left" as const,fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap" as const,cursor:h.col?"pointer":"default",userSelect:"none" as const,width:h.w}}>
+                    style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap",cursor:h.col?"pointer":"default",userSelect:"none",width:h.w}}>
                     {h.label}{h.col&&<SortInd col={h.col}/>}
                   </th>
                 ))}
@@ -280,13 +280,13 @@ export default function RequisitionsPage() {
             </thead>
             <tbody>
               {loading&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>Loading requisitions…</td></tr>
+                <tr><td colSpan={10} style={{padding:40,textAlign:"center",color:"#9ca3af",fontSize:13}}>Loading requisitions…</td></tr>
               )}
               {!loading&&filtered.length===0&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center" as const}}>
-                  <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block" as const,margin:"0 auto 8px"}}/>
+                <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
+                  <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
                   <div style={{fontSize:13,color:"#9ca3af"}}>No requisitions found{search?` for "${search}"`:""}.</div>
-                  {canCreate&&!search&&<button onClick={()=>setShowForm(true)} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer" as const,fontSize:12,fontWeight:600}}>Create First Requisition</button>}
+                  {canCreate&&!search&&<button onClick={()=>setShowForm(true)} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
                 </td></tr>
               )}
               {!loading&&filtered.map((r,ri)=>{
@@ -300,55 +300,55 @@ export default function RequisitionsPage() {
                     onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
                     onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)")}>
 
-                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums" as const,whiteSpace:"nowrap" as const,fontSize:12}}>
+                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
                       {r.requisition_number||"—"}
                     </td>
-                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>
+                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       <div style={{fontWeight:600,color:"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
-                      {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden" as const,textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
+                      {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
                     </td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap" as const}}>{r.department||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"—"}</td>
                     <td style={{padding:"10px 14px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize" as const}}>{r.priority||"normal"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
                     </td>
-                    <td style={{padding:"10px 14px",color:"#94a3b8",fontSize:12,whiteSpace:"nowrap" as const}}>{r.requester_name||"—"}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap" as const}}>{fmtDate(r.created_at)}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap" as const}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
-                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap" as const,fontVariantNumeric:"tabular-nums" as const}}>
+                    <td style={{padding:"10px 14px",color:"#94a3b8",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"—"}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
+                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"—"}</td>
+                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
                       {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"—"}
                     </td>
                     <td style={{padding:"10px 14px"}}>
-                      <span style={{display:"inline-flex" as const,alignItems:"center" as const,gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
                         <span style={{width:5,height:5,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>
                         {cfg.label}
                       </span>
                     </td>
                     <td style={{padding:"10px 14px"}}>
-                      <div style={{display:"flex" as const,gap:4,justifyContent:"center" as const}}>
-                        <button title="View" onClick={()=>setViewReq(r)} style={{padding:5,borderRadius:6,border:"none",background:"#f0f9ff",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                        <button title="View" onClick={()=>setViewReq(r)} style={{padding:5,borderRadius:6,border:"none",background:"#f0f9ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                           <Eye style={{width:13,height:13,color:"#0369a1"}}/>
                         </button>
                         {(isDraft||r.requested_by===user?.id)&&(
-                          <button title="Edit" onClick={()=>{setEditReq(r);setForm({title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"});setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+                          <button title="Edit" onClick={()=>{setEditReq(r);setForm({title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"});setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                             <Edit3 style={{width:13,height:13,color:"#059669"}}/>
                           </button>
                         )}
                         {isDraft&&(
-                          <button title="Submit" onClick={()=>submit(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#eff6ff",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+                          <button title="Submit" onClick={()=>submit(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#eff6ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                             <Send style={{width:13,height:13,color:"#3b82f6"}}/>
                           </button>
                         )}
                         {isPending&&canApprove&&(
                           <>
-                            <button title="Approve" onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+                            <button title="Approve" onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               <CheckCircle style={{width:13,height:13,color:"#059669"}}/>
                             </button>
-                            <button title="Reject" onClick={()=>setRejectId(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#fff1f2",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+                            <button title="Reject" onClick={()=>setRejectId(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#fff1f2",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               <XCircle style={{width:13,height:13,color:"#dc2626"}}/>
                             </button>
                           </>
                         )}
-                        <button title="Print" onClick={()=>printRequisition(r,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+                        <button title="Print" onClick={()=>printRequisition(r,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                           <Printer style={{width:13,height:13,color:"#ca8a04"}}/>
                         </button>
                       </div>
@@ -360,7 +360,7 @@ export default function RequisitionsPage() {
           </table>
         </div>
         {/* Footer */}
-        <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.2)",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,fontSize:11,color:"#9ca3af"}}>
+        <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:"#9ca3af"}}>
           <span>Showing {filtered.length} of {reqs.length} requisitions</span>
           <span>{reqs.length>0&&`Total value: ${fmtKES(totalValue)}`}</span>
         </div>
@@ -368,21 +368,21 @@ export default function RequisitionsPage() {
 
       {/* ── CREATE / EDIT MODAL ── */}
       {showForm&&(
-        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div>
                 <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>Embu Level 5 Hospital · {editReq?.requisition_number||"New"}</div>
               </div>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer" as const,lineHeight:0}}>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
                 <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
               </button>
             </div>
-            <div style={{padding:"18px 22px",display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[
                 {k:"title",l:"Requisition Title *",p:"e.g. Medical Supplies — Pharmacy",span:2,req:true},
                 {k:"department",l:"Department",p:"e.g. Pharmacy",span:1},
@@ -394,26 +394,26 @@ export default function RequisitionsPage() {
                 {k:"notes",l:"Additional Notes",p:"Any other information…",span:2,type:"textarea"},
               ].map(field=>(
                 <div key={field.k} style={{gridColumn:field.span===2?"span 2":"span 1"}}>
-                  <label style={{display:"block" as const,fontSize:11.5,fontWeight:600,color:"#94a3b8",marginBottom:4}}>{field.l}</label>
+                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#94a3b8",marginBottom:4}}>{field.l}</label>
                   {field.type==="select"?(
                     <select value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
-                      {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize" as const}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
+                      {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize"}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
                     </select>
                   ):field.type==="textarea"?(
-                    <textarea value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical" as const,boxSizing:"border-box" as const}}/>
+                    <textarea value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
                   ):(
-                    <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/>
+                    <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   )}
                 </div>
               ))}
             </div>
-            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex" as const,gap:10,justifyContent:"flex-end" as const}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const,fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer" as const,fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
+            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                 {saving?"Saving…":editReq?"Update Requisition":"Create Requisition"}
               </button>
               {!editReq&&(
-                <button onClick={async()=>{await save();/* submit after save handled by status */}} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",cursor:"pointer" as const,fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
+                <button onClick={async()=>{await save();/* submit after save handled by status */}} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                   Save &amp; Submit
                 </button>
               )}
@@ -424,10 +424,10 @@ export default function RequisitionsPage() {
 
       {/* ── VIEW DETAIL MODAL ── */}
       {viewReq&&(
-        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex" as const,alignItems:"center" as const,gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div style={{flex:1}}>
@@ -437,11 +437,11 @@ export default function RequisitionsPage() {
               <span style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
                 {STATUS_CFG[viewReq.status]?.label||viewReq.status}
               </span>
-              <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer" as const,lineHeight:0}}>
+              <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
                 <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
               </button>
             </div>
-            <div style={{padding:"18px 22px",display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[
                 {l:"Requisition Number",v:viewReq.requisition_number},
                 {l:"Status",v:STATUS_CFG[viewReq.status]?.label||viewReq.status},
@@ -460,23 +460,23 @@ export default function RequisitionsPage() {
                 ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"—",span:2,warn:true}]:[]),
               ].map((row:any,i:number)=>(
                 <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"rgba(239,68,68,0.15)":"rgba(255,255,255,0.05)",borderRadius:8,border: `1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase" as const,marginBottom:2}}>{row.l}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
                   <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
                 </div>
               ))}
             </div>
-            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex" as const,gap:8,justifyContent:"flex-end" as const,flexWrap:"wrap" as const}}>
+            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" as const}}>
               {(viewReq.status==="submitted"||viewReq.status==="pending")&&canApprove&&(
                 <>
-                  <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#059669",color:"#fff",cursor:"pointer" as const,fontSize:12,fontWeight:700}}>✓ Approve</button>
-                  <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer" as const,fontSize:12,fontWeight:700}}>✗ Reject</button>
+                  <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>✓ Approve</button>
+                  <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>✗ Reject</button>
                 </>
               )}
               {viewReq.status==="draft"&&(
-                <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer" as const,fontSize:12,fontWeight:700}}>⇪ Submit for Approval</button>
+                <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>⇪ Submit for Approval</button>
               )}
-              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#e2e8f0"}}>🖨 Print</button>
-              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const,fontSize:12,fontWeight:600,color:"#e2e8f0"}}>Close</button>
+              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>🖨 Print</button>
+              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>Close</button>
             </div>
           </div>
         </div>
@@ -484,16 +484,16 @@ export default function RequisitionsPage() {
 
       {/* ── REJECT DIALOG ── */}
       {rejectId&&(
-        <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:440,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
               <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
               <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>Reject Requisition</div>
             </div>
-            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical" as const,boxSizing:"border-box" as const,marginBottom:14}}/>
-            <div style={{display:"flex" as const,gap:10,justifyContent:"flex-end" as const}}>
-              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer" as const,fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
-              <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer" as const,fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
+            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
+              <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
             </div>
           </div>
         </div>
