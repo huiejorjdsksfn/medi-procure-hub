@@ -81,10 +81,10 @@ function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) 
   return (
     <button
       onClick={() => onChange(!on)}
-      style={{ background:"none",border:"none",cursor:"pointer" as const,padding:0,flexShrink:0,lineHeight:0 }}
+      style={{ background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0,lineHeight:0 }}
     >
-      <span style={{ display:"inline-flex" as const,width:46,height:24,borderRadius:12,background:bg,alignItems:"center" as const,padding:"2px",transition:"background 0.2s",border:`1px solid ${on?"#4f46e5":"rgba(255,255,255,0.2)"}` }}>
-        <span style={{ display:"block" as const,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
+      <span style={{ display:"inline-flex",width:46,height:24,borderRadius:12,background:bg,alignItems:"center",padding:"2px",transition:"background 0.2s",border:`1px solid ${on?"#4f46e5":"rgba(255,255,255,0.2)"}` }}>
+        <span style={{ display:"block",width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
       </span>
     </button>
   );
@@ -92,9 +92,9 @@ function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) 
 
 function FR({ label, sub, color, children }: { label: string; sub?: string; color?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"10px 0",borderBottom:"1px solid #f1f5f9",gap:12 }}>
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #f1f5f9",gap:12 }}>
       <div style={{ flex:1 }}>
-        {color && <span style={{ display:"inline-block" as const,width:3,height:12,borderRadius:2,background:color,marginRight:8,verticalAlign:"middle" as const }} />}
+        {color && <span style={{ display:"inline-block",width:3,height:12,borderRadius:2,background:color,marginRight:8,verticalAlign:"middle" }} />}
         <span style={{ fontSize:13,fontWeight:500,color:"#1e293b" }}>{label}</span>
         {sub && <div style={{ fontSize:11,color:"#64748b",marginTop:2 }}>{sub}</div>}
       </div>
@@ -106,8 +106,8 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 function Sect({ title, icon: Icon, color, children }: { title: string; icon: any; color: string; children: React.ReactNode }) {
   return (
     <div style={{ background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 20px",marginBottom:16 }}>
-      <div style={{ display:"flex" as const,alignItems:"center" as const,gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid #e2e8f0" }}>
-        <div style={{ width:32,height:32,borderRadius:8,background:color,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0 }}>
+      <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid #e2e8f0" }}>
+        <div style={{ width:32,height:32,borderRadius:8,background:color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
           <Icon style={{ width:16,height:16,color:"#fff" }} />
         </div>
         <span style={{ fontSize:14,fontWeight:600,color:"#1e293b" }}>{title}</span>
@@ -149,8 +149,8 @@ function AdminInner() {
 
   const btn = (bg: string): React.CSSProperties => ({
     padding:"8px 16px", borderRadius:8, border:"none", background:bg,
-    color:"#fff", fontWeight:600, fontSize:13, cursor:"pointer" as const,
-    display:"inline-flex" as const, alignItems:"center" as const, gap:6,
+    color:"#fff", fontWeight:600, fontSize:13, cursor:"pointer",
+    display:"inline-flex", alignItems:"center", gap:6,
   });
 
   const loadStats = useCallback(async () => {
@@ -212,13 +212,13 @@ function AdminInner() {
     <div style={{ minHeight:"100vh",background:"linear-gradient(135deg,#070d1a 0%,#0d1b35 50%,#0a1225 100%)",color:"#1e293b",fontFamily:"var(--font-sans)" }}>
 
       {/* Top bar */}
-      <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex" as const,alignItems:"center" as const,gap:12,position:"sticky" as const,top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
-        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain" as const,background:"#f1f5f9",padding:4 }} />
+      <div style={{ background:"rgba(79,70,229,0.12)",borderBottom:"1px solid rgba(79,70,229,0.25)",padding:"10px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(10px)" }}>
+        <img src={logoImg} alt="EL5H" style={{ width:32,height:32,borderRadius:8,objectFit:"contain",background:"#f1f5f9",padding:4 }} />
         <div>
           <div style={{ fontSize:15,fontWeight:700,color:"#1e293b" }}>Admin Control Panel</div>
           <div style={{ fontSize:10,color:"#64748b" }}>EL5 MediProcure · Embu Level 5 Hospital</div>
         </div>
-        <div style={{ marginLeft:"auto",display:"flex" as const,gap:8 }}>
+        <div style={{ marginLeft:"auto",display:"flex",gap:8 }}>
           <button onClick={loadStats} style={{ ...btn("#e2e8f0"),padding:"7px 10px" }}>
             <RefreshCw style={{ width:13,height:13 }} />
           </button>
@@ -232,7 +232,7 @@ function AdminInner() {
       </div>
 
       {/* Layout */}
-      <div style={{ display:"grid" as const,gridTemplateColumns:"196px 1fr",minHeight:"calc(100vh - 60px)" }}>
+      <div style={{ display:"grid",gridTemplateColumns:"196px 1fr",minHeight:"calc(100vh - 60px)" }}>
 
         {/* Sidebar */}
         <div style={{ background:"rgba(0,0,0,0.35)",borderRight:"1px solid #e2e8f0",paddingTop:8 }}>
@@ -240,7 +240,7 @@ function AdminInner() {
             <button
               key={s.id}
               onClick={() => setSec(s.id)}
-              style={{ width:"100%",display:"flex" as const,alignItems:"center" as const,gap:9,padding:"9px 14px",background:sec===s.id?"rgba(79,70,229,0.18)":"transparent",border:"none",borderLeft:sec===s.id?`3px solid ${s.color}`:"3px solid transparent",cursor:"pointer" as const,transition:"all 0.15s" }}
+              style={{ width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 14px",background:sec===s.id?"rgba(79,70,229,0.18)":"transparent",border:"none",borderLeft:sec===s.id?`3px solid ${s.color}`:"3px solid transparent",cursor:"pointer",transition:"all 0.15s" }}
             >
               <s.icon style={{ width:14,height:14,color:sec===s.id?s.color:"#475569",flexShrink:0 }} />
               <span style={{ fontSize:12.5,fontWeight:sec===s.id?600:400,color:sec===s.id?"#f1f5f9":"#64748b" }}>{s.label}</span>
@@ -249,17 +249,17 @@ function AdminInner() {
         </div>
 
         {/* Content */}
-        <div style={{ padding:"20px 26px",overflowY:"auto" as const,maxHeight:"calc(100vh - 60px)" }}>
+        <div style={{ padding:"20px 26px",overflowY:"auto",maxHeight:"calc(100vh - 60px)" }}>
 
           {/* OVERVIEW */}
           {sec === "overview" && (
             <div>
               <div style={{ fontSize:15,fontWeight:700,marginBottom:14,color:"#1e293b" }}>System Overview</div>
-              <div style={{ display:"grid" as const,gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20 }}>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20 }}>
                 {KPI.map(k => (
-                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer" as const,textAlign:"left" as const }}>
-                    <div style={{ display:"flex" as const,alignItems:"center" as const,gap:8,marginBottom:8 }}>
-                      <div style={{ width:26,height:26,borderRadius:7,background:k.color,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const }}>
+                  <button key={k.label} onClick={() => navigate(k.path)} style={{ padding:14,borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",textAlign:"left" }}>
+                    <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
+                      <div style={{ width:26,height:26,borderRadius:7,background:k.color,display:"flex",alignItems:"center",justifyContent:"center" }}>
                         <k.icon style={{ width:13,height:13,color:"#fff" }} />
                       </div>
                       <span style={{ fontSize:10,color:"#64748b" }}>{k.label}</span>
@@ -269,10 +269,10 @@ function AdminInner() {
                 ))}
               </div>
               <div style={{ fontSize:12,fontWeight:600,color:"#64748b",marginBottom:8 }}>All Modules</div>
-              <div style={{ display:"grid" as const,gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:5 }}>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:5 }}>
                 {ALL_MODULES.map(m => (
-                  <button key={m.path} onClick={() => navigate(m.path)} style={{ display:"flex" as const,alignItems:"center" as const,gap:7,padding:"7px 10px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer" as const }}>
-                    <div style={{ width:22,height:22,borderRadius:5,background:`${m.color}22`,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0 }}>
+                  <button key={m.path} onClick={() => navigate(m.path)} style={{ display:"flex",alignItems:"center",gap:7,padding:"7px 10px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer" }}>
+                    <div style={{ width:22,height:22,borderRadius:5,background:`${m.color}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
                       <m.icon style={{ width:11,height:11,color:m.color }} />
                     </div>
                     <span style={{ fontSize:11,color:"#374151",fontWeight:500 }}>{m.label}</span>
@@ -350,7 +350,7 @@ function AdminInner() {
               <FR label="Audit All Logins" color="#7c3aed">
                 <Tog on={(cfg["audit_logins"]||"true")!=="false"} onChange={v=>set("audit_logins",v?"true":"false")} />
               </FR>
-              <div style={{ marginTop:14,display:"flex" as const,gap:8 }}>
+              <div style={{ marginTop:14,display:"flex",gap:8 }}>
                 <button onClick={() => navigate("/users")} style={btn("#7c3aed")}>Manage Users →</button>
                 <button onClick={doSave} disabled={saving} style={btn("#f1f5f9")}>
                   <Save style={{ width:13,height:13 }} />{saving?"Saving…":"Save"}
@@ -377,7 +377,7 @@ function AdminInner() {
               <FR label="Max Login Attempts" color="#dc2626">
                 <input value={cfg["max_login_attempts"]||"5"} onChange={e=>set("max_login_attempts",e.target.value)} style={{...inp,width:80}} type="number" />
               </FR>
-              <div style={{ marginTop:14,display:"flex" as const,gap:8 }}>
+              <div style={{ marginTop:14,display:"flex",gap:8 }}>
                 <button onClick={() => navigate("/admin/ip-access")} style={btn("#dc2626")}>IP Access Manager →</button>
                 <button onClick={doSave} disabled={saving} style={btn("#f1f5f9")}>
                   <Save style={{ width:13,height:13 }} />{saving?"Saving…":"Save"}
@@ -445,8 +445,8 @@ function AdminInner() {
             <Sect title="Appearance" icon={Palette} color="#8b5cf6">
               {[{k:"primary_color",l:"Primary Colour"},{k:"accent_color",l:"Accent Colour"}].map(f => (
                 <FR key={f.k} label={f.l} color="#8b5cf6">
-                  <div style={{ display:"flex" as const,gap:8,alignItems:"center" as const }}>
-                    <input type="color" value={cfg[f.k]||"#1a3a6b"} onChange={e=>set(f.k,e.target.value)} style={{ width:36,height:30,borderRadius:6,border:"1px solid rgba(255,255,255,0.2)",background:"transparent",cursor:"pointer" as const,padding:2 }} />
+                  <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+                    <input type="color" value={cfg[f.k]||"#1a3a6b"} onChange={e=>set(f.k,e.target.value)} style={{ width:36,height:30,borderRadius:6,border:"1px solid rgba(255,255,255,0.2)",background:"transparent",cursor:"pointer",padding:2 }} />
                     <input value={cfg[f.k]||""} onChange={e=>set(f.k,e.target.value)} style={{...inp,width:100}} placeholder="#1a3a6b" />
                   </div>
                 </FR>
@@ -518,7 +518,7 @@ function AdminInner() {
               </FR>
               <div style={{ padding:"10px 0",borderBottom:"1px solid #f1f5f9" }}>
                 <div style={{ fontSize:12,fontWeight:500,color:"#1e293b",marginBottom:6 }}>Message</div>
-                <textarea value={bcast.body} onChange={e=>setBcast(p=>({...p,body:e.target.value}))} placeholder="Message to all active users…" style={{...inp,height:80,resize:"vertical" as const}} />
+                <textarea value={bcast.body} onChange={e=>setBcast(p=>({...p,body:e.target.value}))} placeholder="Message to all active users…" style={{...inp,height:80,resize:"vertical"}} />
               </div>
               <FR label="Type" color="#d97706">
                 <select value={bcast.type} onChange={e=>setBcast(p=>({...p,type:e.target.value}))} style={{...inp,width:160}}>
@@ -545,7 +545,7 @@ function AdminInner() {
               <FR label="PostgreSQL" color="#374151">
                 <span style={{ color:"#64748b" }}>57+ tables · RLS enabled on all</span>
               </FR>
-              <div style={{ marginTop:14,display:"flex" as const,gap:8,flexWrap:"wrap" as const }}>
+              <div style={{ marginTop:14,display:"flex",gap:8,flexWrap:"wrap" as const }}>
                 {[
                   {l:"DB Admin →",    p:"/admin/database",  c:"#374151"},
                   {l:"ODBC / SQL →",  p:"/odbc",            c:"#0a2558"},
@@ -561,14 +561,14 @@ function AdminInner() {
           {sec === "codebase" && (
             <div>
               <div style={{ fontSize:13,fontWeight:600,marginBottom:10,color:"#64748b" }}>Source Code — ProcurBosse v2.0</div>
-              <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" as const }}>
+              <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" }}>
                 {Object.entries(CODE_FILES).map(([folder, files]) => {
                   const isOpen = tree.has(folder);
                   return (
                     <div key={folder}>
                       <button
                         onClick={() => setTree(p => { const s = new Set(p); s.has(folder) ? s.delete(folder) : s.add(folder); return s; })}
-                        style={{ width:"100%",display:"flex" as const,alignItems:"center" as const,gap:8,padding:"8px 12px",background:isOpen?"rgba(79,70,229,0.1)":"transparent",border:"none",borderBottom:"1px solid #f8fafc",cursor:"pointer" as const }}
+                        style={{ width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:isOpen?"rgba(79,70,229,0.1)":"transparent",border:"none",borderBottom:"1px solid #f8fafc",cursor:"pointer" }}
                       >
                         {isOpen
                           ? <FolderOpen style={{ width:13,height:13,color:"#d97706" }} />
@@ -577,7 +577,7 @@ function AdminInner() {
                         <span style={{ fontSize:10,color:"#475569",marginLeft:"auto" }}>{files.length} files</span>
                       </button>
                       {isOpen && files.map(file => (
-                        <div key={file} style={{ display:"flex" as const,alignItems:"center" as const,gap:7,padding:"4px 12px 4px 32px",borderBottom:"1px solid #f0f7ff" }}>
+                        <div key={file} style={{ display:"flex",alignItems:"center",gap:7,padding:"4px 12px 4px 32px",borderBottom:"1px solid #f0f7ff" }}>
                           <Code2 style={{ width:10,height:10,color:file.endsWith(".ts")||file.endsWith(".tsx")?"#61afef":"#abb2bf",flexShrink:0 }} />
                           <span style={{ fontSize:11,fontFamily:"var(--font-mono)",color:"#64748b" }}>{file}</span>
                         </div>

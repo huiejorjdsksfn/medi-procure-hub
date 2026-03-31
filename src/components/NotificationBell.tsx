@@ -131,18 +131,18 @@ export default function NotificationBell() {
   const catColor = (cat: string) => CATEGORY_COLORS[cat] || "#6b7280";
 
   return (
-    <div style={{ position: "relative" as const }} ref={panelRef}>
+    <div style={{ position: "relative" }} ref={panelRef}>
       {/* Bell Button */}
       <button
         onClick={() => { setOpen(o => !o); if (!open) fetchNotifications(); }}
         style={{
-          position: "relative" as const,
+          position: "relative",
           width: 40, height: 40,
           background: open ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.06)",
           border: open ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.1)",
           borderRadius: "10px",
-          cursor: "pointer" as const,
-          display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all 0.2s",
           animation: animateBell ? "bellShake 0.5s ease" : undefined,
         }}
@@ -163,12 +163,12 @@ export default function NotificationBell() {
         {/* Badge */}
         {unreadCount > 0 && (
           <div style={{
-            position: "absolute" as const,
+            position: "absolute",
             top: -4, right: -4,
             minWidth: 18, height: 18,
             background: criticalCount > 0 ? "#ef4444" : "#3b82f6",
             borderRadius: 9,
-            display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+            display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "10px", fontWeight: 700, color: "#fff",
             border: "2px solid #0f1729",
             padding: "0 4px",
@@ -182,7 +182,7 @@ export default function NotificationBell() {
       {/* Panel */}
       {open && (
         <div style={{
-          position: "absolute" as const,
+          position: "absolute",
           top: "calc(100% + 10px)",
           right: 0,
           width: 400,
@@ -192,9 +192,9 @@ export default function NotificationBell() {
           borderRadius: "16px",
           boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
           zIndex: 9000,
-          display: "flex" as const,
-          flexDirection: "column" as const,
-          overflow: "hidden" as const,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
           animation: "slideDown 0.15s ease",
         }}>
           {/* Header */}
@@ -203,8 +203,8 @@ export default function NotificationBell() {
             borderBottom: "1px solid rgba(255,255,255,0.08)",
             background: "rgba(255,255,255,0.03)",
           }}>
-            <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 12 }}>
-              <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ fontWeight: 700, color: "#fff", fontSize: "15px" }}>Notifications</div>
                 {unreadCount > 0 && (
                   <div style={{
@@ -223,7 +223,7 @@ export default function NotificationBell() {
               {unreadCount > 0 && (
                 <button onClick={markAllRead} style={{
                   background: "transparent", border: "none", color: "#60a5fa",
-                  fontSize: "12px", cursor: "pointer" as const, fontWeight: 500,
+                  fontSize: "12px", cursor: "pointer", fontWeight: 500,
                 }}>
                   Mark all read
                 </button>
@@ -231,14 +231,14 @@ export default function NotificationBell() {
             </div>
 
             {/* Filter tabs */}
-            <div style={{ display: "flex" as const, gap: 6 }}>
+            <div style={{ display: "flex", gap: 6 }}>
               {(["all","unread","critical"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)} style={{
                   padding: "4px 10px",
                   background: filter === f ? "rgba(59,130,246,0.2)" : "transparent",
                   border: filter === f ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 6, color: filter === f ? "#60a5fa" : "rgba(255,255,255,0.5)",
-                  cursor: "pointer" as const, fontSize: "12px",
+                  cursor: "pointer", fontSize: "12px",
                 }}>
                   {f.charAt(0).toUpperCase() + f.slice(1)}
                   {f === "critical" && criticalCount > 0 && (
@@ -252,9 +252,9 @@ export default function NotificationBell() {
           {/* Category pills */}
           {categories.length > 1 && (
             <div style={{
-              display: "flex" as const, gap: 6, padding: "10px 16px",
+              display: "flex", gap: 6, padding: "10px 16px",
               borderBottom: "1px solid rgba(255,255,255,0.06)",
-              overflowX: "auto" as const,
+              overflowX: "auto",
             }}>
               {categories.map(cat => (
                 <button key={cat} onClick={() => setActiveCategory(cat)} style={{
@@ -263,7 +263,7 @@ export default function NotificationBell() {
                   border: `1px solid ${activeCategory === cat ? catColor(cat) : "rgba(255,255,255,0.08)"}`,
                   borderRadius: 20,
                   color: activeCategory === cat ? catColor(cat) : "rgba(255,255,255,0.4)",
-                  cursor: "pointer" as const, fontSize: "11px", whiteSpace: "nowrap" as const,
+                  cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap",
                   fontWeight: activeCategory === cat ? 600 : 400,
                 }}>
                   {cat === "all" ? "All" : cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -273,14 +273,14 @@ export default function NotificationBell() {
           )}
 
           {/* Notification list */}
-          <div style={{ overflowY: "auto" as const, flex: 1 }}>
+          <div style={{ overflowY: "auto", flex: 1 }}>
             {loading && (
-              <div style={{ textAlign: "center" as const, padding: "32px", color: "rgba(255,255,255,0.3)" }}>
+              <div style={{ textAlign: "center", padding: "32px", color: "rgba(255,255,255,0.3)" }}>
                 Loading…
               </div>
             )}
             {!loading && filtered.length === 0 && (
-              <div style={{ textAlign: "center" as const, padding: "48px 24px" }}>
+              <div style={{ textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: "36px", marginBottom: 12 }}>🔔</div>
                 <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "14px" }}>
                   {filter === "unread" ? "All caught up!" : "No notifications"}
@@ -305,8 +305,8 @@ export default function NotificationBell() {
                     background: n.is_read ? "transparent" : "rgba(59,130,246,0.04)",
                     opacity: isExpired ? 0.5 : 1,
                     transition: "background 0.2s",
-                    cursor: "pointer" as const,
-                    position: "relative" as const,
+                    cursor: "pointer",
+                    position: "relative",
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
                   onMouseLeave={e => (e.currentTarget.style.background = n.is_read ? "transparent" : "rgba(59,130,246,0.04)")}
@@ -315,24 +315,24 @@ export default function NotificationBell() {
                   {/* Critical pulse bar */}
                   {n.priority === "critical" && !n.is_read && (
                     <div style={{
-                      position: "absolute" as const, left: 0, top: 0, bottom: 0,
+                      position: "absolute", left: 0, top: 0, bottom: 0,
                       width: 3, background: "#ef4444", borderRadius: "3px 0 0 3px",
                     }}/>
                   )}
 
-                  <div style={{ display: "flex" as const, gap: 12, alignItems: "flex-start" as const }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                     {/* Icon with category color ring */}
                     <div style={{
                       width: 38, height: 38, borderRadius: "10px", flexShrink: 0,
                       background: `${catColor(cat)}18`,
                       border: `1px solid ${catColor(cat)}33`,
-                      display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
-                      fontSize: "18px", position: "relative" as const,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "18px", position: "relative",
                     }}>
                       {icon}
                       {!n.is_read && (
                         <div style={{
-                          position: "absolute" as const, top: -3, right: -3,
+                          position: "absolute", top: -3, right: -3,
                           width: 10, height: 10, borderRadius: "50%",
                           background: prio.dot,
                           border: "2px solid #111827",
@@ -341,7 +341,7 @@ export default function NotificationBell() {
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "flex-start" as const, gap: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                         <div>
                           {n.title && (
                             <div style={{ fontWeight: n.is_read ? 500 : 700, color: "#fff", fontSize: "13px", marginBottom: 2 }}>
@@ -361,14 +361,14 @@ export default function NotificationBell() {
                           onClick={e => { e.stopPropagation(); dismiss(n.id); }}
                           style={{
                             background: "transparent", border: "none",
-                            color: "rgba(255,255,255,0.2)", cursor: "pointer" as const,
+                            color: "rgba(255,255,255,0.2)", cursor: "pointer",
                             padding: "2px 6px", fontSize: "16px", lineHeight: 1,
                             flexShrink: 0,
                           }}
                         >×</button>
                       </div>
 
-                      <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                         {/* Category badge */}
                         <span style={{
                           padding: "1px 7px", borderRadius: 10, fontSize: "10px",
@@ -401,12 +401,12 @@ export default function NotificationBell() {
                           href={n.action_url}
                           onClick={e => { e.stopPropagation(); markRead(n.id); setOpen(false); }}
                           style={{
-                            display: "inline-block" as const, marginTop: 8,
+                            display: "inline-block", marginTop: 8,
                             padding: "4px 12px",
                             background: "rgba(59,130,246,0.15)",
                             border: "1px solid rgba(59,130,246,0.3)",
                             borderRadius: 6, color: "#60a5fa",
-                            fontSize: "11px", textDecoration: "none" as const, fontWeight: 600,
+                            fontSize: "11px", textDecoration: "none", fontWeight: 600,
                           }}
                         >
                           {n.action_label} →
@@ -424,10 +424,10 @@ export default function NotificationBell() {
             padding: "12px 20px",
             borderTop: "1px solid rgba(255,255,255,0.08)",
             background: "rgba(255,255,255,0.02)",
-            display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <a href="/notifications" onClick={() => setOpen(false)} style={{
-              color: "#60a5fa", fontSize: "13px", textDecoration: "none" as const, fontWeight: 500,
+              color: "#60a5fa", fontSize: "13px", textDecoration: "none", fontWeight: 500,
             }}>
               View all notifications →
             </a>

@@ -62,7 +62,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
 
   return (
     <div style={{
-      position: "fixed" as const,
+      position: "fixed",
       bottom: 90,
       right: 24,
       zIndex: 99999,
@@ -78,14 +78,14 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
         borderRadius: 28,
         padding: "12px 12px 18px",
         boxShadow: "0 20px 60px rgba(200,50,100,0.25), 0 4px 16px rgba(0,0,0,0.1)",
-        position: "relative" as const,
+        position: "relative",
       }}>
         {/* Close button */}
         <button onClick={close} style={{
-          position: "absolute" as const, top: 10, right: 10,
+          position: "absolute", top: 10, right: 10,
           background: "rgba(255,255,255,0.6)", border: "none", borderRadius: "50%",
-          width: 26, height: 26, cursor: "pointer" as const,
-          display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+          width: 26, height: 26, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
           backdropFilter: "blur(4px)",
         }}>
           <X style={{ width: 12, height: 12, color: "#666" }} />
@@ -96,14 +96,14 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
           background: "#fff",
           borderRadius: 20,
           padding: "40px 24px 20px",
-          textAlign: "center" as const,
+          textAlign: "center",
           boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-          position: "relative" as const,
+          position: "relative",
           marginTop: 36,
         }}>
           {/* Logo badge — overlaps top of white card like image 1 */}
           <div style={{
-            position: "absolute" as const,
+            position: "absolute",
             top: -38,
             left: "50%",
             transform: "translateX(-50%)",
@@ -112,20 +112,20 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
               width: 76, height: 76, borderRadius: "50%",
               background: "#fff",
               boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-              display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+              display: "flex", alignItems: "center", justifyContent: "center",
               border: "4px solid #fff",
-              position: "relative" as const,
+              position: "relative",
             }}>
               <img src={logoImg} alt="EL5H" style={{
                 width: 54, height: 54, borderRadius: "50%",
-                objectFit: "contain" as const,
+                objectFit: "contain",
               }} />
               {/* Red count badge — top-right of logo */}
               <div style={{
-                position: "absolute" as const, top: -4, right: -4,
+                position: "absolute", top: -4, right: -4,
                 background: "#ef4444", color: "#fff", borderRadius: "50%",
                 width: 24, height: 24,
-                display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 11, fontWeight: 900,
                 border: "2.5px solid #fff",
                 boxShadow: "0 2px 8px rgba(239,68,68,0.55)",
@@ -169,7 +169,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
               color: "#fff",
               fontWeight: 800,
               fontSize: 15,
-              cursor: "pointer" as const,
+              cursor: "pointer",
               boxShadow: "0 6px 20px rgba(193,0,94,0.38)",
               fontFamily: "'Segoe UI', system-ui, sans-serif",
               letterSpacing: "0.01em",
@@ -272,7 +272,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         borderRadius: 20,
         boxShadow: "0 16px 60px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.06)",
         border: "1px solid #e5e7eb",
-        overflow: "hidden" as const,
+        overflow: "hidden",
         fontFamily: "'Segoe UI', system-ui, sans-serif",
       }}>
 
@@ -280,28 +280,28 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         <div style={{
           background: "linear-gradient(135deg, #0a2558, #1a3a6b)",
           padding: "18px 20px 22px",
-          position: "relative" as const,
+          position: "relative",
         }}>
-          <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {/* Logo badge */}
-            <div style={{ position: "relative" as const, flexShrink: 0 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
               <div style={{
                 width: 52, height: 52, borderRadius: "50%",
                 background: "#fff",
-                display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                display: "flex", alignItems: "center", justifyContent: "center",
                 boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
               }}>
                 <img src={logoImg} alt="EL5H" style={{
                   width: 40, height: 40, borderRadius: "50%",
-                  objectFit: "contain" as const,
+                  objectFit: "contain",
                 }} />
               </div>
               {unread > 0 && (
                 <div style={{
-                  position: "absolute" as const, top: -5, right: -5,
+                  position: "absolute", top: -5, right: -5,
                   background: "#ef4444", color: "#fff", borderRadius: "50%",
                   width: 22, height: 22,
-                  display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                  display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 10, fontWeight: 900,
                   border: "2.5px solid #0a2558",
                   boxShadow: "0 2px 6px rgba(239,68,68,0.6)",
@@ -320,15 +320,15 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
               </div>
             </div>
 
-            <div style={{ display: "flex" as const, gap: 6, alignItems: "center" as const }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <button
                 onClick={() => { markAllRead(); }}
                 title="Mark all read"
                 style={{
                   background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)",
                   borderRadius: 8, padding: "5px 10px", color: "#fff",
-                  fontSize: 10, fontWeight: 700, cursor: "pointer" as const,
-                  display: "flex" as const, alignItems: "center" as const, gap: 4,
+                  fontSize: 10, fontWeight: 700, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 4,
                 }}
               >
                 <CheckCheck style={{ width: 12, height: 12 }} /> All read
@@ -336,8 +336,8 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
               {onClose && (
                 <button onClick={onClose} style={{
                   background: "rgba(255,255,255,0.12)", border: "none", borderRadius: 8,
-                  width: 30, height: 30, cursor: "pointer" as const,
-                  display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                  width: 30, height: 30, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <X style={{ width: 14, height: 14, color: "rgba(255,255,255,0.75)" }} />
                 </button>
@@ -347,14 +347,14 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         </div>
 
         {/* ── Notification list ── */}
-        <div style={{ maxHeight: 400, overflowY: "auto" as const }}>
+        <div style={{ maxHeight: 400, overflowY: "auto" }}>
           {loading && (
-            <div style={{ padding: 32, textAlign: "center" as const, color: "#9ca3af", fontSize: 13 }}>
+            <div style={{ padding: 32, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
               Loading…
             </div>
           )}
           {!loading && notifs.length === 0 && (
-            <div style={{ padding: 44, textAlign: "center" as const }}>
+            <div style={{ padding: 44, textAlign: "center" }}>
               <div style={{ fontSize: 36, marginBottom: 10 }}>🔔</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>No notifications</div>
               <div style={{ fontSize: 11.5, color: "#9ca3af", marginTop: 4 }}>You're all caught up!</div>
@@ -371,11 +371,11 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                   padding: "13px 18px",
                   borderBottom: "1px solid #f3f4f6",
                   background: n.is_read ? "#fff" : "#f8fbff",
-                  cursor: "pointer" as const,
+                  cursor: "pointer",
                   transition: "background 0.12s",
-                  display: "flex" as const,
+                  display: "flex",
                   gap: 12,
-                  alignItems: "flex-start" as const,
+                  alignItems: "flex-start",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = "#eef4ff")}
                 onMouseLeave={e => (e.currentTarget.style.background = n.is_read ? "#fff" : "#f8fbff")}
@@ -384,7 +384,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                 <div style={{
                   width: 38, height: 38, borderRadius: 11,
                   background: tc + "18",
-                  display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                  display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0, fontSize: 16,
                   border: `1px solid ${tc}25`,
                 }}>
@@ -392,14 +392,14 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex" as const, alignItems: "flex-start" as const, justifyContent: "space-between" as const, gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                     <div style={{
                       fontSize: 12.5, fontWeight: n.is_read ? 500 : 700,
                       color: "#111", lineHeight: 1.3, flex: 1,
                     }}>
                       {n.title}
                     </div>
-                    <div style={{ fontSize: 10, color: "#9ca3af", whiteSpace: "nowrap" as const, flexShrink: 0 }}>
+                    <div style={{ fontSize: 10, color: "#9ca3af", whiteSpace: "nowrap", flexShrink: 0 }}>
                       {timeAgo(n.created_at)}
                     </div>
                   </div>
@@ -408,7 +408,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                   </div>
                   {n.action_url && (
                     <div style={{ marginTop: 5 }}>
-                      <span style={{ fontSize: 10, color: tc, fontWeight: 700, display: "inline-flex" as const, alignItems: "center" as const, gap: 3 }}>
+                      <span style={{ fontSize: 10, color: tc, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
                         <ExternalLink style={{ width: 9, height: 9 }} /> Open
                       </span>
                     </div>
@@ -427,7 +427,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         <div style={{
           padding: "10px 18px",
           borderTop: "1px solid #f3f4f6",
-          display: "flex" as const, justifyContent: "space-between" as const, alignItems: "center" as const,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
           background: "#fafafa",
         }}>
           <span style={{ fontSize: 11, color: "#9ca3af" }}>
@@ -437,12 +437,14 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
             onClick={() => { navigate("/notifications"); onClose?.(); }}
             style={{
               fontSize: 11.5, color: "#0369a1", fontWeight: 700,
-              background: "none", border: "none", cursor: "pointer" as const,
+              background: "none", border: "none", cursor: "pointer",
             }}
           >
             View all →
           </button>
         </div>
     </>
+        </div>
   );
 }
+

@@ -170,7 +170,7 @@ export default function NotificationsPage() {
     border: `1px solid ${active ? color : "rgba(255,255,255,0.1)"}`,
     borderRadius: "8px",
     color: active ? color : "rgba(255,255,255,0.5)",
-    cursor: "pointer" as const,
+    cursor: "pointer",
     fontSize: "12px",
     fontWeight: active ? 600 : 400,
     transition: "all 0.15s",
@@ -183,7 +183,7 @@ export default function NotificationsPage() {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: "fixed" as const, top: 80, right: 24, zIndex: 9999,
+          position: "fixed", top: 80, right: 24, zIndex: 9999,
           background: "#1e3a5f", border: "1px solid #3b82f6", borderRadius: "10px",
           padding: "12px 20px", color: "#fff", fontSize: "14px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
@@ -193,11 +193,11 @@ export default function NotificationsPage() {
 
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 12, marginBottom: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
           <div style={{
             width: 44, height: 44, borderRadius: "12px",
             background: "linear-gradient(135deg,#3b82f6,#8b5cf6)",
-            display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, fontSize: "22px",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px",
           }}>🔔</div>
           <div>
             <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>Notifications</h1>
@@ -211,15 +211,15 @@ export default function NotificationsPage() {
               ) : `All caught up · ${notifications.length} notifications`}
             </div>
           </div>
-          <div style={{ marginLeft: "auto", display: "flex" as const, gap: 8 }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             {unreadCount > 0 && (
               <button
-                style={{ padding: "8px 16px", background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "8px", color: "#60a5fa", cursor: "pointer" as const, fontSize: "13px", fontWeight: 500 }}
+                style={{ padding: "8px 16px", background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "8px", color: "#60a5fa", cursor: "pointer", fontSize: "13px", fontWeight: 500 }}
                 onClick={markAllRead}
               >✓ Mark All Read</button>
             )}
             <button
-              style={{ padding: "8px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", color: "rgba(255,255,255,0.6)", cursor: "pointer" as const, fontSize: "13px" }}
+              style={{ padding: "8px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: "13px" }}
               onClick={fetchNotifications}
             >↻ Refresh</button>
           </div>
@@ -227,7 +227,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: "grid" as const, gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
         {[
           { label: "Total", value: notifications.length, color: "#94a3b8" },
           { label: "Unread", value: unreadCount, color: "#3b82f6" },
@@ -238,7 +238,7 @@ export default function NotificationsPage() {
             ...card,
             padding: "14px 18px",
             borderLeft: `3px solid ${s.color}`,
-            cursor: "pointer" as const,
+            cursor: "pointer",
           }} onClick={() => {
             if (i === 1) setReadFilter("unread");
             if (i === 2) { setPriorityFilter("critical"); setReadFilter("unread"); }
@@ -252,12 +252,12 @@ export default function NotificationsPage() {
 
       {/* Filters */}
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
-        <div style={{ display: "flex" as const, gap: 12, flexWrap: "wrap", alignItems: "center" as const }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           {/* Search */}
-          <div style={{ position: "relative" as const, flex: "1 1 200px" }}>
-            <span style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: "14px" }}>🔍</span>
+          <div style={{ position: "relative", flex: "1 1 200px" }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: "14px" }}>🔍</span>
             <input
-              style={{ ...inputS, paddingLeft: 32, width: "100%", boxSizing: "border-box" as const }}
+              style={{ ...inputS, paddingLeft: 32, width: "100%", boxSizing: "border-box" }}
               placeholder="Search notifications…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(0); }}
@@ -265,7 +265,7 @@ export default function NotificationsPage() {
           </div>
 
           {/* Read filter */}
-          <div style={{ display: "flex" as const, gap: 4 }}>
+          <div style={{ display: "flex", gap: 4 }}>
             {(["all","unread","read"] as const).map(f => (
               <button key={f} style={btnS(readFilter === f)} onClick={() => { setReadFilter(f); setPage(0); }}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -305,14 +305,14 @@ export default function NotificationsPage() {
           {/* Reset */}
           {(search || priorityFilter !== "all" || categoryFilter !== "all" || readFilter !== "all") && (
             <button
-              style={{ ...inputS, cursor: "pointer" as const, color: "#60a5fa", border: "1px solid rgba(59,130,246,0.3)" }}
+              style={{ ...inputS, cursor: "pointer", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.3)" }}
               onClick={() => { setSearch(""); setPriorityFilter("all"); setCategoryFilter("all"); setReadFilter("all"); setPage(0); }}
             >× Reset</button>
           )}
         </div>
 
         {/* Category pill row */}
-        <div style={{ display: "flex" as const, gap: 6, marginTop: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
           {categories.map(cat => {
             const count = cat === "all" ? notifications.length : notifications.filter(n => (n.category || n.module || "general") === cat).length;
             return (
@@ -322,8 +322,8 @@ export default function NotificationsPage() {
                 border: `1px solid ${categoryFilter === cat ? catColor(cat) : "rgba(255,255,255,0.08)"}`,
                 borderRadius: 20,
                 color: categoryFilter === cat ? catColor(cat) : "rgba(255,255,255,0.35)",
-                cursor: "pointer" as const, fontSize: "11px", fontWeight: categoryFilter === cat ? 600 : 400,
-                display: "flex" as const, alignItems: "center" as const, gap: 4,
+                cursor: "pointer", fontSize: "11px", fontWeight: categoryFilter === cat ? 600 : 400,
+                display: "flex", alignItems: "center", gap: 4,
               }}>
                 <span>{cat === "all" ? "🔔" : (CAT_ICONS[cat] || "📌")}</span>
                 {cat === "all" ? "All" : cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -337,29 +337,29 @@ export default function NotificationsPage() {
       {/* Bulk actions bar */}
       {selected.size > 0 && (
         <div style={{
-          position: "sticky" as const, top: 16, zIndex: 100,
+          position: "sticky", top: 16, zIndex: 100,
           ...card,
           padding: "12px 20px",
           marginBottom: 12,
           background: "rgba(30,58,95,0.95)",
           border: "1px solid rgba(59,130,246,0.3)",
           backdropFilter: "blur(12px)",
-          display: "flex" as const, alignItems: "center" as const, gap: 12,
+          display: "flex", alignItems: "center", gap: 12,
           animation: "slideDown 0.15s ease",
         }}>
           <span style={{ color: "#60a5fa", fontWeight: 600, fontSize: "14px" }}>
             {selected.size} selected
           </span>
           <button
-            style={{ padding: "6px 14px", background: "rgba(59,130,246,0.2)", border: "1px solid rgba(59,130,246,0.4)", borderRadius: 8, color: "#60a5fa", cursor: "pointer" as const, fontSize: "13px" }}
+            style={{ padding: "6px 14px", background: "rgba(59,130,246,0.2)", border: "1px solid rgba(59,130,246,0.4)", borderRadius: 8, color: "#60a5fa", cursor: "pointer", fontSize: "13px" }}
             onClick={() => markRead(Array.from(selected))}
           >✓ Mark Read</button>
           <button
-            style={{ padding: "6px 14px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#fca5a5", cursor: "pointer" as const, fontSize: "13px" }}
+            style={{ padding: "6px 14px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#fca5a5", cursor: "pointer", fontSize: "13px" }}
             onClick={() => dismissMany(Array.from(selected))}
           >🗑 Dismiss</button>
           <button
-            style={{ marginLeft: "auto", padding: "6px 14px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "rgba(255,255,255,0.5)", cursor: "pointer" as const, fontSize: "13px" }}
+            style={{ marginLeft: "auto", padding: "6px 14px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "13px" }}
             onClick={() => setSelected(new Set())}
           >Cancel</button>
         </div>
@@ -368,9 +368,9 @@ export default function NotificationsPage() {
       {/* Notifications list */}
       <div style={card}>
         {/* Table header */}
-        <div style={{ display: "flex" as const, alignItems: "center" as const, padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12 }}>
           <input type="checkbox" checked={selected.size === paged.length && paged.length > 0} onChange={toggleAll}
-            style={{ width: 15, height: 15, cursor: "pointer" as const, accentColor: "#3b82f6" }}
+            style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#3b82f6" }}
           />
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>
             {filtered.length} notification{filtered.length !== 1 ? "s" : ""}
@@ -379,14 +379,14 @@ export default function NotificationsPage() {
         </div>
 
         {loading && (
-          <div style={{ textAlign: "center" as const, padding: "64px", color: "rgba(255,255,255,0.3)" }}>
+          <div style={{ textAlign: "center", padding: "64px", color: "rgba(255,255,255,0.3)" }}>
             <div style={{ fontSize: "32px", marginBottom: 12 }}>⏳</div>
             Loading notifications…
           </div>
         )}
 
         {!loading && paged.length === 0 && (
-          <div style={{ textAlign: "center" as const, padding: "64px 24px" }}>
+          <div style={{ textAlign: "center", padding: "64px 24px" }}>
             <div style={{ fontSize: "48px", marginBottom: 16 }}>🎉</div>
             <div style={{ color: "#fff", fontWeight: 600, fontSize: "16px", marginBottom: 8 }}>
               {readFilter === "unread" ? "All caught up!" : "No notifications"}
@@ -409,28 +409,28 @@ export default function NotificationsPage() {
             <div
               key={n.id}
               style={{
-                display: "flex" as const, alignItems: "flex-start" as const, gap: 14,
+                display: "flex", alignItems: "flex-start", gap: 14,
                 padding: "16px 20px",
                 borderBottom: "1px solid rgba(255,255,255,0.04)",
                 background: isSelected
                   ? "rgba(59,130,246,0.08)"
                   : n.is_read ? "transparent" : "rgba(59,130,246,0.03)",
                 transition: "background 0.15s",
-                position: "relative" as const,
-                cursor: "pointer" as const,
+                position: "relative",
+                cursor: "pointer",
               }}
               onClick={() => !n.is_read && markRead([n.id])}
             >
               {/* Critical priority accent bar */}
               {n.priority === "critical" && !n.is_read && (
                 <div style={{
-                  position: "absolute" as const, left: 0, top: 0, bottom: 0,
+                  position: "absolute", left: 0, top: 0, bottom: 0,
                   width: 3, background: "#ef4444", borderRadius: "3px 0 0 3px",
                 }}/>
               )}
               {n.priority === "high" && !n.is_read && (
                 <div style={{
-                  position: "absolute" as const, left: 0, top: 0, bottom: 0,
+                  position: "absolute", left: 0, top: 0, bottom: 0,
                   width: 3, background: "#f97316", borderRadius: "3px 0 0 3px",
                 }}/>
               )}
@@ -441,7 +441,7 @@ export default function NotificationsPage() {
                 checked={isSelected}
                 onChange={() => toggleSelect(n.id)}
                 onClick={e => e.stopPropagation()}
-                style={{ marginTop: 4, width: 15, height: 15, cursor: "pointer" as const, accentColor: "#3b82f6", flexShrink: 0 }}
+                style={{ marginTop: 4, width: 15, height: 15, cursor: "pointer", accentColor: "#3b82f6", flexShrink: 0 }}
               />
 
               {/* Icon */}
@@ -449,13 +449,13 @@ export default function NotificationsPage() {
                 width: 42, height: 42, borderRadius: "11px", flexShrink: 0,
                 background: `${catColor(cat)}15`,
                 border: `1px solid ${catColor(cat)}30`,
-                display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const,
-                fontSize: "20px", position: "relative" as const,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "20px", position: "relative",
               }}>
                 {icon}
                 {!n.is_read && (
                   <div style={{
-                    position: "absolute" as const, top: -3, right: -3,
+                    position: "absolute", top: -3, right: -3,
                     width: 10, height: 10, borderRadius: "50%",
                     background: prio.color,
                     border: "2px solid #0f1729",
@@ -465,17 +465,17 @@ export default function NotificationsPage() {
 
               {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex" as const, justifyContent: "space-between" as const, alignItems: "flex-start" as const, gap: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ fontWeight: n.is_read ? 500 : 700, color: n.is_read ? "rgba(255,255,255,0.7)" : "#fff", fontSize: "14px", marginBottom: 4 }}>
                     {title}
                   </div>
-                  <div style={{ display: "flex" as const, alignItems: "center" as const, gap: 8, flexShrink: 0 }}>
-                    <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px", whiteSpace: "nowrap" as const }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px", whiteSpace: "nowrap" }}>
                       {timeAgo(n.created_at)}
                     </span>
                     <button
                       onClick={e => { e.stopPropagation(); dismissMany([n.id]); }}
-                      style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.2)", cursor: "pointer" as const, fontSize: "18px", lineHeight: 1, padding: "0 4px" }}
+                      style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.2)", cursor: "pointer", fontSize: "18px", lineHeight: 1, padding: "0 4px" }}
                     >×</button>
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export default function NotificationsPage() {
                   </div>
                 )}
 
-                <div style={{ display: "flex" as const, gap: 6, flexWrap: "wrap", alignItems: "center" as const }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                   {/* Category */}
                   <span style={{
                     padding: "1px 8px", borderRadius: 20, fontSize: "10px", fontWeight: 600,
@@ -527,7 +527,7 @@ export default function NotificationsPage() {
                         background: "rgba(59,130,246,0.12)",
                         border: "1px solid rgba(59,130,246,0.25)",
                         borderRadius: 6, color: "#60a5fa",
-                        fontSize: "11px", textDecoration: "none" as const, fontWeight: 600,
+                        fontSize: "11px", textDecoration: "none", fontWeight: 600,
                       }}
                     >
                       {n.action_label} →
@@ -541,7 +541,7 @@ export default function NotificationsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: "flex" as const, justifyContent: "center" as const, alignItems: "center" as const, gap: 8, padding: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, padding: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <button
               style={{ padding: "6px 14px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: page > 0 ? "#60a5fa" : "rgba(255,255,255,0.2)", cursor: page > 0 ? "pointer" : "default", fontSize: "13px" }}
               disabled={page === 0}

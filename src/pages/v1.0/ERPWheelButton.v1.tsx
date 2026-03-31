@@ -52,8 +52,8 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
   const N = OUTER_SEGS.length;
 
   return (
-    <div style={{ display:"flex" as const, flexDirection:"column" as const, alignItems:"center" as const, gap:10 }}>
-      <svg width={440} height={440} viewBox="0 0 440 440" style={{overflow:"visible" as const}}>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
+      <svg width={440} height={440} viewBox="0 0 440 440" style={{overflow:"visible"}}>
         <defs>
           {/* Hub glow */}
           <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
@@ -94,7 +94,7 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
           const path     = arcPath(CX, CY, r2, startDeg, endDeg, r1);
 
           return (
-            <g key={i} style={{cursor:"pointer" as const}}
+            <g key={i} style={{cursor:"pointer"}}
               onMouseEnter={()=>setHoveredOuter(i)}
               onMouseLeave={()=>setHoveredOuter(null)}
               onClick={()=>navigate(seg.path)}>
@@ -108,7 +108,7 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
                 style={{
                   fontSize: isHov ? 9.5 : 8.5, fontWeight:700,
                   fill:"#fff", fontFamily:"'Inter',sans-serif",
-                  pointerEvents:"none" as const, textTransform:"uppercase",
+                  pointerEvents:"none", textTransform:"uppercase",
                   letterSpacing:"0.03em",
                 }}>
                 {seg.label.split(" ").map((w,wi)=>(
@@ -140,7 +140,7 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
           const pt  = polarToXY(node.angle, SPOKE_R, CX, CY);
           const isH = hoveredInner === node.label;
           return (
-            <g key={node.label} style={{cursor:"pointer" as const}}
+            <g key={node.label} style={{cursor:"pointer"}}
               onMouseEnter={()=>setHoveredInner(node.label)}
               onMouseLeave={()=>setHoveredInner(null)}
               onClick={()=>navigate(node.path)}>
@@ -158,7 +158,7 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
               <text x={pt.x} y={pt.y} textAnchor="middle" dominantBaseline="middle"
                 style={{
                   fontSize:7.5, fontWeight:800, fill: isH?"#fff":node.color,
-                  pointerEvents:"none" as const, fontFamily:"'Inter',sans-serif",
+                  pointerEvents:"none", fontFamily:"'Inter',sans-serif",
                   textTransform:"uppercase", letterSpacing:"0.02em",
                 }}>
                 {node.label.length > 8 ? node.label.slice(0,7)+"…" : node.label}
@@ -168,7 +168,7 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
         })}
 
         {/* ── Hub circle ── */}
-        <g style={{cursor:"pointer" as const}}
+        <g style={{cursor:"pointer"}}
           onMouseEnter={()=>setHoveredHub(true)}
           onMouseLeave={()=>setHoveredHub(false)}
           onClick={()=>navigate("/dashboard")}>
@@ -207,12 +207,12 @@ export default function ERPWheelButton({ logoUrl }: { logoUrl?: string | null })
       </svg>
 
       {/* Legend */}
-      <div style={{display:"flex" as const,gap:16,flexWrap:"wrap",justifyContent:"center" as const,maxWidth:420}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:5}}>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap",justifyContent:"center",maxWidth:420}}>
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
           <div style={{width:12,height:12,borderRadius:"50%",background:"#1a3a6b"}}/>
           <span style={{fontSize:9,color:"#6b7280",fontWeight:600}}>INNER: Quick Actions</span>
         </div>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:5}}>
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
           <div style={{width:12,height:12,borderRadius:2,background:"#374151"}}/>
           <span style={{fontSize:9,color:"#6b7280",fontWeight:600}}>OUTER: System Modules</span>
         </div>

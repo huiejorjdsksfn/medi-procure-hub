@@ -24,18 +24,18 @@ const ROLES = [
 
 function RoleBadge({role}:{role:string}) {
   const r = ROLES.find(x=>x.value===role)||{color:"#6b7280",bg:"#f9fafb",label:role};
-  return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:r.bg,color:r.color,textTransform:"capitalize" as const}}>{r.label||role}</span>;
+  return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:r.bg,color:r.color,textTransform:"capitalize"}}>{r.label||role}</span>;
 }
 
 function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}) {
   return (
-      <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,padding:16}}>
-      <div style={{background:"#fff",borderRadius:12,width:"min(540px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-        <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex" as const,alignItems:"center" as const,gap:8}}>
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:12,width:"min(540px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+        <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>{title}</span>
-          <button onClick={onClose} style={{background:"rgba(255,255,255,0.18)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer" as const,color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.18)",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
         </div>
-        <div style={{flex:1,overflowY:"auto" as const,padding:16}}>{children}</div>
+        <div style={{flex:1,overflowY:"auto",padding:16}}>{children}</div>
       </div>
     </div>
   );
@@ -153,34 +153,34 @@ function UsersInner() {
     return textOk&&roleOk&&statusOk;
   });
 
-  if(!isAdmin) return <div style={{padding:32,textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>Admin access required</div>;
+  if(!isAdmin) return <div style={{padding:32,textAlign:"center",color:"#9ca3af",fontSize:14}}>Admin access required</div>;
 
   return (
     <div style={{minHeight:"calc(100vh - 82px)",background:"#f0f2f5",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex" as const,alignItems:"center" as const,gap:12,flexWrap:"wrap" as const}}>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
         <Users style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>User Management</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>{users.length} users · {users.filter(u=>u.is_active!==false).length} active</div>
         </div>
-        <div style={{display:"flex" as const,gap:8}}>
-          <button onClick={exportXLSX} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#fff"}}>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
             <Download style={{width:13,height:13}}/> Export
           </button>
-          <button onClick={()=>setCreateModal(true)} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 16px",background:"#C45911",border:"none",borderRadius:7,cursor:"pointer" as const,fontSize:12,fontWeight:700,color:"#fff"}}>
+          <button onClick={()=>setCreateModal(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"#C45911",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
             <Plus style={{width:13,height:13}}/> New User
           </button>
-          <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer" as const,color:"rgba(255,255,255,0.6)",lineHeight:0}}>
+          <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
             <RefreshCw style={{width:13,height:13}}/>
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex" as const,gap:10,flexWrap:"wrap" as const,alignItems:"center" as const}}>
-        <div style={{position:"relative" as const,flex:1,minWidth:220}}>
-          <Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+      <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center"}}>
+        <div style={{position:"relative",flex:1,minWidth:220}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, email, department..."
             style={{width:"100%",paddingLeft:32,padding:"8px 12px 8px 32px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
         </div>
@@ -199,13 +199,13 @@ function UsersInner() {
       </div>
 
       {/* Table */}
-      <div style={{background:"#fff",margin:16,borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden" as const,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{overflowX:"auto" as const}}>
+      <div style={{background:"#fff",margin:16,borderRadius:10,border:"1px solid #e5e7eb",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
               <tr style={{background:"#f9fafb",borderBottom:"2px solid #e5e7eb"}}>
                 {["User","Email","Role","Department","Status","Created","Actions"].map(h=>(
-                  <th key={h} style={{padding:"11px 14px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase" as const,letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
+                  <th key={h} style={{padding:"11px 14px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -221,8 +221,8 @@ function UsersInner() {
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
                   onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="transparent"}>
                   <td style={{padding:"10px 14px"}}>
-                    <div style={{display:"flex" as const,alignItems:"center" as const,gap:9}}>
-                      <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{(u.full_name||"?")[0].toUpperCase()}</span>
                       </div>
                       <div>
@@ -239,22 +239,22 @@ function UsersInner() {
                       {u.is_active!==false?"Active":"Inactive"}
                     </span>
                   </td>
-                  <td style={{padding:"10px 14px",color:"#9ca3af",fontSize:11,whiteSpace:"nowrap" as const}}>{u.created_at?.slice(0,10)||"—"}</td>
+                  <td style={{padding:"10px 14px",color:"#9ca3af",fontSize:11,whiteSpace:"nowrap"}}>{u.created_at?.slice(0,10)||"—"}</td>
                   <td style={{padding:"10px 14px"}}>
-                    <div style={{display:"flex" as const,gap:5,flexWrap:"wrap" as const}}>
-                      <button onClick={()=>{setViewUser(u);}} title="View" style={{padding:"4px 8px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer" as const,lineHeight:0,color:"#1d4ed8"}}>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap" as const}}>
+                      <button onClick={()=>{setViewUser(u);}} title="View" style={{padding:"4px 8px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,cursor:"pointer",lineHeight:0,color:"#1d4ed8"}}>
                         <Eye style={{width:12,height:12}}/>
                       </button>
                       <button onClick={()=>{setEditUser(u);setEditRole(u.roles?.[0]||"requisitioner");setEditDept(u.department||"");setEditActive(u.is_active!==false);setEditPhone(u.phone||"");}} title="Edit"
-                        style={{padding:"4px 8px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:5,cursor:"pointer" as const,lineHeight:0,color:"#92400e"}}>
+                        style={{padding:"4px 8px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:5,cursor:"pointer",lineHeight:0,color:"#92400e"}}>
                         <Edit3 style={{width:12,height:12}}/>
                       </button>
                       <button onClick={()=>toggleActive(u)} title={u.is_active!==false?"Deactivate":"Activate"}
-                        style={{padding:"4px 8px",background:u.is_active!==false?"#fee2e2":"#dcfce7",border:`1px solid ${u.is_active!==false?"#fecaca":"#bbf7d0"}`,borderRadius:5,cursor:"pointer" as const,lineHeight:0,color:u.is_active!==false?"#dc2626":"#15803d"}}>
+                        style={{padding:"4px 8px",background:u.is_active!==false?"#fee2e2":"#dcfce7",border:`1px solid ${u.is_active!==false?"#fecaca":"#bbf7d0"}`,borderRadius:5,cursor:"pointer",lineHeight:0,color:u.is_active!==false?"#dc2626":"#15803d"}}>
                         {u.is_active!==false?<UserX style={{width:12,height:12}}/>:<UserCheck style={{width:12,height:12}}/>}
                       </button>
                       {u.id!==user?.id&&<button onClick={()=>deleteUser(u)} title="Delete"
-                        style={{padding:"4px 8px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:5,cursor:"pointer" as const,lineHeight:0,color:"#dc2626"}}>
+                        style={{padding:"4px 8px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:5,cursor:"pointer",lineHeight:0,color:"#dc2626"}}>
                         <Trash2 style={{width:12,height:12}}/>
                       </button>}
                     </div>
@@ -265,7 +265,7 @@ function UsersInner() {
           </table>
         </div>
         {filtered.length===0&&!loading&&(
-          <div style={{padding:"40px 20px",textAlign:"center" as const,color:"#9ca3af"}}>
+          <div style={{padding:"40px 20px",textAlign:"center",color:"#9ca3af"}}>
             <Users style={{width:36,height:36,color:"#e5e7eb",margin:"0 auto 10px"}}/>
             <div style={{fontSize:14,fontWeight:600}}>No users found</div>
           </div>
@@ -273,16 +273,16 @@ function UsersInner() {
       </div>
 
       {/* Role summary */}
-      <div style={{margin:"0 16px 16px",display:"grid" as const,gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+      <div style={{margin:"0 16px 16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
         {ROLES.map(r=>{
           const cnt=users.filter(u=>u.roles?.includes(r.value)).length;
           return (
-            <div key={r.value} style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,padding:"10px 14px",display:"flex" as const,gap:10,alignItems:"center" as const,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
-              <div style={{width:32,height:32,borderRadius:7,background:r.bg,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
+            <div key={r.value} style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+              <div style={{width:32,height:32,borderRadius:7,background:r.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <Shield style={{width:14,height:14,color:r.color}}/>
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:700,color:r.color,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.label}</div>
+                <div style={{fontSize:12,fontWeight:700,color:r.color,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>
                 <div style={{fontSize:11,color:"#9ca3af"}}>{cnt} user{cnt!==1?"s":""}</div>
               </div>
             </div>
@@ -293,21 +293,21 @@ function UsersInner() {
       {/* ── CREATE MODAL ── */}
       {createModal&&(
         <Modal title="Create New User" onClose={()=>setCreateModal(false)}>
-          <div style={{display:"flex" as const,flexDirection:"column" as const,gap:12}}>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {[{l:"Full Name *",k:"full_name"},{l:"Email Address *",k:"email",t:"email"},{l:"Password *",k:"password",t:"password"},{l:"Phone",k:"phone"},{l:"Department",k:"department"}].map(f=>(
               <div key={f.k}>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{f.l}</label>
-                <div style={{position:"relative" as const}}>
+                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.l}</label>
+                <div style={{position:"relative"}}>
                   <input type={f.k==="password"&&!pwVis?"password":(f.t||"text")} value={(newU as any)[f.k]||""} onChange={e=>setNewU(p=>({...p,[f.k]:e.target.value}))}
                     style={{width:"100%",padding:`9px 12px${f.k==="password"?" 9px 36px":""}`,fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                  {f.k==="password"&&<button type="button" onClick={()=>setPwVis(v=>!v)} style={{position:"absolute" as const,right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer" as const,color:"#9ca3af",lineHeight:0}}>
+                  {f.k==="password"&&<button type="button" onClick={()=>setPwVis(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:"#9ca3af",lineHeight:0}}>
                     {pwVis?<EyeOff style={{width:14,height:14}}/>:<Eye style={{width:14,height:14}}/>}
                   </button>}
                 </div>
               </div>
             ))}
             <div>
-              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Role *</label>
+              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Role *</label>
               <select value={newU.role} onChange={e=>setNewU(p=>({...p,role:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
                 {ROLES.map(r=><option key={r.value} value={r.value}>{r.label} — {r.desc}</option>)}
               </select>
@@ -315,12 +315,12 @@ function UsersInner() {
             <div style={{padding:"10px 14px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,fontSize:12,color:"#92400e"}}>
               ⚠ The user will receive a welcome notification. Ensure the email is valid.
             </div>
-            <div style={{display:"flex" as const,gap:8,paddingTop:4}}>
-              <button onClick={createUser} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,flex:1,justifyContent:"center" as const,padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700}}>
+            <div style={{display:"flex",gap:8,paddingTop:4}}>
+              <button onClick={createUser} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center",padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Plus style={{width:13,height:13}}/>}
                 {saving?"Creating...":"Create User"}
               </button>
-              <button onClick={()=>setCreateModal(false)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,fontSize:13,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>setCreateModal(false)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
             </div>
           </div>
         </Modal>
@@ -329,9 +329,9 @@ function UsersInner() {
       {/* ── EDIT MODAL ── */}
       {editUser&&(
         <Modal title={`Edit: ${editUser.full_name}`} onClose={()=>setEditUser(null)}>
-          <div style={{display:"flex" as const,flexDirection:"column" as const,gap:12}}>
-            <div style={{padding:"10px 14px",background:"#f9fafb",borderRadius:8,display:"flex" as const,gap:10,alignItems:"center" as const}}>
-              <div style={{width:42,height:42,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{padding:"10px 14px",background:"#f9fafb",borderRadius:8,display:"flex",gap:10,alignItems:"center"}}>
+              <div style={{width:42,height:42,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <span style={{fontSize:16,fontWeight:700,color:"#fff"}}>{(editUser.full_name||"?")[0].toUpperCase()}</span>
               </div>
               <div>
@@ -340,36 +340,36 @@ function UsersInner() {
               </div>
             </div>
             <div>
-              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Role</label>
+              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Role</label>
               <select value={editRole} onChange={e=>setEditRole(e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
                 {ROLES.map(r=><option key={r.value} value={r.value}>{r.label} — {r.desc}</option>)}
               </select>
             </div>
             <div>
-              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Department</label>
+              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Department</label>
               <input value={editDept} onChange={e=>setEditDept(e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
             </div>
             <div>
-              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block" as const,marginBottom:4,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>Phone</label>
+              <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Phone</label>
               <input value={editPhone} onChange={e=>setEditPhone(e.target.value)} style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
             </div>
-            <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"10px 0",borderBottom:"1px solid #f3f4f6"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #f3f4f6"}}>
               <div>
                 <div style={{fontSize:13,fontWeight:600,color:"#111827"}}>Account Active</div>
                 <div style={{fontSize:11,color:"#9ca3af"}}>Inactive users cannot log in</div>
               </div>
-              <button onClick={()=>setEditActive(v=>!v)} style={{background:"transparent",border:"none",cursor:"pointer" as const,padding:0,lineHeight:0}}>
-                <div style={{width:44,height:24,borderRadius:12,background:editActive?"#1a3a6b":"#d1d5db",display:"flex" as const,alignItems:"center" as const,padding:2,transition:"all 0.2s"}}>
+              <button onClick={()=>setEditActive(v=>!v)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0}}>
+                <div style={{width:44,height:24,borderRadius:12,background:editActive?"#1a3a6b":"#d1d5db",display:"flex",alignItems:"center",padding:2,transition:"all 0.2s"}}>
                   <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:editActive?"translateX(20px)":"translateX(0)"}}/>
                 </div>
               </button>
             </div>
-            <div style={{display:"flex" as const,gap:8,paddingTop:4}}>
-              <button onClick={saveEdit} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,flex:1,justifyContent:"center" as const,padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer" as const,fontSize:13,fontWeight:700}}>
+            <div style={{display:"flex",gap:8,paddingTop:4}}>
+              <button onClick={saveEdit} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center",padding:"10px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
                 Save Changes
               </button>
-              <button onClick={()=>setEditUser(null)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,fontSize:13,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>setEditUser(null)} style={{padding:"10px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
             </div>
           </div>
         </Modal>
@@ -378,9 +378,9 @@ function UsersInner() {
       {/* ── VIEW MODAL ── */}
       {viewUser&&(
         <Modal title="User Profile" onClose={()=>setViewUser(null)}>
-          <div style={{display:"flex" as const,flexDirection:"column" as const,gap:12}}>
-            <div style={{display:"flex" as const,alignItems:"center" as const,gap:14,padding:"12px 0",borderBottom:"1px solid #f3f4f6"}}>
-              <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 0",borderBottom:"1px solid #f3f4f6"}}>
+              <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#1a3a6b,#0078d4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <span style={{fontSize:22,fontWeight:700,color:"#fff"}}>{(viewUser.full_name||"?")[0].toUpperCase()}</span>
               </div>
               <div>
@@ -390,17 +390,17 @@ function UsersInner() {
               </div>
             </div>
             {[["Department",viewUser.department||"—"],["Phone",viewUser.phone||"—"],["Status",viewUser.is_active!==false?"Active":"Inactive"],["User ID",viewUser.id?.slice(0,16)+"..."],["Created",viewUser.created_at?.slice(0,10)||"—"]].map(([k,v])=>(
-              <div key={k} style={{display:"flex" as const,justifyContent:"space-between" as const,padding:"8px 0",borderBottom:"1px solid #f9fafb",fontSize:13}}>
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f9fafb",fontSize:13}}>
                 <span style={{color:"#9ca3af",fontWeight:600}}>{k}</span>
                 <span style={{color:"#374151",fontWeight:500,fontFamily:k==="User ID"?"monospace":"inherit"}}>{v}</span>
               </div>
             ))}
-            <div style={{display:"flex" as const,gap:8,paddingTop:4}}>
+            <div style={{display:"flex",gap:8,paddingTop:4}}>
               <button onClick={()=>{setViewUser(null);setEditUser(viewUser);setEditRole(viewUser.roles?.[0]||"requisitioner");setEditDept(viewUser.department||"");setEditActive(viewUser.is_active!==false);setEditPhone(viewUser.phone||"");}}
-                style={{display:"flex" as const,alignItems:"center" as const,gap:6,flex:1,justifyContent:"center" as const,padding:"9px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:7,cursor:"pointer" as const,fontSize:13,fontWeight:700,color:"#92400e"}}>
+                style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center",padding:"9px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700,color:"#92400e"}}>
                 <Edit3 style={{width:13,height:13}}/> Edit User
               </button>
-              <button onClick={()=>setViewUser(null)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,fontSize:13,color:"#374151"}}>Close</button>
+              <button onClick={()=>setViewUser(null)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Close</button>
             </div>
           </div>
         </Modal>

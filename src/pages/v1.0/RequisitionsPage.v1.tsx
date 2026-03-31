@@ -123,14 +123,14 @@ export default function RequisitionsPage() {
   const stats = {all:reqs.length,pending:reqs.filter(r=>r.status==="pending"||r.status==="submitted").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length};
 
   return (
-    <><style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style><div style={{padding:16,display:"flex" as const,flexDirection:"column" as const,gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <><style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style><div style={{padding:16,display:"flex",flexDirection:"column",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       {/* KPI TILES */}
       {(()=>{
         const totalVal = reqs.reduce((s,r)=>s+Number(r.total_amount||0),0);
         const appVal   = reqs.filter(r=>r.status==="approved").reduce((s,r)=>s+Number(r.total_amount||0),0);
         const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
         return(
-          <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
             {[
               {label:"Total Value",val:fmtK(totalVal),bg:"#c0392b"},
               {label:"Approved Value",val:fmtK(appVal),bg:"#0e6655"},
@@ -138,7 +138,7 @@ export default function RequisitionsPage() {
               {label:"Record Count",val:reqs.length,bg:"#6c3483"},
               {label:"Approved Count",val:reqs.filter(r=>r.status==="approved").length,bg:"#1a252f"},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -147,23 +147,23 @@ export default function RequisitionsPage() {
         );
       })()}
       {/* Header */}
-      <div style={{borderRadius:12,background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)",padding:"10px 18px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:12}}>
+      <div style={{borderRadius:12,background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)",padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
           <ClipboardList style={{width:20,height:20,color:"#fff"}}/>
           <div>
             <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Requisitions</h1>
             <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length} of {reqs.length} records</p>
           </div>
         </div>
-        <div style={{display:"flex" as const,flexWrap:"wrap",gap:8}}>
-          <button onClick={load} disabled={loading} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.18)",color:"#fff",border:"none",cursor:"pointer" as const,fontSize:12,fontWeight:600}}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          <button onClick={load} disabled={loading} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.18)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
-          <button onClick={exportExcel} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.9)",color:"#fff",border:"none",cursor:"pointer" as const,fontSize:12,fontWeight:600}}>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.9)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
             <FileSpreadsheet style={{width:14,height:14}}/>Export
           </button>
           {canCreate && (
-            <button onClick={()=>setShowForm(true)} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:8,background:"#fff",color:"#1e3a8a",border:"none",cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
+            <button onClick={()=>setShowForm(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"#fff",color:"#1e3a8a",border:"none",cursor:"pointer",fontSize:12,fontWeight:700}}>
               <Plus style={{width:14,height:14}}/>New Requisition
             </button>
           )}
@@ -171,10 +171,10 @@ export default function RequisitionsPage() {
       </div>
 
       {/* Stat chips */}
-      <div style={{display:"flex" as const,flexWrap:"wrap",gap:8}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
         {Object.entries(stats).map(([k,v])=>(
           <button key={k} onClick={()=>setStatusFilter(k==="all"?"all":k)}
-            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:20,fontSize:12,fontWeight:600,border:"none",cursor:"pointer" as const,background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"}}>
+            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"}}>
             {k==="pending"&&<Clock style={{width:12,height:12}}/>}
             {k==="approved"&&<CheckCircle style={{width:12,height:12}}/>}
             {k==="rejected"&&<XCircle style={{width:12,height:12}}/>}
@@ -184,22 +184,22 @@ export default function RequisitionsPage() {
             </span>
           </button>
         ))}
-        <div style={{position:"relative" as const,marginLeft:"auto"}}>
-          <Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
+        <div style={{position:"relative",marginLeft:"auto"}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions..."
             style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* Table */}
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden" as const}}>
-        <div style={{overflowX:"auto" as const}}>
+      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",fontSize:12}}>
             <thead>
               <tr style={{background:"#0a2558"}}>
                 {["#","Req Number","Title","Department","Priority","Status","Requester","Amount","Date","Actions"].map(h=>(
-                  <th key={h} style={{textAlign:"left" as const,padding:"10px 12px",color:"rgba(255,255,255,0.8)",fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
+                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.8)",fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -209,7 +209,7 @@ export default function RequisitionsPage() {
                   <tr key={i}><td colSpan={10} style={{animation:"pulse 1.5s infinite"}}><div style={{height:12,background:"#e5e7eb",borderRadius:6,width:"100%"}}/></td></tr>
                 ))
               ):filtered.length===0?(
-                <tr><td colSpan={10} style={{padding:"40px 16px",textAlign:"center" as const,color:"#9ca3af"}}>No requisitions found</td></tr>
+                <tr><td colSpan={10} style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af"}}>No requisitions found</td></tr>
               ):filtered.map((r,i)=>{
                 const s=STATUS_CFG[r.status]||{bg:"#f3f4f6",color:"#6b7280",label:r.status};
                 const isPending = r.status==="submitted"||r.status==="pending";
@@ -217,10 +217,10 @@ export default function RequisitionsPage() {
                   <tr key={r.id} style={{borderBottom:"1px solid #f9fafb"}}>
                     <td style={{padding:"10px 12px",color:"#9ca3af"}}>{i+1}</td>
                     <td style={{padding:"10px 12px",fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#1e3a5f"}}>{r.requisition_number||"—"}</td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.title||"—"}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title||"—"}</td>
                     <td style={{padding:"10px 12px",color:"#4b5563"}}>{r.department||"—"}</td>
                     <td style={{padding:"10px 12px"}}>
-                      <span style={{padding:"1px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize" as const,background:r.priority==="urgent"||r.priority==="high"?"#fee2e2":r.priority==="normal"?"#dbeafe":"#f3f4f6",color:r.priority==="urgent"||r.priority==="high"?"#b91c1c":r.priority==="normal"?"#1d4ed8":"#6b7280"}}>
+                      <span style={{padding:"1px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:r.priority==="urgent"||r.priority==="high"?"#fee2e2":r.priority==="normal"?"#dbeafe":"#f3f4f6",color:r.priority==="urgent"||r.priority==="high"?"#b91c1c":r.priority==="normal"?"#1d4ed8":"#6b7280"}}>
                         {r.priority||"normal"}
                       </span>
                     </td>
@@ -229,15 +229,15 @@ export default function RequisitionsPage() {
                     </td>
                     <td style={{padding:"10px 12px",color:"#4b5563"}}>{r.requester_name||"—"}</td>
                     <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937"}}>{r.total_amount?`KES ${Number(r.total_amount).toLocaleString()}`:"—"}</td>
-                    <td style={{padding:"10px 12px",color:"#9ca3af",fontSize:10,whiteSpace:"nowrap" as const}}>{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td style={{padding:"10px 12px",color:"#9ca3af",fontSize:10,whiteSpace:"nowrap"}}>{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
                     <td style={{padding:"10px 12px"}}>
-                      <div style={{display:"flex" as const,gap:4}}>
-                        <button onClick={()=>setViewReq(r)} style={{padding:"5px",borderRadius:6,background:"#dbeafe",color:"#1d4ed8",border:"none",cursor:"pointer" as const}}><Eye style={{width:12,height:12}}/></button>
-                        <button onClick={()=>printReq(r)} style={{padding:"5px",borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer" as const}}><Printer style={{width:12,height:12}}/></button>
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>setViewReq(r)} style={{padding:"5px",borderRadius:6,background:"#dbeafe",color:"#1d4ed8",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
+                        <button onClick={()=>printReq(r)} style={{padding:"5px",borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
                         {canApprove&&isPending&&(
                           <>
-                            <button onClick={()=>approve(r.id)} style={{padding:"5px",borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer" as const}}><CheckCircle style={{width:12,height:12}}/></button>
-                            <button onClick={()=>reject(r.id)} style={{padding:"5px",borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer" as const}}><XCircle style={{width:12,height:12}}/></button>
+                            <button onClick={()=>approve(r.id)} style={{padding:"5px",borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/></button>
+                            <button onClick={()=>reject(r.id)} style={{padding:"5px",borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/></button>
                           </>
                         )}
                       </div>
@@ -256,45 +256,45 @@ export default function RequisitionsPage() {
 
       {/* Create form modal */}
       {showForm&&(
-        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
-          <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setShowForm(false)}/>
-          <div style={{position:"relative" as const,background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(520px,100%)",overflow:"hidden" as const}}>
-            <div style={{padding:"16px 20px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"#0a2558"}}>
-              <h3 style={{fontSize:14,fontWeight:900,color:"#fff",display:"flex" as const,alignItems:"center" as const,gap:8}}><ClipboardList style={{width:16,height:16}}/>New Requisition</h3>
-              <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer" as const}}><X style={{width:16,height:16}}/></button>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setShowForm(false)}/>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(520px,100%)",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a2558"}}>
+              <h3 style={{fontSize:14,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",gap:8}}><ClipboardList style={{width:16,height:16}}/>New Requisition</h3>
+              <button onClick={()=>setShowForm(false)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
             </div>
             <div style={{padding:20}}>
               {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description..."}].map(f=>(
                 <div key={f.k}>
-                  <label style={{display:"block" as const,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>{f.l}</label>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>{f.l}</label>
                   {f.k==="notes"?(
                     <textarea value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} rows={3} placeholder={f.ph}
-                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/>
+                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   ):(
                     <input value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
-                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/>
+                      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   )}
                 </div>
               ))}
-              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 <div>
-                  <label style={{display:"block" as const,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Priority</label>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Priority</label>
                   <select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}
-                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}>
+                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
                     {["low","normal","high","urgent"].map(v=><option key={v} value={v} style={{textTransform:"capitalize"}}>{v}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{display:"block" as const,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Delivery Date</label>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#6b7280",marginBottom:4}}>Delivery Date</label>
                   <input type="date" value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))}
-                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const}}/>
+                    style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                 </div>
               </div>
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex" as const,gap:8,justifyContent:"flex-end" as const}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer" as const,fontSize:13}}>Cancel</button>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13}}>Cancel</button>
               <button onClick={save} disabled={saving}
-                style={{display:"flex" as const,alignItems:"center" as const,gap:8,padding:"8px 16px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer" as const,background:"#1a3a6b",opacity:saving?0.7:1}}>
+                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#1a3a6b",opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>:<Send style={{width:14,height:14}}/>}
                 {saving?"Saving...":"Create Requisition"}
               </button>
@@ -305,24 +305,24 @@ export default function RequisitionsPage() {
 
       {/* View modal */}
       {viewReq&&(
-        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
-          <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setViewReq(null)}/>
-          <div style={{position:"relative" as const,background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const,overflow:"hidden" as const}}>
-            <div style={{padding:"12px 20px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"#0a2558"}}>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setViewReq(null)}/>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(700px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a2558"}}>
               <div><h3 style={{fontSize:14,fontWeight:900,color:"#fff"}}>{viewReq.requisition_number}</h3><p style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>{viewReq.title}</p></div>
-              <div style={{display:"flex" as const,gap:8}}>
-                <button onClick={()=>printReq(viewReq)} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer" as const}}><Printer style={{width:12,height:12}}/>Print</button>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>printReq(viewReq)} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/>Print</button>
                 {canApprove&&(viewReq.status==="submitted"||viewReq.status==="pending")&&(
                   <>
-                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer" as const}}><CheckCircle style={{width:12,height:12}}/>Approve</button>
-                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer" as const}}><XCircle style={{width:12,height:12}}/>Reject</button>
+                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/>Approve</button>
+                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:8,color:"#fff",fontSize:12,border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/>Reject</button>
                   </>
                 )}
-                <button onClick={()=>setViewReq(null)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer" as const}}><X style={{width:16,height:16}}/></button>
+                <button onClick={()=>setViewReq(null)} style={{padding:"5px",borderRadius:6,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
               </div>
             </div>
-            <div style={{overflowY:"auto" as const,padding:20}}>
-              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
+            <div style={{overflowY:"auto",padding:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
                 {[
                   {l:"Department",v:viewReq.department},{l:"Priority",v:viewReq.priority},
                   {l:"Status",v:viewReq.status},{l:"Requester",v:viewReq.requester_name},
@@ -340,7 +340,7 @@ export default function RequisitionsPage() {
                 <div>
                   <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",marginBottom:8}}>Line Items ({viewReq.requisition_items.length})</p>
                   <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} style={{textAlign:"left" as const,padding:"8px 12px",color:"rgba(255,255,255,0.85)",fontSize:10,textTransform:"uppercase",fontWeight:700}}>{h}</th>)}</tr></thead>
+                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} style={{textAlign:"left",padding:"8px 12px",color:"rgba(255,255,255,0.85)",fontSize:10,textTransform:"uppercase",fontWeight:700}}>{h}</th>)}</tr></thead>
                     <tbody>
                       {viewReq.requisition_items.map((it:any,i:number)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
@@ -361,5 +361,7 @@ export default function RequisitionsPage() {
       )}
     </div>
   </>
+    </div>
+    </div>
   );
 }

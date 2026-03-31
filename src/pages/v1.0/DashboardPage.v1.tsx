@@ -192,7 +192,7 @@ export default function DashboardPage(){
   });
 
   return(
-    <div style={{position:"fixed" as const,inset:0,overflow:"hidden" as const,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{position:"fixed",inset:0,overflow:"hidden",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
         @keyframes ringPulse{0%,100%{opacity:0.3}50%{opacity:0.7}}
@@ -206,21 +206,21 @@ export default function DashboardPage(){
       `}</style>
 
       {/* ── BG ── */}
-      <div style={{position:"absolute" as const,inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.3)"}}/>
-      <div style={{position:"absolute" as const,inset:0,background:"linear-gradient(135deg,rgba(5,20,60,0.82) 0%,rgba(0,0,0,0.65) 100%)"}}/>
-      <div style={{position:"absolute" as const,inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)",backgroundSize:"36px 36px"}}/>
+      <div style={{position:"absolute",inset:0,backgroundImage:`url(${procBg})`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.3)"}}/>
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(5,20,60,0.82) 0%,rgba(0,0,0,0.65) 100%)"}}/>
+      <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)",backgroundSize:"36px 36px"}}/>
 
       {/* ── TOP BAR ── */}
-      <div style={{position:"absolute" as const,top:0,left:0,right:0,height:50,display:"flex" as const,alignItems:"center" as const,padding:"0 20px",background:"rgba(0,0,0,0.55)",backdropFilter:"blur(10px)",borderBottom:"1px solid rgba(255,255,255,0.07)",zIndex:100}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,flex:1}}>
-          <img src={logoUrl||logoImg} alt="" style={{width:30,height:30,borderRadius:6,objectFit:"contain" as const,background:"rgba(255,255,255,0.07)",padding:2}}/>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:50,display:"flex",alignItems:"center",padding:"0 20px",background:"rgba(0,0,0,0.55)",backdropFilter:"blur(10px)",borderBottom:"1px solid rgba(255,255,255,0.07)",zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+          <img src={logoUrl||logoImg} alt="" style={{width:30,height:30,borderRadius:6,objectFit:"contain",background:"rgba(255,255,255,0.07)",padding:2}}/>
           <div>
             <div style={{fontSize:11,fontWeight:800,color:"#fff",lineHeight:1}}>{sysName}</div>
             <div style={{fontSize:8.5,color:"rgba(255,255,255,0.32)",marginTop:1}}>{hospital}</div>
           </div>
         </div>
-        <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.55)",letterSpacing:"0.08em",fontVariantNumeric:"tabular-nums" as const,marginRight:16}}>{clock}</div>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:6,marginRight:8}}>
+        <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.55)",letterSpacing:"0.08em",fontVariantNumeric:"tabular-nums",marginRight:16}}>{clock}</div>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginRight:8}}>
           {/* Live KPI pills */}
           {kpi.reqs>0&&<div style={{padding:"2px 9px",borderRadius:20,background:"rgba(245,158,11,0.2)",border:"1px solid rgba(245,158,11,0.35)",fontSize:9.5,fontWeight:700,color:"#fcd34d"}}>{kpi.reqs} Pending</div>}
           {kpi.lowStock>0&&<div style={{padding:"2px 9px",borderRadius:20,background:"rgba(239,68,68,0.2)",border:"1px solid rgba(239,68,68,0.35)",fontSize:9.5,fontWeight:700,color:"#fca5a5"}}>{kpi.lowStock} Low Stock</div>}
@@ -228,16 +228,16 @@ export default function DashboardPage(){
         <div style={{padding:"3px 10px",borderRadius:20,background:"rgba(255,255,255,0.09)",border:"1px solid rgba(255,255,255,0.14)",fontSize:9.5,fontWeight:700,color:"rgba(255,255,255,0.65)",marginRight:8}}>
           {ROLE_LABELS[primaryRole||roles?.[0]]||"Staff"}
         </div>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:2}}>
+        <div style={{display:"flex",alignItems:"center",gap:2}}>
           <NotificationBell logoUrl={logoUrl} sysName={sysName} hospitalName={hospital}/>
           <button onClick={()=>nav("/profile")} title="Profile"
-            style={{padding:6,borderRadius:6,background:"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.55)",lineHeight:0}}
+            style={{padding:6,borderRadius:6,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.55)",lineHeight:0}}
             onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.1)")}
             onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
             <User style={{width:15,height:15}}/>
           </button>
           <button onClick={()=>{signOut();nav("/login");}} title="Sign Out"
-            style={{padding:6,borderRadius:6,background:"transparent",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.55)",lineHeight:0}}
+            style={{padding:6,borderRadius:6,background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.55)",lineHeight:0}}
             onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.1)")}
             onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
             <LogOut style={{width:15,height:15}}/>
@@ -246,9 +246,9 @@ export default function DashboardPage(){
       </div>
 
       {/* ── WHEEL STAGE ── */}
-      <div style={{position:"absolute" as const,inset:0,top:50,bottom:54,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+      <div style={{position:"absolute",inset:0,top:50,bottom:54,display:"flex",alignItems:"center",justifyContent:"center"}}>
         <svg width={560} height={560} viewBox="0 0 560 560"
-          style={{filter:"drop-shadow(0 12px 40px rgba(0,0,0,0.7))",overflow:"visible" as const}}>
+          style={{filter:"drop-shadow(0 12px 40px rgba(0,0,0,0.7))",overflow:"visible"}}>
           <defs>
             {SEGS.map(s=>(
               <radialGradient key={s.id} id={`grad-${s.id}`} cx="50%" cy="50%" r="55%" fx="35%" fy="35%">
@@ -332,7 +332,7 @@ export default function DashboardPage(){
                     textAnchor="middle" dominantBaseline="central"
                     fill={isActive?"#fff":"rgba(255,255,255,0.9)"}
                     fontSize={12} fontWeight={900} letterSpacing={2}
-                    style={{pointerEvents:"none" as const,userSelect:"none" as const,
+                    style={{pointerEvents:"none",userSelect:"none",
                       textShadow:"0 2px 8px rgba(0,0,0,0.8)",
                       filter:isActive?"drop-shadow(0 0 6px rgba(255,255,255,0.7))":"none"}}>
                     {word}
@@ -344,7 +344,7 @@ export default function DashboardPage(){
                   textAnchor="middle" dominantBaseline="central"
                   fill={isActive?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.45)"}
                   fontSize={7.5} fontWeight={500} letterSpacing={0.5}
-                  style={{pointerEvents:"none" as const,userSelect:"none" as const}}>
+                  style={{pointerEvents:"none",userSelect:"none"}}>
                   {s.sub}
                 </text>
 
@@ -357,7 +357,7 @@ export default function DashboardPage(){
                         fill={isActive?s.g3:s.g2} stroke="rgba(255,255,255,0.3)" strokeWidth={1}/>
                       <text x={bp.x} y={bp.y} textAnchor="middle" dominantBaseline="central"
                         fill="#fff" fontSize={8} fontWeight={800}
-                        style={{pointerEvents:"none" as const}}>
+                        style={{pointerEvents:"none"}}>
                         {visLinks(s).length}
                       </text>
                     </g>
@@ -380,17 +380,17 @@ export default function DashboardPage(){
             const midA=((i/6)+(1/12))*360;
             const lp=P(CX,CY,(KPI_R1+KPI_R2)/2,midA);
             return(
-              <g key={i} style={{cursor:"default" as const}}>
+              <g key={i} style={{cursor:"default"}}>
                 <path d={kpiSegs[i]} fill={`${k.color}30`}
                   stroke={k.color} strokeWidth={0.8} strokeOpacity={0.6}/>
                 <text x={lp.x} y={lp.y-2} textAnchor="middle" dominantBaseline="central"
                   fill={k.color} fontSize={7.5} fontWeight={900}
-                  style={{pointerEvents:"none" as const}}>
+                  style={{pointerEvents:"none"}}>
                   {k.val}
                 </text>
                 <text x={lp.x} y={lp.y+6} textAnchor="middle" dominantBaseline="central"
                   fill="rgba(255,255,255,0.35)" fontSize={5} fontWeight={600}
-                  style={{pointerEvents:"none" as const}}>
+                  style={{pointerEvents:"none"}}>
                   {k.label}
                 </text>
               </g>
@@ -418,12 +418,12 @@ export default function DashboardPage(){
           {/* system name */}
           <text x={CX} y={CY+25} textAnchor="middle" fill="rgba(255,255,255,0.95)"
             fontSize={6.5} fontWeight={800} letterSpacing={1.5}
-            style={{pointerEvents:"none" as const}}>
+            style={{pointerEvents:"none"}}>
             {sysName.toUpperCase()}
           </text>
           <text x={CX} y={CY+35} textAnchor="middle" fill="rgba(255,255,255,0.45)"
             fontSize={5} letterSpacing={0.8}
-            style={{pointerEvents:"none" as const}}>
+            style={{pointerEvents:"none"}}>
             EMBU LEVEL 5 HOSPITAL
           </text>
 
@@ -433,23 +433,23 @@ export default function DashboardPage(){
             style={{animation:"pulse 2s ease-in-out infinite"}}/>
           <text x={CX} y={CY+44.5} textAnchor="middle" dominantBaseline="central"
             fill="#fff" fontSize={5.5} fontWeight={900} letterSpacing={1}
-            style={{pointerEvents:"none" as const}}>LIVE</text>
+            style={{pointerEvents:"none"}}>LIVE</text>
         </svg>
 
         {/* ── SLIDE-IN PANEL ── */}
         <div style={{
-          position:"absolute" as const,right:0,top:0,bottom:0,
+          position:"absolute",right:0,top:0,bottom:0,
           width:seg&&active?300:0,
           background:"rgba(8,18,50,0.93)",
           backdropFilter:"blur(20px)",
           borderLeft:"1px solid rgba(255,255,255,0.09)",
-          overflow:"hidden" as const,
+          overflow:"hidden",
           transition:"width 0.3s cubic-bezier(0.4,0,0.2,1)",
           zIndex:50,
         }}>
           {seg&&active&&(
-            <div style={{width:300,padding:"14px 0",height:"100%",display:"flex" as const,flexDirection:"column" as const}}>
-              <div style={{padding:"0 16px 10px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const}}>
+            <div style={{width:300,padding:"14px 0",height:"100%",display:"flex",flexDirection:"column"}}>
+              <div style={{padding:"0 16px 10px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div>
                   <div style={{fontSize:9.5,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:"0.12em",textTransform:"uppercase"}}>{seg.sub}</div>
                   <div style={{fontSize:15,fontWeight:900,color:"#fff",marginTop:2,letterSpacing:"0.02em"}}>{seg.label}</div>
@@ -458,7 +458,7 @@ export default function DashboardPage(){
                   </div>
                 </div>
                 <button onClick={()=>setActive(null)}
-                  style={{padding:6,borderRadius:7,background:"rgba(255,255,255,0.07)",border:"none",cursor:"pointer" as const,color:"rgba(255,255,255,0.45)",lineHeight:0}}>
+                  style={{padding:6,borderRadius:7,background:"rgba(255,255,255,0.07)",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.45)",lineHeight:0}}>
                   <X style={{width:14,height:14}}/>
                 </button>
               </div>
@@ -466,7 +466,7 @@ export default function DashboardPage(){
               {/* accent bar */}
               <div style={{height:2,background:`linear-gradient(90deg,${seg.g1},${seg.g3},transparent)`,opacity:0.7}}/>
 
-              <div style={{flex:1,overflowY:"auto" as const,padding:"8px 8px"}}>
+              <div style={{flex:1,overflowY:"auto",padding:"8px 8px"}}>
                 {visLinks(seg).map(lk=>(
                   <button key={lk.path} onClick={()=>nav(lk.path)}
                     className="panel-link"
@@ -480,7 +480,7 @@ export default function DashboardPage(){
               </div>
 
               {/* role notice */}
-              <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.06)",fontSize:9,color:"rgba(255,255,255,0.2)",textAlign:"center" as const}}>
+              <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.06)",fontSize:9,color:"rgba(255,255,255,0.2)",textAlign:"center"}}>
                 Showing modules for: {ROLE_LABELS[primaryRole]||"Staff"}
               </div>
             </div>
@@ -489,7 +489,7 @@ export default function DashboardPage(){
 
         {/* ── GREETING ── */}
         {!active&&(
-          <div style={{position:"absolute" as const,bottom:8,left:"50%",transform:"translateX(-50%)",textAlign:"center" as const,pointerEvents:"none" as const}}>
+          <div style={{position:"absolute",bottom:8,left:"50%",transform:"translateX(-50%)",textAlign:"center",pointerEvents:"none"}}>
             <div style={{fontSize:12.5,color:"rgba(255,255,255,0.4)",letterSpacing:"0.06em"}}>
               {greeting}, <span style={{color:"rgba(255,255,255,0.7)",fontWeight:700}}>{profile?.full_name?.split(" ")[0]||"Staff"}</span>
             </div>
@@ -498,14 +498,14 @@ export default function DashboardPage(){
         )}
 
         {/* ribbon badges */}
-        <div style={{position:"absolute" as const,left:"50%",transform:"translateX(-50%)",top:-20,whiteSpace:"nowrap" as const,display:"flex" as const,gap:8}}>
+        <div style={{position:"absolute",left:"50%",transform:"translateX(-50%)",top:-20,whiteSpace:"nowrap",display:"flex",gap:8}}>
           <div style={{padding:"3px 14px",background:"rgba(196,89,17,0.85)",borderRadius:4,fontSize:8,fontWeight:800,color:"#fff",letterSpacing:"1.5px",textTransform:"uppercase",boxShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>ERP v2.0</div>
           <div style={{padding:"3px 14px",background:"rgba(16,52,110,0.85)",borderRadius:4,fontSize:8,fontWeight:800,color:"#fff",letterSpacing:"1.5px",textTransform:"uppercase",boxShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>EMBU LEVEL 5</div>
         </div>
       </div>
 
       {/* ── LIVE KPI STRIP ── */}
-      <div style={{position:"absolute" as const,bottom:54,left:0,right:0,height:38,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(8px)",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex" as const,alignItems:"stretch" as const,zIndex:90}}>
+      <div style={{position:"absolute",bottom:54,left:0,right:0,height:38,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(8px)",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"stretch",zIndex:90}}>
         {[
           {icon:<FileText style={{width:11,height:11}}/>,label:"Pending Req",val:kpi.reqs,col:"#f59e0b",onClick:()=>nav("/requisitions")},
           {icon:<TrendingUp style={{width:11,height:11}}/>,label:"Open POs",val:kpi.pos,col:"#3b82f6",onClick:()=>nav("/purchase-orders")},
@@ -515,9 +515,9 @@ export default function DashboardPage(){
           {icon:<CheckCircle style={{width:11,height:11}}/>,label:"Active Contracts",val:kpi.contracts,col:"#06b6d4",onClick:()=>nav("/contracts")},
         ].map((k,i)=>(
           <button key={i} onClick={k.onClick}
-            style={{flex:1,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:5,
+            style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,
               borderRight:"1px solid rgba(255,255,255,0.06)",background:"transparent",border:"none",
-              cursor:"pointer" as const,borderRight:"1px solid rgba(255,255,255,0.05)",padding:0}}
+              cursor:"pointer",borderRight:"1px solid rgba(255,255,255,0.05)",padding:0}}
             onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,0.06)")}
             onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
             <span style={{color:k.col}}>{k.icon}</span>
@@ -530,7 +530,7 @@ export default function DashboardPage(){
       </div>
 
       {/* ── BOTTOM QUICK LINKS ── */}
-      <div style={{position:"absolute" as const,bottom:0,left:0,right:0,height:54,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:4,zIndex:100,paddingBottom:2}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:54,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"center",gap:4,zIndex:100,paddingBottom:2}}>
         {QUICK.map(lk=>(
           <button key={lk.path} onClick={()=>nav(lk.path)} className="qk-btn">{lk.label}</button>
         ))}

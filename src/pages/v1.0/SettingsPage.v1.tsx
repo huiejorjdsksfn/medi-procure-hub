@@ -28,8 +28,8 @@ const SECTIONS = [
 
 function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
   return (
-      <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer" as const,padding:0,lineHeight:0,flexShrink:0}}>
-      <div style={{width:48,height:26,borderRadius:13,background:on?"#0a2558":"#d1d5db",display:"flex" as const,alignItems:"center" as const,padding:"3px",transition:"background 0.2s"}}>
+      <button onClick={()=>onChange(!on)} style={{background:"transparent",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
+      <div style={{width:48,height:26,borderRadius:13,background:on?"#0a2558":"#d1d5db",display:"flex",alignItems:"center",padding:"3px",transition:"background 0.2s"}}>
         <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"transform 0.2s",transform:on?"translateX(22px)":"translateX(0)"}}/>
       </div>
     </button>
@@ -38,9 +38,9 @@ function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
 
 function FR({ label, sub, children, ac }: { label:string; sub?:string; children:React.ReactNode; ac?:string }) {
   return (
-    <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"13px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
       <div style={{flex:1}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
           {ac&&<div style={{width:3,height:14,borderRadius:2,background:ac,flexShrink:0}}/>}
           <div style={{fontSize:14,fontWeight:600,color:"#111827"}}>{label}</div>
         </div>
@@ -53,16 +53,16 @@ function FR({ label, sub, children, ac }: { label:string; sub?:string; children:
 
 function Card({ title, sub, color, icon:Icon, children, onSave, saving }: any) {
   return (
-    <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:24,overflow:"hidden" as const,border:"1px solid #e5e7eb"}}>
-      <div style={{padding:"14px 20px",background:`linear-gradient(135deg,${color}14,${color}08)`,borderBottom:`2px solid ${color}30`,display:"flex" as const,alignItems:"center" as const,gap:12}}>
-        <div style={{width:38,height:38,borderRadius:10,background:color,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+    <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:24,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+      <div style={{padding:"14px 20px",background:`linear-gradient(135deg,${color}14,${color}08)`,borderBottom:`2px solid ${color}30`,display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:38,height:38,borderRadius:10,background:color,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <Icon style={{width:18,height:18,color:"#fff"}}/>
         </div>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:800,color:"#111827"}}>{title}</div>
           {sub&&<div style={{fontSize:12,color:"#6b7280",marginTop:1}}>{sub}</div>}
         </div>
-        <button onClick={onSave} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"8px 16px",background:color,color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
+        <button onClick={onSave} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:color,color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
           {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save
         </button>
       </div>
@@ -83,7 +83,7 @@ function Inp({ value, onChange, type="text", placeholder="" }: any) {
 function Sel({ value, onChange, opts }: { value:string; onChange:(v:string)=>void; opts:{v:string;l:string}[] }) {
   return (
     <select value={value||""} onChange={e=>onChange(e.target.value)}
-      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",minWidth:200,background:"#fafafa",cursor:"pointer" as const,fontFamily:"inherit"}}>
+      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",minWidth:200,background:"#fafafa",cursor:"pointer",fontFamily:"inherit"}}>
       {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
     </select>
   );
@@ -92,7 +92,7 @@ function Sel({ value, onChange, opts }: { value:string; onChange:(v:string)=>voi
 function TA({ value, onChange, rows=3, placeholder="" }: any) {
   return (
     <textarea value={value||""} onChange={e=>onChange(e.target.value)} rows={rows} placeholder={placeholder}
-      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",width:"100%",maxWidth:420,resize:"none" as const,background:"#fafafa",fontFamily:"inherit"}}
+      style={{padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",width:"100%",maxWidth:420,resize:"none",background:"#fafafa",fontFamily:"inherit"}}
       onFocus={e=>(e.target as any).style.borderColor="#1a3a6b"}
       onBlur={e=>(e.target as any).style.borderColor="#e5e7eb"}/>
   );
@@ -177,28 +177,28 @@ function SettingsInner() {
   return (
     <div style={{minHeight:"100%",background:"#f0f2f5",fontSize:14,fontFamily:"'Inter','Segoe UI',sans-serif"}}>
       {/* Top bar */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex" as const,alignItems:"center" as const,gap:12,position:"sticky" as const,top:0,zIndex:100}}>
+      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100}}>
         <Settings style={{width:18,height:18,color:"#fff"}}/>
         <div style={{flex:1}}>
           <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>System Settings</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>All changes save globally to the database</div>
         </div>
-        <div style={{display:"flex" as const,gap:8,alignItems:"center" as const}}>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {dirty&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:700,background:"rgba(251,191,36,0.15)",padding:"3px 10px",borderRadius:20}}>● Unsaved changes</span>}
-          <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer" as const,color:"rgba(255,255,255,0.7)",lineHeight:0}}>
+          <button onClick={load} style={{padding:"8px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.7)",lineHeight:0}}>
             <RefreshCw style={{width:13,height:13}}/>
           </button>
-          <button onClick={()=>save(ALL_KEYS)} disabled={saving} style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"9px 20px",background:"#C45911",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:800}}>
+          <button onClick={()=>save(ALL_KEYS)} disabled={saving} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 20px",background:"#C45911",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:800}}>
             {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save All Settings
           </button>
         </div>
       </div>
 
-      <div style={{display:"flex" as const,minHeight:"calc(100vh - 82px)"}}>
+      <div style={{display:"flex",minHeight:"calc(100vh - 82px)"}}>
         {/* Sidebar */}
-        <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",padding:"12px 0",flexShrink:0,position:"sticky" as const,top:82,height:"calc(100vh - 82px)",overflowY:"auto" as const}}>
+        <div style={{width:220,background:"#fff",borderRight:"1px solid #e5e7eb",padding:"12px 0",flexShrink:0,position:"sticky",top:82,height:"calc(100vh - 82px)",overflowY:"auto"}}>
           {SECTIONS.map(x=>(
-            <button key={x.id} onClick={()=>setSec(x.id)} style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"11px 16px",border:"none",background:sec===x.id?`${x.color}12`:"transparent",cursor:"pointer" as const,textAlign:"left" as const,borderLeft:sec===x.id?`3px solid ${x.color}`:"3px solid transparent",transition:"all 0.1s"}}>
+            <button key={x.id} onClick={()=>setSec(x.id)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",border:"none",background:sec===x.id?`${x.color}12`:"transparent",cursor:"pointer",textAlign:"left",borderLeft:sec===x.id?`3px solid ${x.color}`:"3px solid transparent",transition:"all 0.1s"}}>
               <x.icon style={{width:15,height:15,color:sec===x.id?x.color:"#9ca3af",flexShrink:0}}/>
               <span style={{fontSize:13,fontWeight:sec===x.id?700:500,color:sec===x.id?x.color:"#374151"}}>{x.label}</span>
             </button>
@@ -210,7 +210,7 @@ function SettingsInner() {
         </div>
 
         {/* Main content */}
-        <div style={{flex:1,padding:"24px",overflowY:"auto" as const}}>
+        <div style={{flex:1,padding:"24px",overflowY:"auto"}}>
 
           {sec==="hospital"&&(
             <Card title="Hospital Information" sub="Identity used across all documents and modules" color="#0078d4" icon={Building2} onSave={()=>save(["hospital_name","system_name","hospital_address","hospital_phone","hospital_email","hospital_website","hospital_pin","hospital_county","hospital_type","system_logo_url","hospital_motto","hospital_reg_no","hospital_bed_capacity","hospital_director"])} saving={saving}>
@@ -230,9 +230,9 @@ function SettingsInner() {
                 <FR key={f.k} label={f.l} sub={f.s} ac="#107c10"><Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)}/></FR>
               ))}
               <FR label="SMTP Password" sub="Stored securely" ac="#107c10">
-                <div style={{display:"flex" as const,gap:6,alignItems:"center" as const}}>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
                   <Inp value={s("smtp_password")} onChange={(v:string)=>set("smtp_password",v)} type={showPass?"text":"password"}/>
-                  <button onClick={()=>setShowPass(p=>!p)} style={{padding:9,background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer" as const,lineHeight:0}}>
+                  <button onClick={()=>setShowPass(p=>!p)} style={{padding:9,background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",lineHeight:0}}>
                     {showPass?<EyeOff style={{width:14,height:14,color:"#6b7280"}}/>:<Eye style={{width:14,height:14,color:"#6b7280"}}/>}
                   </button>
                 </div>
@@ -267,8 +267,8 @@ function SettingsInner() {
             <Card title="Appearance & UI" sub="Colours, fonts, layout density and branding" color="#8b5cf6" icon={Palette} onSave={()=>save(["primary_color","secondary_color","accent_color","font_size","ui_density","dark_mode","sidebar_style","show_breadcrumb","show_live_indicator"])} saving={saving}>
               {[{k:"primary_color",l:"Primary Color",s:"Nav and buttons"},{k:"secondary_color",l:"Secondary Color"},{k:"accent_color",l:"Accent Color",s:"Orange highlight"}].map(f=>(
                 <FR key={f.k} label={f.l} sub={f.s} ac="#8b5cf6">
-                  <div style={{display:"flex" as const,gap:8,alignItems:"center" as const}}>
-                    <input type="color" value={s(f.k,"#1a3a6b")} onChange={e=>set(f.k,e.target.value)} style={{width:44,height:36,border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer" as const,padding:2}}/>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <input type="color" value={s(f.k,"#1a3a6b")} onChange={e=>set(f.k,e.target.value)} style={{width:44,height:36,border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",padding:2}}/>
                     <Inp value={s(f.k)} onChange={(v:string)=>set(f.k,v)} placeholder="#1a3a6b"/>
                   </div>
                 </FR>
@@ -350,19 +350,19 @@ function SettingsInner() {
           )}
 
           {sec==="users"&&(
-            <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:24,overflow:"hidden" as const,border:"1px solid #e5e7eb"}}>
-              <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#5b21b614,#5b21b608)",borderBottom:"2px solid #5b21b630",display:"flex" as const,alignItems:"center" as const,gap:12}}>
-                <div style={{width:38,height:38,borderRadius:10,background:"#5b21b6",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}><Users style={{width:18,height:18,color:"#fff"}}/></div>
+            <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:24,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+              <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#5b21b614,#5b21b608)",borderBottom:"2px solid #5b21b630",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:38,height:38,borderRadius:10,background:"#5b21b6",display:"flex",alignItems:"center",justifyContent:"center"}}><Users style={{width:18,height:18,color:"#fff"}}/></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:15,fontWeight:800,color:"#111827"}}>User Roles & Access</div>
                   <div style={{fontSize:12,color:"#6b7280"}}>{users.length} users — click role dropdown to update instantly</div>
                 </div>
               </div>
-              <div style={{overflowX:"auto" as const}}>
+              <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
                   <thead><tr style={{background:"#f9fafb"}}>
                     {["Name","Email","Department","Role","Status","Action"].map(h=>(
-                      <th key={h} style={{padding:"11px 16px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:"#6b7280",borderBottom:"1px solid #f3f4f6",textTransform:"uppercase" as const,letterSpacing:"0.04em"}}>{h}</th>
+                      <th key={h} style={{padding:"11px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6b7280",borderBottom:"1px solid #f3f4f6",textTransform:"uppercase",letterSpacing:"0.04em"}}>{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>
@@ -373,7 +373,7 @@ function SettingsInner() {
                         <td style={{padding:"11px 16px",color:"#6b7280",fontSize:12}}>{u.department||"—"}</td>
                         <td style={{padding:"11px 16px"}}>
                           <select value={u.user_roles?.[0]?.role||"requisitioner"} onChange={e=>updateUserRole(u.id,e.target.value)}
-                            style={{padding:"6px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"inherit",cursor:"pointer" as const,fontWeight:600,color:"#1a3a6b",background:"#eff6ff"}}>
+                            style={{padding:"6px 10px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"inherit",cursor:"pointer",fontWeight:600,color:"#1a3a6b",background:"#eff6ff"}}>
                             {["admin","procurement_manager","procurement_officer","finance_officer","inventory_manager","warehouse_officer","requisitioner","quality_officer","viewer"].map(r=>(
                               <option key={r} value={r}>{r.replace(/_/g," ")}</option>
                             ))}
@@ -385,7 +385,7 @@ function SettingsInner() {
                           </span>
                         </td>
                         <td style={{padding:"11px 16px"}}>
-                          <button onClick={()=>toggleActive(u)} style={{padding:"5px 12px",fontSize:11,fontWeight:700,borderRadius:6,border:"1px solid #e5e7eb",cursor:"pointer" as const,background:u.is_active!==false?"#fee2e2":"#dcfce7",color:u.is_active!==false?"#dc2626":"#15803d"}}>
+                          <button onClick={()=>toggleActive(u)} style={{padding:"5px 12px",fontSize:11,fontWeight:700,borderRadius:6,border:"1px solid #e5e7eb",cursor:"pointer",background:u.is_active!==false?"#fee2e2":"#dcfce7",color:u.is_active!==false?"#dc2626":"#15803d"}}>
                             {u.is_active!==false?"Deactivate":"Activate"}
                           </button>
                         </td>

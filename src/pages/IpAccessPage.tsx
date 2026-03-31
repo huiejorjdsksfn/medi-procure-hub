@@ -19,19 +19,19 @@ import RoleGuard from "@/components/RoleGuard";
 const inp: React.CSSProperties = {
   padding:"8px 11px", border:"1.5px solid #d1d5db", borderRadius:8,
   fontSize:13, color:"#111", background:"#fff", outline:"none",
-  width:"100%", boxSizing:"border-box" as const
+  width:"100%", boxSizing:"border-box"
 };
 const B = (bg="#1a3a6b", p="8px 16px"):React.CSSProperties => ({
-  display:"inline-flex" as const, alignItems:"center" as const, gap:6, padding:p,
+  display:"inline-flex", alignItems:"center", gap:6, padding:p,
   borderRadius:8, border:"none", background:bg, color:"#fff",
-  fontWeight:700, fontSize:12, cursor:"pointer" as const
+  fontWeight:700, fontSize:12, cursor:"pointer"
 });
 
 function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
   return (
-    <button onClick={()=>onChange(!on)} style={{background:"none",border:"none",cursor:"pointer" as const,padding:0,lineHeight:0,flexShrink:0}}>
-      <span style={{display:"inline-flex" as const,width:44,height:24,borderRadius:12,background:on?"#059669":"#d1d5db",alignItems:"center" as const,padding:"2px",transition:"background 0.2s"}}>
-        <span style={{display:"block" as const,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
+    <button onClick={()=>onChange(!on)} style={{background:"none",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
+      <span style={{display:"inline-flex",width:44,height:24,borderRadius:12,background:on?"#059669":"#d1d5db",alignItems:"center",padding:"2px",transition:"background 0.2s"}}>
+        <span style={{display:"block",width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
       </span>
     </button>
   );
@@ -164,17 +164,17 @@ export default function IpAccessPage() {
       <div style={{minHeight:"100vh",background:"#f0f4f8",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
         {/* ── Header ── */}
-        <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"18px 24px",color:"#fff",display:"flex" as const,alignItems:"center" as const,gap:14}}>
-          <div style={{width:48,height:48,borderRadius:12,background:"rgba(255,255,255,0.15)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
+        <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"18px 24px",color:"#fff",display:"flex",alignItems:"center",gap:14}}>
+          <div style={{width:48,height:48,borderRadius:12,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <Shield style={{width:26,height:26,color:"#fff"}}/>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:20,fontWeight:800}}>IP Access Control</div>
             <div style={{fontSize:12,opacity:.8}}>Network whitelist · Live session monitor · IP enforcement</div>
           </div>
-          <div style={{display:"flex" as const,gap:8,alignItems:"center" as const}}>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {[{n:allowed,l:"Allowed",c:"#4ade80"},{n:denied,l:"Denied",c:"#f87171"},{n:wlActive,l:"Active Rules",c:"#93c5fd"},{n:activeSessions.length,l:"Live Users",c:"#fde68a"}].map((k,i)=>(
-              <div key={i} style={{textAlign:"center" as const,background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,0.15)"}}>
+              <div key={i} style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,0.15)"}}>
                 <div style={{fontSize:18,fontWeight:900,color:k.c}}>{k.n}</div>
                 <div style={{fontSize:9,opacity:.7,fontWeight:600}}>{k.l}</div>
               </div>
@@ -184,7 +184,7 @@ export default function IpAccessPage() {
         </div>
 
         {/* ── Status banner ── */}
-        <div style={{background:cfg.ip_restriction_enabled==="true"?"#dcfce7":"#fef9c3",padding:"10px 24px",display:"flex" as const,alignItems:"center" as const,gap:10,borderBottom:"1px solid",borderColor:cfg.ip_restriction_enabled==="true"?"#86efac":"#fde047"}}>
+        <div style={{background:cfg.ip_restriction_enabled==="true"?"#dcfce7":"#fef9c3",padding:"10px 24px",display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid",borderColor:cfg.ip_restriction_enabled==="true"?"#86efac":"#fde047"}}>
           {cfg.ip_restriction_enabled==="true"
             ?<CheckCircle style={{width:18,height:18,color:"#16a34a",flexShrink:0}}/>
             :<AlertTriangle style={{width:18,height:18,color:"#d97706",flexShrink:0}}/>}
@@ -201,10 +201,10 @@ export default function IpAccessPage() {
         </div>
 
         {/* ── Tabs ── */}
-        <div style={{padding:"0 24px",background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex" as const,gap:0}}>
+        <div style={{padding:"0 24px",background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex",gap:0}}>
           {TABS.map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id as any)}
-              style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"12px 18px",border:"none",borderBottom:tab===t.id?"3px solid #1a3a6b":"3px solid transparent",background:"transparent",cursor:"pointer" as const,fontSize:13,fontWeight:tab===t.id?700:500,color:tab===t.id?"#1a3a6b":"#6b7280"}}>
+              style={{display:"flex",alignItems:"center",gap:7,padding:"12px 18px",border:"none",borderBottom:tab===t.id?"3px solid #1a3a6b":"3px solid transparent",background:"transparent",cursor:"pointer",fontSize:13,fontWeight:tab===t.id?700:500,color:tab===t.id?"#1a3a6b":"#6b7280"}}>
               <t.icon style={{width:14,height:14}}/>
               {t.label}
               {t.badge>0&&<span style={{background:tab===t.id?"#1a3a6b":"#e5e7eb",color:tab===t.id?"#fff":"#374151",borderRadius:10,padding:"1px 7px",fontSize:10,fontWeight:700}}>{t.badge}</span>}
@@ -218,7 +218,7 @@ export default function IpAccessPage() {
           {/* ═══ WHITELIST ═══ */}
           {tab==="whitelist"&&(
             <div>
-              <div style={{display:"flex" as const,justifyContent:"space-between" as const,alignItems:"center" as const,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div>
                   <div style={{fontSize:15,fontWeight:700,color:"#111"}}>{whitelist.length} entries · {wlActive} active</div>
                   <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>All active entries immediately allow matching IPs</div>
@@ -232,17 +232,17 @@ export default function IpAccessPage() {
               {showForm&&(
                 <div style={{background:"#f0f9ff",border:"1.5px solid #0369a1",borderRadius:12,padding:"16px 20px",marginBottom:16}}>
                   <div style={{fontSize:14,fontWeight:700,color:"#0369a1",marginBottom:12}}>+ Add New IP Range</div>
-                  <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:12}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:12}}>
                     <div>
-                      <label style={{display:"block" as const,fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Label *</label>
+                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Label *</label>
                       <input value={form.label} onChange={e=>setForm(p=>({...p,label:e.target.value}))} placeholder="e.g. Hospital WiFi" style={inp}/>
                     </div>
                     <div>
-                      <label style={{display:"block" as const,fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>CIDR Range *</label>
+                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>CIDR Range *</label>
                       <input value={form.cidr} onChange={e=>setForm(p=>({...p,cidr:e.target.value}))} placeholder="e.g. 192.168.1.0/24" style={{...inp,fontFamily:"monospace"}}/>
                     </div>
                     <div>
-                      <label style={{display:"block" as const,fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Type</label>
+                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Type</label>
                       <select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} style={inp}>
                         <option value="private">Private Network</option>
                         <option value="public">Public IP</option>
@@ -251,15 +251,15 @@ export default function IpAccessPage() {
                       </select>
                     </div>
                     <div>
-                      <label style={{display:"block" as const,fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Notes</label>
+                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Notes</label>
                       <input value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="Optional description" style={inp}/>
                     </div>
                   </div>
-                  <div style={{display:"flex" as const,gap:8,alignItems:"center" as const}}>
-                    <div style={{padding:"6px 12px",borderRadius:8,background:"#dcfce7",border:"1px solid #86efac",fontSize:12,fontWeight:700,color:"#15803d",display:"flex" as const,alignItems:"center" as const,gap:5}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <div style={{padding:"6px 12px",borderRadius:8,background:"#dcfce7",border:"1px solid #86efac",fontSize:12,fontWeight:700,color:"#15803d",display:"flex",alignItems:"center",gap:5}}>
                       <CheckCircle style={{width:13,height:13}}/> Will be active immediately
                     </div>
-                    <div style={{marginLeft:"auto",display:"flex" as const,gap:8}}>
+                    <div style={{marginLeft:"auto",display:"flex",gap:8}}>
                       <button onClick={()=>{setShowForm(false);setForm({label:"",cidr:"",type:"private",notes:"",active:true});}} style={{...B("#6b7280"),background:"#fff",color:"#374151",border:"1px solid #d1d5db"}}>Cancel</button>
                       <button onClick={addEntry} disabled={saving} style={B("#059669")}><Plus style={{width:13,height:13}}/>{saving?"Adding…":"Add & Activate"}</button>
                     </div>
@@ -268,35 +268,35 @@ export default function IpAccessPage() {
               )}
 
               {/* Whitelist entries */}
-              {loading?<div style={{textAlign:"center" as const,padding:40,color:"#6b7280"}}>Loading…</div>:(
-                <div style={{display:"grid" as const,gap:8}}>
+              {loading?<div style={{textAlign:"center",padding:40,color:"#6b7280"}}>Loading…</div>:(
+                <div style={{display:"grid",gap:8}}>
                   {whitelist.length===0&&(
-                    <div style={{textAlign:"center" as const,padding:60,color:"#9ca3af"}}>
-                      <Shield style={{width:40,height:40,color:"#d1d5db",display:"block" as const,margin:"0 auto 12px"}}/>
+                    <div style={{textAlign:"center",padding:60,color:"#9ca3af"}}>
+                      <Shield style={{width:40,height:40,color:"#d1d5db",display:"block",margin:"0 auto 12px"}}/>
                       No whitelist entries yet. Add IP ranges to control access.
-                      <br/><button onClick={()=>setShowForm(true)} style={{...B(),display:"inline-flex" as const,marginTop:12}}>Add First Entry</button>
+                      <br/><button onClick={()=>setShowForm(true)} style={{...B(),display:"inline-flex",marginTop:12}}>Add First Entry</button>
                     </div>
                   )}
                   {whitelist.map(e=>(
-                    <div key={e.id} style={{background:"#fff",borderRadius:10,padding:"14px 18px",display:"flex" as const,alignItems:"center" as const,gap:14,border:`1.5px solid ${e.active?"#e5e7eb":"#f3f4f6"}`,opacity:e.active?1:0.55,transition:"all 0.2s"}}>
-                      <div style={{width:38,height:38,borderRadius:9,background:e.active?"#dcfce7":"#f1f5f9",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
+                    <div key={e.id} style={{background:"#fff",borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:14,border:`1.5px solid ${e.active?"#e5e7eb":"#f3f4f6"}`,opacity:e.active?1:0.55,transition:"all 0.2s"}}>
+                      <div style={{width:38,height:38,borderRadius:9,background:e.active?"#dcfce7":"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         {e.type==="private"?<Wifi style={{width:18,height:18,color:e.active?"#059669":"#9ca3af"}}/>:<Globe style={{width:18,height:18,color:e.active?"#0369a1":"#9ca3af"}}/>}
                       </div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:"flex" as const,alignItems:"center" as const,gap:8}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
                           <span style={{fontSize:14,fontWeight:700,color:"#111"}}>{e.label}</span>
                           {e.active
                             ?<span style={{padding:"1px 8px",borderRadius:10,background:"#dcfce7",color:"#15803d",fontSize:10,fontWeight:700,border:"1px solid #86efac"}}>● Active</span>
                             :<span style={{padding:"1px 8px",borderRadius:10,background:"#f3f4f6",color:"#6b7280",fontSize:10,fontWeight:700}}>○ Disabled</span>
                           }
                         </div>
-                        <div style={{display:"flex" as const,gap:12,marginTop:4,fontSize:12,color:"#6b7280",flexWrap:"wrap" as const}}>
+                        <div style={{display:"flex",gap:12,marginTop:4,fontSize:12,color:"#6b7280",flexWrap:"wrap" as const}}>
                           <span style={{fontFamily:"monospace",fontWeight:700,color:"#0369a1",fontSize:13}}>{e.cidr}</span>
-                          <span style={{padding:"1px 8px",borderRadius:8,background:e.type==="private"?"#e0f2fe":"#fef3c7",color:e.type==="private"?"#0369a1":"#d97706",fontWeight:600,fontSize:11,textTransform:"capitalize" as const}}>{e.type}</span>
+                          <span style={{padding:"1px 8px",borderRadius:8,background:e.type==="private"?"#e0f2fe":"#fef3c7",color:e.type==="private"?"#0369a1":"#d97706",fontWeight:600,fontSize:11,textTransform:"capitalize"}}>{e.type}</span>
                           {e.notes&&<span style={{color:"#9ca3af"}}>{e.notes}</span>}
                         </div>
                       </div>
-                      <div style={{display:"flex" as const,gap:10,alignItems:"center" as const,flexShrink:0}}>
+                      <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
                         <Toggle on={e.active} onChange={v=>toggleEntry(e.id,v)}/>
                         <button onClick={()=>removeEntry(e.id,e.label)} style={B("#dc2626","6px 10px")}>
                           <Trash2 style={{width:13,height:13}}/>
@@ -312,34 +312,34 @@ export default function IpAccessPage() {
           {/* ═══ ACCESS LOGS ═══ */}
           {tab==="logs"&&(
             <div>
-              <div style={{display:"flex" as const,alignItems:"center" as const,gap:10,marginBottom:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                 <div style={{fontSize:15,fontWeight:700,color:"#111",flex:1}}>Access Log ({filteredLogs.length} records)</div>
-                <div style={{display:"flex" as const,gap:4}}>
+                <div style={{display:"flex",gap:4}}>
                   {(["all","allowed","denied"] as const).map(f=>(
                     <button key={f} onClick={()=>setLogFilter(f)}
-                      style={{padding:"5px 12px",borderRadius:16,border:`1.5px solid ${logFilter===f?"#1a3a6b":"#e5e7eb"}`,background:logFilter===f?"#1a3a6b":"#fff",color:logFilter===f?"#fff":"#374151",cursor:"pointer" as const,fontSize:11,fontWeight:600,textTransform:"capitalize" as const}}>
+                      style={{padding:"5px 12px",borderRadius:16,border:`1.5px solid ${logFilter===f?"#1a3a6b":"#e5e7eb"}`,background:logFilter===f?"#1a3a6b":"#fff",color:logFilter===f?"#fff":"#374151",cursor:"pointer",fontSize:11,fontWeight:600,textTransform:"capitalize"}}>
                       {f==="all"?`All (${logs.length})`:f==="allowed"?`Allowed (${allowed})`:`Denied (${denied})`}
                     </button>
                   ))}
                 </div>
               </div>
-              <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden" as const}}>
-                <div style={{overflowX:"auto" as const}}>
+              <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
+                <div style={{overflowX:"auto"}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead>
                       <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
                         {["Time","IP Address","Network","Status","User Name","Role","Reason","Path"].map(h=>(
-                          <th key={h} style={{padding:"9px 12px",textAlign:"left" as const,fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
+                          <th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredLogs.length===0&&<tr><td colSpan={8} style={{textAlign:"center" as const,padding:40,color:"#9ca3af"}}>No logs match filter</td></tr>}
+                      {filteredLogs.length===0&&<tr><td colSpan={8} style={{textAlign:"center",padding:40,color:"#9ca3af"}}>No logs match filter</td></tr>}
                       {filteredLogs.map(l=>(
                         <tr key={l.id} style={{borderBottom:"1px solid #f3f4f6",background:l.allowed?"#fff":"#fff5f5"}}
                           onMouseEnter={e=>(e.currentTarget.style.background=l.allowed?"#f0f9ff":"#ffe4e1")}
                           onMouseLeave={e=>(e.currentTarget.style.background=l.allowed?"#fff":"#fff5f5")}>
-                          <td style={{padding:"7px 12px",color:"#6b7280",whiteSpace:"nowrap" as const,fontSize:11}}>{new Date(l.created_at).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true})}</td>
+                          <td style={{padding:"7px 12px",color:"#6b7280",whiteSpace:"nowrap",fontSize:11}}>{new Date(l.created_at).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true})}</td>
                           <td style={{padding:"7px 12px",fontFamily:"monospace",fontWeight:700,color:"#0369a1",fontSize:12}}>{l.ip_address}</td>
                           <td style={{padding:"7px 12px"}}>
                             <span style={{padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:700,background:l.network==="private"?"#e0f2fe":l.network==="localhost"?"#f0fdf4":"#fef3c7",color:l.network==="private"?"#0369a1":l.network==="localhost"?"#15803d":"#d97706"}}>{l.network||"unknown"}</span>
@@ -356,11 +356,11 @@ export default function IpAccessPage() {
                           </td>
                           <td style={{padding:"7px 12px",fontSize:11}}>
                             {resolveUserRole(l)
-                              ?<span style={{padding:"1px 7px",borderRadius:8,background:"#f0f9ff",color:"#0369a1",fontSize:10,fontWeight:600,textTransform:"capitalize" as const}}>{resolveUserRole(l).replace("_"," ")}</span>
+                              ?<span style={{padding:"1px 7px",borderRadius:8,background:"#f0f9ff",color:"#0369a1",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{resolveUserRole(l).replace("_"," ")}</span>
                               :<span style={{color:"#9ca3af"}}>—</span>
                             }
                           </td>
-                          <td style={{padding:"7px 12px",color:"#374151",maxWidth:200,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const,fontSize:11}} title={l.reason}>{l.reason||"—"}</td>
+                          <td style={{padding:"7px 12px",color:"#374151",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:11}} title={l.reason}>{l.reason||"—"}</td>
                           <td style={{padding:"7px 12px",color:"#9ca3af",fontSize:11}}>{l.path||"—"}</td>
                         </tr>
                       ))}
@@ -376,18 +376,18 @@ export default function IpAccessPage() {
             <div>
               <div style={{fontSize:15,fontWeight:700,color:"#111",marginBottom:4}}>Active Sessions ({activeSessions.length})</div>
               <div style={{fontSize:11,color:"#6b7280",marginBottom:14}}>Users currently or recently logged in — based on recent allowed IP log entries. Does not include logged-out users.</div>
-              <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden" as const}}>
+              <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
                   <thead>
                     <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
                       {["User Name","Role","IP Address","Network","Last Seen","Location"].map(h=>(
-                        <th key={h} style={{padding:"10px 14px",textAlign:"left" as const,fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em"}}>{h}</th>
+                        <th key={h} style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em"}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {activeSessions.length===0&&<tr><td colSpan={6} style={{textAlign:"center" as const,padding:40,color:"#9ca3af"}}>
-                      <Users style={{width:32,height:32,color:"#d1d5db",display:"block" as const,margin:"0 auto 8px"}}/>
+                    {activeSessions.length===0&&<tr><td colSpan={6} style={{textAlign:"center",padding:40,color:"#9ca3af"}}>
+                      <Users style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
                       No active sessions found (requires IP restriction to be logging)
                     </td></tr>}
                     {activeSessions.map((s,i)=>{
@@ -399,7 +399,7 @@ export default function IpAccessPage() {
                           <td style={{padding:"10px 14px",fontWeight:600,color:"#111"}}>{prof?.full_name||s.user_email||"Unknown"}</td>
                           <td style={{padding:"10px 14px"}}>
                             {prof?.role
-                              ?<span style={{padding:"2px 9px",borderRadius:10,background:"#e0f2fe",color:"#0369a1",fontSize:11,fontWeight:600,textTransform:"capitalize" as const}}>{prof.role.replace("_"," ")}</span>
+                              ?<span style={{padding:"2px 9px",borderRadius:10,background:"#e0f2fe",color:"#0369a1",fontSize:11,fontWeight:600,textTransform:"capitalize"}}>{prof.role.replace("_"," ")}</span>
                               :<span style={{color:"#9ca3af"}}>—</span>
                             }
                           </td>
@@ -421,7 +421,7 @@ export default function IpAccessPage() {
           {/* ═══ SETTINGS ═══ */}
           {tab==="settings"&&(
             <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",padding:"20px 24px",maxWidth:640}}>
-              <div style={{fontWeight:800,fontSize:15,color:"#1a3a6b",marginBottom:16,display:"flex" as const,alignItems:"center" as const,gap:8}}>
+              <div style={{fontWeight:800,fontSize:15,color:"#1a3a6b",marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
                 <Lock style={{width:16,height:16}}/> IP Restriction Settings
               </div>
               {[
@@ -431,7 +431,7 @@ export default function IpAccessPage() {
                 {k:"revoke_on_ip_change",    l:"Revoke Session on IP Change", s:"Force re-login if a user's IP changes mid-session."},
                 {k:"force_network_check",    l:"Check on Every Page Load",    s:"Strict mode: verify IP on every page navigation (performance impact)."},
               ].map(f=>(
-                <div key={f.k} style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,padding:"12px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
+                <div key={f.k} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:600,color:"#111"}}>{f.l}</div>
                     <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{f.s}</div>
@@ -439,7 +439,7 @@ export default function IpAccessPage() {
                   <Toggle on={cfg[f.k as keyof typeof cfg]==="true"} onChange={v=>setCfg(p=>({...p,[f.k]:v?"true":"false"}))}/>
                 </div>
               ))}
-              <div style={{marginTop:16,display:"flex" as const,gap:8}}>
+              <div style={{marginTop:16,display:"flex",gap:8}}>
                 <button onClick={saveSettings2} disabled={saving} style={B()}>
                   <Save style={{width:13,height:13}}/>{saving?"Saving…":"Save & Apply Settings"}
                 </button>

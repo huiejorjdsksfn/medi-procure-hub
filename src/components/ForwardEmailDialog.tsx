@@ -233,8 +233,8 @@ export default function ForwardEmailDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         style={{
-          maxWidth: 720, maxHeight: "92vh", display: "flex" as const,
-          flexDirection: "column" as const, overflow: "hidden" as const,
+          maxWidth: 720, maxHeight: "92vh", display: "flex",
+          flexDirection: "column", overflow: "hidden",
           fontFamily: "Segoe UI, system-ui, sans-serif",
           padding: 0,
         }}

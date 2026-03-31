@@ -235,7 +235,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div style={{display:"flex" as const,flexDirection:"column" as const,height:"100vh",overflow:"hidden" as const,background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
       {/* ════════════════════════════════════════════
           TOP BAR — D365 style (black, app branding)
@@ -243,20 +243,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{
         height:40, flexShrink:0, zIndex:300,
         background:"#1f1f1f",
-        display:"flex" as const, alignItems:"center" as const,
+        display:"flex", alignItems:"center",
         padding:"0 0 0 10px", gap:0,
         boxShadow:"0 2px 6px rgba(0,0,0,0.35)",
       }}>
         {/* Mobile toggle */}
         {isMobile&&!isDashboard&&(
-          <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"transparent",border:"none",padding:8,cursor:"pointer" as const,color:"rgba(255,255,255,0.7)",lineHeight:0,marginRight:4}}>
+          <button onClick={()=>setMobileOpen(v=>!v)} style={{background:"transparent",border:"none",padding:8,cursor:"pointer",color:"rgba(255,255,255,0.7)",lineHeight:0,marginRight:4}}>
             <Menu style={{width:16,height:16}}/>
           </button>
         )}
 
         {/* Logo + App name */}
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:8,paddingRight:14,borderRight:"1px solid rgba(255,255,255,0.12)",height:"100%"}}>
-          <img src={logoUrl||logoImg} alt="" style={{width:22,height:22,borderRadius:3,objectFit:"contain" as const,flexShrink:0}}/>
+        <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:14,borderRight:"1px solid rgba(255,255,255,0.12)",height:"100%"}}>
+          <img src={logoUrl||logoImg} alt="" style={{width:22,height:22,borderRadius:3,objectFit:"contain",flexShrink:0}}/>
           <div>
             <div style={{fontSize:12,fontWeight:700,color:"#fff",lineHeight:1,letterSpacing:"0.01em"}}>{sysName}</div>
             {!isMobile&&<div style={{fontSize:8.5,color:"rgba(255,255,255,0.45)",letterSpacing:"0.04em"}}>{hospitalName}</div>}
@@ -266,7 +266,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Active module label + down arrow (D365 breadcrumb click) */}
         {!isDashboard&&activeMod&&!isMobile&&(
           <button onClick={()=>setTileDropOpen(v=>!v)}
-            style={{display:"flex" as const,alignItems:"center" as const,gap:6,height:"100%",padding:"0 14px",background:"transparent",border:"none",cursor:"pointer" as const,borderRight:"1px solid rgba(255,255,255,0.12)"}}
+            style={{display:"flex",alignItems:"center",gap:6,height:"100%",padding:"0 14px",background:"transparent",border:"none",cursor:"pointer",borderRight:"1px solid rgba(255,255,255,0.12)"}}
             onMouseEnter={e=>hov(e,true,"rgba(255,255,255,0.08)")}
             onMouseLeave={e=>hov(e,false)}>
             <activeMod.icon style={{width:13,height:13,color:"rgba(255,255,255,0.7)"}}/>
@@ -279,8 +279,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{flex:1}}/>
 
         {/* Search */}
-        <div style={{position:"relative" as const,marginRight:6}}>
-          <div style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"4px 10px",borderRadius:3,background:searchOpen?"rgba(255,255,255,0.14)":"rgba(255,255,255,0.08)",cursor:"text" as const}}
+        <div style={{position:"relative",marginRight:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:3,background:searchOpen?"rgba(255,255,255,0.14)":"rgba(255,255,255,0.08)",cursor:"text"}}
             onClick={()=>setSearchOpen(true)}>
             <Search style={{width:12,height:12,color:"rgba(255,255,255,0.5)"}}/>
             {searchOpen
@@ -292,13 +292,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             }
           </div>
           {searchOpen&&searchResults.length>0&&(
-            <div style={{position:"absolute" as const,top:"calc(100%+4px)",right:0,width:260,background:"#fff",borderRadius:4,boxShadow:"0 8px 28px rgba(0,0,0,0.2)",border:"1px solid #e0e0e0",overflow:"hidden" as const,zIndex:500}}>
+            <div style={{position:"absolute",top:"calc(100%+4px)",right:0,width:260,background:"#fff",borderRadius:4,boxShadow:"0 8px 28px rgba(0,0,0,0.2)",border:"1px solid #e0e0e0",overflow:"hidden",zIndex:500}}>
               {searchResults.map(r=>(
                 <button key={r.path} onMouseDown={()=>{navigate(r.path);setSearchQuery("");setSearchOpen(false);}}
-                  style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"8px 12px",border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const}}
+                  style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"8px 12px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left"}}
                   onMouseEnter={e=>hov(e,true,"#f5f5f5")}
                   onMouseLeave={e=>hov(e,false)}>
-                  <div style={{width:24,height:24,borderRadius:4,background:`${r.color}18`,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,flexShrink:0}}>
+                  <div style={{width:24,height:24,borderRadius:4,background:`${r.color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                     <r.icon style={{width:12,height:12,color:r.color}}/>
                   </div>
                   <span style={{fontSize:12,color:"#1f1f1f"}}>{r.label}</span>
@@ -312,7 +312,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <FacilitySwitcher/>
         {/* Mail */}
         <button onClick={()=>navigate("/email")} title="Mail"
-          style={{width:36,height:36,borderRadius:3,border:"none",background:"transparent",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}
+          style={{width:36,height:36,borderRadius:3,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
           onMouseEnter={e=>hov(e,true,"rgba(255,255,255,0.1)")}
           onMouseLeave={e=>hov(e,false)}>
           <Mail style={{width:15,height:15,color:"rgba(255,255,255,0.65)"}}/>
@@ -320,29 +320,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Home */}
         <button onClick={()=>navigate("/dashboard")} title="Dashboard"
-          style={{width:36,height:36,borderRadius:3,border:"none",background:"transparent",cursor:"pointer" as const,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}
+          style={{width:36,height:36,borderRadius:3,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
           onMouseEnter={e=>hov(e,true,"rgba(255,255,255,0.1)")}
           onMouseLeave={e=>hov(e,false)}>
           <Home style={{width:15,height:15,color:"rgba(255,255,255,0.65)"}}/>
         </button>
 
         {/* User avatar */}
-        <div style={{position:"relative" as const,paddingRight:6}} ref={userMenuRef}>
+        <div style={{position:"relative",paddingRight:6}} ref={userMenuRef}>
           <button onClick={()=>setUserMenuOpen(v=>!v)}
-            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"4px 8px",borderRadius:3,border:"none",background:"transparent",cursor:"pointer" as const}}
+            style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:3,border:"none",background:"transparent",cursor:"pointer"}}
             onMouseEnter={e=>hov(e,true,"rgba(255,255,255,0.1)")}
             onMouseLeave={e=>{ if(!userMenuOpen)hov(e,false); }}>
-            <div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,#0078d4,#106ebe)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:11,fontWeight:800,color:"#fff",flexShrink:0}}>
+            <div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,#0078d4,#106ebe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff",flexShrink:0}}>
               {profile?.full_name?.[0]?.toUpperCase()||"U"}
             </div>
-            {!isMobile&&<span style={{fontSize:11.5,color:"rgba(255,255,255,0.8)",fontWeight:600,maxWidth:80,overflow:"hidden" as const,textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{profile?.full_name?.split(" ")[0]||"User"}</span>}
+            {!isMobile&&<span style={{fontSize:11.5,color:"rgba(255,255,255,0.8)",fontWeight:600,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile?.full_name?.split(" ")[0]||"User"}</span>}
             <ChevronDown style={{width:10,height:10,color:"rgba(255,255,255,0.4)"}}/>
           </button>
           {userMenuOpen&&(
-            <div style={{position:"absolute" as const,right:4,top:"calc(100%+3px)",minWidth:220,background:"#fff",boxShadow:"0 10px 30px rgba(0,0,0,0.2)",border:"1px solid #e0e0e0",borderRadius:4,overflow:"hidden" as const,zIndex:600}}>
+            <div style={{position:"absolute",right:4,top:"calc(100%+3px)",minWidth:220,background:"#fff",boxShadow:"0 10px 30px rgba(0,0,0,0.2)",border:"1px solid #e0e0e0",borderRadius:4,overflow:"hidden",zIndex:600}}>
               <div style={{padding:"12px 14px",background:"#0078d4"}}>
-                <div style={{display:"flex" as const,alignItems:"center" as const,gap:10}}>
-                  <div style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,0.2)",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:13,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
                   <div>
                     <div style={{fontSize:12.5,fontWeight:700,color:"#fff"}}>{profile?.full_name||"User"}</div>
                     <div style={{fontSize:9.5,color:"rgba(255,255,255,0.7)"}}>{ROLE_LABELS[primaryRole]||"Staff"}</div>
@@ -360,7 +360,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 ]:[]),
               ].map(item=>(
                 <button key={item.path} onClick={()=>{navigate(item.path);setUserMenuOpen(false);}}
-                  style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const,fontSize:12.5,color:"#1f1f1f"}}
+                  style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left",fontSize:12.5,color:"#1f1f1f"}}
                   onMouseEnter={e=>hov(e,true,"#f5f5f5")}
                   onMouseLeave={e=>hov(e,false)}>
                   <item.icon style={{width:13,height:13,color:"#555"}}/>{item.label}
@@ -368,7 +368,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               ))}
               <div style={{borderTop:"1px solid #e0e0e0"}}>
                 <button onClick={()=>{signOut();navigate("/login");}}
-                  style={{display:"flex" as const,alignItems:"center" as const,gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer" as const,textAlign:"left" as const,fontSize:12.5,color:"#d13438"}}
+                  style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 14px",border:"none",background:"transparent",cursor:"pointer",textAlign:"left",fontSize:12.5,color:"#d13438"}}
                   onMouseEnter={e=>hov(e,true,"#fdf4f4")}
                   onMouseLeave={e=>hov(e,false)}>
                   <LogOut style={{width:13,height:13}}/> Sign Out
@@ -387,8 +387,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           height:44, flexShrink:0, zIndex:200,
           background:"var(--color-nav-bg, #ffffff)",
           borderBottom:"1px solid var(--color-border, #e2e8f0)",
-          display:"flex" as const, alignItems:"stretch" as const,
-          overflowX:"auto" as const, overflowY:"hidden" as const,
+          display:"flex", alignItems:"stretch",
+          overflowX:"auto", overflowY:"hidden",
         }}>
           {visibleMods.map((m, idx)=>{
             const isAct = activeModule===m.id;
@@ -397,13 +397,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button key={m.id}
                 onClick={()=>{ setActiveModule(m.id); setTileDropOpen(true); navigate(m.sub[0]?.path||m.path); }}
                 style={{
-                  display:"flex" as const, alignItems:"center" as const, gap:7,
+                  display:"flex", alignItems:"center", gap:7,
                   padding:"0 18px", border:"none",
-                  cursor:"pointer" as const, flexShrink:0, whiteSpace:"nowrap" as const,
+                  cursor:"pointer", flexShrink:0, whiteSpace:"nowrap",
                   background: isAct ? col : "var(--color-nav-bg, #ffffff)",
                   borderBottom: isAct ? `3px solid ${col}` : "3px solid transparent",
                   transition:"all 0.14s",
-                  position:"relative" as const,
+                  position:"relative",
                 }}
                 onMouseEnter={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background=`${col}12`; }}
                 onMouseLeave={e=>{ if(!isAct)(e.currentTarget as HTMLElement).style.background="#ffffff"; }}>
@@ -414,7 +414,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
           {/* Home shortcut at far right */}
           <button onClick={()=>navigate("/dashboard")}
-            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"0 14px",border:"none",background:"transparent",cursor:"pointer" as const,marginLeft:"auto",flexShrink:0}}
+            style={{display:"flex",alignItems:"center",gap:6,padding:"0 14px",border:"none",background:"transparent",cursor:"pointer",marginLeft:"auto",flexShrink:0}}
             onMouseEnter={e=>hov(e,true,"#f1f5f9")}
             onMouseLeave={e=>hov(e,false)}>
             <Home style={{width:13,height:13,color:"#475569"}}/>
@@ -432,7 +432,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           background:"#fff",
           borderBottom:"2px solid #e0e0e0",
           padding:"12px 16px",
-          display:"flex" as const, flexWrap:"wrap" as const, gap:8,
+          display:"flex", flexWrap:"wrap" as const, gap:8,
           boxShadow:"0 4px 12px rgba(0,0,0,0.08)",
         }}>
           {visLinks.map((s, idx)=>{
@@ -442,10 +442,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button key={s.path}
                 onClick={()=>navigate(s.path)}
                 style={{
-                  display:"flex" as const, flexDirection:"column" as const, alignItems:"center" as const, justifyContent:"center" as const,
+                  display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
                   width:96, height:80,
                   background: isActive ? activeMod.color : tileCol,
-                  border:"none", borderRadius:4, cursor:"pointer" as const,
+                  border:"none", borderRadius:4, cursor:"pointer",
                   gap:6, padding:"8px 4px",
                   boxShadow: isActive?"0 0 0 3px rgba(255,255,255,0.6) inset":"none",
                   transition:"filter 0.15s, transform 0.15s",
@@ -454,13 +454,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.filter="brightness(0.88)"; (e.currentTarget as HTMLElement).style.transform="translateY(-1px)"; }}
                 onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.filter="brightness(1)"; (e.currentTarget as HTMLElement).style.transform="translateY(0)"; }}>
                 <s.icon style={{width:22,height:22,color:"#fff"}}/>
-                <span style={{fontSize:10,fontWeight:600,color:"#fff",textAlign:"center" as const,lineHeight:1.2}}>{s.label}</span>
+                <span style={{fontSize:10,fontWeight:600,color:"#fff",textAlign:"center",lineHeight:1.2}}>{s.label}</span>
               </button>
             );
           })}
           {/* Close tiles */}
           <button onClick={()=>setTileDropOpen(false)}
-            style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,width:32,height:32,background:"#f0f0f0",border:"1px solid #e0e0e0",borderRadius:4,cursor:"pointer" as const,marginLeft:"auto",alignSelf:"flex-end" as const}}
+            style={{display:"flex",alignItems:"center",justifyContent:"center",width:32,height:32,background:"#f0f0f0",border:"1px solid #e0e0e0",borderRadius:4,cursor:"pointer",marginLeft:"auto",alignSelf:"flex-end"}}
             onMouseEnter={e=>hov(e,true,"#f1f5f9")}
             onMouseLeave={e=>hov(e,false)}>
             <X style={{width:14,height:14,color:"#666"}}/>
@@ -477,29 +477,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           MOBILE DRAWER
       ════════════════════════════════════════════ */}
       {isMobile&&mobileOpen&&!isDashboard&&(
-        <div style={{position:"fixed" as const,inset:0,zIndex:600,display:"flex" as const}}>
-          <div style={{width:270,background:"#1f1f1f",display:"flex" as const,flexDirection:"column" as const,height:"100%",overflow:"hidden" as const}}>
-            <div style={{padding:"12px 14px",borderBottom:"1px solid rgba(255,255,255,0.1)",display:"flex" as const,alignItems:"center" as const,gap:10}}>
+        <div style={{position:"fixed",inset:0,zIndex:600,display:"flex"}}>
+          <div style={{width:270,background:"#1f1f1f",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+            <div style={{padding:"12px 14px",borderBottom:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",gap:10}}>
               <img src={logoUrl||logoImg} alt="" style={{width:26,height:26,borderRadius:4}}/>
               <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{sysName}</div></div>
-              <button onClick={()=>setMobileOpen(false)} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:4,padding:5,cursor:"pointer" as const,color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+              <button onClick={()=>setMobileOpen(false)} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:4,padding:5,cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
             </div>
-            <nav style={{flex:1,overflowY:"auto" as const,padding:"8px 0"}}>
+            <nav style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
               {visibleMods.map(m=>{
                 const isCur = activeModule===m.id;
                 const fs = m.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r)));
                 return (
                   <div key={m.id}>
                     <button onClick={()=>{ setActiveModule(m.id); navigate(fs[0]?.path||m.path); setMobileOpen(false); }}
-                      style={{display:"flex" as const,alignItems:"center" as const,gap:11,width:"100%",padding:"10px 14px",border:"none",
+                      style={{display:"flex",alignItems:"center",gap:11,width:"100%",padding:"10px 14px",border:"none",
                         borderLeft:isCur?`3px solid ${m.color}`:"3px solid transparent",
-                        background:isCur?`${m.color}22`:"transparent",cursor:"pointer" as const,textAlign:"left" as const}}>
+                        background:isCur?`${m.color}22`:"transparent",cursor:"pointer",textAlign:"left"}}>
                       <m.icon style={{width:15,height:15,color:isCur?m.color:"rgba(255,255,255,0.55)",flexShrink:0}}/>
                       <span style={{fontSize:13,fontWeight:isCur?700:400,color:isCur?"#fff":"rgba(255,255,255,0.75)"}}>{m.label}</span>
                     </button>
                     {isCur&&fs.map(s=>{
                       const sa=location.pathname.startsWith(s.path);
-                      return <Link key={s.path} to={s.path} onClick={()=>setMobileOpen(false)} style={{display:"flex" as const,alignItems:"center" as const,gap:10,padding:"8px 14px 8px 38px",textDecoration:"none" as const,background:sa?`${m.color}18`:"transparent",borderLeft:sa?`3px solid ${m.color}`:"3px solid transparent"}}>
+                      return <Link key={s.path} to={s.path} onClick={()=>setMobileOpen(false)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px 8px 38px",textDecoration:"none",background:sa?`${m.color}18`:"transparent",borderLeft:sa?`3px solid ${m.color}`:"3px solid transparent"}}>
                         <s.icon style={{width:12,height:12,color:sa?m.color:"rgba(255,255,255,0.4)",flexShrink:0}}/>
                         <span style={{fontSize:12,color:sa?"#fff":"rgba(255,255,255,0.6)"}}>{s.label}</span>
                       </Link>;
@@ -508,10 +508,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 );
               })}
             </nav>
-            <div style={{padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.1)",display:"flex" as const,alignItems:"center" as const,gap:9}}>
-              <div style={{width:28,height:28,borderRadius:"50%",background:"#0078d4",display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,fontSize:11,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
+            <div style={{padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",gap:9}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:"#0078d4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{profile?.full_name?.[0]?.toUpperCase()||"U"}</div>
               <div style={{flex:1}}><div style={{fontSize:11,fontWeight:600,color:"#fff"}}>{profile?.full_name||"User"}</div></div>
-              <button onClick={()=>{signOut();navigate("/login");}} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:4,padding:5,cursor:"pointer" as const,color:"rgba(255,255,255,0.6)",lineHeight:0}}><LogOut style={{width:12,height:12}}/></button>
+              <button onClick={()=>{signOut();navigate("/login");}} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:4,padding:5,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}><LogOut style={{width:12,height:12}}/></button>
             </div>
           </div>
           <div onClick={()=>setMobileOpen(false)} style={{flex:1,background:"rgba(0,0,0,0.5)"}}/>
@@ -521,9 +521,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ════════════════════════════════════════════
           PAGE CONTENT
       ════════════════════════════════════════════ */}
-      <main style={{flex:1,overflowY:"auto" as const,overflowX:"hidden" as const,background:"#f8fafc"}}>
+      <main style={{flex:1,overflowY:"auto",overflowX:"hidden",background:"#f8fafc"}}>
         {children}
       </main>
     </div>
+    </div>
   );
 }
+

@@ -28,11 +28,11 @@ const EMPTY_ITEM = { description:"", quantity:1, unit:"pcs", unit_price:0 };
 
 const inp: React.CSSProperties = {
   width:"100%", padding:"8px 12px", border:"1.5px solid #e5e7eb",
-  borderRadius:8, fontSize:13, outline:"none", boxSizing:"border-box" as const,
+  borderRadius:8, fontSize:13, outline:"none", boxSizing:"border-box",
   color:"#111827", background:"#f8fafc",
 };
 const lbl: React.CSSProperties = {
-  display:"block" as const, fontSize:10, fontWeight:700, textTransform:"uppercase" as const,
+  display:"block", fontSize:10, fontWeight:700, textTransform:"uppercase",
   letterSpacing:"0.05em", color:"#6b7280", marginBottom:4,
 };
 
@@ -276,7 +276,7 @@ export default function PurchaseOrdersPage() {
     : null;
 
   return (
-    <div style={{padding:16,display:"flex" as const,flexDirection:"column" as const,background:"#f8fafc",minHeight:"100%",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{padding:16,display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
 
       {/* ── KPI TILES ── */}
@@ -284,7 +284,7 @@ export default function PurchaseOrdersPage() {
         const totalVal = orders.reduce((s,r)=>s+Number(r.total_amount||0),0);
         const recVal   = orders.filter(r=>r.status==="received").reduce((s,r)=>s+Number(r.total_amount||0),0);
         return(
-          <div style={{display:"grid" as const,gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
             {[
               {label:"Total Value",    val:fmtK(totalVal),bg:"#c0392b",path:null},
               {label:"Received Amt.",  val:fmtK(recVal),  bg:"#7d6608",path:null},
@@ -292,7 +292,7 @@ export default function PurchaseOrdersPage() {
               {label:"Total Orders",   val:orders.length, bg:"#6c3483",path:null},
               {label:"Pending / Draft",val:orders.filter(r=>["draft","pending"].includes(r.status||"")).length,bg:"#1a252f",path:null},
             ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center" as const,background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
                 <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
                 <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
               </div>
@@ -302,26 +302,26 @@ export default function PurchaseOrdersPage() {
       })()}
 
       {/* ── HEADER ── */}
-      <div style={{borderRadius:12,background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)",padding:"10px 16px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const}}>
-        <div style={{display:"flex" as const,alignItems:"center" as const,gap:12}}>
+      <div style={{borderRadius:12,background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
           <ShoppingCart style={{width:20,height:20,color:"#fff"}}/>
           <div>
             <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Purchase Orders</h1>
             <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length} of {orders.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}</p>
           </div>
         </div>
-        <div style={{display:"flex" as const,gap:8}}>
+        <div style={{display:"flex",gap:8}}>
           <button onClick={load} disabled={loading}
-            style={{padding:6,borderRadius:6,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer" as const}}>
+            style={{padding:6,borderRadius:6,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={exportExcel}
-            style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.9)",color:"#fff",border:"none",cursor:"pointer" as const,fontSize:12,fontWeight:600}}>
+            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(52,211,153,0.9)",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
             <FileSpreadsheet style={{width:14,height:14}}/>Export
           </button>
           {canCreate&&(
             <button onClick={openCreate}
-              style={{display:"flex" as const,alignItems:"center" as const,gap:6,padding:"6px 14px",borderRadius:8,background:"#fff",color:"#92400e",border:"none",cursor:"pointer" as const,fontSize:12,fontWeight:700}}>
+              style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:8,background:"#fff",color:"#92400e",border:"none",cursor:"pointer",fontSize:12,fontWeight:700}}>
               <Plus style={{width:14,height:14}}/>New PO
             </button>
           )}
@@ -329,30 +329,30 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* ── FILTERS ── */}
-      <div style={{display:"flex" as const,flexWrap:"wrap" as const,gap:8,alignItems:"center" as const}}>
+      <div style={{display:"flex",flexWrap:"wrap" as const,gap:8,alignItems:"center"}}>
         {["all","draft","pending","approved","sent","partial","received","cancelled"].map(s=>(
           <button key={s} onClick={()=>setStatusFilter(s)}
-            style={{padding:"4px 10px",borderRadius:20,fontSize:10,fontWeight:600,textTransform:"capitalize" as const,border:"none",cursor:"pointer" as const,background:statusFilter===s?"#C45911":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+            style={{padding:"4px 10px",borderRadius:20,fontSize:10,fontWeight:600,textTransform:"capitalize",border:"none",cursor:"pointer",background:statusFilter===s?"#C45911":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
             {s==="all"?"All":STATUS_CFG[s]?.label||s}
             {s!=="all"&&<span style={{marginLeft:4,opacity:0.7}}>({orders.filter(o=>o.status===s).length})</span>}
           </button>
         ))}
-        <div style={{position:"relative" as const,marginLeft:"auto"}}>
-          <Search style={{position:"absolute" as const,left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
+        <div style={{position:"relative",marginLeft:"auto"}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search POs, suppliers…"
             style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute" as const,right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" as const}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
       {/* ── TABLE ── */}
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden" as const}}>
-        <div style={{overflowX:"auto" as const}}>
+      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#92400e"}}>
                 {["#","PO Number","Supplier","Department","Status","Total","Delivery","Actions"].map(h=>(
-                  <th key={h} style={{textAlign:"left" as const,padding:"10px 12px",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:10,textTransform:"uppercase" as const,letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
+                  <th key={h} style={{textAlign:"left",padding:"10px 12px",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -360,7 +360,7 @@ export default function PurchaseOrdersPage() {
               {loading ? Array(4).fill(0).map((_,i)=>(
                 <tr key={i}><td colSpan={8} style={{padding:"12px 16px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:6,animation:"pulse 1.5s infinite"}}/></td></tr>
               )) : filtered.length===0 ? (
-                <tr><td colSpan={8} style={{padding:"40px 16px",textAlign:"center" as const,color:"#9ca3af",fontSize:13}}>
+                <tr><td colSpan={8} style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af",fontSize:13}}>
                   {orders.length===0?"No purchase orders yet — create your first one":"No orders match your filter"}
                 </td></tr>
               ) : filtered.map((po,i)=>{
@@ -376,20 +376,20 @@ export default function PurchaseOrdersPage() {
                     <td style={{padding:"10px 12px"}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label||po.status}</span>
                     </td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap" as const}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
-                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap" as const}}>{po.delivery_date||"—"}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap"}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
+                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{po.delivery_date||"—"}</td>
                     <td style={{padding:"10px 12px"}}>
-                      <div style={{display:"flex" as const,gap:4}}>
-                        <button onClick={()=>setViewPO(po)} title="View" style={{padding:5,borderRadius:6,background:"#fff7ed",color:"#ea580c",border:"none",cursor:"pointer" as const}}><Eye style={{width:12,height:12}}/></button>
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>setViewPO(po)} title="View" style={{padding:5,borderRadius:6,background:"#fff7ed",color:"#ea580c",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
                         {canCreate&&["draft","pending"].includes(po.status)&&(
-                          <button onClick={()=>openEdit(po)} title="Edit" style={{padding:5,borderRadius:6,background:"#eff6ff",color:"#3b82f6",border:"none",cursor:"pointer" as const}}><Edit3 style={{width:12,height:12}}/></button>
+                          <button onClick={()=>openEdit(po)} title="Edit" style={{padding:5,borderRadius:6,background:"#eff6ff",color:"#3b82f6",border:"none",cursor:"pointer"}}><Edit3 style={{width:12,height:12}}/></button>
                         )}
-                        <button onClick={()=>printLPO(po)} title="Print LPO" style={{padding:5,borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer" as const}}><Printer style={{width:12,height:12}}/></button>
+                        <button onClick={()=>printLPO(po)} title="Print LPO" style={{padding:5,borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
                         {canApprove&&po.status==="pending"&&(
-                          <button onClick={()=>approve(po.id)} title="Approve" style={{padding:5,borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer" as const}}><CheckCircle style={{width:12,height:12}}/></button>
+                          <button onClick={()=>approve(po.id)} title="Approve" style={{padding:5,borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/></button>
                         )}
                         {canApprove&&["draft","pending"].includes(po.status)&&(
-                          <button onClick={()=>cancelPO(po.id)} title="Cancel" style={{padding:5,borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer" as const}}><XCircle style={{width:12,height:12}}/></button>
+                          <button onClick={()=>cancelPO(po.id)} title="Cancel" style={{padding:5,borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/></button>
                         )}
                       </div>
                     </td>
@@ -408,27 +408,27 @@ export default function PurchaseOrdersPage() {
           CREATE / EDIT MODAL
       ════════════════════════════════════════ */}
       {showForm&&(
-        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"flex-start" as const,justifyContent:"center" as const,paddingTop:40,paddingBottom:20}}>
-          <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)"}} onClick={closeForm}/>
-          <div style={{position:"relative" as const,borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(760px,98%)",maxHeight:"calc(100vh-60px)",display:"flex" as const,flexDirection:"column" as const,background:"#f8fafc",minHeight:"100%",overflow:"hidden" as const}}>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:40,paddingBottom:20}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={closeForm}/>
+          <div style={{position:"relative",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(760px,98%)",maxHeight:"calc(100vh-60px)",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
 
             {/* Modal header */}
-            <div style={{padding:"14px 20px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"linear-gradient(90deg,#92400e,#C45911)",flexShrink:0}}>
-              <div style={{display:"flex" as const,alignItems:"center" as const,gap:10}}>
+            <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)",flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <ShoppingCart style={{width:18,height:18,color:"#fff"}}/>
                 <div>
                   <h3 style={{fontSize:14,fontWeight:900,color:"#fff",margin:0}}>{editing?"Edit Purchase Order":"New Purchase Order"}</h3>
                   <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{editing?`Editing ${editing.po_number}`:"Fill in all required fields marked with *"}</p>
                 </div>
               </div>
-              <button onClick={closeForm} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer" as const,lineHeight:0}}>
+              <button onClick={closeForm} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
                 <X style={{width:16,height:16}}/>
               </button>
             </div>
 
             {/* Form body */}
-            <div style={{overflowY:"auto" as const,flex:1,padding:20}}>
-              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{overflowY:"auto",flex:1,padding:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
 
                 {/* PO Number */}
                 <div>
@@ -499,26 +499,26 @@ export default function PurchaseOrdersPage() {
                   <label style={lbl}>Notes / Special Instructions</label>
                   <textarea value={form.notes} onChange={e=>setForm((p:any)=>({...p,notes:e.target.value}))} rows={2}
                     placeholder="Delivery instructions, quality requirements…"
-                    style={{...inp,resize:"none" as const}}/>
+                    style={{...inp,resize:"none"}}/>
                 </div>
               </div>
 
               {/* ── LINE ITEMS ── */}
               <div style={{marginTop:20}}>
-                <div style={{display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                   <label style={{...lbl,marginBottom:0}}>Line Items *</label>
                   <button onClick={addItem}
-                    style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"4px 10px",borderRadius:6,background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",cursor:"pointer" as const,fontSize:11,fontWeight:600}}>
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:6,background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",cursor:"pointer",fontSize:11,fontWeight:600}}>
                     <Plus style={{width:12,height:12}}/>Add Item
                   </button>
                 </div>
                 {errors.items&&<div style={{color:"#dc2626",fontSize:10,marginBottom:6}}>{errors.items}</div>}
-                <div style={{border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden" as const}}>
+                <div style={{border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
                   <table style={{width:"100%",fontSize:11,borderCollapse:"collapse"}}>
                     <thead>
                       <tr style={{background:"#92400e"}}>
                         {["#","Description *","Qty","Unit","Unit Price (KES)","Total",""].map(h=>(
-                          <th key={h} style={{padding:"7px 10px",textAlign:"left" as const,color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:9,textTransform:"uppercase" as const,letterSpacing:"0.05em",whiteSpace:"nowrap" as const}}>{h}</th>
+                          <th key={h} style={{padding:"7px 10px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:9,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -534,7 +534,7 @@ export default function PurchaseOrdersPage() {
                           <td style={{padding:"4px 6px",width:70}}>
                             <input type="number" min="0.01" step="0.01" value={it.quantity}
                               onChange={e=>setItem(i,"quantity",e.target.value)}
-                              style={{width:"100%",border:errors[`qty_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right" as const,color:"#111827"}}/>
+                              style={{width:"100%",border:errors[`qty_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right",color:"#111827"}}/>
                             {errors[`qty_${i}`]&&<div style={{color:"#dc2626",fontSize:9}}>{errors[`qty_${i}`]}</div>}
                           </td>
                           <td style={{padding:"4px 6px",width:70}}>
@@ -546,14 +546,14 @@ export default function PurchaseOrdersPage() {
                           <td style={{padding:"4px 6px",width:110}}>
                             <input type="number" min="0" step="0.01" value={it.unit_price}
                               onChange={e=>setItem(i,"unit_price",e.target.value)}
-                              style={{width:"100%",border:errors[`price_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right" as const,color:"#111827"}}/>
+                              style={{width:"100%",border:errors[`price_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none",textAlign:"right",color:"#111827"}}/>
                           </td>
-                          <td style={{padding:"6px 10px",fontWeight:700,color:"#92400e",whiteSpace:"nowrap" as const,width:90}}>
+                          <td style={{padding:"6px 10px",fontWeight:700,color:"#92400e",whiteSpace:"nowrap",width:90}}>
                             KES {((Number(it.quantity)||0)*(Number(it.unit_price)||0)).toLocaleString()}
                           </td>
                           <td style={{padding:"4px 6px",width:32}}>
                             {form.items.length>1&&(
-                              <button onClick={()=>removeItem(i)} style={{padding:4,borderRadius:4,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer" as const,lineHeight:0}}>
+                              <button onClick={()=>removeItem(i)} style={{padding:4,borderRadius:4,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer",lineHeight:0}}>
                                 <Trash2 style={{width:11,height:11}}/>
                               </button>
                             )}
@@ -561,8 +561,8 @@ export default function PurchaseOrdersPage() {
                         </tr>
                       ))}
                       <tr style={{background:"#fff7ed"}}>
-                        <td colSpan={5} style={{padding:"8px 10px",textAlign:"right" as const,fontWeight:700,color:"#92400e",fontSize:12}}>TOTAL</td>
-                        <td style={{padding:"8px 10px",fontWeight:900,color:"#92400e",fontSize:13,whiteSpace:"nowrap" as const}}>KES {computedTotal.toLocaleString()}</td>
+                        <td colSpan={5} style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:"#92400e",fontSize:12}}>TOTAL</td>
+                        <td style={{padding:"8px 10px",fontWeight:900,color:"#92400e",fontSize:13,whiteSpace:"nowrap"}}>KES {computedTotal.toLocaleString()}</td>
                         <td/>
                       </tr>
                     </tbody>
@@ -572,21 +572,21 @@ export default function PurchaseOrdersPage() {
             </div>
 
             {/* Footer */}
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex" as const,gap:10,justifyContent:"space-between" as const,alignItems:"center" as const,flexShrink:0,background:"#fafafa"}}>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",gap:10,justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#fafafa"}}>
               <div style={{fontSize:11,color:"#6b7280"}}>
                 Total: <strong style={{color:"#92400e",fontSize:14}}>KES {computedTotal.toLocaleString()}</strong>
                 {" "}· {form.items.filter((it:any)=>it.description.trim()).length} item(s)
               </div>
-              <div style={{display:"flex" as const,gap:8}}>
-                <button onClick={closeForm} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer" as const,fontSize:13,color:"#374151"}}>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={closeForm} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13,color:"#374151"}}>
                   Cancel
                 </button>
                 <button onClick={()=>{setForm((p:any)=>({...p,status:"draft"}));save();}} disabled={saving}
-                  style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 16px",borderRadius:8,color:"#92400e",border:"1.5px solid #C45911",background:"#fff7ed",cursor:"pointer" as const,fontSize:12,fontWeight:600,opacity:saving?0.7:1}}>
+                  style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",borderRadius:8,color:"#92400e",border:"1.5px solid #C45911",background:"#fff7ed",cursor:"pointer",fontSize:12,fontWeight:600,opacity:saving?0.7:1}}>
                   <Save style={{width:13,height:13}}/>Save Draft
                 </button>
                 <button onClick={()=>{setForm((p:any)=>({...p,status:"pending"}));save();}} disabled={saving}
-                  style={{display:"flex" as const,alignItems:"center" as const,gap:7,padding:"8px 18px",borderRadius:8,color:"#fff",border:"none",background:"linear-gradient(90deg,#92400e,#C45911)",cursor:"pointer" as const,fontSize:12,fontWeight:700,opacity:saving?0.7:1}}>
+                  style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",borderRadius:8,color:"#fff",border:"none",background:"linear-gradient(90deg,#92400e,#C45911)",cursor:"pointer",fontSize:12,fontWeight:700,opacity:saving?0.7:1}}>
                   {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
                   {saving?"Saving…":"Submit for Approval"}
                 </button>
@@ -600,30 +600,30 @@ export default function PurchaseOrdersPage() {
           VIEW MODAL
       ════════════════════════════════════════ */}
       {viewPO&&(
-        <div style={{position:"fixed" as const,inset:0,zIndex:1000,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const}}>
-          <div style={{position:"fixed" as const,inset:0,background:"rgba(0,0,0,0.55)"}} onClick={()=>setViewPO(null)}/>
-          <div style={{position:"relative" as const,borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(620px,98%)",maxHeight:"90vh",display:"flex" as const,flexDirection:"column" as const,background:"#f8fafc",minHeight:"100%",overflow:"hidden" as const}}>
-            <div style={{padding:"14px 20px",display:"flex" as const,alignItems:"center" as const,justifyContent:"space-between" as const,background:"linear-gradient(90deg,#92400e,#C45911)"}}>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={()=>setViewPO(null)}/>
+          <div style={{position:"relative",borderRadius:16,boxShadow:"0 24px 72px rgba(0,0,0,0.35)",width:"min(620px,98%)",maxHeight:"90vh",display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",overflow:"hidden"}}>
+            <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)"}}>
               <div>
                 <h3 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>{viewPO.po_number}</h3>
                 <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{viewPO.suppliers?.name||viewPO.supplier_name||"—"}</p>
               </div>
-              <div style={{display:"flex" as const,gap:8}}>
+              <div style={{display:"flex",gap:8}}>
                 {canCreate&&["draft","pending"].includes(viewPO.status)&&(
-                  <button onClick={()=>{setViewPO(null);openEdit(viewPO);}} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer" as const,background:"#e2e8f0"}}>
+                  <button onClick={()=>{setViewPO(null);openEdit(viewPO);}} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
                     <Edit3 style={{width:12,height:12}}/>Edit
                   </button>
                 )}
-                <button onClick={()=>printLPO(viewPO)} style={{display:"flex" as const,alignItems:"center" as const,gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer" as const,background:"#e2e8f0"}}>
+                <button onClick={()=>printLPO(viewPO)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
                   <Printer style={{width:12,height:12}}/>Print LPO
                 </button>
-                <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer" as const,lineHeight:0}}>
+                <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
                   <X style={{width:16,height:16}}/>
                 </button>
               </div>
             </div>
-            <div style={{overflowY:"auto" as const,padding:20,flex:1}}>
-              <div style={{display:"grid" as const,gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+            <div style={{overflowY:"auto",padding:20,flex:1}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                 {[
                   {l:"Supplier",v:viewPO.suppliers?.name||viewPO.supplier_name},
                   {l:"Status",v:(STATUS_CFG[viewPO.status]?.label||viewPO.status)},
@@ -635,7 +635,7 @@ export default function PurchaseOrdersPage() {
                   {l:"Supplier Phone",v:viewPO.suppliers?.phone||"—"},
                 ].map(r=>(
                   <div key={r.l}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
+                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
                     <div style={{fontSize:13,color:"#1f2937",fontWeight:500,marginTop:2}}>{r.v||"—"}</div>
                   </div>
                 ))}
@@ -644,12 +644,12 @@ export default function PurchaseOrdersPage() {
               {/* Line items */}
               {viewPO.line_items?.length>0&&(
                 <div style={{marginBottom:14}}>
-                  <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em",color:"#9ca3af",marginBottom:8}}>Line Items</div>
-                  <table style={{width:"100%",fontSize:11,borderCollapse:"collapse",border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden" as const}}>
+                  <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af",marginBottom:8}}>Line Items</div>
+                  <table style={{width:"100%",fontSize:11,borderCollapse:"collapse",border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
                     <thead>
                       <tr style={{background:"#92400e"}}>
                         {["Description","Qty","Unit","Unit Price","Total"].map(h=>(
-                          <th key={h} style={{padding:"6px 10px",textAlign:"left" as const,color:"#fff",fontWeight:700,fontSize:9}}>{h}</th>
+                          <th key={h} style={{padding:"6px 10px",textAlign:"left",color:"#fff",fontWeight:700,fontSize:9}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -657,15 +657,15 @@ export default function PurchaseOrdersPage() {
                       {viewPO.line_items.map((it:any,i:number)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                           <td style={{padding:"5px 10px"}}>{it.description}</td>
-                          <td style={{padding:"5px 10px",textAlign:"right" as const}}>{it.quantity}</td>
+                          <td style={{padding:"5px 10px",textAlign:"right"}}>{it.quantity}</td>
                           <td style={{padding:"5px 10px",color:"#6b7280"}}>{it.unit}</td>
-                          <td style={{padding:"5px 10px",textAlign:"right" as const}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
-                          <td style={{padding:"5px 10px",textAlign:"right" as const,fontWeight:700,color:"#92400e"}}>KES {((Number(it.quantity)||0)*(Number(it.unit_price)||0)).toLocaleString()}</td>
+                          <td style={{padding:"5px 10px",textAlign:"right"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
+                          <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700,color:"#92400e"}}>KES {((Number(it.quantity)||0)*(Number(it.unit_price)||0)).toLocaleString()}</td>
                         </tr>
                       ))}
                       <tr style={{background:"#fff7ed"}}>
-                        <td colSpan={4} style={{padding:"8px 10px",textAlign:"right" as const,fontWeight:700,color:"#92400e"}}>TOTAL</td>
-                        <td style={{padding:"8px 10px",textAlign:"right" as const,fontWeight:900,color:"#92400e"}}>KES {Number(viewPO.total_amount||0).toLocaleString()}</td>
+                        <td colSpan={4} style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:"#92400e"}}>TOTAL</td>
+                        <td style={{padding:"8px 10px",textAlign:"right",fontWeight:900,color:"#92400e"}}>KES {Number(viewPO.total_amount||0).toLocaleString()}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -674,14 +674,14 @@ export default function PurchaseOrdersPage() {
 
               {viewPO.notes&&(
                 <div style={{padding:12,borderRadius:10,background:"#f8fafc",border:"1px solid #e5e7eb"}}>
-                  <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase" as const,color:"#9ca3af",margin:"0 0 4px"}}>Notes</p>
+                  <p style={{fontSize:10,fontWeight:700,textTransform:"uppercase",color:"#9ca3af",margin:"0 0 4px"}}>Notes</p>
                   <p style={{fontSize:13,color:"#374151",margin:0}}>{viewPO.notes}</p>
                 </div>
               )}
 
               {canApprove&&viewPO.status==="pending"&&(
                 <button onClick={()=>{approve(viewPO.id);setViewPO(null);}}
-                  style={{width:"100%",marginTop:14,display:"flex" as const,alignItems:"center" as const,justifyContent:"center" as const,gap:8,padding:"11px 0",borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,border:"none",cursor:"pointer" as const,background:"#15803d"}}>
+                  style={{width:"100%",marginTop:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"11px 0",borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,border:"none",cursor:"pointer",background:"#15803d"}}>
                   <CheckCircle style={{width:16,height:16}}/>Approve Purchase Order
                 </button>
               )}

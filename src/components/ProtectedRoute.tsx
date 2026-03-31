@@ -8,8 +8,8 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   if (loading) {
     return (
       <div style={{
-        minHeight: "100vh", display: "flex" as const, alignItems: "center" as const,
-        justifyContent: "center" as const, flexDirection: "column" as const, gap: 16,
+        minHeight: "100vh", display: "flex", alignItems: "center",
+        justifyContent: "center", flexDirection: "column", gap: 16,
         background: "linear-gradient(145deg,#0a2e6e,#0a2558)",
         fontFamily: "'Segoe UI',system-ui,sans-serif",
       }}>
