@@ -285,7 +285,7 @@ function BackupInner() {
             <p style={{fontSize:12,color:"#dc2626",fontWeight:600}}>⚠️ Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",border:"none",background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
               <FileSpreadsheet style={{width:16,height:16}}/>
               Upload Backup File (.xlsx)
               <input type="file" accept=".xlsx,.csv,.json" style={{display:"none"}} onChange={()=>{}}/>
