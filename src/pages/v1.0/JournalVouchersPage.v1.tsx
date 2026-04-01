@@ -38,8 +38,7 @@ export default function JournalVouchersPage() {
     ]);
     setRows(jv||[]); setCoa(c||[]);
     const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
-    if(m.hospital_name) setHospitalName(m.hospital_name);
-    if(m.system_logo_url) setLogoUrl(m.system_logo_url);
+    // hospitalName and logoUrl now handled by useSystemSettings
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
