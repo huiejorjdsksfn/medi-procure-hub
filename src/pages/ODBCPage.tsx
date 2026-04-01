@@ -306,7 +306,7 @@ export default function ODBCPage() {
                 <div>
                   <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Description</label>
                   <textarea value={form.description||""} onChange={e=>setForm((p:any)=>({...p,description:e.target.value}))} rows={2}
-                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",resize:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
+                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",resize:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
                 </div>
               </div>
 

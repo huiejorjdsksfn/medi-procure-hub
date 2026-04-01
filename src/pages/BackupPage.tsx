@@ -290,7 +290,7 @@ function BackupInner() {
               Upload Backup File (.xlsx)
               <input type="file" accept=".xlsx,.csv,.json" style={{display:"none"}} onChange={()=>{}}/>
             </label>
-            <button style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={handleRestore}>
+            <button style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={handleRestore}>
               <Play style={{width:14,height:14}}/> Restore
             </button>
           </div>

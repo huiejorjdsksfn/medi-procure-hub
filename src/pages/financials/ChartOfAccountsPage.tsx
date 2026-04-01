@@ -158,7 +158,7 @@ export default function ChartOfAccountsPage() {
               {[["Account Code *","account_code","",1],["Account Name *","account_name","",2],["Category","category","",1],["Parent Code","parent_code","",1],["Opening Balance","balance","number",1]].map(([l,k,t,span])=>(
                 <div key={k} style={{gridColumn:`span ${span}`}}>
                   <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                  <input type={(t as string)||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                 </div>
               ))}
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Account Type</label>
