@@ -39,7 +39,7 @@ export default function SuppliersPage() {
   });
 
   useEffect(()=>{
-    /* settings now via useSystemSettings hook */const m:any={};data.forEach((r:any)=>{if(r.key)m[r.key]=r.value;});if(m.system_name)setSysName(m.system_name);if(m.hospital_name)setHospitalName(m.hospital_name);});
+    // settings loaded via useSystemSettings hook
   },[]);
 
   const load = useCallback(async()=>{

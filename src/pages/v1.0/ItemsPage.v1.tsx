@@ -45,7 +45,6 @@ export default function ItemsPage() {
   });
 
   useEffect(()=>{
-    /* settings now via useSystemSettings hook */ const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
     supabase.from("item_categories").select("*").then(({data})=>setCats(data||[]));
   },[]);
 
