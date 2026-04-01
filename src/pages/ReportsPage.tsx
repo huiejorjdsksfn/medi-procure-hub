@@ -108,7 +108,7 @@ export default function ReportsPage() {
   const printReport = () => {
     const win = window.open("","_blank","width=1000,height=700");
     if (!win) return;
-    const logoHtml = logoUrl ? `<img src="${logoUrl}" style="height:50px;object-fit:contain;margin-right:12px">` : "";
+    const logoHtml = "";
     const cols = columns;
     const rowsHtml = filteredRows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??""}</td>`).join("")}</tr>`).join("");
     win.document.write(`<html><head><title>${reportType.label}</title>
