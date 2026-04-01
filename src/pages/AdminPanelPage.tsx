@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
 import { notifyAdmins } from "@/lib/notify";
-import { saveSettings } from "@/hooks/useSystemSettings";
+import { saveSettings, useSystemSettings } from "@/hooks/useSystemSettings";
 import { sendSystemBroadcast } from "@/lib/broadcast";
 import {
   Settings, Palette, Shield, Bell, Database, Globe, FileText, Package,
