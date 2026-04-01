@@ -194,7 +194,7 @@ export default function ReportsPage() {
                 {reportType.label} <ChevronDown style={{width:14,height:14,marginLeft:"auto"}}/>
               </button>
               {showDropdown && (
-                <div style={{position:"absolute",top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto",background:"#fff",border:"1px solid #e5e7eb",borderRadius:8,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
+                <div style={{position:"absolute",top:"100%",left:0,zIndex:50,width:224,maxHeight:256,overflowY:"auto",background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",borderRadius:8,boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
                   {REPORT_TYPES.map(rt=>(
                     <button key={rt.id} onClick={()=>{setReportType(rt);setShowDropdown(false);}}
                       style={{display:"block",width:"100%",textAlign:"left",padding:"6px 12px",fontSize:12,background:"none",border:"none",cursor:"pointer",color:"#374151",color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
