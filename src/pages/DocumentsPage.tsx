@@ -7,7 +7,7 @@ import {
   FileText, Upload, Eye, Download, Search, X, Plus, Filter,
   Printer, RefreshCw, Edit3, Trash2, FileCheck, Settings, Save,
   ChevronDown, Shield, CheckCircle, AlertTriangle, Image, Code,
-  Pen, Copy, Lock, Unlock, FileSpreadsheet, BookOpen, ClipboardList
+  Pen, Copy, Lock, Unlock, FileSpreadsheet, BookOpen
 } from "lucide-react";
 
 const CATS = ["all","general","policy","template","contract","report","letter","form","procedure","system"];
