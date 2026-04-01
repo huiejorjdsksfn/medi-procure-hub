@@ -265,7 +265,7 @@ function BackupInner() {
               <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
                 <Shield style={{width:14,height:14}}/> Verify Last Backup
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
                 <Settings style={{width:14,height:14}}/> Save Schedule
               </button>
             </div>
