@@ -262,7 +262,7 @@ function BackupInner() {
               <button onClick={runBackup} disabled={running} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,color:"#fff",border:"none",cursor:"pointer",background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
                 <Download style={{width:14,height:14}}/> Full Backup Now
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
                 <Shield style={{width:14,height:14}}/> Verify Last Backup
               </button>
               <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
