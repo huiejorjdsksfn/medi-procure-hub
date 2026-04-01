@@ -150,7 +150,6 @@ export default function ReportsPage() {
           {/* Logo + Title */}
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div>
-            <div>
               <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
               <p style={{fontSize:11,color:"#555",margin:0}}>Reports & Data Extraction — {reportType.label}</p>
             </div>
