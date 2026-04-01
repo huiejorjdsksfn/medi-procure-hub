@@ -201,7 +201,7 @@ export default function SalesVouchersPage() {
                 <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase"}}>Line Items</label>
                 <button onClick={()=>setLineItems(p=>[...p,{item_id:"",item_name:"",qty:"1",rate:"",amount:""}])} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,color:"#0f766e",background:"none",border:"none",cursor:"pointer"}}><Plus style={{width:12,height:12}}/>Add</button>
               </div>
-              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse",borderCollapse:"collapse"}}>
+              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
                 <thead><tr style={{background:"#ecfdf5"}}>{["Item","Qty","Rate","Amount",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {lineItems.map((it,i)=>(

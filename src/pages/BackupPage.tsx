@@ -5,6 +5,8 @@ import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
 import { Archive, RefreshCw, Download, CheckCircle, Clock, AlertTriangle, Database, FileSpreadsheet, Play, Trash2, Shield, Zap, Settings, Calendar } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { logAudit } from "@/lib/audit";
 
 const BACKUP_TABLES = [
   "profiles","user_roles","items","item_categories","suppliers","departments",
@@ -260,10 +262,10 @@ function BackupInner() {
               <button onClick={runBackup} disabled={running} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,color:"#fff",border:"none",cursor:"pointer",background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
                 <Download style={{width:14,height:14}}/> Full Backup Now
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
                 <Shield style={{width:14,height:14}}/> Verify Last Backup
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
                 <Settings style={{width:14,height:14}}/> Save Schedule
               </button>
             </div>
@@ -283,12 +285,12 @@ function BackupInner() {
             <p style={{fontSize:12,color:"#dc2626",fontWeight:600}}>⚠️ Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",border:"none",background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
               <FileSpreadsheet style={{width:16,height:16}}/>
               Upload Backup File (.xlsx)
               <input type="file" accept=".xlsx,.csv,.json" style={{display:"none"}} onChange={()=>{}}/>
             </label>
-            <button style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={handleRestore}>
+            <button style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={handleRestore}>
               <Play style={{width:14,height:14}}/> Restore
             </button>
           </div>

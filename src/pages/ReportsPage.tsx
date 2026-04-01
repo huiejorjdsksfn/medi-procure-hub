@@ -108,7 +108,7 @@ export default function ReportsPage() {
   const printReport = () => {
     const win = window.open("","_blank","width=1000,height=700");
     if (!win) return;
-    const logoHtml = logoUrl ? `<img src="${logoUrl}" style="height:50px;object-fit:contain;margin-right:12px">` : "";
+    const logoHtml = "";
     const cols = columns;
     const rowsHtml = filteredRows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??""}</td>`).join("")}</tr>`).join("");
     win.document.write(`<html><head><title>${reportType.label}</title>
@@ -149,7 +149,6 @@ export default function ReportsPage() {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
           {/* Logo + Title */}
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain"}} alt=""/>}
             <div>
               <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
               <p style={{fontSize:11,color:"#555",margin:0}}>Reports & Data Extraction — {reportType.label}</p>

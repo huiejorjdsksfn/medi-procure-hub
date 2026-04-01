@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
 import { notifyAdmins } from "@/lib/notify";
-import { saveSettings } from "@/hooks/useSystemSettings";
+import { saveSettings, useSystemSettings } from "@/hooks/useSystemSettings";
 import { sendSystemBroadcast } from "@/lib/broadcast";
 import {
   Settings, Palette, Shield, Bell, Database, Globe, FileText, Package,
@@ -341,7 +341,7 @@ function AdminInner() {
                     {label:"ODBC Connections", path:"/odbc",          icon:Sliders,   color:"#374151"},
                   ].map(b=>(
                     <button key={b.path} onClick={()=>navigate(b.path)}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 0",borderBottom:"1px solid #f9fafb",background:"transparent",border:"none",borderBottom:"1px solid #f9fafb",cursor:"pointer",textAlign:"left" as const}}>
+                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 0",background:"transparent",border:"none",borderBottom:"1px solid #f9fafb",cursor:"pointer",textAlign:"left" as const}}>
                       <div style={{width:28,height:28,borderRadius:6,background:`${b.color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <b.icon style={{width:13,height:13,color:b.color}}/>
                       </div>

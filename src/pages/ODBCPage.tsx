@@ -118,7 +118,7 @@ export default function ODBCPage() {
     <div>
       <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}{required&&" *"}</label>
       <input type={type==="password"&&!showPassInForm?"password":type} value={form[k]||""} onChange={e=>setForm((p:any)=>({...p,[k]:e.target.value}))}
-        style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}
+        style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}
         onFocus={e=>(e.target.style.borderColor="#6366f1")} onBlur={e=>(e.target.style.borderColor="#e5e7eb")}/>
     </div>
   );
@@ -257,7 +257,7 @@ export default function ODBCPage() {
                       <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Password</label>
                       <div style={{position:"relative"}}>
                         <input type={showPassInForm?"text":"password"} value={form.password||""} onChange={e=>setForm((p:any)=>({...p,password:e.target.value}))}
-                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
+                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
                         <button onClick={()=>setShowPassInForm(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#9ca3af",background:"none",border:"none",cursor:"pointer"}}>
                           {showPassInForm?<EyeOff style={{width:16,height:16}}/>:<Eye style={{width:16,height:16}}/>}
                         </button>
@@ -272,7 +272,7 @@ export default function ODBCPage() {
                       <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Password</label>
                       <div style={{position:"relative"}}>
                         <input type={showPassInForm?"text":"password"} value={form.password||""} onChange={e=>setForm((p:any)=>({...p,password:e.target.value}))}
-                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
+                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
                         <button onClick={()=>setShowPassInForm(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
                           {showPassInForm?<EyeOff style={{width:16,height:16,color:"#9ca3af"}}/>:<Eye style={{width:16,height:16,color:"#9ca3af"}}/>}
                         </button>
@@ -298,7 +298,7 @@ export default function ODBCPage() {
                 <div>
                   <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Sync Interval</label>
                   <select value={form.sync_interval} onChange={e=>setForm((p:any)=>({...p,sync_interval:e.target.value}))}
-                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}>
+                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}>
                     {["manual","hourly","daily","weekly"].map(v=><option key={v} value={v} style={{textTransform:"capitalize"}}>{v}</option>)}
                   </select>
                 </div>
@@ -306,7 +306,7 @@ export default function ODBCPage() {
                 <div>
                   <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Description</label>
                   <textarea value={form.description||""} onChange={e=>setForm((p:any)=>({...p,description:e.target.value}))} rows={2}
-                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",resize:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
+                    style={{width:"100%",padding:"8px 12px",borderRadius:10,fontSize:14,outline:"none",resize:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
                 </div>
               </div>
 

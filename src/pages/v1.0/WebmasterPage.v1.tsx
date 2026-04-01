@@ -278,7 +278,7 @@ export default function WebmasterPage(){
     if(!broadcast.title.trim()||!broadcast.message.trim()){toast({title:"Title and message required",variant:"destructive"});return;}
     setSaving(true);
     try{
-      await sendSystemBroadcast(broadcast.title,broadcast.message,broadcast.type as any,broadcast.expires_in,broadcast.roles.length>0?broadcast.roles:undefined);
+      await sendSystemBroadcast({title:broadcast.title,message:broadcast.message,type:broadcast.type as any,expiresIn:broadcast.expires_in});
       toast({title:"Broadcast sent ✓"});
       setBroadcast(p=>({...p,title:"",message:""}));
     }catch(e:any){toast({title:"Failed",description:e.message,variant:"destructive"});}

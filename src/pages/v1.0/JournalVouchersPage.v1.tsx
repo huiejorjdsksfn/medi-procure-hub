@@ -38,8 +38,7 @@ export default function JournalVouchersPage() {
     ]);
     setRows(jv||[]); setCoa(c||[]);
     const m:any={}; (s||[]).forEach((x:any)=>{if(x.key)m[x.key]=x.value;});
-    if(m.hospital_name) setHospitalName(m.hospital_name);
-    if(m.system_logo_url) setLogoUrl(m.system_logo_url);
+    // hospitalName and logoUrl now handled by useSystemSettings
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
@@ -201,7 +200,7 @@ export default function JournalVouchersPage() {
                   <Plus style={{width:12,height:12}}/>Add Line
                 </button>
               </div>
-              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse",borderCollapse:"collapse"}}>
+              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
                 <thead><tr style={{background:"#eef2ff"}}>
                   {["Account Code","Account Name","Description","Debit","Credit",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}
                 </tr></thead>
