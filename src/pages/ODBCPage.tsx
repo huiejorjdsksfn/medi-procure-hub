@@ -257,7 +257,7 @@ export default function ODBCPage() {
                       <label  style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em"}}>Password</label>
                       <div style={{position:"relative"}}>
                         <input type={showPassInForm?"text":"password"} value={form.password||""} onChange={e=>setForm((p:any)=>({...p,password:e.target.value}))}
-                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",border:"1.5px solid #e5e7eb",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
+                          style={{width:"100%",padding:"8px 12px",paddingRight:40,borderRadius:10,fontSize:14,outline:"none",boxSizing:"border-box",border:"1px solid #e5e7eb",background:"#f9fafb"}}/>
                         <button onClick={()=>setShowPassInForm(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#9ca3af",background:"none",border:"none",cursor:"pointer"}}>
                           {showPassInForm?<EyeOff style={{width:16,height:16}}/>:<Eye style={{width:16,height:16}}/>}
                         </button>
