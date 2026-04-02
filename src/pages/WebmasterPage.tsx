@@ -12,8 +12,7 @@ import {
   LayoutDashboard, Layers, ShoppingCart, DollarSign, Search, Palette,
   Radio, Hash, Power, Sliders, UserCheck, Rss, Wrench, ChevronRight,
   HardDrive, Cpu, BookOpen, Calendar, Scale, FileCheck, Gavel, Truck,
-  PiggyBank, Building2, BookMarked, Receipt, Info, Send as SendIcon,
-} from "lucide-react";
+  PiggyBank, Building2, BookMarked, Receipt, Info, Send as SendIcon } from "lucide-react";
 import RoleGuard from "@/components/RoleGuard";
 
 // ── Section definitions ────────────────────────────────────────────────────
