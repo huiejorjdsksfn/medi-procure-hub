@@ -4,16 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+  Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Mail, Send, Loader2, Users, User, X, Search,
   CheckCheck, Forward, ChevronDown, Shield, Package,
-  Clipboard, Wrench, Info,
-} from "lucide-react";
+  Clipboard, Wrench, Info } from "lucide-react";
 
 // ─── Role metadata ────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { label: string; color: string; bg: string }> = {

@@ -3,68 +3,118 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: write
-
 env:
-  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
-  VITE_SUPABASE_PROJECT_ID: "yvjfehnzbzjliizjvuhq"
-  VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
-  VITE_SYSTEM_NAME: "EL5 MediProcure"
-  VITE_APP_VERSION: "2.1.0"
+  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 
 jobs:
-  # ── Windows 10/11 x64 — Node 20 (latest, recommended) ──────────
-  build-win-x64:
-    name: Windows 10/11 x64 (Node 20)
-    runs-on: windows-latest
+
+  web:
+    name: "Build Web — Vite (Ubuntu)"
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install deps
+        run: npm ci --no-audit --legacy-peer-deps
       - name: Write .env
-        shell: bash
         run: |
-          cat > .env << 'ENVEOF'
+          cat > .env << ENVEOF
           VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc
+          VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
           VITE_HOSPITAL_NAME=Embu Level 5 Hospital
           VITE_SYSTEM_NAME=EL5 MediProcure
           VITE_APP_VERSION=2.1.0
           ENVEOF
-      - run: npm install --legacy-peer-deps
-      - run: npm run build
-      - name: Build Electron x64
+      - name: Vite build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ env.SUPA_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPA_KEY }}
+          VITE_SUPABASE_PROJECT_ID: yvjfehnzbzjliizjvuhq
+          VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
+          VITE_SYSTEM_NAME: "EL5 MediProcure"
+      - name: Verify
+        run: |
+          ls -lh dist/
+          [ -f dist/index.html ] || (echo "dist/index.html missing!" && exit 1)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-main
+          path: dist/
+          retention-days: 1
+          if-no-files-found: error
+
+  build-win-x64:
+    name: "Windows 10/11 x64 (Node 20)"
+    runs-on: windows-latest
+    needs: web
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-main
+          path: dist/
+      - name: Install deps
+        shell: bash
+        run: npm ci --no-audit --legacy-peer-deps
+      - name: Set version
+        id: ver
+        shell: bash
+        run: |
+          VER="2.1.${{ github.run_number }}"
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='$VER';fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "Version: $VER"
+      - name: Build x64 EXE
+        shell: bash
+        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true"
-        run: npx electron-builder --win --x64 --config electron-builder.yml
+      - name: Rename EXE
+        shell: bash
+        run: |
+          cd dist-electron
+          EXE=$(ls *.exe 2>/dev/null | head -1)
+          [ -z "$EXE" ] && echo "No EXE!" && ls -la && exit 1
+          mv "$EXE" "ProcurBosse-v2.1.${{ github.run_number }}-Win10-x64-Setup.exe"
+          echo "EXE: $(ls *.exe)"
       - uses: actions/upload-artifact@v4
         with:
           name: win-x64
           path: dist-electron/*.exe
           retention-days: 30
+          if-no-files-found: error
 
-  # ── Windows 7/8 ia32 — Node 18 (legacy) ───────────────────────
   build-win-ia32:
-    name: Windows 7/8 ia32 Legacy (Node 18)
+    name: "Windows 7/8 ia32 Legacy (Node 18)"
     runs-on: windows-2019
+    needs: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '18', cache: 'npm' }
-      - name: Write .env
-        shell: bash
-        run: |
-          cat > .env << 'ENVEOF'
-          VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc
-          VITE_HOSPITAL_NAME=Embu Level 5 Hospital
-          VITE_SYSTEM_NAME=EL5 MediProcure
-          VITE_APP_VERSION=1.0.0
-          ENVEOF
+        with:
+          node-version: "18"
+          cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-main
+          path: dist/
       - name: Patch artifact name for ia32
         shell: python
         run: |
@@ -72,33 +122,44 @@ jobs:
           with open('electron-builder.yml') as f: c = f.read()
           c = re.sub(r'artifactName:.*', 'artifactName: "ProcurBosse-v1-Win7-ia32-Setup.exe"', c)
           with open('electron-builder.yml','w') as f: f.write(c)
-      - run: npm install --legacy-peer-deps
-      - run: npm run build
-      - name: Build Electron ia32
+      - name: Install deps
+        shell: bash
+        run: npm ci --no-audit --legacy-peer-deps
+      - name: Build ia32 EXE
+        shell: bash
+        run: npx electron-builder --win --ia32 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true"
-        run: npx electron-builder --win --ia32 --config electron-builder.yml
       - uses: actions/upload-artifact@v4
         with:
           name: win-ia32
           path: dist-electron/*.exe
           retention-days: 30
+          if-no-files-found: error
 
-  # ── GitHub Release ────────────────────────────────────────────
   release:
-    name: Publish GitHub Release
-    needs: [build-win-x64, build-win-ia32]
+    name: "Publish GitHub Release"
     runs-on: ubuntu-latest
+    needs: [build-win-x64, build-win-ia32]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: { name: win-x64, path: release/ }
+        with:
+          name: win-x64
+          path: release/
       - uses: actions/download-artifact@v4
-        with: { name: win-ia32, path: release/ }
-      - run: ls -lh release/
+        with:
+          name: win-ia32
+          path: release/
+      - name: List release files
+        run: ls -lh release/
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: "v2.1.0-build${{ github.run_number }}"
           name: "ProcurBosse v2.1.0 — EL5 MediProcure (Build ${{ github.run_number }})"
@@ -106,32 +167,24 @@ jobs:
             ## ProcurBosse v2.1.0 — Embu Level 5 Hospital ERP
 
             ### Downloads
+            | Installer | Platform | Arch | Notes |
+            |-----------|----------|------|-------|
+            | `ProcurBosse-v2.1.x-Win10-x64-Setup.exe` | Windows 10/11 | x64 | ✅ Recommended |
+            | `ProcurBosse-v1-Win7-ia32-Setup.exe` | Windows 7/8/10 | ia32 | Legacy |
 
-            | Installer | Platform | Architecture | Notes |
-            |-----------|----------|-------------|-------|
-            | `ProcurBosse-v2.1.0-x64-Setup.exe` | Windows 10/11 | x64 | ✅ Recommended |
-            | `ProcurBosse-v1-Win7-ia32-Setup.exe` | Windows 7/8/10 | ia32 | Legacy support |
+            ### What's included
+            - Accountant Workspace (Invoice Matching · ERP Sync · GL Journal)
+            - Reset Password page + Supabase SMTP email
+            - Redesigned Notifications (Image-1 card style with logo badge)
+            - ERP Wheel with 46+ module links and emoji icons
+            - Reception Module with Twilio SMS/calls
+            - IP Access Control v2 (active users · name resolution)
+            - All 80 pages: zero unclosed divs · zero TS build errors
 
-            ### What's in this build
-            - **Blank screen fixed** — login page always renders instantly
-            - **GUI Editor** — live color/font/layout editor, applies changes to entire app in real-time
-            - **Multi-location** — Runyenjes, Ishiara + 6 Embu County facilities
-            - **Twilio SMS** — Messaging Service SID activated, all procurement events notify via SMS
-            - **Email notifications** — SMTP + Resend API with branded Embu County HTML templates
-            - **Object codes** — Full registry of procurement, voucher, tender, inventory codes
-            - **Print engine** — Requisitions, LPOs, GRNs, Payment Vouchers with official letterhead
-            - **Excel exports** — All modules export formatted Excel with headers and signatories
-            - **PWA** — Install on mobile/desktop as app
-
-            ### Installation
-            1. Download the correct EXE for your Windows version
-            2. Run as Administrator
-            3. Desktop shortcut created automatically
-            4. Requires internet connection to Supabase backend
+            **Commit:** `${{ github.sha }}` | **Build:** #${{ github.run_number }}
 
             ---
             *Embu County Government · Department of Health · Procurement Division*
           files: release/*
           draft: false
           prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}

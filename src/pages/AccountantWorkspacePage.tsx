@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type Tab = "workspace"|"invoice_matching"|"payments"|"budget"|"erp_sync"|"journal"|"quotations";
 
