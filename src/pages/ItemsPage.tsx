@@ -83,7 +83,7 @@ export default function ItemsPage() {
     if(form.quantity_in_stock!==undefined&&Number(form.quantity_in_stock)<0){toast({title:"Stock quantity cannot be negative",variant:"destructive"});return;}
     if(form.reorder_level!==undefined&&Number(form.reorder_level)<0){toast({title:"Reorder level cannot be negative",variant:"destructive"});return;}
     setSaving(true);
-    const payload={...form,unit_price:Number(form.unit_price)||0,quantity_in_stock:Number(form.quantity_in_stock)||0,reorder_level:Number(form.reorder_level)||10,category_id:form.category_id||null};
+    const payload:any={...form,unit_price:Number(form.unit_price)||0,quantity_in_stock:Number(form.quantity_in_stock)||0,reorder_level:Number(form.reorder_level)||10,cost_price:Number(form.cost_price)||0,shelf_life_days:form.shelf_life_days?Number(form.shelf_life_days):null,category_id:form.category_id||null,supplier_id:form.supplier_id||null};
     try{
       if(editing){
         const{error}=await supabase.from("items").update(payload).eq("id",editing.id);

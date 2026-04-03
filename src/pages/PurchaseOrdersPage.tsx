@@ -221,8 +221,8 @@ export default function PurchaseOrdersPage() {
   };
 
   /* ── Print ── */
-  const printLPO = (po:any) => {
-    printLPO(po, {
+  const handlePrintLPO = (po:any) => {
+    printLPODoc(po, {
       hospitalName:   getSetting("hospital_name","Embu Level 5 Hospital"),
       sysName:        getSetting("system_name","EL5 MediProcure"),
       docFooter:      getSetting("doc_footer","Embu Level 5 Hospital · Embu County Government"),
