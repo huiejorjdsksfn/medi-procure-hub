@@ -64,7 +64,7 @@ export default function AccountantWorkspacePage() {
 
     setSyncQueue(syncs || []);
     setInvoiceMatches(invoices || []);
-    setBudgetAlerts(alerts || []);
+    setBudgetAlerts((alerts || []).map((a: any) => ({ ...a, message: a.alert_type || '', severity: a.status || 'warning' })));
     setQuotations(quotes || []);
     setGlEntries(gl || []);
     setSupplierList(suppliers || []);
@@ -86,12 +86,12 @@ export default function AccountantWorkspacePage() {
   async function triggerManualSync() {
     setSyncing(true);
     const { error } = await supabase.from("erp_sync_queue").insert({
-      entity_type: "manual_sync",
+      sync_type: "manual_sync",
       direction: "push",
       status: "pending",
       is_manual: true,
       payload: { triggered_by: "accountant_workspace", timestamp: new Date().toISOString() },
-    });
+    } as any);
     setSyncing(false);
     if (!error) showToast("Manual sync queued successfully!");
     else showToast("Error queuing sync: " + error.message);
@@ -721,6 +721,6 @@ export default function AccountantWorkspacePage() {
         select option { background: #1a2744; color: #fff; }
       `}</style>
     </div>
-    </div>
   );
 }
+

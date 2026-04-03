@@ -94,8 +94,8 @@ export default function ContractsPage() {
     if(!form.start_date){toast({title:"Start date is required",variant:"destructive"});return;}
     if(!form.end_date){toast({title:"End date is required",variant:"destructive"});return;}
     if(form.start_date&&form.end_date&&new Date(form.end_date)<=new Date(form.start_date)){toast({title:"End date must be after start date",variant:"destructive"});return;}
-    if(form.value&&isNaN(Number(form.value))){toast({title:"Contract value must be a number",variant:"destructive"});return;}
-    if(form.value&&Number(form.value)<0){toast({title:"Contract value cannot be negative",variant:"destructive"});return;}
+    if(form.total_value&&isNaN(Number(form.total_value))){toast({title:"Contract value must be a number",variant:"destructive"});return;}
+    if(form.total_value&&Number(form.total_value)<0){toast({title:"Contract value cannot be negative",variant:"destructive"});return;}
     setSaving(true);
     const sup = suppliers.find(s=>s.id===form.supplier_id);
     const payload={...form,contract_number:form.contract_number||genNo(),total_value:parseFloat(form.total_value)||0,performance_score:parseInt(form.performance_score)||0,created_by:user?.id,supplier_name:sup?.name};
@@ -261,7 +261,7 @@ export default function ContractsPage() {
                 </div>
                 <div style={{gridColumn:"span 2"}}><LBL>Title *</LBL>{INP(form.title,v=>setForm(p=>({...p,title:v})),"Contract title / scope")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Supplier</LBL>
-                  <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
+                  <select value={form.supplier_id||""} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
                     <option value="">Select supplier...</option>
                     {supOpts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>

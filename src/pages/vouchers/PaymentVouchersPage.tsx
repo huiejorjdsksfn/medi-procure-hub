@@ -68,11 +68,11 @@ export default function PaymentVouchersPage() {
   const save = async () => {
     if(!form.payee_name?.trim()){toast({title:"Payee name is required",variant:"destructive"});return;}
     if(!form.voucher_date){toast({title:"Voucher date is required",variant:"destructive"});return;}
-    if(form.total_amount!==undefined&&Number(form.total_amount)<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
     const validLines=form.line_items.filter(l=>l.description.trim());
     if(!validLines.length){toast({title:"Add at least one line item",variant:"destructive"});return;}
-    setSaving(true);
     const total=lineTotal(validLines);
+    if(total<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
+    setSaving(true);
     const sup=suppliers.find(s=>s.id===form.supplier_id);
     const payload={voucher_number:genNo(),payee_name:form.payee_name||(sup?.name||""),payee_type:form.payee_type,supplier_id:form.supplier_id||null,payment_method:form.payment_method,voucher_date:form.voucher_date,bank_name:form.bank_name||(sup?.bank_name||""),account_number:form.account_number||(sup?.account_number||""),reference:form.reference,description:form.description,expense_account:form.expense_account,line_items:validLines,total_amount:total,status:"pending",prepared_by:user?.id,prepared_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("payment_vouchers").insert(payload).select().single();
@@ -243,7 +243,7 @@ export default function PaymentVouchersPage() {
                   </div>
                   {form.payee_type==="supplier"?(
                     <div style={{gridColumn:"span 2"}}><LBL>Select Supplier</LBL>
-                      <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,payee_name:s?.name||"",bank_name:s?.bank_name||"",account_number:s?.account_number||""}));}} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
+                      <select value={form.supplier_id||""} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,payee_name:s?.name||"",bank_name:s?.bank_name||"",account_number:s?.account_number||""}));}} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
                         <option value="">Select supplier...</option>
                         {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
@@ -369,7 +369,7 @@ export default function PaymentVouchersPage() {
             <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e5e7eb"}}>
               <span style={{fontSize:13,fontWeight:700}}>Payment Voucher</span>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>printPaymentVoucher(viewVoucher, {
+                <button onClick={()=>printPaymentVoucher(detail, {
                     hospitalName: getSetting('hospital_name','Embu Level 5 Hospital'),
                     sysName: getSetting('system_name','EL5 MediProcure'),
                     docFooter: getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),

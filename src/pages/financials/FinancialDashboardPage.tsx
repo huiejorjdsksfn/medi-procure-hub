@@ -515,7 +515,7 @@ export default function FinancialDashboardPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 190 }} onClick={() => setMenuOpen(null)}/>
       )}
     </div>
-    </div>
   );
 }
+
 

@@ -221,7 +221,7 @@ export default function PurchaseOrdersPage() {
   };
 
   /* ── Print ── */
-  const printLPO = (po:any) => {
+  const handlePrintLPO = (po:any) => {
     printLPO(po, {
       hospitalName:   getSetting("hospital_name","Embu Level 5 Hospital"),
       sysName:        getSetting("system_name","EL5 MediProcure"),
@@ -690,6 +690,5 @@ export default function PurchaseOrdersPage() {
         </div>
       )}
     </div>
-      </div>
   );
 }

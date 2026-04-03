@@ -314,13 +314,15 @@ serve(async (req: Request) => {
     }
 
     // ── 3. Internal queue fallback ────────────────────────────
-    await sb.from("notifications").insert({
-      title:      `[QUEUED EMAIL] ${subject}`,
-      message:    textBody.slice(0, 500),
-      type:       "email",
-      status:     "pending",
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await sb.from("notifications").insert({
+        title:      `[QUEUED EMAIL] ${subject}`,
+        message:    textBody.slice(0, 500),
+        type:       "email",
+        status:     "pending",
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) { /* non-fatal */ }
     await logEmail(payload, "queued", "internal");
 
     return new Response(JSON.stringify({

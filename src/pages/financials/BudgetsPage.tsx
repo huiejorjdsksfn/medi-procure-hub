@@ -169,11 +169,11 @@ export default function BudgetsPage() {
               {[["Budget Name *","budget_name","",2],["Financial Year","financial_year","",1],["Allocated Amount (KES) *","allocated_amount","number",1]].map(([l,k,t,span])=>(
                 <div key={k} style={{gridColumn:`span ${span}`}}>
                   <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                  <input type={String(t)||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                 </div>
               ))}
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
-                <select value={form.department_name||form.department||form.department_id||"—"} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
+                <select value={form.department_name||form.department_id||""} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
                   <option value="">— Select —</option>
                   {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
@@ -203,8 +203,7 @@ export default function BudgetsPage() {
         </div>
       )}
     </div>
-  </div>
-    </div>
     </div>
   );
 }
+
