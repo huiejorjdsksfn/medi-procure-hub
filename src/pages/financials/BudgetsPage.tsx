@@ -205,6 +205,5 @@ export default function BudgetsPage() {
     </div>
   </div>
     </div>
-    </div>
   );
 }

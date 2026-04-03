@@ -245,6 +245,6 @@ export default function SalesVouchersPage() {
       )}
     </div>
   </div>
-  </div>
   );
 }
+
