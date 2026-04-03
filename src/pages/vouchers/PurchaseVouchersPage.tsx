@@ -239,6 +239,6 @@ export default function PurchaseVouchersPage() {
       )}
     </div>
   </div>
-  </div>
   );
 }
+

@@ -444,7 +444,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
           </button>
         </div>
     </>
-        </div>
   );
 }
+
 

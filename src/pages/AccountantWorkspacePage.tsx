@@ -721,6 +721,6 @@ export default function AccountantWorkspacePage() {
         select option { background: #1a2744; color: #fff; }
       `}</style>
     </div>
-    </div>
   );
 }
+
