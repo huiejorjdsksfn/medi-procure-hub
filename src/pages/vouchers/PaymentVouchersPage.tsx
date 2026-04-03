@@ -68,12 +68,11 @@ export default function PaymentVouchersPage() {
   const save = async () => {
     if(!form.payee_name?.trim()){toast({title:"Payee name is required",variant:"destructive"});return;}
     if(!form.voucher_date){toast({title:"Voucher date is required",variant:"destructive"});return;}
-    const total = lineTotal(form.line_items);
-    if(total<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
     const validLines=form.line_items.filter(l=>l.description.trim());
     if(!validLines.length){toast({title:"Add at least one line item",variant:"destructive"});return;}
-    setSaving(true);
     const total=lineTotal(validLines);
+    if(total<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
+    setSaving(true);
     const sup=suppliers.find(s=>s.id===form.supplier_id);
     const payload={voucher_number:genNo(),payee_name:form.payee_name||(sup?.name||""),payee_type:form.payee_type,supplier_id:form.supplier_id||null,payment_method:form.payment_method,voucher_date:form.voucher_date,bank_name:form.bank_name||(sup?.bank_name||""),account_number:form.account_number||(sup?.account_number||""),reference:form.reference,description:form.description,expense_account:form.expense_account,line_items:validLines,total_amount:total,status:"pending",prepared_by:user?.id,prepared_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("payment_vouchers").insert(payload).select().single();
