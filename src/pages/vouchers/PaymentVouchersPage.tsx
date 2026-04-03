@@ -370,7 +370,7 @@ export default function PaymentVouchersPage() {
             <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e5e7eb"}}>
               <span style={{fontSize:13,fontWeight:700}}>Payment Voucher</span>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>printPaymentVoucher(viewVoucher, {
+                <button onClick={()=>printPaymentVoucher(detail, {
                     hospitalName: getSetting('hospital_name','Embu Level 5 Hospital'),
                     sysName: getSetting('system_name','EL5 MediProcure'),
                     docFooter: getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
