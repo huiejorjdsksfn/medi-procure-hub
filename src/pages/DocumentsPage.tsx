@@ -1,20 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import logoImg from "@/assets/logo.png";
-import { useNavigate } from "react-router-dom";
 import {
   FileText, Upload, Eye, Download, Search, X, Plus, Filter,
   Printer, RefreshCw, Edit3, Trash2, FileCheck, Settings, Save,
   ChevronDown, Shield, CheckCircle, AlertTriangle, Image, Code,
-  Pen, Copy, Lock, Unlock, FileSpreadsheet, BookOpen, ClipboardList
+  Pen, Copy, Lock, Unlock, FileSpreadsheet, BookOpen
 } from "lucide-react";
 
 const CATS = ["all","general","policy","template","contract","report","letter","form","procedure","system"];

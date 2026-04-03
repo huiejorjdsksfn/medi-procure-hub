@@ -12,7 +12,8 @@ import {
   PiggyBank, Layers, Receipt, BookMarked, Calendar, Scale,
   Search, Mail, Activity, Menu, X, UserCircle, ChevronRight,
   Globe, Archive, TrendingUp, LayoutDashboard, Sliders, Eye,
-  Cpu, Home, AlertTriangle, Wrench, Code2, Bug, CreditCard
+  Cpu, Home, AlertTriangle, Wrench, Code2, Bug, CreditCard,
+  Palette, Phone, MessageSquare
 } from "lucide-react";
 
 /* ─── Module colour palette (D365 tile colours) ─── */
@@ -525,7 +526,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
-    </div>
   );
 }
+
 

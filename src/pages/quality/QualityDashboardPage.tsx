@@ -383,8 +383,8 @@ export default function QualityDashboardPage() {
                   <td style={{...tdBase,background:"#dce6f1",fontWeight:700}}>{i+1}</td>
                   {/* Supplier */}
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.supplier_name} placeholder="Supplier..."
-                      onChange={e=>updIQC(i,"supplier_name",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.supplier_name} placeholder="Supplier..."
+                      onChange={e=>updIQC(i,"supplier_name",e.target.value)}/>
                   </td>
                   {/* Item Code */}
                   <td style={{...tdBase,padding:0}}>
@@ -404,8 +404,8 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* Problem Description */}
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.problem_description} placeholder="Describe issue..."
-                      onChange={e=>updIQC(i,"problem_description",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.problem_description} placeholder="Describe issue..."
+                      onChange={e=>updIQC(i,"problem_description",e.target.value)}/>
                   </td>
                   {/* Severity */}
                   <td style={{...tdBase,padding:0}}>
@@ -433,13 +433,13 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* Proposed Actions */}
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.proposed_actions} placeholder="Action..."
-                      onChange={e=>updIQC(i,"proposed_actions",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.proposed_actions} placeholder="Action..."
+                      onChange={e=>updIQC(i,"proposed_actions",e.target.value)}/>
                   </td>
                   {/* Corrective Actions */}
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.corrective_action} placeholder="Corrective..."
-                      onChange={e=>updIQC(i,"corrective_action",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.corrective_action} placeholder="Corrective..."
+                      onChange={e=>updIQC(i,"corrective_action",e.target.value)}/>
                   </td>
                   {/* SCAR Required */}
                   <td style={{...tdBase,padding:0}}>
@@ -573,8 +573,8 @@ export default function QualityDashboardPage() {
                       onChange={e=>updLQC(i,"line",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.defect_type} placeholder="Defect type..."
-                      onChange={e=>updLQC(i,"defect_type",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.defect_type} placeholder="Defect type..."
+                      onChange={e=>updLQC(i,"defect_type",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0}}>
                     <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} type="number" min={0} value={row.qty_rejected} placeholder="0"
@@ -587,12 +587,12 @@ export default function QualityDashboardPage() {
                       onChange={e=>updLQC(i,"rejection_rate",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.root_cause} placeholder="Root cause..."
-                      onChange={e=>updLQC(i,"root_cause",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.root_cause} placeholder="Root cause..."
+                      onChange={e=>updLQC(i,"root_cause",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.corrective_action} placeholder="Corrective action..."
-                      onChange={e=>updLQC(i,"corrective_action",e.target.value)} style={{textAlign:"left",paddingLeft:4}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.corrective_action} placeholder="Corrective action..."
+                      onChange={e=>updLQC(i,"corrective_action",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0,
                     background:row.status?(STATUS_BG[row.status]||"#fff"):"#fff"}}>
