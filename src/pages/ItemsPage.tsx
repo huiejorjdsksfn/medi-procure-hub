@@ -72,10 +72,10 @@ export default function ItemsPage() {
 
   const openEdit=(it:any)=>{
     setEditing(it);
-    setForm({name:it.name||"",sku:it.sku||"",item_type:it.item_type||"pharmaceutical",category_id:it.category_id||"",unit_price:String(it.unit_price||""),quantity_in_stock:String(it.quantity_in_stock||""),reorder_level:String(it.reorder_level||10),unit_of_measure:it.unit_of_measure||"",description:it.description||"",status:it.status||"active"});
+    setForm({...form, name:it.name||"",sku:it.sku||"",item_type:it.item_type||"pharmaceutical",category_id:it.category_id||"",unit_price:String(it.unit_price||""),quantity_in_stock:String(it.quantity_in_stock||""),reorder_level:String(it.reorder_level||10),unit_of_measure:it.unit_of_measure||"",description:it.description||"",status:it.status||"active",brand:it.brand||"",manufacturer:it.manufacturer||"",country_of_origin:it.country_of_origin||"",storage_conditions:it.storage_conditions||"",shelf_life_days:String(it.shelf_life_days||""),batch_number:it.batch_number||"",expiry_date:it.expiry_date||"",supplier_id:it.supplier_id||"",cost_price:String(it.cost_price||""),location_in_store:it.location_in_store||"",is_controlled:it.is_controlled||false,is_consumable:it.is_consumable!==false,notes:it.notes||""});
     setShowForm(true);
   };
-  const openCreate=()=>{ setEditing(null); setForm({name:"",sku:"",item_type:"pharmaceutical",category_id:"",unit_price:"",quantity_in_stock:"",reorder_level:"10",unit_of_measure:"",description:"",status:"active"}); setShowForm(true); };
+  const openCreate=()=>{ setEditing(null); setForm({name:"",sku:"",item_type:"pharmaceutical",category_id:"",unit_price:"",quantity_in_stock:"",reorder_level:"10",unit_of_measure:"",description:"",status:"active",brand:"",manufacturer:"",country_of_origin:"",storage_conditions:"",shelf_life_days:"",batch_number:"",expiry_date:"",supplier_id:"",cost_price:"",location_in_store:"",is_controlled:false,is_consumable:true,notes:""}); setShowForm(true); };
 
   const save=async()=>{
     if(!form.name.trim()){toast({title:"Item name is required",variant:"destructive"});return;}
