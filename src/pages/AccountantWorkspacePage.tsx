@@ -86,12 +86,12 @@ export default function AccountantWorkspacePage() {
   async function triggerManualSync() {
     setSyncing(true);
     const { error } = await supabase.from("erp_sync_queue").insert({
-      entity_type: "manual_sync",
+      sync_type: "manual_sync",
       direction: "push",
       status: "pending",
       is_manual: true,
       payload: { triggered_by: "accountant_workspace", timestamp: new Date().toISOString() },
-    });
+    } as any);
     setSyncing(false);
     if (!error) showToast("Manual sync queued successfully!");
     else showToast("Error queuing sync: " + error.message);
