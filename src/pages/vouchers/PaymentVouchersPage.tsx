@@ -244,7 +244,7 @@ export default function PaymentVouchersPage() {
                   </div>
                   {form.payee_type==="supplier"?(
                     <div style={{gridColumn:"span 2"}}><LBL>Select Supplier</LBL>
-                      <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,payee_name:s?.name||"",bank_name:s?.bank_name||"",account_number:s?.account_number||""}));}} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
+                      <select value={form.supplier_id||""} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,payee_name:s?.name||"",bank_name:s?.bank_name||"",account_number:s?.account_number||""}));}} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
                         <option value="">Select supplier...</option>
                         {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
