@@ -107,7 +107,7 @@ export default function ODBCPage() {
         await (supabase as any).from("external_connections").insert([{...payload,status:"inactive",created_at:new Date().toISOString()}]);
         toast({ title:"Connection added" });
       }
-      await logAudit(editing?"update_connection":"create_connection",{name:form.name});
+      await logAudit(user?.id, profile?.full_name, editing?"update_connection":"create_connection", "odbc", undefined, {name:form.name});
       setShowForm(false); setEditing(null); setForm(EMPTY_FORM);
       load();
     } finally { setSaving(false); }
