@@ -64,7 +64,7 @@ export default function AccountantWorkspacePage() {
 
     setSyncQueue(syncs || []);
     setInvoiceMatches(invoices || []);
-    setBudgetAlerts(alerts || []);
+    setBudgetAlerts((alerts || []).map((a: any) => ({ ...a, message: a.alert_type || '', severity: a.status || 'warning' })));
     setQuotations(quotes || []);
     setGlEntries(gl || []);
     setSupplierList(suppliers || []);
