@@ -68,7 +68,8 @@ export default function PaymentVouchersPage() {
   const save = async () => {
     if(!form.payee_name?.trim()){toast({title:"Payee name is required",variant:"destructive"});return;}
     if(!form.voucher_date){toast({title:"Voucher date is required",variant:"destructive"});return;}
-    if(form.total_amount!==undefined&&Number(form.total_amount)<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
+    const total = lineTotal(form.line_items);
+    if(total<=0){toast({title:"Total amount must be greater than zero",variant:"destructive"});return;}
     const validLines=form.line_items.filter(l=>l.description.trim());
     if(!validLines.length){toast({title:"Add at least one line item",variant:"destructive"});return;}
     setSaving(true);
