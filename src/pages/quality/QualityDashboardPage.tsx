@@ -451,11 +451,8 @@ export default function QualityDashboardPage() {
                   {/* Status */}
                   <td style={{...tdBase,padding:0,
                     background: row.status ? (STATUS_BG[row.status]||"#fff") : "#fff"}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:"#111827"}} value={row.status}
-                      onChange={e=>updIQC(i,"status",e.target.value)}
-                      style={{color: row.status ? (STATUS_COL[row.status]||"#1a1a2e") : "#9ca3af",
-                              fontWeight:row.status?700:400,
-                              background:"#f8fafc"}}>
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:row.status?(STATUS_COL[row.status]||"#1a1a2e"):"#9ca3af",fontWeight:row.status?700:400}} value={row.status}
+                      onChange={e=>updIQC(i,"status",e.target.value)}>
                       <option value="">—</option>
                       <option value="open">Open</option>
                       <option value="under_review">Under Review</option>
