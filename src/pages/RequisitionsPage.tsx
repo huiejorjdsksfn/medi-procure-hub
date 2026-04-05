@@ -14,21 +14,18 @@ import {
   Download, Edit3, ChevronDown
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { notifyProcurement, sendNotification, triggerRequisitionEvent } from "@/lib/notify";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
+import {
+  executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
+  generateRequisitionNumber, type RequisitionAction
+} from "@/lib/procurement/requisitionWorkflow";
 
 // ── Status config ────────────────────────────────────────────────────────────
-const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = {
-  draft:     {bg:"#f1f5f9",      color:"#475569", border:"#cbd5e1", label:"Draft",     dot:"#94a3b8"},
-  submitted: {bg:"#dbeafe",      color:"#1d4ed8", border:"#93c5fd", label:"Submitted", dot:"#3b82f6"},
-  pending:   {bg:"#fef9c3",      color:"#854d0e", border:"#fde047", label:"Pending",   dot:"#eab308"},
-  approved:  {bg:"#dcfce7",      color:"#15803d", border:"#86efac", label:"Approved",  dot:"#22c55e"},
-  rejected:  {bg:"#fee2e2",      color:"#dc2626", border:"#fca5a5", label:"Rejected",  dot:"#ef4444"},
-  ordered:   {bg:"#e0f2fe",      color:"#0369a1", border:"#7dd3fc", label:"Ordered",   dot:"#0ea5e9"},
-  received:  {bg:"#d1fae5",      color:"#065f46", border:"#6ee7b7", label:"Received",  dot:"#10b981"},
-};
+const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = Object.fromEntries(
+  Object.entries(STATUS_CONFIG).map(([k, v]) => [k, { ...v, border: v.bg }])
+) as any;
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 const CARD_STYLE: React.CSSProperties = {
@@ -90,32 +87,25 @@ export default function RequisitionsPage() {
   },[load]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
-  async function approve(id:string){
-    const req=reqs.find(r=>r.id===id);
-    await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",id);
-    logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
-    triggerRequisitionEvent("approved", id, { approvedBy: user?.id }).catch(()=>{});
-    toast({title:"✅ Requisition Approved"});
-    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Approved ✓",message:`Your requisition "${req.title||req.requisition_number}" has been approved.`,type:"success",module:"Procurement",actionUrl:"/requisitions"});
+  async function handleAction(id: string, action: RequisitionAction, reason?: string) {
+    const result = await executeRequisitionAction(id, action, user?.id || '', profile?.full_name || '', { reason });
+    if (result.success) {
+      toast({ title: `Requisition ${action}${action.endsWith('e') ? 'd' : 'ed'} ✓` });
+    } else {
+      toast({ title: `Action failed`, description: result.error, variant: 'destructive' });
+    }
     load();
   }
 
-  async function rejectConfirm(){
-    if(!rejectId) return;
-    const req=reqs.find(r=>r.id===rejectId);
-    await (supabase as any).from("requisitions").update({status:"rejected",rejection_reason:rejectReason||"Rejected by manager"}).eq("id",rejectId);
-    logAudit(user?.id,profile?.full_name,"reject","requisitions",rejectId,{reason:rejectReason});
-    toast({title:"Requisition rejected"});
-    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Rejected",message:`Your requisition "${req.title||req.requisition_number}" was rejected. Reason: ${rejectReason||"See manager"}`,type:"error",module:"Procurement",actionUrl:"/requisitions"});
-    setRejectId(null); setRejectReason(""); load();
+  async function approve(id: string) { await handleAction(id, 'approve'); }
+
+  async function rejectConfirm() {
+    if (!rejectId) return;
+    await handleAction(rejectId, 'reject', rejectReason || 'Rejected by manager');
+    setRejectId(null); setRejectReason("");
   }
 
-  async function submit(id:string){
-    await (supabase as any).from("requisitions").update({status:"submitted"}).eq("id",id);
-    toast({title:"Requisition submitted for approval"});
-    await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted a requisition`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
-    load();
-  }
+  async function submit(id: string) { await handleAction(id, 'submit'); }
 
   async function save(){
     if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { notifyProcurement } from "@/lib/notify";
+import { executePOAction, type POAction } from "@/lib/procurement/poWorkflow";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printLPO } from "@/lib/printDocument";
 import { useSuppliers, useDepartments } from "@/hooks/useDropdownData";
@@ -195,30 +196,19 @@ export default function PurchaseOrdersPage() {
   const closeForm = () => { setShowForm(false); setEditing(null); setErrors({}); };
 
   /* ── Approve / Cancel ── */
-  const approve = async (id:string) => {
-    const po = orders.find(o=>o.id===id);
-    const { error } = await (supabase as any).from("purchase_orders")
-      .update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);
-    if (error) { toast({title:"Approve failed",description:error.message,variant:"destructive"}); return; }
-    logAudit(user?.id,profile?.full_name,"approve","purchase_orders",id,{});
-    toast({title:"Purchase Order Approved ✓"});
-    await notifyProcurement({
-      title:"PO Approved ✓",
-      message:`PO ${po?.po_number||id.slice(0,8)} approved by ${profile?.full_name||"Manager"}`,
-      type:"procurement", module:"PO", actionUrl:"/purchase-orders",
-    });
+  const handlePOAction = async (id: string, action: POAction) => {
+    if (action === 'cancel' && !confirm("Cancel this Purchase Order?")) return;
+    const result = await executePOAction(id, action, user?.id || '', profile?.full_name || '');
+    if (result.success) {
+      toast({ title: `PO ${action}${action.endsWith('e') ? 'd' : 'ed'} ✓` });
+    } else {
+      toast({ title: "Action failed", description: result.error, variant: "destructive" });
+    }
     load();
   };
 
-  const cancelPO = async (id:string) => {
-    if (!confirm("Cancel this Purchase Order?")) return;
-    const { error } = await (supabase as any).from("purchase_orders")
-      .update({status:"cancelled"}).eq("id",id);
-    if (error) { toast({title:"Cancel failed",description:error.message,variant:"destructive"}); return; }
-    logAudit(user?.id,profile?.full_name,"cancel","purchase_orders",id,{});
-    toast({title:"Purchase Order cancelled"});
-    load();
-  };
+  const approve = (id: string) => handlePOAction(id, 'approve');
+  const cancelPO = (id: string) => handlePOAction(id, 'cancel');
 
   /* ── Print ── */
   const handlePrintLPO = (po:any) => {
