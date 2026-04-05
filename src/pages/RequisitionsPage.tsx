@@ -87,32 +87,25 @@ export default function RequisitionsPage() {
   },[load]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
-  async function approve(id:string){
-    const req=reqs.find(r=>r.id===id);
-    await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",id);
-    logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
-    triggerRequisitionEvent("approved", id, { approvedBy: user?.id }).catch(()=>{});
-    toast({title:"✅ Requisition Approved"});
-    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Approved ✓",message:`Your requisition "${req.title||req.requisition_number}" has been approved.`,type:"success",module:"Procurement",actionUrl:"/requisitions"});
+  async function handleAction(id: string, action: RequisitionAction, reason?: string) {
+    const result = await executeRequisitionAction(id, action, user?.id || '', profile?.full_name || '', { reason });
+    if (result.success) {
+      toast({ title: `Requisition ${action}${action.endsWith('e') ? 'd' : 'ed'} ✓` });
+    } else {
+      toast({ title: `Action failed`, description: result.error, variant: 'destructive' });
+    }
     load();
   }
 
-  async function rejectConfirm(){
-    if(!rejectId) return;
-    const req=reqs.find(r=>r.id===rejectId);
-    await (supabase as any).from("requisitions").update({status:"rejected",rejection_reason:rejectReason||"Rejected by manager"}).eq("id",rejectId);
-    logAudit(user?.id,profile?.full_name,"reject","requisitions",rejectId,{reason:rejectReason});
-    toast({title:"Requisition rejected"});
-    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Rejected",message:`Your requisition "${req.title||req.requisition_number}" was rejected. Reason: ${rejectReason||"See manager"}`,type:"error",module:"Procurement",actionUrl:"/requisitions"});
-    setRejectId(null); setRejectReason(""); load();
+  async function approve(id: string) { await handleAction(id, 'approve'); }
+
+  async function rejectConfirm() {
+    if (!rejectId) return;
+    await handleAction(rejectId, 'reject', rejectReason || 'Rejected by manager');
+    setRejectId(null); setRejectReason("");
   }
 
-  async function submit(id:string){
-    await (supabase as any).from("requisitions").update({status:"submitted"}).eq("id",id);
-    toast({title:"Requisition submitted for approval"});
-    await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted a requisition`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
-    load();
-  }
+  async function submit(id: string) { await handleAction(id, 'submit'); }
 
   async function save(){
     if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}
