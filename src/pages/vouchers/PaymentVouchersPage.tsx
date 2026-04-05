@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement, triggerVoucherEvent } from "@/lib/notify";
+import { executeVoucherAction, type VoucherAction } from "@/lib/procurement/voucherWorkflow";
 import { Plus, Search, RefreshCw, Eye, Printer, Download, X, Save, CheckCircle, XCircle, DollarSign, Trash2 } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
 import * as XLSX from "xlsx";
@@ -83,18 +84,18 @@ export default function PaymentVouchersPage() {
     setShowNew(false); setForm({payee_name:"",payee_type:"supplier",supplier_id:"",payment_method:"EFT/Bank Transfer",voucher_date:new Date().toISOString().split("T")[0],bank_name:"",account_number:"",reference:"",description:"",expense_account:EXPENSE_ACCOUNTS[0],line_items:[emptyLine()]}); load(); setSaving(false);
   };
 
-  const approve = async (v:any) => {
-    await(supabase as any).from("payment_vouchers").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",v.id);
-    toast({title:"Approved ✓"}); load();
+  const handleVoucherAction = async (v: any, action: VoucherAction, reason?: string) => {
+    const result = await executeVoucherAction('payment_vouchers', v.id, action, user?.id || '', profile?.full_name || '', { reason });
+    if (result.success) {
+      toast({ title: `Voucher ${action}${action.endsWith('e') ? 'd' : 'ed'} ✓` });
+    } else {
+      toast({ title: "Action failed", description: result.error, variant: "destructive" });
+    }
+    load();
   };
-  const reject_ = async (v:any) => {
-    await(supabase as any).from("payment_vouchers").update({status:"rejected"}).eq("id",v.id);
-    toast({title:"Rejected"}); load();
-  };
-  const markPaid = async (v:any) => {
-    await(supabase as any).from("payment_vouchers").update({status:"paid",paid_at:new Date().toISOString(),paid_by:profile?.full_name}).eq("id",v.id);
-    toast({title:"Marked as paid ✓"}); load();
-  };
+  const approve = (v: any) => handleVoucherAction(v, 'approve');
+  const reject_ = (v: any) => handleVoucherAction(v, 'reject', 'Rejected by approver');
+  const markPaid = (v: any) => handleVoucherAction(v, 'pay');
 
   const updLine=(i:number,k:string,v:string)=>{
     setForm(p=>{
