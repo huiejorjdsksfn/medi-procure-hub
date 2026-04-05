@@ -408,10 +408,8 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* Severity */}
                   <td style={{...tdBase,padding:0}}>
-                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:"#111827"}} value={row.severity}
-                      onChange={e=>updIQC(i,"severity",e.target.value)}
-                      style={{color:row.severity ? SEV_COL[row.severity]||"#1a1a2e" : "#9ca3af",
-                              fontWeight:row.severity?700:400}}>
+                    <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:row.severity ? SEV_COL[row.severity]||"#1a1a2e" : "#9ca3af",fontWeight:row.severity?700:400}} value={row.severity}
+                      onChange={e=>updIQC(i,"severity",e.target.value)}>
                       <option value="">—</option>
                       <option value="critical">Critical</option>
                       <option value="major">Major</option>
