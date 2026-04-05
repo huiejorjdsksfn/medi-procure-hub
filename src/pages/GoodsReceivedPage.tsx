@@ -8,6 +8,7 @@ import { Package, Plus, RefreshCw, Search, Eye, Printer, X, Save, CheckCircle, T
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printGRN } from "@/lib/printDocument";
 import { triggerGrnEvent } from "@/lib/notify";
+import { executeGRNAction, generateGRNNumber, type GRNAction } from "@/lib/procurement/grnWorkflow";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   pending:    {bg:"#fef3c7",color:"#92400e",label:"Pending"},
