@@ -497,9 +497,8 @@ export default function QualityDashboardPage() {
                               onChange={e=>updPend(i,"date_of_rejection",e.target.value)}/>
                           </td>
                           <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                            <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.reason_for_pendency} placeholder="Reason..."
-                              onChange={e=>updPend(i,"reason_for_pendency",e.target.value)}
-                              style={{textAlign:"left",paddingLeft:4}}/>
+                            <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"left",color:"#111827",boxSizing:"border-box" as const,paddingLeft:4}} value={row.reason_for_pendency} placeholder="Reason..."
+                              onChange={e=>updPend(i,"reason_for_pendency",e.target.value)}/>
                           </td>
                           <td style={{...tdBase,padding:0}}>
                             <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.responsible} placeholder="Name..."
