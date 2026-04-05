@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { notifyProcurement } from "@/lib/notify";
+import { executePOAction, type POAction } from "@/lib/procurement/poWorkflow";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printLPO } from "@/lib/printDocument";
 import { useSuppliers, useDepartments } from "@/hooks/useDropdownData";
