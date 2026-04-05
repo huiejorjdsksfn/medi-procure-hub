@@ -23,15 +23,9 @@ import {
 } from "@/lib/procurement/requisitionWorkflow";
 
 // ── Status config ────────────────────────────────────────────────────────────
-const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = {
-  draft:     {bg:"#f1f5f9",      color:"#475569", border:"#cbd5e1", label:"Draft",     dot:"#94a3b8"},
-  submitted: {bg:"#dbeafe",      color:"#1d4ed8", border:"#93c5fd", label:"Submitted", dot:"#3b82f6"},
-  pending:   {bg:"#fef9c3",      color:"#854d0e", border:"#fde047", label:"Pending",   dot:"#eab308"},
-  approved:  {bg:"#dcfce7",      color:"#15803d", border:"#86efac", label:"Approved",  dot:"#22c55e"},
-  rejected:  {bg:"#fee2e2",      color:"#dc2626", border:"#fca5a5", label:"Rejected",  dot:"#ef4444"},
-  ordered:   {bg:"#e0f2fe",      color:"#0369a1", border:"#7dd3fc", label:"Ordered",   dot:"#0ea5e9"},
-  received:  {bg:"#d1fae5",      color:"#065f46", border:"#6ee7b7", label:"Received",  dot:"#10b981"},
-};
+const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = Object.fromEntries(
+  Object.entries(STATUS_CONFIG).map(([k, v]) => [k, { ...v, border: v.bg }])
+) as any;
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 const CARD_STYLE: React.CSSProperties = {
