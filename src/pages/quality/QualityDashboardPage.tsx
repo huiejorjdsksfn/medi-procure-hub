@@ -565,7 +565,7 @@ export default function QualityDashboardPage() {
                       onChange={e=>updLQC(i,"line",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.defect_type} placeholder="Defect type..."
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"left",color:"#111827",boxSizing:"border-box" as const,paddingLeft:4}} value={row.defect_type} placeholder="Defect type..."
                       onChange={e=>updLQC(i,"defect_type",e.target.value)}/>
                   </td>
                   <td style={{...tdBase,padding:0}}>
