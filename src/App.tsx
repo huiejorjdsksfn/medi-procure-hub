@@ -154,7 +154,7 @@ const App = () => (
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin"]}><GuiEditorPage /></RoleGuard></P>} />
-            <Route path="/facilities" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><FacilitiesPage /></RoleGuard></P>} />
+            <Route path="/facilities" element={<P><RoleGuard allowed={["admin"]}><FacilitiesPage /></RoleGuard></P>} />
 
             <Route path="/accountant" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
             <Route path="/accountant-workspace" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />

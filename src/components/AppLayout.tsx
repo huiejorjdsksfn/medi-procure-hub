@@ -119,7 +119,7 @@ const MODULES = [
       {label:"Settings",     path:"/settings",       icon:Settings, roles:["admin"]},
       {label:"Webmaster",    path:"/webmaster",      icon:Globe,    roles:["admin"]},
       {label:"GUI Editor",   path:"/gui-editor",     icon:Palette,  roles:["admin"]},
-      {label:"Facilities",   path:"/facilities",     icon:Building2,roles:["admin","procurement_manager"]},
+      {label:"Facilities",   path:"/facilities",     icon:Building2,roles:["admin"]},
       {label:"Backup",       path:"/backup",         icon:Archive,  roles:["admin"]},
       {label:"ODBC",         path:"/odbc",           icon:Cpu,      roles:["admin"]},
       {label:"IP Access",    path:"/admin/ip-access", icon:Shield,   roles:["admin"]},
@@ -259,7 +259,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:14,borderRight:"1px solid rgba(255,255,255,0.12)",height:"100%"}}>
           <img src={logoUrl||logoImg} alt="" style={{width:22,height:22,borderRadius:3,objectFit:"contain",flexShrink:0}}/>
           <div>
-            <div style={{fontSize:12,fontWeight:700,color:"#fff",lineHeight:1,letterSpacing:"0.01em"}}>{sysName}</div>
+            <div style={{fontSize:12,fontWeight:700,color:"#fff",lineHeight:1,letterSpacing:"0.01em"}}>{sysName} <span style={{fontSize:8,color:"rgba(255,255,255,0.4)"}}>v5.8</span></div>
             {!isMobile&&<div style={{fontSize:8.5,color:"rgba(255,255,255,0.45)",letterSpacing:"0.04em"}}>{hospitalName}</div>}
           </div>
         </div>
@@ -309,8 +309,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {/* Facility Switcher */}
-        <FacilitySwitcher/>
+        {/* Facility Switcher — admin only */}
+        {(roles.includes("admin") || roles.includes("database_admin")) && (
+          <FacilitySwitcher/>
+        )}
         {/* Mail */}
         <button onClick={()=>navigate("/email")} title="Mail"
           style={{width:36,height:36,borderRadius:3,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
