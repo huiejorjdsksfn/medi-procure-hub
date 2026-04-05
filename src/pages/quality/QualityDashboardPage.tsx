@@ -383,7 +383,7 @@ export default function QualityDashboardPage() {
                   <td style={{...tdBase,background:"#dce6f1",fontWeight:700}}>{i+1}</td>
                   {/* Supplier */}
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box",textAlign:"left",paddingLeft:4}}} value={row.supplier_name} placeholder="Supplier..."
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"left",color:"#111827",boxSizing:"border-box" as const,paddingLeft:4}} value={row.supplier_name} placeholder="Supplier..."
                       onChange={e=>updIQC(i,"supplier_name",e.target.value)}/>
                   </td>
                   {/* Item Code */}
