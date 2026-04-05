@@ -560,7 +560,7 @@ function AdminInner() {
           {/* CODEBASE */}
           {sec === "codebase" && (
             <div>
-              <div style={{ fontSize:13,fontWeight:600,marginBottom:10,color:"#64748b" }}>Source Code — ProcurBosse v2.0</div>
+              <div style={{ fontSize:13,fontWeight:600,marginBottom:10,color:"#64748b" }}>Source Code — ProcurBosse v5.8</div>
               <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden" }}>
                 {Object.entries(CODE_FILES).map(([folder, files]) => {
                   const isOpen = tree.has(folder);
@@ -596,7 +596,7 @@ function AdminInner() {
           {sec === "system" && (
             <Sect title="System Configuration" icon={Server} color="#6b7280">
               <FR label="Version" color="#6b7280">
-                <span style={{ fontFamily:"var(--font-mono)",color:"#818cf8",fontWeight:700 }}>v2.0.0 — ProcurBosse</span>
+                <span style={{ fontFamily:"var(--font-mono)",color:"#818cf8",fontWeight:700 }}>v5.8.0 — ProcurBosse</span>
               </FR>
               <FR label="Date Format" color="#6b7280">
                 <select value={cfg["date_format"]||"DD/MM/YYYY"} onChange={e=>set("date_format",e.target.value)} style={{...inp,width:160}}>
