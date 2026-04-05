@@ -1,7 +1,7 @@
 {
   "name": "procurbosse",
   "private": true,
-  "version": "2.0.1",
+  "version": "5.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -116,7 +116,7 @@
     "workbox-window": "^7.4.0"
   },
   "productName": "ProcurBosse - EL5 MediProcure",
-  "description": "Embu Level 5 Hospital Procurement ERP System",
+  "description": "EL5 MediProcure v5.8 — Health Procurement ERP · Embu Level 5 Hospital · ProcurBosse",
   "author": {
     "name": "Embu County Government",
     "email": "it@embu.health.go.ke"

@@ -1,48 +1,83 @@
 /**
- * ProcurBosse — Reception Module v1.0
- * Hospital front-desk ERP: visitor log, Twilio calls & SMS, live real-time
+ * ProcurBosse — Reception Module v5.8
+ * Hospital front-desk ERP: visitor log, Twilio calls & SMS, WhatsApp, live real-time
+ * Role-customized views for all user roles
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import {
   Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed,
   MessageSquare, UserCheck, UserX, Plus, X, Search, RefreshCw,
-  Send, Users, Building2, LogIn, LogOut
+  Send, Users, Building2, LogIn, LogOut, ExternalLink
 } from "lucide-react";
 
-const DEPTS = ["Pharmacy","Maternity","Casualty","Laboratory","X-Ray","Paediatrics","Surgery","Medical","Outpatient","Administration","ICU","Procurement","HR","Finance"];
-const CALL_C:Record<string,string> = {incoming:"#0369a1",outgoing:"#059669",missed:"#dc2626",voicemail:"#9333ea"};
-const VISIT_C:Record<string,string> = {checked_in:"#059669",checked_out:"#6b7280",waiting:"#d97706",denied:"#dc2626"};
+const DEPTS = ["Pharmacy","Maternity","Casualty","Laboratory","X-Ray","Paediatrics",
+  "Surgery","Medical","Outpatient","Administration","ICU","Procurement","HR","Finance"];
+
+const TWILIO_PHONE = "+16812972643";
+const WHATSAPP_NO = "+14155238886";
+const WHATSAPP_SANDBOX_CODE = "bad-machine";
+const WHATSAPP_LINK = `https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine&type=phone_number&app_absent=0`;
+const TWILIO_MSG_SID = "MG2fffc3a381c44a202c316dcc6400707d";
+const TWILIO_VOICE_WEBHOOK = "https://demo.twilio.com/welcome/voice/";
+
+const CALL_C: Record<string,string> = {incoming:"#0369a1",outgoing:"#059669",missed:"#dc2626",voicemail:"#9333ea"};
+const VISIT_C: Record<string,string> = {checked_in:"#059669",checked_out:"#6b7280",waiting:"#d97706",denied:"#dc2626"};
 const fmtDate = (d:string) => d ? new Date(d).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true}) : "—";
-const fmtDur = (s?:number) => !s ? "—" : s < 60 ? s+"s" : Math.floor(s/60)+"m "+s%60+"s";
-const BS = (bg:string):React.CSSProperties => ({display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"none",background:bg,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"});
-const INP:React.CSSProperties = {padding:"8px 11px",border:"1.5px solid #d1d5db",borderRadius:8,fontSize:13,color:"#111",background:"#fff",outline:"none",width:"100%",boxSizing:"border-box"};
+const BS = (bg:string):React.CSSProperties => ({display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:bg,color:"#fff",fontWeight:700,fontSize:12.5,cursor:"pointer"});
+const INP:React.CSSProperties = {padding:"9px 12px",border:"1.5px solid #d1d5db",borderRadius:8,fontSize:13,color:"#111",background:"#fff",outline:"none",width:"100%",boxSizing:"border-box"};
 
 function Chip({label,color}:{label:string;color:string}) {
-  return <span style={{padding:"2px 9px",borderRadius:12,background:color+"18",color,fontSize:11,fontWeight:700,border:"1px solid "+color+"44"}}>{label.replace("_"," ")}</span>;
+  return <span style={{padding:"2px 9px",borderRadius:12,background:color+"18",color,fontSize:11,fontWeight:700,border:"1px solid "+color+"44",textTransform:"capitalize"}}>{label.replace("_"," ")}</span>;
+}
+
+// Role-based tab config
+function getTabsForRole(role: string) {
+  const allTabs = ["visitors","calls","messages","whatsapp"];
+  if (role === "admin") return allTabs;
+  if (role === "procurement_manager" || role === "procurement_officer") return ["visitors","messages","whatsapp"];
+  if (role === "accountant") return ["visitors","messages"];
+  if (role === "inventory_manager" || role === "warehouse_officer") return ["visitors","calls"];
+  if (role === "requisitioner") return ["visitors"];
+  return allTabs;
+}
+
+function getRoleWelcome(role: string) {
+  const msgs: Record<string,string> = {
+    admin: "Full reception access — all visitor, call, and messaging functions",
+    procurement_manager: "Procurement reception — visitor management and supplier messaging",
+    procurement_officer: "Procurement desk — visit tracking and messaging",
+    accountant: "Finance reception — visitor log and correspondence",
+    inventory_manager: "Inventory desk — visitor and call log",
+    warehouse_officer: "Warehouse reception — visitor log and call tracking",
+    requisitioner: "Visitor log — track department visitors",
+  };
+  return msgs[role] || "Reception module";
 }
 
 export default function ReceptionPage() {
-  const { user, profile } = useAuth();
-  const { getSetting } = useSystemSettings();
-  const hosName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const twilioPhone = getSetting("twilio_phone_number","");
+  const { profile, roles } = useAuth();
+  const primaryRole = roles[0] || "requisitioner";
+  const hosName = "Embu Level 5 Hospital";
+  const availTabs = getTabsForRole(primaryRole);
 
-  const [tab,      setTab]      = useState<"visitors"|"calls"|"messages">("visitors");
+  const [tab, setTab] = useState<string>(availTabs[0]);
   const [visitors, setVisitors] = useState<any[]>([]);
-  const [calls,    setCalls]    = useState<any[]>([]);
+  const [calls, setCalls] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
-  const [showVF,   setShowVF]   = useState(false);
-  const [showCF,   setShowCF]   = useState(false);
-  const [showMF,   setShowMF]   = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [rtOn,     setRtOn]     = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showVF, setShowVF] = useState(false);
+  const [showCF, setShowCF] = useState(false);
+  const [showMF, setShowMF] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [rtOn, setRtOn] = useState(false);
+  const [whatsappMsg, setWhatsappMsg] = useState("");
+  const [whatsappTo, setWhatsappTo] = useState("");
+  const [waLoading, setWaLoading] = useState(false);
 
   const EV = {full_name:"",id_number:"",phone:"",organization:"",purpose:"",host_name:"",host_department:"",notes:""};
   const EC = {caller_name:"",caller_phone:"",purpose:"",department:"",staff_contacted:"",call_status:"incoming",notes:""};
@@ -65,7 +100,7 @@ export default function ReceptionPage() {
   useEffect(()=>{load();},[load]);
 
   useEffect(()=>{
-    const ch=(supabase as any).channel("rcpt-rt")
+    const ch=(supabase as any).channel("rcpt-rt-v58")
       .on("postgres_changes",{event:"*",schema:"public",table:"reception_visitors"},load)
       .on("postgres_changes",{event:"*",schema:"public",table:"reception_calls"},load)
       .on("postgres_changes",{event:"*",schema:"public",table:"reception_messages"},load)
@@ -79,252 +114,447 @@ export default function ReceptionPage() {
     return !error;
   }
 
-  async function makeCall(phone:string,name:string){
-    const p=phone.startsWith("+")?phone:phone.replace(/^0/,"+254");
-    await(supabase as any).from("reception_calls").insert({caller_name:name,caller_phone:p,call_status:"outgoing",purpose:"Outgoing from reception",received_by:user?.id,received_by_name:profile?.full_name});
-    window.open("tel:"+p,"_blank");
-    toast({title:"📞 Dialling "+name,description:p});
+  async function sendWhatsApp(){
+    if(!whatsappTo.trim()||!whatsappMsg.trim()){
+      toast({title:"Fill in recipient and message",variant:"destructive"}); return;
+    }
+    setWaLoading(true);
+    const p=whatsappTo.startsWith("+")?whatsappTo:whatsappTo.replace(/^0/,"+254");
+    const {error}=await(supabase as any).functions.invoke("send-sms",{body:{
+      to:p,message:whatsappMsg,hospitalName:hosName,
+      channel:"whatsapp",fromNumber:`whatsapp:${WHATSAPP_NO}`
+    }});
+    setWaLoading(false);
+    if(!error){
+      toast({title:"WhatsApp message sent!"});
+      setWhatsappMsg(""); setWhatsappTo("");
+    } else {
+      toast({title:"Failed to send WhatsApp",description:error.message,variant:"destructive"});
+    }
+  }
+
+  async function checkIn(id:string){
+    await(supabase as any).from("reception_visitors").update({status:"checked_in",check_in_time:new Date().toISOString()}).eq("id",id);
+    load();
+  }
+  async function checkOut(id:string){
+    await(supabase as any).from("reception_visitors").update({status:"checked_out",check_out_time:new Date().toISOString()}).eq("id",id);
     load();
   }
 
-  async function checkIn(){
-    if(!vF.full_name.trim()||!vF.purpose.trim()){toast({title:"Name and purpose required",variant:"destructive"});return;}
+  async function saveVisitor(){
+    if(!vF.full_name.trim()){toast({title:"Name required",variant:"destructive"});return;}
     setSaving(true);
-    const badge="B"+String(visitors.length+1).padStart(3,"0");
-    const {error}=await(supabase as any).from("reception_visitors").insert({...vF,badge_number:badge,visit_status:"checked_in",received_by:user?.id,received_by_name:profile?.full_name});
-    if(error){toast({title:"Failed: "+error.message,variant:"destructive"});setSaving(false);return;}
-    if(vF.phone&&vF.host_name) await sms(vF.phone,`[${hosName}] ${vF.full_name} from ${vF.organization||"—"} arrived to see ${vF.host_name}. Badge: ${badge}.`);
-    toast({title:"✅ "+vF.full_name+" checked in",description:"Badge: "+badge});
-    setVF({...EV});setShowVF(false);setSaving(false);load();
+    const {error}=await(supabase as any).from("reception_visitors").insert({...vF,status:"waiting",check_in_time:new Date().toISOString()});
+    if(!error){
+      setShowVF(false);setVF({...EV});
+      if(vF.phone) await sms(vF.phone,`Welcome to ${hosName}. You are registered to visit ${vF.host_name||"staff"} in ${vF.host_department||"the hospital"}. Please proceed to the reception desk.`);
+      toast({title:"✅ Visitor registered"});
+    } else toast({title:"Error",description:error.message,variant:"destructive"});
+    setSaving(false);
   }
 
-  async function checkOut(id:string,name:string){
-    await(supabase as any).from("reception_visitors").update({visit_status:"checked_out",checked_out_at:new Date().toISOString()}).eq("id",id);
-    toast({title:name+" checked out"});load();
-  }
-
-  async function logCall(){
+  async function saveCall(){
     if(!cF.caller_phone.trim()){toast({title:"Phone required",variant:"destructive"});return;}
     setSaving(true);
-    await(supabase as any).from("reception_calls").insert({...cF,received_by:user?.id,received_by_name:profile?.full_name});
-    toast({title:"✅ Call logged"});setCF({...EC});setShowCF(false);setSaving(false);load();
+    const {error}=await(supabase as any).from("reception_calls").insert({...cF,called_at:new Date().toISOString()});
+    if(!error){setShowCF(false);setCF({...EC});toast({title:"✅ Call logged"});}
+    else toast({title:"Error",description:error.message,variant:"destructive"});
+    setSaving(false);
   }
 
   async function sendMsg(){
-    if(!mF.recipient_phone.trim()||!mF.message_body.trim()){toast({title:"Phone and message required",variant:"destructive"});return;}
+    if(!mF.recipient_phone.trim()||!mF.message_body.trim()){toast({title:"Fill required fields",variant:"destructive"});return;}
     setSaving(true);
-    const p=mF.recipient_phone.startsWith("+")?mF.recipient_phone:mF.recipient_phone.replace(/^0/,"+254");
-    await(supabase as any).from("reception_messages").insert({...mF,recipient_phone:p,status:"pending",sent_by:user?.id,sent_by_name:profile?.full_name});
-    const ok=await sms(p,mF.message_body);
-    const {data:rows}=await(supabase as any).from("reception_messages").select("id").eq("recipient_phone",p).order("created_at",{ascending:false}).limit(1);
-    if(rows?.[0]?.id) await(supabase as any).from("reception_messages").update({status:ok?"sent":"failed",sent_at:new Date().toISOString()}).eq("id",rows[0].id);
-    toast({title:ok?"✅ SMS sent":"⚠️ SMS queued — check Twilio settings"});
-    setMF({...EM});setShowMF(false);setSaving(false);load();
+    const ok=await sms(mF.recipient_phone,mF.message_body);
+    if(ok){
+      await(supabase as any).from("reception_messages").insert({...mF,status:"sent",sent_at:new Date().toISOString()});
+      setShowMF(false);setMF({...EM});
+      toast({title:"✅ SMS sent"});
+    } else toast({title:"SMS failed",variant:"destructive"});
+    setSaving(false);
   }
 
-  const today=new Date().toLocaleDateString();
-  const tv=visitors.filter(v=>new Date(v.checked_in_at).toLocaleDateString()===today);
-  const kpi=[
-    {l:"In Today",n:tv.filter(v=>v.visit_status==="checked_in").length,c:"#059669",I:UserCheck},
-    {l:"Checked Out",n:tv.filter(v=>v.visit_status==="checked_out").length,c:"#6b7280",I:UserX},
-    {l:"Calls Today",n:calls.filter(c=>new Date(c.called_at).toLocaleDateString()===today).length,c:"#0369a1",I:Phone},
-    {l:"SMS Sent",n:messages.filter(m=>m.status==="sent"&&new Date(m.created_at).toLocaleDateString()===today).length,c:"#7c3aed",I:MessageSquare},
-  ];
-  const fv=visitors.filter(v=>!search||(v.full_name+" "+v.purpose+" "+(v.organization||"")).toLowerCase().includes(search.toLowerCase()));
-  const fc=calls.filter(c=>!search||(c.caller_name+" "+c.caller_phone+" "+(c.department||"")).toLowerCase().includes(search.toLowerCase()));
-  const fm=messages.filter(m=>!search||(m.recipient_name+" "+m.recipient_phone).toLowerCase().includes(search.toLowerCase()));
+  const filterVisitors = visitors.filter(v=>!search||v.full_name?.toLowerCase().includes(search.toLowerCase())||v.organization?.toLowerCase().includes(search.toLowerCase()));
+  const filterCalls = calls.filter(c=>!search||c.caller_name?.toLowerCase().includes(search.toLowerCase())||c.caller_phone?.includes(search));
+  const filterMsgs = messages.filter(m=>!search||m.recipient_name?.toLowerCase().includes(search.toLowerCase())||m.recipient_phone?.includes(search));
 
-  const TABS=[{id:"visitors",label:"Visitor Log",icon:Users,n:fv.length},{id:"calls",label:"Call Log",icon:Phone,n:fc.length},{id:"messages",label:"Messages",icon:MessageSquare,n:fm.length}];
+  const tabLabels: Record<string,string> = {visitors:"👥 Visitors",calls:"📞 Calls",messages:"💬 Messages",whatsapp:"🟢 WhatsApp"};
 
   return (
-    <div style={{minHeight:"100vh",background:"#f0f4f8",fontFamily:"'Segoe UI',system-ui,sans-serif",color:"#111"}}>
-      <div style={{display:"flex",borderBottom:"1px solid #e5e7eb"}}>
-        {kpi.map((k,i)=>(
-          <div key={i} style={{flex:1,background:k.c,color:"#fff",padding:"14px 18px",display:"flex",alignItems:"center",gap:12,borderRight:i<3?"1px solid rgba(255,255,255,0.15)":"none"}}>
-            <div style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><k.I style={{width:18,height:18}}/></div>
-            <div><div style={{fontSize:22,fontWeight:900,lineHeight:1}}>{k.n}</div><div style={{fontSize:10,opacity:0.85,fontWeight:600}}>{k.l}</div></div>
+    <div style={{padding:"20px 24px",fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",maxWidth:1400,margin:"0 auto"}}>
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:40,height:40,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#0284c7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏥</div>
+            <div>
+              <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#0f172a",letterSpacing:"-0.02em"}}>Reception Desk</h1>
+              <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{hosName} · ProcurBosse v5.8 · {getRoleWelcome(primaryRole)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <span style={{padding:"4px 10px",borderRadius:20,background:rtOn?"#f0fdf4":"#fef9c3",border:`1px solid ${rtOn?"#bbf7d0":"#fde68a"}`,fontSize:11,fontWeight:700,color:rtOn?"#059669":"#d97706"}}>
+            {rtOn?"🟢 Live":"🟡 Connecting..."}
+          </span>
+          {primaryRole === "admin" && (
+            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
+              style={{...BS("#25D366"),textDecoration:"none",fontSize:11}}>
+              🟢 Join WhatsApp Sandbox
+            </a>
+          )}
+          <button onClick={load} style={BS("#64748b")}><RefreshCw style={{width:12,height:12}}/> Refresh</button>
+          {availTabs.includes("visitors") && <button onClick={()=>setShowVF(true)} style={BS("#0369a1")}><Plus style={{width:12,height:12}}/> New Visitor</button>}
+          {availTabs.includes("calls") && <button onClick={()=>setShowCF(true)} style={BS("#059669")}><Phone style={{width:12,height:12}}/> Log Call</button>}
+          {availTabs.includes("messages") && <button onClick={()=>setShowMF(true)} style={BS("#7c3aed")}><Send style={{width:12,height:12}}/> Send SMS</button>}
+        </div>
+      </div>
+
+      {/* Twilio Info Banner */}
+      <div style={{background:"linear-gradient(135deg,#0369a1,#0284c7)",borderRadius:12,padding:"14px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>📡 EL5H Messaging Service</div>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>SMS: {TWILIO_PHONE}</span>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>WhatsApp: {WHATSAPP_NO}</span>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>Service SID: {TWILIO_MSG_SID}</span>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
+            style={{padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,textDecoration:"none"}}>
+            🟢 WhatsApp Sandbox →
+          </a>
+          <a href={TWILIO_VOICE_WEBHOOK} target="_blank" rel="noopener noreferrer"
+            style={{padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,textDecoration:"none"}}>
+            📞 Voice Webhook →
+          </a>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
+        {[
+          {label:"Total Visitors",value:visitors.length,icon:"👥",color:"#0369a1"},
+          {label:"Currently In",value:visitors.filter(v=>v.status==="checked_in").length,icon:"✅",color:"#059669"},
+          {label:"Waiting",value:visitors.filter(v=>v.status==="waiting").length,icon:"⏳",color:"#d97706"},
+          {label:"Calls Today",value:calls.filter(c=>new Date(c.called_at).toDateString()===new Date().toDateString()).length,icon:"📞",color:"#7c3aed"},
+          {label:"SMS Sent",value:messages.filter(m=>m.status==="sent").length,icon:"💬",color:"#0891b2"},
+        ].map((k,i)=>(
+          <div key={i} style={{background:"#fff",borderRadius:10,border:"1px solid #f1f5f9",padding:"14px 16px",boxShadow:"0 2px 6px rgba(0,0,0,0.05)",borderLeft:`4px solid ${k.color}`}}>
+            <div style={{fontSize:20,marginBottom:4}}>{k.icon}</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#0f172a"}}>{loading?"…":k.value}</div>
+            <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{k.label}</div>
           </div>
         ))}
       </div>
-      <div style={{padding:"14px 20px 0",display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:38,height:38,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}><Building2 style={{width:20,height:20,color:"#fff"}}/></div>
-        <div style={{flex:1}}><div style={{fontSize:17,fontWeight:800}}>Reception &amp; Front Desk</div><div style={{fontSize:11,color:"#6b7280"}}>{hosName} · Visitors · Calls · SMS via Twilio</div></div>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginRight:8}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:rtOn?"#22c55e":"#ef4444"}}/>
-          <span style={{fontSize:11,color:rtOn?"#059669":"#dc2626",fontWeight:600}}>{rtOn?"Live":"Offline"}</span>
-        </div>
-        <button onClick={load} style={BS("#6b7280")}><RefreshCw style={{width:13,height:13}}/> Refresh</button>
-        {tab==="visitors"&&<button onClick={()=>setShowVF(true)} style={BS("#059669")}><Plus style={{width:14,height:14}}/> Check In</button>}
-        {tab==="calls"&&<button onClick={()=>setShowCF(true)} style={BS("#0369a1")}><PhoneIncoming style={{width:14,height:14}}/> Log Call</button>}
-        {tab==="messages"&&<button onClick={()=>setShowMF(true)} style={BS("#7c3aed")}><Send style={{width:14,height:14}}/> Send SMS</button>}
-      </div>
-      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
-        <div style={{display:"flex",gap:4}}>
-          {TABS.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id as any)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 16px",borderRadius:20,border:"1.5px solid "+(tab===t.id?"#0369a1":"#e5e7eb"),background:tab===t.id?"#dbeafe":"#fff",cursor:"pointer",fontSize:12,fontWeight:tab===t.id?700:500,color:tab===t.id?"#1d4ed8":"#6b7280"}}>
-              <t.icon style={{width:13,height:13}}/>{t.label} ({t.n})
-            </button>
-          ))}
-        </div>
-        <div style={{marginLeft:"auto",position:"relative",width:260}}>
-          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" style={{...INP,paddingLeft:32,height:36}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
-        </div>
-      </div>
-      <div style={{margin:"12px 20px 20px",background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead>
-              <tr style={{background:"#f9fafb",borderBottom:"2px solid #e5e7eb"}}>
-                {tab==="visitors"&&["Badge","Name","Organisation","Purpose","Host","Dept","Checked In","Status","Actions"].map((h,i)=><th key={i} style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap"}}>{h}</th>)}
-                {tab==="calls"&&["Type","Caller","Phone","Purpose","Dept","Staff","Duration","Time","By"].map((h,i)=><th key={i} style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap"}}>{h}</th>)}
-                {tab==="messages"&&["Type","Recipient","Phone","Message","Dept","Status","By","Time"].map((h,i)=><th key={i} style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap"}}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {loading&&<tr><td colSpan={9} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>Loading…</td></tr>}
-              {!loading&&tab==="visitors"&&fv.map((v,ri)=>(
-                <tr key={v.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"#fff":"#fafafa"}} onMouseEnter={e=>(e.currentTarget.style.background="#f0f9ff")} onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#fff":"#fafafa")}>
-                  <td style={{padding:"9px 14px",fontWeight:700,color:"#0369a1",fontSize:12}}>{v.badge_number||"—"}</td>
-                  <td style={{padding:"9px 14px",fontWeight:600}}>{v.full_name}</td>
-                  <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{v.organization||"—"}</td>
-                  <td style={{padding:"9px 14px",color:"#374151",fontSize:12,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.purpose}</td>
-                  <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{v.host_name||"—"}</td>
-                  <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{v.host_department||"—"}</td>
-                  <td style={{padding:"9px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(v.checked_in_at)}</td>
-                  <td style={{padding:"9px 14px"}}><Chip label={v.visit_status} color={VISIT_C[v.visit_status]||"#6b7280"}/></td>
-                  <td style={{padding:"9px 14px"}}>
-                    <div style={{display:"flex",gap:4}}>
-                      {v.visit_status==="checked_in"&&<button onClick={()=>checkOut(v.id,v.full_name)} title="Check Out" style={{padding:5,borderRadius:6,border:"none",background:"#fff1f2",cursor:"pointer"}}><LogOut style={{width:13,height:13,color:"#dc2626"}}/></button>}
-                      {v.phone&&<button onClick={()=>makeCall(v.phone,v.full_name)} title="Call" style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer"}}><Phone style={{width:13,height:13,color:"#059669"}}/></button>}
-                      {v.host_name&&<button onClick={()=>{setMF({recipient_name:v.host_name,recipient_phone:v.phone||"",message_body:v.full_name+" from "+(v.organization||"—")+" arrived for "+v.host_name+". Badge: "+v.badge_number,message_type:"sms",department:v.host_department||""});setShowMF(true);}} title="SMS Host" style={{padding:5,borderRadius:6,border:"none",background:"#faf5ff",cursor:"pointer"}}><MessageSquare style={{width:13,height:13,color:"#7c3aed"}}/></button>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!loading&&tab==="calls"&&fc.map((c,ri)=>{
-                const cc=CALL_C[c.call_status]||"#6b7280";
-                const CI=c.call_status==="incoming"?PhoneIncoming:c.call_status==="outgoing"?PhoneOutgoing:PhoneMissed;
-                return (
-                  <tr key={c.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"#fff":"#fafafa"}} onMouseEnter={e=>(e.currentTarget.style.background="#eff6ff")} onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#fff":"#fafafa")}>
-                    <td style={{padding:"9px 14px"}}><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:24,height:24,borderRadius:6,background:cc+"18",display:"flex",alignItems:"center",justifyContent:"center"}}><CI style={{width:12,height:12,color:cc}}/></div><span style={{fontSize:11,fontWeight:700,color:cc,textTransform:"capitalize"}}>{c.call_status}</span></div></td>
-                    <td style={{padding:"9px 14px",fontWeight:600}}>{c.caller_name||"Unknown"}</td>
-                    <td style={{padding:"9px 14px"}}><div style={{display:"flex",alignItems:"center",gap:5}}><span style={{color:"#374151",fontSize:12}}>{c.caller_phone}</span><button onClick={()=>makeCall(c.caller_phone,c.caller_name||"Caller")} style={{padding:3,borderRadius:5,border:"none",background:"#f0fdf4",cursor:"pointer",lineHeight:0}}><Phone style={{width:11,height:11,color:"#059669"}}/></button></div></td>
-                    <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{c.purpose||"—"}</td>
-                    <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{c.department||"—"}</td>
-                    <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{c.staff_contacted||"—"}</td>
-                    <td style={{padding:"9px 14px",color:"#6b7280",fontSize:12}}>{fmtDur(c.duration_sec)}</td>
-                    <td style={{padding:"9px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(c.called_at)}</td>
-                    <td style={{padding:"9px 14px",color:"#6b7280",fontSize:11}}>{c.received_by_name||"—"}</td>
-                  </tr>
-                );
-              })}
-              {!loading&&tab==="messages"&&fm.map((m,ri)=>{
-                const sc=m.status==="sent"||m.status==="delivered"?"#059669":m.status==="failed"?"#dc2626":"#d97706";
-                return (
-                  <tr key={m.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"#fff":"#fafafa"}} onMouseEnter={e=>(e.currentTarget.style.background="#f5f3ff")} onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#fff":"#fafafa")}>
-                    <td style={{padding:"9px 14px"}}><span style={{padding:"2px 8px",borderRadius:10,background:"#7c3aed18",color:"#7c3aed",fontSize:11,fontWeight:700,textTransform:"uppercase"}}>{m.message_type}</span></td>
-                    <td style={{padding:"9px 14px",fontWeight:600}}>{m.recipient_name}</td>
-                    <td style={{padding:"9px 14px"}}><div style={{display:"flex",alignItems:"center",gap:5}}><span style={{color:"#374151",fontSize:12}}>{m.recipient_phone}</span><button onClick={()=>makeCall(m.recipient_phone,m.recipient_name)} style={{padding:3,borderRadius:5,border:"none",background:"#f0fdf4",cursor:"pointer",lineHeight:0}}><Phone style={{width:11,height:11,color:"#059669"}}/></button></div></td>
-                    <td style={{padding:"9px 14px",color:"#374151",fontSize:12,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={m.message_body}>{m.message_body}</td>
-                    <td style={{padding:"9px 14px",color:"#374151",fontSize:12}}>{m.department||"—"}</td>
-                    <td style={{padding:"9px 14px"}}><Chip label={m.status} color={sc}/></td>
-                    <td style={{padding:"9px 14px",color:"#6b7280",fontSize:11}}>{m.sent_by_name||"—"}</td>
-                    <td style={{padding:"9px 14px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(m.created_at)}</td>
-                  </tr>
-                );
-              })}
-              {!loading&&tab==="visitors"&&fv.length===0&&<tr><td colSpan={9} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>No visitors yet. <button onClick={()=>setShowVF(true)} style={{...BS("#059669"),display:"inline-flex",marginLeft:8,padding:"5px 12px"}}>Check In First Visitor</button></td></tr>}
-              {!loading&&tab==="calls"&&fc.length===0&&<tr><td colSpan={9} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>No calls yet. <button onClick={()=>setShowCF(true)} style={{...BS("#0369a1"),display:"inline-flex",marginLeft:8,padding:"5px 12px"}}>Log First Call</button></td></tr>}
-              {!loading&&tab==="messages"&&fm.length===0&&<tr><td colSpan={8} style={{padding:40,textAlign:"center",color:"#9ca3af"}}>No messages yet. <button onClick={()=>setShowMF(true)} style={{...BS("#7c3aed"),display:"inline-flex",marginLeft:8,padding:"5px 12px"}}>Send First SMS</button></td></tr>}
-            </tbody>
-          </table>
-        </div>
-        <div style={{padding:"7px 14px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",fontSize:11,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
-          <span>{tab==="visitors"?fv.length+" records · "+tv.filter(v=>v.visit_status==="checked_in").length+" inside":tab==="calls"?fc.length+" calls":fm.length+" messages · "+fm.filter(m=>m.status==="sent").length+" sent"}</span>
-          {twilioPhone&&<span>Twilio: {twilioPhone}</span>}
-        </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:"2px solid #f1f5f9",overflowX:"auto"}}>
+        {availTabs.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            padding:"9px 18px",borderRadius:"8px 8px 0 0",border:tab===t?"1.5px solid #0369a1":"1.5px solid transparent",
+            background:tab===t?"#0369a1":"transparent",color:tab===t?"#fff":"#6b7280",
+            fontSize:13,fontWeight:tab===t?700:500,cursor:"pointer",whiteSpace:"nowrap",
+          }}>
+            {tabLabels[t]||t}
+          </button>
+        ))}
       </div>
 
-      {showVF&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}><LogIn style={{width:18,height:18,color:"#fff"}}/></div>
-              <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800}}>Visitor Check-In</div><div style={{fontSize:11,color:"#6b7280"}}>Badge auto-assigned · SMS sent to host if phone provided</div></div>
-              <button onClick={()=>{setShowVF(false);setVF({...EV});}} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}><X style={{width:16,height:16,color:"#6b7280"}}/></button>
+      {/* Search */}
+      <div style={{position:"relative",marginBottom:16,maxWidth:360}}>
+        <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
+        <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" style={{...INP,paddingLeft:32}}/>
+      </div>
+
+      {/* ── VISITORS TAB ── */}
+      {tab==="visitors" && (
+        <>
+          {showVF && (
+            <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>👤 Register New Visitor</div>
+                <button onClick={()=>setShowVF(false)} style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280"}}><X style={{width:16,height:16}}/></button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                {[["Full Name *","full_name","text"],["ID/Passport","id_number","text"],["Phone","phone","tel"],["Organization","organization","text"],["Purpose","purpose","text"],["Host Name","host_name","text"]].map(([l,k,t])=>(
+                  <div key={k}>
+                    <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>{l}</label>
+                    <input type={t} value={(vF as any)[k]} onChange={e=>setVF(f=>({...f,[k]:e.target.value}))} style={INP} placeholder={l}/>
+                  </div>
+                ))}
+                <div>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
+                  <select value={vF.host_department} onChange={e=>setVF(f=>({...f,host_department:e.target.value}))} style={INP}>
+                    <option value="">— Select —</option>
+                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div style={{gridColumn:"span 2"}}>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Notes</label>
+                  <input type="text" value={vF.notes} onChange={e=>setVF(f=>({...f,notes:e.target.value}))} style={INP} placeholder="Any additional notes"/>
+                </div>
+              </div>
+              <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
+                <button onClick={()=>setShowVF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+                <button onClick={saveVisitor} disabled={saving} style={BS(saving?"#9ca3af":"#0369a1")}>{saving?"Saving…":"✅ Register Visitor"}</button>
+              </div>
             </div>
-            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[{k:"full_name",l:"Full Name *",p:"e.g. John Kamau",s:2},{k:"id_number",l:"ID / Passport",p:"12345678",s:1},{k:"phone",l:"Phone",p:"+254 7xx xxx xxx",s:1},{k:"organization",l:"Organisation",p:"e.g. MOH Kenya",s:1},{k:"purpose",l:"Purpose *",p:"Meeting / delivery",s:1},{k:"host_name",l:"Person to See",p:"e.g. Dr. Wanjiku",s:1}].map(f=>(
-                <div key={f.k} style={{gridColumn:"span "+f.s}}>
-                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>{f.l}</label>
-                  <input value={(vF as any)[f.k]} onChange={e=>setVF(p=>({...p,[f.k]:e.target.value}))} placeholder={f.p} style={INP}/>
+          )}
+
+          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead>
+                  <tr style={{background:"#f8fafc"}}>
+                    {["Name","ID","Phone","Organization","Purpose","Host","Department","Status","Check-in","Actions"].map(h=>(
+                      <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
+                  filterVisitors.length===0?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>No visitors found</td></tr>:
+                  filterVisitors.map(v=>(
+                    <tr key={v.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
+                      <td style={{padding:"10px 14px",fontSize:13,fontWeight:700,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{v.full_name}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.id_number||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.phone||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.organization||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.purpose||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_name||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_department||"—"}</td>
+                      <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={v.status||"waiting"} color={VISIT_C[v.status]||"#6b7280"}/></td>
+                      <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(v.check_in_time)}</td>
+                      <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}>
+                        <div style={{display:"flex",gap:6}}>
+                          {v.status==="waiting"&&<button onClick={()=>checkIn(v.id)} style={{...BS("#059669"),padding:"4px 10px",fontSize:11}}><LogIn style={{width:10,height:10}}/>In</button>}
+                          {v.status==="checked_in"&&<button onClick={()=>checkOut(v.id)} style={{...BS("#6b7280"),padding:"4px 10px",fontSize:11}}><LogOut style={{width:10,height:10}}/>Out</button>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── CALLS TAB ── */}
+      {tab==="calls" && (
+        <>
+          {showCF && (
+            <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:700,fontSize:14}}>📞 Log Call</div>
+                <button onClick={()=>setShowCF(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                {[["Caller Name","caller_name","text"],["Caller Phone *","caller_phone","tel"],["Purpose","purpose","text"],["Staff Contacted","staff_contacted","text"]].map(([l,k,t])=>(
+                  <div key={k}>
+                    <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>{l}</label>
+                    <input type={t} value={(cF as any)[k]} onChange={e=>setCF(f=>({...f,[k]:e.target.value}))} style={INP} placeholder={l}/>
+                  </div>
+                ))}
+                <div>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Call Status</label>
+                  <select value={cF.call_status} onChange={e=>setCF(f=>({...f,call_status:e.target.value}))} style={INP}>
+                    {["incoming","outgoing","missed","voicemail"].map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
+                  <select value={cF.department} onChange={e=>setCF(f=>({...f,department:e.target.value}))} style={INP}>
+                    <option value="">— Select —</option>
+                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
+                <button onClick={()=>setShowCF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+                <button onClick={saveCall} disabled={saving} style={BS(saving?"#9ca3af":"#059669")}>{saving?"Saving…":"📞 Log Call"}</button>
+              </div>
+            </div>
+          )}
+          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:"#f8fafc"}}>
+                  {["Type","Caller","Phone","Purpose","Department","Staff","Time"].map(h=>(
+                    <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading?<tr><td colSpan={7} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
+                filterCalls.map(c=>(
+                  <tr key={c.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
+                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={c.call_status||"incoming"} color={CALL_C[c.call_status]||"#0369a1"}/></td>
+                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{c.caller_name||"Unknown"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.caller_phone}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.purpose||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.department||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.staff_contacted||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(c.called_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* ── MESSAGES TAB ── */}
+      {tab==="messages" && (
+        <>
+          {showMF && (
+            <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:700,fontSize:14}}>💬 Send SMS Message</div>
+                <button onClick={()=>setShowMF(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                {[["Recipient Name","recipient_name","text"],["Phone *","recipient_phone","tel"]].map(([l,k,t])=>(
+                  <div key={k}>
+                    <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>{l}</label>
+                    <input type={t} value={(mF as any)[k]} onChange={e=>setMF(f=>({...f,[k]:e.target.value}))} style={INP} placeholder={l}/>
+                  </div>
+                ))}
+                <div>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
+                  <select value={mF.department} onChange={e=>setMF(f=>({...f,department:e.target.value}))} style={INP}>
+                    <option value="">— Select —</option>
+                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div style={{gridColumn:"span 2"}}>
+                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Message *</label>
+                  <textarea value={mF.message_body} onChange={e=>setMF(f=>({...f,message_body:e.target.value}))} style={{...INP,height:80,resize:"vertical"}} placeholder="Type your SMS message here…"/>
+                </div>
+              </div>
+              <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
+                <button onClick={()=>setShowMF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+                <button onClick={sendMsg} disabled={saving} style={BS(saving?"#9ca3af":"#7c3aed")}>{saving?"Sending…":"📤 Send SMS"}</button>
+              </div>
+            </div>
+          )}
+          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:"#f8fafc"}}>
+                  {["Recipient","Phone","Department","Message","Status","Sent At"].map(h=>(
+                    <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading?<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
+                filterMsgs.map(m=>(
+                  <tr key={m.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
+                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.recipient_phone}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.department||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"}}>{m.message_body}</td>
+                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.status||"pending"} color={m.status==="sent"?"#059669":"#d97706"}/></td>
+                    <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(m.sent_at||m.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* ── WHATSAPP TAB ── */}
+      {tab==="whatsapp" && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+          {/* WhatsApp Sandbox Setup */}
+          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>🟢 WhatsApp Business Sandbox</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Twilio WhatsApp Sandbox · EL5H Messaging Service</div>
+            <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:16,marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#059669",marginBottom:8}}>📱 To activate WhatsApp:</div>
+              <ol style={{margin:0,paddingLeft:20,fontSize:13,color:"#374151",lineHeight:2}}>
+                <li>Send <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to <strong>{WHATSAPP_NO}</strong> on WhatsApp</li>
+                <li>Or click the button below to open WhatsApp directly</li>
+                <li>You will be connected to the EL5H sandbox</li>
+              </ol>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+              {[
+                {label:"WhatsApp Number",value:WHATSAPP_NO},
+                {label:"Join Code",value:`join ${WHATSAPP_SANDBOX_CODE}`},
+                {label:"SMS Number",value:TWILIO_PHONE},
+                {label:"Messaging SID",value:TWILIO_MSG_SID},
+                {label:"Service Name",value:"EL5H"},
+                {label:"Voice Webhook",value:"Twilio Demo"},
+              ].map((row,i)=>(
+                <div key={i} style={{padding:"10px 12px",background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{row.label}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#0f172a",fontFamily:"monospace"}}>{row.value}</div>
                 </div>
               ))}
-              <div>
-                <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Department</label>
-                <select value={vF.host_department} onChange={e=>setVF(p=>({...p,host_department:e.target.value}))} style={INP}><option value="">Select…</option>{DEPTS.map(d=><option key={d}>{d}</option>)}</select>
-              </div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Notes</label><input value={vF.notes} onChange={e=>setVF(p=>({...p,notes:e.target.value}))} placeholder="Notes…" style={INP}/></div>
             </div>
-            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowVF(false);setVF({...EV});}} style={{...BS("#fff"),color:"#374151",border:"1px solid #d1d5db"}}>Cancel</button>
-              <button onClick={checkIn} disabled={saving} style={BS("#059669")}><LogIn style={{width:13,height:13}}/>{saving?"…":"Check In Visitor"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCF&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:520,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}><PhoneIncoming style={{width:18,height:18,color:"#fff"}}/></div>
-              <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800}}>Log Call</div><div style={{fontSize:11,color:"#6b7280"}}>Record any call type</div></div>
-              <button onClick={()=>{setShowCF(false);setCF({...EC});}} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}><X style={{width:16,height:16,color:"#6b7280"}}/></button>
-            </div>
-            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Caller Name</label><input value={cF.caller_name} onChange={e=>setCF(p=>({...p,caller_name:e.target.value}))} placeholder="Full name" style={INP}/></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Phone *</label><input value={cF.caller_phone} onChange={e=>setCF(p=>({...p,caller_phone:e.target.value}))} placeholder="+254 7xx xxx xxx" style={INP}/></div>
-              <div style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Purpose</label><input value={cF.purpose} onChange={e=>setCF(p=>({...p,purpose:e.target.value}))} placeholder="Reason for call" style={INP}/></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Type</label><select value={cF.call_status} onChange={e=>setCF(p=>({...p,call_status:e.target.value}))} style={INP}>{["incoming","outgoing","missed","voicemail"].map(s=><option key={s}>{s}</option>)}</select></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Department</label><select value={cF.department} onChange={e=>setCF(p=>({...p,department:e.target.value}))} style={INP}><option value="">Select…</option>{DEPTS.map(d=><option key={d}>{d}</option>)}</select></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Staff Contacted</label><input value={cF.staff_contacted} onChange={e=>setCF(p=>({...p,staff_contacted:e.target.value}))} placeholder="Name…" style={INP}/></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Notes</label><input value={cF.notes} onChange={e=>setCF(p=>({...p,notes:e.target.value}))} placeholder="Notes…" style={INP}/></div>
-            </div>
-            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowCF(false);setCF({...EC});}} style={{...BS("#fff"),color:"#374151",border:"1px solid #d1d5db"}}>Cancel</button>
-              {cF.caller_phone&&<button onClick={()=>makeCall(cF.caller_phone,cF.caller_name||"Caller")} style={BS("#059669")}><Phone style={{width:13,height:13}}/>Call Now</button>}
-              <button onClick={logCall} disabled={saving} style={BS("#0369a1")}><PhoneIncoming style={{width:13,height:13}}/>{saving?"…":"Log Call"}</button>
+            <div style={{display:"flex",gap:10}}>
+              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
+                style={{...BS("#25D366"),textDecoration:"none",flex:1,justifyContent:"center"}}>
+                🟢 Open WhatsApp →
+              </a>
+              <a href={TWILIO_VOICE_WEBHOOK} target="_blank" rel="noopener noreferrer"
+                style={{...BS("#0369a1"),textDecoration:"none",flex:1,justifyContent:"center"}}>
+                📞 Voice Webhook →
+              </a>
             </div>
           </div>
-        </div>
-      )}
 
-      {showMF&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:500,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center"}}><MessageSquare style={{width:18,height:18,color:"#fff"}}/></div>
-              <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800}}>Send SMS via Twilio</div><div style={{fontSize:11,color:"#6b7280"}}>From: {twilioPhone||"(set Twilio phone in Settings → SMS)"}</div></div>
-              <button onClick={()=>{setShowMF(false);setMF({...EM});}} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}><X style={{width:16,height:16,color:"#6b7280"}}/></button>
+          {/* Send WhatsApp Message */}
+          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>📤 Send WhatsApp Message</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>via Twilio WhatsApp API · EL5H Messaging Service</div>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Recipient Phone (with country code)</label>
+              <input type="tel" value={whatsappTo} onChange={e=>setWhatsappTo(e.target.value)} style={INP} placeholder="+254700000000"/>
             </div>
-            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Recipient *</label><input value={mF.recipient_name} onChange={e=>setMF(p=>({...p,recipient_name:e.target.value}))} placeholder="Full name" style={INP}/></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Phone *</label><input value={mF.recipient_phone} onChange={e=>setMF(p=>({...p,recipient_phone:e.target.value}))} placeholder="+254 7xx xxx xxx" style={INP}/></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Department</label><select value={mF.department} onChange={e=>setMF(p=>({...p,department:e.target.value}))} style={INP}><option value="">Select…</option>{DEPTS.map(d=><option key={d}>{d}</option>)}</select></div>
-              <div><label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Type</label><select value={mF.message_type} onChange={e=>setMF(p=>({...p,message_type:e.target.value}))} style={INP}><option value="sms">SMS</option><option value="whatsapp">WhatsApp</option></select></div>
-              <div style={{gridColumn:"span 2"}}>
-                <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#374151",marginBottom:4}}>Message *</label>
-                <textarea value={mF.message_body} onChange={e=>setMF(p=>({...p,message_body:e.target.value}))} placeholder="Type your message…" rows={4} style={{...INP,resize:"vertical"}}/>
-                <div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>{mF.message_body.length}/160{mF.message_body.length>160?" · 2 parts":""}</div>
-              </div>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Message</label>
+              <textarea value={whatsappMsg} onChange={e=>setWhatsappMsg(e.target.value)} style={{...INP,height:100,resize:"vertical"}} placeholder="Type your WhatsApp message…"/>
+              <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{whatsappMsg.length}/1600 characters</div>
             </div>
-            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowMF(false);setMF({...EM});}} style={{...BS("#fff"),color:"#374151",border:"1px solid #d1d5db"}}>Cancel</button>
-              <button onClick={sendMsg} disabled={saving} style={BS("#7c3aed")}><Send style={{width:13,height:13}}/>{saving?"Sending…":"Send SMS"}</button>
+            <div style={{background:"#fff9ed",border:"1px solid #fde68a",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#92400e"}}>
+              ⚠️ Recipient must first join the sandbox by sending <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to {WHATSAPP_NO}
             </div>
+            <button onClick={sendWhatsApp} disabled={waLoading} style={{...BS(waLoading?"#9ca3af":"#25D366"),width:"100%",justifyContent:"center",fontSize:14,padding:"12px"}}>
+              {waLoading?"Sending…":"🟢 Send WhatsApp Message"}
+            </button>
+          </div>
+
+          {/* WhatsApp Message History */}
+          <div style={{gridColumn:"span 2",background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📜 Message History</div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:"#f8fafc"}}>
+                  {["Recipient","Phone","Channel","Message","Status","Sent At"].map(h=>(
+                    <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {messages.map(m=>(
+                  <tr key={m.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
+                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.recipient_phone}</td>
+                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.message_type||"sms"} color={m.message_type==="whatsapp"?"#25D366":"#7c3aed"}/></td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"}}>{m.message_body}</td>
+                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.status||"pending"} color={m.status==="sent"?"#059669":"#d97706"}/></td>
+                    <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(m.sent_at||m.created_at)}</td>
+                  </tr>
+                ))}
+                {messages.length===0&&<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:"#9ca3af",fontSize:13}}>No messages yet</td></tr>}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

@@ -415,7 +415,7 @@ function SettingsInner() {
             <Card title="System Configuration" sub="Timezone, date format, uploads" color="#374151" icon={Server}
               onSave={() => save(["date_format","timezone","max_upload_mb","default_user_role","allow_registration"])} saving={saving}>
               <FR label="System Version" color="#374151">
-                <span style={{ fontFamily:"var(--font-mono)",fontWeight:700,color:"#818cf8" }}>v2.0.0 — ProcurBosse</span>
+                <span style={{ fontFamily:"var(--font-mono)",fontWeight:700,color:"#818cf8" }}>v5.8.0 — ProcurBosse</span>
               </FR>
               <FR label="Date Format" color="#374151">
                 <select value={get("date_format","DD/MM/YYYY")} onChange={e=>set("date_format",e.target.value)} style={{...inp,width:160}}>

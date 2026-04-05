@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — Dashboard v3.0 (Nuclear Enhanced)
+ * ProcurBosse — Dashboard v5.0 (Nuclear Enhanced)
  * Enlarged ERP Wheel · All roles · All 40+ modules · Live KPIs
  * EL5 MediProcure · Embu Level 5 Hospital
  */
