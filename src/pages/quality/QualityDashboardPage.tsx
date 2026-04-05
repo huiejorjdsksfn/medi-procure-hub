@@ -398,9 +398,8 @@ export default function QualityDashboardPage() {
                   </td>
                   {/* Rej Qty */}
                   <td style={{...tdBase,padding:0}}>
-                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} type="number" min={0} value={row.rej_qty} placeholder="0"
-                      onChange={e=>updIQC(i,"rej_qty",e.target.value)}
-                      style={{color:Number(row.rej_qty||0)>0?"#dc2626":"inherit",fontWeight:Number(row.rej_qty||0)>0?700:400}}/>
+                    <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",boxSizing:"border-box" as const,color:Number(row.rej_qty||0)>0?"#dc2626":"#111827",fontWeight:Number(row.rej_qty||0)>0?700:400}} type="number" min={0} value={row.rej_qty} placeholder="0"
+                      onChange={e=>updIQC(i,"rej_qty",e.target.value)}/>
                   </td>
                   {/* Problem Description */}
                   <td style={{...tdBase,padding:0,textAlign:"left"}}>
