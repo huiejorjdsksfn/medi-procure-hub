@@ -14,10 +14,13 @@ import {
   Download, Edit3, ChevronDown
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { notifyProcurement, sendNotification, triggerRequisitionEvent } from "@/lib/notify";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
+import {
+  executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
+  generateRequisitionNumber, type RequisitionAction
+} from "@/lib/procurement/requisitionWorkflow";
 
 // ── Status config ────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = {
