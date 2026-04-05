@@ -493,9 +493,8 @@ export default function QualityDashboardPage() {
                         <tr key={i} onMouseEnter={e=>{Array.from((e.currentTarget as HTMLElement).querySelectorAll("td")).forEach((td:any)=>td.style.background="#f0f7ff")}} onMouseLeave={e=>{Array.from((e.currentTarget as HTMLElement).querySelectorAll("td")).forEach((td:any)=>td.style.background="")}}>
                           <td style={{...tdBase,background:"#dce6f1",fontWeight:700}}>{i+1}</td>
                           <td style={{...tdBase,padding:0}}>
-                            <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} type="date" value={row.date_of_rejection}
-                              onChange={e=>updPend(i,"date_of_rejection",e.target.value)}
-                              style={{fontSize:9}}/>
+                            <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:9,fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box" as const}} type="date" value={row.date_of_rejection}
+                              onChange={e=>updPend(i,"date_of_rejection",e.target.value)}/>
                           </td>
                           <td style={{...tdBase,padding:0,textAlign:"left"}}>
                             <input style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",padding:"2px 4px",textAlign:"center",color:"#111827",boxSizing:"border-box"}} value={row.reason_for_pendency} placeholder="Reason..."
