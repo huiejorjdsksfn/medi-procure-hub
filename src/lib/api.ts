@@ -3,8 +3,8 @@
  * Wraps Supabase with caching, error handling, audit trails, and security
  * Embu Level 5 Hospital · EL5 MediProcure
  */
-import { supabase, db } from "@/integrations/supabase/client";
-import { cache, cachedFetch, CACHE_KEYS } from "./cache";
+import { supabase } from "@/integrations/supabase/client";
+import { cache, CACHE_KEYS } from "./cache";
 
 // ── Rate limiting (simple in-memory) ─────────────────────────────────────────
 const rateLimits = new Map<string, number[]>();
@@ -26,7 +26,7 @@ export interface ApiResult<T> {
 // ── Generic fetch wrapper ─────────────────────────────────────────────────────
 async function apiFetch<T>(
   cacheKey: string | null,
-  fetcher: () => Promise<{ data: T | null; error: any }>,
+  fetcher: () => Promise<{ data: any; error: any }>,
   ttl = 120
 ): Promise<ApiResult<T>> {
   try {
@@ -43,6 +43,8 @@ async function apiFetch<T>(
     return { data: null, error: err?.message || "Unknown error" };
   }
 }
+
+const db = supabase as any;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUPPLIERS API
@@ -70,8 +72,8 @@ export const purchaseOrdersApi = {
     apiFetch(null,
       () => {
         let q = db.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false });
-        if (filters?.status && filters.status !== "all") q = (q as any).eq("status", filters.status);
-        if (filters?.limit) q = (q as any).limit(filters.limit);
+        if (filters?.status && filters.status !== "all") q = q.eq("status", filters.status);
+        if (filters?.limit) q = q.limit(filters.limit);
         return q;
       }, 60),
   get: (id: string) => apiFetch(null,
@@ -94,8 +96,8 @@ export const paymentVouchersApi = {
     apiFetch(null,
       () => {
         let q = db.from("payment_vouchers").select("*").order("created_at", { ascending: false });
-        if (filters?.status && filters.status !== "all") q = (q as any).eq("status", filters.status);
-        if (filters?.limit) q = (q as any).limit(filters.limit);
+        if (filters?.status && filters.status !== "all") q = q.eq("status", filters.status);
+        if (filters?.limit) q = q.limit(filters.limit);
         return q;
       }, 60),
   get: (id: string) => apiFetch(null,
@@ -152,7 +154,6 @@ export const notificationsApi = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const usersApi = {
   ensureAdminRole: async (email: string) => {
-    // Ensure tecnojin03@gmail.com has full admin
     try {
       const { data: user } = await db.from("profiles").select("id").eq("email", email).single();
       if (user) {
