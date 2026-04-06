@@ -1,7 +1,5 @@
 # ╔══════════════════════════════════════════════════════════════════════════════╗
 # ║  EL5 MediProcure v5.8 — ProcurBosse MASTER CI/CD PIPELINE                  ║
-# ║  Embu Level 5 Hospital · Health Procurement ERP                             ║
-# ║  Build: Web + Electron EXE (x64+ia32) + Supabase Functions + DB Migrations  ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 name: "🏥 ProcurBosse v5.8 — Master Pipeline"
 
@@ -36,40 +34,24 @@ permissions:
   packages: write
   actions: write
 
-# ── Shared environment variables ─────────────────────────────────────────────
 env:
   APP_VERSION: "5.8.0"
-  APP_NAME: "ProcurBosse"
-  HOSPITAL_NAME: "Embu Level 5 Hospital"
-  SYSTEM_NAME: "EL5 MediProcure"
-
-  # Supabase
   VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
   VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
   VITE_SUPABASE_PROJECT_ID: "yvjfehnzbzjliizjvuhq"
   SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
-  SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
-
-  # Twilio
-  TWILIO_ACCOUNT_SID: "ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a"
-  TWILIO_AUTH_TOKEN: "your_twilio_auth_token"
-  TWILIO_PHONE_NUMBER: "+16812972643"
-  TWILIO_MESSAGING_SERVICE_SID: "MG2fffc3a381c44a202c316dcc6400707d"
-  TWILIO_WHATSAPP_NUMBER: "+14155238886"
-
-  # App
   VITE_APP_VERSION: "5.8.0"
   VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
   VITE_SYSTEM_NAME: "EL5 MediProcure"
   VITE_TWILIO_PHONE: "+16812972643"
   VITE_WHATSAPP_NUMBER: "+14155238886"
   VITE_TWILIO_MSG_SID: "MG2fffc3a381c44a202c316dcc6400707d"
-  GITHUB_AUTH_TOKEN: "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"
+  GITHUB_AUTH_TOKEN: "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"
 
-# ════════════════════════════════════════════════════════════════════════════════
-# JOB 1 — Web Build (Vite)
-# ════════════════════════════════════════════════════════════════════════════════
 jobs:
+  # ══════════════════════════════════════════════════════
+  # JOB 1 — Web Build
+  # ══════════════════════════════════════════════════════
   web-build:
     name: "🌐 Web Build — Vite + TypeScript"
     runs-on: ubuntu-latest
@@ -78,33 +60,45 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
 
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: "📋 Build Metadata"
-        id: meta
+      - id: meta
         run: |
           BUILD_ID="v5.8.0-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "version=5.8.0" >> $GITHUB_OUTPUT
           echo "::notice::Building ProcurBosse $BUILD_ID"
 
-      - name: "🟢 Setup Node.js 20"
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
 
-      - name: "📦 Install Dependencies"
+      - name: "🔧 Fix package-lock version mismatch"
         run: |
-          npm ci --no-audit --legacy-peer-deps
-          echo "✅ Dependencies installed"
+          PKG_VER=$(node -p "require('./package.json').version")
+          LOCK_VER=$(node -p "require('./package-lock.json').version")
+          echo "package.json=$PKG_VER  lock=$LOCK_VER"
+          if [ "$PKG_VER" != "$LOCK_VER" ]; then
+            echo "Patching package-lock.json $LOCK_VER -> $PKG_VER"
+            node -e "
+              const fs=require('fs');
+              const l=JSON.parse(fs.readFileSync('package-lock.json'));
+              l.version='$PKG_VER';
+              if(l.packages&&l.packages[''])l.packages[''].version='$PKG_VER';
+              fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));
+            "
+          fi
+          echo "✅ Version sync done"
 
-      - name: "⚙️ Write .env file"
+      - name: "📦 Install Dependencies"
+        run: npm ci --no-audit --legacy-peer-deps
+
+      - name: "⚙️ Write .env"
         run: |
-          cat > .env << 'ENVEOF'
+          cat > .env << 'EOF'
           VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc
           VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
@@ -114,41 +108,34 @@ jobs:
           VITE_TWILIO_PHONE=+16812972643
           VITE_WHATSAPP_NUMBER=+14155238886
           VITE_TWILIO_MSG_SID=MG2fffc3a381c44a202c316dcc6400707d
-          VITE_BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          ENVEOF
-          echo "✅ .env written"
+          EOF
 
-      - name: "🔨 TypeScript Check"
-        run: npx tsc --noEmit 2>&1 | head -40 || echo "⚠️ TS warnings present — build continues"
+      - name: "🔨 TypeScript check (non-blocking)"
+        run: npx tsc --noEmit --skipLibCheck 2>&1 | head -40 || true
         continue-on-error: true
 
-      - name: "🏗️ Vite Production Build"
+      - name: "🏗️ Vite build"
         run: npm run build
         env:
+          CI: "false"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: "✅ Verify Build Output"
+      - name: "✅ Verify dist"
         run: |
-          echo "=== Build artifacts ==="
           ls -lh dist/
-          echo "=== index.html ==="
-          [ -f dist/index.html ] && echo "✅ index.html found" || (echo "❌ MISSING" && exit 1)
-          echo "=== Assets ==="
-          ls -lh dist/assets/ | head -20
-          echo "=== Total size ==="
+          [ -f dist/index.html ] && echo "✅ OK" || (echo "❌ Missing index.html" && exit 1)
           du -sh dist/
 
-      - name: "📤 Upload Web Artifact"
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: web-dist-v5.8
           path: dist/
           retention-days: 30
           if-no-files-found: error
 
-  # ════════════════════════════════════════════════════════════════════════════════
-  # JOB 2 — Electron Desktop EXE (Windows x64 + ia32)
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════
+  # JOB 2 — Desktop EXE
+  # ══════════════════════════════════════════════════════
   desktop-build:
     name: "💻 Desktop EXE — Electron + Windows"
     runs-on: windows-latest
@@ -156,192 +143,127 @@ jobs:
     if: github.event.inputs.build_desktop != 'false'
 
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
-
-      - name: "🟢 Setup Node.js 20"
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
 
-      - name: "📥 Download Web Build"
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: web-dist-v5.8
           path: dist/
 
-      - name: "📦 Install Dependencies"
-        run: npm ci --no-audit --legacy-peer-deps
-
-      - name: "🔧 Write electron package.json"
+      - name: "🔧 Fix package-lock version"
         shell: bash
         run: |
-          cat > electron-package.json << 'EPEOF'
-          {
-            "name": "procurbosse",
-            "productName": "ProcurBosse EL5 MediProcure",
-            "version": "5.8.0",
-            "description": "EL5 MediProcure v5.8 — Health Procurement ERP for Embu Level 5 Hospital",
-            "main": "electron/main.js",
-            "author": "Embu County Government ICT",
-            "build": {
-              "appId": "ke.go.embu.mediprocure.procurbosse",
-              "productName": "ProcurBosse",
-              "copyright": "Copyright © 2025 Embu County Government",
-              "directories": { "output": "release" },
-              "files": ["dist/**/*", "electron/**/*"],
-              "win": {
-                "target": [
-                  { "target": "nsis", "arch": ["x64", "ia32"] },
-                  { "target": "portable", "arch": ["x64"] },
-                  { "target": "zip", "arch": ["x64"] }
-                ],
-                "icon": "public/favicon.ico",
-                "requestedExecutionLevel": "requireAdministrator"
-              },
-              "nsis": {
-                "oneClick": false,
-                "perMachine": true,
-                "allowElevation": true,
-                "allowToChangeInstallationDirectory": true,
-                "installerIcon": "public/favicon.ico",
-                "installerHeader": "public/favicon.ico",
-                "installerSidebar": "public/favicon.ico",
-                "createDesktopShortcut": true,
-                "createStartMenuShortcut": true,
-                "shortcutName": "ProcurBosse v5.8",
-                "include": "build/installer.nsh",
-                "deleteAppDataOnUninstall": false
-              },
-              "asar": true,
-              "asarUnpack": ["electron/**/*"],
-              "extraResources": [
-                { "from": "dist", "to": "app", "filter": ["**/*"] }
-              ]
-            }
-          }
-          EPEOF
-          echo "✅ electron-package.json written"
+          PKG_VER=$(node -p "require('./package.json').version")
+          node -e "
+            const fs=require('fs');
+            const l=JSON.parse(fs.readFileSync('package-lock.json'));
+            l.version='$PKG_VER';
+            if(l.packages&&l.packages[''])l.packages[''].version='$PKG_VER';
+            fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));
+          "
 
-      - name: "⚙️ Write Electron main process"
+      - name: "📦 Install + electron-builder"
+        run: |
+          npm ci --no-audit --legacy-peer-deps
+          npm install --no-save electron electron-builder --legacy-peer-deps
+
+      - name: "⚙️ Ensure electron files"
         shell: bash
         run: |
-          mkdir -p electron
-          cat > electron/main.js << 'EMEOF'
-          const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray } = require('electron');
+          mkdir -p electron public
+          if [ ! -f electron/main.js ]; then
+            cat > electron/main.js << 'EMEOF'
+          const { app, BrowserWindow, ipcMain, shell } = require('electron');
           const path = require('path');
           const fs = require('fs');
-
-          // Disable hardware acceleration for compatibility
           app.disableHardwareAcceleration();
           app.commandLine.appendSwitch('disable-gpu');
           app.commandLine.appendSwitch('use-gl', 'swiftshader');
-          app.commandLine.appendSwitch('disable-software-rasterizer');
-
           let mainWindow;
-          let tray;
-          const isDev = process.env.NODE_ENV === 'development';
-
           function createWindow() {
             mainWindow = new BrowserWindow({
-              width: 1400,
-              height: 900,
-              minWidth: 1024,
-              minHeight: 768,
+              width: 1400, height: 900, minWidth: 1024, minHeight: 768,
               title: 'ProcurBosse — EL5 MediProcure v5.8',
-              icon: path.join(__dirname, '../public/favicon.ico'),
-              webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(__dirname, 'preload.js'),
-                webSecurity: true
-              },
-              show: false,
-              frame: true,
-              autoHideMenuBar: false,
-              backgroundColor: '#f8fafc'
+              webPreferences: { nodeIntegration: false, contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js') },
+              show: false, backgroundColor: '#f8fafc'
             });
-
-            // Load app
-            const indexPath = path.join(process.resourcesPath || '', 'app', 'index.html');
-            const distPath = path.join(__dirname, '../dist/index.html');
-            
-            const loadPath = fs.existsSync(indexPath) ? `file://${indexPath}` : `file://${distPath}`;
-            mainWindow.loadURL(loadPath);
-
-            mainWindow.once('ready-to-show', () => {
-              mainWindow.show();
-              mainWindow.maximize();
-            });
-
+            const rp = path.join(process.resourcesPath || '', 'app', 'index.html');
+            const dp = path.join(__dirname, '../dist/index.html');
+            mainWindow.loadURL(fs.existsSync(rp) ? 'file://'+rp : 'file://'+dp);
+            mainWindow.once('ready-to-show', () => { mainWindow.show(); mainWindow.maximize(); });
             mainWindow.on('closed', () => { mainWindow = null; });
-
-            // Open external links in browser
-            mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-              shell.openExternal(url);
-              return { action: 'deny' };
-            });
+            mainWindow.webContents.setWindowOpenHandler(({url}) => { shell.openExternal(url); return { action:'deny' }; });
           }
-
-          app.whenReady().then(() => {
-            createWindow();
-            
-            app.on('activate', () => {
-              if (BrowserWindow.getAllWindows().length === 0) createWindow();
-            });
-          });
-
-          app.on('window-all-closed', () => {
-            if (process.platform !== 'darwin') app.quit();
-          });
-
-          // IPC handlers
+          app.whenReady().then(() => { createWindow(); app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); }); });
+          app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
           ipcMain.handle('app-version', () => app.getVersion());
-          ipcMain.handle('open-external', (_, url) => shell.openExternal(url));
           EMEOF
-
-          cat > electron/preload.js << 'EPEOF'
+          fi
+          if [ ! -f electron/preload.js ]; then
+            cat > electron/preload.js << 'EPEOF'
           const { contextBridge, ipcRenderer } = require('electron');
           contextBridge.exposeInMainWorld('electronAPI', {
             getVersion: () => ipcRenderer.invoke('app-version'),
-            openExternal: (url) => ipcRenderer.invoke('open-external', url),
             platform: process.platform
           });
           EPEOF
-          echo "✅ Electron files written"
+          fi
+          # Placeholder favicon if missing
+          if [ ! -f public/favicon.ico ]; then
+            printf '\x00\x00\x01\x00\x01\x00\x01\x01\x00\x00\x01\x00\x18\x00' > public/favicon.ico
+          fi
 
-      - name: "📦 Install electron-builder"
-        run: npm install --no-save electron electron-builder --legacy-peer-deps
-
-      - name: "⚙️ Write .env for build"
+      - name: "⚙️ Write electron-builder config"
         shell: bash
         run: |
-          echo "VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co" > .env
-          echo "VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc" >> .env
-          echo "VITE_APP_VERSION=5.8.0" >> .env
+          cat > eb-ci.yml << 'EBEOF'
+          appId: ke.go.embu.mediprocure.procurbosse
+          productName: ProcurBosse
+          copyright: "Copyright 2025 Embu County Government"
+          directories:
+            output: release
+          files:
+            - "dist/**/*"
+            - "electron/**/*"
+          win:
+            target:
+              - target: nsis
+                arch: [x64, ia32]
+              - target: portable
+                arch: [x64]
+            requestedExecutionLevel: requireAdministrator
+          nsis:
+            oneClick: false
+            perMachine: true
+            allowElevation: true
+            allowToChangeInstallationDirectory: true
+            createDesktopShortcut: true
+            createStartMenuShortcut: true
+            shortcutName: "ProcurBosse v5.8"
+          asar: true
+          extraResources:
+            - from: dist
+              to: app
+              filter: ["**/*"]
+          EBEOF
 
-      - name: "🏗️ Build Electron EXE"
+      - name: "🏗️ Build EXE"
         shell: bash
-        run: |
-          npx electron-builder build \
-            --config electron-package.json \
-            --win \
-            --x64 --ia32 \
-            --publish never
+        run: npx electron-builder build --config eb-ci.yml --win --x64 --ia32 --publish never
         env:
-          GH_TOKEN: "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"
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         continue-on-error: true
 
-      - name: "📋 List release artifacts"
+      - name: "📋 List artifacts"
         shell: bash
-        run: |
-          echo "=== Release directory ==="
-          ls -lh release/ 2>/dev/null || echo "No release dir"
-          find . -name "*.exe" -o -name "*.zip" 2>/dev/null | head -20
+        run: ls -lh release/ 2>/dev/null || echo "No release dir"
 
-      - name: "📤 Upload EXE Artifacts"
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: procurbosse-exe-v5.8
           path: |
@@ -351,135 +273,89 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # ════════════════════════════════════════════════════════════════════════════════
-  # JOB 3 — Supabase Edge Functions Deploy
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════
+  # JOB 3 — Supabase Edge Functions
+  # ══════════════════════════════════════════════════════
   supabase-functions:
     name: "⚡ Supabase Edge Functions Deploy"
     runs-on: ubuntu-latest
     needs: web-build
-    if: github.event.inputs.deploy_functions != 'false'
+    if: always() && needs.web-build.result == 'success' && github.event.inputs.deploy_functions != 'false'
 
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: "🛠️ Install Supabase CLI"
-        run: |
-          npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
-          which supabase || (curl -fsSL https://raw.githubusercontent.com/supabase/cli/main/install.sh | bash)
+        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
+        continue-on-error: true
 
-      - name: "🔗 Link Supabase Project"
+      - name: "🚀 Deploy functions"
         run: |
-          supabase link --project-ref yvjfehnzbzjliizjvuhq \
-            --password "" 2>/dev/null || echo "⚠️ Link attempted"
+          for fn in send-email send-sms notify-requisition; do
+            supabase functions deploy $fn \
+              --project-ref yvjfehnzbzjliizjvuhq \
+              --no-verify-jwt 2>&1 || echo "⚠️ $fn skipped"
+          done
         env:
           SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
         continue-on-error: true
 
-      - name: "🚀 Deploy send-email function"
-        run: |
-          supabase functions deploy send-email \
-            --project-ref yvjfehnzbzjliizjvuhq \
-            --no-verify-jwt 2>&1 || echo "⚠️ Function deploy skipped (CI env)"
-        env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
-        continue-on-error: true
+      - run: echo "✅ Edge functions deployment step complete"
 
-      - name: "🚀 Deploy send-sms function"
-        run: |
-          supabase functions deploy send-sms \
-            --project-ref yvjfehnzbzjliizjvuhq \
-            --no-verify-jwt 2>&1 || echo "⚠️ Function deploy skipped (CI env)"
-        env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
-        continue-on-error: true
-
-      - name: "🚀 Deploy notify-requisition function"
-        run: |
-          supabase functions deploy notify-requisition \
-            --project-ref yvjfehnzbzjliizjvuhq \
-            --no-verify-jwt 2>&1 || echo "⚠️ Function deploy skipped (CI env)"
-        env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
-        continue-on-error: true
-
-      - name: "✅ Functions deploy summary"
-        run: |
-          echo "╔══════════════════════════════════════╗"
-          echo "║  Edge Functions Deployment Complete  ║"
-          echo "║  Project: yvjfehnzbzjliizjvuhq       ║"
-          echo "║  Functions: send-email, send-sms,    ║"
-          echo "║             notify-requisition       ║"
-          echo "╚══════════════════════════════════════╝"
-
-  # ════════════════════════════════════════════════════════════════════════════════
-  # JOB 4 — Database Migrations
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════
+  # JOB 4 — DB Migrations
+  # ══════════════════════════════════════════════════════
   db-migrations:
     name: "🗄️ Database Migrations"
     runs-on: ubuntu-latest
     needs: web-build
-    if: github.event.inputs.run_migrations != 'false'
+    if: always() && needs.web-build.result == 'success' && github.event.inputs.run_migrations != 'false'
 
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: "🛠️ Setup Supabase CLI"
-        run: |
-          npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
-          which supabase && supabase --version || echo "CLI not available"
+      - name: "🛠️ Supabase CLI"
+        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
         continue-on-error: true
-
-      - name: "🗃️ List Migrations"
-        run: |
-          echo "=== Pending migrations ==="
-          ls -la supabase/migrations/
 
       - name: "🚀 Push migrations"
         run: |
-          supabase db push \
-            --project-ref yvjfehnzbzjliizjvuhq 2>&1 || echo "⚠️ Migration push attempted (may need SUPABASE_DB_PASSWORD secret)"
+          ls supabase/migrations/ 2>/dev/null || echo "No migrations dir"
+          supabase db push --project-ref yvjfehnzbzjliizjvuhq 2>&1 || echo "⚠️ Migration attempted"
         env:
           SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
         continue-on-error: true
 
-      - name: "✅ Migration summary"
-        run: echo "✅ DB migration step complete for project yvjfehnzbzjliizjvuhq"
+      - run: echo "✅ DB migrations step complete"
 
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════
   # JOB 5 — GitHub Release
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════
   create-release:
     name: "🚀 Create GitHub Release v5.8"
     runs-on: ubuntu-latest
     needs: [web-build, desktop-build, supabase-functions, db-migrations]
-    if: always() && (github.event.inputs.create_release != 'false')
+    if: always() && github.event.inputs.create_release != 'false'
 
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: "📥 Download Web Artifact"
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: web-dist-v5.8
           path: release-web/
         continue-on-error: true
 
-      - name: "📥 Download EXE Artifact"
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: procurbosse-exe-v5.8
           path: release-exe/
         continue-on-error: true
 
-      - name: "📦 Package Web Release"
+      - name: "📦 Package web"
         run: |
-          cd release-web && zip -r ../ProcurBosse-v5.8-Web.zip . 2>/dev/null || echo "⚠️ zip skipped"
-          cd ..
-          ls -lh *.zip 2>/dev/null || echo "No zip files"
+          [ -d release-web ] && (cd release-web && zip -r ../ProcurBosse-v5.8-Web.zip .) || true
+          ls -lh *.zip 2>/dev/null || true
         continue-on-error: true
 
       - name: "🏷️ Create Release"
@@ -490,69 +366,29 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          token: "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"
+          token: ${{ secrets.RELEASE_PAT }}
           body: |
             # 🏥 ProcurBosse v5.8.0 — EL5 MediProcure
-            **Embu Level 5 Hospital · Health Procurement ERP**
-            **Release Date:** $(date +"%B %d, %Y")
 
-            ## ✨ What's New in v5.8
+            **Embu Level 5 Hospital · Embu County Government**
 
-            ### 🔐 Authentication & Access
-            - Enhanced Login page with v5.8 branding and version badge
-            - Completely redesigned Reset Password page with dark glassmorphism UI
-            - Password strength meter with real-time validation
-            - Secure recovery flow with Supabase SMTP + Resend integration
+            ## ✨ v5.8 Highlights
+            - Accountant workspace (invoice matching, GL journal, payment vouchers)
+            - Twilio SMS + WhatsApp integration (EL5H messaging service)
+            - Redesigned Notifications with bulk actions & realtime
+            - SMTP via Supabase + Resend
+            - Windows EXE installer (x64 + ia32) with desktop shortcut
 
-            ### 💼 Accountant Role — Full Workspace
-            - **Invoice Matching**: Three-way PO · GRN · Invoice matching engine
-            - **Payment Management**: Create, approve, and export payment proposals
-            - **Budget Control**: Real-time budget consumption monitoring
-            - **ERP Sync Module**: Bidirectional Dynamics 365 data flow
-            - **Journal & Ledger View**: GL account drill-down with debit/credit
-            - **Quotation Creator**: Full supplier quotation lifecycle management
-            - **Reports Tab**: CSV export for all financial report types
-
-            ### 🔔 Notification System
-            - Redesigned NotificationBell with category pills and priority badges
-            - Real-time Supabase subscriptions
-            - Critical pulse animations and badge counts
-            - Full NotificationsPage with multi-filter and bulk actions
-
-            ### 📡 Twilio Integration
-            - Voice webhook: POST https://demo.twilio.com/welcome/voice/
-            - Messaging Service: EL5H (MG2fffc3a381c44a202c316dcc6400707d)
-            - WhatsApp: +14155238886 (join bad-machine)
+            ## 📡 Twilio
             - SMS: +16812972643
+            - WhatsApp: +14155238886 (join **bad-machine**)
+            - Messaging SID: MG2fffc3a381c44a202c316dcc6400707d
 
-            ### 🏗️ Advanced ERP Engine Architecture
-            - Multi-layer cascade cache engine (L1/L2/L3)
-            - Batch processing optimization
-            - Workflow automation with RPA detection
-            - Advanced audit & compliance with blockchain logging
-            - OData v4 + SOAP + REST/HATEOAS API gateway
-            - Event-driven saga orchestration
-            - Real-time performance monitoring
-
-            ### 📋 Database & Infrastructure
-            - v5.8 schema migration with all new tables
-            - SMTP configured via Supabase + Resend
-            - All Edge Functions redeployed
-
-            ## 🛠️ Technical Stack
-            - React 18 + TypeScript + Vite
-            - Supabase (PostgreSQL + Realtime + Edge Functions)
-            - Electron 28 (Windows x64 + ia32)
-            - Twilio (SMS/Voice/WhatsApp)
-            - Dynamics 365 ERP Integration
-
-            ## 🏥 Roles Supported
-            `admin` · `procurement_manager` · `procurement_officer`
-            `inventory_manager` · `warehouse_officer` · `requisitioner`
-            `accountant` · `database_admin`
+            ## 🛠 Stack
+            React 18 · TypeScript · Vite · Supabase · Electron 28 · Twilio
 
             ---
-            *Built with ❤️ for Embu County Government Health Division*
+            *Built for Embu County Government Health Division*
           files: |
             ProcurBosse-v5.8-Web.zip
             release-exe/*.exe
