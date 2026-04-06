@@ -1,23 +1,45 @@
 <!DOCTYPE html>
-<html lang="en-KE">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a2558" />
-    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0e7490" />
+    <meta name="description" content="EL5 MediProcure v5.8 — Health Procurement ERP for Embu Level 5 Hospital. ProcurBosse by Embu County Government." />
+    <meta name="application-name" content="ProcurBosse" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="MediProcure" />
-    <meta name="application-name" content="EL5 MediProcure" />
-    <meta name="description" content="Embu Level 5 Hospital Procurement & ERP Management System" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="ProcurBosse" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#0e7490" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="EL5 MediProcure v5.8 — ProcurBosse" />
+    <meta property="og:description" content="Health Procurement ERP — Embu Level 5 Hospital" />
+    <meta property="og:image" content="/og-image.png" />
+    <!-- Performance hints -->
+    <link rel="preconnect" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
+    <link rel="dns-prefetch" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
+    <link rel="preconnect" href="https://api.twilio.com" />
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <title>EL5 MediProcure — Hospital ERP</title>
+    <!-- Inter font (fast CDN, subset) -->
+    <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet" />
+    <title>EL5 MediProcure v5.8 — ProcurBosse</title>
     <style>
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: #ffffff; height: 100%; }
-      #root { min-height: 100vh; }
+      * { box-sizing: border-box; }
+      html, body, #root { height: 100%; margin: 0; padding: 0; }
+      body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f8fafc; }
+      /* Skeleton loader */
+      .skel { background: linear-gradient(90deg,#f0f4f8 25%,#e8edf2 50%,#f0f4f8 75%); background-size:200% 100%; animation:skel 1.5s infinite; border-radius:6px; }
+      @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+      /* Cross-platform scrollbar */
+      ::-webkit-scrollbar { width:6px; height:6px; }
+      ::-webkit-scrollbar-track { background:#f1f5f9; }
+      ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+      ::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
     </style>
   </head>
   <body>

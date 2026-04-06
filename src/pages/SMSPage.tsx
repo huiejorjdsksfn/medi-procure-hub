@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtime } from "@/hooks/useRealtime";
 import { SMSAPI, SMSMessage, SMSTemplate, SMSConversation, BulkOperation } from "@/lib/api/SMSAPI";
 import { useAuth } from "@/contexts/AuthContext";
 import { Send, RefreshCw, Plus, X, Search, Copy, Check, Trash2 } from "lucide-react";

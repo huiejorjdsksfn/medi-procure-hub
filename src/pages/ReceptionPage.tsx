@@ -7,6 +7,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRealtime } from "@/hooks/useRealtime";
+import { ReceptionAPI } from "@/lib/api/ReceptionAPI";
 import { toast } from "@/hooks/use-toast";
 import {
   Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed,
