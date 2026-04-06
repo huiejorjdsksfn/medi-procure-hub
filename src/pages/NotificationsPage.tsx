@@ -232,7 +232,7 @@ export default function NotificationsPage() {
             }}>
               {f.charAt(0).toUpperCase()+f.slice(1)}
               {f==="unread"&&unreadCount>0&&<span style={{marginLeft:6,background:"#3b82f6",color:"#fff",borderRadius:10,padding:"0 5px",fontSize:10}}>{unreadCount}</span>}
-              {f==="critical"&&criticalCount>0&&<span style={{marginLeft:6,background:"#ef4444",color:"#fff",borderRadius:10,padding:"0 5px",fontSize:10}}>{criticalCount}</span>}
+              {f==="unread"&&criticalCount>0&&<span style={{marginLeft:6,background:"#ef4444",color:"#fff",borderRadius:10,padding:"0 5px",fontSize:10}}>{criticalCount}</span>}
             </button>
           ))}
 
