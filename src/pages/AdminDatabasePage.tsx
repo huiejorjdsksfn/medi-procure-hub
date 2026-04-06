@@ -32,29 +32,29 @@ const TABLE_GROUPS = [
   { id:"sms",         label:"SMS & Logs",          color:"#5D4037", tables:["sms_log","db_admin_log","db_fix_scripts"] },
 ];
 
-// ── Styles (white background, black font, Times New Roman) ────────────────────
+// ── Styles (Clean white Inter design — v5.8) ─────────────────────────────────
 const S = {
-  font:  "'Segoe UI', Arial, system-ui, sans-serif",
-  bg:    "#0d1b35",
-  bg2:   "#0a1628",
-  fg:    "#f1f5f9",
-  fg2:   "#cbd5e1",
-  border:"rgba(255,255,255,0.1)",
-  head:  "rgba(255,255,255,0.05)",
-  blue:  "#3b82f6",
-  sel:   "rgba(59,130,246,0.2)",
-  err:   "#f87171",
-  ok:    "#4ade80",
-  warn:  "#fbbf24",
-  mono:  "'Courier New', Courier, monospace",
+  font:  "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+  bg:    "#ffffff",
+  bg2:   "#f8fafc",
+  fg:    "#0f172a",
+  fg2:   "#475569",
+  border:"#e2e8f0",
+  head:  "#f1f5f9",
+  blue:  "#2563eb",
+  sel:   "rgba(37,99,235,0.08)",
+  err:   "#dc2626",
+  ok:    "#16a34a",
+  warn:  "#d97706",
+  mono:  "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace",
 };
 
 const CELL: React.CSSProperties = {
-  border: `1px solid rgba(255,255,255,0.08)`,
+  border: `1px solid #e2e8f0`,
   padding: "6px 12px",
   fontSize: 12,
   fontFamily: S.font,
-  color: "#f1f5f9",
+  color: "#0f172a",
   whiteSpace: "nowrap",
   maxWidth: 220,
   overflow: "hidden",
@@ -284,7 +284,7 @@ ORDER BY t.table_name;`);
   ];
 
   return (
-    <div style={{ height:"100vh",display:"flex",flexDirection:"column",background:S.bg,fontFamily:S.font,color:S.fg,minHeight:"100vh" }}>
+    <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:S.font,color:S.fg,minHeight:"100%" }}>
 
       {/* ── Header ── */}
       <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
@@ -532,7 +532,7 @@ ORDER BY t.table_name;`);
                 value={sql}
                 onChange={e=>setSql(e.target.value)}
                 onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
-                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#e2e8f0",background:"#0a1628",resize:"none",outline:"none",boxSizing:"border-box" }}
+                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#1e293b",background:"#f8fafc",resize:"none",outline:"none",boxSizing:"border-box",lineHeight:1.6 }}
                 placeholder="-- Write SQL here (Ctrl+Enter to run)"
                 spellCheck={false}
               />
@@ -559,7 +559,7 @@ ORDER BY t.table_name;`);
                     </thead>
                     <tbody>
                       {sqlResult.map((r,i) => (
-                        <tr key={i} style={{ background:i%2===0?S.bg:"#fafafa" }}>
+                        <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
                           {Object.values(r).map((v:any,j) => (
                             <td key={j} style={CELL}>{v===null?<span style={{ color:"#999" }}>null</span>:String(v).slice(0,200)}</td>
                           ))}
@@ -587,7 +587,7 @@ ORDER BY t.table_name;`);
               </thead>
               <tbody>
                 {allColumns.map((col,i) => (
-                  <tr key={col.column_name} style={{ background:i%2===0?S.bg:"#fafafa" }}>
+                  <tr key={col.column_name} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
                     <td style={{ ...CELL,fontWeight:700 }}>{col.column_name}</td>
                     <td style={{ ...CELL,fontFamily:S.mono }}>{col.data_type}</td>
                     <td style={{ ...CELL,color:col.is_nullable==="YES"?"#cc6600":"#006600",fontWeight:700 }}>{col.is_nullable}</td>
@@ -616,7 +616,7 @@ ORDER BY t.table_name;`);
               </thead>
               <tbody>
                 {triggers.map((t,i) => (
-                  <tr key={i} style={{ background:i%2===0?S.bg:"#fafafa" }}>
+                  <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
                     <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{t.trigger_name}</td>
                     <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.event_object_table}</td>
                     <td style={{ ...CELL,color:t.event_manipulation==="DELETE"?"#cc0000":t.event_manipulation==="INSERT"?"#006600":"#cc6600",fontWeight:700 }}>{t.event_manipulation}</td>
@@ -677,7 +677,7 @@ ORDER BY t.table_name;`);
                 </thead>
                 <tbody>
                   {stats.map((row,i) => (
-                    <tr key={i} style={{ background:i%2===0?S.bg:"#fafafa",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
+                    <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
                       <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{row.table_name}</td>
                       <td style={{ ...CELL,textAlign:"center" }}>{row.column_count}</td>
                       <td style={{ ...CELL,textAlign:"center",color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>

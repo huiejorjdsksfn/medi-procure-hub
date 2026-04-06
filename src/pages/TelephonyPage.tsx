@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtime } from "@/hooks/useRealtime";
 import { TelephonyAPI, PhoneCall, PhoneExtension, IVRMenu, CallQueue, Voicemail } from "@/lib/api/TelephonyAPI";
 import { useAuth } from "@/contexts/AuthContext";
 import { Phone, PhoneCall as PhoneCallIcon, PhoneOff, PhoneMissed, Volume2, VolumeX, Mic, MicOff, RefreshCw, Plus, X, Edit2, Trash2, ChevronDown } from "lucide-react";
