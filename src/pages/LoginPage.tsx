@@ -130,7 +130,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[10px] text-slate-500 mt-4">
+        <p className="text-center text-[10px] text-muted-foreground mt-4">
           ProcurBosse v5.8 · Embu County Government
         </p>
       </div>
