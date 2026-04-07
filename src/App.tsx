@@ -69,7 +69,7 @@ import GuiEditorPage from "@/pages/GuiEditorPage";
 import FacilitiesPage from "@/pages/FacilitiesPage";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
+  defaultOptions: { queries: { retry: 1, staleTime: 30000, gcTime: 300000, refetchOnWindowFocus: false, refetchOnReconnect: "always" } }
 });
 
 const P = ({ children }: { children: React.ReactNode }) => (
