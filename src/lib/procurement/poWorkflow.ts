@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — Purchase Order Workflow Engine v4.0
+ * ProcurBosse — Purchase Order Workflow Engine v5.0
  * Complete state machine for PO lifecycle
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -7,13 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
 import { sendNotification, notifyProcurement, notifyRole } from '@/lib/notify';
 
-export type POStatus =
-  | 'draft' | 'pending' | 'approved' | 'sent'
-  | 'partial' | 'received' | 'cancelled' | 'closed';
+export type POStatus = 'draft' | 'pending' | 'approved' | 'sent' | 'partial' | 'received' | 'cancelled' | 'closed';
 
-export type POAction =
-  | 'submit' | 'approve' | 'reject' | 'send_to_supplier'
-  | 'mark_partial' | 'mark_received' | 'cancel' | 'close';
+export type POAction = 'submit' | 'approve' | 'reject' | 'send_to_supplier' | 'mark_partial' | 'mark_received' | 'cancel' | 'close';
 
 export interface POWorkflowResult {
   success: boolean;
@@ -33,19 +29,18 @@ const TRANSITIONS: Record<POStatus, Partial<Record<POAction, POStatus>>> = {
 };
 
 const ACTION_ROLES: Record<POAction, string[]> = {
-  submit:             ['admin', 'procurement_officer', 'procurement_manager'],
-  approve:            ['admin', 'procurement_manager'],
-  reject:             ['admin', 'procurement_manager'],
-  send_to_supplier:   ['admin', 'procurement_officer', 'procurement_manager'],
-  mark_partial:       ['admin', 'warehouse_officer', 'inventory_manager'],
-  mark_received:      ['admin', 'warehouse_officer', 'inventory_manager'],
-  cancel:             ['admin', 'procurement_manager'],
-  close:              ['admin', 'procurement_manager', 'accountant'],
+  submit:           ['admin', 'procurement_officer', 'procurement_manager'],
+  approve:          ['admin', 'procurement_manager'],
+  reject:           ['admin', 'procurement_manager'],
+  send_to_supplier: ['admin', 'procurement_officer', 'procurement_manager'],
+  mark_partial:     ['admin', 'warehouse_officer', 'inventory_manager'],
+  mark_received:    ['admin', 'warehouse_officer', 'inventory_manager'],
+  cancel:           ['admin', 'procurement_manager'],
+  close:            ['admin', 'procurement_manager', 'accountant'],
 };
 
 export function canPOTransition(currentStatus: string, action: POAction): boolean {
-  const t = TRANSITIONS[currentStatus as POStatus];
-  return t ? action in t : false;
+  return !!(TRANSITIONS[currentStatus as POStatus]?.[action]);
 }
 
 export function getPONextStatus(currentStatus: string, action: POAction): POStatus | null {
@@ -80,6 +75,9 @@ export async function executePOAction(
     update.approved_by = userId;
     update.approved_at = new Date().toISOString();
   }
+  if (action === 'reject') {
+    update.rejection_reason = options?.reason || 'Rejected';
+  }
 
   const { error: updateErr } = await (supabase as any)
     .from('purchase_orders').update(update).eq('id', poId);
@@ -87,10 +85,9 @@ export async function executePOAction(
   if (updateErr) return { success: false, error: updateErr.message };
 
   logAudit(userId, userName, action, 'purchase_orders', poId, {
-    from_status: po.status, to_status: newStatus
+    from_status: po.status, to_status: newStatus,
   });
 
-  // Notifications
   try {
     const poNo = po.po_number || po.id?.slice(0, 8);
     if (action === 'approve') {
@@ -119,9 +116,9 @@ export async function executePOAction(
   return { success: true, newStatus };
 }
 
-export function generatePONumber(): string {
+export function generatePONumber(prefix = 'LPO/EL5H'): string {
   const d = new Date();
-  return `PO-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+  return `${prefix}/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 export const PO_STATUS_CONFIG: Record<POStatus, { label: string; bg: string; color: string }> = {
