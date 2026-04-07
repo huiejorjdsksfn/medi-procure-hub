@@ -75,6 +75,7 @@ function UsersInner() {
   },[]);
 
   useEffect(()=>{ if(isAdmin) load(); },[load,isAdmin]);
+  useRealtime({ tables: ["profiles", "user_roles"] }, load);
 
   const createUser = async()=>{
     if(!newU.email||!newU.password||!newU.full_name){toast({title:"Please fill all required fields",variant:"destructive"});return;}
