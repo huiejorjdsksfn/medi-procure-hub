@@ -237,14 +237,14 @@ async function handleInbound(formData: URLSearchParams): Promise<string> {
     recipient_phone: phone, message_body: body, message_type: channel,
     direction:"inbound", status:"received", twilio_sid:msgSid,
     sent_at: new Date().toISOString(),
-  }).catch(()=>null);
+  }).then(()=>null,()=>null);
 
   // Update conversation thread
   await sb.from("sms_conversations").upsert({
     phone_number: phone, last_message: body.slice(0,100),
     last_message_at: new Date().toISOString(), status:"open",
     unread_count: 1,
-  }, { onConflict:"phone_number" }).catch(()=>null);
+  }, { onConflict:"phone_number" }).then(()=>null,()=>null);
 
   // Keyword routing for auto-replies
   const lower = body.toLowerCase().trim();
