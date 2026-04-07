@@ -148,6 +148,7 @@ export default function FinancialDashboardPage() {
   }, []);
 
   useEffect(() => { refetch(); }, [refetch]);
+  useRealtime({ tables: ["payment_vouchers", "budgets", "gl_journal", "goods_received"] }, refetch);
 
   /* KPIs */
   const totalPay = payments.reduce((s, r) => s + Number(r.total_amount || 0), 0);
