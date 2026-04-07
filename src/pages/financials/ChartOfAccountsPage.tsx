@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTableRealtime } from "@/hooks/useRealtime";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, BookOpen, TrendingUp, TrendingDown } from "lucide-react";
 import * as XLSX from "xlsx";
