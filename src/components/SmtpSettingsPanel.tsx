@@ -40,9 +40,9 @@ const DEFAULT: SmtpConfig = {
   email_test_address: "tecnojin03@gmail.com",
   supabase_smtp_active: "true",
   twilio_account_sid: "ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a",
-  twilio_auth_token: "",
+  twilio_auth_token: "d73601fbefe26e01b06e22c53a798ea6",
   twilio_phone_number: "+16812972643",
-  twilio_messaging_service_sid: "MG2fffc3a381c44a202c316dcc6400707d",
+  twilio_messaging_service_sid: "VA692606d4faea3c18432a857f111dbfad",
   twilio_whatsapp_number: "+14155238886",
 };
 
@@ -260,7 +260,7 @@ export default function SmtpSettingsPanel() {
               {[
                 { label: "SMS Number", value: "+16812972643" },
                 { label: "WhatsApp Number", value: "+14155238886" },
-                { label: "Messaging SID", value: "MG2fffc3a381c44a202c316dcc6400707d" },
+                { label: "Messaging SID", value: "VA692606d4faea3c18432a857f111dbfad" },
                 { label: "Service Name", value: "EL5H" },
                 { label: "Voice Webhook", value: "https://demo.twilio.com/welcome/voice/" },
                 { label: "WhatsApp Join", value: "join bad-machine" },
@@ -278,7 +278,7 @@ export default function SmtpSettingsPanel() {
               ["Account SID", "twilio_account_sid", "ACxxxx…", "password"],
               ["Auth Token", "twilio_auth_token", "your_auth_token", "password"],
               ["Phone Number", "twilio_phone_number", "+16812972643", "text"],
-              ["Messaging Service SID", "twilio_messaging_service_sid", "MG2fffc3a381c44a202c316dcc6400707d", "text"],
+              ["Messaging Service SID", "twilio_messaging_service_sid", "VA692606d4faea3c18432a857f111dbfad", "text"],
               ["WhatsApp Number", "twilio_whatsapp_number", "+14155238886", "text"],
             ].map(([label, key, placeholder, type]) => (
               <div key={key}>

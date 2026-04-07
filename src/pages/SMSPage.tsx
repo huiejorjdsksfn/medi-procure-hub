@@ -496,7 +496,7 @@ export default function SMSPage() {
               {label:"SMS Number",value:"+16812972643"},
               {label:"WhatsApp Number",value:"+14155238886"},
               {label:"Messaging Service",value:"EL5H"},
-              {label:"Service SID",value:"MG2fffc3a381c44a202c316dcc6400707d"},
+              {label:"Service SID",value:"VA692606d4faea3c18432a857f111dbfad"},
               {label:"WhatsApp Join Code",value:"join bad-machine"},
               {label:"Voice Webhook",value:"https://demo.twilio.com/welcome/voice/"},
             ].map((row,i)=>(

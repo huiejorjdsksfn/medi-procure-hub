@@ -45,7 +45,7 @@ env:
   VITE_SYSTEM_NAME: "EL5 MediProcure"
   VITE_TWILIO_PHONE: "+16812972643"
   VITE_WHATSAPP_NUMBER: "+14155238886"
-  VITE_TWILIO_MSG_SID: "MG2fffc3a381c44a202c316dcc6400707d"
+  VITE_TWILIO_MSG_SID: "VA692606d4faea3c18432a857f111dbfad"
   GITHUB_AUTH_TOKEN: "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"
 
 jobs:
@@ -107,7 +107,7 @@ jobs:
           VITE_SYSTEM_NAME=EL5 MediProcure
           VITE_TWILIO_PHONE=+16812972643
           VITE_WHATSAPP_NUMBER=+14155238886
-          VITE_TWILIO_MSG_SID=MG2fffc3a381c44a202c316dcc6400707d
+          VITE_TWILIO_MSG_SID=VA692606d4faea3c18432a857f111dbfad
           EOF
 
       - name: "🔨 TypeScript check (non-blocking)"
@@ -382,7 +382,7 @@ jobs:
             ## 📡 Twilio
             - SMS: +16812972643
             - WhatsApp: +14155238886 (join **bad-machine**)
-            - Messaging SID: MG2fffc3a381c44a202c316dcc6400707d
+            - Messaging SID: VA692606d4faea3c18432a857f111dbfad
 
             ## 🛠 Stack
             React 18 · TypeScript · Vite · Supabase · Electron 28 · Twilio

@@ -273,7 +273,7 @@ function SettingsInner() {
               {[
                 {k:"twilio_account_sid",           l:"Account SID",            p:"ACxxxxxxxxxx"},
                 {k:"twilio_auth_token",          l:"Auth Token",             p:"••••", pw:true},
-                {k:"twilio_messaging_service_sid",l:"Messaging Service SID",  p:"MGd547d8e3273fda2d21afdd6856acb245"},
+                {k:"twilio_messaging_service_sid",l:"Messaging Service SID",  p:"VA692606d4faea3c18432a857f111dbfad"},
                 {k:"twilio_phone_number",         l:"Twilio Phone (fallback)", p:"+12025551234"},
                 {k:"sms_hospital_name",           l:"SMS From Name",          p:"EL5 MediProcure"},
               ].map(f => (
