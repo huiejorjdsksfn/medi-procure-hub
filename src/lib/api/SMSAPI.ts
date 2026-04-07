@@ -29,11 +29,12 @@ export const SMSAPI = {
 
   async send(phone:string, body:string, opts?:{name?:string; dept?:string; type?:string; templateId?:string}): Promise<{ok:boolean; error?:string}> {
     const to = fmt254(phone);
-    const { error } = await supabase.functions.invoke("send-sms",{ body:{ to, message:body, hospitalName:"EL5 MediProcure", channel:opts?.type==="whatsapp"?"whatsapp":"sms" } });
-    await db.from("reception_messages").insert({ recipient_name:opts?.name, recipient_phone:to, message_body:body, message_type:opts?.type||"sms", direction:"outbound", department:opts?.dept, status:error?"failed":"sent", sent_at:new Date().toISOString() });
-    // Update conversation
-    await db.from("sms_conversations").upsert({ phone_number:to, contact_name:opts?.name, last_message:body.slice(0,100), last_message_at:new Date().toISOString(), status:"open" },{onConflict:"phone_number"});
-    return { ok:!error, error:error?.message };
+    const channel = opts?.type === "whatsapp" ? "whatsapp" : "sms";
+    // Edge function handles logging — no duplicate client-side insert needed
+    const { data, error } = await supabase.functions.invoke("send-sms", {
+      body: { to, message:body, channel, recipient_name:opts?.name, department:opts?.dept }
+    });
+    return { ok: !error && (data?.ok ?? true), error: error?.message || data?.results?.[0]?.error };
   },
 
   async sendBulk(phones:string[], body:string, opts?:{name?:string; dept?:string; templateId?:string}): Promise<{total:number;ok:number;failed:number}> {

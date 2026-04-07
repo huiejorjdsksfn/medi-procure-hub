@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
@@ -177,7 +177,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAdmin      = roles.includes("admin") || roles.includes("database_admin");
   const isDashboard  = location.pathname === "/dashboard" || location.pathname === "/";
 
-  const moduleEnabled = (id: string) => {
+  const moduleEnabled = useCallback((id: string) => {
     const map: Record<string,string> = {
       procurement:"enable_procurement", vouchers:"enable_vouchers",
       financials:"enable_financials", inventory:"true", quality:"enable_quality",
@@ -186,14 +186,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const k = map[id];
     if(!k||k==="true") return true;
     return getBool(k, true);
-  };
+  }, [getBool]);
 
-  const canSee = (m: typeof MODULES[0]) => {
+  const canSee = useCallback((m: typeof MODULES[0]) => {
     if(!moduleEnabled(m.id)) return false;
     return !m.roles.length || m.roles.some(r=>roles.includes(r));
-  };
+  }, [moduleEnabled, roles]);
 
-  const visibleMods = MODULES.filter(canSee);
+  const visibleMods = useMemo(() => MODULES.filter(canSee), [canSee]);
 
   // Detect active module from URL
   useEffect(()=>{
@@ -220,14 +220,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const activeMod = MODULES.find(m=>m.id===activeModule);
   const visLinks  = activeMod?.sub.filter(s=>!s.roles.length||s.roles.some(r=>roles.includes(r)))||[];
 
-  // Search
-  const allPages = MODULES.flatMap(m=>[
+  // Search (memoized)
+  const allPages = useMemo(() => MODULES.flatMap(m=>[
     {label:m.label,path:m.path,icon:m.icon,color:m.color},
     ...m.sub.map(s=>({label:`${m.label} › ${s.label}`,path:s.path,icon:s.icon,color:m.color}))
-  ]);
-  const searchResults = searchQuery.length>1
+  ]), []);
+  const searchResults = useMemo(() => searchQuery.length>1
     ? allPages.filter(p=>p.label.toLowerCase().includes(searchQuery.toLowerCase())).slice(0,8)
-    : [];
+    : [], [searchQuery, allPages]);
 
   const hov = (e:React.MouseEvent, on:boolean, col="#f0f0f0") =>
     { (e.currentTarget as HTMLElement).style.background = on ? col : "transparent"; };

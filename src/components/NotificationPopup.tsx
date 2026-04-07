@@ -204,11 +204,14 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
 
   const load = useCallback(async () => {
     if (!user) return;
+    // Try user_id first (new schema), fall back to recipient_id (legacy)
     const { data } = await (supabase as any)
       .from("notifications").select("*")
-      .or(`recipient_id.eq.${user.id},recipient_id.is.null`)
+      .or(`user_id.eq.${user.id},recipient_id.eq.${user.id},user_id.is.null,recipient_id.is.null`)
       .order("created_at", { ascending: false }).limit(40);
-    const items = data || [];
+    const items = (data || []).filter((n:any,i:number,arr:any[]) =>
+      arr.findIndex(x=>x.id===n.id)===i  // deduplicate
+    );
     setNotifs(items);
     setLoading(false);
 
@@ -221,13 +224,22 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
 
   useEffect(() => { load(); }, [load]);
 
-  // Real-time subscription
+  // Real-time subscription — debounced to avoid rapid re-fetches
   useEffect(() => {
-    const ch = (supabase as any).channel("notif-popup-v3")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, load)
+    if (!user) return;
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const debouncedLoad = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(load, 400);
+    };
+    const ch = (supabase as any).channel("notif-popup-v4")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications",
+          filter: `user_id=eq.${user.id}` }, debouncedLoad)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications",
+          filter: `user_id=eq.${user.id}` }, debouncedLoad)
       .subscribe();
-    return () => (supabase as any).removeChannel(ch);
-  }, [load]);
+    return () => { clearTimeout(debounceTimer); (supabase as any).removeChannel(ch); };
+  }, [load, user]);
 
   // Click outside to close
   useEffect(() => {
