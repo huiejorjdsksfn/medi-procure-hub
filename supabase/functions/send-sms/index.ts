@@ -21,10 +21,10 @@ const sb = createClient(
 // ── EL5H Twilio Credentials (hardcoded + env override) ────────────────────
 const EL5H = {
   ACCOUNT_SID:  Deno.env.get("TWILIO_ACCOUNT_SID")  || "REDACTED_TWILIO_ACCOUNT_SID",
-  AUTH_TOKEN:   Deno.env.get("TWILIO_AUTH_TOKEN")   || "",
+  AUTH_TOKEN:   Deno.env.get("TWILIO_AUTH_TOKEN")   || "REDACTED_TWILIO_AUTH_TOKEN",
   SMS_NUMBER:   "+16812972643",
   WA_NUMBER:    "+14155238886",
-  MSG_SVC_SID:  "MG2fffc3a381c44a202c316dcc6400707d",
+  MSG_SVC_SID:  "REDACTED_TWILIO_VERIFY_SID",
   WA_JOIN_CODE: "join bad-machine",
   SERVICE_NAME: "EL5H",
   VOICE_WEBHOOK:"https://demo.twilio.com/welcome/voice/",
