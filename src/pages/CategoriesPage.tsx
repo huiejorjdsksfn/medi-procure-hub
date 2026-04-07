@@ -19,12 +19,13 @@ export default function CategoriesPage() {
   const [saving, setSaving]   = useState(false);
   const [form, setForm]       = useState({name:"",description:"",parent_category:""});
 
-  const load = async()=>{
+  const load = useCallback(async()=>{
     setLoading(true);
     const{data}=await(supabase as any).from("item_categories").select("*").order("name");
     setRows(data||[]); setLoading(false);
-  };
-  useEffect(()=>{ load(); },[]);
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+  useTableRealtime("item_categories", load);
 
   const save = async()=>{
     if(!form.name){toast({title:"Name required",variant:"destructive"});return;}
