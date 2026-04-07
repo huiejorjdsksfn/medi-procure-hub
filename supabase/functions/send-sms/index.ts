@@ -254,7 +254,7 @@ async function handleInbound(formData: URLSearchParams): Promise<string> {
     reply = `EL5 MediProcure SMS Help:\n• STOP — Unsubscribe\n• STATUS REQ-XXX — Requisition status\n• PO LPO-XXX — Purchase order status\n• STOCK [item] — Stock level\n\nCall: +254 (hospital number)`;
   } else if (lower === "stop" || lower === "unsubscribe") {
     reply = `You have been unsubscribed from EL5 MediProcure notifications. Reply START to re-subscribe.`;
-    await sb.from("sms_conversations").update({ status:"closed" }).eq("phone_number", phone).catch(()=>null);
+    await sb.from("sms_conversations").update({ status:"closed" }).eq("phone_number", phone).then(()=>null,()=>null);
   } else if (lower === "start" || lower === "subscribe") {
     reply = `Welcome back to EL5 MediProcure! You are now subscribed to procurement notifications. Reply HELP for options.`;
   } else if (lower.startsWith("status ")) {
