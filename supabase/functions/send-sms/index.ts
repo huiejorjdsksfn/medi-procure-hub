@@ -211,7 +211,7 @@ async function logMsg(to:string, body:string, result:any, meta:any, channel:stri
         status: result.ok?"sent":"failed", twilio_sid:result.sid||null,
         module: meta.module||"system", error_msg: result.error||null,
         cost: result.cost||null, sent_at: new Date().toISOString(),
-      }).catch(()=>null),
+      }).then(()=>null,()=>null),
       // Update conversation
       sb.from("sms_conversations").upsert({
         phone_number: to,
@@ -219,7 +219,7 @@ async function logMsg(to:string, body:string, result:any, meta:any, channel:stri
         last_message: body.slice(0,100),
         last_message_at: new Date().toISOString(),
         status: "open",
-      }, { onConflict:"phone_number" }).catch(()=>null),
+      }, { onConflict:"phone_number" }).then(()=>null,()=>null),
     ]);
   } catch { /* non-fatal */ }
 }
