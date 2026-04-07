@@ -211,7 +211,7 @@ async function logMsg(to:string, body:string, result:any, meta:any, channel:stri
         status: result.ok?"sent":"failed", twilio_sid:result.sid||null,
         module: meta.module||"system", error_msg: result.error||null,
         cost: result.cost||null, sent_at: new Date().toISOString(),
-      }).catch(()=>null),
+      }).then(()=>null,()=>null),
       // Update conversation
       sb.from("sms_conversations").upsert({
         phone_number: to,
@@ -219,7 +219,7 @@ async function logMsg(to:string, body:string, result:any, meta:any, channel:stri
         last_message: body.slice(0,100),
         last_message_at: new Date().toISOString(),
         status: "open",
-      }, { onConflict:"phone_number" }).catch(()=>null),
+      }, { onConflict:"phone_number" }).then(()=>null,()=>null),
     ]);
   } catch { /* non-fatal */ }
 }
@@ -237,14 +237,14 @@ async function handleInbound(formData: URLSearchParams): Promise<string> {
     recipient_phone: phone, message_body: body, message_type: channel,
     direction:"inbound", status:"received", twilio_sid:msgSid,
     sent_at: new Date().toISOString(),
-  }).catch(()=>null);
+  }).then(()=>null,()=>null);
 
   // Update conversation thread
   await sb.from("sms_conversations").upsert({
     phone_number: phone, last_message: body.slice(0,100),
     last_message_at: new Date().toISOString(), status:"open",
     unread_count: 1,
-  }, { onConflict:"phone_number" }).catch(()=>null);
+  }, { onConflict:"phone_number" }).then(()=>null,()=>null);
 
   // Keyword routing for auto-replies
   const lower = body.toLowerCase().trim();
@@ -254,7 +254,7 @@ async function handleInbound(formData: URLSearchParams): Promise<string> {
     reply = `EL5 MediProcure SMS Help:\n• STOP — Unsubscribe\n• STATUS REQ-XXX — Requisition status\n• PO LPO-XXX — Purchase order status\n• STOCK [item] — Stock level\n\nCall: +254 (hospital number)`;
   } else if (lower === "stop" || lower === "unsubscribe") {
     reply = `You have been unsubscribed from EL5 MediProcure notifications. Reply START to re-subscribe.`;
-    await sb.from("sms_conversations").update({ status:"closed" }).eq("phone_number", phone).catch(()=>null);
+    await sb.from("sms_conversations").update({ status:"closed" }).eq("phone_number", phone).then(()=>null,()=>null);
   } else if (lower === "start" || lower === "subscribe") {
     reply = `Welcome back to EL5 MediProcure! You are now subscribed to procurement notifications. Reply HELP for options.`;
   } else if (lower.startsWith("status ")) {

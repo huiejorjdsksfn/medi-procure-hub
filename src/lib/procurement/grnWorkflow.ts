@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — GRN Workflow Engine v4.0
+ * ProcurBosse — GRN Workflow Engine v5.0
  * Goods Received Note lifecycle management
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -77,7 +77,7 @@ export async function executeGRNAction(
   if (updateErr) return { success: false, error: updateErr.message };
 
   logAudit(userId, userName, action, 'goods_received', grnId, {
-    from_status: grn.status, to_status: newStatus
+    from_status: grn.status, to_status: newStatus,
   });
 
   try {
@@ -102,9 +102,9 @@ export async function executeGRNAction(
   return { success: true, newStatus };
 }
 
-export function generateGRNNumber(): string {
+export function generateGRNNumber(prefix = 'GRN/EL5H'): string {
   const d = new Date();
-  return `GRN/EL5H/${d.getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`;
+  return `${prefix}/${d.getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 export const GRN_STATUS_CONFIG: Record<GRNStatus, { label: string; bg: string; color: string }> = {

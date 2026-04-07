@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTableRealtime } from "@/hooks/useRealtime";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, X, Save, Trash2, Edit, Download } from "lucide-react";
@@ -19,12 +20,13 @@ export default function DepartmentsPage() {
   const [saving, setSaving]   = useState(false);
   const [form, setForm]       = useState({name:"",code:"",description:"",head_of_department:"",phone:"",email:"",budget_center:""});
 
-  const load = async()=>{
+  const load = useCallback(async()=>{
     setLoading(true);
     const{data}=await(supabase as any).from("departments").select("*").order("name");
     setRows(data||[]); setLoading(false);
-  };
-  useEffect(()=>{ load(); },[]);
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+  useTableRealtime("departments", load);
 
   const save = async()=>{
     if(!form.name){toast({title:"Department name required",variant:"destructive"});return;}
