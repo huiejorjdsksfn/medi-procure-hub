@@ -36,28 +36,154 @@ function Chip({label,color}:{label:string;color:string}) {
   return <span style={{padding:"2px 9px",borderRadius:12,background:color+"18",color,fontSize:11,fontWeight:700,border:"1px solid "+color+"44",textTransform:"capitalize"}}>{label.replace("_"," ")}</span>;
 }
 
-// Role-based tab config
+// Role-based tab config — all users get visitors + messages; admins get calls + whatsapp
 function getTabsForRole(role: string) {
-  const allTabs = ["visitors","calls","messages","whatsapp"];
-  if (role === "admin") return allTabs;
-  if (role === "procurement_manager" || role === "procurement_officer") return ["visitors","messages","whatsapp"];
-  if (role === "accountant") return ["visitors","messages"];
-  if (role === "inventory_manager" || role === "warehouse_officer") return ["visitors","calls"];
-  if (role === "requisitioner") return ["visitors"];
-  return allTabs;
+  const allTabs = ["visitors","calls","messages","whatsapp","notify_all"];
+  if (role === "admin" || role === "database_admin") return allTabs;
+  if (role === "procurement_manager") return ["visitors","calls","messages","whatsapp","notify_all"];
+  if (role === "procurement_officer") return ["visitors","messages","whatsapp"];
+  if (role === "accountant") return ["visitors","messages","whatsapp"];
+  if (role === "inventory_manager") return ["visitors","messages","calls"];
+  if (role === "warehouse_officer") return ["visitors","messages","calls"];
+  if (role === "requisitioner") return ["visitors","messages"];
+  return ["visitors","messages"];
 }
 
 function getRoleWelcome(role: string) {
   const msgs: Record<string,string> = {
-    admin: "Full reception access — all visitor, call, and messaging functions",
-    procurement_manager: "Procurement reception — visitor management and supplier messaging",
-    procurement_officer: "Procurement desk — visit tracking and messaging",
-    accountant: "Finance reception — visitor log and correspondence",
-    inventory_manager: "Inventory desk — visitor and call log",
-    warehouse_officer: "Warehouse reception — visitor log and call tracking",
-    requisitioner: "Visitor log — track department visitors",
+    admin: "Full reception — visitors, calls, SMS, WhatsApp, broadcast notifications",
+    database_admin: "Full reception access",
+    procurement_manager: "Procurement reception — all messaging and visitor functions",
+    procurement_officer: "Procurement desk — visitor tracking and messaging",
+    accountant: "Finance reception — visitor log, messages, and WhatsApp",
+    inventory_manager: "Inventory desk — visitor log, messages, call tracking",
+    warehouse_officer: "Warehouse reception — visitor log, messages, call tracking",
+    requisitioner: "Reception — visitor log and messaging",
   };
   return msgs[role] || "Reception module";
+}
+
+
+// ── Broadcast SMS/WhatsApp to all users ───────────────────────────────────
+function NotifyAllTab() {
+  const [msg,     setMsg]     = useState("");
+  const [channel, setChannel] = useState<"sms"|"whatsapp">("sms");
+  const [loading, setLoading] = useState(false);
+  const [users,   setUsers]   = useState<any[]>([]);
+  const [selected,setSelected]= useState<string[]>([]);
+  const [result,  setResult]  = useState<any>(null);
+  const [dept,    setDept]    = useState("All");
+
+  const DEPTS_ALL = ["All","Procurement","Finance","Inventory","Pharmacy","Maternity","Casualty","Laboratory","Administration","ICT","HR"];
+
+  useEffect(()=>{
+    (supabase as any).from("profiles").select("id,full_name,phone_number,email,department")
+      .not("phone_number","is",null)
+      .then(({data}:any)=>{ setUsers(data||[]); setSelected((data||[]).map((u:any)=>u.id)); });
+  },[]);
+
+  const filtered = dept==="All" ? users : users.filter(u=>u.department===dept);
+  const targets  = filtered.filter(u=>selected.includes(u.id));
+
+  async function sendAll(){
+    if(!msg.trim()){ return; }
+    setLoading(true); setResult(null);
+    const phones = targets.map((u:any)=>u.phone_number).filter(Boolean);
+    if(!phones.length){ setLoading(false); return; }
+    const {data,error} = await (supabase as any).functions.invoke("send-sms",{
+      body:{ to:phones, message:msg, channel, department:"broadcast", module:"notify_all" }
+    });
+    setLoading(false);
+    setResult(data||{ok:false,error:error?.message});
+  }
+
+  const s:Record<string,React.CSSProperties> = {
+    card:{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"},
+    label:{display:"block",fontSize:11,fontWeight:700,color:"#374151",marginBottom:5},
+    inp:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151"},
+    ta:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151",resize:"vertical" as const,minHeight:90},
+    btn:(bg:string)=>({padding:"10px 20px",background:bg,color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer"} as React.CSSProperties),
+  };
+
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+      {/* Compose */}
+      <div style={s.card}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📢 Broadcast Message</div>
+
+        <div style={{marginBottom:12}}>
+          <label style={s.label}>Channel</label>
+          <div style={{display:"flex",gap:8}}>
+            {(["sms","whatsapp"] as const).map(ch=>(
+              <button key={ch} onClick={()=>setChannel(ch)}
+                style={{...s.btn(channel===ch?"#0e7490":"#f1f5f9"),color:channel===ch?"#fff":"#374151",flex:1,fontSize:12}}>
+                {ch==="sms"?"📱 SMS":"🟢 WhatsApp"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <label style={s.label}>Filter by Department</label>
+          <select value={dept} onChange={e=>setDept(e.target.value)} style={{...s.inp,background:"#fff"}}>
+            {DEPTS_ALL.map(d=><option key={d}>{d}</option>)}
+          </select>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <label style={s.label}>Message</label>
+          <textarea value={msg} onChange={e=>setMsg(e.target.value)} placeholder="Type your broadcast message..." style={s.ta}/>
+          <div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>[EL5 MediProcure] prefix added automatically · {msg.length}/1560 chars</div>
+        </div>
+
+        <button onClick={sendAll} disabled={loading||!msg.trim()||targets.length===0}
+          style={{...s.btn(loading||!msg.trim()||targets.length===0?"#9ca3af":"#0e7490"),width:"100%",justifyContent:"center"}}>
+          {loading?`Sending to ${targets.length}…`:`📤 Send to ${targets.length} user${targets.length!==1?"s":""}`}
+        </button>
+
+        {result&&(
+          <div style={{marginTop:12,padding:"10px 14px",borderRadius:8,
+            background:result.ok?"#f0fdf4":"#fef2f2",border:`1px solid ${result.ok?"#bbf7d0":"#fecaca"}`}}>
+            <div style={{fontSize:12,fontWeight:700,color:result.ok?"#166534":"#dc2626"}}>
+              {result.ok?`✅ Sent: ${result.sent}/${result.total}`:`❌ ${result.error||"Send failed"}`}
+            </div>
+            {result.failed>0&&<div style={{fontSize:11,color:"#d97706",marginTop:4}}>⚠️ {result.failed} failed</div>}
+          </div>
+        )}
+      </div>
+
+      {/* User list */}
+      <div style={s.card}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>
+            👥 Recipients ({targets.length}/{filtered.length})
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>setSelected(filtered.map(u=>u.id))} style={{...s.btn("#0369a1"),fontSize:11,padding:"5px 10px"}}>All</button>
+            <button onClick={()=>setSelected([])} style={{...s.btn("#6b7280"),fontSize:11,padding:"5px 10px"}}>None</button>
+          </div>
+        </div>
+        <div style={{maxHeight:320,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+          {filtered.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>No users with phone numbers</div>}
+          {filtered.map((u:any)=>(
+            <div key={u.id} onClick={()=>setSelected(s2=>s2.includes(u.id)?s2.filter(x=>x!==u.id):[...s2,u.id])}
+              style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",
+                background:selected.includes(u.id)?"#eff6ff":"#f8fafc",border:`1px solid ${selected.includes(u.id)?"#93c5fd":"#f1f5f9"}`}}>
+              <div style={{width:14,height:14,borderRadius:3,border:`2px solid ${selected.includes(u.id)?"#0369a1":"#d1d5db"}`,
+                background:selected.includes(u.id)?"#0369a1":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {selected.includes(u.id)&&<span style={{color:"#fff",fontSize:9,fontWeight:900}}>✓</span>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"—"}</div>
+                <div style={{fontSize:10,color:"#6b7280"}}>{u.phone_number}</div>
+              </div>
+              {u.department&&<span style={{fontSize:9,background:"#e0f2fe",color:"#0369a1",padding:"2px 6px",borderRadius:6,fontWeight:600,flexShrink:0}}>{u.department}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ReceptionPage() {
@@ -112,8 +238,8 @@ export default function ReceptionPage() {
 
   async function sms(phone:string,body:string){
     const p=phone.startsWith("+")?phone:phone.replace(/^0/,"+254");
-    const {error}=await(supabase as any).functions.invoke("send-sms",{body:{to:p,message:body,hospitalName:hosName}});
-    return !error;
+    const {data,error}=await(supabase as any).functions.invoke("send-sms",{body:{to:p,message:body}});
+    return !error && (data?.ok ?? true);
   }
 
   async function sendWhatsApp(){
@@ -181,7 +307,7 @@ export default function ReceptionPage() {
   const filterCalls = calls.filter(c=>!search||c.caller_name?.toLowerCase().includes(search.toLowerCase())||c.caller_phone?.includes(search));
   const filterMsgs = messages.filter(m=>!search||m.recipient_name?.toLowerCase().includes(search.toLowerCase())||m.recipient_phone?.includes(search));
 
-  const tabLabels: Record<string,string> = {visitors:"👥 Visitors",calls:"📞 Calls",messages:"💬 Messages",whatsapp:"🟢 WhatsApp"};
+  const tabLabels: Record<string,string> = {visitors:"👥 Visitors",calls:"📞 Calls",messages:"💬 SMS/Messages",whatsapp:"🟢 WhatsApp",notify_all:"📢 Notify All"};
 
   return (
     <div style={{padding:"20px 24px",fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",maxWidth:1400,margin:"0 auto"}}>
@@ -470,6 +596,11 @@ export default function ReceptionPage() {
       )}
 
       {/* ── WHATSAPP TAB ── */}
+
+      {tab==="notify_all" && (
+        <NotifyAllTab />
+      )}
+
       {tab==="whatsapp" && (
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
           {/* WhatsApp Sandbox Setup */}
