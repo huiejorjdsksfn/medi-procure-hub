@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — Voucher Workflow Engine v4.0
+ * ProcurBosse — Voucher Workflow Engine v5.0
  * Payment, receipt, journal, purchase & counter-requisition voucher lifecycle
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -77,10 +77,9 @@ export async function executeVoucherAction(
   if (updateErr) return { success: false, error: updateErr.message };
 
   logAudit(userId, userName, action, table, voucherId, {
-    from_status: voucher.status, to_status: newStatus
+    from_status: voucher.status, to_status: newStatus,
   });
 
-  // Notifications
   try {
     const vNo = voucher.voucher_number || voucher.pv_number || voucherId.slice(0, 8);
     if (action === 'approve' && table === 'payment_vouchers') {

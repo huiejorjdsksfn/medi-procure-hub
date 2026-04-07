@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTableRealtime } from "@/hooks/useRealtime";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, BookOpen, TrendingUp, TrendingDown } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -22,12 +23,13 @@ export default function ChartOfAccountsPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const{data}=await(supabase as any).from("chart_of_accounts").select("*").order("account_code");
     setRows(data||[]); setLoading(false);
-  };
-  useEffect(()=>{ load(); },[]);
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+  useTableRealtime("chart_of_accounts", load);
 
   const openEdit = (r:any) => {
     setEditing(r);

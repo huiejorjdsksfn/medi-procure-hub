@@ -98,14 +98,14 @@ export default function TelephonyPage() {
     showToast("📵 Call ended"); loadAll();
   }
 
-  const TABS: {id:Tab; label:string; icon:string; adminOnly?:boolean}[] = [
-    {id:"softphone", label:"Softphone", icon:"📞"},
-    {id:"history", label:"Call History", icon:"📋"},
-    {id:"extensions", label:"Extensions", icon:"📱"},
-    {id:"ivr", label:"IVR Editor", icon:"🎛️", adminOnly:true},
-    {id:"queues", label:"Call Queues", icon:"🔀", adminOnly:true},
-    {id:"voicemail", label:"Voicemail", icon:"📬"},
-    {id:"metrics", label:"Metrics", icon:"📊"},
+  const TABS = [
+    {id:"softphone" as Tab, label:"Softphone", icon:"📞"},
+    {id:"history" as Tab, label:"Call History", icon:"📋"},
+    {id:"extensions" as Tab, label:"Extensions", icon:"📱"},
+    {id:"ivr" as Tab, label:"IVR Editor", icon:"🎛️", adminOnly:true},
+    {id:"queues" as Tab, label:"Call Queues", icon:"🔀", adminOnly:true},
+    {id:"voicemail" as Tab, label:"Voicemail", icon:"📬"},
+    {id:"metrics" as Tab, label:"Metrics", icon:"📊"},
   ].filter(t=>!t.adminOnly||isAdmin);
 
   return (

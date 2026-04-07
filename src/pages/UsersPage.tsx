@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRealtime } from "@/hooks/useRealtime";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { sendNotification } from "@/lib/notify";
@@ -74,6 +75,7 @@ function UsersInner() {
   },[]);
 
   useEffect(()=>{ if(isAdmin) load(); },[load,isAdmin]);
+  useRealtime({ tables: ["profiles", "user_roles"] }, load);
 
   const createUser = async()=>{
     if(!newU.email||!newU.password||!newU.full_name){toast({title:"Please fill all required fields",variant:"destructive"});return;}

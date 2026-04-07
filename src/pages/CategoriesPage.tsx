@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTableRealtime } from "@/hooks/useRealtime";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, RefreshCw, X, Save, Trash2, Edit } from "lucide-react";
@@ -18,12 +19,13 @@ export default function CategoriesPage() {
   const [saving, setSaving]   = useState(false);
   const [form, setForm]       = useState({name:"",description:"",parent_category:""});
 
-  const load = async()=>{
+  const load = useCallback(async()=>{
     setLoading(true);
     const{data}=await(supabase as any).from("item_categories").select("*").order("name");
     setRows(data||[]); setLoading(false);
-  };
-  useEffect(()=>{ load(); },[]);
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+  useTableRealtime("item_categories", load);
 
   const save = async()=>{
     if(!form.name){toast({title:"Name required",variant:"destructive"});return;}

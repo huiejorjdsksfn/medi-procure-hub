@@ -343,7 +343,7 @@ export default function SMSPage() {
                   })}
                   <div ref={conEndRef}/>
                 </div>
-                <div style={{padding:"12px 20px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8"}}>
+                <div style={{padding:"12px 20px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
                   <input value={replyMsg} onChange={e=>setReplyMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendReply()} placeholder="Type a reply…" style={{...inp,flex:1}}/>
                   <button onClick={sendReply} disabled={replySending||!replyMsg} style={btn(replySending||!replyMsg?"#9ca3af":"#7c3aed")}>
                     <Send style={{width:14,height:14}}/>
@@ -402,7 +402,7 @@ export default function SMSPage() {
                   <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{t.name}</div>
                   <Chip label={t.category} color={t.category==="alert"?"#ef4444":t.category==="procurement"?"#3b82f6":t.category==="finance"?"#22c55e":"#6b7280"}/>
                 </div>
-                <div style={{fontSize:12,color:"#374151",lineHeight:1.6,marginBottom:8,background:"#f8fafc",padding:"8px 10px",borderRadius:6,fontFamily:"monospace",fontSize:11}}>{t.content}</div>
+                <div style={{fontSize:11,color:"#374151",lineHeight:1.6,marginBottom:8,background:"#f8fafc",padding:"8px 10px",borderRadius:6,fontFamily:"monospace"}}>{t.content}</div>
                 {t.variables.length>0&&<div style={{fontSize:10,color:"#9ca3af",marginBottom:10}}>Variables: {t.variables.map(v=>`{{${v}}}`).join(", ")}</div>}
                 <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{fontSize:11,color:"#d1d5db"}}>Used {t.use_count} times</span>
