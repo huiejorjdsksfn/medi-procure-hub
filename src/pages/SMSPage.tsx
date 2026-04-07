@@ -343,7 +343,7 @@ export default function SMSPage() {
                   })}
                   <div ref={conEndRef}/>
                 </div>
-                <div style={{padding:"12px 20px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8"}}>
+                <div style={{padding:"12px 20px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
                   <input value={replyMsg} onChange={e=>setReplyMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendReply()} placeholder="Type a reply…" style={{...inp,flex:1}}/>
                   <button onClick={sendReply} disabled={replySending||!replyMsg} style={btn(replySending||!replyMsg?"#9ca3af":"#7c3aed")}>
                     <Send style={{width:14,height:14}}/>
