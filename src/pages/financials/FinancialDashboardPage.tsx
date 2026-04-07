@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtime } from "@/hooks/useRealtime";
 import logoImg from "@/assets/logo.png";
 import * as XLSX from "xlsx";
 import { RefreshCw, Search } from "lucide-react";
