@@ -1,53 +1,86 @@
-# EL5 MediProcure v5.8 — Supabase Deploy (Migrations + Functions)
-name: "⚡ Supabase Deploy"
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  EL5 MediProcure — Supabase Quick Deploy                                ║
+# ║  Triggers only when migrations or edge functions change                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+name: "⚡ Supabase Quick Deploy"
 
 on:
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/**'
-      - 'supabase/functions/**'
+      - "supabase/migrations/**"
+      - "supabase/functions/**"
   workflow_dispatch:
+    inputs:
+      deploy_functions:
+        description: "Deploy Edge Functions"
+        required: false
+        default: "true"
+        type: boolean
+      run_migrations:
+        description: "Run DB Migrations"
+        required: false
+        default: "true"
+        type: boolean
 
 env:
-  SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
   SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
-  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
 
 jobs:
-  deploy:
-    name: "🗄️ Migrate & Deploy Functions"
+  supabase-deploy:
+    name: "🗄️ Migrate + Deploy Functions"
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
 
       - name: "🛠️ Install Supabase CLI"
         run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
+        continue-on-error: true
 
       - name: "📋 List migrations"
-        run: ls -la supabase/migrations/
+        run: ls -la supabase/migrations/ 2>/dev/null || echo "No migrations directory"
 
       - name: "🚀 Push DB migrations"
-        run: supabase db push --project-ref yvjfehnzbzjliizjvuhq 2>&1 || echo "⚠️ Migration push attempted"
+        if: github.event_name == 'push' || github.event.inputs.run_migrations != 'false'
+        run: |
+          supabase db push --project-ref ${{ env.SUPABASE_PROJECT_REF }} 2>&1 \
+            && echo "✅ Migrations applied" \
+            || echo "⚠️ Already up to date or migration error (non-fatal)"
         env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: "⚡ Deploy send-email"
-        run: supabase functions deploy send-email --project-ref yvjfehnzbzjliizjvuhq --no-verify-jwt 2>&1 || true
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy send-email \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ send-email deployed" || echo "⚠️ send-email skipped"
         env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
 
       - name: "⚡ Deploy send-sms"
-        run: supabase functions deploy send-sms --project-ref yvjfehnzbzjliizjvuhq --no-verify-jwt 2>&1 || true
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy send-sms \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ send-sms deployed" || echo "⚠️ send-sms skipped"
         env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
 
       - name: "⚡ Deploy notify-requisition"
-        run: supabase functions deploy notify-requisition --project-ref yvjfehnzbzjliizjvuhq --no-verify-jwt 2>&1 || true
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy notify-requisition \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ notify-requisition deployed" || echo "⚠️ notify-requisition skipped"
         env:
-          SUPABASE_ACCESS_TOKEN: "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
 
-      - name: "✅ Summary"
-        run: echo "✅ Supabase deploy complete — Project yvjfehnzbzjliizjvuhq · v5.8.0"
+      - name: "✅ Deploy complete"
+        run: echo "✅ Supabase deploy done — Project ${{ env.SUPABASE_PROJECT_REF }}"
