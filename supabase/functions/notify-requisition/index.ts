@@ -1,7 +1,8 @@
 /**
- * ProcurBosse — notify-requisition Edge Function v4.0
- * Unified procurement event notification handler
- * Events: submitted | approved | rejected | ordered | received | grn_created | voucher_approved | voucher_paid
+ * ProcurBosse — notify-requisition Edge Function v5.0
+ * Unified procurement + quality + stock event notification handler
+ * Events: submitted | approved | rejected | ordered | received | grn_created |
+ *         voucher_approved | voucher_paid | stock_alert | quality_fail | scan_issue
  * Channels: SMS + Email + In-App
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -111,7 +112,6 @@ async function handleRequisitionEvent(event: string, reqId: string, body: any) {
           `Your requisition **${reqNo}** ("${title}") has been approved.\n${amt ? `**Amount:** ${amt}` : ""}`, "/requisitions");
         await inApp(req.requested_by, `Requisition ${reqNo} Approved`, `${title}${amt ? " · " + amt : ""}`, "success", "/requisitions", { requisition_id: reqId });
       }
-      // Notify accountants for budget tracking
       const accountants = await getRoleContacts(["accountant"]);
       for (const a of accountants) {
         await inApp(a.userId, `Budget Alert: ${reqNo} Approved`, `${title} — ${dept}${amt ? " · " + amt : ""}`, "voucher", "/accountant", { requisition_id: reqId });
@@ -194,6 +194,30 @@ async function handleGrnEvent(grnId: string) {
   }
 }
 
+async function handleStockAlert(body: any) {
+  const { item_id, item_name, current_qty, reorder_level, alert_type } = body;
+  const managers = await getRoleContacts(["admin", "procurement_manager", "inventory_manager", "warehouse_officer"]);
+  const msg = alert_type === "critical"
+    ? `⚠️ CRITICAL: ${item_name} stock is ZERO. Urgent restocking needed.`
+    : `LOW STOCK: ${item_name} — ${current_qty} units remaining (reorder at ${reorder_level}).`;
+
+  for (const m of managers) {
+    if (alert_type === "critical" && m.phone) await sms(m.phone, msg, "inventory");
+    await inApp(m.userId, `Stock Alert: ${item_name}`, msg, alert_type === "critical" ? "error" : "warning", "/items", { item_id });
+  }
+}
+
+async function handleQualityFail(body: any) {
+  const { inspection_id, item_name, failure_reason, severity } = body;
+  const managers = await getRoleContacts(["admin", "procurement_manager", "procurement_officer"]);
+  const msg = `Quality fail (${severity || "medium"}): ${item_name} — ${failure_reason || "See inspection report"}`;
+
+  for (const m of managers) {
+    await inApp(m.userId, `Quality Failure: ${item_name}`, msg, "error", "/quality/inspections", { inspection_id });
+    if (severity === "critical" && m.phone) await sms(m.phone, `[EL5H QUALITY] ${msg}`, "quality");
+  }
+}
+
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -201,14 +225,13 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { event, requisition_id, voucher_id, grn_id } = body;
+    const { event, requisition_id, voucher_id, grn_id, item_id } = body;
 
     if (!event) {
       return new Response(JSON.stringify({ ok: false, error: "event is required" }),
         { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Route to handler
     if (requisition_id && ["submitted", "approved", "rejected", "ordered", "received"].includes(event)) {
       await handleRequisitionEvent(event, requisition_id, body);
     }
@@ -217,6 +240,12 @@ serve(async (req: Request) => {
     }
     if (grn_id && event === "grn_created") {
       await handleGrnEvent(grn_id);
+    }
+    if (event === "stock_alert") {
+      await handleStockAlert(body);
+    }
+    if (event === "quality_fail") {
+      await handleQualityFail(body);
     }
 
     return new Response(JSON.stringify({ ok: true, event }),
