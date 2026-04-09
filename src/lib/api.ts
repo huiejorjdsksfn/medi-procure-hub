@@ -518,28 +518,28 @@ export const categoriesApi = {
 export const qualityApi = {
   listInspections: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
-      let q = db.from("quality_inspections").select("*").order("created_at", { ascending: false });
+      let q = db.from("inspections").select("*").order("created_at", { ascending: false });
       if (filters?.status && filters.status !== "all") q = q.eq("status", filters.status);
       q = q.limit(filters?.limit || 100);
       return q;
     }, 60),
   getInspection: (id: string) => apiFetch(null,
-    () => db.from("quality_inspections").select("*, quality_inspection_items(*)").eq("id", id).single()),
+    () => db.from("inspections").select("*, inspection_items(*)").eq("id", id).single()),
   createInspection: async (data: any) =>
-    apiFetch(null, () => db.from("quality_inspections").insert(data).select().single(), 0),
+    apiFetch(null, () => db.from("inspections").insert(data).select().single(), 0),
   updateInspection: async (id: string, data: any) =>
-    apiFetch(null, () => db.from("quality_inspections").update(data).eq("id", id).select().single(), 0),
+    apiFetch(null, () => db.from("inspections").update(data).eq("id", id).select().single(), 0),
   listNonConformances: (filters?: { status?: string; severity?: string }) =>
     apiFetch(null, () => {
-      let q = db.from("non_conformances").select("*").order("created_at", { ascending: false });
+      let q = db.from("non_conformance").select("*").order("created_at", { ascending: false });
       if (filters?.status && filters.status !== "all") q = q.eq("status", filters.status);
       if (filters?.severity) q = q.eq("severity", filters.severity);
       return q;
     }, 60),
   createNonConformance: async (data: any) =>
-    apiFetch(null, () => db.from("non_conformances").insert(data).select().single(), 0),
+    apiFetch(null, () => db.from("non_conformance").insert(data).select().single(), 0),
   closeNonConformance: async (id: string, resolution: string) =>
-    apiFetch(null, () => db.from("non_conformances").update({
+    apiFetch(null, () => db.from("non_conformance").update({
       status: "closed", resolution, closed_at: new Date().toISOString()
     }).eq("id", id).select().single(), 0),
 };
@@ -921,14 +921,19 @@ export const telephonyApi = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const backupApi = {
   listBackups: () => apiFetch("backup_list",
-    () => db.from("system_backups").select("*").order("created_at", { ascending: false }).limit(50), 60),
-  createBackupRecord: async (meta: { backup_type: string; size_bytes?: number; storage_path?: string; tables?: string[] }) =>
-    apiFetch(null, () => db.from("system_backups").insert({
-      ...meta, status: "completed", created_at: new Date().toISOString()
+    () => db.from("backup_jobs").select("*").order("created_at", { ascending: false }).limit(50), 60),
+  createBackupRecord: async (meta: { backup_type?: string; size_bytes?: number; storage_path?: string; tables?: string[] }) =>
+    apiFetch(null, () => db.from("backup_jobs").insert({
+      backup_type: meta.backup_type || "manual",
+      size_bytes: meta.size_bytes,
+      storage_path: meta.storage_path,
+      tables: meta.tables,
+      status: "completed",
+      created_at: new Date().toISOString()
     }).select().single(), 0),
   getLastBackup: () => apiFetch("last_backup",
-    () => db.from("system_backups").select("*").eq("status", "completed")
-      .order("created_at", { ascending: false }).limit(1).single(), 120),
+    () => db.from("backup_jobs").select("*").eq("status", "completed")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(), 120),
   exportTable: async (table: string, limit = 10000) =>
     apiFetch(null, () => db.from(table).select("*").limit(limit), 0),
 };
