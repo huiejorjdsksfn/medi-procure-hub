@@ -21,24 +21,24 @@ export default function CategoriesPage() {
 
   const load = useCallback(async()=>{
     setLoading(true);
-    const{data}=await(supabase as any).from("item_categories").select("*").order("name");
+    const{data}=await(supabase as any).from("categories").select("*").order("name");
     setRows(data||[]); setLoading(false);
   },[]);
   useEffect(()=>{ load(); },[load]);
-  useTableRealtime("item_categories", load);
+  useTableRealtime("categories", load);
 
   const save = async()=>{
     if(!form.name){toast({title:"Name required",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,created_by:user?.id};
-    if(editing){ await(supabase as any).from("item_categories").update(payload).eq("id",editing.id); toast({title:"Category updated ✓"});}
-    else{ await(supabase as any).from("item_categories").insert(payload); toast({title:"Category created ✓"});}
+    if(editing){ await(supabase as any).from("categories").update(payload).eq("id",editing.id); toast({title:"Category updated ✓"});}
+    else{ await(supabase as any).from("categories").insert(payload); toast({title:"Category created ✓"});}
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
 
   const del = async(id:string)=>{
     if(!confirm("Delete this category?")) return;
-    await(supabase as any).from("item_categories").delete().eq("id",id);
+    await(supabase as any).from("categories").delete().eq("id",id);
     toast({title:"Deleted"}); load();
   };
 

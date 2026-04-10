@@ -23,7 +23,7 @@ const ACCT = Deno.env.get("TWILIO_ACCOUNT_SID") || "ACe96c6e0e5edd4de5f5a4c6d9cc
 const AUTH = Deno.env.get("TWILIO_AUTH_TOKEN")  || "d73601fbefe26e01b06e22c53a798ea6";
 const FROM_SMS = "+16812972643";
 const FROM_WA  = "+14155238886";
-const MSID     = Deno.env.get("TWILIO_MESSAGING_SERVICE_SID") || "VA692606d4faea3c18432a857f111dbfad";
+const MSID     = Deno.env.get("TWILIO_MESSAGING_SERVICE_SID") || "MGd547d8e3273fda2d21afdd6856acb245";
 const WA_CODE  = "join bad-machine";
 const HOSPITAL = "EL5 MediProcure";
 

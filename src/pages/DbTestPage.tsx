@@ -334,7 +334,7 @@ export default function DbTestPage() {
             <span style={{fontWeight:700,fontSize:14,color:"#f1f5f9"}}>Twilio Live Status</span>
             <span style={C.badge(twilioStatus==="active"?"#22c55e":twilioStatus==="degraded"?"#f59e0b":"#ef4444")}>{twilioStatus.toUpperCase()}</span>
           </div>
-          {[["Account SID","ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a"],["Auth Token","d73601fb•••••••••••"],["SMS From","+16812972643"],["WhatsApp","+14155238886"],["Join Code","join bad-machine"],["Msg Service","VA692606d4faea3c18432a857f111dbfad"],["Africa's Talking","Fallback active"],["Inbound webhook","?webhook=inbound"],["Session renewal","Auto every 24h"]].map(([k,v])=>(
+          {[["Account SID","ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a"],["Auth Token","d73601fb•••••••••••"],["SMS From","+16812972643"],["WhatsApp","+14155238886"],["Join Code","join bad-machine"],["Msg Service","MGd547d8e3273fda2d21afdd6856acb245"],["Africa's Talking","Fallback active"],["Inbound webhook","?webhook=inbound"],["Session renewal","Auto every 24h"]].map(([k,v])=>(
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #1f2937",fontSize:12}}>
               <span style={{color:"#6b7280"}}>{k}</span>
               <span style={{color:"#94a3b8",fontFamily:"monospace"}}>{v}</span>

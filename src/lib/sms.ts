@@ -31,7 +31,7 @@ export const TWILIO = {
   SMS_NUMBER:   "+16812972643",
   WA_NUMBER:    "+14155238886",
   JOIN_CODE:    "join bad-machine",
-  MSG_SVC_SID:  "VA692606d4faea3c18432a857f111dbfad",
+  MSG_SVC_SID:  "MGd547d8e3273fda2d21afdd6856acb245",
   SERVICE_NAME: "EL5H",
   WA_LINK:      "https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine",
   VOICE_WEBHOOK:"https://demo.twilio.com/welcome/voice/",

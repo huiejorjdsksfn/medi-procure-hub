@@ -23,7 +23,7 @@ const TWILIO_PHONE = "+16812972643";
 const WHATSAPP_NO = "+14155238886";
 const WHATSAPP_SANDBOX_CODE = "bad-machine";
 const WHATSAPP_LINK = `https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine&type=phone_number&app_absent=0`;
-const TWILIO_MSG_SID = "VA692606d4faea3c18432a857f111dbfad";
+const TWILIO_MSG_SID = "MGd547d8e3273fda2d21afdd6856acb245";
 const TWILIO_VOICE_WEBHOOK = "https://demo.twilio.com/welcome/voice/";
 
 const CALL_C: Record<string,string> = {incoming:"#0369a1",outgoing:"#059669",missed:"#dc2626",voicemail:"#9333ea"};
