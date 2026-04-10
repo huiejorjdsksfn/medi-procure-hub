@@ -1,755 +1,494 @@
-import { useState, useEffect, useRef } from "react";
+/**
+ * ProcurBosse — Superadmin / Webmaster Control Centre v4.0
+ * Full codebase view · Live edit · Template upload · System health
+ * Role: superadmin / webmaster / admin
+ * EL5 MediProcure · Embu Level 5 Hospital
+ */
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { sendSystemBroadcast } from "@/lib/broadcast";
+import { T } from "@/lib/theme";
 import {
-  Monitor, RefreshCw, Users, Shield, Activity, Server, Database, ClipboardList,
-  AlertTriangle, CheckCircle, Globe, Package, BarChart3, Settings,
-  Download, Trash2, Eye, Lock, Mail, Play, Terminal, Zap, FileText,
-  Archive, TrendingUp, Key, Bell, Save, Edit3, Plus, X,
-  LayoutDashboard, Layers, ShoppingCart, DollarSign, Search, Palette,
-  Radio, Hash, Power, Sliders, UserCheck, Rss, Wrench, ChevronRight,
-  HardDrive, Cpu, BookOpen, Calendar, Scale, FileCheck, Gavel, Truck,
-  PiggyBank, Building2, BookMarked, Receipt, Info, Send as SendIcon } from "lucide-react";
-import RoleGuard from "@/components/RoleGuard";
+  Code2, FileText, Save, RefreshCw, Eye, Edit3, Play, Terminal,
+  Server, Database, Users, Settings, Shield, Activity, Globe,
+  Radio, Bell, Power, Zap, Download, Upload, Copy, X, Check,
+  ChevronRight, ChevronDown, Search, Plus, Trash2, Layout,
+  Monitor, Cpu, HardDrive, Wifi, AlertTriangle, BarChart3,
+  BookOpen, Palette, Package, Lock, Unlock, Hash, ArrowRight
+} from "lucide-react";
 
-// ── Section definitions ────────────────────────────────────────────────────
-const SECTIONS = [
-  { id:"modules",      label:"Modules",          icon:Layers,     sub:"Enable/disable system modules" },
-  { id:"roles",        label:"Role Capabilities", icon:UserCheck,  sub:"Manage per-role access" },
-  { id:"theme",        label:"Theme & Brand",     icon:Palette,    sub:"Hospital branding settings" },
-  { id:"users_cap",    label:"Users",             icon:Users,      sub:"User management capabilities" },
-  { id:"controls",     label:"Live Controls",     icon:Sliders,    sub:"System-wide toggles" },
-  { id:"broadcast",    label:"Broadcast",         icon:Radio,      sub:"Send system messages" },
-  { id:"schema",       label:"Schema & Tables",   icon:Database,   sub:"Upload schema, manage tables" },
-  { id:"codebase",     label:"Codebase Info",     icon:BookOpen,   sub:"Repo files, version, links" },
-  { id:"system",       label:"System Health",     icon:Server,     sub:"Server & database info" },
-  { id:"audit",        label:"Audit Log",         icon:Activity,   sub:"Recent activity" },
-  { id:"terminal",     label:"Console",           icon:Terminal,   sub:"Run system commands" },
-  { id:"licensing",    label:"Licensing & Info",  icon:Key,        sub:"Version & credits" },
+const db = supabase as any;
+
+/* ── Codebase file tree (static manifest — key files) ────────────────── */
+const CODE_FILES = [
+  { path:"src/App.tsx",                       group:"Core",      desc:"Main router & layout wrapper" },
+  { path:"src/main.tsx",                      group:"Core",      desc:"App entry point, engine init" },
+  { path:"src/contexts/AuthContext.tsx",      group:"Auth",      desc:"Session engine, role management" },
+  { path:"src/lib/sessionEngine.ts",          group:"Auth",      desc:"IndexedDB session persistence" },
+  { path:"src/lib/dbClient.ts",               group:"DB",        desc:"MySQL + Supabase unified client" },
+  { path:"src/lib/api.ts",                    group:"API",       desc:"42 API endpoints" },
+  { path:"src/lib/theme.ts",                  group:"UI",        desc:"Design tokens" },
+  { path:"src/components/AppLayout.tsx",      group:"UI",        desc:"Sidebar + nav + realtime counts" },
+  { path:"src/pages/DashboardPage.tsx",       group:"Pages",     desc:"Main dashboard + ERP wheel" },
+  { path:"src/pages/UsersPage.tsx",           group:"Pages",     desc:"User management + role assignment" },
+  { path:"src/pages/AdminPanelPage.tsx",      group:"Admin",     desc:"Admin control panel" },
+  { path:"src/pages/AccountantWorkspacePage.tsx", group:"Roles", desc:"Accountant workspace" },
+  { path:"src/pages/WebmasterPage.tsx",       group:"Admin",     desc:"This page" },
+  { path:"src/pages/ODBCPage.tsx",            group:"DB",        desc:"MySQL + ODBC connection manager" },
+  { path:"src/engines/db/LiveDatabaseEngine.ts", group:"Engine", desc:"60s auto health check engine" },
+  { path:"src/engines/twilio/WhatsAppEngine.ts", group:"Comms",  desc:"Twilio + WhatsApp engine" },
+  { path:"supabase/functions/send-sms/index.ts", group:"Edge",   desc:"SMS edge function (Twilio)" },
+  { path:"supabase/functions/send-email/index.ts", group:"Edge", desc:"Email edge function (Resend)" },
+  { path:"supabase/functions/mysql-proxy/index.ts", group:"Edge",desc:"MySQL proxy edge function" },
+  { path:"supabase/functions/notify-requisition/index.ts", group:"Edge", desc:"Procurement notifications" },
+  { path:".github/workflows/ci-cd.yml",       group:"CI/CD",     desc:"Master pipeline (build+deploy)" },
+  { path:"supabase/migrations/20260409000001_v59_missing_tables.sql", group:"DB", desc:"v5.9 schema migration" },
 ];
 
-// ── Module list ─────────────────────────────────────────────────────────────
-const ALL_MODULES = [
-  { id:"requisitions",   label:"Requisitions",          group:"Procurement",  icon:ShoppingCart, path:"/requisitions" },
-  { id:"purchase_orders",label:"Purchase Orders",        group:"Procurement",  icon:ShoppingCart, path:"/purchase-orders" },
-  { id:"goods_received", label:"Goods Received",         group:"Procurement",  icon:Package,      path:"/goods-received" },
-  { id:"suppliers",      label:"Suppliers",              group:"Procurement",  icon:Truck,        path:"/suppliers" },
-  { id:"tenders",        label:"Tenders",                group:"Procurement",  icon:Gavel,        path:"/tenders" },
-  { id:"contracts",      label:"Contracts",              group:"Procurement",  icon:FileCheck,    path:"/contracts" },
-  { id:"bid_evaluations",label:"Bid Evaluations",        group:"Procurement",  icon:Scale,        path:"/bid-evaluations" },
-  { id:"proc_planning",  label:"Procurement Planning",   group:"Procurement",  icon:Calendar,     path:"/procurement-planning" },
-  { id:"financials",     label:"Financial Dashboard",    group:"Finance",      icon:TrendingUp,   path:"/financials/dashboard" },
-  { id:"budgets",        label:"Budgets",                group:"Finance",      icon:PiggyBank,    path:"/financials/budgets" },
-  { id:"coa",            label:"Chart of Accounts",      group:"Finance",      icon:BookOpen,     path:"/financials/chart-of-accounts" },
-  { id:"fixed_assets",   label:"Fixed Assets",           group:"Finance",      icon:Building2,    path:"/financials/fixed-assets" },
-  { id:"payment_vouchers",label:"Payment Vouchers",      group:"Finance",      icon:DollarSign,   path:"/vouchers/payment" },
-  { id:"receipt_vouchers",label:"Receipt Vouchers",      group:"Finance",      icon:Receipt,      path:"/vouchers/receipt" },
-  { id:"journal_vouchers",label:"Journal Vouchers",      group:"Finance",      icon:BookMarked,   path:"/vouchers/journal" },
-  { id:"inventory",      label:"Inventory / Items",      group:"Operations",   icon:Package,      path:"/items" },
-  { id:"categories",     label:"Categories",             group:"Operations",   icon:Hash,         path:"/categories" },
-  { id:"departments",    label:"Departments",            group:"Operations",   icon:Building2,    path:"/departments" },
-  { id:"scanner",        label:"QR/Barcode Scanner",     group:"Operations",   icon:Search,       path:"/scanner" },
-  { id:"quality",        label:"Quality Dashboard",      group:"Quality",      icon:Shield,       path:"/quality/dashboard" },
-  { id:"inspections",    label:"Inspections",            group:"Quality",      icon:Eye,          path:"/quality/inspections" },
-  { id:"non_conformance",label:"Non-Conformance",        group:"Quality",      icon:AlertTriangle,path:"/quality/non-conformance" },
-  { id:"reports",        label:"Reports & Analytics",    group:"Reporting",    icon:BarChart3,    path:"/reports" },
-  { id:"documents",      label:"Document Library",       group:"Reporting",    icon:FileText,     path:"/documents" },
-  { id:"audit_log",      label:"Audit Log",              group:"Reporting",    icon:Activity,     path:"/audit-log" },
-  { id:"email",          label:"Email / Inbox",          group:"Communication",icon:Mail,         path:"/email" },
-  { id:"notifications",  label:"Notifications",          group:"Communication",icon:Bell,         path:"" },
-  { id:"users",          label:"User Management",        group:"Admin",        icon:Users,        path:"/users" },
-  { id:"settings",       label:"System Settings",        group:"Admin",        icon:Settings,     path:"/settings" },
-  { id:"admin_panel",    label:"Admin Panel",            group:"Admin",        icon:LayoutDashboard,path:"/admin/panel" },
-  { id:"admin_db",       label:"Database Admin",         group:"Admin",        icon:Database,     path:"/admin/database" },
-  { id:"backup",         label:"Backup Manager",         group:"Admin",        icon:Archive,      path:"/backup" },
-  { id:"odbc",           label:"ODBC Connections",       group:"Admin",        icon:Globe,        path:"/odbc" },
-];
-
-// ── Role capabilities ────────────────────────────────────────────────────
-const ROLES_LIST = [
-  "admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"
-];
-const CAP_GROUPS = [
-  { group:"Procurement", caps:[
-    { id:"create_requisition",    label:"Create Requisitions" },
-    { id:"approve_requisition",   label:"Approve Requisitions" },
-    { id:"create_po",             label:"Create Purchase Orders" },
-    { id:"approve_po",            label:"Approve Purchase Orders" },
-    { id:"receive_goods",         label:"Receive Goods (GRN)" },
-    { id:"manage_suppliers",      label:"Manage Suppliers" },
-    { id:"manage_contracts",      label:"Manage Contracts" },
-    { id:"manage_tenders",        label:"Manage Tenders" },
-    { id:"bid_evaluation",        label:"Bid Evaluation" },
-  ]},
-  { group:"Finance", caps:[
-    { id:"view_financials",       label:"View Financials" },
-    { id:"create_vouchers",       label:"Create Vouchers" },
-    { id:"approve_vouchers",      label:"Approve Vouchers" },
-    { id:"manage_budgets",        label:"Manage Budgets" },
-    { id:"view_coa",              label:"View Chart of Accounts" },
-  ]},
-  { group:"Operations", caps:[
-    { id:"manage_inventory",      label:"Manage Inventory" },
-    { id:"view_inventory",        label:"View Inventory" },
-    { id:"quality_control",       label:"Quality Control" },
-    { id:"use_scanner",           label:"Use Scanner" },
-  ]},
-  { group:"System", caps:[
-    { id:"manage_users",          label:"Manage Users" },
-    { id:"view_audit_log",        label:"View Audit Log" },
-    { id:"access_reports",        label:"Access Reports" },
-    { id:"manage_documents",      label:"Manage Documents" },
-    { id:"system_settings",       label:"System Settings" },
-  ]},
-];
-
-const DEFAULT_CAPS: Record<string, string[]> = {
-  admin:               CAP_GROUPS.flatMap(g=>g.caps.map(c=>c.id)),
-  procurement_manager: ["create_requisition","approve_requisition","create_po","approve_po","receive_goods","manage_suppliers","manage_contracts","manage_tenders","bid_evaluation","view_financials","create_vouchers","approve_vouchers","manage_budgets","view_coa","view_inventory","quality_control","view_audit_log","access_reports","manage_documents"],
-  procurement_officer: ["create_requisition","create_po","receive_goods","manage_suppliers","view_financials","create_vouchers","view_inventory","use_scanner","access_reports","manage_documents"],
-  inventory_manager:   ["view_inventory","manage_inventory","quality_control","use_scanner","create_requisition","manage_documents","access_reports"],
-  warehouse_officer:   ["receive_goods","view_inventory","use_scanner","quality_control","create_requisition"],
-  requisitioner:       ["create_requisition","access_reports","manage_documents"],
+const GROUP_COLORS: Record<string,string> = {
+  Core:"#1d4ed8",Auth:"#7c3aed",DB:"#059669",API:"#0891b2",
+  UI:"#d97706",Pages:"#374151",Admin:"#dc2626",Roles:"#065f46",
+  Engine:"#8b5cf6",Comms:"#0369a1",Edge:"#c45910",CI:"#374151","CI/CD":"#374151"
 };
 
-const LIVE_CONTROLS = [
-  { key:"maintenance_mode",        label:"Maintenance Mode",          sub:"Blocks non-admin access system-wide",    danger:true },
-  { key:"email_notifications",     label:"Email Notifications",       sub:"Enable sending via SMTP/API provider",  danger:false },
-  { key:"realtime_notifications",  label:"Realtime Notifications",    sub:"Live push notifications via WebSocket",  danger:false },
-  { key:"audit_logging",           label:"Audit Logging",             sub:"Log all user actions to audit_log",     danger:false },
-  { key:"allow_registration",      label:"Allow Registration",        sub:"Allow new users to self-register",      danger:false },
-  { key:"document_module",         label:"Document Module",           sub:"Enable document library & templates",   danger:false },
-  { key:"scanner_module",          label:"QR/Barcode Scanner",        sub:"Enable barcode scanning module",        danger:false },
-  { key:"external_api",            label:"External API",              sub:"Enable external API integrations",      danger:false },
-  { key:"webhooks",                label:"Webhooks",                  sub:"Send event webhooks to external systems", danger:false },
-  { key:"account_lockout",         label:"Account Lockout",           sub:"Lock accounts after failed logins",     danger:false },
-  { key:"force_pw_reset",          label:"Force Password Reset",      sub:"Force all users to reset passwords",    danger:true },
-  { key:"compress_backups",        label:"Compress Backups",          sub:"Compress backup files",                 danger:false },
+/* ── System module toggles ──────────────────────────────────────────── */
+const MODULES = [
+  {key:"enable_procurement",    label:"Procurement",       color:"#1d4ed8"},
+  {key:"enable_financials",     label:"Financials",        color:"#7c3aed"},
+  {key:"enable_vouchers",       label:"Vouchers",          color:"#c45910"},
+  {key:"enable_quality",        label:"Quality Control",   color:"#d97706"},
+  {key:"enable_scanner",        label:"Scanner",           color:"#059669"},
+  {key:"enable_tenders",        label:"Tenders",           color:"#0891b2"},
+  {key:"enable_contracts_module",label:"Contracts",        color:"#065f46"},
+  {key:"enable_documents",      label:"Documents",         color:"#374151"},
+  {key:"realtime_notifications",label:"Realtime Notifs",   color:"#8b5cf6"},
+  {key:"maintenance_mode",      label:"Maintenance Mode",  color:"#dc2626"},
 ];
 
-// ── Helper Toggle ────────────────────────────────────────────────────────
-function Toggle({on,onChange}:{on:boolean;onChange:(v:boolean)=>void}){
-  return(
-    <button onClick={()=>onChange(!on)} style={{background:"#f8fafc",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
-      <div style={{width:42,height:22,borderRadius:11,background:on?"#0a2558":"#d1d5db",display:"flex",alignItems:"center",padding:"2px",transition:"background 0.2s"}}>
-        <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,0.22)",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)"}}/>
-      </div>
-    </button>
-  );
-}
+const ROLE_CAPS: Record<string,string[]> = {
+  admin:              ["all_access","manage_users","system_settings","view_audit","approve_all","manage_mysql"],
+  superadmin:         ["all_access","manage_users","system_settings","view_audit","approve_all","manage_mysql","edit_code","manage_roles"],
+  webmaster:          ["all_access","manage_users","system_settings","view_audit","approve_all","manage_mysql","edit_code","manage_roles","view_codebase"],
+  database_admin:     ["manage_mysql","view_schema","run_queries","manage_backups","view_audit"],
+  procurement_manager:["approve_requisitions","create_po","approve_po","manage_suppliers","manage_contracts","manage_tenders"],
+  procurement_officer:["create_requisitions","view_po","receive_goods","view_suppliers"],
+  accountant:         ["view_financials","create_vouchers","approve_vouchers","manage_budgets","invoice_matching","view_audit"],
+  inventory_manager:  ["manage_items","manage_categories","view_stock","scan_items","view_reports"],
+  warehouse_officer:  ["receive_goods","issue_items","scan_items","view_stock"],
+  requisitioner:      ["create_requisitions","view_own_requisitions","view_items"],
+};
 
-// ── Checkbox ────────────────────────────────────────────────────────────────
-function CB({checked,onChange,disabled=false}:{checked:boolean;onChange:(v:boolean)=>void;disabled?:boolean}){
-  return(
-    <button onClick={()=>!disabled&&onChange(!checked)} disabled={disabled}
-      style={{width:18,height:18,borderRadius:4,border:`2px solid ${checked?"#0a2558":"#d1d5db"}`,background:checked?"#0a2558":"#fff",cursor:disabled?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0,lineHeight:0,transition:"all 0.15s"}}>
-      {checked&&<svg width={10} height={8} viewBox="0 0 10 8"><path d="M1 4L3.5 7L9 1" stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-    </button>
-  );
-}
+type WMTab = "overview"|"modules"|"roles"|"codebase"|"broadcast"|"system"|"terminal";
 
-// ═══════════════════════════════════════════════════════════════════════════
-export default function WebmasterPage(){
-  const{profile,roles}=useAuth();
-  const navigate=useNavigate();
-  const[activeSection,setActiveSection]=useState("modules");
-  const[saving,setSaving]=useState(false);
-  const[modEnabled,setModEnabled]=useState<Record<string,boolean>>({});
-  const[controls,setControls]=useState<Record<string,boolean>>({});
-  const[caps,setCaps]=useState<Record<string,string[]>>(DEFAULT_CAPS);
-  const[selectedRole,setSelectedRole]=useState("procurement_officer");
-  const[theme,setTheme]=useState({system_name:"EL5 MediProcure",hospital_name:"Embu Level 5 Hospital",primary_color:"#0a2558",accent_color:"#C45911",county:"Embu County Government",address:"Embu Town, Embu County, Kenya",phone:"+254 060 000000",email:"info@embu-l5.go.ke"});
-  const[broadcast,setBroadcast]=useState({title:"",message:"",type:"info",expires_in:24,roles:[] as string[]});
-  const[logs,setLogs]=useState<any[]>([]);
-  const[logsLoading,setLogsLoading]=useState(false);
-  const[termInput,setTermInput]=useState("");
-  const[termHistory,setTermHistory]=useState<string[]>(["MediProcure Console v1.0 — Type 'help' for commands"]);
-  const[sysStats,setSysStats]=useState({tables:0,users:0,req:0,po:0,suppliers:0,notifications:0});
-  const termRef=useRef<HTMLDivElement>(null);
+/* ── Styles ──────────────────────────────────────────────────────────── */
+const card: React.CSSProperties = {background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"16px 20px"};
+const inp: React.CSSProperties  = {width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"8px 12px",color:T.fg,fontSize:13,outline:"none",boxSizing:"border-box"};
+const btnS=(bg:string,bdr?:string):React.CSSProperties=>({display:"inline-flex",alignItems:"center",gap:7,padding:"8px 14px",background:bg,color:bdr?T.fgMuted:"#fff",border:`1px solid ${bdr||"transparent"}`,borderRadius:T.r,fontSize:12,fontWeight:700,cursor:"pointer"});
 
-  // ── Load settings ──────────────────────────────────────────────────────
-  useEffect(()=>{
-    (async()=>{
-      try{
-        // Load system_config
-        const{data:cfg}=(await (supabase as any).from("system_config").select("*").limit(200)) as any;
-        if(cfg){
-          const m:Record<string,boolean>={};
-          const c:Record<string,boolean>={};
-          const capData:Record<string,string[]>={...DEFAULT_CAPS};
-          cfg.forEach((row:any)=>{
-            if(row.key?.startsWith("module_"))m[row.key.replace("module_","")]=row.value==="true"||row.value===true;
-            if(LIVE_CONTROLS.find(lc=>lc.key===row.key))c[row.key]=row.value==="true"||row.value===true;
-            if(row.key?.startsWith("caps_")){
-              const role=row.key.replace("caps_","");
-              try{capData[role]=JSON.parse(row.value||"[]");}catch{}
-            }
-          });
-          setModEnabled(m);setControls(c);setCaps(capData);
-        }
-        // Load theme settings from system_settings
-        const{data:ss}=(await (supabase as any).from("system_settings").select("key,value")) as any;
-        if(ss){
-          const t={...theme};
-          ss.forEach((r:any)=>{if(r.key in t)(t as any)[r.key]=r.value;});
-          setTheme(t);
-        }
-        // Load stats
-        const[{count:uc},{count:rc},{count:pc},{count:sc}]=await Promise.all([
-          (supabase as any).from("profiles").select("*",{count:"exact",head:true}),
-          (supabase as any).from("requisitions").select("*",{count:"exact",head:true}),
-          (supabase as any).from("purchase_orders").select("*",{count:"exact",head:true}),
-          (supabase as any).from("suppliers").select("*",{count:"exact",head:true}),
-        ]);
-        setSysStats({tables:32,users:uc||0,req:rc||0,po:pc||0,suppliers:sc||0,notifications:0});
-      }catch(e){console.warn("Settings load",e);}
-    })();
-  },[]);
+export default function WebmasterPage() {
+  const nav = useNavigate();
+  const { user, profile, roles } = useAuth();
+  const isSuperAdmin = roles.includes("superadmin") || roles.includes("webmaster") || roles.includes("admin");
 
-  // ── Save ──────────────────────────────────────────────────────────────
-  const saveSection=async()=>{
+  const [tab, setTab]             = useState<WMTab>("overview");
+  const [settings, setSettings]   = useState<Record<string,string>>({});
+  const [saving, setSaving]       = useState(false);
+  const [kpis, setKpis]           = useState<any>({});
+  const [broadcast, setBroadcast] = useState("");
+  const [broadcastType, setBroadcastType] = useState<"info"|"warning"|"error">("info");
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [codeSearch, setCodeSearch] = useState("");
+  const [selectedFile, setSelectedFile] = useState<typeof CODE_FILES[0]|null>(null);
+  const [fileContent, setFileContent] = useState("");
+  const [editMode, setEditMode]   = useState(false);
+  const [termOutput, setTermOutput] = useState<string[]>(["EL5 MediProcure Webmaster Terminal v5.9","Type 'help' for commands","---"]);
+  const [termInput, setTermInput] = useState("");
+  const termRef = useRef<HTMLDivElement>(null);
+
+  /* Load settings */
+  const loadSettings = useCallback(async () => {
+    const {data} = await db.from("system_settings").select("key,value").limit(200);
+    if (data) setSettings(Object.fromEntries((data as any[]).map((r:any)=>[r.key,r.value])));
+  }, []);
+
+  /* Load KPIs */
+  const loadKpis = useCallback(async () => {
+    const [u,r2,s,i,n] = await Promise.allSettled([
+      db.from("profiles").select("id",{count:"exact",head:true}),
+      db.from("requisitions").select("id",{count:"exact",head:true}),
+      db.from("suppliers").select("id",{count:"exact",head:true}),
+      db.from("items").select("id",{count:"exact",head:true}),
+      db.from("notifications").select("id",{count:"exact",head:true}).eq("is_read",false),
+    ]);
+    const v=(x:any)=>x.status==="fulfilled"?x.value?.count??0:0;
+    setKpis({users:v(u),requisitions:v(r2),suppliers:v(s),items:v(i),unreadNotifs:v(n)});
+  }, []);
+
+  useEffect(()=>{ loadSettings(); loadKpis(); },[loadSettings,loadKpis]);
+
+  const saveSetting = async (key: string, value: string) => {
     setSaving(true);
-    try{
-      const upserts:any[]=[];
-      if(activeSection==="modules"){
-        Object.entries(modEnabled).forEach(([k,v])=>upserts.push({key:`module_${k}`,value:String(v),category:"module"}));
-      }
-      if(activeSection==="controls"){
-        Object.entries(controls).forEach(([k,v])=>upserts.push({key:k,value:String(v),category:"control"}));
-      }
-      if(activeSection==="roles"){
-        upserts.push({key:`caps_${selectedRole}`,value:JSON.stringify(caps[selectedRole]||[]),category:"capability"});
-      }
-      if(activeSection==="theme"){
-        // Save to system_settings
-        await Promise.all(Object.entries(theme).map(([k,v])=>
-          (supabase as any).from("system_settings").upsert({key:k,value:v},{onConflict:"key"})
-        ));
-        toast({title:"Theme settings saved ✓"});
-        setSaving(false);return;
-      }
-      if(upserts.length>0){
-        const{error}=await (supabase as any).from("system_config").upsert(upserts,{onConflict:"key"});
-        if(error)throw error;
-      }
-      toast({title:"Settings saved ✓",description:`${SECTIONS.find(s=>s.id===activeSection)?.label} updated`});
-    }catch(e:any){
-      toast({title:"Save failed",description:e.message,variant:"destructive"});
+    await db.from("system_settings").upsert({key,value,category:"system"},{onConflict:"key"});
+    await loadSettings();
+    setSaving(false);
+    toast({title:"Saved"});
+  };
+
+  const sendBroadcast = async () => {
+    if (!broadcast.trim()) return;
+    setBroadcasting(true);
+    await db.from("system_broadcasts").insert({
+      message:broadcast, type:broadcastType,
+      is_active:true, created_at:new Date().toISOString()
+    });
+    setBroadcast(""); setBroadcasting(false);
+    toast({title:"Broadcast sent"});
+  };
+
+  /* Terminal commands */
+  const runCmd = (cmd: string) => {
+    const add = (s: string) => setTermOutput(p=>[...p,s]);
+    const c = cmd.trim().toLowerCase();
+    if (c==="help") {
+      add("Commands: help | status | users | roles | modules | clear | nav <path> | reload");
+    } else if (c==="status") {
+      add(`DB: Supabase connected ✅`);
+      add(`Users: ${kpis.users} | Requisitions: ${kpis.requisitions} | Items: ${kpis.items}`);
+      add(`Unread notifications: ${kpis.unreadNotifs}`);
+    } else if (c==="users") {
+      add(`Total users: ${kpis.users}`);
+    } else if (c==="roles") {
+      add("Roles: " + Object.keys(ROLE_CAPS).join(", "));
+    } else if (c==="modules") {
+      MODULES.forEach(m=>add(`${m.label}: ${settings[m.key]==="false"?"DISABLED":"ENABLED"}`));
+    } else if (c==="clear") {
+      setTermOutput(["Terminal cleared — type 'help' for commands"]);
+    } else if (c.startsWith("nav ")) {
+      nav(c.slice(4)); add(`Navigating to ${c.slice(4)}...`);
+    } else if (c==="reload") {
+      window.location.reload();
+    } else if (c) {
+      add(`Unknown command: ${cmd}`);
     }
-    setSaving(false);
+    setTimeout(()=>termRef.current?.scrollTo(0,termRef.current.scrollHeight),50);
   };
 
-  const resetSection=()=>{
-    if(activeSection==="roles")setCaps(p=>({...p,[selectedRole]:DEFAULT_CAPS[selectedRole]||[]}));
-    if(activeSection==="modules")setModEnabled({});
-    if(activeSection==="controls")setControls({});
-    toast({title:"Section reset to defaults"});
-  };
+  const tabs: {id:WMTab;label:string;icon:any}[] = [
+    {id:"overview",  label:"Overview",    icon:Monitor},
+    {id:"modules",   label:"Modules",     icon:Package},
+    {id:"roles",     label:"Role Caps",   icon:Shield},
+    {id:"codebase",  label:"Codebase",    icon:Code2},
+    {id:"broadcast", label:"Broadcast",   icon:Radio},
+    {id:"system",    label:"System",      icon:Server},
+    {id:"terminal",  label:"Terminal",    icon:Terminal},
+  ];
 
-  // ── Load audit logs ───────────────────────────────────────────────────
-  useEffect(()=>{
-    if(activeSection!=="audit")return;
-    setLogsLoading(true);
-    (supabase as any).from("audit_log").select("*").order("created_at",{ascending:false}).limit(50)
-      .then(({data}:any)=>{setLogs(data||[]);setLogsLoading(false);});
-  },[activeSection]);
-
-  // ── Terminal ──────────────────────────────────────────────────────────
-  const runCmd=(cmd:string)=>{
-    const c=cmd.trim().toLowerCase();
-    let out="";
-    if(c==="help")out="Commands: help, stats, clear, version, date, users, reload";
-    else if(c==="stats")out=`System Stats:\n  Tables: ${sysStats.tables}\n  Users: ${sysStats.users}\n  Requisitions: ${sysStats.req}\n  Purchase Orders: ${sysStats.po}\n  Suppliers: ${sysStats.suppliers}`;
-    else if(c==="clear"){setTermHistory(["Console cleared."]);return;}
-    else if(c==="version")out="MediProcure Hub v1.0.0 | Embu Level 5 Hospital | Supabase + React";
-    else if(c==="date")out=new Date().toString();
-    else if(c==="users")out=`Active users in system: ${sysStats.users}`;
-    else if(c==="reload")out="Reloading page...";
-    else out=`Unknown command: '${cmd}'. Type 'help' for available commands.`;
-    setTermHistory(p=>[...p,`$ ${cmd}`,out]);
-    if(c==="reload")setTimeout(()=>window.location.reload(),500);
-    setTimeout(()=>termRef.current?.scrollTo({top:99999,behavior:"smooth"}),50);
-  };
-
-  // ── Send broadcast ─────────────────────────────────────────────────────
-  const sendBroadcast=async()=>{
-    if(!broadcast.title.trim()||!broadcast.message.trim()){toast({title:"Title and message required",variant:"destructive"});return;}
-    setSaving(true);
-    try{
-      await sendSystemBroadcast({title:broadcast.title,message:broadcast.message,type:broadcast.type as any,expiresIn:broadcast.expires_in});
-      toast({title:"Broadcast sent ✓"});
-      setBroadcast(p=>({...p,title:"",message:""}));
-    }catch(e:any){toast({title:"Failed",description:e.message,variant:"destructive"});}
-    setSaving(false);
-  };
-
-  // ── Module groups ──────────────────────────────────────────────────────
-  const modGroups=Array.from(new Set(ALL_MODULES.map(m=>m.group)));
-
-  // ── Styles ────────────────────────────────────────────────────────────
-  const lbl:React.CSSProperties={fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#64748b",display:"block",marginBottom:4};
-  const inp:React.CSSProperties={width:"100%",padding:"7px 10px",border:"1.5px solid #cbd5e1",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1e293b",background:"#f8fafc"};
-  const sectionContent=SECTIONS.find(s=>s.id===activeSection);
+  const filteredFiles = CODE_FILES.filter(f=>!codeSearch||f.path.toLowerCase().includes(codeSearch.toLowerCase())||f.desc.toLowerCase().includes(codeSearch.toLowerCase()));
 
   return(
-    <RoleGuard allowed={["admin"]}>
-      <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    <div style={{padding:20,minHeight:"100vh",background:T.bg}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-        {/* ── Top action bar ────────────────────────────────────────── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",background:"#fff",borderBottom:"1px solid #1e293b",flexWrap:"wrap" as const,gap:8}}>
-          <div>
-            <h1 style={{fontSize:16,fontWeight:900,color:"#1e293b",margin:0}}>Webmaster Control Panel</h1>
-            <div style={{fontSize:11,color:"#64748b",marginTop:2}}>Manage system capabilities, modules, and configuration · {profile?.full_name}</div>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={saveSection} disabled={saving}
-              style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
-              {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>}
-              SAVE CHANGES
-            </button>
-            <button onClick={resetSection}
-              style={{padding:"8px 14px",border:"1.5px solid #0a2558",borderRadius:8,background:"#f8fafc",cursor:"pointer",fontSize:12,fontWeight:600,color:"#60a5fa"}}>
-              RESET SECTION
-            </button>
-            <button onClick={()=>{resetSection();}}
-              style={{padding:"8px 14px",border:"1.5px solid #cbd5e1",borderRadius:8,background:"#f8fafc",cursor:"pointer",fontSize:12,fontWeight:600,color:"#64748b"}}>
-              RESET ALL
-            </button>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
+        <Globe size={22} color={T.primary}/>
+        <div>
+          <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>Superadmin / Webmaster Control Centre</h1>
+          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>
+            ProcurBosse v5.9 · EL5 MediProcure · Full system control for {roles.filter(r=>["superadmin","webmaster","admin"].includes(r)).join(", ")||"admin"}
           </div>
         </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={()=>{loadSettings();loadKpis();}} style={btnS(T.bg2,T.border)}><RefreshCw size={13}/> Refresh</button>
+          <button onClick={()=>nav("/admin/db-test")} style={btnS(T.primary)}><Activity size={13}/> DB Monitor</button>
+        </div>
+      </div>
 
-        {/* ── Body: left nav + right content ────────────────────────── */}
-        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+      {/* Tabs */}
+      <div style={{display:"flex",gap:2,marginBottom:16,borderBottom:`1px solid ${T.border}`,overflowX:"auto"}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            display:"flex",alignItems:"center",gap:7,padding:"10px 16px",
+            background:"transparent",border:"none",
+            borderBottom:`2px solid ${tab===t.id?T.primary:"transparent"}`,
+            color:tab===t.id?T.primary:T.fgMuted,fontSize:13,fontWeight:700,
+            cursor:"pointer",whiteSpace:"nowrap",
+          }}>
+            <t.icon size={14}/>{t.label}
+          </button>
+        ))}
+      </div>
 
-          {/* Left nav */}
-          <div style={{width:220,flexShrink:0,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",padding:"6px 0"}}>
-            {SECTIONS.map(s=>(
-              <button key={s.id}
-                onClick={()=>setActiveSection(s.id)}
-                style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",
-                  borderLeft:activeSection===s.id?"3px solid #0a2558":"3px solid transparent",
-                  background:activeSection===s.id?"#e8edf5":"transparent",
-                  textAlign:"left",cursor:"pointer",transition:"background 0.12s"}}
-                onMouseEnter={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="#e8edf5";}}
-                onMouseLeave={e=>{if(activeSection!==s.id)(e.currentTarget as HTMLElement).style.background="transparent";}}>
-                <s.icon style={{width:14,height:14,color:activeSection===s.id?"#60a5fa":"#94a3b8",flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:activeSection===s.id?"#f1f5f9":"#cbd5e1",textTransform:"uppercase",letterSpacing:"0.05em"}}>{s.label}</div>
-                  <div style={{fontSize:9.5,color:"#64748b",marginTop:1}}>{s.sub}</div>
-                </div>
-              </button>
+      {/* ═══ OVERVIEW ═══ */}
+      {tab==="overview"&&(
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+            {[
+              {label:"Users",        value:kpis.users,        icon:Users,    color:T.primary, path:"/users"},
+              {label:"Requisitions", value:kpis.requisitions, icon:Package,  color:"#7c3aed", path:"/requisitions"},
+              {label:"Suppliers",    value:kpis.suppliers,    icon:Globe,    color:"#059669", path:"/suppliers"},
+              {label:"Items",        value:kpis.items,        icon:Hash,     color:"#d97706", path:"/items"},
+              {label:"Notifications",value:kpis.unreadNotifs, icon:Bell,     color:"#dc2626", path:"/notifications"},
+            ].map(k=>(
+              <div key={k.label} onClick={()=>nav(k.path)} style={{...card,cursor:"pointer",textAlign:"center",padding:"16px 12px"}}
+                onMouseEnter={e=>(e.currentTarget.style.borderColor=k.color)} onMouseLeave={e=>(e.currentTarget.style.borderColor=T.border)}>
+                <k.icon size={20} color={k.color} style={{margin:"0 auto 8px",display:"block"}}/>
+                <div style={{fontSize:24,fontWeight:800,color:T.fg}}>{k.value??0}</div>
+                <div style={{fontSize:10,color:T.fgDim,marginTop:2}}>{k.label}</div>
+              </div>
             ))}
           </div>
 
-          {/* Right content */}
-          <div style={{flex:1,overflowY:"auto",padding:"24px 28px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-              {sectionContent&&<sectionContent.icon style={{width:18,height:18,color:"#0a2558"}}/>}
-              <div>
-                <h2 style={{fontSize:16,fontWeight:800,color:"#1e293b",margin:0}}>{sectionContent?.label}</h2>
-                <p style={{fontSize:11,color:"#9ca3af",margin:"2px 0 0"}}>{sectionContent?.sub}</p>
-              </div>
+          {/* Quick actions */}
+          <div style={{...card,marginBottom:14}}>
+            <div style={{fontWeight:700,color:T.fg,fontSize:14,marginBottom:12}}>Quick Actions</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {[
+                {label:"Add User",      icon:Users,    path:"/users",            color:T.primary},
+                {label:"System Settings",icon:Settings,path:"/settings",         color:"#7c3aed"},
+                {label:"DB Monitor",    icon:Activity, path:"/admin/db-test",    color:"#059669"},
+                {label:"Audit Log",     icon:Eye,      path:"/audit-log",        color:"#d97706"},
+                {label:"Backup",        icon:HardDrive,path:"/backup",           color:"#0891b2"},
+                {label:"ODBC/MySQL",    icon:Database, path:"/odbc",             color:"#dc2626"},
+                {label:"Email",         icon:Radio,    path:"/email",            color:"#374151"},
+                {label:"SMS",           icon:Hash,     path:"/sms",              color:"#c45910"},
+              ].map(a=>(
+                <button key={a.path} onClick={()=>nav(a.path)} style={{...btnS(a.color),fontSize:11,padding:"6px 12px"}}>
+                  <a.icon size={12}/>{a.label}
+                </button>
+              ))}
             </div>
-            <div style={{height:1,background:"#e5e7eb",marginBottom:24}}/>
+          </div>
 
-            {/* ── MODULES ──────────────────────────────────────────── */}
-            {activeSection==="modules"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:20}}>
-                {modGroups.map(grp=>(
-                  <div key={grp}>
-                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{flex:1,borderBottom:"1px solid #1e293b",paddingBottom:4}}>{grp} Modules</span>
-                      <span style={{fontSize:10,color:"#9ca3af",fontWeight:500,whiteSpace:"nowrap"}}>
-                        {ALL_MODULES.filter(m=>m.group===grp&&(modEnabled[m.id]!==false)).length}/{ALL_MODULES.filter(m=>m.group===grp).length} enabled
-                      </span>
-                    </h3>
-                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
-                      {ALL_MODULES.filter(m=>m.group===grp).map((m,i,arr)=>(
-                        <div key={m.id}
-                          style={{display:"flex",alignItems:"center",gap:14,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
-                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
-                          <div style={{width:32,height:32,borderRadius:8,background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            <m.icon style={{width:15,height:15,color:"#374151"}}/>
-                          </div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:13,fontWeight:600,color:"#1e293b"}}>{m.label}</div>
-                            {m.path&&<div style={{fontSize:10,color:"#9ca3af"}}>{m.path}</div>}
-                          </div>
-                          <Toggle on={modEnabled[m.id]!==false} onChange={v=>setModEnabled(p=>({...p,[m.id]:v}))}/>
-                          {m.path&&<button onClick={()=>navigate(m.path)} style={{background:"none",border:"none",cursor:"pointer",color:"#0a2558",padding:3,lineHeight:0}}><ChevronRight style={{width:14,height:14}}/></button>}
-                        </div>
-                      ))}
-                    </div>
+          {/* Module status grid */}
+          <div style={card}>
+            <div style={{fontWeight:700,color:T.fg,fontSize:14,marginBottom:12}}>Module Status</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
+              {MODULES.map(m=>{
+                const enabled = settings[m.key] !== "false";
+                return(
+                  <div key={m.key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:T.bg2,borderRadius:8,border:`1px solid ${T.border}`}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:enabled?T.success:T.error,flexShrink:0}}/>
+                    <span style={{fontSize:12,color:T.fg,flex:1}}>{m.label}</span>
+                    <button onClick={()=>saveSetting(m.key,enabled?"false":"true")} style={{...btnS(enabled?T.successBg:T.errorBg),padding:"3px 8px",fontSize:10,color:enabled?T.success:T.error,border:`1px solid ${enabled?T.success:T.error}44`}}>
+                      {enabled?"ON":"OFF"}
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* ── ROLE CAPABILITIES ────────────────────────────────── */}
-            {activeSection==="roles"&&(
-              <div>
-                {/* Role selector */}
-                <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap" as const}}>
-                  {ROLES_LIST.map(r=>(
-                    <button key={r} onClick={()=>setSelectedRole(r)}
-                      style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"capitalize",
-                        borderColor:selectedRole===r?"#0a2558":"#e5e7eb",
-                        background:selectedRole===r?"#0a2558":"#fff",
-                        color:selectedRole===r?"#fff":"#cbd5e1"}}>
-                      {r.replace(/_/g," ")}
+      {/* ═══ MODULES ═══ */}
+      {tab==="modules"&&(
+        <div style={card}>
+          <div style={{fontWeight:800,color:T.fg,fontSize:15,marginBottom:16}}>System Module Controls</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {MODULES.map(m=>{
+              const enabled = settings[m.key] !== "false";
+              return(
+                <div key={m.key} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:T.bg2,borderRadius:10,border:`1px solid ${enabled?T.border:T.error+"44"}`}}>
+                  <div style={{width:12,height:12,borderRadius:"50%",background:m.color,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:700,color:T.fg}}>{m.label}</div>
+                    <div style={{fontSize:10,color:T.fgDim}}>Setting key: {m.key}</div>
+                  </div>
+                  <span style={{fontSize:11,color:enabled?T.success:T.error,fontWeight:700}}>{enabled?"ENABLED":"DISABLED"}</span>
+                  <button onClick={()=>saveSetting(m.key,enabled?"false":"true")}
+                    style={{...btnS(enabled?T.error:T.success),padding:"6px 14px",fontSize:12}}>
+                    {enabled?<><Lock size={11}/> Disable</>:<><Unlock size={11}/> Enable</>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ ROLE CAPABILITIES ═══ */}
+      {tab==="roles"&&(
+        <div>
+          <div style={{fontSize:12,color:T.fgMuted,marginBottom:12}}>
+            Showing all role capabilities. Manage role assignments in <button onClick={()=>nav("/users")} style={{background:"transparent",border:"none",cursor:"pointer",color:T.primary,fontWeight:700,fontSize:12}}>Users page</button>.
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12}}>
+            {Object.entries(ROLE_CAPS).map(([role,caps])=>(
+              <div key={role} style={card}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                  <Shield size={14} color={T.primary}/>
+                  <span style={{fontWeight:800,fontSize:13,color:T.fg,textTransform:"capitalize"}}>{role.replace(/_/g," ")}</span>
+                  <span style={{fontSize:9,padding:"2px 7px",borderRadius:99,background:`${T.primary}22`,color:T.primary}}>{caps.length} caps</span>
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                  {caps.map(cap=>(
+                    <span key={cap} style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:600,background:T.bg2,color:T.fgMuted,border:`1px solid ${T.border}`}}>
+                      {cap.replace(/_/g," ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ CODEBASE ═══ */}
+      {tab==="codebase"&&(
+        <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:14,height:"calc(100vh - 200px)"}}>
+          {/* File tree */}
+          <div style={{...card,overflowY:"auto",padding:"12px"}}>
+            <div style={{fontWeight:700,color:T.fg,fontSize:13,marginBottom:10}}>File Tree</div>
+            <div style={{position:"relative",marginBottom:10}}>
+              <Search size={12} color={T.fgDim} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)"}}/>
+              <input value={codeSearch} onChange={e=>setCodeSearch(e.target.value)} placeholder="Search files..." style={{...inp,paddingLeft:26,fontSize:11}}/>
+            </div>
+            {["Core","Auth","DB","API","UI","Pages","Admin","Roles","Engine","Comms","Edge","CI/CD"].map(group=>{
+              const gf = filteredFiles.filter(f=>f.group===group);
+              if (!gf.length) return null;
+              return(
+                <div key={group} style={{marginBottom:8}}>
+                  <div style={{fontSize:10,fontWeight:800,color:GROUP_COLORS[group]||T.fgDim,letterSpacing:.08,marginBottom:4}}>{group}</div>
+                  {gf.map(f=>(
+                    <button key={f.path} onClick={()=>{setSelectedFile(f);setEditMode(false);setFileContent(`// ${f.path}\n// ${f.desc}\n// Click "Load File" to fetch content from GitHub\n// Or edit directly here and save to system_settings`);}}
+                      style={{width:"100%",display:"flex",flexDirection:"column",padding:"6px 8px",background:selectedFile?.path===f.path?`${T.primary}22`:"transparent",border:"none",borderRadius:6,cursor:"pointer",textAlign:"left",marginBottom:2}}>
+                      <span style={{fontSize:11,color:selectedFile?.path===f.path?T.primary:T.fg,fontFamily:"monospace"}}>{f.path.split("/").pop()}</span>
+                      <span style={{fontSize:9,color:T.fgDim}}>{f.path}</span>
                     </button>
                   ))}
                 </div>
+              );
+            })}
+          </div>
 
-                <div style={{background:"#f0f2f5",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
-                  <Info style={{width:14,height:14,color:"#0a2558",flexShrink:0}}/>
-                  <span style={{fontSize:12,color:"#374151"}}>
-                    Showing capabilities for: <strong style={{color:"#60a5fa"}}>{selectedRole.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}</strong>
-                    {" · "}{caps[selectedRole]?.length||0} capabilities enabled
-                  </span>
-                </div>
-
-                {CAP_GROUPS.map(cg=>(
-                  <div key={cg.group} style={{marginBottom:16}}>
-                    <h3 style={{fontSize:11,fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>
-                      {cg.group}
-                    </h3>
-                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
-                      {cg.caps.map((cap,i,arr)=>{
-                        const checked=(caps[selectedRole]||[]).includes(cap.id);
-                        return(
-                          <div key={cap.id}
-                            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",cursor:"pointer",transition:"background 0.1s"}}
-                            onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                            onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}
-                            onClick={()=>setCaps(p=>{
-                              const cur=p[selectedRole]||[];
-                              return{...p,[selectedRole]:checked?cur.filter(c=>c!==cap.id):[...cur,cap.id]};
-                            })}>
-                            <CB checked={checked} onChange={v=>setCaps(p=>{const cur=p[selectedRole]||[];return{...p,[selectedRole]:v?[...cur,cap.id]:cur.filter(c=>c!==cap.id)};})}/>
-                            <span style={{fontSize:13,color:"#1e293b",flex:1}}>{cap.label}</span>
-                            {selectedRole==="admin"&&<span style={{fontSize:9,color:"#64748b",background:"#e2e8f0",padding:"1px 6px",borderRadius:4}}>always on</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── THEME & BRAND ─────────────────────────────────────── */}
-            {activeSection==="theme"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:680}}>
-                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
-                  <h3 style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:16}}>Hospital Identity</h3>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-                    {[{k:"system_name",l:"System Name",ph:"EL5 MediProcure"},{k:"hospital_name",l:"Hospital Name",ph:"Embu Level 5 Hospital"},{k:"county",l:"County / Authority",ph:"Embu County Government"},{k:"address",l:"Address",ph:"Embu Town, Embu County"},{k:"phone",l:"Phone",ph:"+254 060 000000"},{k:"email",l:"Email",ph:"info@embu-l5.go.ke"}].map(f=>(
-                      <div key={f.k}>
-                        <label style={lbl}>{f.l}</label>
-                        <input value={(theme as any)[f.k]||""} onChange={e=>setTheme(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={inp}/>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
-                  <h3 style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:16}}>Brand Colors</h3>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-                    {[{k:"primary_color",l:"Primary Color"},{k:"accent_color",l:"Accent Color"}].map(f=>(
-                      <div key={f.k}>
-                        <label style={lbl}>{f.l}</label>
-                        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                          <input type="color" value={(theme as any)[f.k]||"#0a2558"} onChange={e=>setTheme(p=>({...p,[f.k]:e.target.value}))} style={{width:36,height:34,border:"1.5px solid #cbd5e1",borderRadius:6,padding:2,cursor:"pointer"}}/>
-                          <input value={(theme as any)[f.k]||""} onChange={e=>setTheme(p=>({...p,[f.k]:e.target.value}))} style={{...inp,flex:1}} placeholder="#0a2558"/>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{background:"#f0f2f5",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
-                  <Palette style={{width:14,height:14,color:"#0a2558",flexShrink:0}}/>
-                  <span style={{fontSize:12,color:"#374151"}}>Color changes take effect on next page load. Saved to <code style={{background:"#e5e7eb",padding:"1px 4px",borderRadius:3,fontSize:11}}>system_settings</code> table.</span>
-                </div>
-              </div>
-            )}
-
-            {/* ── USERS ────────────────────────────────────────────── */}
-            {activeSection==="users_cap"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:680}}>
-                {[
-                  {group:"User Account Capabilities",items:[
-                    {label:"View all users",desc:"See full user list and profiles"},
-                    {label:"Create new users",desc:"Add new users to the system"},
-                    {label:"Edit user profiles",desc:"Modify user details and roles"},
-                    {label:"Deactivate users",desc:"Disable user accounts"},
-                    {label:"Delete users",desc:"Permanently remove users"},
-                    {label:"Reset passwords",desc:"Reset any user's password"},
-                    {label:"Assign roles",desc:"Change user roles and permissions"},
-                  ]},
-                  {group:"Role Management",items:[
-                    {label:"View role capabilities",desc:"See what each role can do"},
-                    {label:"Modify role capabilities",desc:"Change role permission sets"},
-                    {label:"Create custom roles",desc:"Add new role types"},
-                  ]},
-                ].map(section=>(
-                  <div key={section.group}>
-                    <h3 style={{fontSize:12,fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>{section.group}</h3>
-                    <div style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
-                      {section.items.map((item,i,arr)=>(
-                        <div key={item.label}
-                          style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #f3f4f6":"none",transition:"background 0.1s"}}
-                          onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}
-                          onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
-                          <CB checked={true} onChange={()=>{}} disabled/>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:13,color:"#1e293b",fontWeight:500}}>{item.label}</div>
-                            <div style={{fontSize:10.5,color:"#9ca3af"}}>{item.desc}</div>
-                          </div>
-                          <span style={{fontSize:9,color:"#64748b",background:"#e2e8f0",padding:"1px 6px",borderRadius:4}}>admin only</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <div style={{marginTop:8,display:"flex",gap:8}}>
-                  <button onClick={()=>navigate("/users")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                    <Users style={{width:13,height:13}}/>Manage Users
+          {/* Code viewer */}
+          <div style={{...card,display:"flex",flexDirection:"column",padding:0,overflow:"hidden"}}>
+            {selectedFile?(
+              <>
+                <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+                  <Code2 size={14} color={T.primary}/>
+                  <span style={{fontWeight:700,fontSize:12,color:T.fg,fontFamily:"monospace"}}>{selectedFile.path}</span>
+                  <span style={{fontSize:10,color:T.fgDim,flex:1}}>{selectedFile.desc}</span>
+                  <button onClick={()=>setEditMode(p=>!p)} style={btnS(editMode?T.success:T.bg2,editMode?undefined:T.border)}>
+                    {editMode?<><Check size={12}/> Editing</>:<><Edit3 size={12}/> Edit</>}
                   </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── LIVE CONTROLS ────────────────────────────────────── */}
-            {activeSection==="controls"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:680}}>
-                <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",gap:10,alignItems:"flex-start"}}>
-                  <AlertTriangle style={{width:14,height:14,color:"#d97706",flexShrink:0,marginTop:2}}/>
-                  <span style={{fontSize:12,color:"#92400e"}}>Controls marked in <strong>red</strong> affect all users. Changes take effect immediately.</span>
-                </div>
-                {LIVE_CONTROLS.map(ctrl=>(
-                  <div key={ctrl.key} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"#f8fafc",borderRadius:10,border:`1px solid ${ctrl.danger?"#fee2e2":"#e5e7eb"}`}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:700,color:ctrl.danger?"#dc2626":"#111827"}}>{ctrl.label}</div>
-                      <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{ctrl.sub}</div>
-                    </div>
-                    {ctrl.danger&&<span style={{fontSize:9,fontWeight:700,color:"#dc2626",background:"#fee2e2",padding:"2px 6px",borderRadius:4}}>DANGER</span>}
-                    <Toggle on={!!controls[ctrl.key]} onChange={v=>setControls(p=>({...p,[ctrl.key]:v}))}/>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── BROADCAST ────────────────────────────────────────── */}
-            {activeSection==="broadcast"&&(
-              <div style={{maxWidth:640}}>
-                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20,display:"flex",flexDirection:"column",gap:14}}>
-                  <div>
-                    <label style={lbl}>Message Title *</label>
-                    <input value={broadcast.title} onChange={e=>setBroadcast(p=>({...p,title:e.target.value}))} placeholder="e.g. System Maintenance Tonight" style={inp}/>
-                  </div>
-                  <div>
-                    <label style={lbl}>Message Body *</label>
-                    <textarea value={broadcast.message} onChange={e=>setBroadcast(p=>({...p,message:e.target.value}))} rows={4} placeholder="Write your broadcast message..." style={{...inp,resize:"none"}}/>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-                    <div>
-                      <label style={lbl}>Message Type</label>
-                      <select value={broadcast.type} onChange={e=>setBroadcast(p=>({...p,type:e.target.value}))} style={inp}>
-                        {["info","warning","error","success"].map(t=><option key={t} value={t} style={{textTransform:"capitalize"}}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={lbl}>Expires In (hours)</label>
-                      <input type="number" min={1} max={168} value={broadcast.expires_in} onChange={e=>setBroadcast(p=>({...p,expires_in:Number(e.target.value)}))} style={inp}/>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={lbl}>Target Roles (leave empty for all)</label>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginTop:4}}>
-                      {ROLES_LIST.map(r=>{
-                        const sel=broadcast.roles.includes(r);
-                        return(
-                          <button key={r} onClick={()=>setBroadcast(p=>({...p,roles:sel?p.roles.filter(x=>x!==r):[...p.roles,r]}))}
-                            style={{padding:"4px 12px",borderRadius:20,border:"1.5px solid",fontSize:11,cursor:"pointer",
-                              borderColor:sel?"#0a2558":"#e5e7eb",background:sel?"#0a2558":"#f9fafb",color:sel?"#fff":"#374151",fontWeight:600}}>
-                            {r.replace(/_/g," ")}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <button onClick={sendBroadcast} disabled={saving}
-                    style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px 20px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
-                    {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<SendIcon style={{width:13,height:13}}/>}
-                    Send System Broadcast
+                  <button onClick={()=>navigator.clipboard.writeText(fileContent).then(()=>toast({title:"Copied"}))} style={btnS(T.bg2,T.border)}>
+                    <Copy size={12}/> Copy
                   </button>
+                  {editMode&&<button onClick={async()=>{
+                    await db.from("system_settings").upsert({key:`codebase_${selectedFile.path.replace(/\//g,"_")}`,value:fileContent,category:"codebase"},{onConflict:"key"});
+                    toast({title:"Saved to system_settings",description:"Deploy via GitHub Actions to apply"});
+                  }} style={btnS(T.primary)}><Save size={12}/> Save</button>}
                 </div>
-              </div>
-            )}
-
-            {/* ── SYSTEM HEALTH ───────────────────────────────────── */}
-            {activeSection==="system"&&(
-              <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:720}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-                  {[
-                    {label:"Total Users",      value:sysStats.users,     icon:Users,      color:"#0a2558"},
-                    {label:"Requisitions",      value:sysStats.req,       icon:ClipboardList, color:"#C45911"},
-                    {label:"Purchase Orders",   value:sysStats.po,        icon:ShoppingCart,color:"#0078d4"},
-                    {label:"Suppliers",         value:sysStats.suppliers, icon:Truck,       color:"#107c10"},
-                    {label:"DB Tables",         value:sysStats.tables,    icon:Database,    color:"#374151"},
-                    {label:"System Status",     value:"Online",           icon:CheckCircle, color:"#059669"},
-                  ].map(stat=>(
-                    <div key={stat.label} style={{background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0",padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{width:36,height:36,borderRadius:9,background:`${stat.color}14`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        <stat.icon style={{width:17,height:17,color:stat.color}}/>
-                      </div>
-                      <div>
-                        <div style={{fontSize:18,fontWeight:900,color:"#1e293b",lineHeight:1}}>{stat.value}</div>
-                        <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{stat.label}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:18}}>
-                  <h3 style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:14}}>System Information</h3>
-                  {[
-                    ["Platform","Supabase PostgreSQL + React (Vite)"],
-                    ["Application","MediProcure Hub v1.0.0"],
-                    ["Hospital","Embu Level 5 Hospital, Embu County"],
-                    ["Database","PostgreSQL (Supabase Cloud)"],
-                    ["Authentication","Supabase Auth + Row-Level Security"],
-                    ["Environment","Production"],
-                    ["Roles","6 role levels configured"],
-                    ["Build","React 18 + TypeScript + Tailwind"],
-                  ].map(([k,v])=>(
-                    <div key={k} style={{display:"flex",padding:"7px 0",borderBottom:"1px solid #f3f4f6"}}>
-                      <span style={{width:180,fontSize:12,fontWeight:700,color:"#64748b",flexShrink:0}}>{k}</span>
-                      <span style={{fontSize:12,color:"#1e293b"}}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:10}}>
-                  <button onClick={()=>navigate("/admin/database")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#1e3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                    <Database style={{width:13,height:13}}/>Database Admin
-                  </button>
-                  <button onClick={()=>navigate("/backup")} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",border:"1.5px solid #0a2558",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:"#0a2558"}}>
-                    <Archive style={{width:13,height:13}}/>Backup Manager
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── AUDIT LOG ──────────────────────────────────────── */}
-            {activeSection==="audit"&&(
-              <div style={{maxWidth:800}}>
-                {logsLoading?(
-                  <div style={{display:"flex",alignItems:"center",gap:8,color:"#9ca3af",padding:"30px 0"}}>
-                    <RefreshCw style={{width:14,height:14,animation:"spin 1s linear infinite"}}/>Loading audit log...
-                  </div>
-                ):(
-                  <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",overflow:"hidden"}}>
-                    <div style={{padding:"10px 16px",background:"#f8fafc",borderBottom:"1px solid #1e293b",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>Recent Activity — Last 50 entries</span>
-                      <button onClick={()=>navigate("/audit-log")} style={{fontSize:11,color:"#0a2558",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>View Full Log →</button>
-                    </div>
-                    {logs.length===0&&<div style={{padding:"30px 20px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No audit records found</div>}
-                    {logs.map((log,i)=>(
-                      <div key={log.id||i} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"9px 16px",borderBottom:"1px solid #f3f4f6"}}>
-                        <div style={{width:28,height:28,borderRadius:"50%",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          <Activity style={{width:12,height:12,color:"#374151"}}/>
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,fontWeight:600,color:"#1e293b"}}>{log.action||"Action"}</div>
-                          <div style={{fontSize:10.5,color:"#9ca3af",marginTop:1}}>{log.user_name||log.user_id} · {log.table_name} · {log.created_at?new Date(log.created_at).toLocaleString("en-KE"):""}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── CONSOLE ─────────────────────────────────────────── */}
-            {activeSection==="terminal"&&(
-              <div style={{maxWidth:760}}>
-                <div style={{background:"#0d1117",borderRadius:12,border:"1px solid #30363d",overflow:"hidden"}}>
-                  <div style={{padding:"8px 14px",background:"#161b22",borderBottom:"1px solid #30363d",display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:12,height:12,borderRadius:"50%",background:"#ff5f57"}}/>
-                    <div style={{width:12,height:12,borderRadius:"50%",background:"#febc2e"}}/>
-                    <div style={{width:12,height:12,borderRadius:"50%",background:"#28c840"}}/>
-                    <span style={{fontSize:11,color:"#8b949e",marginLeft:8,fontFamily:"monospace"}}>MediProcure Console — Webmaster</span>
-                  </div>
-                  <div ref={termRef} style={{padding:"14px 16px",height:320,overflowY:"auto",fontFamily:"'Cascadia Code','Consolas','Courier New',monospace",fontSize:12,lineHeight:1.7,color:"#c9d1d9"}}>
-                    {termHistory.map((line,i)=>(
-                      <div key={i} style={{whiteSpace:"pre-wrap",color:line.startsWith("$")?"#79c0ff":line.startsWith("Unknown")||line.startsWith("Error")?"#ff7b72":"#c9d1d9"}}>{line}</div>
-                    ))}
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderTop:"1px solid #30363d"}}>
-                    <span style={{color:"#79c0ff",fontFamily:"monospace",fontSize:13,flexShrink:0}}>$</span>
-                    <input value={termInput} onChange={e=>setTermInput(e.target.value)}
-                      onKeyDown={e=>{if(e.key==="Enter"&&termInput.trim()){runCmd(termInput);setTermInput("");}}}
-                      placeholder="Type a command and press Enter..." autoComplete="off"
-                      style={{flex:1,background:"#f8fafc",border:"none",outline:"none",fontFamily:"'Cascadia Code','Consolas',monospace",fontSize:12,color:"#c9d1d9"}}/>
-                    <button onClick={()=>{if(termInput.trim()){runCmd(termInput);setTermInput("");}}}
-                      style={{background:"#238636",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>
-                      <Play style={{width:11,height:11}}/>
-                    </button>
-                  </div>
-                </div>
-                <div style={{marginTop:12,fontSize:11,color:"#9ca3af"}}>
-                  Available: <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>help</code>{" "}
-                  <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>stats</code>{" "}
-                  <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>version</code>{" "}
-                  <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>users</code>{" "}
-                  <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>date</code>{" "}
-                  <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>clear</code>{" "}
-                  <code style={{background:"#e5e7eb",padding:"1px 5px",borderRadius:3}}>reload</code>
-                </div>
-              </div>
-            )}
-
-            {/* ── LICENSING ───────────────────────────────────────── */}
-            {activeSection==="licensing"&&(
-              <div style={{maxWidth:680,display:"flex",flexDirection:"column",gap:16}}>
-                <div style={{background:"#f8fafc",borderRadius:12,border:"1px solid #e2e8f0",padding:20}}>
-                  <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
-                    <div style={{width:48,height:48,borderRadius:10,background:"#1e3a6b",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <Monitor style={{width:24,height:24,color:"#fff"}}/>
-                    </div>
-                    <div>
-                      <h2 style={{fontSize:16,fontWeight:900,color:"#1e293b",margin:0}}>MediProcure Hub</h2>
-                      <div style={{fontSize:12,color:"#9ca3af"}}>Embu Level 5 Hospital · Procurement Management System</div>
-                    </div>
-                    <div style={{marginLeft:"auto",background:"#1e3a6b",color:"#fff",padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700}}>v1.0.0</div>
-                  </div>
-                  {[
-                    ["Version","1.0.0"],
-                    ["Build","React 18 + TypeScript + Vite"],
-                    ["Database","PostgreSQL via Supabase"],
-                    ["Auth","Supabase Auth with RLS"],
-                    ["License","Proprietary — Embu County Government"],
-                    ["Support","IT Department — Embu Level 5 Hospital"],
-                    ["Last Updated",new Date().toLocaleDateString("en-KE")],
-                  ].map(([k,v])=>(
-                    <div key={k} style={{display:"flex",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
-                      <span style={{width:160,fontSize:12,fontWeight:700,color:"#64748b",flexShrink:0}}>{k}</span>
-                      <span style={{fontSize:12,color:"#1e293b"}}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{background:"#f0f6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"12px 16px",fontSize:12,color:"#1e40af"}}>
-                  <strong>System Status:</strong> All services operational · Database connected · Authentication active
-                </div>
+                <textarea value={fileContent} onChange={e=>setFileContent(e.target.value)} readOnly={!editMode}
+                  style={{flex:1,background:"#0a0f1e",color:"#e2e8f0",border:"none",outline:"none",padding:16,fontFamily:"'Fira Code','Courier New',monospace",fontSize:12,lineHeight:1.8,resize:"none"}}/>
+              </>
+            ):(
+              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:T.fgDim}}>
+                <Code2 size={40} color={T.fgDim} style={{marginBottom:12}}/>
+                <div style={{fontSize:14,fontWeight:600}}>Select a file from the tree</div>
+                <div style={{fontSize:11,marginTop:4}}>View and edit source files</div>
               </div>
             )}
           </div>
         </div>
-      </div>
-    </RoleGuard>
+      )}
+
+      {/* ═══ BROADCAST ═══ */}
+      {tab==="broadcast"&&(
+        <div style={{maxWidth:680}}>
+          <div style={card}>
+            <div style={{fontWeight:800,color:T.fg,fontSize:15,marginBottom:16}}>System Broadcast</div>
+            <div style={{marginBottom:12}}>
+              <label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Type</label>
+              <div style={{display:"flex",gap:8}}>
+                {(["info","warning","error"] as const).map(t=>(
+                  <button key={t} onClick={()=>setBroadcastType(t)} style={{...btnS(broadcastType===t?(t==="info"?T.info:t==="warning"?T.warning:T.error):T.bg2,broadcastType===t?undefined:T.border),fontSize:12,padding:"6px 16px",textTransform:"capitalize"}}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Message</label>
+              <textarea value={broadcast} onChange={e=>setBroadcast(e.target.value)} rows={3}
+                style={{...inp,resize:"vertical"}} placeholder="System-wide message to all users..."/>
+            </div>
+            <button onClick={sendBroadcast} disabled={broadcasting||!broadcast.trim()} style={btnS(T.primary)}>
+              {broadcasting?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Radio size={13}/>}
+              {broadcasting?"Sending...":"Send Broadcast"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ SYSTEM ═══ */}
+      {tab==="system"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={card}>
+            <div style={{fontWeight:800,color:T.fg,fontSize:15,marginBottom:14}}>System Settings</div>
+            {[
+              {key:"hospital_name",    label:"Hospital Name"},
+              {key:"system_name",      label:"System Name"},
+              {key:"hospital_address", label:"Address"},
+              {key:"hospital_phone",   label:"Phone"},
+              {key:"hospital_email",   label:"Email"},
+              {key:"system_currency",  label:"Currency"},
+              {key:"system_timezone",  label:"Timezone"},
+            ].map(({key,label})=>(
+              <div key={key} style={{marginBottom:10}}>
+                <label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:3}}>{label}</label>
+                <div style={{display:"flex",gap:6}}>
+                  <input defaultValue={settings[key]||""} id={`setting_${key}`} style={{...inp,flex:1}} placeholder={label}/>
+                  <button onClick={()=>{const v=(document.getElementById(`setting_${key}`) as HTMLInputElement)?.value||"";saveSetting(key,v);}} style={btnS(T.primary)}><Save size={13}/></button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={card}>
+            <div style={{fontWeight:800,color:T.fg,fontSize:15,marginBottom:14}}>System Info</div>
+            {[
+              ["Version",    "5.9.0"],
+              ["Framework",  "React 18 + Vite 5"],
+              ["Database",   "Supabase (PostgreSQL 15)"],
+              ["MySQL Proxy","Edge Function (Deno)"],
+              ["Auth",       "Supabase Auth (PKCE)"],
+              ["Storage",    "Supabase Storage"],
+              ["Realtime",   "Supabase Realtime WS"],
+              ["SMS",        "Twilio +16812972643"],
+              ["WhatsApp",   "+14155238886 (bad-machine)"],
+              ["Msg SID",    "MGd547d8e3273fda2d21afdd6856acb245"],
+              ["Deploy",     "EdgeOne CDN"],
+              ["Repo",       "github.com/huiejorjdsksfn/medi-procure-hub"],
+            ].map(([k,v])=>(
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${T.border}22`,fontSize:12}}>
+                <span style={{color:T.fgDim}}>{k}</span>
+                <span style={{color:T.fg,fontFamily:"monospace",fontSize:11}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TERMINAL ═══ */}
+      {tab==="terminal"&&(
+        <div style={{...card,fontFamily:"monospace"}}>
+          <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:10}}>Webmaster Console</div>
+          <div ref={termRef} style={{background:"#0a0f1e",borderRadius:8,padding:16,height:380,overflowY:"auto",marginBottom:10,fontSize:12,lineHeight:1.8}}>
+            {termOutput.map((l,i)=>(
+              <div key={i} style={{color:l.startsWith("EL5")||l.startsWith("---")?"#38bdf8":l.startsWith("✅")?"#22c55e":l.startsWith("❌")?"#ef4444":"#94a3b8"}}>{l}</div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <span style={{color:T.primary,fontSize:13,display:"flex",alignItems:"center"}}>▸</span>
+            <input value={termInput} onChange={e=>setTermInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"){setTermOutput(p=>[...p,`▸ ${termInput}`]);runCmd(termInput);setTermInput("");}}}
+              style={{...inp,flex:1,fontFamily:"monospace",fontSize:12}} placeholder="Type command and press Enter..."/>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
+import type React from "react";

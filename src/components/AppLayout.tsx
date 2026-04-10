@@ -148,6 +148,7 @@ const MODULES = [
       {label:"Security / IP",  path:"/admin/ip-access",icon:Lock,          count:""},
       {label:"Database",       path:"/admin/database", icon:Database,      count:""},
       {label:"DB Live Monitor",path:"/admin/db-test",  icon:Activity,      count:""},
+      {label:"Superadmin",      path:"/superadmin",    icon:Globe,         count:"",                roles:["admin","superadmin","webmaster"]},
       {label:"Backup",         path:"/backup",         icon:Archive,       count:""},
       {label:"ODBC / ERP",     path:"/odbc",           icon:Server,        count:""},
       {label:"Webmaster",      path:"/webmaster",      icon:Globe,         count:""},
@@ -216,8 +217,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen]   = useState<string|null>(null);
   const [sidebar, setSidebar] = useState(true);
   const [notifOpen, setNotifOpen] = useState(false);
-  const isAdmin = roles?.includes("admin");
-  const isDbAdmin = roles?.includes("database_admin");
+  const isAdmin = roles?.includes("admin") || roles?.includes("superadmin") || roles?.includes("webmaster");
+  const isDbAdmin = roles?.includes("database_admin") || isAdmin;
 
   const sysName  = settings.system_name  || "EL5 MediProcure";
   const hospital = settings.hospital_name || "Embu Level 5 Hospital";
