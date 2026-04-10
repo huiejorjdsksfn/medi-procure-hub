@@ -1,706 +1,759 @@
-import { useNavigate } from "react-router-dom";
+/**
+ * ProcurBosse — Documents & File Import v6.0
+ * Upload Word/Excel/PDF/CSV · Parse & map to ERP modules · Hardcopy digitisation
+ * Realtime sync · Full document library · Admin controls
+ * EL5 MediProcure · Embu Level 5 Hospital
+ */
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import logoImg from "@/assets/logo.png";
+import { T } from "@/lib/theme";
 import {
-  FileText, Upload, Eye, Download, Search, X, Plus, Filter,
-  Printer, RefreshCw, Edit3, Trash2, FileCheck, Settings, Save,
-  ChevronDown, Shield, CheckCircle, AlertTriangle, Image, Code,
-  Pen, Copy, Lock, Unlock, FileSpreadsheet, BookOpen
+  detectKind, parseExcel, parseCSV, parseWord, parsePDF,
+  fmtSize, type ParsedDocument, type ParsedTable
+} from "@/lib/documentParser";
+import {
+  Upload, FileText, FileSpreadsheet, File, Image as ImgIcon,
+  Download, Eye, Trash2, Search, RefreshCw, Plus, X, Check,
+  ChevronDown, ChevronRight, AlertTriangle, Database, Layers,
+  Table2, BookOpen, Scan, Zap, Clock, CheckCircle, Filter,
+  ArrowRight, FolderOpen, Info, Edit3, Copy
 } from "lucide-react";
 
-const CATS = ["all","general","policy","template","contract","report","letter","form","procedure","system"];
-const CAT_CFG: Record<string,{bg:string;color:string;label:string}> = {
-  general:   {bg:"#f3f4f6",color:"#6b7280",  label:"General"},
-  policy:    {bg:"#dbeafe",color:"#1d4ed8",  label:"Policy"},
-  template:  {bg:"#fef3c7",color:"#92400e",  label:"Template"},
-  contract:  {bg:"#dcfce7",color:"#15803d",  label:"Contract"},
-  report:    {bg:"#ede9fe",color:"#5b21b6",  label:"Report"},
-  letter:    {bg:"#fce7f3",color:"#9d174d",  label:"Letter"},
-  form:      {bg:"#e0f2fe",color:"#0369a1",  label:"Form"},
-  procedure: {bg:"#f0fdf4",color:"#166534",  label:"Procedure"},
-  system:    {bg:"#f9fafb",color:"#374151",  label:"System"},
-  other:     {bg:"#f9fafb",color:"#374151",  label:"Other"},
-};
+const db = supabase as any;
 
-const DOC_PRINT_CSS = `
-  body { font-family: 'Times New Roman', serif; background: #fff; }
-  .doc-page { max-width: 190mm; margin: 0 auto; padding: 15mm 20mm; }
-  .doc-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2.5px solid #0a2558; }
-  .doc-header .logo-area img { height: 65px; object-fit: contain; }
-  .doc-header .header-text h2 { font-size: 16pt; color: #0a2558; margin: 0 0 3px; font-weight: 800; letter-spacing: -0.5px; }
-  .doc-header .header-text h3 { font-size: 12pt; color: #C45911; margin: 0 0 3px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-  .doc-header .header-text p { font-size: 10pt; margin: 2px 0; color: #374151; }
-  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10pt; }
-  .info-table td { padding: 5px 8px; border: 1px solid #d1d5db; vertical-align: top; }
-  .info-table td:first-child { background: #f9fafb; font-weight: 600; width: 22%; color: #374151; }
-  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10pt; }
-  .items-table thead tr { background: #0a2558; }
-  .items-table thead th { color: #fff; padding: 7px 8px; text-align: left; font-weight: 700; font-size: 9pt; }
-  .items-table tbody tr:nth-child(even) { background: #f9fafb; }
-  .items-table tbody td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
-  .items-table tfoot .subtotal td, .items-table tfoot .tax td { border-top: 1px solid #e5e7eb; padding: 5px 8px; font-size: 10pt; }
-  .items-table tfoot .total td { font-weight: 800; font-size: 11pt; border-top: 2px solid #0a2558; background: #eff6ff; padding: 7px 8px; }
-  .terms { font-size: 9pt; color: #6b7280; border: 1px solid #e5e7eb; padding: 10px 12px; margin: 12px 0; border-radius: 4px; line-height: 1.6; }
-  .terms h4 { font-size: 10pt; color: #374151; margin: 0 0 5px; }
-  .signatures { display: flex; gap: 16px; margin-top: 28px; page-break-inside: avoid; }
-  .sig-box { flex: 1; text-align: center; padding: 8px; }
-  .sig-box img { max-height: 50px; margin-bottom: 4px; }
-  .sig-line { border-top: 1px solid #374151; margin-bottom: 5px; padding-top: 36px; font-size: 10pt; font-weight: 600; color: #111827; }
-  .sig-role { font-size: 9pt; color: #6b7280; }
-  .sig-date { font-size: 9pt; color: #9ca3af; }
-  .doc-stamp { text-align: center; margin-top: 18px; font-size: 8pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; letter-spacing: 2px; text-transform: uppercase; }
-  .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-45deg); font-size: 90pt; color: rgba(10,37,88,0.035); font-weight: 900; z-index: -1; pointer-events: none; }
-  @media print { @page { margin: 10mm; size: A4; } .no-print { display: none !important; } }
-`;
-
-const SYSTEM_TEMPLATES = [
-  { id:"lpo", name:"Local Purchase Order (LPO)", category:"template", description:"Standard LPO for procurement purchases", icon:ShoppingCart,
-    html:`<div class="doc-page"><div class="watermark">LPO</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>LOCAL PURCHASE ORDER</h3><p>LPO No: <strong>{{LPO_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
-<table class="info-table">
-  <tr><td>Supplier:</td><td>{{SUPPLIER_NAME}}</td><td>Delivery Date:</td><td>{{DELIVERY_DATE}}</td></tr>
-  <tr><td>Address:</td><td>{{SUPPLIER_ADDRESS}}</td><td>Department:</td><td>{{DEPARTMENT}}</td></tr>
-  <tr><td>Contact:</td><td>{{SUPPLIER_CONTACT}}</td><td>Requisition No:</td><td>{{REQ_NUMBER}}</td></tr>
-  <tr><td>PIN:</td><td>{{SUPPLIER_PIN}}</td><td>Payment Terms:</td><td>{{PAYMENT_TERMS}}</td></tr>
-</table>
-<table class="items-table">
-  <thead><tr><th>#</th><th>Item Description</th><th>Unit</th><th>Qty</th><th>Unit Price (KES)</th><th>Total (KES)</th></tr></thead>
-  <tbody>{{ITEMS_ROWS}}</tbody>
-  <tfoot>
-    <tr class="subtotal"><td colspan="5"><strong>Subtotal</strong></td><td>{{SUBTOTAL}}</td></tr>
-    <tr class="tax"><td colspan="5">VAT (16%)</td><td>{{VAT}}</td></tr>
-    <tr class="total"><td colspan="5"><strong>TOTAL</strong></td><td><strong>{{TOTAL}}</strong></td></tr>
-  </tfoot>
-</table>
-<div class="terms"><h4>Terms & Conditions</h4><p>{{TERMS}}</p></div>
-<div class="signatures">
-  <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p class="sig-role">Authorized Signatory</p><p class="sig-date">Date: {{SIG_DATE_1}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_SUPPLIER}}</div><p class="sig-role">Supplier Representative</p><p class="sig-date">Date: {{SIG_DATE_2}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p class="sig-role">Approved By</p><p class="sig-date">Date: {{SIG_DATE_3}}</p></div>
-</div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
-
-  { id:"grn", name:"Goods Received Note (GRN)", category:"template", description:"Goods receipt confirmation document", icon:Package,
-    html:`<div class="doc-page"><div class="watermark">GRN</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>GOODS RECEIVED NOTE</h3><p>GRN No: <strong>{{GRN_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
-<table class="info-table">
-  <tr><td>Supplier:</td><td>{{SUPPLIER_NAME}}</td><td>LPO Reference:</td><td>{{LPO_NUMBER}}</td></tr>
-  <tr><td>Delivery Note:</td><td>{{DELIVERY_NOTE}}</td><td>Received By:</td><td>{{RECEIVED_BY}}</td></tr>
-  <tr><td>Delivery Date:</td><td>{{DELIVERY_DATE}}</td><td>Department:</td><td>{{DEPARTMENT}}</td></tr>
-  <tr><td>Vehicle No:</td><td>{{VEHICLE_NUMBER}}</td><td>Driver:</td><td>{{DRIVER_NAME}}</td></tr>
-</table>
-<table class="items-table">
-  <thead><tr><th>#</th><th>Item Description</th><th>Unit</th><th>Ordered</th><th>Received</th><th>Rejected</th><th>Condition</th></tr></thead>
-  <tbody>{{ITEMS_ROWS}}</tbody>
-</table>
-<div class="terms"><h4>Inspection Notes</h4><p>{{INSPECTION_NOTES}}</p></div>
-<div class="signatures">
-  <div class="sig-box"><div class="sig-line">{{SIG_RECEIVED}}</div><p class="sig-role">Received By</p><p class="sig-date">{{SIG_DATE_1}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_INSPECTED}}</div><p class="sig-role">Quality Inspector</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_STORE}}</div><p class="sig-role">Store Manager</p><p class="sig-date">{{SIG_DATE_3}}</p></div>
-</div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
-
-  { id:"pv", name:"Payment Voucher", category:"template", description:"Official payment authorization voucher", icon:DollarSign,
-    html:`<div class="doc-page"><div class="watermark">PV</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>PAYMENT VOUCHER</h3><p>PV No: <strong>{{PV_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
-<table class="info-table">
-  <tr><td>Payee:</td><td colspan="3"><strong>{{PAYEE_NAME}}</strong></td></tr>
-  <tr><td>Account No:</td><td>{{ACCOUNT_NUMBER}}</td><td>Bank:</td><td>{{BANK_NAME}}</td></tr>
-  <tr><td>Amount (Words):</td><td colspan="3"><strong>{{AMOUNT_WORDS}}</strong></td></tr>
-  <tr><td>Amount (KES):</td><td colspan="3"><strong style="font-size:13pt;color:#0a2558">KES {{AMOUNT}}</strong></td></tr>
-  <tr><td>Description:</td><td colspan="3">{{DESCRIPTION}}</td></tr>
-  <tr><td>LPO/Contract Ref:</td><td>{{REF_NUMBER}}</td><td>Vote Head:</td><td>{{VOTE_HEAD}}</td></tr>
-  <tr><td>Budget Line:</td><td>{{BUDGET_LINE}}</td><td>Cost Centre:</td><td>{{COST_CENTRE}}</td></tr>
-</table>
-<div class="signatures">
-  <div class="sig-box"><div class="sig-line">{{SIG_PREPARED}}</div><p class="sig-role">Prepared By</p><p class="sig-date">{{SIG_DATE_1}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_VERIFIED}}</div><p class="sig-role">Verified By (Finance)</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p class="sig-role">Authorized By</p><p class="sig-date">{{SIG_DATE_3}}</p></div>
-</div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
-
-  { id:"tender", name:"Invitation to Tender (ITT)", category:"template", description:"Formal tender invitation document", icon:Gavel,
-    html:`<div class="doc-page"><div class="watermark">TENDER</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>INVITATION TO TENDER</h3><p>Tender No: <strong>{{TENDER_NUMBER}}</strong></p></div></div>
-<table class="info-table">
-  <tr><td>Subject:</td><td colspan="3"><strong>{{TENDER_SUBJECT}}</strong></td></tr>
-  <tr><td>Category:</td><td>{{TENDER_CATEGORY}}</td><td>Estimated Value:</td><td>KES {{ESTIMATED_VALUE}}</td></tr>
-  <tr><td>Issue Date:</td><td>{{ISSUE_DATE}}</td><td>Closing Date:</td><td><strong>{{CLOSING_DATE}}</strong></td></tr>
-  <tr><td>Site Visit:</td><td>{{SITE_VISIT_DATE}}</td><td>Clarification:</td><td>{{CLARIFICATION_DATE}}</td></tr>
-</table>
-<div class="terms"><h4>Instructions to Bidders</h4><p>{{INSTRUCTIONS}}</p></div>
-<div class="terms"><h4>Eligibility Criteria</h4><p>{{ELIGIBILITY}}</p></div>
-<div class="terms"><h4>Submission Requirements</h4><p>{{SUBMISSION_REQUIREMENTS}}</p></div>
-<div class="signatures">
-  <div class="sig-box"><div class="sig-line">{{SIG_AUTHORIZED}}</div><p class="sig-role">Head of Procurement</p><p class="sig-date">{{SIG_DATE_1}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p class="sig-role">Director, EL5H</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
-</div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
-
-  { id:"req_form", name:"Procurement Requisition Form", category:"form", description:"Internal requisition request form", icon:ClipboardList,
-    html:`<div class="doc-page"><div class="watermark">REQ</div>
-<div class="doc-header"><div class="logo-area">LOGO_PLACEHOLDER</div>
-<div class="header-text"><h2>HOSPITAL_NAME_PLACEHOLDER</h2><h3>PROCUREMENT REQUISITION FORM</h3><p>REQ No: <strong>{{REQ_NUMBER}}</strong></p><p>Date: {{DATE}}</p></div></div>
-<table class="info-table">
-  <tr><td>Requesting Dept:</td><td>{{DEPARTMENT}}</td><td>Priority:</td><td>{{PRIORITY}}</td></tr>
-  <tr><td>Requested By:</td><td>{{REQUESTED_BY}}</td><td>Date Required:</td><td>{{DATE_REQUIRED}}</td></tr>
-  <tr><td>Justification:</td><td colspan="3">{{JUSTIFICATION}}</td></tr>
-</table>
-<table class="items-table">
-  <thead><tr><th>#</th><th>Item Description</th><th>Unit</th><th>Quantity</th><th>Unit Price (KES)</th><th>Total (KES)</th><th>Remarks</th></tr></thead>
-  <tbody>{{ITEMS_ROWS}}</tbody>
-  <tfoot><tr class="total"><td colspan="5"><strong>TOTAL AMOUNT</strong></td><td colspan="2"><strong>KES {{TOTAL}}</strong></td></tr></tfoot>
-</table>
-<div class="signatures">
-  <div class="sig-box"><div class="sig-line">{{SIG_REQUESTED}}</div><p class="sig-role">Requested By</p><p class="sig-date">{{SIG_DATE_1}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_HOD}}</div><p class="sig-role">Head of Department</p><p class="sig-date">{{SIG_DATE_2}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_PROCUREMENT}}</div><p class="sig-role">Procurement Officer</p><p class="sig-date">{{SIG_DATE_3}}</p></div>
-  <div class="sig-box"><div class="sig-line">{{SIG_APPROVED}}</div><p class="sig-role">Approved By</p><p class="sig-date">{{SIG_DATE_4}}</p></div>
-</div>
-<div class="doc-stamp">STAMP_PLACEHOLDER</div></div>`},
-];
-
-const PLACEHOLDERS = [
-  "{{LPO_NUMBER}}","{{GRN_NUMBER}}","{{PV_NUMBER}}","{{TENDER_NUMBER}}","{{REQ_NUMBER}}",
-  "{{DATE}}","{{DELIVERY_DATE}}","{{CLOSING_DATE}}","{{SIG_DATE_1}}","{{SIG_DATE_2}}","{{SIG_DATE_3}}","{{SIG_DATE_4}}",
-  "{{SUPPLIER_NAME}}","{{SUPPLIER_ADDRESS}}","{{SUPPLIER_CONTACT}}","{{SUPPLIER_PIN}}",
-  "{{DEPARTMENT}}","{{DESCRIPTION}}","{{TOTAL}}","{{SUBTOTAL}}","{{VAT}}",
-  "{{SIG_AUTHORIZED}}","{{SIG_APPROVED}}","{{SIG_SUPPLIER}}","{{SIG_RECEIVED}}","{{SIG_INSPECTED}}","{{SIG_STORE}}",
-  "{{SIG_PREPARED}}","{{SIG_VERIFIED}}","{{SIG_REQUESTED}}","{{SIG_HOD}}","{{SIG_PROCUREMENT}}",
-  "{{ITEMS_ROWS}}","{{TERMS}}","{{PAYMENT_TERMS}}","{{AMOUNT}}","{{AMOUNT_WORDS}}",
-  "{{PAYEE_NAME}}","{{BANK_NAME}}","{{ACCOUNT_NUMBER}}","{{VOTE_HEAD}}","{{BUDGET_LINE}}","{{COST_CENTRE}}",
-  "{{TENDER_SUBJECT}}","{{TENDER_CATEGORY}}","{{ESTIMATED_VALUE}}","{{INSTRUCTIONS}}","{{ELIGIBILITY}}",
-  "{{PRIORITY}}","{{REQUESTED_BY}}","{{JUSTIFICATION}}","{{REF_NUMBER}}","{{INSPECTION_NOTES}}",
-];
-
-function printDoc(html: string, title: string) {
-  const w = window.open("","_blank","width=900,height=700");
-  if (!w) return;
-  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>${DOC_PRINT_CSS}</style></head><body onload="window.print()">${html}</body></html>`);
-  w.document.close();
+/* ── Types ──────────────────────────────────────────────────────────────── */
+interface DocRecord {
+  id: string; name: string; category: string; description?: string;
+  file_type?: string; file_url?: string; storage_path?: string;
+  file_size?: number; original_filename?: string; import_status?: string;
+  source?: string; created_at: string; uploaded_by?: string;
+  parsed_content?: string; metadata?: any;
+}
+interface ImportRecord {
+  id: string; original_file: string; file_type: string; file_size?: number;
+  import_type: string; mapped_to?: string; mapped_records?: any[];
+  status: string; error_message?: string; created_at: string;
+  parsed_tables?: any[]; parsed_text?: string; document_id?: string;
 }
 
-// Missing icon imports resolved inline
-function ShoppingCart(p:any) { return <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>; }
-function Gavel(p:any) { return <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m14 13-7.5 7.5a2.12 2.12 0 0 1-3-3L11 10"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>; }
-function DollarSign(p:any) { return <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>; }
-function Package(p:any) { return <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>; }
-function ClipboardList(p:any) { return <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="12" y1="11" x2="16" y2="11"/><line x1="12" y1="16" x2="16" y2="16"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="8" y1="16" x2="8.01" y2="16"/></svg>; }
+/* ── File type config ────────────────────────────────────────────────────── */
+const FILE_ICONS: Record<string, { icon: any; color: string; bg: string }> = {
+  excel:   { icon: FileSpreadsheet, color: "#16a34a", bg: "#16a34a18" },
+  csv:     { icon: FileSpreadsheet, color: "#059669", bg: "#05986918" },
+  word:    { icon: FileText,        color: "#1d4ed8", bg: "#1d4ed818" },
+  pdf:     { icon: File,            color: "#dc2626", bg: "#dc262618" },
+  image:   { icon: ImgIcon,         color: "#7c3aed", bg: "#7c3aed18" },
+  unknown: { icon: FileText,        color: T.fgDim,   bg: T.bg2       },
+};
 
+const MODULE_LABELS: Record<string, string> = {
+  items:"Items / Stock", suppliers:"Suppliers", requisitions:"Requisitions",
+  purchase_orders:"Purchase Orders", payment_vouchers:"Payment Vouchers",
+  budgets:"Budgets", goods_received:"Goods Received", profiles:"Users/Staff",
+  documents:"Document Library",
+};
+
+const CATS = ["all","general","policy","template","contract","report","letter","form","procedure","system","import"];
+
+/* ── Styles ──────────────────────────────────────────────────────────────── */
+const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px" };
+const inp: React.CSSProperties = { width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"8px 12px", color:T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
+const btn = (bg: string, border?: string): React.CSSProperties => ({
+  display:"inline-flex", alignItems:"center", gap:7, padding:"8px 16px",
+  background:bg, color: border ? T.fgMuted : "#fff",
+  border:`1px solid ${border||"transparent"}`, borderRadius:T.r,
+  fontSize:13, fontWeight:700, cursor:"pointer",
+});
+
+/* ════════════════════════════════════════════════════════════════════════ */
 export default function DocumentsPage() {
-  const navigate = useNavigate();
+  const nav = useNavigate();
   const { user, profile, roles } = useAuth();
-  const { get: getSetting } = useSystemSettings();
-  const isAdmin = roles.includes("admin") || roles.includes("procurement_manager");
+  const isAdmin = roles?.includes("admin") || roles?.includes("procurement_manager");
 
-  const [docs,       setDocs]       = useState<any[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [catFilter,  setCatFilter]  = useState("all");
-  const [search,     setSearch]     = useState("");
-  const [selected,   setSelected]   = useState<any|null>(null);
-  const [editModal,  setEditModal]  = useState(false);
-  const [editDoc,    setEditDoc]    = useState<any|null>(null);
-  const [previewDoc, setPreviewDoc] = useState<any|null>(null);
-  const [uploadModal,setUploadModal]= useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [editTab,    setEditTab]    = useState<"metadata"|"html"|"preview"|"sigs">("metadata");
+  /* ── State ── */
+  const [tab, setTab]               = useState<"library"|"upload"|"imports"|"hardcopy">("library");
+  const [docs, setDocs]             = useState<DocRecord[]>([]);
+  const [imports, setImports]       = useState<ImportRecord[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState("");
+  const [catFilter, setCatFilter]   = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
-  // Upload form
-  const [upFile,     setUpFile]     = useState<File|null>(null);
-  const [upName,     setUpName]     = useState("");
-  const [upDesc,     setUpDesc]     = useState("");
-  const [upCat,      setUpCat]      = useState("general");
-  const [upHtml,     setUpHtml]     = useState("");
+  /* Upload state */
+  const [dragOver, setDragOver]     = useState(false);
+  const [queue, setQueue]           = useState<UploadQueueItem[]>([]);
+  const [parsing, setParsing]       = useState<string|null>(null);
+  const [parsed, setParsed]         = useState<ParsedDocument|null>(null);
+  const [mapModal, setMapModal]     = useState<{ qi: UploadQueueItem; doc: ParsedDocument }|null>(null);
+  const [importing, setImporting]   = useState(false);
+  const fileInputRef                = useRef<HTMLInputElement>(null);
 
-  const loadDocs = useCallback(async()=>{
+  /* ── Load data ── */
+  const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await (supabase as any).from("documents").select("*").order("created_at",{ascending:false});
-    setDocs(data||[]);
-    setLoading(false);
-  },[]);
+    try {
+      const [{ data: dData }, { data: iData }] = await Promise.all([
+        db.from("documents").select("*").order("created_at", { ascending:false }).limit(200),
+        db.from("document_imports").select("*").order("created_at", { ascending:false }).limit(100),
+      ]);
+      setDocs(dData || []);
+      setImports(iData || []);
+    } finally { setLoading(false); }
+  }, []);
 
-  useEffect(()=>{ loadDocs(); },[loadDocs]);
+  useEffect(() => {
+    load();
+    const ch = db.channel("docs:rt")
+      .on("postgres_changes",{event:"*",schema:"public",table:"documents"}, load)
+      .on("postgres_changes",{event:"*",schema:"public",table:"document_imports"}, load)
+      .subscribe();
+    return () => db.removeChannel(ch);
+  }, [load]);
 
-  useEffect(()=>{
-    if(!user) return;
-    const ch=(supabase as any).channel("docs-rt").on("postgres_changes",{event:"*",schema:"public",table:"documents"},loadDocs).subscribe();
-    return()=>(supabase as any).removeChannel(ch);
-  },[loadDocs,user]);
+  /* ── File drop handling ── */
+  const handleFiles = useCallback((files: File[]) => {
+    const items: UploadQueueItem[] = files.map(f => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      file: f, kind: detectKind(f),
+      status: "queued" as const, progress: 0,
+      name: f.name.replace(/\.[^.]+$/,""),
+      category: "general",
+    }));
+    setQueue(prev => [...prev, ...items]);
+    setTab("upload");
+  }, []);
 
-  // Settings for dynamic templates
-  const hospitalName = getSetting("hospital_name", "Embu Level 5 Hospital");
-  const sysName      = getSetting("system_name", "EL5 MediProcure");
-  const logoUrl      = getSetting("logo_url") || getSetting("system_logo_url") || "";
-  const logoSrc      = logoUrl || logoImg;
-  const stamp        = `OFFICIAL DOCUMENT — ${hospitalName} · EMBU COUNTY GOVERNMENT`;
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    handleFiles(Array.from(e.dataTransfer.files));
+  }, [handleFiles]);
 
-  // Build dynamic system templates with live settings
-  const dynamicTemplates = SYSTEM_TEMPLATES.map(t => ({
-    ...t,
-    html: t.html
-      .replace(/LOGO_PLACEHOLDER/g, `<img src="${logoSrc}" alt="Logo" style="height:65px;object-fit:contain;" onerror="this.style.display='none'"/>`)
-      .replace(/HOSPITAL_NAME_PLACEHOLDER/g, hospitalName)
-      .replace(/STAMP_PLACEHOLDER/g, stamp),
-  }));
+  /* ── Upload + Parse + Store ── */
+  const processItem = useCallback(async (qi: UploadQueueItem) => {
+    setQueue(prev => prev.map(q => q.id===qi.id ? {...q, status:"uploading", progress:10} : q));
+    setParsing(qi.id);
 
-  // All documents to show = dynamic system templates + DB docs
-  const allDocs = [
-    ...dynamicTemplates.map(t=>({...t, id:t.id, is_system:true, created_at:new Date().toISOString()})),
-    ...docs.filter(d=>!SYSTEM_TEMPLATES.find(t=>t.id===d.id)),
-  ];
+    try {
+      /* 1. Upload to Supabase Storage */
+      const ext = qi.file.name.split(".").pop() || "bin";
+      const ts  = Date.now();
+      const path = `${user?.id||"anon"}/${ts}-${qi.file.name}`;
 
-  const filtered = allDocs.filter(d=>{
-    const catMatch = catFilter==="all" || d.category===catFilter || (catFilter==="system"&&d.is_system);
-    const searchMatch = !search || [d.name,d.description,d.category].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()));
-    return catMatch && searchMatch;
+      setQueue(prev => prev.map(q => q.id===qi.id ? {...q, progress:25} : q));
+      const { error: upErr } = await supabase.storage.from("documents").upload(path, qi.file, { upsert:false });
+      if (upErr) throw upErr;
+
+      const { data: { publicUrl } } = supabase.storage.from("documents").getPublicUrl(path);
+      setQueue(prev => prev.map(q => q.id===qi.id ? {...q, progress:50} : q));
+
+      /* 2. Parse the file */
+      let parsed: ParsedDocument | null = null;
+      try {
+        if (qi.kind === "excel") parsed = await parseExcel(qi.file);
+        else if (qi.kind === "csv") parsed = await parseCSV(qi.file);
+        else if (qi.kind === "word") parsed = await parseWord(qi.file);
+        else if (qi.kind === "pdf") parsed = await parsePDF(qi.file);
+      } catch { /* parsing failure is non-fatal */ }
+
+      setQueue(prev => prev.map(q => q.id===qi.id ? {...q, progress:75} : q));
+
+      /* 3. Save to documents table */
+      const { data: doc, error: docErr } = await db.from("documents").insert({
+        name: qi.name || qi.file.name,
+        category: qi.category || "general",
+        description: parsed?.text?.slice(0,300) || "",
+        file_url: publicUrl,
+        storage_path: path,
+        file_type: qi.kind,
+        file_size: qi.file.size,
+        original_filename: qi.file.name,
+        parsed_content: parsed?.text?.slice(0,5000) || null,
+        metadata: parsed ? { sheets: parsed.metadata, suggestedModule: parsed.suggestedModule, tableCount: parsed.tables.length } : {},
+        source: "upload",
+        import_status: parsed?.tables.length ? "parsed" : "stored",
+        uploaded_by: user?.id,
+        created_at: new Date().toISOString(),
+      }).select().single();
+
+      if (docErr) throw docErr;
+      setQueue(prev => prev.map(q => q.id===qi.id ? {...q, progress:90} : q));
+
+      /* 4. Save import record */
+      await db.from("document_imports").insert({
+        document_id: doc.id,
+        original_file: qi.file.name,
+        file_type: qi.kind,
+        file_size: qi.file.size,
+        storage_path: path,
+        import_type: "digital",
+        parsed_tables: parsed?.tables?.map(t => ({ name:t.name, headers:t.headers, rowCount:t.rowCount })) || [],
+        parsed_text: parsed?.text?.slice(0,3000) || null,
+        mapped_to: parsed?.suggestedModule || null,
+        status: "complete",
+        imported_by: user?.id,
+        completed_at: new Date().toISOString(),
+      });
+
+      setQueue(prev => prev.map(q => q.id===qi.id ? {...q, status:"done", progress:100, docId:doc.id, parsedDoc:parsed} : q));
+      setParsed(parsed);
+
+      /* 5. If has structured tables, offer mapping */
+      if (parsed?.tables.length && parsed.tables[0].rows.length > 0 && parsed.suggestedModule && parsed.suggestedModule !== "documents") {
+        setMapModal({ qi, doc: parsed });
+      }
+
+      toast({ title:"✅ Uploaded", description:`${qi.file.name} processed (${parsed?.tables.length||0} tables found)` });
+    } catch(e:any) {
+      setQueue(prev => prev.map(q => q.id===qi.id ? {...q, status:"error", error:e.message} : q));
+      toast({ title:"Upload failed", description:e.message, variant:"destructive" });
+    } finally {
+      setParsing(null);
+      load();
+    }
+  }, [user, load]);
+
+  /* ── Import rows into ERP module ── */
+  const importRows = useCallback(async (qi: UploadQueueItem, doc: ParsedDocument, targetModule: string, table: ParsedTable) => {
+    if (!table.rows.length) return;
+    setImporting(true);
+    let imported = 0, failed = 0;
+
+    try {
+      const chunk = 50;
+      for (let i = 0; i < table.rows.length; i += chunk) {
+        const batch = table.rows.slice(i, i+chunk);
+        let rows: any[] = [];
+
+        if (targetModule === "items") {
+          rows = batch.map(r => ({
+            name: r.name||r.item_name||r.description||r.item||"Imported Item",
+            unit_of_measure: r.unit_of_measure||r.uom||r.unit||"PCS",
+            current_quantity: parseFloat(r.current_quantity||r.qty||"0")||0,
+            reorder_level: parseFloat(r.reorder_level||r.reorder||"10")||10,
+            unit_price: parseFloat(r.unit_price||r.price||"0")||0,
+            category: r.category||"General",
+            created_at: new Date().toISOString(),
+          })).filter(r => r.name && r.name !== "Imported Item");
+        } else if (targetModule === "suppliers") {
+          rows = batch.map(r => ({
+            name: r.name||r.supplier_name||r.company||"",
+            contact_person: r.contact_person||r.contact||"",
+            phone: r.phone||r.mobile||r.tel||"",
+            email: r.email||r.email_address||"",
+            kra_pin: r.kra_pin||r.pin||r.tin||"",
+            address: r.address||r.location||"",
+            category: r.category||"General",
+            status: "active",
+            created_at: new Date().toISOString(),
+          })).filter(r => r.name);
+        } else if (targetModule === "requisitions") {
+          rows = batch.map(r => ({
+            title: r.title||r.description||r.item||"",
+            department: r.department||r.dept||"",
+            status: "draft",
+            priority: r.priority||"normal",
+            requested_by: user?.id,
+            created_at: new Date().toISOString(),
+          })).filter(r => r.title);
+        }
+
+        if (rows.length) {
+          const { error } = await db.from(targetModule).insert(rows);
+          if (!error) imported += rows.length; else failed += rows.length;
+        }
+      }
+
+      /* Update import record */
+      await db.from("document_imports")
+        .update({ mapped_records: [{ module:targetModule, count:imported }], status:"complete" })
+        .eq("document_id", qi.docId);
+
+      toast({ title:`✅ Imported ${imported} records`, description:`${failed} skipped · Module: ${MODULE_LABELS[targetModule]}` });
+      setMapModal(null);
+      load();
+    } catch(e:any) {
+      toast({ title:"Import error", description:e.message, variant:"destructive" });
+    } finally { setImporting(false); }
+  }, [user, load]);
+
+  /* ── Delete document ── */
+  const deleteDoc = async (doc: DocRecord) => {
+    if (!confirm(`Delete "${doc.name}"?`)) return;
+    if (doc.storage_path) {
+      await supabase.storage.from("documents").remove([doc.storage_path]).catch(()=>{});
+    }
+    await db.from("documents").delete().eq("id", doc.id);
+    toast({ title:"Deleted", description:doc.name });
+    load();
+  };
+
+  /* ── Download ── */
+  const downloadDoc = async (doc: DocRecord) => {
+    if (!doc.storage_path) { window.open(doc.file_url, "_blank"); return; }
+    const { data } = await supabase.storage.from("documents").download(doc.storage_path);
+    if (data) {
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a"); a.href=url; a.download=doc.original_filename||doc.name;
+      a.click(); URL.revokeObjectURL(url);
+    }
+  };
+
+  /* ── Filtered docs ── */
+  const filteredDocs = docs.filter(d => {
+    const s = search.toLowerCase();
+    const matchSearch = !s || d.name?.toLowerCase().includes(s) || d.description?.toLowerCase().includes(s) || d.original_filename?.toLowerCase().includes(s);
+    const matchCat = catFilter==="all" || d.category===catFilter;
+    const matchType = typeFilter==="all" || d.file_type===typeFilter;
+    return matchSearch && matchCat && matchType;
   });
 
-  const saveDoc = async()=>{
-    if(!editDoc) return;
-    setSaving(true);
-    try {
-      if(editDoc.is_system || !editDoc.db_id) {
-        // Save as new custom doc
-        const {error} = await (supabase as any).from("documents").upsert({
-          id: editDoc.db_id||undefined,
-          name: editDoc.name, description: editDoc.description,
-          category: editDoc.category, template_html: editDoc.html,
-          created_by: user?.id, file_type:"html",
-        });
-        if(error) throw error;
-      } else {
-        const {error} = await (supabase as any).from("documents").update({
-          name: editDoc.name, description: editDoc.description,
-          category: editDoc.category, template_html: editDoc.html,
-          updated_at: new Date().toISOString(),
-        }).eq("id", editDoc.db_id);
-        if(error) throw error;
-      }
-      toast({title:"Document saved ✓"});
-      setEditModal(false); loadDocs();
-    } catch(e:any){ toast({title:"Save failed",description:e.message,variant:"destructive"}); }
-    setSaving(false);
-  };
-
-  const deleteDoc = async(doc:any)=>{
-    if(doc.is_system){ toast({title:"System templates cannot be deleted",variant:"destructive"}); return; }
-    if(!confirm(`Delete "${doc.name}"?`)) return;
-    await (supabase as any).from("documents").delete().eq("id",doc.id);
-    toast({title:"Deleted"}); loadDocs(); setSelected(null);
-  };
-
-  const uploadFile = async()=>{
-    if(!upFile&&!upHtml){ toast({title:"Add a file or HTML content",variant:"destructive"}); return; }
-    setSaving(true);
-    let fileData:string|undefined;
-    if(upFile){
-      fileData = await new Promise(res=>{
-        const r=new FileReader(); r.onload=e=>res(e.target?.result as string); r.readAsDataURL(upFile);
-      });
-    }
-    const {error} = await (supabase as any).from("documents").insert({
-      name: upName||upFile?.name||"Untitled",
-      description: upDesc, category: upCat,
-      file_data: fileData, file_type: upFile?.type||"html",
-      template_html: upHtml||null, created_by: user?.id,
-    });
-    if(error){ toast({title:"Upload failed",description:error.message,variant:"destructive"}); }
-    else { toast({title:"Document uploaded ✓"}); setUploadModal(false); setUpFile(null); setUpName(""); setUpDesc(""); setUpHtml(""); loadDocs(); }
-    setSaving(false);
-  };
-
-  const openEdit = (doc:any)=>{
-    setEditDoc({
-      name: doc.name, description: doc.description||"",
-      category: doc.category||"general",
-      html: doc.html||doc.template_html||"",
-      is_system: !!doc.is_system,
-      db_id: doc.id&&!doc.is_system?doc.id:undefined,
-    });
-    setEditTab("metadata");
-    setEditModal(true);
-  };
-
-  const printFromDoc = (doc:any)=>{
-    const html = doc.html||doc.template_html;
-    if(html) printDoc(html, doc.name);
-    else toast({title:"No printable content",variant:"destructive"});
-  };
-
-  const downloadDoc = (doc:any)=>{
-    if(doc.file_data){
-      const a = document.createElement("a");
-      a.href = doc.file_data; a.download = doc.name;
-      a.click();
-    } else if(doc.html||doc.template_html){
-      const blob = new Blob([`<!DOCTYPE html><html><head><title>${doc.name}</title><style>${DOC_PRINT_CSS}</style></head><body>${doc.html||doc.template_html}</body></html>`],{type:"text/html"});
-      const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`${doc.name}.html`; a.click();
-    }
-  };
-
+  /* ═══════════════════════════════════════════════════════════════════════ */
   return (
-      <div style={{minHeight:"100%",background:"#f8fafc",fontFamily:"'Inter','Segoe UI',sans-serif"}}>
+    <div style={{ padding:20, minHeight:"100vh", background:T.bg }}>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes progress{from{width:0%}to{width:100%}}
+      `}</style>
 
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
-        <FileText style={{width:18,height:18,color:"#fff",flexShrink:0}}/>
-        <div style={{flex:1}}>
-          <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Documents & Templates</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>System templates, forms, contracts, and uploaded files</div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
+        <FolderOpen size={22} color={T.primary}/>
+        <div>
+          <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>Documents & File Imports</h1>
+          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>
+            {docs.length} documents · {imports.filter(i=>i.status==="complete").length} imports complete · Upload Word, Excel, PDF, CSV
+          </div>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
-          {isAdmin&&<button onClick={()=>setUploadModal(true)}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",background:"#e2e8f0",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700}}>
-            <Upload style={{width:13,height:13}}/> Upload
-          </button>}
-          <button onClick={loadDocs} style={{padding:"8px 10px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:7,cursor:"pointer",color:"rgba(255,255,255,0.6)",lineHeight:0}}>
-            <RefreshCw style={{width:13,height:13}}/>
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={load} style={btn(T.bg2,T.border)}><RefreshCw size={13}/> Refresh</button>
+          <button
+            onClick={()=>{setTab("upload");fileInputRef.current?.click();}}
+            style={btn(T.primary)}>
+            <Upload size={13}/> Upload Files
+          </button>
+          <button onClick={()=>nav("/documents/editor")} style={btn("#7c3aed")}>
+            <Edit3 size={13}/> New Document
           </button>
         </div>
       </div>
 
-      <div style={{display:"flex",gap:0,minHeight:400,flex:1}}>
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:16}}>
+        {[
+          {id:"library", label:"Document Library", icon:FolderOpen, count:docs.length},
+          {id:"upload",  label:"Upload & Import",  icon:Upload,     count:queue.filter(q=>q.status==="queued").length},
+          {id:"imports", label:"Import History",   icon:Database,   count:imports.length},
+          {id:"hardcopy",label:"Hardcopy Guide",   icon:Scan,       count:0},
+        ].map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id as any)} style={{
+            display:"flex",alignItems:"center",gap:7,padding:"8px 16px",
+            background:tab===t.id?T.primary:T.card,
+            color:tab===t.id?"#fff":T.fgMuted,
+            border:`1px solid ${tab===t.id?T.primary:T.border}`,
+            borderRadius:T.r,fontSize:13,fontWeight:700,cursor:"pointer",
+          }}>
+            <t.icon size={13}/>{t.label}
+            {t.count>0&&<span style={{minWidth:18,height:18,borderRadius:9,background:tab===t.id?"rgba(255,255,255,.3)":T.primary,color:"#fff",fontSize:10,fontWeight:800,textAlign:"center",lineHeight:"18px",padding:"0 5px"}}>{t.count}</span>}
+          </button>
+        ))}
+      </div>
 
-        {/* LEFT PANEL */}
-        <div style={{width:260,background:"#fff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0}}>
-          {/* Search */}
-          <div style={{padding:"10px 12px",borderBottom:"1px solid #f3f4f6"}}>
-            <div style={{position:"relative"}}>
-              <Search style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#9ca3af"}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents..."
-                style={{width:"100%",paddingLeft:28,padding:"8px 10px 8px 28px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",background:"#f9fafb"}}/>
+      {/* ═══════════ LIBRARY TAB ═══════════ */}
+      {tab==="library"&&(
+        <div>
+          {/* Search + filters */}
+          <div style={{...card,display:"flex",gap:10,alignItems:"center",marginBottom:14}}>
+            <div style={{position:"relative",flex:1}}>
+              <Search size={13} color={T.fgDim} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents..." style={{...inp,paddingLeft:30}}/>
             </div>
+            <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:150}}>
+              {CATS.map(c=><option key={c} value={c}>{c==="all"?"All Categories":c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+            </select>
+            <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...inp,width:130}}>
+              {["all","excel","csv","word","pdf","image"].map(t=><option key={t} value={t}>{t==="all"?"All Types":t.toUpperCase()}</option>)}
+            </select>
+            <span style={{fontSize:11,color:T.fgDim,whiteSpace:"nowrap"}}>{filteredDocs.length} results</span>
           </div>
-          {/* Category filter */}
-          <div style={{padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
-            {CATS.map(c=>(
-              <button key={c} onClick={()=>setCatFilter(c)}
-                style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,width:"100%",padding:"8px 14px",border:"none",background:catFilter===c?"#eff6ff":"transparent",cursor:"pointer",textAlign:"left",borderLeft:catFilter===c?"3px solid #1a3a6b":"3px solid transparent",transition:"all 0.1s"}}>
-                <span style={{fontSize:13,fontWeight:catFilter===c?700:500,color:catFilter===c?"#1a3a6b":"#374151",textTransform:"capitalize"}}>{c==="all"?"All Documents":c}</span>
-                <span style={{fontSize:10,color:"#9ca3af",background:"#f3f4f6",padding:"1px 6px",borderRadius:4}}>
-                  {c==="all"?allDocs.length:allDocs.filter(d=>d.category===c||(c==="system"&&d.is_system)).length}
-                </span>
-              </button>
-            ))}
-          </div>
-          <div style={{padding:"10px 14px",borderTop:"1px solid #f3f4f6",marginTop:"auto",background:"#f9fafb"}}>
-            <div style={{fontSize:10,color:"#9ca3af",fontWeight:600}}>EL5 MediProcure</div>
-            <div style={{fontSize:9,color:"#d1d5db"}}>{filtered.length} documents</div>
-          </div>
-        </div>
 
-        {/* DOCUMENT LIST */}
-        <div style={{width:320,background:"#fff",borderRight:"1px solid #e5e7eb",overflowY:"auto",display:"flex",flexDirection:"column"}}>
-          <div style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-            <span style={{fontSize:13,fontWeight:700,color:"#111827",flex:1}}>{catFilter==="all"?"All":catFilter} Documents</span>
-            <span style={{fontSize:11,color:"#9ca3af"}}>{filtered.length}</span>
+          {/* Drop zone for library */}
+          <div
+            onDragOver={e=>{e.preventDefault();setDragOver(true)}}
+            onDragLeave={()=>setDragOver(false)} onDrop={onDrop}
+            style={{
+              border:`2px dashed ${dragOver?T.primary:T.border}`,borderRadius:T.rLg,
+              padding:"20px 24px",marginBottom:14,textAlign:"center",
+              background:dragOver?`${T.primary}10`:T.bg2,transition:"all .2s",
+              cursor:"pointer",
+            }}
+            onClick={()=>fileInputRef.current?.click()}>
+            <Upload size={28} color={dragOver?T.primary:T.fgDim} style={{margin:"0 auto 8px",display:"block"}}/>
+            <div style={{fontSize:13,color:T.fgMuted}}>Drop files here or <span style={{color:T.primary,fontWeight:700}}>click to browse</span></div>
+            <div style={{fontSize:11,color:T.fgDim,marginTop:4}}>Supports: Word (.docx), Excel (.xlsx), PDF, CSV, Images (max 50MB)</div>
           </div>
-          {loading?[1,2,3,4].map(i=>(
-            <div key={i} style={{padding:"12px 14px",borderBottom:"1px solid #f9fafb",display:"flex",gap:10}}>
-              <div style={{width:36,height:36,borderRadius:8,background:"#f3f4f6",animation:"pulse 1.5s infinite"}}/>
-              <div style={{flex:1}}><div style={{height:11,background:"#f3f4f6",borderRadius:4,marginBottom:6,width:"65%",animation:"pulse 1.5s infinite"}}/><div style={{height:9,background:"#f3f4f6",borderRadius:4,width:"45%",animation:"pulse 1.5s infinite"}}/></div>
+
+          {/* Document grid */}
+          {loading?(
+            <div style={{padding:40,textAlign:"center",color:T.fgDim}}>Loading documents...</div>
+          ):filteredDocs.length===0?(
+            <div style={{...card,textAlign:"center",padding:50}}>
+              <FolderOpen size={40} color={T.fgDim} style={{margin:"0 auto 12px",display:"block"}}/>
+              <div style={{color:T.fgDim,fontSize:13}}>No documents found. Upload your first file.</div>
             </div>
-          )):filtered.map(doc=>{
-            const catC = CAT_CFG[doc.category]||CAT_CFG.general;
-            const isActive = selected?.id===doc.id;
-            return (
-              <div key={doc.id} onClick={()=>setSelected(doc)}
-                style={{padding:"12px 14px",borderBottom:"1px solid #f9fafb",cursor:"pointer",background:isActive?"#eff6ff":"transparent",borderLeft:isActive?"3px solid #1a3a6b":"3px solid transparent",transition:"background 0.1s"}}
-                onMouseEnter={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background="#f9fafb";}}
-                onMouseLeave={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background="transparent";}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:catC.bg,border:`1px solid ${catC.color}28`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <FileText style={{width:16,height:16,color:catC.color}}/>
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.name}</div>
-                    <div style={{fontSize:11,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.description||"No description"}</div>
-                  </div>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7}}>
-                  <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:3,background:catC.bg,color:catC.color}}>{catC.label}</span>
-                  {doc.is_system&&<span style={{fontSize:9,color:"#1a3a6b",background:"#eff6ff",padding:"1px 6px",borderRadius:3,fontWeight:700}}>SYSTEM</span>}
-                  {(doc.html||doc.template_html)&&<span style={{fontSize:9,color:"#107c10",background:"#dcfce7",padding:"1px 6px",borderRadius:3,fontWeight:700}}>PRINTABLE</span>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* DOCUMENT VIEWER */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff"}}>
-          {selected ? (
-            <>
-              {/* Viewer header */}
-              <div style={{padding:"12px 18px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12,flexShrink:0,flexWrap:"wrap" as const}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:16,fontWeight:800,color:"#111827"}}>{selected.name}</div>
-                  <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{selected.description}</div>
-                  <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap" as const}}>
-                    <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:4,...CAT_CFG[selected.category]||CAT_CFG.general}}>{selected.category}</span>
-                    {selected.is_system&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:4,background:"#eff6ff",color:"#1a3a6b"}}>System Template</span>}
-                    {(selected.html||selected.template_html)&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:4,background:"#dcfce7",color:"#107c10",fontWeight:700}}>✓ HTML Template</span>}
-                  </div>
-                </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-                  {(selected.html||selected.template_html)&&(
-                    <>
-                      <button onClick={()=>setPreviewDoc(selected)}
-                        style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#1d4ed8"}}>
-                        <Eye style={{width:13,height:13}}/> Preview
-                      </button>
-                      <button onClick={()=>printFromDoc(selected)}
-                        style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#107c10",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff"}}>
-                        <Printer style={{width:13,height:13}}/> Print
-                      </button>
-                    </>
-                  )}
-                  <button onClick={()=>downloadDoc(selected)}
-                    style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
-                    <Download style={{width:13,height:13}}/> Download
-                  </button>
-                  {isAdmin&&<button onClick={()=>openEdit(selected)}
-                    style={{display:"flex",alignItems:"center",gap:5,padding:"7px 13px",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#92400e"}}>
-                    <Edit3 style={{width:13,height:13}}/> Edit
-                  </button>}
-                  {!selected.is_system&&isAdmin&&<button onClick={()=>deleteDoc(selected)}
-                    style={{padding:"7px 10px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:7,cursor:"pointer",color:"#dc2626",lineHeight:0}}>
-                    <Trash2 style={{width:13,height:13}}/>
-                  </button>}
-                </div>
-              </div>
-
-              {/* HTML preview */}
-              {(selected.html||selected.template_html) ? (
-                <div style={{flex:1,overflowY:"auto",padding:"20px",background:"#f9fafb"}}>
-                  <div style={{maxWidth:800,margin:"0 auto",background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.08)",padding:"24px 32px"}}>
-                    <style>{DOC_PRINT_CSS}</style>
-                    <div dangerouslySetInnerHTML={{__html:selected.html||selected.template_html||""}}/>
-                  </div>
-                </div>
-              ) : selected.file_data ? (
-                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-                  {selected.file_type?.startsWith("image/")
-                    ? <img src={selected.file_data} alt={selected.name} style={{maxWidth:"100%",maxHeight:"100%",borderRadius:8,boxShadow:"0 4px 20px rgba(0,0,0,0.1)"}}/>
-                    : <div style={{textAlign:"center",color:"#6b7280"}}>
-                        <FileText style={{width:48,height:48,color:"#d1d5db",margin:"0 auto 12px"}}/>
-                        <div style={{fontSize:14,fontWeight:600}}>{selected.name}</div>
-                        <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>{selected.file_type}</div>
-                        <button onClick={()=>downloadDoc(selected)} style={{marginTop:14,display:"inline-flex",alignItems:"center",gap:6,padding:"9px 18px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                          <Download style={{width:14,height:14}}/> Download File
-                        </button>
+          ):(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+              {filteredDocs.map(doc=>{
+                const fc = FILE_ICONS[doc.file_type||"unknown"]||FILE_ICONS.unknown;
+                return(
+                  <div key={doc.id} style={{...card,padding:16,display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                      <div style={{width:44,height:44,borderRadius:10,background:fc.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <fc.icon size={22} color={fc.color}/>
                       </div>
-                  }
-                </div>
-              ) : (
-                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af",fontSize:13}}>No preview available</div>
-              )}
-
-              {/* Footer */}
-              <div style={{padding:"6px 18px",borderTop:"1px solid #f3f4f6",background:"#f9fafb",fontSize:10,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
-                <span>Embu Level 5 Hospital · EL5 MediProcure</span>
-                <span>{selected.is_system?"System template":"Uploaded "}{selected.created_at&&new Date(selected.created_at).toLocaleDateString("en-KE")}</span>
-              </div>
-            </>
-          ) : (
-            <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,color:"#9ca3af",padding:32}}>
-              <div style={{width:64,height:64,borderRadius:16,background:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <FileText style={{width:28,height:28,color:"#d1d5db"}}/>
-              </div>
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:15,fontWeight:700,color:"#374151"}}>Select a document</div>
-                <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>Choose from the list to preview, print, or edit</div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:400}}>
-                {SYSTEM_TEMPLATES.slice(0,4).map(t=>(
-                  <button key={t.id} onClick={()=>setSelected(t)}
-                    style={{padding:"10px 14px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151",textAlign:"left",transition:"all 0.12s"}}
-                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#eff6ff"}
-                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#f9fafb"}>
-                    {t.name}
-                  </button>
-                ))}
-              </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:700,color:T.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{doc.name}</div>
+                        <div style={{fontSize:10,color:T.fgDim,marginTop:2}}>{doc.original_filename||"—"}</div>
+                        <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap"}}>
+                          {doc.file_type&&<span style={{padding:"1px 7px",borderRadius:99,fontSize:9,fontWeight:700,background:fc.bg,color:fc.color,border:`1px solid ${fc.color}44`}}>{doc.file_type.toUpperCase()}</span>}
+                          {doc.category&&<span style={{padding:"1px 7px",borderRadius:99,fontSize:9,fontWeight:700,background:`${T.primary}18`,color:T.primary}}>{doc.category}</span>}
+                          {doc.file_size&&<span style={{fontSize:9,color:T.fgDim}}>{fmtSize(doc.file_size)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    {doc.description&&<div style={{fontSize:11,color:T.fgMuted,lineHeight:1.5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{doc.description}</div>}
+                    {doc.import_status==="parsed"&&(
+                      <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:T.success,background:T.successBg,border:`1px solid ${T.success}33`,borderRadius:6,padding:"4px 8px"}}>
+                        <CheckCircle size={11}/> Parsed · {doc.metadata?.tableCount||0} tables extracted
+                      </div>
+                    )}
+                    <div style={{display:"flex",gap:6,marginTop:"auto"}}>
+                      {doc.file_url&&<button onClick={()=>downloadDoc(doc)} style={{...btn(T.bg2,T.border),padding:"6px 12px",fontSize:11}}><Download size={12}/> Download</button>}
+                      {doc.file_url&&<button onClick={()=>window.open(doc.file_url,"_blank")} style={{...btn(T.bg2,T.border),padding:"6px 12px",fontSize:11}}><Eye size={12}/> View</button>}
+                      {isAdmin&&<button onClick={()=>deleteDoc(doc)} style={{...btn(T.bg2,T.border),padding:"6px 12px",fontSize:11,marginLeft:"auto",color:T.error}}><Trash2 size={12}/></button>}
+                    </div>
+                    <div style={{fontSize:9,color:T.fgDim}}>{new Date(doc.created_at).toLocaleDateString("en-KE")}</div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* ── EDIT MODAL ── */}
-      {editModal&&editDoc&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:12,width:"min(900px,100%)",height:"min(90vh,700px)",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            {/* Modal header */}
-            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
-              <Edit3 style={{width:14,height:14,color:"#fff"}}/>
-              <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Edit Document: {editDoc.name}</span>
-              {editDoc.is_system&&<span style={{fontSize:10,fontWeight:700,background:"#fef3c7",color:"#92400e",padding:"2px 8px",borderRadius:4}}>SYSTEM TEMPLATE</span>}
-              <button onClick={()=>setEditModal(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}>
-                <X style={{width:13,height:13}}/>
-              </button>
+      {/* ═══════════ UPLOAD TAB ═══════════ */}
+      {tab==="upload"&&(
+        <div>
+          {/* Drop zone */}
+          <div
+            onDragOver={e=>{e.preventDefault();setDragOver(true)}}
+            onDragLeave={()=>setDragOver(false)} onDrop={onDrop}
+            onClick={()=>fileInputRef.current?.click()}
+            style={{
+              border:`2px dashed ${dragOver?T.primary:T.border}`,borderRadius:T.rXl,
+              padding:"48px 24px",marginBottom:20,textAlign:"center",
+              background:dragOver?`${T.primary}12`:T.bg2,transition:"all .2s",cursor:"pointer",
+            }}>
+            <Upload size={48} color={dragOver?T.primary:T.fgDim} style={{margin:"0 auto 16px",display:"block"}}/>
+            <div style={{fontSize:16,fontWeight:700,color:T.fg,marginBottom:8}}>
+              {dragOver?"Release to upload":"Drop your files here"}
+            </div>
+            <div style={{fontSize:13,color:T.fgMuted,marginBottom:12}}>or click to browse files</div>
+            <div style={{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
+              {[
+                {label:"Word .docx",color:T.primary},
+                {label:"Excel .xlsx",color:"#16a34a"},
+                {label:"PDF .pdf",color:"#dc2626"},
+                {label:"CSV .csv",color:"#059669"},
+                {label:"Images",color:"#7c3aed"},
+              ].map(f=>(
+                <span key={f.label} style={{padding:"4px 12px",borderRadius:99,fontSize:11,fontWeight:700,background:`${f.color}18`,color:f.color,border:`1px solid ${f.color}44`}}>{f.label}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Queue */}
+          {queue.length>0&&(
+            <div style={card}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:700,color:T.fg,fontSize:14}}>Upload Queue ({queue.length})</div>
+                <button onClick={()=>setQueue(q=>q.filter(i=>i.status!=="done"))} style={{...btn(T.bg2,T.border),padding:"5px 12px",fontSize:11}}>
+                  <X size={12}/> Clear Done
+                </button>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {queue.map(qi=>{
+                  const fc=FILE_ICONS[qi.kind]||FILE_ICONS.unknown;
+                  return(
+                    <div key={qi.id} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"12px 14px"}}>
+                      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                        <div style={{width:36,height:36,borderRadius:8,background:fc.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <fc.icon size={18} color={fc.color}/>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:600,color:T.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qi.file.name}</div>
+                          <div style={{fontSize:10,color:T.fgDim,marginTop:1}}>{fmtSize(qi.file.size)} · {qi.kind.toUpperCase()}</div>
+                          {(qi.status==="uploading"||qi.status==="parsing")&&(
+                            <div style={{marginTop:6,background:T.bg,borderRadius:4,overflow:"hidden",height:4}}>
+                              <div style={{width:`${qi.progress}%`,height:"100%",background:T.primary,transition:"width .3s",borderRadius:4}}/>
+                            </div>
+                          )}
+                          {qi.status==="done"&&qi.parsedDoc&&(
+                            <div style={{fontSize:10,color:T.success,marginTop:2}}>
+                              ✅ {qi.parsedDoc.tables.length} tables · {qi.parsedDoc.mappedRows.length} rows parsed
+                              {qi.parsedDoc.suggestedModule&&qi.parsedDoc.suggestedModule!=="documents"&&(
+                                <span style={{color:T.accent,marginLeft:6}}>→ {MODULE_LABELS[qi.parsedDoc.suggestedModule]}</span>
+                              )}
+                            </div>
+                          )}
+                          {qi.status==="error"&&<div style={{fontSize:10,color:T.error,marginTop:2}}>⚠ {qi.error}</div>}
+                        </div>
+                        <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                          {qi.status==="queued"&&(
+                            <>
+                              <select value={qi.category} onChange={e=>{const v=e.target.value;setQueue(prev=>prev.map(q=>q.id===qi.id?{...q,category:v}:q));}}
+                                style={{...inp,width:110,padding:"4px 8px",fontSize:11}}>
+                                {CATS.filter(c=>c!=="all").map(c=><option key={c} value={c}>{c}</option>)}
+                              </select>
+                              <button onClick={()=>processItem(qi)} style={btn(T.primary)}><Upload size={13}/> Upload</button>
+                            </>
+                          )}
+                          {qi.status==="uploading"&&<div style={{fontSize:11,color:T.primary,display:"flex",alignItems:"center",gap:5}}><RefreshCw size={12} style={{animation:"spin 1s linear infinite"}}/>{qi.progress}%</div>}
+                          {qi.status==="done"&&<CheckCircle size={18} color={T.success}/>}
+                          {qi.status==="error"&&<AlertTriangle size={18} color={T.error}/>}
+                          <button onClick={()=>setQueue(prev=>prev.filter(q=>q.id!==qi.id))} style={{background:"transparent",border:"none",cursor:"pointer",color:T.fgDim,padding:4}}>
+                            <X size={13}/>
+                          </button>
+                        </div>
+                      </div>
+                      {/* Import to module button */}
+                      {qi.status==="done"&&qi.parsedDoc&&qi.parsedDoc.tables.length>0&&qi.parsedDoc.suggestedModule&&qi.parsedDoc.suggestedModule!=="documents"&&(
+                        <button onClick={()=>setMapModal({qi,doc:qi.parsedDoc!})}
+                          style={{...btn(T.accent),marginTop:10,fontSize:11,padding:"6px 14px"}}>
+                          <ArrowRight size={12}/> Import {qi.parsedDoc.tables[0].rowCount} rows → {MODULE_LABELS[qi.parsedDoc.suggestedModule]}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Upload all queued */}
+              {queue.some(q=>q.status==="queued")&&(
+                <button onClick={()=>queue.filter(q=>q.status==="queued").forEach(q=>processItem(q))}
+                  style={{...btn(T.success),marginTop:14,width:"100%",justifyContent:"center"}}>
+                  <Zap size={13}/> Upload All ({queue.filter(q=>q.status==="queued").length} files)
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════ IMPORTS TAB ═══════════ */}
+      {tab==="imports"&&(
+        <div style={card}>
+          <div style={{fontWeight:700,color:T.fg,fontSize:14,marginBottom:14}}>Import History ({imports.length})</div>
+          {imports.length===0?(
+            <div style={{textAlign:"center",padding:40,color:T.fgDim}}>No imports yet</div>
+          ):(
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{borderBottom:`1px solid ${T.border}`}}>
+                  {["File","Type","Size","Module","Tables","Status","Date"].map(h=>(
+                    <th key={h} style={{padding:"8px 12px",textAlign:"left",fontSize:11,fontWeight:700,color:T.fgDim}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {imports.map(imp=>{
+                  const fc=FILE_ICONS[imp.file_type]||FILE_ICONS.unknown;
+                  const statusColor=imp.status==="complete"?T.success:imp.status==="failed"?T.error:T.warning;
+                  return(
+                    <tr key={imp.id} style={{borderBottom:`1px solid ${T.border}22`}}>
+                      <td style={{padding:"9px 12px"}}>
+                        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                          <fc.icon size={14} color={fc.color}/>
+                          <span style={{fontSize:12,color:T.fg,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{imp.original_file}</span>
+                        </div>
+                      </td>
+                      <td style={{padding:"9px 12px"}}><span style={{fontSize:11,fontWeight:700,color:fc.color}}>{imp.file_type?.toUpperCase()}</span></td>
+                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim}}>{imp.file_size?fmtSize(imp.file_size):"—"}</td>
+                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgMuted}}>{imp.mapped_to?MODULE_LABELS[imp.mapped_to]||imp.mapped_to:"—"}</td>
+                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgMuted}}>{imp.parsed_tables?.length||0}</td>
+                      <td style={{padding:"9px 12px"}}>
+                        <span style={{padding:"2px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:`${statusColor}18`,color:statusColor}}>{imp.status}</span>
+                      </td>
+                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim}}>{new Date(imp.created_at).toLocaleDateString("en-KE")}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════ HARDCOPY GUIDE TAB ═══════════ */}
+      {tab==="hardcopy"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={card}>
+            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16}}>
+              <Scan size={20} color={T.primary}/>
+              <div>
+                <div style={{fontWeight:800,color:T.fg,fontSize:15}}>Digitising Hardcopy Documents</div>
+                <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>How to convert physical records into the ERP system</div>
+              </div>
+            </div>
+            {[
+              {step:"1",title:"Scan or photograph",desc:"Use a scanner or phone camera (Office Lens / Adobe Scan) to capture the hardcopy document. Save as PDF or JPG."},
+              {step:"2",title:"Upload the file",desc:"Go to Upload & Import tab, drag-drop or click to select the scanned file. Supports PDF, JPG, PNG."},
+              {step:"3",title:"System parses content",desc:"ProcurBosse automatically extracts text and tables from the file using AI-assisted parsing."},
+              {step:"4",title:"Map to ERP module",desc:"Review suggested mapping (e.g. LPO → Purchase Orders, stores requisition → Requisitions) and confirm import."},
+              {step:"5",title:"Records created",desc:"ERP records are created automatically. The original file is stored in the document library for audit reference."},
+            ].map(({step,title,desc})=>(
+              <div key={step} style={{display:"flex",gap:12,marginBottom:14}}>
+                <div style={{width:28,height:28,borderRadius:"50%",background:T.primary,color:"#fff",fontWeight:800,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{step}</div>
+                <div>
+                  <div style={{fontWeight:700,color:T.fg,fontSize:13,marginBottom:3}}>{title}</div>
+                  <div style={{fontSize:12,color:T.fgMuted,lineHeight:1.6}}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {/* Supported formats */}
+            <div style={card}>
+              <div style={{fontWeight:700,color:T.fg,marginBottom:12}}>Supported File Formats</div>
+              {[
+                {label:"Excel (.xlsx, .xls)",color:"#16a34a",desc:"Inventory lists, supplier lists, budget data, price lists"},
+                {label:"Word (.docx, .doc)", color:"#1d4ed8",desc:"LPOs, contracts, letters, policies, procedures"},
+                {label:"PDF (.pdf)",          color:"#dc2626",desc:"Scanned documents, signed forms, invoices, GRNs"},
+                {label:"CSV (.csv)",          color:"#059669",desc:"Data exports, bulk imports, financial data"},
+                {label:"Images (.jpg, .png)", color:"#7c3aed",desc:"Scanned handwritten forms, physical receipts, stamps"},
+              ].map(f=>(
+                <div key={f.label} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
+                  <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:`${f.color}18`,color:f.color,flexShrink:0}}>{f.label}</span>
+                  <span style={{fontSize:11,color:T.fgMuted}}>{f.desc}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Tabs */}
-            <div style={{display:"flex",borderBottom:"1px solid #e5e7eb",background:"#f9fafb"}}>
-              {([["metadata","Details"],["html","HTML Editor"],["preview","Preview"],["sigs","Signatures"]] as const).map(([id,lbl])=>(
-                <button key={id} onClick={()=>setEditTab(id as any)}
-                  style={{padding:"10px 18px",border:"none",background:"#f8fafc",cursor:"pointer",fontSize:12,fontWeight:editTab===id?700:500,color:editTab===id?"#1a3a6b":"#6b7280",borderBottom:editTab===id?"2px solid #1a3a6b":"2px solid transparent",transition:"all 0.1s"}}>
-                  {lbl}
+            {/* Quick import buttons */}
+            <div style={card}>
+              <div style={{fontWeight:700,color:T.fg,marginBottom:12}}>Quick Import Helpers</div>
+              <div style={{fontSize:12,color:T.fgMuted,marginBottom:10}}>Download a template, fill in the data, then upload to auto-import into the ERP:</div>
+              {[
+                {label:"Items / Stock Template (.xlsx)",     module:"items"},
+                {label:"Suppliers List Template (.xlsx)",    module:"suppliers"},
+                {label:"Requisitions Template (.xlsx)",      module:"requisitions"},
+              ].map(t=>(
+                <button key={t.module}
+                  onClick={()=>{
+                    const wb=window.XLSX||require("xlsx");
+                    const templates:{[key:string]:string[]}={
+                      items:["name","unit_of_measure","current_quantity","reorder_level","unit_price","category"],
+                      suppliers:["name","contact_person","phone","email","kra_pin","address","category"],
+                      requisitions:["title","department","quantity","unit_price","priority"],
+                    };
+                    const headers=templates[t.module]||[];
+                    const ws=XLSX.utils.aoa_to_sheet([headers,Array(headers.length).fill("")]);
+                    const wbk=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wbk,ws,"Import");
+                    XLSX.writeFile(wbk,`procurbosse_${t.module}_template.xlsx`);
+                  }}
+                  style={{...btn(T.bg2,T.border),width:"100%",justifyContent:"flex-start",marginBottom:6,fontSize:12}}>
+                  <Download size={12}/>{t.label}
                 </button>
               ))}
             </div>
-
-            {/* Content */}
-            <div style={{flex:1,overflowY:"auto",padding:16}}>
-              {editTab==="metadata"&&(
-                <div style={{display:"grid",gap:12}}>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Document Name</label>
-                    <input value={editDoc.name} onChange={e=>setEditDoc((p:any)=>({...p,name:e.target.value}))}
-                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}/>
-                  </div>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description</label>
-                    <textarea value={editDoc.description} onChange={e=>setEditDoc((p:any)=>({...p,description:e.target.value}))} rows={3}
-                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"inherit",resize:"none"}}/>
-                  </div>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Category</label>
-                    <select value={editDoc.category} onChange={e=>setEditDoc((p:any)=>({...p,category:e.target.value}))}
-                      style={{width:"100%",padding:"9px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                      {["general","policy","template","contract","report","letter","form","procedure","system"].map(c=><option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div style={{padding:"10px 14px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,fontSize:12,color:"#92400e"}}>
-                    <strong>Available placeholders:</strong> {PLACEHOLDERS.slice(0,12).join(", ")}... and {PLACEHOLDERS.length-12} more
-                  </div>
-                </div>
-              )}
-
-              {editTab==="html"&&(
-                <div style={{display:"flex",flexDirection:"column",gap:10,height:"100%"}}>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-                    <span style={{fontSize:11,color:"#6b7280",fontWeight:600,alignSelf:"center"}}>Insert:</span>
-                    {PLACEHOLDERS.slice(0,16).map(ph=>(
-                      <button key={ph} onClick={()=>setEditDoc((p:any)=>({...p,html:p.html+ph}))}
-                        style={{padding:"3px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"monospace",color:"#374151"}}>
-                        {ph}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea value={editDoc.html} onChange={e=>setEditDoc((p:any)=>({...p,html:e.target.value}))}
-                    style={{flex:1,minHeight:300,width:"100%",padding:"10px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:7,outline:"none",fontFamily:"monospace",lineHeight:1.6,resize:"vertical"}}
-                    placeholder="Paste or write HTML template here..."/>
-                </div>
-              )}
-
-              {editTab==="preview"&&(
-                <div style={{background:"#f9fafb",borderRadius:8,padding:24}}>
-                  <div style={{maxWidth:720,margin:"0 auto",background:"#fff",borderRadius:10,boxShadow:"0 2px 12px rgba(0,0,0,0.08)",padding:"24px 32px"}}>
-                    <style>{DOC_PRINT_CSS}</style>
-                    {editDoc.html
-                      ?<div dangerouslySetInnerHTML={{__html:editDoc.html}}/>
-                      :<div style={{textAlign:"center",color:"#9ca3af",padding:40,fontSize:13}}>No HTML content to preview</div>
-                    }
-                  </div>
-                </div>
-              )}
-
-              {editTab==="sigs"&&(
-                <div style={{display:"grid",gap:16}}>
-                  <div style={{padding:"10px 14px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,fontSize:12,color:"#1d4ed8"}}>
-                    Use <strong>{"{{SIG_AUTHORIZED}}"}</strong>, <strong>{"{{SIG_APPROVED}}"}</strong>, <strong>{"{{SIG_SUPPLIER}}"}</strong>, <strong>{"{{SIG_RECEIVED}}"}</strong> placeholders in your HTML template to insert signature fields.
-                  </div>
-                  {["AUTHORIZED","APPROVED","SUPPLIER","RECEIVED","INSPECTED","STORE","PREPARED","VERIFIED","HOD","PROCUREMENT"].map(role=>(
-                    <div key={role} style={{padding:"10px 14px",background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{width:40,height:40,borderRadius:6,border:"2px dashed #d1d5db",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        <Pen style={{width:16,height:16,color:"#9ca3af"}}/>
-                      </div>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>{role.charAt(0)+role.slice(1).toLowerCase().replace(/_/g," ")}</div>
-                        <div style={{fontSize:11,color:"#9ca3af",fontFamily:"monospace"}}>{"{{SIG_"+role+"}}"}</div>
-                      </div>
-                      <label style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
-                        <Upload style={{width:11,height:11}}/> Upload Sig
-                        <input type="file" accept="image/*" style={{display:"none"}}/>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Modal footer */}
-            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-              <button onClick={saveDoc} disabled={saving}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.8:1}}>
-                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Save style={{width:13,height:13}}/>} Save Document
-              </button>
-              {(editDoc.html)&&<button onClick={()=>printDoc(editDoc.html,editDoc.name)}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:"#107c10",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                <Printer style={{width:13,height:13}}/> Print
-              </button>}
-              <button onClick={()=>setEditModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
-              {editDoc.is_system&&<span style={{marginLeft:4,fontSize:11,color:"#9ca3af"}}>Saving creates a custom copy of this system template</span>}
-            </div>
           </div>
         </div>
       )}
 
-      {/* ── UPLOAD MODAL ── */}
-      {uploadModal&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:12,width:"min(580px,100%)",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:8}}>
-              <Upload style={{width:14,height:14,color:"#fff"}}/>
-              <span style={{fontSize:14,fontWeight:700,color:"#fff",flex:1}}>Upload Document</span>
-              <button onClick={()=>setUploadModal(false)} style={{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 6px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:13,height:13}}/></button>
+      {/* ═══════════ MAPPING MODAL ═══════════ */}
+      {mapModal&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setMapModal(null)}>
+          <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,padding:28,width:"100%",maxWidth:680,maxHeight:"90vh",overflowY:"auto",animation:"fadeIn .2s"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div>
+                <div style={{fontWeight:800,color:T.fg,fontSize:16}}>Import Data into ERP</div>
+                <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>Review extracted data and confirm import</div>
+              </div>
+              <button onClick={()=>setMapModal(null)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.fgDim}}><X size={18}/></button>
             </div>
-            <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
-              {[{l:"Document Name",k:"upName",v:upName,s:(v:string)=>setUpName(v)},{l:"Description",k:"upDesc",v:upDesc,s:(v:string)=>setUpDesc(v)}].map(f=>(
-                <div key={f.k}>
-                  <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.l}</label>
-                  <input value={f.v} onChange={e=>f.s(e.target.value)} style={{width:"100%",padding:"8px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}/>
+
+            {/* Module selector */}
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Target Module</label>
+              <select defaultValue={mapModal.doc.suggestedModule||"documents"}
+                id="targetModule" style={{...inp}}>
+                {Object.entries(MODULE_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+
+            {/* Preview table */}
+            {mapModal.doc.tables.map((table,ti)=>(
+              <div key={ti} style={{marginBottom:16}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.fg,marginBottom:8}}>
+                  Sheet: {table.name} ({table.rowCount} rows)
                 </div>
-              ))}
-              <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Category</label>
-                <select value={upCat} onChange={e=>setUpCat(e.target.value)} style={{width:"100%",padding:"8px 12px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:6,outline:"none"}}>
-                  {["general","policy","template","contract","report","letter","form","procedure"].map(c=><option key={c} value={c}>{c}</option>)}
-                </select>
+                <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                    <thead>
+                      <tr style={{background:T.bg}}>
+                        {table.headers.slice(0,6).map(h=>(
+                          <th key={h} style={{padding:"6px 10px",textAlign:"left",fontWeight:700,color:T.fgDim,whiteSpace:"nowrap",borderBottom:`1px solid ${T.border}`}}>{h}</th>
+                        ))}
+                        {table.headers.length>6&&<th style={{padding:"6px 10px",color:T.fgDim}}>+{table.headers.length-6}</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {table.rows.slice(0,5).map((row,ri)=>(
+                        <tr key={ri} style={{borderBottom:`1px solid ${T.border}22`}}>
+                          {table.headers.slice(0,6).map(h=>(
+                            <td key={h} style={{padding:"5px 10px",color:T.fg,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row[h]||"—"}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {table.rowCount>5&&<div style={{fontSize:10,color:T.fgDim,marginTop:4}}>Showing 5 of {table.rowCount} rows</div>}
+
+                <button
+                  onClick={()=>{
+                    const sel=document.getElementById("targetModule") as HTMLSelectElement;
+                    importRows(mapModal.qi, mapModal.doc, sel.value, table);
+                  }}
+                  disabled={importing}
+                  style={{...btn(T.success),marginTop:12}}>
+                  {importing?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<ArrowRight size={13}/>}
+                  {importing?"Importing...`":`Import ${table.rowCount} rows → ${MODULE_LABELS[(document.getElementById("targetModule") as HTMLSelectElement)?.value||"documents"]||"ERP"}`}
+                </button>
               </div>
-              <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>File (PDF, Word, Image...)</label>
-                <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:"#f9fafb",border:"2px dashed #e5e7eb",borderRadius:8,cursor:"pointer"}}>
-                  <Upload style={{width:16,height:16,color:"#9ca3af"}}/>
-                  <span style={{fontSize:12,color:upFile?"#374151":"#9ca3af"}}>{upFile?upFile.name:"Click to choose file..."}</span>
-                  <input type="file" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f){setUpFile(f);if(!upName)setUpName(f.name.replace(/\.[^/.]+$/,""));}}}/>
-                </label>
-              </div>
-              <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#6b7280",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Or Paste HTML Content</label>
-                <textarea value={upHtml} onChange={e=>setUpHtml(e.target.value)} rows={4} placeholder="Optional: paste HTML template content..."
-                  style={{width:"100%",padding:"8px 12px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:6,outline:"none",fontFamily:"monospace",resize:"none"}}/>
-              </div>
-            </div>
-            <div style={{padding:"10px 16px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8}}>
-              <button onClick={uploadFile} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:700}}>
-                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Upload style={{width:13,height:13}}/>} Upload
-              </button>
-              <button onClick={()=>setUploadModal(false)} style={{padding:"9px 16px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:7,cursor:"pointer",fontSize:13,color:"#374151"}}>Cancel</button>
-            </div>
+            ))}
           </div>
         </div>
       )}
+
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" multiple accept=".xlsx,.xls,.docx,.doc,.pdf,.csv,.txt,.jpg,.jpeg,.png,.webp"
+        style={{display:"none"}} onChange={e=>{if(e.target.files)handleFiles(Array.from(e.target.files));e.target.value="";}}/>
     </div>
   );
 }
+
+/* ── Queue item type ─────────────────────────────────────────────────────── */
+interface UploadQueueItem {
+  id: string; file: File; kind: string;
+  status: "queued"|"uploading"|"parsing"|"done"|"error";
+  progress: number; name: string; category: string;
+  error?: string; docId?: string; parsedDoc?: ParsedDocument;
+}
+
+import * as XLSX from "xlsx";
+import type React from "react";
