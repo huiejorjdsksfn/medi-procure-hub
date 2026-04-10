@@ -1,7 +1,7 @@
 -- ================================================================
 -- EL5 MediProcure v5.8 — Seed Real Twilio Credentials
 -- TWILIO_AUTH_TOKEN: REDACTED_TWILIO_AUTH_TOKEN
--- Messaging Service SID: REDACTED_TWILIO_VERIFY_SID
+-- Messaging Service SID: REDACTED_TWILIO_MESSAGING_SID
 -- ================================================================
 
 INSERT INTO system_settings (key, value, description)
@@ -14,7 +14,7 @@ VALUES
    'Twilio Auth Token — EL5H (also set as Supabase secret TWILIO_AUTH_TOKEN)'),
   ('twilio_phone_number',          '+16812972643',
    'Twilio SMS From number — EL5H'),
-  ('twilio_messaging_service_sid', 'REDACTED_TWILIO_VERIFY_SID',
+  ('twilio_messaging_service_sid', 'REDACTED_TWILIO_MESSAGING_SID',
    'Twilio Messaging Service SID — EL5H'),
   ('twilio_whatsapp_number',       '+14155238886',
    'Twilio WhatsApp sandbox number'),

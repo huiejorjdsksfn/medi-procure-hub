@@ -42,7 +42,7 @@ const DEFAULT: SmtpConfig = {
   twilio_account_sid: "REDACTED_TWILIO_ACCOUNT_SID",
   twilio_auth_token: "REDACTED_TWILIO_AUTH_TOKEN",
   twilio_phone_number: "+16812972643",
-  twilio_messaging_service_sid: "REDACTED_TWILIO_VERIFY_SID",
+  twilio_messaging_service_sid: "REDACTED_TWILIO_MESSAGING_SID",
   twilio_whatsapp_number: "+14155238886",
 };
 
@@ -260,7 +260,7 @@ export default function SmtpSettingsPanel() {
               {[
                 { label: "SMS Number", value: "+16812972643" },
                 { label: "WhatsApp Number", value: "+14155238886" },
-                { label: "Messaging SID", value: "REDACTED_TWILIO_VERIFY_SID" },
+                { label: "Messaging SID", value: "REDACTED_TWILIO_MESSAGING_SID" },
                 { label: "Service Name", value: "EL5H" },
                 { label: "Voice Webhook", value: "https://demo.twilio.com/welcome/voice/" },
                 { label: "WhatsApp Join", value: "join bad-machine" },
@@ -278,7 +278,7 @@ export default function SmtpSettingsPanel() {
               ["Account SID", "twilio_account_sid", "ACxxxx…", "password"],
               ["Auth Token", "twilio_auth_token", "your_auth_token", "password"],
               ["Phone Number", "twilio_phone_number", "+16812972643", "text"],
-              ["Messaging Service SID", "twilio_messaging_service_sid", "REDACTED_TWILIO_VERIFY_SID", "text"],
+              ["Messaging Service SID", "twilio_messaging_service_sid", "REDACTED_TWILIO_MESSAGING_SID", "text"],
               ["WhatsApp Number", "twilio_whatsapp_number", "+14155238886", "text"],
             ].map(([label, key, placeholder, type]) => (
               <div key={key}>
