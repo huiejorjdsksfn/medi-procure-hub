@@ -166,8 +166,9 @@ serve(async (req: Request) => {
   if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
   const url=new URL(req.url);
 
-  // Status check
-  if(req.method==="GET"&&url.searchParams.get("action")==="status"){
+  // Status check (GET or POST with action=status)
+  const bodyForStatus = req.method==="POST" ? await req.clone().json().catch(()=>({})) : {};
+  if((req.method==="GET"&&url.searchParams.get("action")==="status")||(bodyForStatus?.action==="status")){
     return new Response(JSON.stringify({
       ok:true, account_sid:ACCT.slice(0,8)+"...", auth_token_set:!!AUTH,
       sms_from:FROM_SMS, wa_from:FROM_WA, msg_service_sid:MSID, wa_join:WA_CODE,
