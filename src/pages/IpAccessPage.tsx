@@ -1,454 +1,567 @@
 /**
- * ProcurBosse — IP Access Control v2.0
- * Admin-only: whitelist management, live access logs, session monitoring
- * Fixed: user names shown (not UUIDs), active-only filter, no logged-out confusion
+ * ProcurBosse — IP Access Control & Live Network Monitor v3.0
+ * Real-time public + private IP detection · Activity feed · Whitelist CRUD
  * EL5 MediProcure · Embu Level 5 Hospital
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSystemSettings, saveSettings } from "@/hooks/useSystemSettings";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
+import { T } from "@/lib/theme";
 import {
-  Shield, Plus, Trash2, RefreshCw, CheckCircle, XCircle,
-  Globe, Wifi, Lock, AlertTriangle, Save, Activity,
-  UserCheck, Eye, ToggleLeft, ToggleRight, Filter, Users
+  Shield, Plus, Trash2, RefreshCw, Globe, Wifi, Lock,
+  AlertTriangle, Save, Activity, Monitor, Server, MapPin,
+  Clock, Users, Network, Radio, TrendingUp, Ban, X,
+  Check, Database, Signal, ChevronRight
 } from "lucide-react";
-import RoleGuard from "@/components/RoleGuard";
 
-const inp: React.CSSProperties = {
-  padding:"8px 11px", border:"1.5px solid #d1d5db", borderRadius:8,
-  fontSize:13, color:"#111", background:"#fff", outline:"none",
-  width:"100%", boxSizing:"border-box"
-};
-const B = (bg="#1a3a6b", p="8px 16px"):React.CSSProperties => ({
-  display:"inline-flex", alignItems:"center", gap:6, padding:p,
-  borderRadius:8, border:"none", background:bg, color:"#fff",
-  fontWeight:700, fontSize:12, cursor:"pointer"
-});
+const db = supabase as any;
 
-function Toggle({ on, onChange }: { on:boolean; onChange:(v:boolean)=>void }) {
-  return (
-    <button onClick={()=>onChange(!on)} style={{background:"none",border:"none",cursor:"pointer",padding:0,lineHeight:0,flexShrink:0}}>
-      <span style={{display:"inline-flex",width:44,height:24,borderRadius:12,background:on?"#059669":"#d1d5db",alignItems:"center",padding:"2px",transition:"background 0.2s"}}>
-        <span style={{display:"block",width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform 0.2s",transform:on?"translateX(20px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
-      </span>
-    </button>
-  );
+/* ── Styles ── */
+const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px" };
+const inp: React.CSSProperties  = { width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"8px 12px", color:T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
+const btn = (bg:string, bd?:string):React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:7, padding:"8px 14px", background:bg, color:bd?T.fgMuted:"#fff", border:`1px solid ${bd||"transparent"}`, borderRadius:T.r, fontSize:12, fontWeight:700, cursor:"pointer" });
+const badge = (col:string):React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px", borderRadius:99, fontSize:9, fontWeight:700, background:col+"20", color:col, border:`1px solid ${col}44` });
+
+/* ── IP helpers ── */
+const IP_SERVICES = ["https://api.ipify.org?format=json","https://api64.ipify.org?format=json"];
+
+async function getPublicIP(): Promise<{ip:string;source:string}|null> {
+  for (const url of IP_SERVICES) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      const data = await res.json();
+      const ip = data.ip || "";
+      if (/^\d{1,3}(\.\d{1,3}){3}$|^[0-9a-f:]+$/i.test(ip)) return { ip, source: new URL(url).hostname };
+    } catch {}
+  }
+  return null;
 }
+
+async function getIPGeo(ip: string): Promise<any> {
+  try { return await (await fetch(`https://ipapi.co/${ip}/json/`, { signal: AbortSignal.timeout(5000) })).json(); }
+  catch { return null; }
+}
+
+function classifyIP(ip: string): "public"|"private"|"loopback" {
+  if (/^127\.|^::1$/.test(ip)) return "loopback";
+  if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(ip)) return "private";
+  return "public";
+}
+
+/* ── Pulse dot ── */
+const Pulse = ({ color=T.success }:{color?:string}) => (
+  <span style={{ position:"relative", display:"inline-flex", width:8, height:8 }}>
+    <span style={{ position:"absolute", inset:0, borderRadius:"50%", background:color, opacity:.4, animation:"ping 1.5s infinite" }}/>
+    <span style={{ width:8, height:8, borderRadius:"50%", background:color, display:"block" }}/>
+  </span>
+);
+
+type Tab = "monitor"|"whitelist"|"logs"|"sessions"|"settings";
 
 export default function IpAccessPage() {
   const { user } = useAuth();
-  const { settings, get } = useSystemSettings();
-  const [whitelist,  setWhitelist]  = useState<any[]>([]);
-  const [logs,       setLogs]       = useState<any[]>([]);
-  const [profiles,   setProfiles]   = useState<Record<string,any>>({});
-  const [sessions,   setSessions]   = useState<any[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [showForm,   setShowForm]   = useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [tab,        setTab]        = useState<"whitelist"|"logs"|"sessions"|"settings">("whitelist");
-  const [logFilter,  setLogFilter]  = useState<"all"|"allowed"|"denied">("all");
-  const [form, setForm] = useState({label:"",cidr:"",type:"private",notes:"",active:true});
-  const [cfg, setCfg] = useState({
-    ip_restriction_enabled:"false", allow_all_private:"true",
-    log_all_ips:"true", revoke_on_ip_change:"false", force_network_check:"true",
-  });
+  const { get } = useSystemSettings();
 
-  const load = useCallback(async() => {
+  const [tab, setTab]             = useState<Tab>("monitor");
+  const [whitelist, setWhitelist] = useState<any[]>([]);
+  const [logs, setLogs]           = useState<any[]>([]);
+  const [profiles, setProfiles]   = useState<Record<string,any>>({});
+  const [loading, setLoading]     = useState(true);
+  const [showForm, setShowForm]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [form, setForm]           = useState({ label:"", cidr:"", type:"private", notes:"", active:true });
+  const [myPublicIP, setMyPublicIP]     = useState("");
+  const [myPrivateIPs, setMyPrivateIPs] = useState<string[]>([]);
+  const [ipGeo, setIpGeo]               = useState<any>(null);
+  const [ipFetching, setIpFetching]     = useState(false);
+  const [activeIPs, setActiveIPs]       = useState<Map<string,any>>(new Map());
+  const [rtEvents, setRtEvents]         = useState<any[]>([]);
+  const [stats, setStats]               = useState({ total:0, blocked:0, allowed:0, unique:0 });
+  const [blockedSet, setBlockedSet]     = useState<Set<string>>(new Set());
+  const logRef = useRef<HTMLDivElement>(null);
+  const f = (k:string, v:any) => setForm(p=>({...p,[k]:v}));
+
+  const load = useCallback(async () => {
     setLoading(true);
     const [wl, lg, pr] = await Promise.all([
-      (supabase as any).from("network_whitelist").select("*").order("active",{ascending:false}).order("created_at"),
-      (supabase as any).from("ip_access_log").select("*").order("created_at",{ascending:false}).limit(300),
-      (supabase as any).from("profiles").select("id,full_name,email,role,is_active").eq("is_active",true),
+      db.from("network_whitelist").select("*").order("active",{ascending:false}).order("created_at"),
+      db.from("ip_access_log").select("*").order("created_at",{ascending:false}).limit(500),
+      db.from("profiles").select("id,full_name,email,is_active").limit(300),
     ]);
     setWhitelist(wl.data||[]);
     setLogs(lg.data||[]);
-    // Build profile lookup map
     const pm: Record<string,any> = {};
-    (pr.data||[]).forEach((p:any) => { pm[p.id] = p; });
+    (pr.data||[]).forEach((p:any) => { pm[p.id]=p; });
     setProfiles(pm);
+
+    const logData = lg.data||[];
+    const unique = new Set(logData.map((l:any)=>l.ip_address)).size;
+    const blocked = logData.filter((l:any)=>l.status==="blocked").length;
+    setStats({ total:logData.length, blocked, allowed:logData.length-blocked, unique });
+
+    const cutoff = new Date(Date.now()-30*60_000).toISOString();
+    const recent = logData.filter((l:any)=>l.created_at>cutoff);
+    const ipMap = new Map<string,any>();
+    recent.forEach((l:any)=>{ if(!ipMap.has(l.ip_address)||l.created_at>ipMap.get(l.ip_address).created_at) ipMap.set(l.ip_address,l); });
+    setActiveIPs(ipMap);
+
+    const bs = new Set<string>((wl.data||[]).filter((w:any)=>w.type==="blocked"&&w.active).map((w:any)=>w.cidr));
+    setBlockedSet(bs);
     setLoading(false);
   },[]);
 
-  useEffect(()=>{ load(); },[load]);
+  const detectMyIP = useCallback(async () => {
+    setIpFetching(true);
+    const pub = await getPublicIP();
+    if (pub) {
+      setMyPublicIP(pub.ip);
+      const geo = await getIPGeo(pub.ip);
+      setIpGeo(geo);
+      await db.from("ip_access_log").insert({ ip_address:pub.ip, user_id:user?.id||null, status:"allowed", action:"ip_monitor_view", user_agent:navigator.userAgent.slice(0,200), created_at:new Date().toISOString() }).catch(()=>{});
+    }
+    // Try to detect private IPs via WebRTC
+    try {
+      const ips: string[] = ["127.0.0.1"];
+      const pc = new (window as any).RTCPeerConnection({iceServers:[]});
+      pc.createDataChannel("");
+      await pc.createOffer().then((o:any)=>pc.setLocalDescription(o));
+      await new Promise<void>(res => {
+        pc.onicecandidate=(e:any)=>{ if(e?.candidate?.candidate){ const m=e.candidate.candidate.match(/(\d{1,3}(\.\d{1,3}){3})/); if(m&&!ips.includes(m[1]))ips.push(m[1]); } else res(); };
+        setTimeout(res,2000);
+      });
+      pc.close();
+      setMyPrivateIPs(ips);
+    } catch { setMyPrivateIPs(["127.0.0.1"]); }
+    setIpFetching(false);
+  },[user]);
+
+  useEffect(()=>{ load(); detectMyIP(); },[load,detectMyIP]);
+
+  // Realtime
   useEffect(()=>{
-    setCfg({
-      ip_restriction_enabled: get("ip_restriction_enabled","false"),
-      allow_all_private:       get("allow_all_private","true"),
-      log_all_ips:             get("log_all_ips","true"),
-      revoke_on_ip_change:     get("revoke_on_ip_change","false"),
-      force_network_check:     get("force_network_check","true"),
-    });
-  },[settings,get]);
+    const ch = db.channel("ip:rt")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"ip_access_log"},(p:any)=>{
+        setRtEvents(prev=>[{...p.new,_new:true},...prev.slice(0,49)]);
+        setLogs(prev=>[p.new,...prev.slice(0,499)]);
+        setStats(prev=>({...prev,total:prev.total+1,blocked:p.new.status==="blocked"?prev.blocked+1:prev.blocked}));
+        logRef.current?.scrollTo(0,0);
+      })
+      .subscribe();
+    const iv = setInterval(load,30_000);
+    return ()=>{ db.removeChannel(ch); clearInterval(iv); };
+  },[load]);
 
-  // ── Whitelist actions ─────────────────────────────────────────────────────
-  async function addEntry() {
-    if(!form.label||!form.cidr){toast({title:"Label and CIDR required",variant:"destructive"});return;}
+  const saveRule = async() => {
+    if(!form.cidr.trim()){ toast({title:"IP/CIDR required",variant:"destructive"}); return; }
     setSaving(true);
-    const {error} = await (supabase as any).from("network_whitelist").insert({
-      ...form, active:true,  // always insert as active
-      created_by: user?.id,
-      created_at: new Date().toISOString()
-    });
-    if(error){toast({title:"Failed: "+error.message,variant:"destructive"});}
-    else{toast({title:`✅ "${form.label}" added and active`});}
-    setShowForm(false); setForm({label:"",cidr:"",type:"private",notes:"",active:true});
-    await load(); setSaving(false);
-  }
+    await db.from("network_whitelist").insert({...form,created_at:new Date().toISOString(),created_by:user?.id});
+    toast({title:"Rule added"}); setShowForm(false); setForm({label:"",cidr:"",type:"private",notes:"",active:true});
+    setSaving(false); load();
+  };
 
-  async function toggleEntry(id:string, active:boolean) {
-    await (supabase as any).from("network_whitelist").update({active}).eq("id",id);
-    setWhitelist(p=>p.map(e=>e.id===id?{...e,active}:e));
-    toast({title:active?"✅ Entry enabled — IP now allowed":"⚠️ Entry disabled — IP now blocked"});
-  }
+  const deleteRule  = async(id:string)=>{ await db.from("network_whitelist").delete().eq("id",id); toast({title:"Removed"}); load(); };
+  const toggleRule  = async(id:string,active:boolean)=>{ await db.from("network_whitelist").update({active:!active}).eq("id",id); load(); };
+  const blockIP     = async(ip:string)=>{ await db.from("network_whitelist").insert({cidr:ip,label:`Block ${ip}`,type:"blocked",active:true,notes:`Blocked ${new Date().toLocaleString("en-KE")}`,created_at:new Date().toISOString(),created_by:user?.id}); toast({title:`Blocked ${ip}`,variant:"destructive"}); load(); };
+  const allowIP     = async(ip:string)=>{ await db.from("network_whitelist").insert({cidr:ip,label:`Allow ${ip}`,type:"public",active:true,notes:`Allowed ${new Date().toLocaleString("en-KE")}`,created_at:new Date().toISOString(),created_by:user?.id}); toast({title:`Allowed ${ip}`}); load(); };
 
-  async function removeEntry(id:string, label:string) {
-    if(!confirm(`Remove "${label}" from whitelist? This will immediately block any users on this IP range.`)) return;
-    await (supabase as any).from("network_whitelist").delete().eq("id",id);
-    await load();
-    toast({title:`"${label}" removed from whitelist`});
-  }
+  const fmt    = (s:string)=>new Date(s).toLocaleString("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+  const fmtAgo = (s:string)=>{ const d=Date.now()-new Date(s).getTime(); return d<60000?`${Math.floor(d/1000)}s ago`:d<3600000?`${Math.floor(d/60000)}m ago`:`${Math.floor(d/3600000)}h ago`; };
 
-  async function saveSettings2() {
-    setSaving(true);
-    const res = await saveSettings(cfg);
-    if(res.ok) toast({title:"✅ IP settings saved & propagated to all users"});
-    else toast({title:"Save failed: "+res.error,variant:"destructive"});
-    setSaving(false);
-  }
-
-  // ── Resolve user name from UUID ────────────────────────────────────────────
-  function resolveUser(log:any): string {
-    if(log.user_id && profiles[log.user_id]) {
-      return profiles[log.user_id].full_name || profiles[log.user_id].email || log.user_email || "—";
-    }
-    if(log.user_email) return log.user_email;
-    return "Guest / Not logged in";
-  }
-
-  function resolveUserRole(log:any): string {
-    if(log.user_id && profiles[log.user_id]) return profiles[log.user_id].role || "";
-    return "";
-  }
-
-  // ── Filter logs ────────────────────────────────────────────────────────────
-  const filteredLogs = logs.filter(l=>{
-    if(logFilter==="allowed") return l.allowed;
-    if(logFilter==="denied") return !l.allowed;
-    return true;
-  });
-
-  // ── Active sessions: deduplicate logs to get unique live users ─────────────
-  const activeSessionMap: Record<string,any> = {};
-  logs.filter(l=>l.allowed&&l.user_id).forEach(l=>{
-    if(!activeSessionMap[l.user_id]){
-      activeSessionMap[l.user_id] = l;
-    }
-  });
-  const activeSessions = Object.values(activeSessionMap);
-
-  const wlActive = whitelist.filter(e=>e.active).length;
-  const allowed = logs.filter(l=>l.allowed).length;
-  const denied  = logs.filter(l=>!l.allowed).length;
-
-  const TABS = [
-    {id:"whitelist", label:"IP Whitelist", icon:Wifi,       badge:wlActive},
-    {id:"logs",      label:"Access Logs",  icon:Activity,   badge:logs.length},
-    {id:"sessions",  label:"Active Users", icon:UserCheck,  badge:activeSessions.length},
-    {id:"settings",  label:"Settings",     icon:Lock,       badge:0},
+  const TABS: {id:Tab;label:string;icon:any}[] = [
+    {id:"monitor",   label:"Live Monitor",    icon:Activity},
+    {id:"whitelist", label:"Rules",           icon:Shield},
+    {id:"logs",      label:"Access Logs",     icon:Database},
+    {id:"sessions",  label:"Sessions",        icon:Users},
+    {id:"settings",  label:"Settings",        icon:Monitor},
   ];
 
   return (
-    <RoleGuard allowed={["admin","database_admin"]}>
-      <div style={{minHeight:"100vh",background:"#f0f4f8",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{padding:20,minHeight:"100vh",background:T.bg}}>
+      <style>{`@keyframes ping{0%{transform:scale(1);opacity:.6}75%,100%{transform:scale(2.2);opacity:0}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-        {/* ── Header ── */}
-        <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"18px 24px",color:"#fff",display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:48,height:48,borderRadius:12,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <Shield style={{width:26,height:26,color:"#fff"}}/>
-          </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:20,fontWeight:800}}>IP Access Control</div>
-            <div style={{fontSize:12,opacity:.8}}>Network whitelist · Live session monitor · IP enforcement</div>
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {[{n:allowed,l:"Allowed",c:"#4ade80"},{n:denied,l:"Denied",c:"#f87171"},{n:wlActive,l:"Active Rules",c:"#93c5fd"},{n:activeSessions.length,l:"Live Users",c:"#fde68a"}].map((k,i)=>(
-              <div key={i} style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,0.15)"}}>
-                <div style={{fontSize:18,fontWeight:900,color:k.c}}>{k.n}</div>
-                <div style={{fontSize:9,opacity:.7,fontWeight:600}}>{k.l}</div>
-              </div>
-            ))}
-            <button onClick={load} style={B("rgba(255,255,255,0.15)","8px 12px")}><RefreshCw style={{width:14,height:14}}/></button>
-          </div>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
+        <Shield size={22} color={T.primary}/>
+        <div>
+          <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>IP Access Control & Network Monitor</h1>
+          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>Live public/private IP detection · Realtime activity · Block/allow rules</div>
         </div>
-
-        {/* ── Status banner ── */}
-        <div style={{background:cfg.ip_restriction_enabled==="true"?"#dcfce7":"#fef9c3",padding:"10px 24px",display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid",borderColor:cfg.ip_restriction_enabled==="true"?"#86efac":"#fde047"}}>
-          {cfg.ip_restriction_enabled==="true"
-            ?<CheckCircle style={{width:18,height:18,color:"#16a34a",flexShrink:0}}/>
-            :<AlertTriangle style={{width:18,height:18,color:"#d97706",flexShrink:0}}/>}
-          <span style={{fontSize:13,fontWeight:700,color:cfg.ip_restriction_enabled==="true"?"#15803d":"#92400e",flex:1}}>
-            IP Restriction: {cfg.ip_restriction_enabled==="true"?"ACTIVE — Unauthorized IPs are blocked":"DISABLED — All IPs are currently allowed"}
-          </span>
-          <button onClick={()=>setCfg(p=>({...p,ip_restriction_enabled:p.ip_restriction_enabled==="true"?"false":"true"}))}
-            style={B(cfg.ip_restriction_enabled==="true"?"#dc2626":"#059669","6px 16px")}>
-            {cfg.ip_restriction_enabled==="true"?"Disable Restriction":"Enable Restriction"}
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={detectMyIP} disabled={ipFetching} style={btn(T.bg2,T.border)}>
+            {ipFetching?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Globe size={13}/>}
+            {ipFetching?"Detecting...":"Detect IPs"}
           </button>
-          <button onClick={saveSettings2} disabled={saving} style={B("#1a3a6b","6px 16px")}>
-            <Save style={{width:12,height:12}}/>{saving?"Saving…":"Save"}
-          </button>
-        </div>
-
-        {/* ── Tabs ── */}
-        <div style={{padding:"0 24px",background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex",gap:0}}>
-          {TABS.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id as any)}
-              style={{display:"flex",alignItems:"center",gap:7,padding:"12px 18px",border:"none",borderBottom:tab===t.id?"3px solid #1a3a6b":"3px solid transparent",background:"transparent",cursor:"pointer",fontSize:13,fontWeight:tab===t.id?700:500,color:tab===t.id?"#1a3a6b":"#6b7280"}}>
-              <t.icon style={{width:14,height:14}}/>
-              {t.label}
-              {t.badge>0&&<span style={{background:tab===t.id?"#1a3a6b":"#e5e7eb",color:tab===t.id?"#fff":"#374151",borderRadius:10,padding:"1px 7px",fontSize:10,fontWeight:700}}>{t.badge}</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Content ── */}
-        <div style={{padding:"20px 24px"}}>
-
-          {/* ═══ WHITELIST ═══ */}
-          {tab==="whitelist"&&(
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div>
-                  <div style={{fontSize:15,fontWeight:700,color:"#111"}}>{whitelist.length} entries · {wlActive} active</div>
-                  <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>All active entries immediately allow matching IPs</div>
-                </div>
-                <button onClick={()=>setShowForm(true)} style={B()}>
-                  <Plus style={{width:14,height:14}}/> Add IP Range
-                </button>
-              </div>
-
-              {/* Add form */}
-              {showForm&&(
-                <div style={{background:"#f0f9ff",border:"1.5px solid #0369a1",borderRadius:12,padding:"16px 20px",marginBottom:16}}>
-                  <div style={{fontSize:14,fontWeight:700,color:"#0369a1",marginBottom:12}}>+ Add New IP Range</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:12}}>
-                    <div>
-                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Label *</label>
-                      <input value={form.label} onChange={e=>setForm(p=>({...p,label:e.target.value}))} placeholder="e.g. Hospital WiFi" style={inp}/>
-                    </div>
-                    <div>
-                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>CIDR Range *</label>
-                      <input value={form.cidr} onChange={e=>setForm(p=>({...p,cidr:e.target.value}))} placeholder="e.g. 192.168.1.0/24" style={{...inp,fontFamily:"monospace"}}/>
-                    </div>
-                    <div>
-                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Type</label>
-                      <select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} style={inp}>
-                        <option value="private">Private Network</option>
-                        <option value="public">Public IP</option>
-                        <option value="vpn">VPN</option>
-                        <option value="office">Office</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#374151",marginBottom:4}}>Notes</label>
-                      <input value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="Optional description" style={inp}/>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <div style={{padding:"6px 12px",borderRadius:8,background:"#dcfce7",border:"1px solid #86efac",fontSize:12,fontWeight:700,color:"#15803d",display:"flex",alignItems:"center",gap:5}}>
-                      <CheckCircle style={{width:13,height:13}}/> Will be active immediately
-                    </div>
-                    <div style={{marginLeft:"auto",display:"flex",gap:8}}>
-                      <button onClick={()=>{setShowForm(false);setForm({label:"",cidr:"",type:"private",notes:"",active:true});}} style={{...B("#6b7280"),background:"#fff",color:"#374151",border:"1px solid #d1d5db"}}>Cancel</button>
-                      <button onClick={addEntry} disabled={saving} style={B("#059669")}><Plus style={{width:13,height:13}}/>{saving?"Adding…":"Add & Activate"}</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Whitelist entries */}
-              {loading?<div style={{textAlign:"center",padding:40,color:"#6b7280"}}>Loading…</div>:(
-                <div style={{display:"grid",gap:8}}>
-                  {whitelist.length===0&&(
-                    <div style={{textAlign:"center",padding:60,color:"#9ca3af"}}>
-                      <Shield style={{width:40,height:40,color:"#d1d5db",display:"block",margin:"0 auto 12px"}}/>
-                      No whitelist entries yet. Add IP ranges to control access.
-                      <br/><button onClick={()=>setShowForm(true)} style={{...B(),display:"inline-flex",marginTop:12}}>Add First Entry</button>
-                    </div>
-                  )}
-                  {whitelist.map(e=>(
-                    <div key={e.id} style={{background:"#fff",borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:14,border:`1.5px solid ${e.active?"#e5e7eb":"#f3f4f6"}`,opacity:e.active?1:0.55,transition:"all 0.2s"}}>
-                      <div style={{width:38,height:38,borderRadius:9,background:e.active?"#dcfce7":"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        {e.type==="private"?<Wifi style={{width:18,height:18,color:e.active?"#059669":"#9ca3af"}}/>:<Globe style={{width:18,height:18,color:e.active?"#0369a1":"#9ca3af"}}/>}
-                      </div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <span style={{fontSize:14,fontWeight:700,color:"#111"}}>{e.label}</span>
-                          {e.active
-                            ?<span style={{padding:"1px 8px",borderRadius:10,background:"#dcfce7",color:"#15803d",fontSize:10,fontWeight:700,border:"1px solid #86efac"}}>● Active</span>
-                            :<span style={{padding:"1px 8px",borderRadius:10,background:"#f3f4f6",color:"#6b7280",fontSize:10,fontWeight:700}}>○ Disabled</span>
-                          }
-                        </div>
-                        <div style={{display:"flex",gap:12,marginTop:4,fontSize:12,color:"#6b7280",flexWrap:"wrap" as const}}>
-                          <span style={{fontFamily:"monospace",fontWeight:700,color:"#0369a1",fontSize:13}}>{e.cidr}</span>
-                          <span style={{padding:"1px 8px",borderRadius:8,background:e.type==="private"?"#e0f2fe":"#fef3c7",color:e.type==="private"?"#0369a1":"#d97706",fontWeight:600,fontSize:11,textTransform:"capitalize"}}>{e.type}</span>
-                          {e.notes&&<span style={{color:"#9ca3af"}}>{e.notes}</span>}
-                        </div>
-                      </div>
-                      <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
-                        <Toggle on={e.active} onChange={v=>toggleEntry(e.id,v)}/>
-                        <button onClick={()=>removeEntry(e.id,e.label)} style={B("#dc2626","6px 10px")}>
-                          <Trash2 style={{width:13,height:13}}/>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ═══ ACCESS LOGS ═══ */}
-          {tab==="logs"&&(
-            <div>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                <div style={{fontSize:15,fontWeight:700,color:"#111",flex:1}}>Access Log ({filteredLogs.length} records)</div>
-                <div style={{display:"flex",gap:4}}>
-                  {(["all","allowed","denied"] as const).map(f=>(
-                    <button key={f} onClick={()=>setLogFilter(f)}
-                      style={{padding:"5px 12px",borderRadius:16,border:`1.5px solid ${logFilter===f?"#1a3a6b":"#e5e7eb"}`,background:logFilter===f?"#1a3a6b":"#fff",color:logFilter===f?"#fff":"#374151",cursor:"pointer",fontSize:11,fontWeight:600,textTransform:"capitalize"}}>
-                      {f==="all"?`All (${logs.length})`:f==="allowed"?`Allowed (${allowed})`:`Denied (${denied})`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                        {["Time","IP Address","Network","Status","User Name","Role","Reason","Path"].map(h=>(
-                          <th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredLogs.length===0&&<tr><td colSpan={8} style={{textAlign:"center",padding:40,color:"#9ca3af"}}>No logs match filter</td></tr>}
-                      {filteredLogs.map(l=>(
-                        <tr key={l.id} style={{borderBottom:"1px solid #f3f4f6",background:l.allowed?"#fff":"#fff5f5"}}
-                          onMouseEnter={e=>(e.currentTarget.style.background=l.allowed?"#f0f9ff":"#ffe4e1")}
-                          onMouseLeave={e=>(e.currentTarget.style.background=l.allowed?"#fff":"#fff5f5")}>
-                          <td style={{padding:"7px 12px",color:"#6b7280",whiteSpace:"nowrap",fontSize:11}}>{new Date(l.created_at).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true})}</td>
-                          <td style={{padding:"7px 12px",fontFamily:"monospace",fontWeight:700,color:"#0369a1",fontSize:12}}>{l.ip_address}</td>
-                          <td style={{padding:"7px 12px"}}>
-                            <span style={{padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:700,background:l.network==="private"?"#e0f2fe":l.network==="localhost"?"#f0fdf4":"#fef3c7",color:l.network==="private"?"#0369a1":l.network==="localhost"?"#15803d":"#d97706"}}>{l.network||"unknown"}</span>
-                          </td>
-                          <td style={{padding:"7px 12px"}}>
-                            {l.allowed
-                              ?<span style={{padding:"2px 9px",borderRadius:10,fontSize:10,fontWeight:700,background:"#dcfce7",color:"#15803d",border:"1px solid #86efac"}}>✓ Allowed</span>
-                              :<span style={{padding:"2px 9px",borderRadius:10,fontSize:10,fontWeight:700,background:"#fee2e2",color:"#dc2626",border:"1px solid #fca5a5"}}>✗ Denied</span>
-                            }
-                          </td>
-                          {/* FIXED: Show name, not UUID */}
-                          <td style={{padding:"7px 12px",color:l.user_id?"#111":"#9ca3af",fontWeight:l.user_id?600:400,fontSize:12}}>
-                            {resolveUser(l)}
-                          </td>
-                          <td style={{padding:"7px 12px",fontSize:11}}>
-                            {resolveUserRole(l)
-                              ?<span style={{padding:"1px 7px",borderRadius:8,background:"#f0f9ff",color:"#0369a1",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{resolveUserRole(l).replace("_"," ")}</span>
-                              :<span style={{color:"#9ca3af"}}>—</span>
-                            }
-                          </td>
-                          <td style={{padding:"7px 12px",color:"#374151",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:11}} title={l.reason}>{l.reason||"—"}</td>
-                          <td style={{padding:"7px 12px",color:"#9ca3af",fontSize:11}}>{l.path||"—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ ACTIVE SESSIONS ═══ */}
-          {tab==="sessions"&&(
-            <div>
-              <div style={{fontSize:15,fontWeight:700,color:"#111",marginBottom:4}}>Active Sessions ({activeSessions.length})</div>
-              <div style={{fontSize:11,color:"#6b7280",marginBottom:14}}>Users currently or recently logged in — based on recent allowed IP log entries. Does not include logged-out users.</div>
-              <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                  <thead>
-                    <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                      {["User Name","Role","IP Address","Network","Last Seen","Location"].map(h=>(
-                        <th key={h} style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em"}}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeSessions.length===0&&<tr><td colSpan={6} style={{textAlign:"center",padding:40,color:"#9ca3af"}}>
-                      <Users style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
-                      No active sessions found (requires IP restriction to be logging)
-                    </td></tr>}
-                    {activeSessions.map((s,i)=>{
-                      const prof = profiles[s.user_id];
-                      return (
-                        <tr key={s.user_id} style={{borderBottom:"1px solid #f3f4f6"}}
-                          onMouseEnter={e=>(e.currentTarget.style.background="#f0f9ff")}
-                          onMouseLeave={e=>(e.currentTarget.style.background="#fff")}>
-                          <td style={{padding:"10px 14px",fontWeight:600,color:"#111"}}>{prof?.full_name||s.user_email||"Unknown"}</td>
-                          <td style={{padding:"10px 14px"}}>
-                            {prof?.role
-                              ?<span style={{padding:"2px 9px",borderRadius:10,background:"#e0f2fe",color:"#0369a1",fontSize:11,fontWeight:600,textTransform:"capitalize"}}>{prof.role.replace("_"," ")}</span>
-                              :<span style={{color:"#9ca3af"}}>—</span>
-                            }
-                          </td>
-                          <td style={{padding:"10px 14px",fontFamily:"monospace",fontWeight:700,color:"#0369a1"}}>{s.ip_address}</td>
-                          <td style={{padding:"10px 14px"}}>
-                            <span style={{padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:700,background:s.network==="private"?"#e0f2fe":"#fef3c7",color:s.network==="private"?"#0369a1":"#d97706"}}>{s.network}</span>
-                          </td>
-                          <td style={{padding:"10px 14px",color:"#6b7280",fontSize:11}}>{new Date(s.created_at).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true})}</td>
-                          <td style={{padding:"10px 14px",color:"#374151",fontSize:11}}>{s.path||"—"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ SETTINGS ═══ */}
-          {tab==="settings"&&(
-            <div style={{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",padding:"20px 24px",maxWidth:640}}>
-              <div style={{fontWeight:800,fontSize:15,color:"#1a3a6b",marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
-                <Lock style={{width:16,height:16}}/> IP Restriction Settings
-              </div>
-              {[
-                {k:"ip_restriction_enabled",l:"Enable IP Restriction",       s:"Block users from unauthorized IP ranges. Disable to allow all IPs."},
-                {k:"allow_all_private",      l:"Allow All Private Networks",  s:"Auto-allow 10.x, 192.168.x, 172.16.x. Recommended for hospital LAN."},
-                {k:"log_all_ips",            l:"Log All Access Attempts",     s:"Record every check in the access log. Needed for Active Sessions tab."},
-                {k:"revoke_on_ip_change",    l:"Revoke Session on IP Change", s:"Force re-login if a user's IP changes mid-session."},
-                {k:"force_network_check",    l:"Check on Every Page Load",    s:"Strict mode: verify IP on every page navigation (performance impact)."},
-              ].map(f=>(
-                <div key={f.k} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:"1px solid #f3f4f6",gap:16}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"#111"}}>{f.l}</div>
-                    <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{f.s}</div>
-                  </div>
-                  <Toggle on={cfg[f.k as keyof typeof cfg]==="true"} onChange={v=>setCfg(p=>({...p,[f.k]:v?"true":"false"}))}/>
-                </div>
-              ))}
-              <div style={{marginTop:16,display:"flex",gap:8}}>
-                <button onClick={saveSettings2} disabled={saving} style={B()}>
-                  <Save style={{width:13,height:13}}/>{saving?"Saving…":"Save & Apply Settings"}
-                </button>
-              </div>
-            </div>
-          )}
-
+          <button onClick={load} style={btn(T.bg2,T.border)}><RefreshCw size={13}/> Refresh</button>
+          <button onClick={()=>setShowForm(true)} style={btn(T.primary)}><Plus size={13}/> Add Rule</button>
         </div>
       </div>
-    </RoleGuard>
+
+      {/* ── IP Info Row ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
+        {/* Public IP */}
+        <div style={{...card,borderColor:myPublicIP?T.primary+"55":T.border}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <Globe size={16} color={T.primary}/><span style={{fontWeight:800,fontSize:13,color:T.fg}}>My Public IP</span>
+            <Pulse color={myPublicIP?T.success:T.fgDim}/>
+          </div>
+          {myPublicIP?(
+            <>
+              <div style={{fontSize:24,fontWeight:900,color:T.primary,fontFamily:"monospace",marginBottom:8}}>{myPublicIP}</div>
+              {ipGeo&&(
+                <div style={{fontSize:11,color:T.fgMuted,lineHeight:1.8}}>
+                  <div><MapPin size={10} style={{verticalAlign:"middle",marginRight:4}}/>{[ipGeo.city,ipGeo.region,ipGeo.country_name||ipGeo.country].filter(Boolean).join(", ")||"Unknown location"}</div>
+                  {(ipGeo.org||ipGeo.isp)&&<div><Signal size={10} style={{verticalAlign:"middle",marginRight:4}}/>{ipGeo.org||ipGeo.isp}</div>}
+                  {(ipGeo.latitude||ipGeo.lat)&&<div>📍 {(ipGeo.latitude||ipGeo.lat)?.toFixed(4)}°, {(ipGeo.longitude||ipGeo.lon)?.toFixed(4)}°</div>}
+                </div>
+              )}
+              <div style={{display:"flex",gap:6,marginTop:10}}>
+                <button onClick={()=>allowIP(myPublicIP)} style={{...btn(T.successBg,T.success),padding:"4px 10px",fontSize:10,color:T.success}}><Check size={10}/> Allow</button>
+                <button onClick={()=>blockIP(myPublicIP)} style={{...btn(T.errorBg,T.error),padding:"4px 10px",fontSize:10,color:T.error}}><Ban size={10}/> Block</button>
+              </div>
+            </>
+          ):<div style={{color:T.fgDim,fontSize:12}}>{ipFetching?"Detecting...":"Click 'Detect IPs'"}</div>}
+        </div>
+
+        {/* Private IPs */}
+        <div style={card}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <Network size={16} color="#7c3aed"/><span style={{fontWeight:800,fontSize:13,color:T.fg}}>Private / Local IPs</span>
+          </div>
+          {myPrivateIPs.length>0?myPrivateIPs.map(ip=>(
+            <div key={ip} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${T.border}22`}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:ip==="127.0.0.1"?T.fgDim:"#7c3aed",flexShrink:0}}/>
+              <code style={{fontSize:13,color:"#7c3aed",fontFamily:"monospace",flex:1}}>{ip}</code>
+              <span style={badge(ip==="127.0.0.1"?T.fgDim:"#7c3aed")}>{ip==="127.0.0.1"?"loopback":"private"}</span>
+              <button onClick={()=>allowIP(ip)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.success,padding:3}} title="Allow"><Check size={11}/></button>
+            </div>
+          )):<div style={{color:T.fgDim,fontSize:12}}>Detecting...</div>}
+        </div>
+
+        {/* Stats */}
+        <div style={card}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <TrendingUp size={16} color={T.accent}/><span style={{fontWeight:800,fontSize:13,color:T.fg}}>Statistics</span>
+          </div>
+          {[
+            {label:"Total Requests", value:stats.total,    color:T.fg},
+            {label:"Allowed",        value:stats.allowed,  color:T.success},
+            {label:"Blocked",        value:stats.blocked,  color:T.error},
+            {label:"Unique IPs",     value:stats.unique,   color:T.primary},
+            {label:"Active (30m)",   value:activeIPs.size, color:T.accent},
+            {label:"Rules",          value:whitelist.length,color:"#7c3aed"},
+          ].map(({label,value,color})=>(
+            <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${T.border}18`,fontSize:12}}>
+              <span style={{color:T.fgDim}}>{label}</span>
+              <span style={{color,fontWeight:700,fontFamily:"monospace"}}>{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:2,marginBottom:16,borderBottom:`1px solid ${T.border}`}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            display:"flex",alignItems:"center",gap:7,padding:"9px 16px",
+            background:"transparent",border:"none",
+            borderBottom:`2px solid ${tab===t.id?T.primary:"transparent"}`,
+            color:tab===t.id?T.primary:T.fgMuted,fontSize:13,fontWeight:700,cursor:"pointer",
+          }}>
+            <t.icon size={13}/>{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ MONITOR ══ */}
+      {tab==="monitor"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
+          <div style={card}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <Pulse color={T.success}/><span style={{fontWeight:800,fontSize:14,color:T.fg}}>Active IPs (last 30 min)</span>
+              <span style={badge(T.success)}>{activeIPs.size} active</span>
+            </div>
+            {activeIPs.size===0?(
+              <div style={{textAlign:"center",padding:40,color:T.fgDim}}><Activity size={32} color={T.fgDim} style={{display:"block",margin:"0 auto 10px"}}/> No recent activity</div>
+            ):(
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead>
+                  <tr style={{borderBottom:`1px solid ${T.border}`}}>
+                    {["IP Address","Type","User","Last Seen","Status","Actions"].map(h=>(
+                      <th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:T.fgDim}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...activeIPs.entries()].map(([ip,log])=>{
+                    const cls=classifyIP(ip);
+                    const profile=profiles[log.user_id];
+                    const isBlocked=blockedSet.has(ip);
+                    const clsColor=cls==="public"?T.primary:"#7c3aed";
+                    return(
+                      <tr key={ip} style={{borderBottom:`1px solid ${T.border}18`}}
+                        onMouseEnter={e=>(e.currentTarget.style.background=T.bg2)}
+                        onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+                        <td style={{padding:"8px 10px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7}}>
+                            <Pulse color={isBlocked?T.error:T.success}/>
+                            <code style={{fontSize:12,color:T.fg,fontFamily:"monospace"}}>{ip}</code>
+                          </div>
+                        </td>
+                        <td style={{padding:"8px 10px"}}><span style={badge(clsColor)}>{cls}</span></td>
+                        <td style={{padding:"8px 10px",fontSize:11,color:T.fg}}>{profile?.full_name||(log.user_id?.slice(0,8)||"—")}</td>
+                        <td style={{padding:"8px 10px",fontSize:10,color:T.fgDim}}>{fmtAgo(log.created_at)}</td>
+                        <td style={{padding:"8px 10px"}}><span style={badge(isBlocked?T.error:T.success)}>{isBlocked?"Blocked":"Active"}</span></td>
+                        <td style={{padding:"8px 10px"}}>
+                          {!isBlocked
+                            ?<button onClick={()=>blockIP(ip)} style={{...btn(T.errorBg,T.error),padding:"3px 8px",fontSize:10,color:T.error}}><Ban size={10}/> Block</button>
+                            :<button onClick={()=>allowIP(ip)} style={{...btn(T.successBg,T.success),padding:"3px 8px",fontSize:10,color:T.success}}><Check size={10}/> Allow</button>
+                          }
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Realtime stream */}
+          <div style={card}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+              <Radio size={14} color={T.accent}/><span style={{fontWeight:800,fontSize:13,color:T.fg}}>Live Stream</span>
+              <span style={{...badge(T.accent),fontSize:9,animation:"ping 2s infinite"}}>● LIVE</span>
+            </div>
+            <div ref={logRef} style={{height:500,overflowY:"auto",display:"flex",flexDirection:"column",gap:4}}>
+              {(rtEvents.length?rtEvents:logs.slice(0,30)).map((log,i)=>{
+                const cls=classifyIP(log.ip_address||"");
+                const clsColor=cls==="public"?T.primary:cls==="private"?"#7c3aed":T.fgDim;
+                const isBlocked=log.status==="blocked";
+                const profile=profiles[log.user_id];
+                return(
+                  <div key={i} style={{padding:"7px 10px",borderRadius:8,background:log._new&&i===0?`${T.primary}18`:T.bg2,border:`1px solid ${log._new&&i===0?T.primary+"44":T.border}`,animation:log._new&&i===0?"slideIn .3s":undefined}}>
+                    <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:2}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:isBlocked?T.error:T.success,flexShrink:0}}/>
+                      <code style={{fontSize:11,color:T.fg,fontFamily:"monospace",flex:1}}>{log.ip_address||"?"}</code>
+                      <span style={{fontSize:9,color:clsColor,fontWeight:700}}>{cls}</span>
+                      {isBlocked&&<span style={{fontSize:9,color:T.error,fontWeight:700}}>BLOCKED</span>}
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.fgDim}}>
+                      <span>{profile?.full_name||(log.user_id?log.user_id.slice(0,8)+"…":"anon")}{log.action?` · ${log.action}`:""}</span>
+                      <span>{fmtAgo(log.created_at)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ WHITELIST ══ */}
+      {tab==="whitelist"&&(
+        <div style={card}>
+          <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:14}}>Access Rules ({whitelist.length})</div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{borderBottom:`1px solid ${T.border}`}}>
+                {["Label","IP / CIDR","Type","Active","Notes","Added","Actions"].map(h=>(
+                  <th key={h} style={{padding:"7px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:T.fgDim}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {whitelist.map(w=>{
+                const tc=w.type==="blocked"?T.error:w.type==="private"?"#7c3aed":T.success;
+                return(
+                  <tr key={w.id} style={{borderBottom:`1px solid ${T.border}18`}}
+                    onMouseEnter={e=>(e.currentTarget.style.background=T.bg2)}
+                    onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+                    <td style={{padding:"9px 12px",fontWeight:600,color:T.fg}}>{w.label||"—"}</td>
+                    <td style={{padding:"9px 12px"}}><code style={{color:T.primary,fontFamily:"monospace"}}>{w.cidr}</code></td>
+                    <td style={{padding:"9px 12px"}}><span style={badge(tc)}>{w.type}</span></td>
+                    <td style={{padding:"9px 12px"}}>
+                      <button onClick={()=>toggleRule(w.id,w.active)} style={{background:"none",border:"none",cursor:"pointer",padding:0}}>
+                        <span style={{display:"inline-flex",width:36,height:20,borderRadius:10,background:w.active?T.success:T.error,alignItems:"center",padding:2,transition:"background .2s"}}>
+                          <span style={{width:16,height:16,borderRadius:"50%",background:"#fff",transition:"transform .2s",transform:w.active?"translateX(16px)":"translateX(0)",boxShadow:"0 1px 2px rgba(0,0,0,.3)"}}/>
+                        </span>
+                      </button>
+                    </td>
+                    <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.notes||"—"}</td>
+                    <td style={{padding:"9px 12px",fontSize:10,color:T.fgDim}}>{w.created_at?new Date(w.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td style={{padding:"9px 12px"}}>
+                      <button onClick={()=>deleteRule(w.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.error,padding:4}}><Trash2 size={13}/></button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ══ LOGS ══ */}
+      {tab==="logs"&&(
+        <div style={card}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <Database size={16} color={T.primary}/><span style={{fontWeight:800,fontSize:14,color:T.fg}}>Access Log ({logs.length} entries)</span>
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead>
+                <tr style={{borderBottom:`1px solid ${T.border}`,background:T.bg2}}>
+                  {["Time","IP Address","Type","User","Action","Status","UA"].map(h=>(
+                    <th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:T.fgDim,whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {logs.slice(0,200).map((log,i)=>{
+                  const cls=classifyIP(log.ip_address||"");
+                  const profile=profiles[log.user_id];
+                  return(
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}12`}}
+                      onMouseEnter={e=>(e.currentTarget.style.background=T.bg2)}
+                      onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+                      <td style={{padding:"5px 10px",color:T.fgDim,whiteSpace:"nowrap",fontSize:10}}>{fmt(log.created_at)}</td>
+                      <td style={{padding:"5px 10px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:5}}>
+                          <span style={{width:5,height:5,borderRadius:"50%",background:cls==="public"?T.primary:"#7c3aed",flexShrink:0}}/>
+                          <code style={{fontSize:11,color:T.fg,fontFamily:"monospace"}}>{log.ip_address||"—"}</code>
+                        </div>
+                      </td>
+                      <td style={{padding:"5px 10px"}}><span style={{fontSize:9,color:cls==="public"?T.primary:"#7c3aed",fontWeight:700}}>{cls}</span></td>
+                      <td style={{padding:"5px 10px",color:T.fg,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile?.full_name||(log.user_id?log.user_id.slice(0,8)+"…":"—")}</td>
+                      <td style={{padding:"5px 10px",color:T.fgMuted,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{log.action||"—"}</td>
+                      <td style={{padding:"5px 10px"}}><span style={badge(log.status==="blocked"?T.error:T.success)}>{log.status||"ok"}</span></td>
+                      <td style={{padding:"5px 10px",color:T.fgDim,fontSize:9,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={log.user_agent}>{log.user_agent?.slice(0,40)||"—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ══ SESSIONS ══ */}
+      {tab==="sessions"&&(
+        <div style={card}>
+          <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:14}}>User Sessions ({Object.keys(profiles).length})</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
+            {Object.values(profiles).map((p:any)=>{
+              const lastLog=logs.find(l=>l.user_id===p.id);
+              const ip=lastLog?.ip_address||"—";
+              const cls=ip!=="—"?classifyIP(ip):null;
+              return(
+                <div key={p.id} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:T.primary,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:13,fontWeight:800,color:"#fff"}}>{p.full_name?.[0]||"?"}</span>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:700,color:T.fg,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.full_name||"Unknown"}</div>
+                      <div style={{fontSize:9,color:T.fgDim}}>{p.email}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:10,color:T.fgMuted,display:"flex",flexDirection:"column",gap:3}}>
+                    <span>
+                      <Network size={9} style={{verticalAlign:"middle",marginRight:3}}/>{ip}
+                      {cls&&<span style={{...badge(cls==="public"?T.primary:"#7c3aed"),fontSize:8,marginLeft:5}}>{cls}</span>}
+                    </span>
+                    {lastLog&&<span><Clock size={9} style={{verticalAlign:"middle",marginRight:3}}/>{fmtAgo(lastLog.created_at)}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ══ SETTINGS ══ */}
+      {tab==="settings"&&(
+        <div style={{maxWidth:560}}>
+          <div style={card}>
+            <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:16}}>IP Restriction Settings</div>
+            {[
+              {key:"ip_restriction_enabled", label:"Enable IP Restriction",   desc:"Block IPs not on whitelist"},
+              {key:"allow_all_private",       label:"Allow All Private IPs",   desc:"Auto-allow 10.x, 192.168.x, 172.16.x"},
+              {key:"log_all_ips",             label:"Log All Access",           desc:"Record every IP access attempt"},
+              {key:"revoke_on_ip_change",     label:"Revoke Session on IP Change", desc:"Force re-auth if IP changes"},
+            ].map(({key,label,desc})=>{
+              const enabled=get(key,"false")!=="false";
+              return(
+                <div key={key} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 0",borderBottom:`1px solid ${T.border}22`}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{label}</div>
+                    <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>{desc}</div>
+                  </div>
+                  <button onClick={async()=>{
+                    await db.from("system_settings").upsert({key,value:enabled?"false":"true",category:"security"},{onConflict:"key"});
+                    toast({title:`${label}: ${enabled?"Disabled":"Enabled"}`});
+                  }} style={{background:"none",border:"none",cursor:"pointer",padding:0}}>
+                    <span style={{display:"inline-flex",width:44,height:24,borderRadius:12,background:enabled?T.success:T.border,alignItems:"center",padding:2,transition:"background .2s"}}>
+                      <span style={{width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform .2s",transform:enabled?"translateX(20px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ══ ADD RULE MODAL ══ */}
+      {showForm&&(
+        <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowForm(false)}>
+          <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,padding:28,width:500,animation:"fadeIn .2s"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+              <span style={{fontWeight:800,fontSize:15,color:T.fg}}>Add IP Rule</span>
+              <button onClick={()=>setShowForm(false)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.fgDim}}><X size={16}/></button>
+            </div>
+
+            {/* Quick fill */}
+            {(myPublicIP||myPrivateIPs.length>0)&&(
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:11,color:T.fgDim,marginBottom:6}}>Quick fill from detected IPs:</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {myPublicIP&&<button onClick={()=>setForm(fm=>({...fm,cidr:myPublicIP,label:`Public ${myPublicIP}`,type:"public"}))} style={{...btn(T.primary),padding:"4px 10px",fontSize:10}}>{myPublicIP}</button>}
+                  {myPrivateIPs.filter(ip=>ip!=="127.0.0.1").map(ip=><button key={ip} onClick={()=>setForm(fm=>({...fm,cidr:ip,label:`Private ${ip}`,type:"private"}))} style={{...btn("#7c3aed"),padding:"4px 10px",fontSize:10}}>{ip}</button>)}
+                </div>
+              </div>
+            )}
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div style={{gridColumn:"1/-1"}}><label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Label</label><input value={form.label} onChange={e=>f("label",e.target.value)} style={inp} placeholder="e.g. Hospital LAN"/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>IP / CIDR *</label><input value={form.cidr} onChange={e=>f("cidr",e.target.value)} style={inp} placeholder="192.168.1.0/24 or 203.1.2.3"/></div>
+              <div><label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Type</label>
+                <select value={form.type} onChange={e=>f("type",e.target.value)} style={inp}>
+                  <option value="private">Private (allow)</option>
+                  <option value="public">Public (allow)</option>
+                  <option value="blocked">Block</option>
+                  <option value="vpn">VPN</option>
+                </select>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:20}}>
+                <label style={{fontSize:11,color:T.fgDim}}>Active</label>
+                <input type="checkbox" checked={form.active} onChange={e=>f("active",e.target.checked)} style={{width:16,height:16,accentColor:T.primary}}/>
+              </div>
+              <div style={{gridColumn:"1/-1"}}><label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Notes</label><input value={form.notes} onChange={e=>f("notes",e.target.value)} style={inp} placeholder="Optional"/></div>
+            </div>
+
+            <div style={{display:"flex",gap:10,marginTop:18,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowForm(false)} style={btn(T.bg2,T.border)}>Cancel</button>
+              <button onClick={saveRule} disabled={saving} style={btn(T.primary)}>
+                {saving?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Save size={13}/>}
+                {saving?"Saving...":"Add Rule"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
+
+import type React from "react";

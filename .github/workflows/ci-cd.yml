@@ -36,12 +36,12 @@ permissions:
   actions: write
 
 env:
-  APP_VERSION: "5.8.0"
+  APP_VERSION: "5.9.0"
   NODE_VERSION: "20"
   VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
   VITE_SUPABASE_PROJECT_ID: "yvjfehnzbzjliizjvuhq"
-  VITE_APP_VERSION: "5.8.0"
+  VITE_APP_VERSION: "5.9.0"
   VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
   VITE_SYSTEM_NAME: "EL5 MediProcure"
   VITE_TWILIO_PHONE: "+16812972643"
@@ -104,7 +104,7 @@ jobs:
           VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_ANON_KEY }}
           VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
-          VITE_APP_VERSION=5.8.0
+          VITE_APP_VERSION=5.9.0
           VITE_HOSPITAL_NAME=Embu Level 5 Hospital
           VITE_SYSTEM_NAME=EL5 MediProcure
           VITE_TWILIO_PHONE=+16812972643
@@ -195,7 +195,7 @@ jobs:
           function createWindow() {
             mainWindow = new BrowserWindow({
               width: 1400, height: 900, minWidth: 1024, minHeight: 768,
-              title: 'ProcurBosse — EL5 MediProcure v5.8',
+              title: 'ProcurBosse — EL5 MediProcure v5.9',
               webPreferences: {
                 nodeIntegration: false, contextIsolation: true,
                 preload: path.join(__dirname, 'preload.js')
@@ -259,7 +259,7 @@ jobs:
             allowToChangeInstallationDirectory: true
             createDesktopShortcut: true
             createStartMenuShortcut: true
-            shortcutName: "ProcurBosse v5.8"
+            shortcutName: "ProcurBosse v5.9"
           asar: true
           extraResources:
             - from: dist
@@ -308,7 +308,7 @@ jobs:
 
       - name: "🚀 Deploy edge functions"
         run: |
-          for fn in send-email send-sms notify-requisition; do
+          for fn in send-email send-sms notify-requisition make-call mysql-proxy; do
             echo "⚡ Deploying $fn..."
             supabase functions deploy $fn \
               --project-ref yvjfehnzbzjliizjvuhq \
@@ -404,7 +404,7 @@ jobs:
 
             **Embu Level 5 Hospital · Embu County Government · Kenya**
 
-            ## ✨ v5.8 Highlights
+            ## ✨ v5.9 Highlights
             - Accountant workspace — invoice matching, GL journal, payment vouchers
             - Twilio SMS + WhatsApp integration (Africa-ready messaging)
             - Rebuilt notification system with bulk actions & realtime push

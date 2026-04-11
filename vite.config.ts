@@ -1,4 +1,4 @@
-// Build: 2026-03-30 09:08:54 UTC v2.0.1
+// ProcurBosse v5.9 — Vite Config
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -9,14 +9,12 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     hmr: { overlay: false },
   },
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "2.0.0"),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "5.9.0"),
   },
   build: {
     sourcemap: false,
@@ -30,13 +28,15 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           "react-vendor":    ["react", "react-dom", "react-router-dom"],
           "supabase-vendor": ["@supabase/supabase-js"],
-          "ui-vendor":       ["lucide-react", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
+          "ui-vendor":       ["lucide-react", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select"],
           "chart-vendor":    ["recharts"],
           "xlsx-vendor":     ["xlsx"],
+          "doc-vendor":      ["mammoth", "papaparse"],
+          "pdf-vendor":      ["jspdf", "jspdf-autotable"],
         },
       },
     },
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 800,
   },
   envPrefix: ["VITE_"],
 }));

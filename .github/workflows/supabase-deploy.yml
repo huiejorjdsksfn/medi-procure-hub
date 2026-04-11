@@ -82,5 +82,25 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
+      - name: "⚡ Deploy make-call"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy make-call \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ make-call deployed" || echo "⚠️ make-call skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy mysql-proxy"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy mysql-proxy \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ mysql-proxy deployed" || echo "⚠️ mysql-proxy skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
       - name: "✅ Deploy complete"
         run: echo "✅ Supabase deploy done — Project ${{ env.SUPABASE_PROJECT_REF }}"
