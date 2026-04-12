@@ -1,92 +1,116 @@
 /**
- * ProcurBosse — Global Design Tokens v5.9
- * Unified dark-navy ERP theme used across all pages
+ * ProcurBosse — D365/Power BI Design System v6.0
+ * Microsoft Dynamics 365 ERP aesthetic — white cards, blue ribbon, Segoe UI
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 
 export const T = {
-  // Surfaces
-  bg:       "#0a1628",
-  bg1:      "#0f1e35",
-  bg2:      "#111f38",
-  card:     "#132040",
-  cardHov:  "#1a2a50",
-  border:   "#1e3058",
-  borderHov:"#2a4070",
+  // ── Surfaces (light base, D365 style) ──────────────────────────────────────
+  bg:        "#f3f5f8",   // page background (very light grey)
+  bg1:       "#eef1f5",
+  bg2:       "#e8ecf1",
+  card:      "#ffffff",   // white cards
+  cardHov:   "#f8f9fb",
+  border:    "#dde1e7",
+  borderHov: "#c5cad3",
 
-  // Text
-  fg:       "#e8f0fe",
-  fgMuted:  "#7ea8d8",
-  fgDim:    "#3d5a80",
+  // ── Text ───────────────────────────────────────────────────────────────────
+  fg:        "#1a1a2e",   // near-black
+  fgMuted:   "#5a6475",
+  fgDim:     "#8d96a3",
 
-  // Brand
-  primary:  "#1b5fcc",
-  primaryHov:"#2468db",
-  accent:   "#f5a623",
-  accentHov:"#f7b84e",
+  // ── D365 Brand blue ────────────────────────────────────────────────────────
+  primary:    "#0078d4",  // Microsoft blue
+  primaryHov: "#106ebe",
+  primaryDark:"#005a9e",
+  primaryBg:  "#e8f4fd",
 
-  // Status
-  success:  "#10b981",
-  warning:  "#f59e0b",
-  error:    "#ef4444",
-  info:     "#38bdf8",
+  // ── Accent / orange ────────────────────────────────────────────────────────
+  accent:     "#d83b01",  // D365 orange-red
+  accentHov:  "#b83200",
+  accentBg:   "#fdf1ed",
 
-  // Status backgrounds
-  successBg:"rgba(16,185,129,.12)",
-  warningBg:"rgba(245,158,11,.12)",
-  errorBg:  "rgba(239,68,68,.12)",
-  infoBg:   "rgba(56,189,248,.12)",
+  // ── Status ─────────────────────────────────────────────────────────────────
+  success:    "#107c10",
+  successBg:  "#dff6dd",
+  warning:    "#d39a04",
+  warningBg:  "#fff4ce",
+  error:      "#a4262c",
+  errorBg:    "#fde7e9",
+  info:       "#0078d4",
+  infoBg:     "#e8f4fd",
 
-  // Module colors
-  procurement: "#1b5fcc",
-  finance:     "#7c3aed",
-  inventory:   "#059669",
-  quality:     "#d97706",
-  system:      "#475569",
-  comms:       "#0891b2",
-  vouchers:    "#c45911",
-  hr:          "#be185d",
+  // ── Module ribbon colors (D365 palette) ────────────────────────────────────
+  procurement:"#0078d4",   // blue
+  finance:    "#7719aa",   // purple
+  inventory:  "#038387",   // teal
+  quality:    "#498205",   // green
+  system:     "#00188f",   // dark blue
+  comms:      "#0072c6",   // lighter blue
+  vouchers:   "#d83b01",   // orange
+  hr:         "#b4009e",   // magenta
+  reports:    "#5c2d91",   // deep purple
 
-  // Radius
-  r:   8,
-  rLg: 12,
-  rXl: 16,
+  // ── Radius ─────────────────────────────────────────────────────────────────
+  r:    4,
+  rMd:  6,
+  rLg:  8,
+  rXl:  12,
 
-  // Shadow
-  shadow:    "0 4px 24px rgba(0,0,0,.4)",
-  shadowSm:  "0 2px 8px rgba(0,0,0,.3)",
-  shadowLg:  "0 8px 48px rgba(0,0,0,.6)",
+  // ── Shadow ─────────────────────────────────────────────────────────────────
+  shadow:    "0 2px 8px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)",
+  shadowMd:  "0 4px 16px rgba(0,0,0,0.12), 0 0 1px rgba(0,0,0,0.08)",
+  shadowLg:  "0 8px 32px rgba(0,0,0,0.16)",
 } as const;
 
-// CSS string helpers
-export const card = (extra = "") =>
-  `background:${T.card};border:1px solid ${T.border};border-radius:${T.rLg}px;${extra}`;
-
-export const btn = (color = T.primary) =>
-  `background:${color};color:#fff;border:none;border-radius:${T.r}px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:filter .15s;`;
-
+// ── Component helpers ─────────────────────────────────────────────────────────
 export const statusBadge = (status: string): React.CSSProperties => {
-  const map: Record<string, [string, string]> = {
+  const map: Record<string,[string,string]> = {
     active:    [T.success, T.successBg],
     approved:  [T.success, T.successBg],
     completed: [T.success, T.successBg],
     paid:      [T.success, T.successBg],
+    sent:      [T.success, T.successBg],
     pending:   [T.warning, T.warningBg],
-    draft:     [T.fgMuted, "rgba(126,168,216,.12)"],
+    draft:     [T.fgDim,   "#f0f1f3"],
     submitted: [T.info,    T.infoBg],
+    open:      [T.primary, T.primaryBg],
     rejected:  [T.error,   T.errorBg],
     cancelled: [T.error,   T.errorBg],
+    failed:    [T.error,   T.errorBg],
+    blocked:   [T.error,   T.errorBg],
     low:       [T.warning, T.warningBg],
     critical:  [T.error,   T.errorBg],
   };
-  const [color, bg] = map[status?.toLowerCase()] || [T.fgMuted, "rgba(126,168,216,.1)"];
+  const [color,bg] = map[status?.toLowerCase()] || [T.fgDim, "#f0f1f3"];
+  return { display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px",
+    borderRadius:T.r, fontSize:11, fontWeight:600, color, background:bg };
+};
+
+// D365-style card
+export const d365Card = (extra = ""): React.CSSProperties => ({
+  background: T.card, borderRadius: T.rLg, boxShadow: T.shadow,
+  border: `1px solid ${T.border}`, overflow:"hidden",
+});
+
+// D365-style button
+export const d365Btn = (variant: "primary"|"secondary"|"danger"|"ghost" = "primary", disabled = false): React.CSSProperties => {
+  const variants = {
+    primary:   { bg: T.primary,     color:"#fff",    border:T.primary },
+    secondary: { bg: "#fff",        color:T.primary, border:T.border  },
+    danger:    { bg: T.error,       color:"#fff",    border:T.error   },
+    ghost:     { bg: "transparent", color:T.primary, border:"transparent" },
+  };
+  const v = variants[variant];
   return {
-    display:"inline-flex", alignItems:"center", gap:5,
-    padding:"3px 10px", borderRadius:999,
-    fontSize:11, fontWeight:700,
-    color, background: bg,
-    border:`1px solid ${color}33`,
+    display:"inline-flex", alignItems:"center", gap:6,
+    padding:"6px 14px", borderRadius:T.r, fontSize:13, fontWeight:600,
+    background: disabled ? T.bg2 : v.bg,
+    color:      disabled ? T.fgDim : v.color,
+    border:     `1px solid ${disabled ? T.border : v.border}`,
+    cursor:     disabled ? "not-allowed" : "pointer",
+    transition: "all .12s",
   };
 };
 
-// Import guard
 import type React from "react";
