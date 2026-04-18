@@ -1,5 +1,5 @@
 /**
- * EL5 MediProcure — Network / IP Access Guard
+ * EL5 MediProcure  -- Network / IP Access Guard
  * 
  * Restricts system access to:
  *   1. Configured ALLOWED_PRIVATE_CIDRS (hospital LAN)
@@ -51,10 +51,10 @@ function isPrivateIP(ip: string): boolean {
 /**
  * Parse allowed network config from system_settings.
  * Keys:
- *   ip_restriction_enabled  — "true" / "false"
- *   allowed_private_cidrs   — comma-separated, e.g. "192.168.1.0/24,10.0.0.0/8"
- *   allowed_public_ips      — comma-separated public IPs / CIDRs
- *   allow_all_private        — "true" = any RFC-1918 address is ok
+ *   ip_restriction_enabled   -- "true" / "false"
+ *   allowed_private_cidrs    -- comma-separated, e.g. "192.168.1.0/24,10.0.0.0/8"
+ *   allowed_public_ips       -- comma-separated public IPs / CIDRs
+ *   allow_all_private         -- "true" = any RFC-1918 address is ok
  */
 export interface NetworkPolicy {
   enabled:         boolean;
@@ -75,15 +75,15 @@ export function parseNetworkPolicy(settings: Record<string, string>): NetworkPol
 export async function checkNetworkAccess(policy: NetworkPolicy): Promise<NetworkCheckResult> {
   const now = new Date().toISOString();
 
-  // Feature disabled → always allow
+  // Feature disabled -> always allow
   if (!policy.enabled) {
-    return { allowed: true, ip: "—", network: "unrestricted", reason: "IP restriction is disabled", checkedAt: now };
+    return { allowed: true, ip: " --", network: "unrestricted", reason: "IP restriction is disabled", checkedAt: now };
   }
 
   const ip = await getPublicIP();
   if (!ip) {
-    // Cannot detect IP — fail open (warn only) so VPN/proxy users aren't blocked silently
-    return { allowed: true, ip: "unknown", network: "unknown", reason: "Could not detect IP — access allowed with warning", checkedAt: now };
+    // Cannot detect IP  -- fail open (warn only) so VPN/proxy users aren't blocked silently
+    return { allowed: true, ip: "unknown", network: "unknown", reason: "Could not detect IP  -- access allowed with warning", checkedAt: now };
   }
 
   const isPriv = isPrivateIP(ip);
@@ -92,7 +92,7 @@ export async function checkNetworkAccess(policy: NetworkPolicy): Promise<Network
   // Private IP check
   if (isPriv) {
     if (policy.allowAllPrivate) {
-      return { allowed: true, ip, network: networkType, reason: "Private network (RFC-1918) — allowed", checkedAt: now };
+      return { allowed: true, ip, network: networkType, reason: "Private network (RFC-1918)  -- allowed", checkedAt: now };
     }
     if (policy.privateCIDRs.length && policy.privateCIDRs.some(c => ipInCIDR(ip, c))) {
       return { allowed: true, ip, network: networkType, reason: `IP ${ip} matched approved private CIDR`, checkedAt: now };

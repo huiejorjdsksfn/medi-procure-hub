@@ -1,5 +1,5 @@
 /**
- * D365 Theme helpers — re-export from main theme with component shortcuts
+ * D365 Theme helpers  -- re-export from main theme with component shortcuts
  */
 import { T } from "@/lib/theme";
 export { T };

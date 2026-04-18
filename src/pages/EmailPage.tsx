@@ -15,7 +15,7 @@ import {
   Gavel, Layers, BarChart3, Clock
 } from "lucide-react";
 
-/* ── Types ──────────────────────────────────────────────────── */
+/* -- Types ---------------------------------------------------- */
 interface Msg {
   id:string; dbId:string; source:"inbox"|"notification";
   type:string; subject:string; body:string;
@@ -26,7 +26,7 @@ interface Msg {
 }
 interface CtxMenu { x:number; y:number; msg:Msg; }
 
-/* ── Helpers ─────────────────────────────────────────────────── */
+/* -- Helpers --------------------------------------------------- */
 const TYPE_COLOR:Record<string,string>={
   email:"#0078d4",procurement:"#0078d4",grn:"#107c10",voucher:"#C45911",
   tender:"#1F6090",quality:"#498205",system:"#6b7280",info:"#0078d4",
@@ -55,7 +55,7 @@ const FOLDERS=[
   {id:"deleted",  label:"Deleted",  icon:Trash2,  },
 ];
 
-/* ── Component ───────────────────────────────────────────────── */
+/* -- Component ------------------------------------------------- */
 export default function EmailPage() {
   const { user, profile } = useAuth();
   const { get: getSetting } = useSystemSettings();
@@ -78,7 +78,7 @@ export default function EmailPage() {
   const [smtpStatus,  setSmtpStatus]  = useState<{mode:string;provider:string;ready:boolean}|null>(null);
   const ctxRef = useRef<HTMLDivElement>(null);
 
-  /* ── SMTP status ──────────────────────────────────────────── */
+  /* -- SMTP status -------------------------------------------- */
   useEffect(()=>{
     (supabase as any).from("system_settings").select("key,value")
       .in("key",["smtp_enabled","smtp_host","smtp_user","smtp_password","email_mode","resend_api_key","sendgrid_api_key","mailgun_api_key"])
@@ -93,7 +93,7 @@ export default function EmailPage() {
       }).catch(()=>setSmtpStatus({mode:"internal",provider:"Internal",ready:false}));
   },[]);
 
-  /* ── Load ─────────────────────────────────────────────────── */
+  /* -- Load --------------------------------------------------- */
   const load = useCallback(async()=>{
     if(!user) return;
     setLoading(true);
@@ -130,7 +130,7 @@ export default function EmailPage() {
 
   useEffect(()=>{ load(); },[load]);
 
-  /* ── Real-time ─────────────────────────────────────────────── */
+  /* -- Real-time ----------------------------------------------- */
   useEffect(()=>{
     if(!user) return;
     const ch=(supabase as any).channel(`email-rt-${user.id}`)
@@ -144,14 +144,14 @@ export default function EmailPage() {
     return ()=>(supabase as any).removeChannel(ch);
   },[user,load]);
 
-  /* ── Context menu close ──────────────────────────────────── */
+  /* -- Context menu close ------------------------------------ */
   useEffect(()=>{
     const h=(e:MouseEvent)=>{ if(ctxRef.current&&!ctxRef.current.contains(e.target as Node)) setCtx(null); };
     document.addEventListener("mousedown",h);
     return ()=>document.removeEventListener("mousedown",h);
   },[]);
 
-  /* ── Filtering ───────────────────────────────────────────── */
+  /* -- Filtering --------------------------------------------- */
   const filtered = msgs.filter(m=>{
     if(deletedIds.has(m.id)) return folder==="deleted";
     if(folder==="deleted") return false;
@@ -172,7 +172,7 @@ export default function EmailPage() {
 
   const unreadCount = msgs.filter(m=>!m.is_read&&!deletedIds.has(m.id)).length;
 
-  /* ── Actions ─────────────────────────────────────────────── */
+  /* -- Actions ----------------------------------------------- */
   const markRead = async(msg:Msg)=>{
     if(msg.is_read) return;
     if(msg.source==="inbox") await (supabase as any).from("inbox_items").update({status:"read"}).eq("id",msg.dbId);
@@ -184,7 +184,7 @@ export default function EmailPage() {
   const markUnread   = (msg:Msg) =>setMsgs(p=>p.map(m=>m.id===msg.id?{...m,is_read:false,status:"unread"}:m));
   const openMsg      = (msg:Msg) =>{ setSelected(msg); markRead(msg); setCtx(null); setReplyMode(false); setReplyBody(""); };
 
-  /* ── Send reply ──────────────────────────────────────────── */
+  /* -- Send reply -------------------------------------------- */
   const sendReply = async()=>{
     if(!selected||!replyBody.trim()||!user) return;
     setSending(true);
@@ -197,22 +197,22 @@ export default function EmailPage() {
         to_user_id:replyTo,type:"email",status:"sent",priority:"normal",
         thread_id:selected.thread_id||selected.dbId,module:"Email",
       });
-      toast({title:"Reply sent ✓"}); setReplyMode(false); setReplyBody(""); load();
+      toast({title:"Reply sent "}); setReplyMode(false); setReplyBody(""); load();
     } catch(e:any){ toast({title:"Failed",description:e.message,variant:"destructive"}); }
     setSending(false);
   };
 
-  /* ── Send composed message ───────────────────────────────── */
+  /* -- Send composed message --------------------------------- */
   const sendCompose = async(testMode=false)=>{
     const to = testMode ? (profile?.email||user?.email||"") : compose.to.trim();
     if(!to||(!testMode&&!compose.subject.trim())||!user){ toast({title:"Fill recipient and subject",variant:"destructive"}); return; }
     if(testMode) setTestSending(true); else setSending(true);
 
     try {
-      const subject = testMode ? `[TEST] EL5 MediProcure Email Test — ${new Date().toLocaleString("en-KE")}` : compose.subject;
+      const subject = testMode ? `[TEST] EL5 MediProcure Email Test  -- ${new Date().toLocaleString("en-KE")}` : compose.subject;
       const body    = testMode ? `This is a test email from EL5 MediProcure.\n\nSent by: ${profile?.full_name||"Staff"}\nTime: ${new Date().toLocaleString("en-KE")}\nMode: ${smtpStatus?.mode||"internal"} via ${smtpStatus?.provider||"Internal"}` : compose.body;
 
-      // 1. Always save to inbox_items (internal delivery — always works)
+      // 1. Always save to inbox_items (internal delivery  -- always works)
       const rec = await (supabase as any).from("profiles").select("id,full_name").eq("email",to).maybeSingle();
       if(rec.data) {
         await sendNotification({userId:rec.data.id,title:subject,message:body,type:"email",module:"Email",actionUrl:"/email",senderId:user.id});
@@ -226,7 +226,7 @@ export default function EmailPage() {
         });
       }
 
-      // 2. External delivery — only if mode = "external" (or internal+external)
+      // 2. External delivery  -- only if mode = "external" (or internal+external)
       const mode = smtpStatus?.mode || getSetting("email_mode","internal");
       if(mode==="external"||mode==="both") {
         try {
@@ -241,7 +241,7 @@ export default function EmailPage() {
               cc: compose.cc||undefined,
               subject,
               body,
-              html:`<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#374151;line-height:1.75">${body.replace(/\n/g,"<br/>")}</div><hr style="margin-top:24px;border:none;border-top:1px solid #e5e7eb"/><p style="font-size:11px;color:#9ca3af">Sent via ${getSetting("system_name","EL5 MediProcure")} · ${getSetting("hospital_name","Embu Level 5 Hospital")}</p>`,
+              html:`<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#374151;line-height:1.75">${body.replace(/\n/g,"<br/>")}</div><hr style="margin-top:24px;border:none;border-top:1px solid #e5e7eb"/><p style="font-size:11px;color:#9ca3af">Sent via ${getSetting("system_name","EL5 MediProcure")} * ${getSetting("hospital_name","Embu Level 5 Hospital")}</p>`,
               from_name: smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
               smtp: smtp.smtp_enabled==="true"&&smtp.smtp_host ? {
                 host:smtp.smtp_host, port:Number(smtp.smtp_port)||587,
@@ -254,16 +254,16 @@ export default function EmailPage() {
           });
           const d = fnData as any;
           if(fnErr||!d?.success) {
-            toast({title:testMode?"Test: Internal ✓, External ✗":"Saved internally — external delivery failed",description:fnErr?.message||d?.error||"Check SMTP/API settings",variant:testMode?"destructive":"default"});
+            toast({title:testMode?"Test: Internal , External ":"Saved internally  -- external delivery failed",description:fnErr?.message||d?.error||"Check SMTP/API settings",variant:testMode?"destructive":"default"});
           } else {
-            toast({title:testMode?`Test sent via ${d.provider||"SMTP"} ✓`:`Email sent via ${d.provider||"SMTP"} ✓`,description:`Delivered to ${to}`});
+            toast({title:testMode?`Test sent via ${d.provider||"SMTP"} `:`Email sent via ${d.provider||"SMTP"} `,description:`Delivered to ${to}`});
           }
         } catch(exErr:any){
           toast({title:"External send error",description:exErr.message,variant:"destructive"});
         }
       } else {
-        if(testMode) toast({title:"Test: Internal delivery ✓",description:"Enable 'Internal + External' mode in Settings → Email to test real SMTP"});
-        else toast({title:"Message sent ✓",description:"Internal delivery complete"});
+        if(testMode) toast({title:"Test: Internal delivery ",description:"Enable 'Internal + External' mode in Settings -> Email to test real SMTP"});
+        else toast({title:"Message sent ",description:"Internal delivery complete"});
       }
 
       if(!testMode){ setComposing(false); setCompose({to:"",cc:"",subject:"",body:"",priority:"normal"}); }
@@ -271,22 +271,22 @@ export default function EmailPage() {
     if(testMode) setTestSending(false); else setSending(false);
   };
 
-  /* ── Shared input style ──────────────────────────────────── */
+  /* -- Shared input style ------------------------------------ */
   const inp:React.CSSProperties={width:"100%",padding:"7px 11px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",color:"#1f1f1f",background:"#f8fafc",fontFamily:"inherit"};
 
-  /* ── Hover helpers ───────────────────────────────────────── */
+  /* -- Hover helpers ----------------------------------------- */
   const hoverBg = (e:React.MouseEvent, on:boolean, bg="#f0f0f0") => {
     (e.currentTarget as HTMLElement).style.background = on ? bg : "transparent";
   };
 
-  /* ──────────────────────────────────────────────────────────
+  /* ----------------------------------------------------------
       RENDER
-  ────────────────────────────────────────────────────────── */
+  ---------------------------------------------------------- */
   return (
     <div style={{display:"flex",height:"100%",background:"#f8fafc",fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
-      {/* ── LEFT SIDEBAR ────────────────────────────────────── */}
+      {/* -- LEFT SIDEBAR -------------------------------------- */}
       <div style={{width:210,flexShrink:0,background:"#f8fafc",borderRight:"1px solid #f1f5f9",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* Header */}
         <div style={{padding:"16px 16px 10px",borderBottom:"1px solid #e0e0e0"}}>
@@ -309,7 +309,7 @@ export default function EmailPage() {
             <div style={{marginTop:8,padding:"5px 8px",borderRadius:4,background:smtpStatus.ready?"#f0fff0":"#fff8f0",border:`1px solid ${smtpStatus.ready?"#86efac":"#fdba74"}`,display:"flex",alignItems:"center",gap:5}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:smtpStatus.ready?"#16a34a":"#d97706",flexShrink:0}}/>
               <span style={{fontSize:9.5,fontWeight:600,color:smtpStatus.ready?"#15803d":"#92400e",lineHeight:1.3}}>
-                {smtpStatus.ready?`${smtpStatus.provider} · ${smtpStatus.mode==="external"||smtpStatus.mode==="both"?"External Active":"Internal + External"}` : "SMTP Off — Internal Only"}
+                {smtpStatus.ready?`${smtpStatus.provider} * ${smtpStatus.mode==="external"||smtpStatus.mode==="both"?"External Active":"Internal + External"}` : "SMTP Off  -- Internal Only"}
               </span>
             </div>
           )}
@@ -362,7 +362,7 @@ export default function EmailPage() {
         </div>
       </div>
 
-      {/* ── MIDDLE: Message list ──────────────────────────────── */}
+      {/* -- MIDDLE: Message list -------------------------------- */}
       <div style={{width:300,flexShrink:0,borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",background:"#fff",height:"100%",overflow:"hidden"}}>
         {/* Header + search */}
         <div style={{padding:"12px 14px 8px",borderBottom:"1px solid #e0e0e0"}}>
@@ -386,7 +386,7 @@ export default function EmailPage() {
           {/* Search */}
           <div style={{position:"relative"}}>
             <Search style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",width:12,height:12,color:"#999"}}/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages…"
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages..."
               style={{...inp,paddingLeft:28,height:30,fontSize:12,background:"#f5f5f5",border:"1px solid #e0e0e0"}}/>
             {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",lineHeight:0}}>
               <X style={{width:11,height:11,color:"#999"}}/>
@@ -411,7 +411,7 @@ export default function EmailPage() {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto"}}>
           {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"28px",gap:8,color:"#999",fontSize:12}}>
-            <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading…
+            <RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>Loading...
           </div>}
           {!loading&&filtered.length===0&&<div style={{textAlign:"center",padding:"40px 16px",color:"#999"}}>
             <Mail style={{width:32,height:32,margin:"0 auto 10px",color:"#e0e0e0"}}/><div style={{fontSize:13,fontWeight:600,color:"#555"}}>No messages</div>
@@ -444,7 +444,7 @@ export default function EmailPage() {
                     <span style={{fontSize:9.5,color:"#999",flexShrink:0}}>{timeStr(msg.created_at)}</span>
                   </div>
                   <div style={{fontSize:11.5,fontWeight:msg.is_read?400:600,color:msg.is_read?"#555":"#1f1f1f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{msg.subject}</div>
-                  <div style={{fontSize:10.5,color:"#999",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:2}}>{msg.body.slice(0,55)}…</div>
+                  <div style={{fontSize:10.5,color:"#999",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:2}}>{msg.body.slice(0,55)}...</div>
                 </div>
                 {isStarred&&<Star style={{width:11,height:11,color:"#f59e0b",fill:"#f59e0b",flexShrink:0,marginTop:5}}/>}
               </div>
@@ -453,10 +453,10 @@ export default function EmailPage() {
         </div>
       </div>
 
-      {/* ── RIGHT: Reader / Compose / Empty ──────────────────── */}
+      {/* -- RIGHT: Reader / Compose / Empty -------------------- */}
       <div style={{flex:1,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",background:"#fff",position:"relative"}}>
 
-        {/* ── EMPTY STATE with procurement wallpaper ── */}
+        {/* -- EMPTY STATE with procurement wallpaper -- */}
         {!selected&&!composing&&(
           <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
             {/* Background */}
@@ -486,7 +486,7 @@ export default function EmailPage() {
                 <div style={{marginTop:28,padding:"10px 20px",borderRadius:6,background:"#e2e8f0",border:"1px solid #e2e8f0",display:"inline-flex",alignItems:"center",gap:8}}>
                   <div style={{width:7,height:7,borderRadius:"50%",background:smtpStatus.ready?"#4ade80":"#fbbf24"}}/>
                   <span style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>
-                    Email: {smtpStatus.ready?`${smtpStatus.provider} Active`:"Internal Only"} · {unreadCount} unread
+                    Email: {smtpStatus.ready?`${smtpStatus.provider} Active`:"Internal Only"} * {unreadCount} unread
                   </span>
                 </div>
               )}
@@ -494,7 +494,7 @@ export default function EmailPage() {
           </div>
         )}
 
-        {/* ── COMPOSE WINDOW ── */}
+        {/* -- COMPOSE WINDOW -- */}
         {composing&&(
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             {/* Compose header */}
@@ -539,20 +539,20 @@ export default function EmailPage() {
                 </div>
                 {/* Body */}
                 <textarea value={compose.body} onChange={e=>setCompose(p=>({...p,body:e.target.value}))}
-                  placeholder="Write your message here…" rows={12}
+                  placeholder="Write your message here..." rows={12}
                   style={{...inp,resize:"vertical",minHeight:220,marginTop:4}}/>
                 {/* Actions */}
                 <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center"}}>
                   <button onClick={()=>sendCompose(false)} disabled={sending||testSending}
                     style={{display:"flex",alignItems:"center",gap:7,padding:"9px 20px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:13,fontWeight:600,opacity:(sending||testSending)?0.7:1}}>
                     {sending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
-                    {sending?"Sending…":"Send"}
+                    {sending?"Sending...":"Send"}
                   </button>
                   <button onClick={()=>sendCompose(true)} disabled={sending||testSending}
                     title="Send test email to yourself to verify SMTP configuration"
                     style={{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",background:"#f8fafc",color:"#0078d4",border:"1px solid #0078d4",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:500,opacity:(sending||testSending)?0.7:1}}>
                     {testSending?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Activity style={{width:12,height:12}}/>}
-                    {testSending?"Testing…":"Test Send"}
+                    {testSending?"Testing...":"Test Send"}
                   </button>
                   <button onClick={()=>setComposing(false)}
                     style={{padding:"9px 14px",border:"1px solid #e0e0e0",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12,color:"#555"}}>
@@ -561,7 +561,7 @@ export default function EmailPage() {
                   {smtpStatus&&(
                     <div style={{marginLeft:"auto",fontSize:10.5,color:"#888",display:"flex",alignItems:"center",gap:5}}>
                       <div style={{width:6,height:6,borderRadius:"50%",background:smtpStatus.ready?"#22c55e":"#f59e0b"}}/>
-                      {smtpStatus.ready?`External via ${smtpStatus.provider}`:"Internal only — configure SMTP in Settings"}
+                      {smtpStatus.ready?`External via ${smtpStatus.provider}`:"Internal only  -- configure SMTP in Settings"}
                     </div>
                   )}
                 </div>
@@ -570,7 +570,7 @@ export default function EmailPage() {
           </div>
         )}
 
-        {/* ── EMAIL READER ── */}
+        {/* -- EMAIL READER -- */}
         {selected&&!composing&&(
           <>
             {/* Toolbar */}
@@ -643,7 +643,7 @@ export default function EmailPage() {
               <div style={{padding:"14px 20px",borderTop:"1px solid #e0e0e0",background:"#faf9f8"}}>
                 <div style={{fontSize:11.5,color:"#666",marginBottom:8}}>Replying to <strong style={{color:"#1f1f1f"}}>{selected.from_name}</strong></div>
                 <textarea value={replyBody} onChange={e=>setReplyBody(e.target.value)} rows={5}
-                  placeholder="Write your reply…" style={{...inp,resize:"none"}}/>
+                  placeholder="Write your reply..." style={{...inp,resize:"none"}}/>
                 <div style={{display:"flex",gap:8,marginTop:10}}>
                   <button onClick={sendReply} disabled={sending}
                     style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",background:"#0078d4",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:600,opacity:sending?0.7:1}}>
@@ -657,7 +657,7 @@ export default function EmailPage() {
         )}
       </div>
 
-      {/* ── CONTEXT MENU ──────────────────────────────────────── */}
+      {/* -- CONTEXT MENU ---------------------------------------- */}
       {ctx&&(
         <div ref={ctxRef} style={{position:"fixed",left:Math.min(ctx.x,window.innerWidth-210),top:Math.min(ctx.y,window.innerHeight-360),width:200,background:"#fff",borderRadius:4,border:"1px solid #e0e0e0",boxShadow:"0 8px 24px rgba(0,0,0,0.15)",zIndex:2000,overflow:"hidden",fontFamily:"'Segoe UI',sans-serif"}}>
           {[

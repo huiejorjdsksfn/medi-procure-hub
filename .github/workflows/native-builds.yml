@@ -1,0 +1,208 @@
+# ============================================================
+# EL5 MediProcure - Native Windows Builds
+# Builds C++ system agent + VB.NET companion app
+# Embu Level 5 Hospital | Kenya
+# ============================================================
+name: "Native Windows Builds"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 4.9.0)"
+        required: false
+        default: "4.9.0"
+      build_agent:
+        description: "Build C++ Agent"
+        required: false
+        default: "true"
+        type: boolean
+      build_companion:
+        description: "Build VB.NET Companion"
+        required: false
+        default: "true"
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "native/**"
+
+permissions:
+  contents: write
+
+env:
+  APP_VERSION: "4.9.0"
+  SUPABASE_HOST: "yvjfehnzbzjliizjvuhq.supabase.co"
+
+jobs:
+
+  #    JOB 1: C++ Native Agent                                              
+  build-cpp-agent:
+    name: "C++ Agent (Windows x64)"
+    runs-on: windows-latest
+    if: github.event.inputs.build_agent != 'false'
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup MinGW64 via MSYS2"
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-make
+
+      - name: "Build C++ Agent (Release)"
+        shell: msys2 {0}
+        run: |
+          VER="${{ github.event.inputs.version || env.APP_VERSION }}"
+          echo "Building procurbosse-agent v$VER"
+          cd native/agent
+          mkdir -p build && cd build
+          cmake .. -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" \
+            -DAGENT_VERSION="$VER" \
+            2>&1
+          cmake --build . --config Release 2>&1
+          ls -la bin/ 2>/dev/null || ls -la . 2>/dev/null || true
+
+      - name: "Verify agent binary"
+        shell: bash
+        run: |
+          AGENT=$(find native/agent/build -name "procurbosse-agent.exe" 2>/dev/null | head -1)
+          if [ -n "$AGENT" ]; then
+            echo "Agent built: $AGENT ($(du -h "$AGENT" | cut -f1))"
+            cp "$AGENT" "EL5-Agent-v${{ github.event.inputs.version || env.APP_VERSION }}-x64.exe" 2>/dev/null || true
+          else
+            echo "WARNING: agent binary not found - checking output..."
+            find native/agent/build -type f 2>/dev/null || true
+          fi
+        continue-on-error: true
+
+      - name: "Upload C++ Agent artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: el5-agent-v${{ github.event.inputs.version || env.APP_VERSION }}-cpp-x64
+          path: |
+            native/agent/build/bin/procurbosse-agent.exe
+            EL5-Agent-v*.exe
+          retention-days: 60
+        continue-on-error: true
+
+      - name: "Create Release for Agent"
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "native-v${{ github.event.inputs.version || env.APP_VERSION }}-agent-${{ github.run_number }}"
+          name: "EL5 Agent v${{ github.event.inputs.version || env.APP_VERSION }} (C++ Windows x64)"
+          draft: false
+          prerelease: false
+          body: |
+            ## EL5 MediProcure - Native System Agent
+            ### C++ Windows x64 | Embu Level 5 Hospital
+
+            **Purpose:** Reports hardware metrics (CPU, RAM, Disk) to Supabase every 30 seconds.
+            Enables real-time system health monitoring in the Admin Panel.
+
+            **Deploy:** Copy procurbosse-agent.exe to the hospital server and run it.
+            **Log:** procurbosse-agent.log in same directory.
+            **Build:** ${{ github.sha }} | Run #${{ github.run_number }}
+          files: |
+            native/agent/build/bin/procurbosse-agent.exe
+            EL5-Agent-v*.exe
+        continue-on-error: true
+
+  #    JOB 2: VB.NET Companion App                                         
+  build-vbnet-companion:
+    name: "VB.NET Companion (Windows x64)"
+    runs-on: windows-latest
+    if: github.event.inputs.build_companion != 'false'
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup .NET 8"
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: "Restore dependencies"
+        run: |
+          cd native/companion
+          dotnet restore ProcurBosseCompanion.vbproj
+          echo "Restore complete"
+
+      - name: "Build VB.NET Companion"
+        run: |
+          $VER = "${{ github.event.inputs.version || env.APP_VERSION }}"
+          cd native/companion
+          dotnet publish ProcurBosseCompanion.vbproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained false `
+            -p:PublishSingleFile=true `
+            -p:Version="$VER" `
+            -p:AssemblyVersion="$VER.0" `
+            -p:FileVersion="$VER.0" `
+            --output ..\..\dist-companion\
+          Write-Host "Publish complete"
+          dir ..\..\dist-companion\ 2>$null
+        shell: pwsh
+        continue-on-error: true
+
+      - name: "Rename companion EXE"
+        shell: bash
+        run: |
+          VER="${{ github.event.inputs.version || env.APP_VERSION }}"
+          EXE=$(ls dist-companion/*.exe 2>/dev/null | head -1)
+          if [ -n "$EXE" ]; then
+            mv "$EXE" "dist-companion/EL5-Companion-v${VER}-x64.exe"
+            echo "Renamed: $(ls dist-companion/)"
+          else
+            echo "No EXE found in dist-companion/"
+            ls dist-companion/ 2>/dev/null || echo "(empty)"
+          fi
+        continue-on-error: true
+
+      - name: "Upload Companion artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: el5-companion-v${{ github.event.inputs.version || env.APP_VERSION }}-vbnet-x64
+          path: dist-companion/
+          retention-days: 60
+        continue-on-error: true
+
+      - name: "Create Release for Companion"
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "native-v${{ github.event.inputs.version || env.APP_VERSION }}-companion-${{ github.run_number }}"
+          name: "EL5 Companion v${{ github.event.inputs.version || env.APP_VERSION }} (VB.NET Windows x64)"
+          draft: false
+          prerelease: false
+          body: |
+            ## EL5 MediProcure - Native Companion App
+            ### VB.NET Windows Forms x64 | Embu Level 5 Hospital
+
+            **Purpose:** IT administration tool for hospital staff.
+            Shows live session counts, system metrics, and recent user actions from Supabase.
+            Also starts/stops the C++ native agent.
+
+            **Requirements:** .NET 8 Runtime (Windows) - https://dotnet.microsoft.com/download/dotnet/8.0
+            **Web App:** https://procurbosse.edgeone.app
+            **Build:** ${{ github.sha }} | Run #${{ github.run_number }}
+          files: dist-companion/EL5-Companion-*.exe
+        continue-on-error: true

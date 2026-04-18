@@ -1,13 +1,13 @@
 /**
- * ProcurBosse — Requisition Workflow Engine v4.0
+ * ProcurBosse  -- Requisition Workflow Engine v4.0
  * Complete state machine for requisition lifecycle
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure * Embu Level 5 Hospital
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
 import { sendNotification, notifyProcurement, notifyAccountants, triggerRequisitionEvent } from '@/lib/notify';
 
-// ── Status definitions ────────────────────────────────────────────────────────
+// -- Status definitions --------------------------------------------------------
 export type RequisitionStatus =
   | 'draft' | 'submitted' | 'pending' | 'forwarded'
   | 'approved' | 'rejected' | 'cancelled'
@@ -23,7 +23,7 @@ export interface WorkflowResult {
   error?: string;
 }
 
-// ── State machine transitions ─────────────────────────────────────────────────
+// -- State machine transitions -------------------------------------------------
 const TRANSITIONS: Record<RequisitionStatus, Partial<Record<RequisitionAction, RequisitionStatus>>> = {
   draft:                { submit: 'submitted', cancel: 'cancelled' },
   submitted:            { approve: 'approved', reject: 'rejected', forward: 'forwarded', cancel: 'cancelled' },
@@ -38,7 +38,7 @@ const TRANSITIONS: Record<RequisitionStatus, Partial<Record<RequisitionAction, R
   closed:               {},
 };
 
-// ── Role-based action permissions ─────────────────────────────────────────────
+// -- Role-based action permissions ---------------------------------------------
 const ACTION_ROLES: Record<RequisitionAction, string[]> = {
   submit:         ['admin', 'requisitioner', 'procurement_officer', 'procurement_manager', 'accountant', 'inventory_manager', 'database_admin'],
   approve:        ['admin', 'procurement_manager'],
@@ -51,7 +51,7 @@ const ACTION_ROLES: Record<RequisitionAction, string[]> = {
   close:          ['admin', 'procurement_manager', 'accountant'],
 };
 
-// ── Core functions ────────────────────────────────────────────────────────────
+// -- Core functions ------------------------------------------------------------
 
 export function canTransition(currentStatus: string, action: RequisitionAction): boolean {
   const transitions = TRANSITIONS[currentStatus as RequisitionStatus];
@@ -77,7 +77,7 @@ export function canUserPerformAction(action: RequisitionAction, userRoles: strin
   return allowedRoles.some(role => userRoles.includes(role));
 }
 
-// ── Execute workflow transition ───────────────────────────────────────────────
+// -- Execute workflow transition -----------------------------------------------
 
 export async function executeRequisitionAction(
   requisitionId: string,
@@ -130,7 +130,7 @@ export async function executeRequisitionAction(
   return { success: true, newStatus };
 }
 
-// ── Notification dispatcher ───────────────────────────────────────────────────
+// -- Notification dispatcher ---------------------------------------------------
 
 async function dispatchRequisitionNotifications(
   action: RequisitionAction,
@@ -158,7 +158,7 @@ async function dispatchRequisitionNotifications(
       if (req.requested_by) {
         await sendNotification({
           userId: req.requested_by,
-          title: `Requisition ${reqNo} Approved ✓`,
+          title: `Requisition ${reqNo} Approved `,
           message: `Your requisition "${title}" has been approved by ${userName}`,
           type: 'success',
           module: 'Procurement',
@@ -167,7 +167,7 @@ async function dispatchRequisitionNotifications(
       }
       await notifyAccountants({
         title: `Budget Alert: ${reqNo} Approved`,
-        message: `Requisition "${title}" approved — track budget impact`,
+        message: `Requisition "${title}" approved  -- track budget impact`,
         type: 'voucher',
         module: 'Finance',
         actionUrl: '/accountant',
@@ -209,7 +209,7 @@ async function dispatchRequisitionNotifications(
   }
 }
 
-// ── Utility functions ─────────────────────────────────────────────────────────
+// -- Utility functions ---------------------------------------------------------
 
 export function calculateRequisitionTotal(items: { quantity: number; unit_price: number }[]): number {
   return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
@@ -226,7 +226,7 @@ export function needsApproval(totalAmount: number, threshold: number): boolean {
   return totalAmount >= threshold;
 }
 
-// ── Status display helpers ────────────────────────────────────────────────────
+// -- Status display helpers ----------------------------------------------------
 
 export const STATUS_CONFIG: Record<RequisitionStatus, { label: string; bg: string; color: string; dot: string }> = {
   draft:                { label: 'Draft',       bg: '#f1f5f9', color: '#475569', dot: '#94a3b8' },

@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — DB Live Monitor & Schema Viewer v2.0
- * Auto-refresh via LiveDatabaseEngine (60s) · Schema explorer · Twilio tests
- * Admin only · EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse  -- DB Live Monitor & Schema Viewer v2.0
+ * Auto-refresh via LiveDatabaseEngine (60s) * Schema explorer * Twilio tests
+ * Admin only * EL5 MediProcure * Embu Level 5 Hospital
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,7 +81,7 @@ export default function DbTestPage() {
   const [twilioDetail, setTwilioDetail] = useState<any>(null);
   const [twilioLoading, setTwilioLoading] = useState(false);
   const [smsPhone, setSmsPhone] = useState("+254116647894");
-  const [smsMsg, setSmsMsg] = useState("EL5 MediProcure test SMS — DB Monitor v5.9");
+  const [smsMsg, setSmsMsg] = useState("EL5 MediProcure test SMS  -- DB Monitor");
   const [smsSending, setSmsSending] = useState(false);
   const [smsRes, setSmsRes] = useState<any>(null);
   const [expGrps, setExpGrps] = useState(new Set(Object.keys(GC)));
@@ -107,23 +107,23 @@ export default function DbTestPage() {
 
   const runMig = async()=>{
     setMigrating(true);setMigLog([]);setMigDone(false);
-    addLog("🚀 Starting v5.9 migration...");
+    addLog(" Starting schema migration...");
     const stmts = MIGRATION_SQL.split(/;\s*\n/).map(s=>s.trim()).filter(s=>s.length>20);
     let ok=0,warn=0;
     for(const stmt of stmts){
       const preview = stmt.slice(0,55).replace(/\n/g," ");
       try{
         const{error}=await db.rpc("exec_sql_admin",{sql:stmt+";"});
-        if(!error||error.message?.includes("already exists")||error.message?.includes("duplicate")){addLog(`✅ ${preview}...`);ok++;}
-        else{addLog(`⚠️  ${preview}: ${error.message}`);warn++;}
-      }catch(e:any){addLog(`❌ ${e.message}`);warn++;}
+        if(!error||error.message?.includes("already exists")||error.message?.includes("duplicate")){addLog(`[OK] ${preview}...`);ok++;}
+        else{addLog(`[!]  ${preview}: ${error.message}`);warn++;}
+      }catch(e:any){addLog(`[X] ${e.message}`);warn++;}
     }
-    addLog("🔍 Verifying tables...");
+    addLog(" Verifying tables...");
     for(const t of ["categories","inspection_items","scan_log","email_messages","reception_appointments","supplier_scorecards","system_metrics","procurement_plan_items"]){
       const{error}=await db.from(t).select("id").limit(1);
-      addLog((!error||error.message?.includes("0 rows"))?`✅ ${t} OK`:`❌ ${t} MISSING — ${error?.message}`);
+      addLog((!error||error.message?.includes("0 rows"))?`[OK] ${t} OK`:`[X] ${t} MISSING  -- ${error?.message}`);
     }
-    addLog(`\n🏁 Done — ${ok} applied, ${warn} warnings.`);
+    addLog(`\n Done  -- ${ok} applied, ${warn} warnings.`);
     setMigDone(true);setMigrating(false);
     setTimeout(()=>liveDbEngine.forceRun(),500);
   };
@@ -168,11 +168,11 @@ export default function DbTestPage() {
         <Database size={26} color="#38bdf8"/>
         <div>
           <div style={{fontSize:20,fontWeight:800,color:"#f9fafb"}}>DB Live Monitor & Migration Runner</div>
-          <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Auto-cycles every 60s · Project: yvjfehnzbzjliizjvuhq · EL5 MediProcure v5.9</div>
+          <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Live monitoring * EL5 MediProcure ERP * EL5 MediProcure</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
           <span style={C.badge(running?"#22c55e":"#6b7280")}>{running?<><Activity size={10} style={{animation:"pulse 2s infinite"}}/> LIVE</>:<><Square size={10}/> PAUSED</>}</span>
-          {running&&snap&&<span style={C.badge("#94a3b8")}><Clock size={10}/> {cd}s · Run #{snap.runNumber}</span>}
+          {running&&snap&&<span style={C.badge("#94a3b8")}><Clock size={10}/> {cd}s * Run #{snap.runNumber}</span>}
           <button style={C.btn("#1d4ed8")} onClick={()=>{liveDbEngine.forceRun();setCd(60);}}><RefreshCw size={13}/> Run Now</button>
           <button style={C.btn(running?"#374151":"#16a34a")} onClick={()=>{if(running){liveDbEngine.stop();setRunning(false);}else{liveDbEngine.start(60_000);setRunning(true);setCd(60);}}}>
             {running?<><Square size={13}/> Pause</>:<><Play size={13}/> Start</>}
@@ -224,7 +224,7 @@ export default function DbTestPage() {
                   <div style={{width:8,height:8,borderRadius:"50%",background:GC[group]}}/>
                   <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{group}</span>
                   <span style={{fontSize:11,color:"#6b7280"}}>({gt.length})</span>
-                  {gt.length>0&&<><span style={C.badge("#22c55e")}>{gOk} ✓</span>{gt.length-gOk>0&&<span style={C.badge("#ef4444")}>{gt.length-gOk} ✗</span>}</>}
+                  {gt.length>0&&<><span style={C.badge("#22c55e")}>{gOk} </span>{gt.length-gOk>0&&<span style={C.badge("#ef4444")}>{gt.length-gOk} </span>}</>}
                 </div>
                 {isOpen&&gt.map(t=>(
                   <div key={t.table} style={C.row(t.ok)}>
@@ -232,7 +232,7 @@ export default function DbTestPage() {
                     <span style={{flex:1,fontSize:12,color:"#cbd5e1"}}>{t.table}</span>
                     <span style={{...C.mono,color:t.ms<300?"#22c55e":t.ms<1000?"#f59e0b":"#ef4444"}}>{t.ms}ms</span>
                     <span style={C.mono}>{t.rows.toLocaleString()}</span>
-                    {t.error&&<span style={{fontSize:10,color:"#ef4444",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={t.error}>⚠ {t.error}</span>}
+                    {t.error&&<span style={{fontSize:10,color:"#ef4444",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={t.error}>[!] {t.error}</span>}
                   </div>
                 ))}
                 {!snap&&isOpen&&<div style={{color:"#374151",fontSize:12,padding:"8px 0"}}>Waiting for first cycle...</div>}
@@ -247,7 +247,7 @@ export default function DbTestPage() {
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
               <Activity size={14} color="#22c55e"/>
               <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>Realtime Events</span>
-              <span style={{...C.badge("#22c55e"),fontSize:9,animation:"pulse 2s infinite"}}>● LIVE</span>
+              <span style={{...C.badge("#22c55e"),fontSize:9,animation:"pulse 2s infinite"}}> LIVE</span>
             </div>
             <div style={{maxHeight:240,overflowY:"auto",minHeight:80}}>
               {rtEvents.length===0?<div style={{color:"#374151",fontSize:12,textAlign:"center",padding:"20px 0"}}><Wifi size={16} color="#1f2937" style={{display:"block",margin:"0 auto 6px"}}/> Listening...</div>
@@ -281,7 +281,7 @@ export default function DbTestPage() {
           </div>
 
           {snap&&<div style={{...C.card,fontSize:11}}>
-            {[["Run #",snap.runNumber],["Timestamp",new Date(snap.timestamp).toLocaleTimeString("en-KE",{timeZone:"Africa/Nairobi"})],["DB Ping",`${snap.dbLatency}ms`],["Realtime",snap.realtimeConnected?"✅ ON":"❌ OFF"],["Twilio",snap.twilioStatus]].map(([k,v])=>(
+            {[["Run #",snap.runNumber],["Timestamp",new Date(snap.timestamp).toLocaleTimeString("en-KE",{timeZone:"Africa/Nairobi"})],["DB Ping",`${snap.dbLatency}ms`],["Realtime",snap.realtimeConnected?"[OK] ON":"[X] OFF"],["Twilio",snap.twilioStatus]].map(([k,v])=>(
               <div key={String(k)} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #1f2937"}}>
                 <span style={{color:"#6b7280"}}>{k}</span>
                 <span style={{color:"#94a3b8",fontFamily:"monospace"}}>{v}</span>
@@ -314,7 +314,7 @@ export default function DbTestPage() {
                   {h&&<span style={C.badge(h.ms<300?"#22c55e":"#f59e0b")}>{h.ms}ms</span>}
                   {h&&<span style={C.badge(GC[h.group]||"#6b7280")}>{h.group}</span>}
                 </div>
-                {h?.error&&<div style={{fontSize:10,color:"#ef4444",marginTop:6,fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={h.error}>⚠ {h.error}</div>}
+                {h?.error&&<div style={{fontSize:10,color:"#ef4444",marginTop:6,fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={h.error}>[!] {h.error}</div>}
               </div>
             );
           })}
@@ -334,7 +334,7 @@ export default function DbTestPage() {
             <span style={{fontWeight:700,fontSize:14,color:"#f1f5f9"}}>Twilio Live Status</span>
             <span style={C.badge(twilioStatus==="active"?"#22c55e":twilioStatus==="degraded"?"#f59e0b":"#ef4444")}>{twilioStatus.toUpperCase()}</span>
           </div>
-          {[["Account SID","ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a"],["Auth Token","d73601fb•••••••••••"],["SMS From","+16812972643"],["WhatsApp","+14155238886"],["Join Code","join bad-machine"],["Msg Service","MGd547d8e3273fda2d21afdd6856acb245"],["Africa's Talking","Fallback active"],["Inbound webhook","?webhook=inbound"],["Session renewal","Auto every 24h"]].map(([k,v])=>(
+          {[["Account SID","Configured"],["Auth Token","d73601fb***********"],["SMS From","+16812972643"],["WhatsApp","+14155238886"],["Join Code","Active"],["Msg Service","Configured"],["Africa's Talking","Fallback active"],["Inbound webhook","?webhook=inbound"],["Session renewal","Auto every 24h"]].map(([k,v])=>(
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #1f2937",fontSize:12}}>
               <span style={{color:"#6b7280"}}>{k}</span>
               <span style={{color:"#94a3b8",fontFamily:"monospace"}}>{v}</span>
@@ -376,7 +376,7 @@ export default function DbTestPage() {
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
               <SI ok={smsRes?.ok}/>
               <span style={{fontWeight:700,fontSize:13,color:smsRes?.ok?"#22c55e":"#ef4444"}}>
-                {smsRes?.ok?`✅ Sent via ${smsRes?.results?.[0]?.provider||"twilio"}`:`❌ ${smsRes?.error||"Failed"}`}
+                {smsRes?.ok?`[OK] Sent via ${smsRes?.results?.[0]?.provider||"twilio"}`:`[X] ${smsRes?.error||"Failed"}`}
               </span>
             </div>
             <pre style={{fontSize:10,fontFamily:"monospace",color:"#6b7280",margin:0,whiteSpace:"pre-wrap"}}>{JSON.stringify(smsRes,null,2)}</pre>
@@ -385,7 +385,7 @@ export default function DbTestPage() {
           <div style={{marginTop:16,padding:"12px 14px",background:"#0f172a",borderRadius:8,fontSize:11,lineHeight:1.9}}>
             <div style={{color:"#374151",fontWeight:700,marginBottom:6}}>Twilio Activation Status</div>
             {["send-sms edge function: DEPLOYED","Africa's Talking fallback: READY","Inbound webhook: ACTIVE","WhatsApp join flow: ACTIVE","Session auto-renewal: ENABLED","EL5H Messaging SID: ACTIVE"].map(s=>(
-              <div key={s} style={{color:"#22c55e"}}>✅ {s}</div>
+              <div key={s} style={{color:"#22c55e"}}>[OK] {s}</div>
             ))}
           </div>
         </div>
@@ -396,11 +396,11 @@ export default function DbTestPage() {
         <div style={C.card}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
             <Zap size={16} color="#f59e0b"/>
-            <span style={{fontWeight:700,fontSize:14,color:"#f1f5f9"}}>v5.9 Migration Runner</span>
-            {migDone&&<span style={C.badge("#22c55e")}>✅ Complete</span>}
+            <span style={{fontWeight:700,fontSize:14,color:"#f1f5f9"}}>Migration Runner</span>
+            {migDone&&<span style={C.badge("#22c55e")}>[OK] Complete</span>}
           </div>
           <div style={{fontSize:12,color:"#6b7280",marginBottom:14,lineHeight:1.7}}>
-            Creates 12 missing tables · Patches 6 existing tables · Adds indexes · Enables RLS. All idempotent.
+            Creates 12 missing tables * Patches 6 existing tables * Adds indexes * Enables RLS. All idempotent.
           </div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <button style={C.btn("#f59e0b",migrating)} onClick={runMig} disabled={migrating}>
@@ -411,7 +411,7 @@ export default function DbTestPage() {
           </div>
           <div ref={logRef} style={{background:"#0a0f1e",borderRadius:8,padding:14,height:420,overflowY:"auto",fontSize:11,fontFamily:"monospace",lineHeight:1.8}}>
             {migLog.length===0?<span style={{color:"#374151"}}>Click "Push Migration" to start...</span>
-              :migLog.map((line,i)=><div key={i} style={{color:line.startsWith("✅")?"#22c55e":line.startsWith("❌")?"#ef4444":line.startsWith("⚠️")?"#f59e0b":line.startsWith("🚀")||line.startsWith("🏁")||line.startsWith("🔍")?"#38bdf8":"#6b7280"}}>{line}</div>)}
+              :migLog.map((line,i)=><div key={i} style={{color:line.startsWith("[OK]")?"#22c55e":line.startsWith("[X]")?"#ef4444":line.startsWith("[!]")?"#f59e0b":line.startsWith("")||line.startsWith("")||line.startsWith("")?"#38bdf8":"#6b7280"}}>{line}</div>)}
           </div>
         </div>
 

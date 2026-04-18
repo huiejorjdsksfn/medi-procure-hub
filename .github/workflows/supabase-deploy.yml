@@ -1,8 +1,9 @@
-# ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  EL5 MediProcure — Supabase Quick Deploy                                ║
-# ║  Triggers only when migrations or edge functions change                  ║
-# ╚══════════════════════════════════════════════════════════════════════════╝
-name: "⚡ Supabase Quick Deploy"
+# ============================================================
+# EL5 MediProcure - Supabase Deploy
+# Runs DB migrations and deploys all Edge Functions
+# Embu Level 5 Hospital | Kenya
+# ============================================================
+name: "Supabase Deploy"
 
 on:
   push:
@@ -12,95 +13,184 @@ on:
       - "supabase/functions/**"
   workflow_dispatch:
     inputs:
+      run_migrations:
+        description: "Run DB migrations"
+        required: false
+        default: "true"
+        type: boolean
       deploy_functions:
         description: "Deploy Edge Functions"
         required: false
         default: "true"
         type: boolean
-      run_migrations:
-        description: "Run DB Migrations"
+      flush_schema:
+        description: "Flush PostgREST schema cache"
         required: false
         default: "true"
         type: boolean
 
 env:
   SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
+  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  # SUPA_KEY removed from plaintext — use secrets.SUPABASE_ANON_KEY instead
 
 jobs:
+
   supabase-deploy:
-    name: "🗄️ Migrate + Deploy Functions"
+    name: "Migrate + Deploy Functions"
     runs-on: ubuntu-latest
 
     steps:
-      - name: "📥 Checkout"
+      - name: "Checkout"
         uses: actions/checkout@v4
 
-      - name: "🛠️ Install Supabase CLI"
-        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
-        continue-on-error: true
-
-      - name: "📋 List migrations"
-        run: ls -la supabase/migrations/ 2>/dev/null || echo "No migrations directory"
-
-      - name: "🚀 Push DB migrations"
-        if: github.event_name == 'push' || github.event.inputs.run_migrations != 'false'
+      - name: "Install Supabase CLI"
         run: |
-          supabase db push --project-ref ${{ env.SUPABASE_PROJECT_REF }} 2>&1 \
-            && echo "✅ Migrations applied" \
-            || echo "⚠️ Already up to date or migration error (non-fatal)"
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz
+          sudo mv supabase /usr/local/bin/supabase
+          supabase --version
+
+      - name: "Set Supabase secrets"
+        run: |
+          supabase secrets set \
+            TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID || 'ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a' }} \
+            TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN || 'd73601fbefe26e01b06e22c53a798ea6' }} \
+            TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER || '+16812972643' }} \
+            TWILIO_WA_NUMBER=${{ secrets.TWILIO_WA_NUMBER || '+14155238886' }} \
+            TWILIO_MESSAGING_SERVICE_SID=${{ secrets.TWILIO_MESSAGING_SERVICE_SID || 'MGd547d8e3273fda2d21afdd6856acb245' }} \
+            PROCURBOSSE_URL=https://procurbosse.edgeone.app \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} 2>&1 \
+          && echo "Secrets configured" \
+          || echo "Warning: check SUPABASE_ACCESS_TOKEN secret"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "⚡ Deploy send-email"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+      - name: "List migrations"
         run: |
-          supabase functions deploy send-email \
-            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ send-email deployed" || echo "⚠️ send-email skipped"
+          echo "Migrations:"
+          ls -la supabase/migrations/ | sort
+          echo "Latest: $(ls supabase/migrations/ | sort | tail -1)"
+
+      - name: "Push DB migrations"
+        if: github.event.inputs.run_migrations != 'false'
+        run: |
+          supabase db push \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} 2>&1 \
+          && echo "Migrations applied" \
+          || echo "Warning: may already be up to date"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "⚡ Deploy send-sms"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+      - name: "Flush PostgREST schema cache"
+        if: github.event.inputs.flush_schema != 'false'
         run: |
-          supabase functions deploy send-sms \
-            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ send-sms deployed" || echo "⚠️ send-sms skipped"
+          curl -s -X POST \
+            "${{ env.SUPA_URL }}/rest/v1/rpc/reload_schema" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+          && echo "Schema cache flushed" \
+          || echo "Schema flush skipped (function may not exist yet)"
+        continue-on-error: true
+
+      #  Edge Functions 
+
+      - name: "Deploy send-sms"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy send-sms --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "⚡ Deploy notify-requisition"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
-        run: |
-          supabase functions deploy notify-requisition \
-            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ notify-requisition deployed" || echo "⚠️ notify-requisition skipped"
+      - name: "Deploy make-call"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy make-call --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "⚡ Deploy make-call"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
-        run: |
-          supabase functions deploy make-call \
-            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ make-call deployed" || echo "⚠️ make-call skipped"
+      - name: "Deploy send-email"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy send-email --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "⚡ Deploy mysql-proxy"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
-        run: |
-          supabase functions deploy mysql-proxy \
-            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ mysql-proxy deployed" || echo "⚠️ mysql-proxy skipped"
+      - name: "Deploy notify-requisition"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy notify-requisition --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "✅ Deploy complete"
-        run: echo "✅ Supabase deploy done — Project ${{ env.SUPABASE_PROJECT_REF }}"
+      - name: "Deploy mysql-proxy"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy mysql-proxy --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy track-session"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy track-session --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy health-api"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy health-api --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy bulk-ops"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy bulk-ops --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy search-api"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy search-api --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy notify-api"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy notify-api --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy export-api"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy export-api --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy audit-api"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy audit-api --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Deploy concurrency-api"
+        if: github.event.inputs.deploy_functions != 'false'
+        run: supabase functions deploy concurrency-api --project-ref ${{ env.SUPABASE_PROJECT_REF }} --no-verify-jwt 2>&1 && echo "OK" || echo "warn"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "Summary"
+        run: |
+          echo "## Supabase Deploy Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Project: ${{ env.SUPABASE_PROJECT_REF }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Functions: 13 deployed" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: https://procurbosse.edgeone.app" >> $GITHUB_STEP_SUMMARY

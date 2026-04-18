@@ -1,4 +1,4 @@
-/** EL5 MediProcure v5.8 — Workflow Optimization Engine */
+/** EL5 MediProcure v5.8  -- Workflow Optimization Engine */
 export interface WorkflowStep { id: string; name: string; approverRole: string; timeoutHours: number; autoApprove?: boolean; }
 export interface AutoApprovalRule { maxAmount: number; supplierTrustLevel: string; enabled: boolean; }
 export interface EscalationRule { department: string; escalateAfterHours: number; escalateTo: string; }

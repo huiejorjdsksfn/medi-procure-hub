@@ -29,7 +29,7 @@ export interface NotifyPayload {
   actionUrlFull?: string;   // full URL for email links
 }
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+// -- Internal helpers ----------------------------------------------------------
 
 async function getUserEmail(userId: string): Promise<string | null> {
   try {
@@ -57,7 +57,7 @@ async function getSettingBool(key: string, defaultVal = false): Promise<boolean>
   } catch { return defaultVal; }
 }
 
-// ── Edge function callers ─────────────────────────────────────────────────────
+// -- Edge function callers -----------------------------------------------------
 
 async function callSendEmail(to: string, subject: string, body: string, actionUrl?: string): Promise<boolean> {
   try {
@@ -84,7 +84,7 @@ async function callSendSms(to: string, message: string, module = "system"): Prom
   } catch (e: any) { console.warn("[notify] send-sms exception:", e.message); return false; }
 }
 
-// ── Core sendNotification ─────────────────────────────────────────────────────
+// -- Core sendNotification -----------------------------------------------------
 
 export async function sendNotification(payload: NotifyPayload): Promise<void> {
   try {
@@ -130,7 +130,7 @@ export async function sendNotification(payload: NotifyPayload): Promise<void> {
         const toEmail = payload.toEmail
           || (payload.userId ? await getUserEmail(payload.userId) : null);
         if (toEmail) {
-          const body = `${payload.message}\n\n—\nEL5 MediProcure · Embu Level 5 Hospital`;
+          const body = `${payload.message}\n\n --\nEL5 MediProcure * Embu Level 5 Hospital`;
           await callSendEmail(
             toEmail,
             payload.subject || payload.title,
@@ -160,7 +160,7 @@ export async function sendNotification(payload: NotifyPayload): Promise<void> {
   }
 }
 
-// ── Bulk helpers ──────────────────────────────────────────────────────────────
+// -- Bulk helpers --------------------------------------------------------------
 
 export async function notifyAdmins(payload: Omit<NotifyPayload, "userId">): Promise<void> {
   try {
@@ -203,7 +203,7 @@ export async function notifyRole(roles: string[], payload: Omit<NotifyPayload, "
   } catch (e: any) { console.warn("[notify] notifyRole:", e.message); }
 }
 
-// ── External email shorthand ──────────────────────────────────────────────────
+// -- External email shorthand --------------------------------------------------
 
 export async function sendExternalEmail(
   toEmail: string,
@@ -216,7 +216,7 @@ export async function sendExternalEmail(
   return callSendEmail(toEmail, subject, body, options?.actionUrl);
 }
 
-// ── SMS shorthand ─────────────────────────────────────────────────────────────
+// -- SMS shorthand -------------------------------------------------------------
 
 export async function sendSmsTo(
   toPhone: string,
@@ -228,7 +228,7 @@ export async function sendSmsTo(
   return callSendSms(toPhone, message, module);
 }
 
-// ── Trigger notify-requisition edge function ──────────────────────────────────
+// -- Trigger notify-requisition edge function ----------------------------------
 
 export async function triggerRequisitionEvent(
   event: "submitted" | "approved" | "rejected" | "ordered" | "received",

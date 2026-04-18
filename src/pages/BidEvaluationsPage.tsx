@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -80,22 +81,22 @@ export default function BidEvaluationsPage() {
       evaluated_at:new Date().toISOString(),status:"evaluated"};
     if(editing){
       const{error}=await(supabase as any).from("bid_evaluations").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
-      toast({title:"Evaluation updated ✓"});
+      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});setSaving(false);return;}
+      toast({title:"Evaluation updated "});
     } else {
       const{data,error}=await(supabase as any).from("bid_evaluations").insert(payload).select().single();
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});setSaving(false);return;}
       logAudit(user?.id,profile?.full_name,"create","bid_evaluations",data?.id,{});
-      toast({title:"Bid evaluated ✓"});
+      toast({title:"Bid evaluated "});
     }
     setShowModal(false); setEditing(null); load(); setSaving(false);
   };
   const recommend = async (v:any) => {
     await(supabase as any).from("bid_evaluations").update({status:"recommended"}).eq("id",v.id);
-    toast({title:"Recommended for award ✓"}); load();
+    toast({title:"Recommended for award "}); load();
   };
 
-  const tOpts = tenders.map(t=>({value:t.id,label:`${t.tender_number} — ${t.title?.slice(0,30)}`}));
+  const tOpts = tenders.map(t=>({value:t.id,label:`${t.tender_number}  -- ${t.title?.slice(0,30)}`}));
   const sOpts = suppliers.map(s=>({value:s.id,label:s.name}));
   const tFilterOpts = [{value:"all",label:"All Tenders"},...[...new Set(rows.map(r=>r.tender_id))].map(id=>({value:id,label:rows.find(r=>r.tender_id===id)?.tender_number||id}))];
   const filtered = rows.filter(r=>(tFilter==="all"||r.tender_id===tFilter)&&(!search||[r.supplier_name,r.tender_number].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()))));
@@ -104,9 +105,9 @@ export default function BidEvaluationsPage() {
   const previewScore = form.technical_score&&form.financial_score ? totalScore(ts,fs) : null;
 
   // Stats
-  const avg = rows.length ? (rows.reduce((s,r)=>s+Number(r.total_score||0),0)/rows.length).toFixed(1) : "—";
+  const avg = rows.length ? (rows.reduce((s,r)=>s+Number(r.total_score||0),0)/rows.length).toFixed(1) : " --";
   const recommended = rows.filter(r=>r.status==="recommended").length;
-  const highest = rows.length ? Math.max(...rows.map(r=>Number(r.total_score||0))).toFixed(1) : "—";
+  const highest = rows.length ? Math.max(...rows.map(r=>Number(r.total_score||0))).toFixed(1) : " --";
 
   return (
       <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
@@ -134,7 +135,7 @@ export default function BidEvaluationsPage() {
             </div>
             <div>
               <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Bid Evaluations</h1>
-              <p style={{fontSize:13,color:"#6b7280",margin:0}}>Tender scoring · 70% technical / 30% financial</p>
+              <p style={{fontSize:13,color:"#6b7280",margin:0}}>Tender scoring * 70% technical / 30% financial</p>
             </div>
           </div>
         </div>
@@ -243,12 +244,12 @@ export default function BidEvaluationsPage() {
                 <div><LBL>Bid Amount (KES)</LBL>{INP(form.bid_amount,v=>setForm(p=>({...p,bid_amount:v})),"0","number",0)}</div>
                 <div/>
                 <div>
-                  <LBL>Technical Score (0-100) — 70% weight</LBL>
+                  <LBL>Technical Score (0-100)  -- 70% weight</LBL>
                   {INP(form.technical_score,v=>setForm(p=>({...p,technical_score:v})),"0-100","number",0,100)}
                   {form.technical_score&&<div style={{marginTop:4,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}><div style={{width:`${Math.min(100,Number(form.technical_score))}%`,height:"100%",background:"#3b82f6",transition:"width 0.3s",borderRadius:3}}/></div>}
                 </div>
                 <div>
-                  <LBL>Financial Score (0-100) — 30% weight</LBL>
+                  <LBL>Financial Score (0-100)  -- 30% weight</LBL>
                   {INP(form.financial_score,v=>setForm(p=>({...p,financial_score:v})),"0-100","number",0,100)}
                   {form.financial_score&&<div style={{marginTop:4,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}><div style={{width:`${Math.min(100,Number(form.financial_score))}%`,height:"100%",background:"#10b981",transition:"width 0.3s",borderRadius:3}}/></div>}
                 </div>
@@ -256,7 +257,7 @@ export default function BidEvaluationsPage() {
                   <div style={{gridColumn:"span 2",padding:"14px",background:"linear-gradient(135deg,#1a3a6b14,#0078d414)",border:"2px solid #1a3a6b30",borderRadius:10,textAlign:"center"}}>
                     <div style={{fontSize:12,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Weighted Total Score</div>
                     <div style={{fontSize:40,fontWeight:900,color:previewScore>=70?"#15803d":previewScore>=50?"#d97706":"#dc2626"}}>{previewScore.toFixed(2)}</div>
-                    <div style={{fontSize:12,color:"#9ca3af"}}>out of 100 · {previewScore>=70?"Meets threshold":"Below 70% threshold"}</div>
+                    <div style={{fontSize:12,color:"#9ca3af"}}>out of 100 * {previewScore>=70?"Meets threshold":"Below 70% threshold"}</div>
                   </div>
                 )}
                 <div style={{gridColumn:"span 2"}}><LBL>Recommendation</LBL>
@@ -293,7 +294,7 @@ export default function BidEvaluationsPage() {
                 <div style={{fontSize:56,fontWeight:900,color:Number(detail.total_score||0)>=70?"#15803d":Number(detail.total_score||0)>=50?"#d97706":"#dc2626"}}>{Number(detail.total_score||0).toFixed(1)}</div>
                 <div style={{fontSize:12,color:"#9ca3af"}}>/100</div>
               </div>
-              {[["Tender",detail.tender_number],["Supplier",detail.supplier_name],["Bid Amount",fmtKES(detail.bid_amount)],["Technical Score",`${detail.technical_score||0}/100 (70% weight)`],["Financial Score",`${detail.financial_score||0}/100 (30% weight)`],["Status",detail.status],["Evaluated By",detail.evaluated_by_name],["Evaluated At",detail.evaluated_at?new Date(detail.evaluated_at).toLocaleString("en-KE"):"—"],["Recommendation",detail.recommendation||"—"],["Notes",detail.notes||"—"]].map(([l,v])=>(
+              {[["Tender",detail.tender_number],["Supplier",detail.supplier_name],["Bid Amount",fmtKES(detail.bid_amount)],["Technical Score",`${detail.technical_score||0}/100 (70% weight)`],["Financial Score",`${detail.financial_score||0}/100 (30% weight)`],["Status",detail.status],["Evaluated By",detail.evaluated_by_name],["Evaluated At",detail.evaluated_at?new Date(detail.evaluated_at).toLocaleString("en-KE"):" --"],["Recommendation",detail.recommendation||" --"],["Notes",detail.notes||" --"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",flexDirection:"column",gap:2}}>
                   <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em"}}>{l}</div>
                   <div style={{fontSize:14,fontWeight:600,color:"#111827"}}>{v}</div>

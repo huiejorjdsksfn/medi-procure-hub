@@ -1,4 +1,4 @@
-# ProcurBosse — electron-builder configuration
+# ProcurBosse — electron-builder v21.4
 # Targets: Windows 7 SP1 → Windows 11 (x64 + ia32)
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
@@ -16,19 +16,20 @@ files:
   - "!src/**/*"
   - "!.github/**/*"
   - "!supabase/**/*"
+  - "!docs/**/*"
 
 extraResources:
-  - from: public/icon.png
+  - from: public/icons/icon-256.png
     to: icon.png
-  - from: public/logo.png
-    to: logo.png
+  - from: public/icons/icon-512.png
+    to: icon-512.png
   - from: public/manifest.json
     to: manifest.json
 
 win:
-  icon: public/icon.png
-  certificateSubjectName: ""
+  icon: build/icon.ico
   verifyUpdateCodeSignature: false
+  requestedExecutionLevel: asInvoker
   target:
     - target: nsis
       arch:
@@ -40,11 +41,12 @@ nsis:
   perMachine: false
   allowElevation: true
   allowToChangeInstallationDirectory: true
-  installerIcon: public/icon.png
-  uninstallerIcon: public/icon.png
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: "ProcurBosse"
+  shortcutName: "ProcurBosse ERP"
   artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"
   deleteAppDataOnUninstall: false
   unicode: true

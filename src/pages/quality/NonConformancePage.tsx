@@ -35,7 +35,7 @@ export default function NonConformancePage() {
   };
   useEffect(()=>{ load(); },[]);
 
-  /* ── Real-time subscription ─────────────────────────────── */
+  /* -- Real-time subscription ------------------------------- */
   useEffect(()=>{
     const ch=(supabase as any).channel("ncr-rt").on("postgres_changes",{event:"*",schema:"public",table:"non_conformance"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -46,14 +46,14 @@ export default function NonConformancePage() {
     setSaving(true);
     const payload={...form,ncr_number:genNo(),issue_description:form.title||form.description||"",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("non_conformance").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","non_conformance",data?.id,{title:form.title});toast({title:"NCR created ✓"});setShowNew(false);load();}
+    if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","non_conformance",data?.id,{title:form.title});toast({title:"NCR created "});setShowNew(false);load();}
     setSaving(false);
   };
 
   const updateStatus = async(id:string,status:string)=>{
     await(supabase as any).from("non_conformance").update({status,closed_by:status==="closed"?user?.id:null,closed_at:status==="closed"?new Date().toISOString():null}).eq("id",id);
-    toast({title:`Status → ${status}`}); load();
+    toast({title:`Status -> ${status}`}); load();
   };
 
   const del = async(id:string)=>{ if(!confirm("Delete this NCR?")) return; await(supabase as any).from("non_conformance").delete().eq("id",id); toast({title:"Deleted"}); load(); };
@@ -72,7 +72,7 @@ export default function NonConformancePage() {
           <AlertTriangle style={{width:20,height:20,color:"#fff"}}/>
           <div>
             <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Non-Conformance Reports</h1>
-            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{stats.open} open · {stats.critical} critical · {stats.closed} closed</p>
+            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{stats.open} open * {stats.critical} critical * {stats.closed} closed</p>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -109,13 +109,13 @@ export default function NonConformancePage() {
               return(<tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fff7ed"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}>
-                <td style={{padding:"9px 12px",fontWeight:700,color:"#c2410c",fontFamily:"monospace",fontSize:11}}>{r.ncr_number||"—"}</td>
+                <td style={{padding:"9px 12px",fontWeight:700,color:"#c2410c",fontFamily:"monospace",fontSize:11}}>{r.ncr_number||" --"}</td>
                 <td style={{padding:"9px 12px",fontWeight:600,color:"#1f2937",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</td>
                 <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:`${SEV[r.severity]||"#6b7280"}18`,color:SEV[r.severity]||"#6b7280"}}>{r.severity||"minor"}</span></td>
-                <td style={{padding:"9px 12px",color:"#374151"}}>{r.supplier_name||"—"}</td>
-                <td style={{padding:"9px 12px",color:"#374151"}}>{r.item_name||"—"}</td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,textTransform:"capitalize"}}>{r.status?.replace("_"," ")||"—"}</span></td>
-                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.ncr_date?new Date(r.ncr_date).toLocaleDateString("en-KE"):"—"}</td>
+                <td style={{padding:"9px 12px",color:"#374151"}}>{r.supplier_name||" --"}</td>
+                <td style={{padding:"9px 12px",color:"#374151"}}>{r.item_name||" --"}</td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,textTransform:"capitalize"}}>{r.status?.replace("_"," ")||" --"}</span></td>
+                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.ncr_date?new Date(r.ncr_date).toLocaleDateString("en-KE"):" --"}</td>
                 <td style={{padding:"9px 12px"}}>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={()=>setDetail(r)} style={{padding:"4px 8px",background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#c2410c"}}/></button>
@@ -138,10 +138,10 @@ export default function NonConformancePage() {
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
               <div style={{fontSize:14,fontWeight:800,color:"#1f2937"}}>{detail.title}</div>
-              {[["Severity",detail.severity],["Status",detail.status?.replace("_"," ")],["Source",detail.source],["Supplier",detail.supplier_name||"—"],["Item",detail.item_name||"—"],["GRN Ref",detail.grn_reference||"—"],["Responsible",detail.responsible_person||"—"],["Target Date",detail.target_date||"—"]].map(([l,v])=>(
+              {[["Severity",detail.severity],["Status",detail.status?.replace("_"," ")],["Source",detail.source],["Supplier",detail.supplier_name||" --"],["Item",detail.item_name||" --"],["GRN Ref",detail.grn_reference||" --"],["Responsible",detail.responsible_person||" --"],["Target Date",detail.target_date||" --"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f3f4f6"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize"}}>{v||"—"}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize"}}>{v||" --"}</span>
                 </div>
               ))}
               {detail.description&&<div style={{padding:10,background:"#fef2f2",borderRadius:8,fontSize:12,color:"#374151"}}><b>Description:</b> {detail.description}</div>}
