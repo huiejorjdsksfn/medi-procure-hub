@@ -1,5 +1,5 @@
 /**
- * ProtectedRoute v3.0 — Uses SessionEngine for instant render (no blank screen)
+ * ProtectedRoute v3.0  -- Uses SessionEngine for instant render (no blank screen)
  * Shows loading spinner only on first cold load, never redirects mid-session
  */
 import { ReactNode } from "react";
@@ -39,7 +39,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  /* Once initialized — redirect if no session */
+  /* Once initialized  -- redirect if no session */
   if (initialized && !session) return <Navigate to="/login" replace />;
 
   return <>{children}</>;

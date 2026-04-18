@@ -10,7 +10,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
-const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}) : "—";
+const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}) : " --";
 
 const STATUS_CFG:Record<string,{bg:string;color:string;label:string}> = {
   draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
@@ -102,13 +102,13 @@ export default function TendersPage() {
     const payload={...form,estimated_value:form.estimated_value?Number(form.estimated_value):null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       await(supabase as any).from("tenders").update(payload).eq("id",editing.id);
-      toast({title:"Tender updated ✓"});
+      toast({title:"Tender updated "});
     } else {
       const{data,error}=await(supabase as any).from("tenders").insert({...payload,tender_number:genNo(),status:"draft"}).select().single();
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});setSaving(false);return;}
       logAudit(user?.id,profile?.full_name,"create","tenders",data?.id,{});
-      await notifyProcurement({title:"New Tender Created",message:`${form.title} — Closing: ${fmtDate(form.closing_date)}`,type:"tender",module:"Tenders",senderId:user?.id});
-      toast({title:"Tender created ✓"});
+      await notifyProcurement({title:"New Tender Created",message:`${form.title}  -- Closing: ${fmtDate(form.closing_date)}`,type:"tender",module:"Tenders",senderId:user?.id});
+      toast({title:"Tender created "});
     }
     setShowNew(false); setEditing(null); load(); setSaving(false);
   };
@@ -116,7 +116,7 @@ export default function TendersPage() {
   const publish = async (t:any) => {
     await(supabase as any).from("tenders").update({status:"published"}).eq("id",t.id);
     await notifyProcurement({title:"Tender Published",message:`${t.tender_number}: ${t.title}`,type:"tender",module:"Tenders",senderId:user?.id});
-    toast({title:"Published ✓"}); load();
+    toast({title:"Published "}); load();
   };
   const close_ = async (t:any) => {
     await(supabase as any).from("tenders").update({status:"closed"}).eq("id",t.id);
@@ -168,7 +168,7 @@ export default function TendersPage() {
           </div>
           <div>
             <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Tenders</h1>
-            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Public procurement · {rows.length} total tenders</p>
+            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Public procurement * {rows.length} total tenders</p>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -229,9 +229,9 @@ export default function TendersPage() {
                   onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#fff"}>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#1F6090",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.tender_number}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#111827",maxWidth:200}} onClick={()=>setDetail(r)}>{r.title}</td>
-                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.category||"—"}</td>
-                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.tender_type||"—"}</td>
-                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#374151"}} onClick={()=>setDetail(r)}>{r.estimated_value?fmtKES(r.estimated_value):"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.category||" --"}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.tender_type||" --"}</td>
+                  <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#374151"}} onClick={()=>setDetail(r)}>{r.estimated_value?fmtKES(r.estimated_value):" --"}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{fmtDate(r.opening_date)}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:expired?"#dc2626":"#374151",fontWeight:expired?700:400}} onClick={()=>setDetail(r)}>{fmtDate(r.closing_date)}</td>
                   <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
@@ -310,7 +310,7 @@ export default function TendersPage() {
               <div><div style={{fontSize:18,fontWeight:800,color:"#111827",lineHeight:1.3}}>{detail.title}</div>
                 <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,marginTop:6,display:"inline-block"}}>{sc(detail.status).label}</span>
               </div>
-              {[["Category",detail.category||"—"],["Type",detail.tender_type||"—"],["Estimated Value",detail.estimated_value?fmtKES(detail.estimated_value):"—"],["Opening Date",fmtDate(detail.opening_date)],["Closing Date",fmtDate(detail.closing_date)],["Contact",detail.contact_person||"—"],["Created By",detail.created_by_name||"—"]].map(([l,v])=>(
+              {[["Category",detail.category||" --"],["Type",detail.tender_type||" --"],["Estimated Value",detail.estimated_value?fmtKES(detail.estimated_value):" --"],["Opening Date",fmtDate(detail.opening_date)],["Closing Date",fmtDate(detail.closing_date)],["Contact",detail.contact_person||" --"],["Created By",detail.created_by_name||" --"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f9fafb"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
                   <span style={{fontSize:13,fontWeight:700,color:"#111827",textAlign:"right",maxWidth:"60%"}}>{v}</span>

@@ -1,4 +1,4 @@
-/** EL5 MediProcure v5.8 — OLAP Analytics Engine */
+/** EL5 MediProcure v5.8  -- OLAP Analytics Engine */
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ProcurementMetrics {

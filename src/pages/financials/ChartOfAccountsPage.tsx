@@ -43,12 +43,12 @@ export default function ChartOfAccountsPage() {
     const payload={...form,balance:Number(form.balance)||0};
     if(editing){
       const{error}=await(supabase as any).from("chart_of_accounts").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
-      else{toast({title:"Account updated ✓"});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
+      else{toast({title:"Account updated "});}
     } else {
       const{error}=await(supabase as any).from("chart_of_accounts").insert(payload);
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
-      else{toast({title:"Account created ✓"});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
+      else{toast({title:"Account created "});}
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
@@ -102,7 +102,7 @@ export default function ChartOfAccountsPage() {
       <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e3a5f)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Chart of Accounts</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} accounts · {filtered.length} shown</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} accounts * {filtered.length} shown</p>
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
@@ -135,8 +135,8 @@ export default function ChartOfAccountsPage() {
                 <td style={{padding:"10px 16px",fontFamily:"monospace",fontWeight:700,color:"#1e3a5f"}}>{r.account_code}</td>
                 <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937"}}>{r.account_name}</td>
                 <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${TYPE_COLORS[r.account_type]||"#6b7280"}18`,color:TYPE_COLORS[r.account_type]||"#6b7280"}}>{r.account_type}</span></td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||"—"}</td>
-                <td style={{padding:"10px 16px",color:"#9ca3af",fontFamily:"monospace",fontSize:10}}>{r.parent_code||"—"}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||" --"}</td>
+                <td style={{padding:"10px 16px",color:"#9ca3af",fontFamily:"monospace",fontSize:10}}>{r.parent_code||" --"}</td>
                 <td style={{padding:"10px 16px",fontWeight:700,color:Number(r.balance||0)<0?"#dc2626":"#15803d"}}>{fmtKES(r.balance||0)}</td>
                 <td style={{padding:"10px 16px"}}><span style={{fontSize:10,fontWeight:700,color:r.is_active!==false?"#15803d":"#9ca3af"}}>{r.is_active!==false?"Active":"Inactive"}</span></td>
                 <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>

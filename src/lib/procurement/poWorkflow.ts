@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — Purchase Order Workflow Engine v5.0
+ * ProcurBosse  -- Purchase Order Workflow Engine v5.0
  * Complete state machine for PO lifecycle
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure * Embu Level 5 Hospital
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
@@ -93,21 +93,21 @@ export async function executePOAction(
     if (action === 'approve') {
       await notifyProcurement({
         title: `PO ${poNo} Approved`,
-        message: `Purchase order approved — ready to send to supplier`,
+        message: `Purchase order approved  -- ready to send to supplier`,
         type: 'procurement', module: 'Procurement', actionUrl: '/purchase-orders',
       });
     }
     if (action === 'send_to_supplier') {
       await notifyRole(['warehouse_officer', 'inventory_manager'], {
         title: `Delivery Expected: ${poNo}`,
-        message: `PO sent to ${po.supplier_name || 'supplier'} — prepare for receiving`,
+        message: `PO sent to ${po.supplier_name || 'supplier'}  -- prepare for receiving`,
         type: 'grn', module: 'Procurement', actionUrl: '/goods-received',
       });
     }
     if (action === 'mark_received') {
       await notifyProcurement({
         title: `PO ${poNo} Fully Received`,
-        message: `All items received — ready for invoice matching`,
+        message: `All items received  -- ready for invoice matching`,
         type: 'success', module: 'Procurement', actionUrl: '/purchase-orders',
       });
     }

@@ -1,5 +1,5 @@
 /**
- * PWA Install Prompt — shows "Add to Home Screen" banner
+ * PWA Install Prompt  -- shows "Add to Home Screen" banner
  * Appears once, remembers dismissal in localStorage
  */
 import { useState, useEffect } from "react";

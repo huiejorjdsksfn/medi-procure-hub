@@ -1,5 +1,5 @@
 /**
- * useImageUpload — Supabase Storage upload hook v1.0
+ * useImageUpload  -- Supabase Storage upload hook v1.0
  * Handles profile photos, supplier logos, document attachments, item images
  */
 import { useState, useCallback } from "react";

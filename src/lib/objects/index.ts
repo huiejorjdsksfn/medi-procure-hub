@@ -1,9 +1,9 @@
 /**
- * ProcurBosse — Object Code Registry
+ * ProcurBosse  -- Object Code Registry
  * All procurement object codes, form templates, and document templates
  */
 
-// ── PROCUREMENT OBJECT CODES ─────────────────────────────────────
+// -- PROCUREMENT OBJECT CODES -------------------------------------
 
 export const OBJECT_CODES = {
   // Requisition types
@@ -90,7 +90,7 @@ export const OBJECT_CODES = {
   },
 };
 
-// ── DOCUMENT NUMBER GENERATORS ────────────────────────────────────
+// -- DOCUMENT NUMBER GENERATORS ------------------------------------
 
 export function generateDocNo(type: string, facilityCode: string, year: number, sequence: number): string {
   const seq = String(sequence).padStart(4, "0");
@@ -112,7 +112,7 @@ export const DocNo = {
   transfer:      (fc: string, yr: number, seq: number) => generateDocNo("ITN", fc, yr, seq),
 };
 
-// ── FORM FIELD DEFINITIONS ───────────────────────────────────────
+// -- FORM FIELD DEFINITIONS ---------------------------------------
 
 export interface FormField {
   key:       string;
@@ -224,7 +224,7 @@ export const FORM_FIELDS = {
   ] as FormField[],
 };
 
-// ── PRINT TEMPLATE CONFIGS ───────────────────────────────────────
+// -- PRINT TEMPLATE CONFIGS ---------------------------------------
 
 export const PRINT_CONFIG = {
   LETTERHEAD: {
@@ -247,23 +247,23 @@ export const PRINT_CONFIG = {
   },
 };
 
-// ── ITEM CATEGORIES WITH CODES ───────────────────────────────────
+// -- ITEM CATEGORIES WITH CODES -----------------------------------
 
 export const ITEM_CATEGORIES = [
-  { code:"PH", name:"Pharmaceuticals",    color:"#7c3aed", icon:"💊" },
-  { code:"ME", name:"Medical Equipment",  color:"#1d4ed8", icon:"🏥" },
-  { code:"MC", name:"Medical Consumables",color:"#065f46", icon:"🩺" },
-  { code:"LA", name:"Laboratory",         color:"#0f766e", icon:"🔬" },
-  { code:"OF", name:"Office Supplies",    color:"#92400e", icon:"📋" },
-  { code:"CN", name:"Construction",       color:"#78350f", icon:"🏗️"  },
-  { code:"IT", name:"IT Equipment",       color:"#1e40af", icon:"💻" },
-  { code:"VH", name:"Vehicles/Transport", color:"#166534", icon:"🚗" },
-  { code:"PL", name:"Plumbing",           color:"#0369a1", icon:"🔧" },
-  { code:"EL", name:"Electrical",         color:"#ca8a04", icon:"⚡" },
-  { code:"GN", name:"General",            color:"#64748b", icon:"📦" },
+  { code:"PH", name:"Pharmaceuticals",    color:"#7c3aed", icon:"" },
+  { code:"ME", name:"Medical Equipment",  color:"#1d4ed8", icon:"" },
+  { code:"MC", name:"Medical Consumables",color:"#065f46", icon:"" },
+  { code:"LA", name:"Laboratory",         color:"#0f766e", icon:"" },
+  { code:"OF", name:"Office Supplies",    color:"#92400e", icon:"" },
+  { code:"CN", name:"Construction",       color:"#78350f", icon:""  },
+  { code:"IT", name:"IT Equipment",       color:"#1e40af", icon:"" },
+  { code:"VH", name:"Vehicles/Transport", color:"#166534", icon:"" },
+  { code:"PL", name:"Plumbing",           color:"#0369a1", icon:"" },
+  { code:"EL", name:"Electrical",         color:"#ca8a04", icon:"" },
+  { code:"GN", name:"General",            color:"#64748b", icon:"" },
 ];
 
-// ── STATUS DEFINITIONS ───────────────────────────────────────────
+// -- STATUS DEFINITIONS -------------------------------------------
 
 export const STATUSES = {
   REQUISITION: {

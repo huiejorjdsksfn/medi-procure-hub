@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — Electron Main Process
- * EL5 MediProcure Hospital ERP — Embu Level 5 Hospital
- * Compatible: Windows 7 SP1 → Windows 11 (x64 + ia32)
+ * ProcurBosse   Electron Main Process
+ * EL5 MediProcure Hospital ERP   Embu Level 5 Hospital
+ * Compatible: Windows 7 SP1  Windows 11 (x64 + ia32)
  *
  * Architecture:
  *  - Loads built React/Vite dist from app.asar
@@ -16,7 +16,7 @@ const { app, BrowserWindow, Menu, shell, ipcMain, dialog, nativeImage } = requir
 const path = require('path');
 const fs   = require('fs');
 
-// ── Constants ────────────────────────────────────────────────
+//    Constants                                                 
 const APP_NAME    = 'ProcurBosse';
 const APP_VERSION = app.getVersion();
 const IS_DEV      = process.env.ELECTRON_DEV === '1' || !app.isPackaged;
@@ -26,7 +26,7 @@ const IS_WIN7     = process.platform === 'win32' && (() => {
   return parts[0] < 10;
 })();
 
-// ── Paths ─────────────────────────────────────────────────────
+//    Paths                                                      
 const DIST_PATH   = IS_DEV
   ? path.join(__dirname, '../dist')
   : path.join(process.resourcesPath, 'app.asar', 'dist');
@@ -35,11 +35,11 @@ const ICON_PATH   = IS_DEV
   ? path.join(__dirname, '../public/icon.png')
   : path.join(process.resourcesPath, 'icon.png');
 
-// ── Single instance lock ──────────────────────────────────────
+//    Single instance lock                                       
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.quit(); }
 
-// ── Windows 7 compatibility flags ────────────────────────────
+//    Windows 7 compatibility flags                             
 if (process.platform === 'win32') {
   // Disable GPU acceleration on Win7 (avoids d3d crashes)
   if (IS_WIN7) {
@@ -53,7 +53,7 @@ if (process.platform === 'win32') {
   app.commandLine.appendSwitch('use-angle', 'swiftshader');
 }
 
-// ── Main window ───────────────────────────────────────────────
+//    Main window                                                
 let win = null;
 
 function getIcon() {
@@ -71,7 +71,7 @@ function createWindow() {
     height:         768,
     minWidth:       1024,
     minHeight:      640,
-    title:          `${APP_NAME} — EL5 MediProcure`,
+    title:          `${APP_NAME}   EL5 MediProcure`,
     icon,
     show:           false,
     backgroundColor: '#0a2558',
@@ -111,7 +111,7 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // Navigation guard — only allow local app routes
+  // Navigation guard   only allow local app routes
   win.webContents.on('will-navigate', (event, url) => {
     const allowed = [
       'http://localhost:8080',
@@ -130,7 +130,7 @@ function createWindow() {
   buildMenu();
 }
 
-// ── Application menu ──────────────────────────────────────────
+//    Application menu                                           
 function buildMenu() {
   const template = [
     {
@@ -267,7 +267,7 @@ function buildMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-// ── Navigation helper ─────────────────────────────────────────
+//    Navigation helper                                          
 function navigate(route) {
   if (!win) return;
   win.webContents.executeJavaScript(`
@@ -285,14 +285,14 @@ function navigate(route) {
   });
 }
 
-// ── About dialog ──────────────────────────────────────────────
+//    About dialog                                               
 function showAbout() {
   if (!win) return;
   dialog.showMessageBox(win, {
     type: 'info',
     title: 'About ProcurBosse',
     icon: getIcon() || undefined,
-    message: 'ProcurBosse — EL5 MediProcure',
+    message: 'ProcurBosse   EL5 MediProcure',
     detail: [
       `Version: ${APP_VERSION}`,
       `Electron: ${process.versions.electron}`,
@@ -304,7 +304,7 @@ function showAbout() {
       'Procurement & ERP Management System',
       'Embu County Government',
       '',
-      `© ${new Date().getFullYear()} Embu County Government`,
+      ` ${new Date().getFullYear()} Embu County Government`,
     ].join('\n'),
     buttons: ['Close', 'Check for Updates'],
     defaultId: 0,
@@ -332,7 +332,7 @@ function showSysInfo() {
   });
 }
 
-// ── Auto-update (GitHub Releases) ─────────────────────────────
+//    Auto-update (GitHub Releases)                              
 async function checkForUpdates(manual = false) {
   if (IS_DEV) {
     if (manual) dialog.showMessageBox(win, { type: 'info', message: 'Updates disabled in dev mode', buttons: ['OK'] });
@@ -398,7 +398,7 @@ async function checkForUpdates(manual = false) {
   }
 }
 
-// ── IPC handlers ──────────────────────────────────────────────
+//    IPC handlers                                               
 ipcMain.handle('get-app-version',  () => APP_VERSION);
 ipcMain.handle('get-platform',     () => process.platform);
 ipcMain.handle('get-app-path',     () => app.getAppPath());
@@ -429,7 +429,7 @@ ipcMain.handle('write-file', async (_, { filePath, data }) => {
   }
 });
 
-// ── App lifecycle ─────────────────────────────────────────────
+//    App lifecycle                                              
 app.whenReady().then(() => {
   createWindow();
 

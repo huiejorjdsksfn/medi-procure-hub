@@ -1,4 +1,4 @@
-/** EL5 MediProcure v5.8 — Blockchain Audit Engine */
+/** EL5 MediProcure v5.8  -- Blockchain Audit Engine */
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AuditEvent {

@@ -1,7 +1,7 @@
 /**
- * EL5 MediProcure v5.8 — ERP Navigation Wheel
- * Fully role-based · All modules + submenus · Expandable submenu ring
- * ProcurBosse · Embu Level 5 Hospital
+ * EL5 MediProcure  -- ERP Navigation Wheel
+ * Fully role-based * All modules + submenus * Expandable submenu ring
+ * ProcurBosse * Embu Level 5 Hospital
  */
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
@@ -9,10 +9,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type Role = string;
 
-// ── All modules with roles + subpages ─────────────────────────────────────
+// -- All modules with roles + subpages -------------------------------------
 const ALL_MODULES = [
   {
-    id:"procurement", label:"Procurement", color:"#0078d4", icon:"📋",
+    id:"procurement", label:"Procurement", color:"#0078d4", icon:"",
     path:"/requisitions",
     roles:["admin","procurement_manager","procurement_officer","requisitioner"],
     subs:[
@@ -27,7 +27,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"inventory", label:"Inventory", color:"#059669", icon:"📦",
+    id:"inventory", label:"Inventory", color:"#059669", icon:"",
     path:"/items",
     roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"],
     subs:[
@@ -38,7 +38,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"vouchers", label:"Vouchers", color:"#C45911", icon:"💳",
+    id:"vouchers", label:"Vouchers", color:"#C45911", icon:"",
     path:"/vouchers/payment",
     roles:["admin","procurement_manager","procurement_officer","accountant"],
     subs:[
@@ -50,7 +50,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"financials", label:"Financials", color:"#7c3aed", icon:"📊",
+    id:"financials", label:"Financials", color:"#7c3aed", icon:"",
     path:"/financials/dashboard",
     roles:["admin","procurement_manager","accountant"],
     subs:[
@@ -61,7 +61,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"accountant", label:"Accountant", color:"#0891b2", icon:"🏦",
+    id:"accountant", label:"Accountant", color:"#0891b2", icon:"",
     path:"/accountant-workspace",
     roles:["admin","accountant","procurement_manager"],
     subs:[
@@ -74,7 +74,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"quality", label:"Quality", color:"#00695C", icon:"🔍",
+    id:"quality", label:"Quality", color:"#00695C", icon:"",
     path:"/quality/dashboard",
     roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer"],
     subs:[
@@ -84,7 +84,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"reports", label:"Reports", color:"#1F6090", icon:"📈",
+    id:"reports", label:"Reports", color:"#1F6090", icon:"",
     path:"/reports",
     roles:["admin","procurement_manager","procurement_officer","accountant","inventory_manager"],
     subs:[
@@ -94,7 +94,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"reception", label:"Reception", color:"#0369a1", icon:"🏥",
+    id:"reception", label:"Reception", color:"#0369a1", icon:"",
     path:"/reception",
     roles:["admin","procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner","accountant"],
     subs:[
@@ -105,7 +105,7 @@ const ALL_MODULES = [
     ],
   },
   {
-    id:"admin", label:"Admin", color:"#374151", icon:"⚙️",
+    id:"admin", label:"Admin", color:"#374151", icon:"[G]",
     path:"/admin/panel",
     roles:["admin"],
     subs:[
@@ -121,7 +121,7 @@ const ALL_MODULES = [
   },
 ];
 
-// ── Geometry helpers ──────────────────────────────────────────────────────
+// -- Geometry helpers ------------------------------------------------------
 function pt(cx:number,cy:number,r:number,deg:number){
   const a=(deg-90)*Math.PI/180;
   return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)};
@@ -185,7 +185,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
         {/* Outer ring guide */}
         <circle cx={CX} cy={CY} r={OUTER_R+20} fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="2 6"/>
 
-        {/* ── Module segments (middle ring) ── */}
+        {/* -- Module segments (middle ring) -- */}
         {mods.map((m,i)=>{
           const sl=360/N, sd=i*sl, ed=sd+sl-GAP, md=sd+sl/2;
           const isA=active===m.id||subOpen===m.id;
@@ -228,7 +228,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           );
         })}
 
-        {/* ── Outer navigation ring (quick jumps to module root) ── */}
+        {/* -- Outer navigation ring (quick jumps to module root) -- */}
         {mods.map((m,i)=>{
           const sl=360/N, sd=i*sl, ed=sd+sl-GAP, md=sd+sl/2;
           const isA=active===m.id||subOpen===m.id;
@@ -257,7 +257,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           );
         })}
 
-        {/* ── Sub-menu ring (shown when a module is clicked) ── */}
+        {/* -- Sub-menu ring (shown when a module is clicked) -- */}
         {activeMod&&activeMod.subs.map((s,i)=>{
           const modIdx=mods.findIndex(m=>m.id===activeMod.id);
           const modSl=360/N;
@@ -289,7 +289,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           );
         })}
 
-        {/* ── Spokes ── */}
+        {/* -- Spokes -- */}
         {mods.map((m,i)=>{
           const sl=360/N, md=i*sl+sl/2;
           const inner=pt(CX,CY,HUB+2,md), outer=pt(CX,CY,INNER_R-2,md);
@@ -303,7 +303,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           );
         })}
 
-        {/* ── Hub ── */}
+        {/* -- Hub -- */}
         <g style={{cursor:"pointer"}}
           onMouseEnter={()=>setHubHov(true)}
           onMouseLeave={()=>setHubHov(false)}
@@ -339,7 +339,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
           <text x={CX} y={18} textAnchor="middle"
             style={{fontSize:10,fontWeight:800,fill:activeMod.color,
               fontFamily:"'Inter',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase"}}>
-            {activeMod.icon} {activeMod.label} — SELECT PAGE
+            {activeMod.icon} {activeMod.label}  -- SELECT PAGE
           </text>
         )}
       </svg>
@@ -355,7 +355,7 @@ export default function ERPWheelButton({logoUrl}:{logoUrl?:string|null}){
         ))}
       </div>
       <div style={{fontSize:9,color:"#9ca3af",textAlign:"center"}}>
-        Click segment → expand submenus · Click GO ring → navigate · Click hub → Dashboard
+        Click segment  Next expand submenus * Click GO ring  Next navigate * Click hub  Next Dashboard
       </div>
 
       <style>{`@keyframes subFadeIn{from{opacity:0;transform-origin:${230}px ${230}px;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}`}</style>

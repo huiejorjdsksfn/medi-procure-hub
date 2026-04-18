@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — Excel Exporter
+ * ProcurBosse  -- Excel Exporter
  * Generates formatted Excel exports for all modules
- * Uses SheetJS (xlsx) — already a dependency
+ * Uses SheetJS (xlsx)  -- already a dependency
  */
 import { PRINT_CONFIG } from "./index";
 import { ReportTemplate } from "./reportTemplates";
@@ -17,7 +17,7 @@ export async function exportToExcel(
 
   const wb = XLSX.utils.book_new();
 
-  // ── Header rows ────────────────────────────────────────────────
+  // -- Header rows ------------------------------------------------
   const meta = [
     [PRINT_CONFIG.LETTERHEAD.county],
     [PRINT_CONFIG.LETTERHEAD.hospital],
@@ -28,11 +28,11 @@ export async function exportToExcel(
     [],
   ].filter(Boolean) as any[][];
 
-  // ── Column headers ────────────────────────────────────────────
+  // -- Column headers --------------------------------------------
   const headers = template.columns.map(c => c.label);
   meta.push(headers);
 
-  // ── Data rows ─────────────────────────────────────────────────
+  // -- Data rows -------------------------------------------------
   for (const row of data) {
     meta.push(template.columns.map(col => {
       const val = row[col.key];
@@ -44,7 +44,7 @@ export async function exportToExcel(
     }));
   }
 
-  // ── Totals row ────────────────────────────────────────────────
+  // -- Totals row ------------------------------------------------
   if (template.totals?.length) {
     const totalsRow = template.columns.map(col => {
       if (!template.totals!.includes(col.key)) return col.key === template.columns[0].key ? "TOTAL" : "";
@@ -55,7 +55,7 @@ export async function exportToExcel(
     meta.push(totalsRow);
   }
 
-  // ── Signatories ───────────────────────────────────────────────
+  // -- Signatories -----------------------------------------------
   if (template.signatories?.length) {
     meta.push([]);
     meta.push(["AUTHORIZED SIGNATURES"]);
@@ -69,17 +69,17 @@ export async function exportToExcel(
 
   const ws = XLSX.utils.aoa_to_sheet(meta);
 
-  // ── Column widths ─────────────────────────────────────────────
+  // -- Column widths ---------------------------------------------
   ws["!cols"] = template.columns.map(c => ({ wch: Math.ceil((c.width || 120) / 7) }));
 
   XLSX.utils.book_append_sheet(wb, ws, template.id.slice(0, 31));
 
-  // ── Export ────────────────────────────────────────────────────
+  // -- Export ----------------------------------------------------
   const name = filename || `${template.id}_${facility}_${new Date().toISOString().slice(0,10)}.xlsx`;
   XLSX.writeFile(wb, name);
 }
 
-// ── Quick exports for each module ────────────────────────────────
+// -- Quick exports for each module --------------------------------
 export async function exportRequisitions(data: any[], facility = "EL5H") {
   const { REPORT_TEMPLATES } = await import("./reportTemplates");
   return exportToExcel(REPORT_TEMPLATES.REQUISITIONS_SUMMARY, data, undefined, facility);

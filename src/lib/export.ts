@@ -95,7 +95,7 @@ const addFooter = (doc: jsPDF) => {
     doc.setPage(i);
     doc.setFontSize(6);
     doc.setTextColor(120);
-    doc.text(`${HOSPITAL_HEADER.name} — MediProcure ERP`, 14, 290);
+    doc.text(`${HOSPITAL_HEADER.name}  -- MediProcure ERP`, 14, 290);
     doc.text(`Page ${i} of ${pages}`, 196, 290, { align: "right" });
     doc.setTextColor(0);
   }
@@ -138,7 +138,7 @@ export const exportToPDF = async (data: any[], title: string, columns: string[])
 export const generateRequisitionPDF = async (requisition: any, lineItems: any[], departments: any[]) => {
   const doc = new jsPDF();
   const startY = await addLetterhead(doc, "DEPARTMENTAL STORES REQUISITION", "EL5H/SCM/FRM/001");
-  const deptName = departments.find((d: any) => d.id === requisition.department_id)?.name || "—";
+  const deptName = departments.find((d: any) => d.id === requisition.department_id)?.name || " --";
 
   let y = startY + 2;
   doc.setFontSize(9);
@@ -206,20 +206,20 @@ export const generateLPO_PDF = async (po: any, supplier: any, lineItems: any[]) 
   doc.setFont("helvetica", "bold");
   doc.text("SUPPLIER DETAILS", 14, y); y += 6;
   doc.setFont("helvetica", "normal");
-  doc.text(`Supplier Name: ${supplier?.name || "—"}`, 14, y);
-  doc.text(`Contact: ${supplier?.contact_person || "—"}`, 120, y); y += 5;
-  doc.text(`Phone: ${supplier?.phone || "—"}`, 14, y);
-  doc.text(`Email: ${supplier?.email || "—"}`, 120, y); y += 5;
-  doc.text(`Tax ID: ${supplier?.tax_id || "—"}`, 14, y);
-  doc.text(`Address: ${supplier?.address || "—"}`, 120, y); y += 8;
+  doc.text(`Supplier Name: ${supplier?.name || " --"}`, 14, y);
+  doc.text(`Contact: ${supplier?.contact_person || " --"}`, 120, y); y += 5;
+  doc.text(`Phone: ${supplier?.phone || " --"}`, 14, y);
+  doc.text(`Email: ${supplier?.email || " --"}`, 120, y); y += 5;
+  doc.text(`Tax ID: ${supplier?.tax_id || " --"}`, 14, y);
+  doc.text(`Address: ${supplier?.address || " --"}`, 120, y); y += 8;
 
   autoTable(doc, {
     head: [["#", "Item Description", "UoM", "Qty", "Unit Price (KSH)", "Total (KSH)"]],
     body: lineItems.length > 0 ? lineItems.map((li, i) => [
-      i + 1, li.item_name || "—", "piece", li.quantity || 1,
+      i + 1, li.item_name || " --", "piece", li.quantity || 1,
       Number(li.unit_price || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 }),
       Number(li.total_price || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 }),
-    ]) : [["—", "As per requisition", "—", "—", "—", Number(po.total_amount || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 })]],
+    ]) : [[" --", "As per requisition", " --", " --", " --", Number(po.total_amount || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 })]],
     startY: y,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [30, 58, 95] },
@@ -274,15 +274,15 @@ export const generateGRN_PDF = async (grn: any, po: any, supplier: any) => {
   doc.setFont("helvetica", "normal");
   doc.text(`GRN No: ${grn.grn_number}`, 14, y);
   doc.text(`Date Received: ${new Date(grn.received_at).toLocaleDateString()}`, 120, y); y += 5;
-  doc.text(`LPO No: ${po?.po_number || "—"}`, 14, y);
+  doc.text(`LPO No: ${po?.po_number || " --"}`, 14, y);
   doc.text(`Inspection: ${(grn.inspection_status || "pending").toUpperCase()}`, 120, y); y += 8;
 
   doc.setFont("helvetica", "bold");
   doc.text("SUPPLIER DETAILS", 14, y); y += 6;
   doc.setFont("helvetica", "normal");
-  doc.text(`Supplier: ${supplier?.name || "—"}`, 14, y);
-  doc.text(`Contact: ${supplier?.contact_person || "—"}`, 120, y); y += 5;
-  doc.text(`Phone: ${supplier?.phone || "—"}`, 14, y); y += 8;
+  doc.text(`Supplier: ${supplier?.name || " --"}`, 14, y);
+  doc.text(`Contact: ${supplier?.contact_person || " --"}`, 120, y); y += 5;
+  doc.text(`Phone: ${supplier?.phone || " --"}`, 14, y); y += 8;
 
   doc.setFont("helvetica", "bold");
   doc.text("CONDITION OF GOODS", 14, y); y += 6;

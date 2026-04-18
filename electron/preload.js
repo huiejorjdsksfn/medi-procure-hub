@@ -1,5 +1,5 @@
 /**
- * ProcurBosse Preload — secure IPC bridge
+ * ProcurBosse Preload   secure IPC bridge
  * Exposed as window.procurBosse in the renderer
  */
 'use strict';

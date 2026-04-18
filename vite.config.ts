@@ -1,4 +1,4 @@
-// ProcurBosse v5.9 — Vite Config
+// ProcurBosse v8.0 -- Vite Config -- Production for 2000+ users
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -14,14 +14,18 @@ export default defineConfig(({ mode }) => ({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "5.9.0"),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "20.0.0"),
   },
   build: {
     sourcemap: false,
-    target: "es2015",
+    target: "es2017",
+    minify: "esbuild",
+    cssMinify: true,
+    reportCompressedSize: false,
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === "CIRCULAR_DEPENDENCY") return;
+        if (warning.code === "THIS_IS_UNDEFINED") return;
         warn(warning);
       },
       output: {
@@ -33,10 +37,15 @@ export default defineConfig(({ mode }) => ({
           "xlsx-vendor":     ["xlsx"],
           "doc-vendor":      ["mammoth", "papaparse"],
           "pdf-vendor":      ["jspdf", "jspdf-autotable"],
+          "tanstack":        ["@tanstack/react-query"],
         },
       },
     },
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 1000,
   },
   envPrefix: ["VITE_"],
+  optimizeDeps: {
+    include: ["react", "react-dom", "@supabase/supabase-js", "lucide-react", "recharts"],
+    exclude: [],
+  },
 }));

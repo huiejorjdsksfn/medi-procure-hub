@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — Print Engine
+ * ProcurBosse  -- Print Engine
  * Generates browser-printable HTML for all document types
  * Uses official Embu County Government letterhead
  */
@@ -54,7 +54,7 @@ function letterhead(docTitle: string, docNo: string): string {
         <div class="lh-county">${lh.county}</div>
         <div class="lh-dept">${lh.department}</div>
         <div class="lh-hospital">${lh.hospital}</div>
-        <div style="font-size:7.5pt;color:#94a3b8;margin-top:2px">${lh.address} · ${lh.phone} · ${lh.email}</div>
+        <div style="font-size:7.5pt;color:#94a3b8;margin-top:2px">${lh.address} * ${lh.phone} * ${lh.email}</div>
       </div>
     </div>
     <div class="doc-title">${docTitle}</div>
@@ -109,18 +109,18 @@ function printDoc(html: string) {
   const win = window.open("", "_blank", "width=900,height=700");
   if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
-    <title>EL5 MediProcure — Print</title>
+    <title>EL5 MediProcure  -- Print</title>
     <style>${LETTERHEAD_CSS}</style>
   </head><body>${html}
     <div class="footer">
-      ${PRINT_CONFIG.LETTERHEAD.hospital} · ${PRINT_CONFIG.LETTERHEAD.address} · EL5 MediProcure v2.0
+      ${PRINT_CONFIG.LETTERHEAD.hospital} * ${PRINT_CONFIG.LETTERHEAD.address} * EL5 MediProcure v2.0
     </div>
     <script>window.onload=()=>{window.print();}<\/script>
   </body></html>`);
   win.document.close();
 }
 
-// ── PUBLIC PRINT FUNCTIONS ───────────────────────────────────────
+// -- PUBLIC PRINT FUNCTIONS ---------------------------------------
 
 export function printRequisition(req: any, items: any[]) {
   const html = `
@@ -150,8 +150,8 @@ export function printRequisition(req: any, items: any[]) {
             <td>${it.description || it.specifications || ""}</td>
             <td>${it.unit_of_measure || it.unit || ""}</td>
             <td style="text-align:right">${it.quantity || 0}</td>
-            <td style="text-align:right">${it.unit_price ? Number(it.unit_price).toLocaleString("en-KE", {minimumFractionDigits:2}) : "—"}</td>
-            <td style="text-align:right">${it.total_price ? Number(it.total_price).toLocaleString("en-KE", {minimumFractionDigits:2}) : "—"}</td>
+            <td style="text-align:right">${it.unit_price ? Number(it.unit_price).toLocaleString("en-KE", {minimumFractionDigits:2}) : " --"}</td>
+            <td style="text-align:right">${it.total_price ? Number(it.total_price).toLocaleString("en-KE", {minimumFractionDigits:2}) : " --"}</td>
           </tr>`).join("")}
         <tr class="tfoot"><td colspan="6" style="text-align:right">TOTAL AMOUNT:</td><td style="text-align:right">KES ${Number(req.total_amount||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</td></tr>
       </table>
@@ -184,7 +184,7 @@ export function printPurchaseOrder(po: any, items: any[], supplier: any) {
         <div class="kv"><span class="kv-lbl">Delivery Date:</span><span class="kv-val">${po.delivery_date ? new Date(po.delivery_date).toLocaleDateString("en-KE") : ""}</span></div>
         <div class="kv"><span class="kv-lbl">Payment Terms:</span><span class="kv-val">${po.payment_terms || "30 Days"}</span></div>
         <div class="kv"><span class="kv-lbl">Department:</span><span class="kv-val">${po.department || ""}</span></div>
-        <div class="kv"><span class="kv-lbl">Delivery To:</span><span class="kv-val">${po.delivery_address || "Stores — EL5 Hospital"}</span></div>
+        <div class="kv"><span class="kv-lbl">Delivery To:</span><span class="kv-val">${po.delivery_address || "Stores  -- EL5 Hospital"}</span></div>
       </div>
     </div>
     <table>
@@ -293,7 +293,7 @@ export function printReport(template: ReportTemplate, data: any[], period = "") 
           ${cols.map(col => {
             const val = row[col.key];
             let display = "";
-            if (val == null) display = "—";
+            if (val == null) display = " --";
             else if (col.format === "currency") display = "KES " + Number(val).toLocaleString("en-KE", {minimumFractionDigits:2});
             else if (col.format === "date")     display = new Date(val).toLocaleDateString("en-KE");
             else if (col.format === "number")   display = Number(val).toLocaleString("en-KE");

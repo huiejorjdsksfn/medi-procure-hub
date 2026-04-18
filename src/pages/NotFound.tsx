@@ -20,7 +20,7 @@ export default function NotFound() {
             <Home style={{width:14,height:14}}/> Dashboard
           </button>
         </div>
-        <div style={{marginTop:24,fontSize:11,color:"rgba(255,255,255,0.3)"}}>EL5 MediProcure · Embu Level 5 Hospital</div>
+        <div style={{marginTop:24,fontSize:11,color:"rgba(255,255,255,0.3)"}}>EL5 MediProcure * Embu Level 5 Hospital</div>
       </div>
     </div>
   );

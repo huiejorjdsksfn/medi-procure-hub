@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
             <img src={embuLogo} alt="EL5H" style={{ height: 48, width: 48, borderRadius: 12, objectFit: "contain", background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.15)", padding: 4 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <div style={{ textAlign: "left" }}>
               <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1 }}>EL5 MediProcure</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>ProcurBosse v5.8</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>ProcurBosse</div>
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
         {/* Error */}
         {errMsg && (
           <div style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "12px 16px", color: "#fca5a5", fontSize: 13, marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>[!]</span>
             <span>{errMsg}</span>
           </div>
         )}
@@ -152,10 +152,10 @@ export default function ResetPasswordPage() {
             <button
               onClick={handleRequest} disabled={loading}
               style={{ width: "100%", padding: "14px", background: loading ? "rgba(14,116,144,0.4)" : `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : "0 8px 24px rgba(14,116,144,0.4)", transition: "all 0.2s" }}>
-              {loading ? "Sending Reset Link…" : "Send Reset Link →"}
+              {loading ? "Sending Reset Link..." : "Send Reset Link ->"}
             </button>
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <a href="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>← Back to Login</a>
+              <a href="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>Back to Login</a>
             </div>
           </>
         )}
@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
         {stage === "sent" && (
           <>
             <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 14, padding: "24px", textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 42, marginBottom: 10 }}>📬</div>
+              <div style={{ fontSize: 42, marginBottom: 10 }}></div>
               <div style={{ color: "#86efac", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Reset link sent!</div>
               <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 1.7 }}>
                 We sent a secure link to<br/>
@@ -196,7 +196,7 @@ export default function ResetPasswordPage() {
                   onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.12)"; }}
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-                  {showPass ? "🙈" : "👁️"}
+                  {showPass ? "" : ""}
                 </button>
               </div>
               {password && (
@@ -225,11 +225,11 @@ export default function ResetPasswordPage() {
                   onBlur={e => { e.target.style.borderColor = confirm && confirm !== password ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.12)"; }}
                 />
                 <button type="button" onClick={() => setShowConfirm(v => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-                  {showConfirm ? "🙈" : "👁️"}
+                  {showConfirm ? "" : ""}
                 </button>
               </div>
               {confirm && confirm !== password && <div style={{ color: "#fca5a5", fontSize: 11, marginTop: 5 }}>Passwords don't match</div>}
-              {confirm && confirm === password && password.length >= 8 && <div style={{ color: "#86efac", fontSize: 11, marginTop: 5 }}>✓ Passwords match</div>}
+              {confirm && confirm === password && password.length >= 8 && <div style={{ color: "#86efac", fontSize: 11, marginTop: 5 }}> Passwords match</div>}
             </div>
 
             {/* Requirements */}
@@ -239,7 +239,7 @@ export default function ResetPasswordPage() {
                 {checks.map((c, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ width: 16, height: 16, borderRadius: "50%", background: c.ok ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.05)", border: `1px solid ${c.ok ? "#22c55e" : "rgba(255,255,255,0.1)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, color: c.ok ? "#22c55e" : "rgba(255,255,255,0.2)" }}>
-                      {c.ok ? "✓" : "○"}
+                      {c.ok ? "" : ""}
                     </span>
                     <span style={{ color: c.ok ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)", fontSize: 11 }}>{c.label}</span>
                   </div>
@@ -250,7 +250,7 @@ export default function ResetPasswordPage() {
             <button
               onClick={handleUpdate} disabled={loading}
               style={{ width: "100%", padding: "14px", background: loading ? "rgba(14,116,144,0.4)" : `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : "0 8px 24px rgba(14,116,144,0.4)", transition: "all 0.2s" }}>
-              {loading ? "Updating Password…" : "Update Password →"}
+              {loading ? "Updating Password..." : "Update Password ->"}
             </button>
           </>
         )}
@@ -259,11 +259,11 @@ export default function ResetPasswordPage() {
         {stage === "done" && (
           <>
             <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 14, padding: "28px", textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+              <div style={{ fontSize: 48, marginBottom: 12 }}></div>
               <div style={{ color: "#86efac", fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Password Updated!</div>
               <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 1.7 }}>
                 Your password has been changed successfully.<br/>
-                Redirecting you to login in a moment…
+                Redirecting you to login in a moment...
               </div>
             </div>
             <a href="/login" style={{ display: "block", width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
@@ -274,8 +274,8 @@ export default function ResetPasswordPage() {
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 28, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>Embu Level 5 Hospital · EL5 MediProcure v5.8</div>
-          <div style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, marginTop: 2 }}>Health Procurement ERP · ProcurBosse</div>
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>Embu Level 5 Hospital * EL5 MediProcure</div>
+          <div style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, marginTop: 2 }}>Health Procurement ERP * ProcurBosse</div>
         </div>
       </div>
     </div>

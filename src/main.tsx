@@ -4,7 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
 import { liveDbEngine } from './engines/db/LiveDatabaseEngine';
 
-// ── Start LiveDatabaseEngine on app init (60s auto-cycle) ────────────────────
+// -- Start LiveDatabaseEngine on app init (60s auto-cycle) --------------------
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
     // Delay first run by 3s to let auth settle

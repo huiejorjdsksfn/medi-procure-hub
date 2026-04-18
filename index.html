@@ -2,22 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/icon-128.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d3b7a" />
-    <meta name="description" content="EL5 MediProcure v5.9 — Health Procurement ERP for Embu Level 5 Hospital. ProcurBosse by Embu County Government." />
+    <meta name="theme-color" content="#0078d4" />
+    <meta name="description" content="EL5 MediProcure ProcurBosse — Health Procurement ERP for Embu Level 5 Hospital, Embu County Government, Kenya." />
     <meta name="application-name" content="ProcurBosse" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ProcurBosse" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="msapplication-TileColor" content="#0d3b7a" />
+    <meta name="msapplication-TileColor" content="#0078d4" />
     <meta name="msapplication-TileImage" content="/icons/icon-192.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="EL5 MediProcure v5.9 — ProcurBosse" />
+    <meta property="og:title" content="EL5 MediProcure — ProcurBosse ERP" />
     <meta property="og:description" content="Health Procurement ERP — Embu Level 5 Hospital" />
     <meta property="og:image" content="/icons/icon-512.png" />
     <link rel="preconnect" href="https://yvjfehnzbzjliizjvuhq.supabase.co" crossorigin />
@@ -25,40 +27,101 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.bunny.net" />
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet" />
-    <title>EL5 MediProcure v5.9 — ProcurBosse</title>
+    <title>EL5 MediProcure — ProcurBosse</title>
     <style>
-      *{box-sizing:border-box}
-      html,body,#root{height:100%;margin:0;padding:0}
-      body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:#0a1628}
-      .skel{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%;animation:skel 1.5s infinite;border-radius:6px}
-      @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
-      ::-webkit-scrollbar{width:5px;height:5px}
-      ::-webkit-scrollbar-track{background:#0f172a}
-      ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
-      ::-webkit-scrollbar-thumb:hover{background:#475569}
-      /* Loading screen */
-      #splash{position:fixed;inset:0;background:#0a1628;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s}
-      #splash.out{opacity:0;pointer-events:none}
-      .splash-logo{width:72px;height:72px;border-radius:18px;background:#0d3b7a;display:flex;align-items:center;justify-content:center;animation:splashPulse 1.2s ease-in-out infinite}
-      @keyframes splashPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(13,59,122,.4)}50%{transform:scale(1.06);box-shadow:0 0 0 16px rgba(13,59,122,0)}}
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body, #root { height: 100%; margin: 0; padding: 0; }
+      body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f3f5f8; }
+      /* Splash screen - shown until React mounts */
+      #splash {
+        position: fixed; inset: 0;
+        background: #0a1628;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999; transition: opacity 0.5s ease;
+      }
+      #splash.out { opacity: 0; pointer-events: none; }
+      .splash-ring {
+        width: 64px; height: 64px; border-radius: 16px;
+        background: #0078d4;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 0 0 rgba(0,120,212,0.4);
+        animation: splashPulse 1.4s ease-in-out infinite;
+      }
+      @keyframes splashPulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,120,212,0.4); }
+        50% { transform: scale(1.05); box-shadow: 0 0 0 18px rgba(0,120,212,0); }
+      }
+      .splash-bar {
+        width: 200px; height: 3px; background: rgba(255,255,255,0.1);
+        border-radius: 2px; margin-top: 20px; overflow: hidden;
+      }
+      .splash-bar-fill {
+        height: 100%; background: #0078d4; border-radius: 2px;
+        animation: barFill 2s ease-in-out infinite;
+      }
+      @keyframes barFill {
+        0% { width: 0%; } 80% { width: 100%; } 100% { width: 100%; opacity: 0; }
+      }
     </style>
   </head>
   <body>
+    <!-- Splash shown until React hydrates -->
     <div id="splash">
-      <div style="text-align:center">
-        <div class="splash-logo">
-          <img src="/icons/icon-48.png" alt="ProcurBosse" style="width:40px;height:40px;object-fit:contain" />
+      <div style="text-align: center;">
+        <div class="splash-ring">
+          <img src="/icons/icon-48.png" alt="ProcurBosse" style="width:36px;height:36px;object-fit:contain;" onerror="this.style.display='none'" />
         </div>
-        <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:14px;letter-spacing:.1em;font-family:Inter,sans-serif">EL5 MEDIPROCURE</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:11px;margin-top:12px;letter-spacing:0.12em;font-family:'Inter',sans-serif;font-weight:600;">
+          EL5 MEDIPROCURE
+        </div>
+        <div class="splash-bar"><div class="splash-bar-fill"></div></div>
       </div>
     </div>
+
     <div id="root"></div>
+
+    <!-- Remove splash once React mounts -->
     <script>
-      window.addEventListener('load',()=>{
-        const s=document.getElementById('splash');
-        if(s){setTimeout(()=>{s.classList.add('out');setTimeout(()=>s.remove(),400)},800)}
-      });
+      (function() {
+        var splash = document.getElementById('splash');
+        var root   = document.getElementById('root');
+        // Observer: hide splash as soon as #root has children
+        var obs = new MutationObserver(function() {
+          if (root && root.children.length > 0) {
+            if (splash) { splash.classList.add('out'); setTimeout(function(){ splash.remove(); }, 600); }
+            obs.disconnect();
+          }
+        });
+        obs.observe(root, { childList: true });
+        // Hard fallback: if React hasn't mounted in 15s, show error (not "deploying")
+        setTimeout(function() {
+          if (root && root.children.length === 0) {
+            splash && splash.remove();
+            root.innerHTML = [
+              '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;',
+              'background:#f3f5f8;font-family:Inter,Segoe UI,sans-serif;padding:20px">',
+              '<div style="max-width:440px;width:100%;background:#fff;border:1px solid #dde1e7;',
+              'border-radius:12px;padding:32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)">',
+              '<div style="width:56px;height:56px;border-radius:14px;background:#fef2f2;',
+              'display:flex;align-items:center;justify-content:center;margin:0 auto 16px">',
+              '<span style="font-size:28px">&#9888;</span></div>',
+              '<h2 style="margin:0 0 8px;color:#1a1a2e;font-size:18px">Application failed to start</h2>',
+              '<p style="color:#6b7280;font-size:13px;margin:0 0 20px;line-height:1.6">',
+              'The app could not load. This may be a network issue or browser cache problem.</p>',
+              '<button onclick="window.location.reload()" style="background:#0078d4;color:#fff;',
+              'border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;',
+              'cursor:pointer;margin-bottom:10px;width:100%">Reload Page</button>',
+              '<button onclick="(function(){localStorage.clear();sessionStorage.clear();location.reload();})()" ',
+              'style="background:#f8f9fb;color:#374151;border:1px solid #dde1e7;padding:8px 20px;',
+              'border-radius:8px;font-size:13px;cursor:pointer;width:100%">Clear Cache &amp; Reload</button>',
+              '<p style="color:#9ca3af;font-size:11px;margin:14px 0 0">EL5 MediProcure &bull; Embu Level 5 Hospital</p>',
+              '</div></div>'
+            ].join('');
+          }
+        }, 15000);
+      })();
     </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

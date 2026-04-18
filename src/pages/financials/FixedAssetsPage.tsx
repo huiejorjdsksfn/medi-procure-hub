@@ -38,7 +38,7 @@ export default function FixedAssetsPage() {
   };
   useEffect(()=>{ load(); },[]);
 
-  /* ── Real-time subscription ─────────────────────────────── */
+  /* -- Real-time subscription ------------------------------- */
   useEffect(()=>{
     const ch=(supabase as any).channel("fa-rt").on("postgres_changes",{event:"*",schema:"public",table:"fixed_assets"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -68,12 +68,12 @@ export default function FixedAssetsPage() {
     const payload={...form,asset_number:editing?editing.asset_number:genNo(),department_id:form.department_id||null,department_name:dept?.name||"",purchase_cost:Number(form.purchase_cost||0),useful_life:Number(form.useful_life||0),residual_value:Number(form.residual_value||0),annual_depreciation:annual,accumulated_depreciation:accumulated,net_book_value:nbv,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("fixed_assets").update(payload).eq("id",editing.id);
-      if(!error){logAudit(user?.id,profile?.full_name,"update","fixed_assets",editing.id,{name:form.asset_name});toast({title:"Asset updated ✓"});}
-      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
+      if(!error){logAudit(user?.id,profile?.full_name,"update","fixed_assets",editing.id,{name:form.asset_name});toast({title:"Asset updated "});}
+      else toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});
     } else {
       const{data,error}=await(supabase as any).from("fixed_assets").insert(payload).select().single();
-      if(!error){logAudit(user?.id,profile?.full_name,"create","fixed_assets",data?.id,{name:form.asset_name});toast({title:"Asset registered ✓"});}
-      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
+      if(!error){logAudit(user?.id,profile?.full_name,"create","fixed_assets",data?.id,{name:form.asset_name});toast({title:"Asset registered "});}
+      else toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
@@ -129,7 +129,7 @@ export default function FixedAssetsPage() {
       <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1a3a6b,#0a2558)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Fixed Assets Register</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} assets · Cost: {fmtKES(totalCost)} · NBV: {fmtKES(totalNBV)}</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} assets * Cost: {fmtKES(totalCost)} * NBV: {fmtKES(totalNBV)}</p>
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
@@ -163,11 +163,11 @@ export default function FixedAssetsPage() {
                 onClick={()=>setDetail(r)}>
                 <td style={{padding:"9px 12px",fontFamily:"monospace",fontSize:10,fontWeight:700,color:"#1a3a6b"}}>{r.asset_number}</td>
                 <td style={{padding:"9px 12px",fontWeight:700,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.asset_name}</td>
-                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.category||"—"}</td>
-                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.department_name||"—"}</td>
+                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.category||" --"}</td>
+                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.department_name||" --"}</td>
                 <td style={{padding:"9px 12px",fontWeight:600,color:"#374151"}}>{fmtKES(r.purchase_cost||0)}</td>
                 <td style={{padding:"9px 12px",fontWeight:700,color:"#15803d"}}>{fmtKES(r.net_book_value||0)}</td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:"#f3f4f6",color:"#374151"}}>{r.condition||"—"}</span></td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:"#f3f4f6",color:"#374151"}}>{r.condition||" --"}</span></td>
                 <td style={{padding:"9px 12px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:`${SC[r.status]||"#9ca3af"}18`,color:SC[r.status]||"#9ca3af"}}>{(r.status||"").replace(/_/g," ")}</span></td>
                 <td style={{padding:"9px 12px"}} onClick={e=>e.stopPropagation()}>
                   <div style={{display:"flex",gap:4}}>
@@ -194,11 +194,11 @@ export default function FixedAssetsPage() {
                 <F label="Asset Name *" k="asset_name" span={2} req/>
                 <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category *</label>
                   <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                    <option value="">— Select —</option>{CATS.map(c=><option key={c}>{c}</option>)}
+                    <option value=""> -- Select  --</option>{CATS.map(c=><option key={c}>{c}</option>)}
                   </select></div>
                 <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
                   <select value={form.department_id||""} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                    <option value="">— Select —</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                    <option value=""> -- Select  --</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select></div>
                 <F label="Purchase Date" k="purchase_date" type="date"/>
                 <F label="Purchase Cost (KES)" k="purchase_cost" type="number"/>
