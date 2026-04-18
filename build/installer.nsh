@@ -1,50 +1,30 @@
-; ProcurBosse NSIS installer script
-; Handles Windows 7 SP1 → Windows 11 (x64 + ia32)
+; ProcurBosse NSIS Installer Script
+; Includes Visual C++ Redistributable + Node.js check
 
-!macro customHeader
-  ; Set installer properties
-  RequestExecutionLevel user
-!macroend
+!include "MUI2.nsh"
+!include "x64.nsh"
 
-!macro customInit
-  ; Windows version check — require Windows 7 SP1 or later
-  ${IfNot} ${AtLeastWin7}
-    MessageBox MB_OK|MB_ICONEXCLAMATION "ProcurBosse requires Windows 7 SP1 or later.$\nPlease update your Windows version."
-    Abort
-  ${EndIf}
-
-  ; Check internet connectivity (ping Supabase)
-  nsExec::ExecToStack 'ping -n 1 -w 3000 yvjfehnzbzjliizjvuhq.supabase.co'
-  Pop $0
-  ${If} $0 != "0"
-    MessageBox MB_OKCANCEL|MB_ICONINFORMATION \
-      "Warning: Cannot reach the ProcurBosse database.$\n$\nProcurBosse requires an internet connection.$\n$\nInstall anyway?" \
-      IDOK +2
-    Abort
-  ${EndIf}
-!macroend
-
-!macro customInstall
-  ; Create desktop shortcut with custom icon
-  CreateShortCut "$DESKTOP\ProcurBosse.lnk" "$INSTDIR\ProcurBosse.exe" "" "$INSTDIR\resources\icon.png"
+; Install Visual C++ 2022 Redistributable if needed
+Section "Visual C++ Runtime" SecVCRedist
+  SetOutPath "$TEMP"
+  ; Check if already installed
+  ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
+  StrCmp $0 "1" VCRedistInstalled
   
-  ; Create Start Menu entry
-  CreateDirectory "$SMPROGRAMS\EL5 MediProcure"
-  CreateShortCut "$SMPROGRAMS\EL5 MediProcure\ProcurBosse.lnk" "$INSTDIR\ProcurBosse.exe"
-  CreateShortCut "$SMPROGRAMS\EL5 MediProcure\Uninstall.lnk" "$INSTDIR\Uninstall ProcurBosse.exe"
+  ; Download and install VC++ Redist
+  NSISdl::download "https://aka.ms/vs/17/release/vc_redist.x64.exe" "$TEMP\vc_redist.x64.exe"
+  ExecWait '"$TEMP\vc_redist.x64.exe" /quiet /norestart' $1
+  
+  VCRedistInstalled:
+SectionEnd
 
-  ; Write registry for uninstall
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ProcurBosse" \
-    "DisplayName" "ProcurBosse — EL5 MediProcure"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ProcurBosse" \
-    "Publisher" "Embu County Government"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ProcurBosse" \
-    "URLInfoAbout" "https://github.com/huiejorjdsksfn/medi-procure-hub"
-!macroend
-
-!macro customUnInstall
-  ; Clean up shortcuts
-  Delete "$DESKTOP\ProcurBosse.lnk"
-  RMDir /r "$SMPROGRAMS\EL5 MediProcure"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ProcurBosse"
-!macroend
+; WebView2 Runtime check (needed by Electron)
+Section "WebView2 Runtime" SecWebView2
+  ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+  StrCmp $0 "" 0 WebView2Installed
+  
+  NSISdl::download "https://go.microsoft.com/fwlink/p/?LinkId=2124703" "$TEMP\MicrosoftEdgeWebview2Setup.exe"
+  ExecWait '"$TEMP\MicrosoftEdgeWebview2Setup.exe" /silent /install' $1
+  
+  WebView2Installed:
+SectionEnd
