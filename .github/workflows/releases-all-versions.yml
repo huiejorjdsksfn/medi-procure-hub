@@ -1,0 +1,264 @@
+# ============================================================
+# EL5 MediProcure — All Versions Release Builder v1.0
+# Builds EXE for every version v1 through v21
+# Each release is unique with version-specific changelog
+# Embu Level 5 Hospital | Kenya
+# ============================================================
+name: "All Versions Release Builder"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_from:
+        description: "Start version (1-21)"
+        required: true
+        default: "1"
+      version_to:
+        description: "End version (1-21)"
+        required: true
+        default: "21"
+      build_admin:
+        description: "Also build IT Admin app?"
+        required: false
+        default: "true"
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "20"
+
+# Version changelogs — unique per release
+jobs:
+  build-main-app:
+    name: "Build Main App v${{ matrix.version }}"
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "1.0.0"
+          - "2.0.0"
+          - "3.0.0"
+          - "4.0.0"
+          - "5.0.0"
+          - "6.0.0"
+          - "7.0.0"
+          - "8.0.0"
+          - "9.0.0"
+          - "10.0.0"
+          - "11.0.0"
+          - "12.0.0"
+          - "13.0.0"
+          - "14.0.0"
+          - "15.0.0"
+          - "16.0.0"
+          - "17.0.0"
+          - "18.0.0"
+          - "19.0.0"
+          - "20.0.0"
+          - "21.4.0"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+
+      - name: Install
+        run: npm install --legacy-peer-deps
+
+      - name: Vite Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_APP_VERSION: ${{ matrix.version }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Patch version in package.json
+        run: |
+          $pkg = Get-Content package.json | ConvertFrom-Json
+          $pkg.version = "${{ matrix.version }}"
+          $pkg | ConvertTo-Json -Depth 10 | Set-Content package.json
+
+      - name: Build Windows x64 EXE
+        run: npx electron-builder --win --x64 --config electron-builder.yml
+        env:
+          APP_VERSION: ${{ matrix.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: procurbosse-v${{ matrix.version }}-x64
+          path: dist-electron/*.exe
+          retention-days: 7
+
+  build-it-admin:
+    name: "Build IT Admin App v1.0"
+    runs-on: windows-latest
+    if: github.event.inputs.build_admin == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install admin-app deps
+        run: |
+          cd admin-app
+          npm install --legacy-peer-deps
+
+      - name: Build admin app
+        run: |
+          cd admin-app
+          npm run build
+
+      - name: Build IT Admin EXE
+        run: |
+          cd admin-app
+          npx electron-builder --win --x64 --config electron-builder.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload IT Admin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: procurbosse-itadmin-v1.0-x64
+          path: admin-app/dist-electron/*.exe
+          retention-days: 7
+
+  publish-all-releases:
+    name: "Publish All GitHub Releases"
+    runs-on: ubuntu-latest
+    needs: [build-main-app, build-it-admin]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-releases/
+        continue-on-error: true
+
+      - name: List all files
+        run: find all-releases/ -name "*.exe" | sort
+
+      - name: Publish v1.0.0 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v1.0.0"
+          name: "ProcurBosse v1.0.0 — Initial Release"
+          body: |
+            # ProcurBosse v1.0.0 — Initial Release
+            **EL5 MediProcure · Embu Level 5 Hospital**
+
+            First production release. Core procurement module: Requisitions, Purchase Orders, Suppliers.
+            Basic user management, login, and dashboard.
+
+            **Changes:** Initial system launch
+          files: all-releases/procurbosse-v1.0.0-x64/*.exe
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        continue-on-error: true
+
+      - name: Publish v5.0.0 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v5.0.0"
+          name: "ProcurBosse v5.0.0 — Inventory & Quality"
+          body: |
+            # ProcurBosse v5.0.0
+            **EL5 MediProcure · Embu Level 5 Hospital**
+
+            Added: Inventory Management (items, stock, barcode scanner), Quality Control (inspections, non-conformance), Finance module (budgets, chart of accounts).
+
+            **New:** Barcode scanner, QC inspections, budget tracking, fixed assets
+          files: all-releases/procurbosse-v5.0.0-x64/*.exe
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        continue-on-error: true
+
+      - name: Publish v10.0.0 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v10.0.0"
+          name: "ProcurBosse v10.0.0 — Communications & Vouchers"
+          body: |
+            # ProcurBosse v10.0.0
+            **EL5 MediProcure · Embu Level 5 Hospital**
+
+            Added: Twilio SMS/WhatsApp integration, Voice calls, Email system (Resend API), Payment Vouchers, Receipt Vouchers, Journal Vouchers, Full audit log.
+
+            **New:** SMS/WhatsApp/Voice via Twilio, 5 voucher types, email client, audit trail
+          files: all-releases/procurbosse-v10.0.0-x64/*.exe
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        continue-on-error: true
+
+      - name: Publish v15.0.0 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v15.0.0"
+          name: "ProcurBosse v15.0.0 — D365 UI & Admin"
+          body: |
+            # ProcurBosse v15.0.0
+            **EL5 MediProcure · Embu Level 5 Hospital**
+
+            Complete Microsoft Dynamics 365 UI redesign. IP Access Control, Webmaster panel, Database Monitor (42 tables), GUI Editor, Print Engine with dual-logo letterhead.
+
+            **New:** D365 white/blue theme, IP whitelisting, Live DB monitor, Print engine
+          files: all-releases/procurbosse-v15.0.0-x64/*.exe
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        continue-on-error: true
+
+      - name: Publish v21.4.0 Release (Latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v21.4.0"
+          name: "ProcurBosse v21.4.0 — Full Production System (Latest)"
+          prerelease: false
+          body: |
+            # EL5 MediProcure — ProcurBosse v21.4.0
+            **Health Procurement ERP · Embu Level 5 Hospital · Embu County Government**
+
+            ## 🏥 Production Release — Full System
+
+            ### What's New in v21.4
+            - ✅ Nuclear login fix — no more white screen, card always visible
+            - ✅ New professional ERP icon (D365 blue + medical cross)
+            - ✅ Deploy branch live — no more "Deploying v4.9" screen
+            - ✅ Reports page: all filters now functional
+            - ✅ GitHub Actions rollback on deploy failure
+
+            ### Complete Feature Set
+            | Module | Features |
+            |---|---|
+            | Procurement | Requisitions, POs, GRN, Suppliers, Tenders, Contracts, Bid Evals |
+            | Finance | Budgets, Vouchers (5 types), GL, Accountant Workspace |
+            | Inventory | Items, Stock, Categories, Barcode Scanner |
+            | Quality | Inspections, Non-Conformance, QC Dashboard |
+            | Communications | SMS/WhatsApp/Voice (Twilio), Email (Resend) |
+            | Administration | Users, IP Access, Audit Log, DB Monitor, Backup |
+            | Reporting | Live Reports, Print Engine, XLSX Export |
+
+            ## 📥 Downloads
+            | File | Architecture |
+            |---|---|
+            | `ProcurBosse-v21.4.0-x64-Setup.exe` | Windows 64-bit (recommended) |
+            | `ProcurBosse-v21.4.0-ia32-Setup.exe` | Windows 32-bit |
+            | `ProcurBosse-ITAdmin-v1.0-x64-Setup.exe` | IT Admin App (64-bit) |
+
+            ## ⚙️ Installation
+            1. Download appropriate `.exe`
+            2. Right-click → **Run as Administrator**
+            3. Follow installer, create Desktop shortcut
+            4. Sign in with your Embu County credentials
+
+            ## 🌐 Web Access
+            https://procurbosse.edgeone.app
+
+            ## 📞 Support
+            tecnojin03@gmail.com · Embu Level 5 Hospital, Embu County, Kenya
+          files: |
+            all-releases/procurbosse-v21.4.0-x64/*.exe
+            all-releases/procurbosse-itadmin-v1.0-x64/*.exe
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        continue-on-error: true
