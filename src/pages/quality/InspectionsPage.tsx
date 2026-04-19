@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { Plus, RefreshCw, Download, X, Save, Trash2, Eye, CheckCircle, XCircle, AlertTriangle, Clock, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const genNo = ()=>`QI/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Math.floor(100+Math.random()*9900))}`;
+function genNo() { return `QI/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Math.floor(100+Math.random()*9900))}`; };
 const RC: Record<string,{bg:string;color:string}> = {
   pass:{bg:"#dcfce7",color:"#15803d"},fail:{bg:"#fee2e2",color:"#dc2626"},
   conditional:{bg:"#fef3c7",color:"#92400e"},pending:{bg:"#f3f4f6",color:"#6b7280"},

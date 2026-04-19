@@ -8,8 +8,8 @@ import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printJournalVoucher } from "@/lib/printDocument";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
-const genNo = () => `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
+function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`; };
+function genNo() { return `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`; };
 const SC: Record<string,string> = {draft:"#6b7280",approved:"#15803d",posted:"#0369a1",rejected:"#dc2626"};
 
 export default function JournalVouchersPage() {

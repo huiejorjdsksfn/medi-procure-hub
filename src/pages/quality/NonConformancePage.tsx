@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { Plus, RefreshCw, Download, X, Save, Trash2, Eye, AlertTriangle, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const genNo = ()=>`NCR/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
+function genNo() { return `NCR/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`; };
 const SC: Record<string,{bg:string;color:string}> = {
   open:{bg:"#fee2e2",color:"#dc2626"},
   under_review:{bg:"#fef3c7",color:"#92400e"},

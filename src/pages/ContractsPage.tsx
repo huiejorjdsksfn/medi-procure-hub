@@ -8,8 +8,8 @@ import { Plus, Search, RefreshCw, Eye, FileText, X, Save, Download, AlertTriangl
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
-const genNo = () => `CNT/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
+function genNo() { return `CNT/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`; };
+function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE")}`; };
 const fmtDate = (d:string) => d?new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}):" --";
 
 const S_CFG:Record<string,{bg:string;color:string;label:string;icon:any}> = {
