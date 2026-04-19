@@ -7,8 +7,8 @@ import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, BarChart3 } f
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:0})}`;
-const genCode = () => `BDG-${new Date().getFullYear()}-${String(Math.floor(100+Math.random()*900))}`;
+function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:0})}`; };
+function genCode() { return `BDG-${new Date().getFullYear()}-${String(Math.floor(100+Math.random()*900))}`; };
 const SC: Record<string,string> = {active:"#15803d",draft:"#6b7280",closed:"#dc2626",exceeded:"#d97706"};
 
 export default function BudgetsPage() {

@@ -8,8 +8,8 @@ import { Plus, Search, RefreshCw, Eye, CheckCircle, Gavel, X, Save, Download, Ma
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
-const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
+function genNo() { return `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`; };
+function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE")}`; };
 const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}) : " --";
 
 const STATUS_CFG:Record<string,{bg:string;color:string;label:string}> = {

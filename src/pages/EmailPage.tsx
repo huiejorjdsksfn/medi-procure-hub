@@ -143,7 +143,7 @@ export default function EmailPage() {
         {SIDEBAR.map(s=>(
           <button key={s.key} onClick={()=>setFold(s.key)}
             style={{ display:"flex", alignItems:"center", gap:14, padding:"8px 16px 8px 22px",
-              background: fold===s.key?"#fce8e6":none, border:"none", cursor:"pointer",
+              background: fold===s.key?"#fce8e6":"none", border:"none", cursor:"pointer",
               borderRadius:fold===s.key?"0 20px 20px 0":"0",
               fontSize:13, fontWeight: fold===s.key?700:400, color: fold===s.key?"#c5221f":"#202124",
               textAlign:"left", width:"100%",
@@ -285,4 +285,3 @@ export default function EmailPage() {
   );
 }
 
-const none = "none" as any;

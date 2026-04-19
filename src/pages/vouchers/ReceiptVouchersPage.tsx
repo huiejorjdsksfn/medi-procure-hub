@@ -8,8 +8,8 @@ import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printGenericVoucher } from "@/lib/printDocument";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const genNo = () => `RV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
+function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`; };
+function genNo() { return `RV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`; };
 const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancelled:"#dc2626"};
 
 export default function ReceiptVouchersPage() {

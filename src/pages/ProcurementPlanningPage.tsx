@@ -7,8 +7,8 @@ import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, Calendar, Bar
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
-const genNo = () => `PP/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
+function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE")}`; };
+function genNo() { return `PP/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`; };
 const SC: Record<string,string> = {draft:"#6b7280",approved:"#15803d",active:"#0369a1",completed:"#7c3aed",cancelled:"#dc2626"};
 const CATS = ["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction","ICT","Stationery","Furniture","Services","Utilities"];
 
