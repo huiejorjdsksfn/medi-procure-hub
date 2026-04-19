@@ -563,6 +563,10 @@ jobs:
           files: |
             all-artifacts/app-21.4.0-x64/*.exe
             all-artifacts/itadmin-v1.0.0-x64/*.exe
+            docs/USER_GUIDE_v21.4.md
+            docs/TECH_GUIDE_v21.4.md
+            docs/USER_MANUAL_v21.4.md
+            docs/SUPABASE_MIGRATION_GUIDE.md
         env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
         continue-on-error: true
 
