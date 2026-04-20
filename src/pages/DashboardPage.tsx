@@ -250,7 +250,7 @@ export default function DashboardPage() {
             <div style={{ fontSize:13, fontWeight:600, color:T.fg }}>{displayName}</div>
             <div style={{ fontSize:11, color:T.primary, fontWeight:500 }}>{roleLabel}</div>
           </div>
-          <button onClick={() => { db.from("requisitions").select("id",{count:"exact",head:true}); window.location.reload(); }}
+          <button onClick={() => { db.from("requisitions").select("id",{count:"exact",head:true}); typeof window !== "undefined" && window.location.reload(); }}
             style={{ background:"none", border:`1px solid ${T.border}`, borderRadius:T.r, padding:"5px 8px", cursor:"pointer", color:T.fgMuted, display:"flex", alignItems:"center" }}>
             <RefreshCw size={13} />
           </button>

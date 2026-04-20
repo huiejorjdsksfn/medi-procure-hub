@@ -55,9 +55,16 @@ export default function TendersPage() {
   });
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     const{data}=await(supabase as any).from("tenders").select("*").order("created_at",{ascending:false});
-    setRows(data||[]); setLoading(false);
+    setRows(data||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   },[]);
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{

@@ -56,6 +56,8 @@ export default function PaymentVouchersPage() {
   });
 
   const fetchVouchers = useCallback(async () => {
+    try {
+
     setLoading(true);
     const { data, error } = await supabase
       .from("payment_vouchers")
@@ -63,7 +65,11 @@ export default function PaymentVouchersPage() {
       .order("created_at", { ascending: false })
       .limit(200);
     if (!error && data) setVouchers(data as PaymentVoucher[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[src/pages/vouchers/PaymentVouchersPage.tsx]:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchVouchers(); }, [fetchVouchers]);

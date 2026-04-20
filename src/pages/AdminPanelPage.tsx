@@ -153,7 +153,7 @@ function ServicesPanel({userId}:{userId?:string}) {
       }
       if (svc.id==="web") {
         toast({title:"[OK] Reloading...", description:"App reloads in 2s"});
-        setTimeout(()=>window.location.reload(),2000);
+        setTimeout(()=>typeof window !== "undefined" && window.location.reload(),2000);
       } else {
         toast({title:`[OK] ${svc.label}  -- ${svc.action}`});
       }

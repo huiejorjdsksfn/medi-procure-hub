@@ -26,13 +26,19 @@ export default function ProcurementPlanningPage() {
   const [form, setForm] = useState({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:p},{data:d}] = await Promise.all([
       (supabase as any).from("procurement_plans").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
     setRows(p||[]); setDepts(d||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{ load(); },[]);
 

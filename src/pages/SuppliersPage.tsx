@@ -58,12 +58,18 @@ export default function SuppliersPage() {
   const [form, setForm]       = useState({ name: "", contact_person: "", email: "", phone: "", address: "", category: "", registration_number: "", tax_pin: "" });
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     let q = db.from("suppliers").select("*").order("name");
     if (statusF !== "all") q = q.eq("status", statusF);
     const { data } = await q.limit(300);
     setRows(data || []);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   }, [statusF]);
 
   useEffect(() => { load(); }, [load]);

@@ -215,6 +215,8 @@ export default function ReceptionPage() {
   const [mF,setMF] = useState({...EM});
 
   const load = useCallback(async()=>{
+    try {
+
     setLoading(true);
     const [v,c,m] = await Promise.all([
       (supabase as any).from("reception_visitors").select("*").order("created_at",{ascending:false}).limit(100),
@@ -222,7 +224,11 @@ export default function ReceptionPage() {
       (supabase as any).from("reception_messages").select("*").order("created_at",{ascending:false}).limit(100),
     ]);
     setVisitors(v.data||[]); setCalls(c.data||[]); setMessages(m.data||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   },[]);
 
   useEffect(()=>{load();},[load]);

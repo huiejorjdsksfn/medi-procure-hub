@@ -49,12 +49,19 @@ export default function VouchersPage() {
   const [form,setForm] = useState({voucher_number:"",requested_by:profile?.full_name||"",department_id:"",purpose:"",date:new Date().toISOString().split("T")[0],items:[{...EMPTY}]});
 
   const load = useCallback(async()=>{
+    try {
+
     setLoading(true);
     const [{data:v},{data:d}] = await Promise.all([
       (supabase as any).from("vouchers").select("*,departments(name)").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
-    setRows(v||[]); setDepts(d||[]); setLoading(false);
+    setRows(v||[]); setDepts(d||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   },[]);
   useEffect(()=>{load();},[load]);
   useEffect(()=>{

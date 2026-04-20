@@ -30,13 +30,19 @@ export default function JournalVouchersPage() {
   const { get: getSetting } = useSystemSettings();
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:jv},{data:c}] = await Promise.all([
       (supabase as any).from("journal_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("chart_of_accounts").select("account_code,account_name").eq("is_active",true).order("account_code"),
     ]);
     setRows(jv||[]); setCoa(c||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{load();},[]);
 

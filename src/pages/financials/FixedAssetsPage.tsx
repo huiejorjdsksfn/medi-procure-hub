@@ -28,13 +28,19 @@ export default function FixedAssetsPage() {
   const [form, setForm] = useState({asset_number:"",asset_name:"",category:"",department_id:"",purchase_date:"",purchase_cost:"",useful_life:"",residual_value:"",depreciation_method:"Straight Line",location:"",serial_number:"",supplier_name:"",warranty_expiry:"",condition:"good",status:"active",description:""});
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:a},{data:d}] = await Promise.all([
       (supabase as any).from("fixed_assets").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
     setRows(a||[]); setDepts(d||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{ load(); },[]);
 

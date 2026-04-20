@@ -31,13 +31,19 @@ export default function PurchaseVouchersPage() {
   // hospitalName now from useSystemSettings
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:pv},{data:s}] = await Promise.all([
       (supabase as any).from("purchase_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("suppliers").select("id,name").order("name"),
     ]);
     setRows(pv||[]); setSuppliers(s||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{load();},[]);
 

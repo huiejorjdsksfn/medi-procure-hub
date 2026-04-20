@@ -83,12 +83,18 @@ export default function RequisitionsPage() {
   const [form, setForm]         = useState({ title: "", department: "", description: "", urgency: "normal", total_amount: "" });
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     let q = db.from("requisitions").select("*").order("created_at", { ascending: false });
     if (statusF !== "all") q = q.eq("status", statusF);
     const { data } = await q.limit(200);
     setRows(data || []);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   }, [statusF]);
 
   useEffect(() => { load(); }, [load]);

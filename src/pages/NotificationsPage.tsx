@@ -61,11 +61,17 @@ export default function NotificationsPage() {
   const showToast = (msg: string) => { setLocalToast(msg); setTimeout(() => setLocalToast(""), 3000); };
 
   const fetchNotifs = useCallback(async () => {
+    try {
+
     setLoading(true);
     const { data } = await supabase.from("notifications").select("*")
       .is("dismissed_at", null).order("created_at", { ascending: false }).limit(300);
     if (data) setNotifs(data as Notification[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[src/pages/NotificationsPage.tsx]:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchNotifs(); }, [fetchNotifs]);

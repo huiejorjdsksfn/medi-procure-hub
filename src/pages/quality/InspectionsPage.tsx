@@ -27,12 +27,19 @@ export default function InspectionsPage() {
   const [form, setForm] = useState({inspection_date:new Date().toISOString().slice(0,10),grn_reference:"",supplier_id:"",supplier_name:"",item_name:"",quantity_inspected:"",quantity_accepted:"",quantity_rejected:"",result:"pending",rejection_reason:"",inspector_name:profile?.full_name||"",corrective_action:"",notes:""});
 
   const load = async()=>{
+    try {
+
     setLoading(true);
     const [{data:i},{data:s}] = await Promise.all([
       (supabase as any).from("inspections").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("suppliers").select("id,name").order("name"),
     ]);
-    setRows(i||[]); setSuppliers(s||[]); setLoading(false);
+    setRows(i||[]); setSuppliers(s||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{ load(); },[]);
 

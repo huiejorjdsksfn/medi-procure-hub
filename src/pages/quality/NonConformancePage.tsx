@@ -29,9 +29,16 @@ export default function NonConformancePage() {
   const [form, setForm] = useState({ncr_date:new Date().toISOString().slice(0,10),title:"",description:"",severity:"minor",source:"Inspection",supplier_name:"",item_name:"",grn_reference:"",root_cause:"",corrective_action:"",preventive_action:"",responsible_person:"",target_date:"",status:"open"});
 
   const load = async()=>{
+    try {
+
     setLoading(true);
     const{data}=await(supabase as any).from("non_conformance").select("*").order("created_at",{ascending:false});
-    setRows(data||[]); setLoading(false);
+    setRows(data||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{ load(); },[]);
 

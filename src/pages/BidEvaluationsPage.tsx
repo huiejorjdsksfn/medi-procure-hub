@@ -51,13 +51,20 @@ export default function BidEvaluationsPage() {
   const [form,setForm] = useState({tender_id:"",supplier_id:"",bid_amount:"",technical_score:"",financial_score:"",recommendation:"",notes:""});
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [e,t,s] = await Promise.all([
       (supabase as any).from("bid_evaluations").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("tenders").select("id,tender_number,title").order("tender_number"),
       (supabase as any).from("suppliers").select("id,name").order("name"),
     ]);
-    setRows(e.data||[]); setTenders(t.data||[]); setSuppliers(s.data||[]); setLoading(false);
+    setRows(e.data||[]); setTenders(t.data||[]); setSuppliers(s.data||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{ load(); },[]);
   useEffect(()=>{
