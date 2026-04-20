@@ -72,10 +72,12 @@ export default function SMSPage() {
 
   const loadAll = useCallback(async()=>{
     setLoading(true);
-    const [data,m] = await Promise.all([SMSAPI.loadAll(), SMSAPI.getMetrics(7)]);
-    setMessages(data.messages); setTemplates(data.templates);
-    setConversations(data.conversations); setBulkOps(data.bulkOps); setMetrics(m);
-    setLoading(false);
+    try {
+      const [data,m] = await Promise.all([SMSAPI.loadAll(), SMSAPI.getMetrics(7)]);
+      setMessages(data.messages||[]); setTemplates(data.templates||[]);
+      setConversations(data.conversations||[]); setBulkOps(data.bulkOps||[]); setMetrics(m);
+    } catch(e:any){ console.warn('[SMS] load error:',e?.message); }
+    finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{loadAll();},[loadAll]);

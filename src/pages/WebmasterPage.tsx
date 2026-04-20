@@ -93,18 +93,23 @@ export default function WebmasterPage() {
   const [publicIP,setPublicIP] =useState("");
 
   const loadAll=useCallback(async()=>{
-    const {data:mods}=await db.from("system_settings").select("*").eq("category","modules");
-    if(mods){const m:Record<string,boolean>={};mods.forEach((r:any)=>{m[r.key]=r.value==="true"||r.value===true;});setModules(m);}
-    const {data:setts}=await db.from("system_settings").select("*").not("category","eq","modules");
-    if(setts){const s:Record<string,string>={};setts.forEach((r:any)=>{s[r.key]=r.value;});setSettEdit(s);}
-    const {data:usrs}=await db.from("profiles").select("id,full_name,email,role,is_active,created_at,last_active_at").order("created_at",{ascending:false}).limit(50);
-    if(usrs)setUsers(usrs);
-    const {data:sess}=await db.from("user_sessions").select("*").eq("is_active",true).order("started_at",{ascending:false}).limit(20);
-    if(sess)setSessions(sess);
-    const {data:ips}=await db.from("ip_access_log").select("*").order("created_at",{ascending:false}).limit(30);
-    if(ips)setIpLog(ips);
-    const {data:metrics}=await db.from("system_metrics").select("*").order("recorded_at",{ascending:false}).limit(1);
-    if(metrics&&metrics[0])setHealth(metrics[0]);
+    try {
+      const [mods,setts,usrs,sess,ips,metrics] = await Promise.allSettled([
+        db.from("system_settings").select("*").eq("category","modules"),
+        db.from("system_settings").select("*").not("category","eq","modules"),
+        db.from("profiles").select("id,full_name,email,role,is_active,created_at,last_active_at").order("created_at",{ascending:false}).limit(50),
+        db.from("user_sessions").select("*").eq("is_active",true).order("started_at",{ascending:false}).limit(20),
+        db.from("ip_access_log").select("*").order("created_at",{ascending:false}).limit(30),
+        db.from("system_metrics").select("*").order("recorded_at",{ascending:false}).limit(1),
+      ]);
+      const v=(x:any)=>x.status==="fulfilled"?x.value?.data:null;
+      const modsD=v(mods); if(modsD){const m:Record<string,boolean>={};modsD.forEach((r:any)=>{m[r.key]=r.value==="true"||r.value===true;});setModules(m);}
+      const settsD=v(setts); if(settsD){const s:Record<string,string>={};settsD.forEach((r:any)=>{s[r.key]=r.value;});setSettEdit(s);}
+      const usrsD=v(usrs); if(usrsD)setUsers(usrsD);
+      const sessD=v(sess); if(sessD)setSessions(sessD);
+      const ipsD=v(ips); if(ipsD)setIpLog(ipsD);
+      const metricsD=v(metrics); if(metricsD&&metricsD[0])setHealth(metricsD[0]);
+    } catch(e:any){ console.warn("[Webmaster] load error:",e?.message); }
   },[]);
 
   useEffect(()=>{

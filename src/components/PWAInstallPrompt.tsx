@@ -11,7 +11,7 @@ export default function PWAInstallPrompt() {
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem("pwa-dismissed")) return;
+    try { if (localStorage.getItem("pwa-dismissed")) return; } catch {}
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     const handler = (e: any) => {
@@ -33,7 +33,7 @@ export default function PWAInstallPrompt() {
   };
 
   const dismiss = () => {
-    localStorage.setItem("pwa-dismissed", "1");
+    try { localStorage.setItem("pwa-dismissed", "1"); } catch {}
     setShow(false);
   };
 

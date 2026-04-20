@@ -45,11 +45,14 @@ export default function GoodsReceivedPage() {
 
   const load = async()=>{
     setLoading(true);
-    const [{data:g},{data:s}] = await Promise.all([
-      (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
-      (supabase as any).from("suppliers").select("id,name").order("name"),
-    ]);
-    setGrns(g||[]); setSuppliers(s||[]); setLoading(false);
+    try {
+      const [{data:g},{data:s}] = await Promise.all([
+        (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
+        (supabase as any).from("suppliers").select("id,name").order("name"),
+      ]);
+      setGrns(g||[]); setSuppliers(s||[]);
+    } catch(e:any){ console.warn("[GRN] load:",e?.message); }
+    finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
 

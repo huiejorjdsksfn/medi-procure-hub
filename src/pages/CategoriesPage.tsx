@@ -54,6 +54,8 @@ export default function CategoriesPage(){
   const[delId,setDelId]=useState<string|null>(null);
 
   const load=useCallback(async()=>{
+    try {
+
     setLoading(true);
     const{data}=await db.from("categories").select("*").order("name");
     setRows(data||[]);
@@ -62,7 +64,7 @@ export default function CategoriesPage(){
     const counts:Record<string,number>={};
     (its||[]).forEach((i:any)=>{if(i.category)counts[i.category]=(counts[i.category]||0)+1;});
     setItems(counts);
-    setLoading(false);
+    } catch(e: any) { console.warn("[Load]", e?.message); } finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{
