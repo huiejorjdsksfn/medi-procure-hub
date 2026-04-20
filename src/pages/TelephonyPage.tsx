@@ -51,10 +51,15 @@ export default function TelephonyPage() {
 
   const loadAll = useCallback(async()=>{
     setLoading(true);
-    const [data, m] = await Promise.all([TelephonyAPI.loadAll(), TelephonyAPI.getCallMetrics(7)]);
-    setCalls(data.calls); setExtensions(data.extensions);
-    setMenus(data.menus); setQueues(data.queues); setVoicemails(data.voicemails); setMetrics(m);
-    setLoading(false);
+    try {
+      const [data, m] = await Promise.all([TelephonyAPI.loadAll(), TelephonyAPI.getCallMetrics(7)]);
+      setCalls(data.calls); setExtensions(data.extensions);
+      setMenus(data.menus); setQueues(data.queues); setVoicemails(data.voicemails); setMetrics(m);
+    } catch(e: any) {
+      console.warn('[Telephony] load error:', e?.message);
+    } finally {
+      setLoading(false);
+    }
   },[]);
 
   useEffect(()=>{ loadAll(); },[loadAll]);

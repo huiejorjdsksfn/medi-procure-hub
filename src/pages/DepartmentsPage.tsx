@@ -54,6 +54,8 @@ export default function DepartmentsPage(){
   const[delId,setDelId]=useState<string|null>(null);
 
   const load=useCallback(async()=>{
+    try {
+
     setLoading(true);
     const{data}=await db.from("departments").select("*").order("name");
     setRows(data||[]);
@@ -61,7 +63,7 @@ export default function DepartmentsPage(){
     const counts:Record<string,number>={};
     (profiles||[]).forEach((p:any)=>{if(p.department)counts[p.department]=(counts[p.department]||0)+1;});
     setStaffCounts(counts);
-    setLoading(false);
+    } catch(e: any) { console.warn("[Load]", e?.message); } finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{

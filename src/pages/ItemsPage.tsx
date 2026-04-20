@@ -80,6 +80,8 @@ export default function ItemsPage() {
   const [kpi,setKpi]             = useState({total:0,low:0,out:0,value:0});
 
   const load=useCallback(async()=>{
+    try {
+
     setLoading(true);
     const {data}=await db.from("items").select("*").order("name");
     if(data){
@@ -91,7 +93,7 @@ export default function ItemsPage() {
       const val=data.reduce((s:number,r:Item)=>s+(r.current_quantity||0)*(r.unit_price||0),0);
       setKpi({total:data.length,low,out,value:val});
     }
-    setLoading(false);
+    } catch(e: any) { console.warn("[Load]", e?.message); } finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{

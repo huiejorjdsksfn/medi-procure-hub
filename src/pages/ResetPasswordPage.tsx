@@ -38,12 +38,15 @@ export default function ResetPasswordPage() {
     setErrMsg("");
     if (!email.trim()) { setErrMsg("Please enter your email address."); return; }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) { setErrMsg(error.message); return; }
-    setStage("sent");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setLoading(false);
+      if (error) { setErrMsg(error.message); return; }
+      setStage("sent"); return;
+    } catch(e:any) { setErrMsg(e?.message||"Request failed"); }
+    finally { setLoading(false); }
   }
 
   async function handleUpdate() {
@@ -51,11 +54,13 @@ export default function ResetPasswordPage() {
     if (password.length < 8) { setErrMsg("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setErrMsg("Passwords do not match."); return; }
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
-    if (error) { setErrMsg(error.message); return; }
-    setStage("done");
-    setTimeout(() => { window.location.href = "/login"; }, 3500);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) { setErrMsg(error.message); return; }
+      setStage("done");
+      setTimeout(() => { window.location.href = "/login"; }, 3500);
+    } catch(e:any) { setErrMsg(e?.message||"Update failed"); }
+    finally { setLoading(false); }
   }
 
   const strengthColors = ["#ef4444","#f97316","#eab308","#22c55e"];

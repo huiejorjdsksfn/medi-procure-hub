@@ -41,8 +41,8 @@ export default function AuditLogPage() {
         .gte("created_at",dateFrom).lte("created_at",dateTo+"T23:59:59")
         .order("created_at",{ascending:false}).limit(2000);
       setLogs(data||[]);
-    }catch(e){console.error(e);}
-    setLoading(false);
+    }catch(e:any){console.warn("[AuditLog]",e?.message);}
+    finally{setLoading(false);}
   },[dateFrom,dateTo]);
 
   useEffect(()=>{ if(hasRole("admin")) fetchLogs(); },[fetchLogs]);

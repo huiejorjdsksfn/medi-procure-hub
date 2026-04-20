@@ -33,11 +33,13 @@ export default function FacilitiesPage() {
   const [form, setForm] = useState<Partial<Facility>>(EMPTY);
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     const { data } = await (supabase as any)
       .from("facilities").select("*").order("is_main", { ascending:false }).order("name");
     setFacilities(data || []);
-    setLoading(false);
+    } catch(e: any) { console.warn("[Page]", e?.message); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);

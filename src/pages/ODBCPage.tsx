@@ -82,15 +82,19 @@ export default function ODBCPage() {
 
   const loadConns = useCallback(async () => {
     setLoading(true);
-    const { data } = await db.from("odbc_connections").select("*").order("created_at", { ascending: false });
-    setConns(data || []);
-    if (data?.length && !activeConn) setActiveConn(data.find((c: ODBCConn) => c.is_default) || data[0]);
-    setLoading(false);
+    try {
+      const { data } = await db.from("odbc_connections").select("*").order("created_at", { ascending: false });
+      setConns(data || []);
+      if (data?.length && !activeConn) setActiveConn(data.find((c: ODBCConn) => c.is_default) || data[0]);
+    } catch(e: any) { console.warn("[ODBC] load error:", e?.message); }
+    finally { setLoading(false); }
   }, []);
 
   const loadQueryLog = useCallback(async () => {
-    const { data } = await db.from("odbc_query_log").select("*").order("created_at", { ascending: false }).limit(50);
-    setQueryLog(data || []);
+    try {
+      const { data } = await db.from("odbc_query_log").select("*").order("created_at", { ascending: false }).limit(50);
+      setQueryLog(data || []);
+    } catch {}
   }, []);
 
   useEffect(() => { loadConns(); loadQueryLog(); }, []);
