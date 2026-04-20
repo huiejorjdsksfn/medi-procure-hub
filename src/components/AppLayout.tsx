@@ -260,14 +260,14 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
               <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,width:320,background:"#fff",borderRadius:8,boxShadow:"0 8px 32px rgba(0,0,0,.18)",border:"1px solid #e0e0e0",zIndex:9999,maxHeight:360,overflowY:"auto"}}>
                 <div style={{padding:"6px 10px",fontSize:10,fontWeight:700,color:"#888",borderBottom:"1px solid #f0f0f0",textTransform:"uppercase",letterSpacing:.5}}>{searchResults.length} results for "{searchQuery}"</div>
                 {searchResults.map((r,i)=>(
-                  <div key={i} onClick={()=>{nav(r.url);setSearchOpen(false);setSearchQuery("");}}
+                  <div key={i} onClick={()=>{nav(r.path);setSearchOpen(false);setSearchQuery("");}}
                     style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f5f5f5",display:"flex",alignItems:"center",gap:10}}
                     onMouseEnter={e=>(e.currentTarget.style.background="#f5f8ff")}
                     onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <div style={{width:28,height:28,borderRadius:6,background:"#e8f4fd",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#0078d4",flexShrink:0}}>{r.table.slice(0,2).toUpperCase()}</div>
+                    <div style={{width:28,height:28,borderRadius:6,background:"#e8f4fd",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#0078d4",flexShrink:0}}>{r.type.slice(0,2).toUpperCase()}</div>
                     <div style={{minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:600,color:"#1a1a1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>
-                      <div style={{fontSize:11,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.subtitle} <span style={{color:"#bbb"}}>-- {r.table}</span></div>
+                      <div style={{fontSize:11,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.type}</div>
                     </div>
                   </div>
                 ))}

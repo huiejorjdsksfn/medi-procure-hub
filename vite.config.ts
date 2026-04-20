@@ -1,4 +1,8 @@
-// ProcurBosse v8.0 -- Vite Config -- Production for 2000+ users
+/**
+ * ProcurBosse v22.0 — Vite Config
+ * Production build for EdgeOne deployment
+ * EL5 MediProcure | Embu Level 5 Hospital | Kenya
+ */
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -14,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "20.0.0"),
+    __APP_VERSION__: JSON.stringify("22.0.2"),
   },
   build: {
     sourcemap: false,
@@ -41,11 +45,10 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1200,
   },
   envPrefix: ["VITE_"],
   optimizeDeps: {
     include: ["react", "react-dom", "@supabase/supabase-js", "lucide-react", "recharts"],
-    exclude: [],
   },
 }));

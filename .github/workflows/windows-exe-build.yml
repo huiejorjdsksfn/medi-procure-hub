@@ -1,83 +1,91 @@
-# ProcurBosse — Windows EXE Builder
-# Installs electron separately only for desktop builds
+# ProcurBosse — Windows EXE Builder (uses electron-builder.yml)
+# Electron installed on-demand only — NOT in package.json deps
 name: "Windows EXE Build"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build (e.g. 22.0.0)"
+        description: "Version (e.g. 22.0.2)"
         required: true
-        default: "22.0.0"
+        default: "22.0.2"
 
 permissions:
   contents: write
 
 jobs:
   build-x64:
-    name: "Windows x64"
+    name: "Windows x64 EXE"
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: npm }
 
-      - name: Install web deps + electron
-        run: |
-          npm install --legacy-peer-deps --no-audit
-          npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps
-        env:
-          CI: "false"
-          NODE_OPTIONS: "--max-old-space-size=4096"
+      - name: Install web deps
+        run: npm install --legacy-peer-deps --no-audit
+        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
+
+      - name: Install electron (desktop build only)
+        run: npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps
+        env: { CI: "false" }
 
       - name: Build web assets
         run: npm run build
-        env:
-          CI: "false"
-          NODE_OPTIONS: "--max-old-space-size=4096"
+        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
 
-      - name: Build Windows EXE x64
+      - name: Build EXE x64
         run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_VERSION: ${{ github.event.inputs.version }}
 
-      - name: Upload EXE
+      - name: Upload x64 EXE
         uses: actions/upload-artifact@v4
         with:
-          name: ProcurBosse-Windows-x64-v${{ github.event.inputs.version }}
+          name: ProcurBosse-x64-v${{ github.event.inputs.version }}
           path: dist-electron/*.exe
           retention-days: 90
 
+      - name: Attach to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ github.event.inputs.version }}"
+          name: "ProcurBosse v${{ github.event.inputs.version }}"
+          files: dist-electron/*.exe
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-ia32:
-    name: "Windows ia32 (32-bit)"
+    name: "Windows ia32 (32-bit) EXE"
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "18", cache: npm }
 
-      - name: Install web deps + electron
-        run: |
-          npm install --legacy-peer-deps --no-audit
-          npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps
-        env:
-          CI: "false"
+      - name: Install web deps
+        run: npm install --legacy-peer-deps --no-audit
+        env: { CI: "false" }
+
+      - name: Install electron (desktop build only)
+        run: npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps
+        env: { CI: "false" }
 
       - name: Build web assets
         run: npm run build
-        env:
-          CI: "false"
+        env: { CI: "false" }
 
-      - name: Build Windows EXE ia32
+      - name: Build EXE ia32
         run: npx electron-builder --win --ia32 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_VERSION: ${{ github.event.inputs.version }}
 
-      - name: Upload EXE
+      - name: Upload ia32 EXE
         uses: actions/upload-artifact@v4
         with:
-          name: ProcurBosse-Windows-ia32-v${{ github.event.inputs.version }}
+          name: ProcurBosse-ia32-v${{ github.event.inputs.version }}
           path: dist-electron/*.exe
           retention-days: 90
