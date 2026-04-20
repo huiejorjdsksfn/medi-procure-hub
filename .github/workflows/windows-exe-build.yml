@@ -1,188 +1,83 @@
-# ============================================================
-# EL5 MediProcure — Windows EXE Builder v3.0
-# Builds x64 and ia32 Windows installers via Electron
-# Publishes to GitHub Releases
-# Embu Level 5 Hospital | Kenya
-# ============================================================
+# ProcurBosse — Windows EXE Builder
+# Installs electron separately only for desktop builds
 name: "Windows EXE Build"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 21.4.0)"
+        description: "Version to build (e.g. 22.0.0)"
         required: true
-        default: "21.4.0"
-      prerelease:
-        description: "Mark as pre-release?"
-        required: false
-        default: "false"
-  push:
-    tags:
-      - 'v*.*.*'
+        default: "22.0.0"
 
 permissions:
   contents: write
 
-env:
-  NODE_VERSION: "20"
-
 jobs:
   build-x64:
-    name: "Build Windows x64"
+    name: "Windows x64"
     runs-on: windows-latest
-    outputs:
-      exe-name: ${{ steps.build.outputs.exe_name }}
-
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
 
-      - name: "Setup Node 20"
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-
-      - name: "Install dependencies"
-        run: npm install --legacy-peer-deps
+      - name: Install web deps + electron
+        run: |
+          npm install --legacy-peer-deps --no-audit
+          npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps
         env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: ""
-
-      - name: "Vite Build"
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          VITE_APP_VERSION: ${{ github.event.inputs.version || '21.4.0' }}
+          CI: "false"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: "Build Windows x64 EXE"
-        id: build
-        run: |
-          npx electron-builder --win --x64 --config electron-builder.yml
-          $exe = Get-ChildItem -Path "dist-electron" -Filter "*.exe" -Recurse | Select-Object -First 1
-          echo "exe_name=$($exe.Name)" >> $env:GITHUB_OUTPUT
-          echo "Built: $($exe.FullName)"
-        env:
-          APP_VERSION: ${{ github.event.inputs.version || '21.4.0' }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: "Upload x64 artifact"
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-x64-${{ github.event.inputs.version || '21.4.0' }}
-          path: dist-electron/*.exe
-          retention-days: 30
-          if-no-files-found: error
-
-  build-ia32:
-    name: "Build Windows ia32 (32-bit)"
-    runs-on: windows-2019
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Setup Node 18 (ia32 compat)"
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: npm
-
-      - name: "Install dependencies"
-        run: npm install --legacy-peer-deps
-
-      - name: "Vite Build"
+      - name: Build web assets
         run: npm run build
         env:
-          VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          VITE_APP_VERSION: ${{ github.event.inputs.version || '21.4.0' }}
-          NODE_OPTIONS: "--max-old-space-size=3072"
+          CI: "false"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: "Build Windows ia32 EXE"
-        run: npx electron-builder --win --ia32 --config electron-builder.yml
+      - name: Build Windows EXE x64
+        run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
-          APP_VERSION: ${{ github.event.inputs.version || '21.4.0' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_VERSION: ${{ github.event.inputs.version }}
 
-      - name: "Upload ia32 artifact"
+      - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: windows-ia32-${{ github.event.inputs.version || '21.4.0' }}
+          name: ProcurBosse-Windows-x64-v${{ github.event.inputs.version }}
           path: dist-electron/*.exe
-          retention-days: 30
-          if-no-files-found: error
+          retention-days: 90
 
-  publish-release:
-    name: "Publish GitHub Release"
-    runs-on: ubuntu-latest
-    needs: [build-x64, build-ia32]
-    if: always() && (needs.build-x64.result == 'success' || needs.build-ia32.result == 'success')
+  build-ia32:
+    name: "Windows ia32 (32-bit)"
+    runs-on: windows-2019
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "18", cache: npm }
 
-      - name: "Download x64 artifact"
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-x64-${{ github.event.inputs.version || '21.4.0' }}
-          path: release-files/
-        continue-on-error: true
-
-      - name: "Download ia32 artifact"
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-ia32-${{ github.event.inputs.version || '21.4.0' }}
-          path: release-files/
-        continue-on-error: true
-
-      - name: "List release files"
-        run: ls -lh release-files/ || echo "No files"
-
-      - name: "Create GitHub Release"
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "v${{ github.event.inputs.version || '21.4.0' }}"
-          name: "EL5 MediProcure ProcurBosse v${{ github.event.inputs.version || '21.4.0' }}"
-          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
-          generate_release_notes: false
-          body: |
-            # EL5 MediProcure — ProcurBosse v${{ github.event.inputs.version || '21.4.0' }}
-
-            **Health Procurement ERP for Embu Level 5 Hospital**
-            Embu County Government · Kenya
-
-            ## 📥 Downloads
-
-            | File | Architecture | Description |
-            |---|---|---|
-            | `*-Setup-x64.exe` | 64-bit | For modern Windows 10/11 (recommended) |
-            | `*-Setup-ia32.exe` | 32-bit | For older 32-bit Windows systems |
-
-            ## ⚙️ Installation
-
-            1. Download the appropriate `.exe` for your system
-            2. Right-click → **Run as Administrator**
-            3. Follow the installation wizard
-            4. Launch from Desktop shortcut or Start Menu
-            5. Sign in with your Embu County Government credentials
-
-            ## 🔧 Requirements
-
-            - **Windows**: 10 or later (x64), Windows 7+ (ia32)
-            - **RAM**: 4 GB minimum, 8 GB recommended
-            - **Internet**: Required for Supabase database connection
-            - **Screen**: 1280×720 minimum
-
-            ## 🌐 Web Access
-
-            Access via browser at: **https://procurbosse.edgeone.app**
-
-            ## 📞 Support
-
-            - ICT Admin: tecnojin03@gmail.com
-            - Hospital: Embu Level 5 Hospital, Embu County, Kenya
-          files: release-files/*
+      - name: Install web deps + electron
+        run: |
+          npm install --legacy-peer-deps --no-audit
+          npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: "false"
+
+      - name: Build web assets
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Build Windows EXE ia32
+        run: npx electron-builder --win --ia32 --config electron-builder.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProcurBosse-Windows-ia32-v${{ github.event.inputs.version }}
+          path: dist-electron/*.exe
+          retention-days: 90

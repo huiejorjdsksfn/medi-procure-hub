@@ -1,10 +1,9 @@
 {
   "build": {
-    "command": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install --legacy-peer-deps --ignore-scripts --no-audit && npm run build",
+    "command": "npm install --legacy-peer-deps --no-audit && npm run build",
     "directory": "dist",
     "environment": {
       "NODE_VERSION": "20",
-      "ELECTRON_SKIP_BINARY_DOWNLOAD": "1",
       "NODE_OPTIONS": "--max-old-space-size=4096",
       "CI": "false"
     }
