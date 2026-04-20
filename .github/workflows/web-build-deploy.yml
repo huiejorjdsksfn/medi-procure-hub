@@ -1,200 +1,118 @@
-# ============================================================
-# EL5 MediProcure — Web Build & Deploy v3.0
-# Builds Vite app → pushes built dist/ to deploy branch
-# EdgeOne Pages reads from deploy branch
-# Includes rollback on failure
-# Embu Level 5 Hospital | Kenya
-# ============================================================
-name: "Web Build & Deploy"
+# ProcurBosse — Web + Kiosk Build & Release
+# Builds main app + kiosk app, publishes to GitHub Releases
+name: "Web Build & Release"
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
-      - "supabase/migrations/**"
-      - "supabase/functions/**"
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version override"
-        required: false
-        default: "21.4"
-      force_deploy:
-        description: "Force deploy even on unchanged files"
-        required: false
-        default: "false"
 
 permissions:
   contents: write
-  actions: write
-
-env:
-  NODE_VERSION: "20"
-  APP_VERSION: "21.4"
-  SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
 
 jobs:
-  build-and-deploy:
-    name: "Build & Deploy to EdgeOne"
+  build-web:
+    name: "Build Main Web App"
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      build-id: ${{ steps.meta.outputs.build_id }}
-      prev-sha: ${{ steps.prev.outputs.sha }}
-
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
 
-      - name: "Get previous deploy SHA for rollback"
-        id: prev
-        run: |
-          PREV=$(git ls-remote origin refs/heads/deploy | cut -f1 || echo "none")
-          echo "sha=${PREV}" >> $GITHUB_OUTPUT
-          echo "Previous deploy SHA: ${PREV}"
+      - name: Install dependencies
+        run: ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install --legacy-peer-deps --ignore-scripts --no-audit
+        env: { CI: "false" }
 
-      - name: "Build metadata"
-        id: meta
-        run: |
-          VER="${{ github.event.inputs.version || env.APP_VERSION }}"
-          BUILD_ID="v${VER}-$(date +%Y%m%d%H%M)-$(git rev-parse --short HEAD)"
-          echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
-          echo "Building EL5 MediProcure $BUILD_ID"
-
-      - name: "Setup Node ${{ env.NODE_VERSION }}"
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: "Install dependencies"
-        run: ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci --no-audit --legacy-peer-deps
-
-      - name: "Strip non-ASCII (prevent esbuild crash)"
-        run: |
-          python3 - << 'PYEOF'
-          import os
-          count = 0
-          for root, dirs, files in os.walk('src'):
-              dirs[:] = [d for d in dirs if d != 'node_modules']
-              for f in files:
-                  if not f.endswith(('.tsx', '.ts', '.js')): continue
-                  p = os.path.join(root, f)
-                  raw = open(p, 'rb').read()
-                  orig = raw
-                  buf = bytearray()
-                  i = 0
-                  while i < len(raw):
-                      b = raw[i]
-                      if b < 128: buf.append(b); i += 1
-                      elif b >= 0xF0: i += 4
-                      elif b >= 0xE0: i += 3
-                      elif b >= 0xC0: i += 2
-                      else: i += 1
-                  if bytes(buf) != orig:
-                      open(p, 'wb').write(bytes(buf)); count += 1
-          print(f"Stripped {count} files")
-          PYEOF
-
-      - name: "TypeScript check"
-        run: npx tsc --noEmit 2>&1 || echo "TS warnings (non-fatal)"
-        continue-on-error: true
-
-      - name: "Vite Build"
+      - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://yvjfehnzbzjliizjvuhq.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          VITE_APP_VERSION: ${{ steps.meta.outputs.version }}
-          VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
-          VITE_SYSTEM_NAME: "EL5 MediProcure"
           NODE_OPTIONS: "--max-old-space-size=4096"
+          CI: "false"
 
-      - name: "Verify build output"
-        run: |
-          [ -f dist/index.html ] || (echo "ERROR: dist/index.html missing!" && exit 1)
-          [ -d dist/assets ]     || (echo "ERROR: dist/assets/ missing!" && exit 1)
-          # Ensure no stale "Deploying" text in output
-          if grep -q "Deploying v4.9" dist/index.html; then
-            echo "ERROR: Stale 'Deploying v4.9' found in dist/index.html!"
-            exit 1
-          fi
-          echo "Build OK: $(du -sh dist/ | cut -f1)"
-          echo "JS entry: $(ls dist/assets/index-*.js | head -1)"
+      - name: Zip dist
+        run: cd dist && zip -r ../procurbosse-web.zip . && cd ..
 
-      - name: "Add SPA routing configs"
-        run: |
-          # EdgeOne _redirects
-          echo "/* /index.html 200" > dist/_redirects
-          # EdgeOne JSON config
-          cat > dist/edgeone.json << 'EOF'
-          {
-            "routes": [
-              {"src": "/assets/(.*)", "headers": {"cache-control": "public, max-age=31536000, immutable"}},
-              {"src": "/icons/(.*)",  "headers": {"cache-control": "public, max-age=86400"}},
-              {"src": "/(.*)",        "dest": "/index.html"}
-            ]
-          }
-          EOF
-          touch dist/.nojekyll
-          echo "Routing configs added"
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: procurbosse-web
+          path: procurbosse-web.zip
+          retention-days: 30
 
-      - name: "Deploy to deploy branch"
-        run: |
-          git config user.name "EL5 MediProcure CI"
-          git config user.email "ci@el5mediprocure.ke"
-
-          WORK=$(mktemp -d)
-          cp -r dist/. "$WORK/"
-
-          cd "$WORK"
-          git init
-          git config user.name "EL5 MediProcure CI"
-          git config user.email "ci@el5mediprocure.ke"
-          git add -A
-          git commit -m "deploy: ${{ steps.meta.outputs.build_id }} from ${{ github.sha }}"
-          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          git push origin HEAD:deploy --force
-          echo "Deployed to deploy branch successfully"
-
-      - name: "Verify deployment"
-        run: |
-          sleep 3
-          DEPLOY_SHA=$(git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git refs/heads/deploy | cut -f1)
-          echo "Deploy branch SHA: $DEPLOY_SHA"
-          [ -n "$DEPLOY_SHA" ] && echo "Deploy branch verified OK" || (echo "ERROR: deploy branch not found!" && exit 1)
-
-      - name: "Deployment summary"
-        run: |
-          echo "## ✅ Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Version** | ${{ steps.meta.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Build ID** | ${{ steps.meta.outputs.build_id }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Branch** | deploy |" >> $GITHUB_STEP_SUMMARY
-          echo "| **URL** | https://procurbosse.edgeone.app |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-
-  rollback:
-    name: "Rollback on failure"
+  build-kiosk:
+    name: "Build Kiosk/Request App"
     runs-on: ubuntu-latest
-    needs: build-and-deploy
-    if: failure() && needs.build-and-deploy.outputs.prev-sha != 'none' && needs.build-and-deploy.outputs.prev-sha != ''
     steps:
-      - name: "Restore previous deploy"
-        run: |
-          echo "Build/deploy failed — rolling back to ${{ needs.build-and-deploy.outputs.prev-sha }}"
-          git config user.name "EL5 MediProcure CI"
-          git config user.email "ci@el5mediprocure.ke"
-          # Force-push previous SHA back to deploy branch
-          git clone --depth=1 --branch=deploy \
-            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
-            rollback-work 2>/dev/null || echo "No deploy branch to rollback"
-          echo "## ⚠️ Rollback triggered" >> $GITHUB_STEP_SUMMARY
-          echo "Previous deploy SHA: ${{ needs.build-and-deploy.outputs.prev-sha }}" >> $GITHUB_STEP_SUMMARY
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install kiosk deps
+        run: cd kiosk-app && npm install --legacy-peer-deps --no-audit
+        env: { CI: "false" }
+
+      - name: Build kiosk
+        run: cd kiosk-app && npm run build
+        env:
+          CI: "false"
+
+      - name: Zip kiosk dist
+        run: cd kiosk-app/dist && zip -r ../../kiosk-request-station.zip . && cd ../..
+
+      - name: Upload kiosk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-request-station
+          path: kiosk-request-station.zip
+          retention-days: 30
+
+  release:
+    name: "Create Release"
+    needs: [build-web, build-kiosk]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: Get version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.ver.outputs.version }}-${{ github.run_number }}"
+          name: "ProcurBosse v${{ steps.ver.outputs.version }} — Build ${{ github.run_number }}"
+          body: |
+            ## ProcurBosse EL5 MediProcure — Release
+
+            ### 🌐 Web Application
+            Download `procurbosse-web.zip` and deploy to your web server or EdgeOne.
+
+            ### 📋 Kiosk / Department Request Station
+            Download `kiosk-request-station.zip` — deploy to any web server for departments to submit requisitions **without login**.
+            - Records submitter name + device
+            - Real-time Twilio SMS notification to procurement
+            - Real-time popup notifications
+
+            ### Changes
+            - Nuclear rebuild: Login, Dashboard, Email, DB Admin pages
+            - D365-style module tile navigation
+            - Gmail-style email interface
+            - Power BI-style database admin
+            - Kiosk app for department requisitions
+            - EdgeOne deployment fix
+
+            **Supabase Project:** yvjfehnzbzjliizjvuhq
+            **Build:** ${{ github.sha }}
+          files: |
+            artifacts/procurbosse-web/procurbosse-web.zip
+            artifacts/kiosk-request-station/kiosk-request-station.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
