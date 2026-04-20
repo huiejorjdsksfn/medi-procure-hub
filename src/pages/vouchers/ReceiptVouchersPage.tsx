@@ -29,13 +29,19 @@ export default function ReceiptVouchersPage() {
   // hospitalName now from useSystemSettings
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:rv},{data:d}] = await Promise.all([
       (supabase as any).from("receipt_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
     setRows(rv||[]); setDepts(d||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{load();},[]);
 

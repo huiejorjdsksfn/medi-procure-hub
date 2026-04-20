@@ -31,6 +31,8 @@ export default function SalesVouchersPage() {
   // hospitalName now from useSystemSettings
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:sv},{data:d},{data:it}] = await Promise.all([
       (supabase as any).from("sales_vouchers").select("*").order("created_at",{ascending:false}),
@@ -38,7 +40,11 @@ export default function SalesVouchersPage() {
       (supabase as any).from("items").select("id,name,unit_price").order("name"),
     ]);
     setRows(sv||[]); setDepts(d||[]); setItems(it||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{load();},[]);
 

@@ -76,6 +76,8 @@ export default function PurchaseOrdersPage() {
   const [form, setForm]         = useState({ po_number: "", supplier_id: "", total_amount: "", delivery_date: "", notes: "" });
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     let q = db.from("purchase_orders").select("*,suppliers(name)").order("created_at", { ascending: false });
     if (statusF !== "all") q = q.eq("status", statusF);
@@ -83,7 +85,11 @@ export default function PurchaseOrdersPage() {
     setRows(data || []);
     const { data: sup } = await db.from("suppliers").select("id,name").eq("status", "active").order("name");
     setSuppliers(sup || []);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   }, [statusF]);
 
   useEffect(() => { load(); }, [load]);

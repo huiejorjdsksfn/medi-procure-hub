@@ -51,12 +51,19 @@ export default function ContractsPage() {
   });
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     const [{data:c},{data:s}] = await Promise.all([
       (supabase as any).from("contracts").select("*,suppliers(name)").order("created_at",{ascending:false}),
       (supabase as any).from("suppliers").select("id,name").order("name"),
     ]);
-    setRows(c||[]); setSuppliers(s||[]); setLoading(false);
+    setRows(c||[]); setSuppliers(s||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   },[]);
   useEffect(()=>{load();},[load]);
   useEffect(()=>{

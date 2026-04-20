@@ -25,13 +25,19 @@ export default function BudgetsPage() {
   const [form, setForm] = useState({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});
 
   const load = async () => {
+    try {
+
     setLoading(true);
     const [{data:b},{data:d}] = await Promise.all([
       (supabase as any).from("budgets").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
     setRows(b||[]); setDepts(d||[]);
-    setLoading(false);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(()=>{ load(); },[]);
 

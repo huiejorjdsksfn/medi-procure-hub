@@ -24,9 +24,16 @@ export default function ChartOfAccountsPage() {
   const [form, setForm] = useState({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});
 
   const load = useCallback(async () => {
+    try {
+
     setLoading(true);
     const{data}=await(supabase as any).from("chart_of_accounts").select("*").order("account_code");
-    setRows(data||[]); setLoading(false);
+    setRows(data||[]);
+    } catch(e: any) {
+      console.warn("[ProcurBosse] Load error:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   },[]);
   useEffect(()=>{ load(); },[load]);
   useTableRealtime("chart_of_accounts", load);
