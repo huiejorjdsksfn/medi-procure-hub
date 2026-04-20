@@ -4,76 +4,95 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32"   href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16"   href="/icons/icon-16.png" />
     <link rel="apple-touch-icon" href="/icons/icon-128.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0078d4" />
-    <meta name="description" content="EL5 MediProcure ProcurBosse — Health Procurement ERP for Embu Level 5 Hospital" />
-    <meta name="application-name" content="ProcurBosse" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="ProcurBosse" />
-    <link rel="preconnect" href="https://yvjfehnzbzjliizjvuhq.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
+    <meta name="description" content="EL5 MediProcure — Health Procurement ERP, Embu Level 5 Hospital" />
     <title>EL5 MediProcure — ProcurBosse</title>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       html, body, #root { height: 100%; margin: 0; padding: 0; }
-      body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f3f5f8; }
+      body {
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 35%, #1a237e 65%, #0a1172 100%);
+        min-height: 100vh;
+      }
+      /* Splash — always blue, never white */
       #splash {
-        position: fixed; inset: 0;
+        position: fixed; inset: 0; z-index: 9999;
         background: linear-gradient(135deg, #1565c0 0%, #0d47a1 35%, #1a237e 65%, #0a1172 100%);
         display: flex; align-items: center; justify-content: center;
-        z-index: 9999; transition: opacity 0.4s ease;
+        transition: opacity 0.5s ease;
       }
-      #splash.out { opacity: 0; pointer-events: none; }
-      .sp-ring {
-        width: 72px; height: 72px; border-radius: 18px;
+      #splash.fade { opacity: 0; pointer-events: none; }
+      .sp-card {
+        text-align: center; padding: 0 20px;
+      }
+      .sp-logo {
+        width: 80px; height: 80px; border-radius: 20px;
         background: rgba(255,255,255,0.15);
         border: 2px solid rgba(255,255,255,0.3);
         display: flex; align-items: center; justify-content: center;
-        animation: sp-pulse 1.6s ease-in-out infinite;
+        margin: 0 auto 20px;
+        animation: pulse 1.8s ease-in-out infinite;
       }
-      @keyframes sp-pulse {
-        0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.85}
+      @keyframes pulse {
+        0%,100% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,255,255,0.2); }
+        50%      { transform:scale(1.04); box-shadow:0 0 0 16px rgba(255,255,255,0); }
       }
-      .sp-bar { width:200px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:18px;overflow:hidden; }
-      .sp-fill { height:100%;background:#fff;border-radius:2px;animation:sp-fill 1.8s ease-in-out infinite; }
-      @keyframes sp-fill{0%{width:0;opacity:1}85%{width:100%;opacity:1}100%{width:100%;opacity:0}}
+      .sp-title { color:#fff; font-size:20px; font-weight:800; letter-spacing:.02em; margin-bottom:6px; }
+      .sp-sub   { color:rgba(255,255,255,0.55); font-size:12px; font-weight:500; margin-bottom:24px; }
+      .sp-bar   { width:180px; height:3px; background:rgba(255,255,255,0.15); border-radius:2px; margin:0 auto; overflow:hidden; }
+      .sp-fill  { height:100%; background:#fff; border-radius:2px; animation:fill 1.6s ease-in-out infinite; }
+      @keyframes fill { 0%{width:0;opacity:1} 80%{width:100%;opacity:1} 100%{width:100%;opacity:0} }
     </style>
   </head>
   <body>
+    <!-- Splash screen — pure CSS, no JS needed to show -->
     <div id="splash">
-      <div style="text-align:center">
-        <div class="sp-ring">
-          <img src="/icons/icon-48.png" alt="" style="width:40px;height:40px;object-fit:contain" onerror="this.style.display='none'" />
+      <div class="sp-card">
+        <div class="sp-logo">
+          <img src="/icons/icon-48.png" alt="" style="width:44px;height:44px;object-fit:contain"
+               onerror="this.style.display='none'" />
         </div>
-        <div style="color:rgba(255,255,255,.9);font-size:13px;margin-top:14px;letter-spacing:.1em;font-weight:700">EL5 MEDIPROCURE</div>
-        <div style="color:rgba(255,255,255,.55);font-size:11px;margin-top:4px">Embu Level 5 Hospital</div>
+        <div class="sp-title">EL5 MediProcure</div>
+        <div class="sp-sub">Embu Level 5 Hospital &bull; Procurement ERP</div>
         <div class="sp-bar"><div class="sp-fill"></div></div>
       </div>
     </div>
+
+    <!-- React mounts here -->
     <div id="root"></div>
+
     <script>
-      (function(){
-        var splash=document.getElementById('splash');
-        var root=document.getElementById('root');
-        var obs=new MutationObserver(function(){
-          if(root&&root.children.length>0){
-            if(splash){splash.classList.add('out');setTimeout(function(){if(splash.parentNode)splash.parentNode.removeChild(splash);},500);}
+      (function () {
+        var splash = document.getElementById('splash');
+        var root   = document.getElementById('root');
+
+        // Hide splash once React puts anything in #root
+        var obs = new MutationObserver(function () {
+          if (root.children.length > 0) {
+            splash.classList.add('fade');
+            setTimeout(function () {
+              if (splash.parentNode) splash.parentNode.removeChild(splash);
+            }, 600);
             obs.disconnect();
           }
         });
-        if(root)obs.observe(root,{childList:true});
-        /* Safety: 20s timeout shows helpful error */
-        setTimeout(function(){
-          if(root&&root.children.length===0){
-            if(splash&&splash.parentNode)splash.parentNode.removeChild(splash);
-            root.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f5f8;font-family:Segoe UI,sans-serif;padding:20px"><div style="max-width:420px;width:100%;background:#fff;border:1px solid #dde1e7;border-radius:12px;padding:36px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.1)"><div style="width:56px;height:56px;border-radius:14px;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px">⚠</div><h2 style="margin:0 0 8px;color:#1a1a2e;font-size:18px;font-weight:700">Application failed to start</h2><p style="color:#6b7280;font-size:13px;margin:0 0 20px;line-height:1.6">The app could not load. This may be a network issue or browser cache problem.</p><button onclick="window.location.reload()" style="background:#0078d4;color:#fff;border:none;padding:11px 0;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px">Reload Page</button><button onclick="localStorage.clear();sessionStorage.clear();location.reload()" style="background:#f8f9fb;color:#374151;border:1px solid #dde1e7;padding:9px 0;border-radius:8px;font-size:13px;cursor:pointer;width:100%">Clear Cache &amp; Reload</button><p style="color:#9ca3af;font-size:11px;margin:14px 0 0">EL5 MediProcure &bull; Embu Level 5 Hospital</p></div></div>';
+        obs.observe(root, { childList: true });
+
+        // After 30s without React mounting: auto-reload silently
+        // DO NOT show "Application failed to start" — just reload
+        setTimeout(function () {
+          if (root.children.length === 0) {
+            window.location.reload();
           }
-        },20000);
+        }, 30000);
       })();
     </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

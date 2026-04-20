@@ -1,6 +1,5 @@
-# ProcurBosse — Web + Kiosk Build & Release
-# Builds main app + kiosk app, publishes to GitHub Releases
-name: "Web Build & Release"
+# ProcurBosse — Web + Kiosk Auto Release
+name: "Web & Kiosk Release"
 
 on:
   push:
@@ -11,107 +10,72 @@ permissions:
   contents: write
 
 jobs:
-  build-web:
-    name: "Build Main Web App"
+  build-and-release:
+    name: "Build Web + Kiosk → Release"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
 
-      - name: Install dependencies
-        run: ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install --legacy-peer-deps --ignore-scripts --no-audit
-        env: { CI: "false" }
+      - name: Install main app deps
+        run: npm install --legacy-peer-deps --no-audit
+        env:
+          CI: "false"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Build
+      - name: Build main app
         run: npm run build
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
           CI: "false"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Zip dist
+      - name: Zip main app dist
         run: cd dist && zip -r ../procurbosse-web.zip . && cd ..
 
-      - name: Upload web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: procurbosse-web
-          path: procurbosse-web.zip
-          retention-days: 30
-
-  build-kiosk:
-    name: "Build Kiosk/Request App"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20" }
-
       - name: Install kiosk deps
-        run: cd kiosk-app && npm install --legacy-peer-deps --no-audit
+        run: cd kiosk-app && npm install --legacy-peer-deps --no-audit && cd ..
         env: { CI: "false" }
 
-      - name: Build kiosk
-        run: cd kiosk-app && npm run build
-        env:
-          CI: "false"
+      - name: Build kiosk app
+        run: cd kiosk-app && npm run build && cd ..
+        env: { CI: "false" }
 
       - name: Zip kiosk dist
         run: cd kiosk-app/dist && zip -r ../../kiosk-request-station.zip . && cd ../..
 
-      - name: Upload kiosk artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kiosk-request-station
-          path: kiosk-request-station.zip
-          retention-days: 30
-
-  release:
-    name: "Create Release"
-    needs: [build-web, build-kiosk]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with: { path: artifacts }
-
       - name: Get version
         id: ver
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.ver.outputs.version }}-${{ github.run_number }}"
+          tag_name: "v${{ steps.ver.outputs.version }}-build-${{ github.run_number }}"
           name: "ProcurBosse v${{ steps.ver.outputs.version }} — Build ${{ github.run_number }}"
           body: |
-            ## ProcurBosse EL5 MediProcure — Release
+            ## 🏥 ProcurBosse EL5 MediProcure — v${{ steps.ver.outputs.version }}
 
-            ### 🌐 Web Application
-            Download `procurbosse-web.zip` and deploy to your web server or EdgeOne.
+            ### Downloads
 
-            ### 📋 Kiosk / Department Request Station
-            Download `kiosk-request-station.zip` — deploy to any web server for departments to submit requisitions **without login**.
-            - Records submitter name + device
-            - Real-time Twilio SMS notification to procurement
-            - Real-time popup notifications
+            | File | Description |
+            |------|-------------|
+            | `procurbosse-web.zip` | Main ERP web app — deploy to EdgeOne or any web server |
+            | `kiosk-request-station.zip` | Department Request Station — no login needed |
 
-            ### Changes
-            - Nuclear rebuild: Login, Dashboard, Email, DB Admin pages
-            - D365-style module tile navigation
-            - Gmail-style email interface
-            - Power BI-style database admin
-            - Kiosk app for department requisitions
-            - EdgeOne deployment fix
+            ### What's in v22.0
+            - ✅ **EdgeOne white screen FIXED** — electron removed from web deps
+            - 🔑 **Login Page** — Blue gradient glassmorphism, Embu logo
+            - 🏠 **Dashboard** — D365 coloured module tiles, role-filtered, admin-only KPIs
+            - 📧 **Email** — Gmail-style 3-column layout, compose, star, reply
+            - 🗄️ **DB Admin** — Power BI style, table explorer, SQL editor, health check
+            - 📋 **Kiosk App** — Department request station, Twilio SMS, real-time popups
+            - 🔧 **BAT Installer** — VC++ redistributable, Node.js, desktop shortcuts
 
-            **Supabase Project:** yvjfehnzbzjliizjvuhq
-            **Build:** ${{ github.sha }}
+            **Commit:** ${{ github.sha }}
           files: |
-            artifacts/procurbosse-web/procurbosse-web.zip
-            artifacts/kiosk-request-station/kiosk-request-station.zip
+            procurbosse-web.zip
+            kiosk-request-station.zip
           draft: false
           prerelease: false
         env:
