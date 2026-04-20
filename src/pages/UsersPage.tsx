@@ -94,16 +94,18 @@ export default function UsersPage() {
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    const { data: profiles } = await db.from("profiles").select("*").order("full_name");
-    if (!profiles) { setLoading(false); return; }
-    const { data: rolesData } = await db.from("user_roles").select("user_id,role");
-    const roleMap: Record<string, string[]> = {};
-    (rolesData || []).forEach((r: any) => {
-      if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
-      roleMap[r.user_id].push(r.role);
-    });
-    setUsers(profiles.map((p: any) => ({ ...p, roles: roleMap[p.id] || [] })));
-    setLoading(false);
+    try {
+      const { data: profiles } = await db.from("profiles").select("*").order("full_name");
+      if (!profiles) return;
+      const { data: rolesData } = await db.from("user_roles").select("user_id,role");
+      const roleMap: Record<string, string[]> = {};
+      (rolesData || []).forEach((r: any) => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role);
+      });
+      setUsers(profiles.map((p: any) => ({ ...p, roles: roleMap[p.id] || [] })));
+    } catch(e: any) { console.warn('[Users] load:', e?.message); }
+    finally { setLoading(false); }
   }, []);
 
   const loadSessions = useCallback(async () => {

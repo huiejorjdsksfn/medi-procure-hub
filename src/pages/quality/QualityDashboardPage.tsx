@@ -144,7 +144,7 @@ export default function QualityDashboardPage() {
       const m: Record<string,string> = {};
       (sysRes.data || []).forEach((r:any) => { if (r.key) m[r.key] = r.value || ""; });
     } catch(e) { console.error(e); }
-    setLoading(false);
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);

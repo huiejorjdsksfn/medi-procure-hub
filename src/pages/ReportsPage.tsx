@@ -83,7 +83,7 @@ export default function ReportsPage() {
         invAmt: d.reduce((s:number,r:any) => s + Number(r.total_value||r.net_book_value||0), 0) || purchaseAmt,
       });
     } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
-    setLoading(false);
+    finally { setLoading(false); }
   },[reportType, startDate, endDate]);
 
   useEffect(() => { loadReport(); }, [loadReport]);

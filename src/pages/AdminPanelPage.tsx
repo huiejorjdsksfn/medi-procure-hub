@@ -231,11 +231,13 @@ function ActivityLog() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const {data} = await db.from("admin_activity_log")
-      .select("*,profiles!admin_activity_log_user_id_fkey(full_name,email)")
-      .order("created_at",{ascending:false}).limit(150);
-    setLogs(data||[]);
-    setLoading(false);
+    try {
+      const {data} = await db.from("admin_activity_log")
+        .select("*,profiles!admin_activity_log_user_id_fkey(full_name,email)")
+        .order("created_at",{ascending:false}).limit(150);
+      setLogs(data||[]);
+    } catch(e:any){ console.warn('[AdminPanel]',e?.message); }
+    finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{

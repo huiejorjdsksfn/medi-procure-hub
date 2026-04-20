@@ -41,9 +41,11 @@ function BackupInner() {
 
   const loadJobs = async () => {
     setLoading(true);
-    const { data } = await (supabase as any).from("backup_jobs").select("*").order("started_at",{ascending:false}).limit(20);
-    setJobs(data||[]);
-    setLoading(false);
+    try {
+          const { data } = await (supabase as any).from("backup_jobs").select("*").order("started_at",{ascending:false}).limit(20);
+          setJobs(data||[]);
+    } catch(e: any) { console.warn("[BackupPage.tsx]", e?.message); }
+    finally { setLoading(false); }
   };
 
   const runBackup = async () => {
