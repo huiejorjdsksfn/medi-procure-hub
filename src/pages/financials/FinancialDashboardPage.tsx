@@ -144,7 +144,7 @@ export default function FinancialDashboardPage() {
       setPayments(p.data || []); setReceipts(r.data || []); setJournals(j.data || []);
       setBudgets(b.data || []); setCoa(c.data || []);
     } catch (e) { console.error(e); }
-    setLoading(false);
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { refetch(); }, [refetch]);

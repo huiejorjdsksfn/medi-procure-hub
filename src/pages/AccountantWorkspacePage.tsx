@@ -110,7 +110,7 @@ export default function AccountantWorkspacePage() {
     } catch (e: any) {
       console.error("AccountantWorkspace fetch error:", e);
     }
-    setLoading(false);
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);

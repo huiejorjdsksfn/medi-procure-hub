@@ -87,22 +87,24 @@ export default function AdminDatabasePage() {
   /* Load all table counts */
   const loadStats = useCallback(async () => {
     setLoading(true);
-    const stats: TableStat[] = [];
-    await Promise.allSettled(
-      KNOWN_TABLES.map(async t => {
-        try {
-          const { count, error } = await db.from(t).select("id",{count:"exact",head:true});
-          stats.push({ name:t, count:count??0, status:error?"error":"ok" });
-        } catch {
-          stats.push({ name:t, count:0, status:"error" });
-        }
-      })
-    );
-    stats.sort((a,b) => b.count-a.count);
-    setTableStats(stats);
-    const totalRows = stats.reduce((s,t)=>s+t.count,0);
-    setTotals(v => ({...v, tables:stats.length, totalRows }));
-    setLoading(false);
+    try {
+      const stats: TableStat[] = [];
+      await Promise.allSettled(
+        KNOWN_TABLES.map(async t => {
+          try {
+            const { count, error } = await db.from(t).select("id",{count:"exact",head:true});
+            stats.push({ name:t, count:count??0, status:error?"error":"ok" });
+          } catch {
+            stats.push({ name:t, count:0, status:"error" });
+          }
+        })
+      );
+      stats.sort((a,b) => b.count-a.count);
+      setTableStats(stats);
+      const totalRows = stats.reduce((s,t)=>s+t.count,0);
+      setTotals(v => ({...v, tables:stats.length, totalRows }));
+    } catch(e:any){ console.warn('[AdminDB]',e?.message); }
+    finally { setLoading(false); }
   }, []);
 
   /* Load table rows */
