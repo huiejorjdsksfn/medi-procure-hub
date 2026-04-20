@@ -12,87 +12,47 @@
     <meta name="description" content="EL5 MediProcure — Health Procurement ERP, Embu Level 5 Hospital" />
     <title>EL5 MediProcure — ProcurBosse</title>
     <style>
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body, #root { height: 100%; margin: 0; padding: 0; }
-      body {
-        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 35%, #1a237e 65%, #0a1172 100%);
-        min-height: 100vh;
-      }
-      /* Splash — always blue, never white */
-      #splash {
-        position: fixed; inset: 0; z-index: 9999;
-        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 35%, #1a237e 65%, #0a1172 100%);
-        display: flex; align-items: center; justify-content: center;
-        transition: opacity 0.5s ease;
-      }
-      #splash.fade { opacity: 0; pointer-events: none; }
-      .sp-card {
-        text-align: center; padding: 0 20px;
-      }
-      .sp-logo {
-        width: 80px; height: 80px; border-radius: 20px;
-        background: rgba(255,255,255,0.15);
-        border: 2px solid rgba(255,255,255,0.3);
-        display: flex; align-items: center; justify-content: center;
-        margin: 0 auto 20px;
-        animation: pulse 1.8s ease-in-out infinite;
-      }
-      @keyframes pulse {
-        0%,100% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,255,255,0.2); }
-        50%      { transform:scale(1.04); box-shadow:0 0 0 16px rgba(255,255,255,0); }
-      }
-      .sp-title { color:#fff; font-size:20px; font-weight:800; letter-spacing:.02em; margin-bottom:6px; }
-      .sp-sub   { color:rgba(255,255,255,0.55); font-size:12px; font-weight:500; margin-bottom:24px; }
-      .sp-bar   { width:180px; height:3px; background:rgba(255,255,255,0.15); border-radius:2px; margin:0 auto; overflow:hidden; }
-      .sp-fill  { height:100%; background:#fff; border-radius:2px; animation:fill 1.6s ease-in-out infinite; }
-      @keyframes fill { 0%{width:0;opacity:1} 80%{width:100%;opacity:1} 100%{width:100%;opacity:0} }
+      *,*::before,*::after{box-sizing:border-box}
+      html,body,#root{height:100%;margin:0;padding:0}
+      body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0d47a1;min-height:100vh}
+      #sp{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#1565c0 0%,#0d47a1 35%,#1a237e 65%,#0a1172 100%);display:flex;align-items:center;justify-content:center;transition:opacity .5s ease}
+      #sp.out{opacity:0;pointer-events:none}
+      .sc{text-align:center;padding:0 20px}
+      .sl{width:80px;height:80px;border-radius:20px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:sp-pulse 1.8s ease-in-out infinite}
+      @keyframes sp-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.2)}50%{transform:scale(1.04);box-shadow:0 0 0 16px rgba(255,255,255,0)}}
+      .st{color:#fff;font-size:20px;font-weight:800;letter-spacing:.02em;margin-bottom:6px}
+      .ss{color:rgba(255,255,255,.55);font-size:12px;font-weight:500;margin-bottom:24px}
+      .sb{width:180px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto;overflow:hidden}
+      .sf{height:100%;background:#fff;border-radius:2px;animation:sp-fill 1.6s ease-in-out infinite}
+      @keyframes sp-fill{0%{width:0;opacity:1}80%{width:100%;opacity:1}100%{width:100%;opacity:0}}
     </style>
   </head>
   <body>
-    <!-- Splash screen — pure CSS, no JS needed to show -->
-    <div id="splash">
-      <div class="sp-card">
-        <div class="sp-logo">
-          <img src="/icons/icon-48.png" alt="" style="width:44px;height:44px;object-fit:contain"
-               onerror="this.style.display='none'" />
+    <div id="sp">
+      <div class="sc">
+        <div class="sl">
+          <img src="/icons/icon-48.png" alt="" style="width:44px;height:44px;object-fit:contain" onerror="this.style.display='none'" />
         </div>
-        <div class="sp-title">EL5 MediProcure</div>
-        <div class="sp-sub">Embu Level 5 Hospital &bull; Procurement ERP</div>
-        <div class="sp-bar"><div class="sp-fill"></div></div>
+        <div class="st">EL5 MediProcure</div>
+        <div class="ss">Embu Level 5 Hospital &bull; Procurement ERP</div>
+        <div class="sb"><div class="sf"></div></div>
       </div>
     </div>
-
-    <!-- React mounts here -->
     <div id="root"></div>
-
     <script>
-      (function () {
-        var splash = document.getElementById('splash');
-        var root   = document.getElementById('root');
-
-        // Hide splash once React puts anything in #root
-        var obs = new MutationObserver(function () {
-          if (root.children.length > 0) {
-            splash.classList.add('fade');
-            setTimeout(function () {
-              if (splash.parentNode) splash.parentNode.removeChild(splash);
-            }, 600);
-            obs.disconnect();
+      !function(){
+        var s=document.getElementById('sp'),r=document.getElementById('root');
+        var o=new MutationObserver(function(){
+          if(r.children.length>0){
+            s.classList.add('out');
+            setTimeout(function(){s&&s.parentNode&&s.parentNode.removeChild(s)},600);
+            o.disconnect();
           }
         });
-        obs.observe(root, { childList: true });
-
-        // After 30s without React mounting: auto-reload silently
-        // DO NOT show "Application failed to start" — just reload
-        setTimeout(function () {
-          if (root.children.length === 0) {
-            window.location.reload();
-          }
-        }, 30000);
-      })();
+        o.observe(r,{childList:true});
+        setTimeout(function(){if(r.children.length===0)window.location.reload()},30000);
+      }();
     </script>
-
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
