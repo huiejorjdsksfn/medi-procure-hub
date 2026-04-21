@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-128.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0078d4" />
+    <title>EL5 MediProcure — ProcurBosse</title>
+    <style>
+      *,*::before,*::after{box-sizing:border-box}
+      html,body,#root{height:100%;margin:0;padding:0}
+      body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d47a1}
+      #sp{
+        position:fixed;inset:0;z-index:9999;
+        background:linear-gradient(135deg,#1565c0 0%,#0d47a1 50%,#0a1172 100%);
+        display:flex;align-items:center;justify-content:center;
+        opacity:1;transition:opacity 0.25s ease;
+      }
+      #sp.gone{opacity:0;pointer-events:none}
+      .sp-box{text-align:center}
+      .sp-ring{
+        width:64px;height:64px;border-radius:16px;
+        background:rgba(255,255,255,0.15);
+        border:2px solid rgba(255,255,255,0.3);
+        display:flex;align-items:center;justify-content:center;
+        margin:0 auto 14px;
+      }
+      .sp-t{color:#fff;font-size:18px;font-weight:800;margin-bottom:4px}
+      .sp-s{color:rgba(255,255,255,0.55);font-size:11px}
+    </style>
+    
+    <link rel="stylesheet" href="/assets/index-CSurGk1q.css">
+  </head>
+  <body>
+    <div id="sp">
+      <div class="sp-box">
+        <div class="sp-ring">
+          <img src="/icons/icon-48.png" alt="" style="width:40px;height:40px;object-fit:contain" onerror="this.style.display='none'"/>
+        </div>
+        <div class="sp-t">EL5 MediProcure</div>
+        <div class="sp-s">Embu Level 5 Hospital</div>
+      </div>
+    </div>
+
+    <div id="root"></div>
+
+    <script>
+      // Dismiss splash the moment React puts ANYTHING in #root
+      var _sp = document.getElementById('sp');
+      var _r  = document.getElementById('root');
+      var _obs = new MutationObserver(function(){
+        if(_r.children.length > 0){
+          _sp.classList.add('gone');
+          setTimeout(function(){ if(_sp.parentNode)_sp.parentNode.removeChild(_sp); }, 300);
+          _obs.disconnect();
+        }
+      });
+      _obs.observe(_r, {childList:true});
+
+      // Hard cap: remove splash after 800ms no matter what
+      setTimeout(function(){
+        if(_sp && _sp.parentNode){ _sp.classList.add('gone'); setTimeout(function(){ if(_sp&&_sp.parentNode)_sp.parentNode.removeChild(_sp); },300); }
+      }, 800);
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(function(r){r.update();}).catch(function(){});
+      }
+    </script>
+    <script type="module" src="/assets/index-XaIz1TI1.js"></script>
+  </body>
+</html>

@@ -1,15 +1,14 @@
 {
   "build": {
-    "command": "npm install --legacy-peer-deps --no-audit && npm run build",
-    "directory": "dist",
+    "command": "echo 'Using pre-built web directory'",
+    "directory": "web",
     "environment": {
       "NODE_VERSION": "20",
-      "NODE_OPTIONS": "--max-old-space-size=4096",
       "CI": "false"
     }
   },
   "routes": [
-    { "src": "/assets/(.*)", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "src": "/assets/(.*)", "headers": { "cache-control": "public, max-age=86400" } },
     { "src": "/icons/(.*)",  "headers": { "cache-control": "public, max-age=86400" } },
     { "src": "/(.*)",        "dest": "/index.html" }
   ]
