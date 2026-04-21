@@ -1,259 +1,238 @@
 /**
- * ProcurBosse — Dashboard v9.0 NUCLEAR ACTIVATED
- * Microsoft Dynamics 365 coloured module tiles
- * Always renders — Supabase errors never crash the page
- * Role-filtered ERP wheel · KPIs admin-only
+ * ProcurBosse — Dashboard v10 D365 Style
+ * Microsoft Dynamics 365 home page style
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { T } from "@/lib/theme";
-import {
-  ShoppingCart, Package, DollarSign, Truck, BarChart3,
-  Users, FileText, Bell, Settings, Database, Shield,
-  Globe, Printer, ClipboardList, BookOpen, PiggyBank,
-  Layers, Scale, Mail, Activity, Archive, Gavel,
-  CheckSquare, Briefcase, RefreshCw, Home, Star,
-  MessageSquare, Phone, TrendingUp, ChevronRight,
-} from "lucide-react";
 
 const db = supabase as any;
 
-/* ── Role → allowed module IDs ─────────────────────────────────── */
 const ROLE_MODS: Record<string, string[]> = {
-  superadmin:          ["procurement","inventory","finance","quality","comms","reports","users","system","audit"],
-  webmaster:           ["procurement","inventory","finance","quality","comms","reports","users","system","audit"],
-  admin:               ["procurement","inventory","finance","quality","comms","reports","users","system","audit"],
-  database_admin:      ["system","audit","reports"],
-  procurement_manager: ["procurement","inventory","quality","comms","reports","audit"],
-  procurement_officer: ["procurement","inventory","quality","comms"],
-  inventory_manager:   ["inventory","quality","reports"],
-  warehouse_officer:   ["inventory"],
-  accountant:          ["finance","reports","audit"],
-  requisitioner:       ["procurement"],
+  superadmin:["proc","inv","fin","qual","comms","rep","users","sys","audit"],
+  webmaster: ["proc","inv","fin","qual","comms","rep","users","sys","audit"],
+  admin:     ["proc","inv","fin","qual","comms","rep","users","sys","audit"],
+  database_admin:["sys","audit","rep"],
+  procurement_manager:["proc","inv","qual","comms","rep","audit"],
+  procurement_officer:["proc","inv","qual","comms"],
+  inventory_manager:  ["inv","qual","rep"],
+  warehouse_officer:  ["inv"],
+  accountant:         ["fin","rep","audit"],
+  requisitioner:      ["proc"],
 };
 
-/* ── Module definitions ─────────────────────────────────────────── */
-const MODULES = [
-  { id:"procurement", label:"Procurement",      color:"#0078d4", icon:ShoppingCart,
-    items:[{l:"Requisitions",p:"/requisitions",i:ClipboardList},{l:"Purchase Orders",p:"/purchase-orders",i:ShoppingCart},{l:"Suppliers",p:"/suppliers",i:Briefcase},{l:"Goods Received",p:"/goods-received",i:Truck},{l:"Tenders",p:"/tenders",i:Gavel},{l:"Bid Evaluations",p:"/bid-evaluations",i:Scale},{l:"Contracts",p:"/contracts",i:FileText},{l:"Planning",p:"/procurement-planning",i:BookOpen}]},
-  { id:"inventory",   label:"Inventory",         color:"#038387", icon:Package,
-    items:[{l:"Items / Stock",p:"/items",i:Package},{l:"Categories",p:"/categories",i:Layers},{l:"Goods Received",p:"/goods-received",i:Truck},{l:"Departments",p:"/departments",i:Home},{l:"Scanner",p:"/scanner",i:Activity}]},
-  { id:"finance",     label:"Finance & Accounts",color:"#7719aa", icon:DollarSign,
-    items:[{l:"Dashboard",p:"/financials",i:BarChart3},{l:"Budgets",p:"/financials/budgets",i:PiggyBank},{l:"Chart of Accounts",p:"/financials/chart-of-accounts",i:BookOpen},{l:"Fixed Assets",p:"/financials/fixed-assets",i:Archive},{l:"Payment Vouchers",p:"/vouchers/payment",i:DollarSign},{l:"Accountant WS",p:"/accountant-workspace",i:Briefcase}]},
-  { id:"quality",     label:"Quality Control",   color:"#498205", icon:CheckSquare,
-    items:[{l:"QC Dashboard",p:"/quality",i:Star},{l:"Inspections",p:"/quality/inspections",i:CheckSquare},{l:"Non-Conformance",p:"/quality/non-conformance",i:Bell}]},
-  { id:"comms",       label:"Communications",    color:"#0072c6", icon:Mail,
-    items:[{l:"Email",p:"/email",i:Mail},{l:"SMS",p:"/sms",i:MessageSquare},{l:"Telephony",p:"/telephony",i:Phone},{l:"Notifications",p:"/notifications",i:Bell},{l:"Documents",p:"/documents",i:FileText}]},
-  { id:"reports",     label:"Reports & BI",      color:"#5c2d91", icon:BarChart3,
-    items:[{l:"Reports",p:"/reports",i:BarChart3},{l:"Print Engine",p:"/print-engine",i:Printer},{l:"Audit Log",p:"/audit-log",i:Activity}]},
-  { id:"users",       label:"Users & Access",    color:"#b4009e", icon:Users,
-    items:[{l:"Users",p:"/users",i:Users},{l:"IP Access",p:"/admin/ip-access",i:Shield},{l:"Profile",p:"/profile",i:Users},{l:"Facilities",p:"/facilities",i:Home}]},
-  { id:"system",      label:"System",            color:"#00188f", icon:Settings,
-    items:[{l:"Settings",p:"/settings",i:Settings},{l:"Admin Panel",p:"/admin/panel",i:Shield},{l:"Database",p:"/admin/database",i:Database},{l:"Backup",p:"/backup",i:Archive},{l:"Webmaster",p:"/webmaster",i:Globe},{l:"GUI Editor",p:"/gui-editor",i:Activity},{l:"ODBC",p:"/odbc",i:Database}]},
-  { id:"audit",       label:"Audit",             color:"#d83b01", icon:FileText,
-    items:[{l:"Audit Log",p:"/audit-log",i:FileText},{l:"Reception",p:"/reception",i:Activity},{l:"DB Monitor",p:"/admin/db-test",i:Database}]},
+const MODS = [
+  {id:"proc",  label:"Procurement",      icon:"🛒", color:"#0078d4", items:[{l:"Requisitions",p:"/requisitions"},{l:"Purchase Orders",p:"/purchase-orders"},{l:"Suppliers",p:"/suppliers"},{l:"Tenders",p:"/tenders"},{l:"Contracts",p:"/contracts"}]},
+  {id:"inv",   label:"Inventory",         icon:"📦", color:"#038387", items:[{l:"Items",p:"/items"},{l:"Categories",p:"/categories"},{l:"Goods Received",p:"/goods-received"},{l:"Departments",p:"/departments"}]},
+  {id:"fin",   label:"Finance",           icon:"💰", color:"#7719aa", items:[{l:"Financial Dashboard",p:"/financials"},{l:"Budgets",p:"/financials/budgets"},{l:"Vouchers",p:"/vouchers"},{l:"Accountant Workspace",p:"/accountant-workspace"}]},
+  {id:"qual",  label:"Quality",           icon:"✅", color:"#498205", items:[{l:"QC Dashboard",p:"/quality"},{l:"Inspections",p:"/quality/inspections"},{l:"Non-Conformance",p:"/quality/non-conformance"}]},
+  {id:"comms", label:"Communications",   icon:"📧", color:"#0072c6", items:[{l:"Email",p:"/email"},{l:"SMS",p:"/sms"},{l:"Notifications",p:"/notifications"},{l:"Documents",p:"/documents"}]},
+  {id:"rep",   label:"Reports",           icon:"📊", color:"#5c2d91", items:[{l:"Reports",p:"/reports"},{l:"Audit Log",p:"/audit-log"},{l:"Print Engine",p:"/print-engine"}]},
+  {id:"users", label:"Users & Access",   icon:"👥", color:"#b4009e", items:[{l:"Users",p:"/users"},{l:"IP Access",p:"/admin/ip-access"},{l:"Facilities",p:"/facilities"}]},
+  {id:"sys",   label:"System",            icon:"⚙️", color:"#00188f", items:[{l:"Settings",p:"/settings"},{l:"Database",p:"/admin/database"},{l:"Backup",p:"/backup"},{l:"Webmaster",p:"/webmaster"}]},
+  {id:"audit", label:"Audit",             icon:"🔍", color:"#d83b01", items:[{l:"Audit Log",p:"/audit-log"},{l:"Reception",p:"/reception"}]},
 ];
 
-/* ── KPI tile ────────────────────────────────────────────────────── */
-function KpiCard({label,value,color,icon:Icon}:{label:string;value:number|string;color:string;icon:any}) {
-  return (
-    <div style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"16px 20px",boxShadow:T.shadow,display:"flex",alignItems:"center",gap:14}}>
-      <div style={{width:44,height:44,borderRadius:T.rMd,background:`${color}14`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-        <Icon size={22} color={color}/>
-      </div>
-      <div>
-        <div style={{fontSize:26,fontWeight:800,color,lineHeight:1}}>{typeof value==="number"?value.toLocaleString():value}</div>
-        <div style={{fontSize:12,color:T.fgMuted,marginTop:3,fontWeight:500}}>{label}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Module tile ─────────────────────────────────────────────────── */
-function ModuleTile({mod,active,onClick}:{mod:typeof MODULES[0];active:boolean;onClick:()=>void}) {
-  const [hov,setHov] = useState(false);
-  const Icon = mod.icon;
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={()=>setHov(true)}
-      onMouseLeave={()=>setHov(false)}
-      style={{
-        background: active ? mod.color : (hov ? mod.color : `${mod.color}dd`),
-        color:"#fff",borderRadius:T.rMd,padding:"20px 16px",
-        cursor:"pointer",transition:"all .18s",
-        transform:hov&&!active?"translateY(-3px)":"none",
-        boxShadow:hov||active?`0 8px 28px ${mod.color}44`:"0 2px 8px rgba(0,0,0,0.12)",
-        display:"flex",flexDirection:"column",alignItems:"center",
-        justifyContent:"center",gap:10,minHeight:105,
-        textAlign:"center",userSelect:"none",
-        outline:active?`3px solid #fff`:"none",
-        outlineOffset:active?"-3px":"0",
-      }}
-    >
-      <Icon size={26} strokeWidth={1.8}/>
-      <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{mod.label}</div>
-      <div style={{fontSize:10,opacity:.75}}>{mod.items.length} areas</div>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
-  const { user, profile, primaryRole, hasRole } = useAuth();
+  const { user, profile, primaryRole, hasRole, signOut } = useAuth();
   const nav = useNavigate();
-  const [kpi,  setKpi]  = useState({req:0,po:0,items:0,suppliers:0,notifs:0,lowstock:0});
-  const [selMod, setSelMod] = useState<typeof MODULES[0]|null>(null);
-  const [time,  setTime]  = useState(new Date());
-  const [kpiLoading, setKpiLoading] = useState(false);
+  const [kpi, setKpi] = useState({req:0,po:0,items:0,notifs:0,lowstock:0,grn:0});
+  const [sel, setSel] = useState<typeof MODS[0]|null>(null);
+  const [time, setTime] = useState(new Date());
+  const [loading, setLoading] = useState(false);
 
   const isAdmin = hasRole("admin","superadmin","webmaster");
-  const allowed = ROLE_MODS[primaryRole] || ROLE_MODS["requisitioner"];
-  const visibleMods = MODULES.filter(m => allowed.includes(m.id));
+  const allowed = ROLE_MODS[primaryRole] || ["proc"];
+  const mods = MODS.filter(m=>allowed.includes(m.id));
+  const name = profile?.full_name || user?.email?.split("@")[0] || "User";
+  const role = primaryRole.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 
-  // Clock
-  useEffect(() => {
-    const iv = setInterval(()=>setTime(new Date()),60000);
-    return ()=>clearInterval(iv);
-  },[]);
+  useEffect(()=>{ const iv=setInterval(()=>setTime(new Date()),60000); return()=>clearInterval(iv); },[]);
 
-  // KPIs (admin only)
   const loadKpi = useCallback(async()=>{
     if(!isAdmin) return;
-    setKpiLoading(true);
+    setLoading(true);
     try {
-      const [r,p,i,s,n,ls] = await Promise.allSettled([
+      const [r,p,i,n,ls,g]=await Promise.allSettled([
         db.from("requisitions").select("id",{count:"exact",head:true}).in("status",["submitted","pending"]),
         db.from("purchase_orders").select("id",{count:"exact",head:true}).in("status",["pending","approved"]),
         db.from("items").select("id",{count:"exact",head:true}),
-        db.from("suppliers").select("id",{count:"exact",head:true}).eq("status","active"),
         db.from("notifications").select("id",{count:"exact",head:true}).eq("is_read",false),
         db.from("items").select("id",{count:"exact",head:true}).lt("current_quantity",5),
+        db.from("goods_received").select("id",{count:"exact",head:true}).eq("status","pending"),
       ]);
       const v=(x:any)=>x.status==="fulfilled"?x.value?.count??0:0;
-      setKpi({req:v(r),po:v(p),items:v(i),suppliers:v(s),notifs:v(n),lowstock:v(ls)});
+      setKpi({req:v(r),po:v(p),items:v(i),notifs:v(n),lowstock:v(ls),grn:v(g)});
     } catch {}
-    finally { setKpiLoading(false); }
+    finally{setLoading(false);}
   },[isAdmin]);
 
   useEffect(()=>{ loadKpi(); },[loadKpi]);
 
-  const displayName = profile?.full_name || profile?.display_name || user?.email?.split("@")[0] || "User";
-  const roleLabel   = primaryRole.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+  const S={
+    page:{background:"#f3f5f8",minHeight:"100vh",fontFamily:"'Segoe UI',system-ui,sans-serif"},
+    topbar:{
+      background:"#0078d4",height:48,
+      display:"flex",alignItems:"center",padding:"0 20px",gap:12,
+      boxShadow:"0 2px 8px rgba(0,0,0,0.15)",
+    },
+    content:{padding:"24px"},
+    card:{background:"#fff",border:"1px solid #e0e0e0",borderRadius:8,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"},
+  } as const;
 
   return (
-    <div style={{background:T.bg,minHeight:"100vh",fontFamily:"'Segoe UI','Inter',system-ui,sans-serif"}}>
-
-      {/* Page header */}
-      <div style={{background:"#fff",borderBottom:`1px solid ${T.border}`,padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 1px 4px rgba(0,0,0,.05)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <Home size={18} color={T.primary}/>
-          <div>
-            <div style={{fontSize:16,fontWeight:700,color:T.fg}}>Home — Dashboard</div>
-            <div style={{fontSize:11,color:T.fgDim}}>
-              {time.toLocaleDateString("en-KE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}
-            </div>
-          </div>
+    <div style={S.page}>
+      {/* D365 Top Bar */}
+      <div style={S.topbar}>
+        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+          <div style={{width:28,height:28,borderRadius:6,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚕</div>
+          <span style={{color:"#fff",fontSize:13,fontWeight:600}}>EL5 MediProcure</span>
+          <span style={{color:"rgba(255,255,255,0.4)",fontSize:12,margin:"0 4px"}}>|</span>
+          <span style={{color:"rgba(255,255,255,0.8)",fontSize:12}}>Home</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
           <div style={{textAlign:"right"}}>
-            <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{displayName}</div>
-            <div style={{fontSize:11,color:T.primary,fontWeight:500}}>{roleLabel}</div>
+            <div style={{color:"#fff",fontSize:12,fontWeight:600}}>{name}</div>
+            <div style={{color:"rgba(255,255,255,0.6)",fontSize:10}}>{role}</div>
           </div>
-          <button onClick={loadKpi} title="Refresh" style={{background:"none",border:`1px solid ${T.border}`,borderRadius:T.r,padding:"5px 8px",cursor:"pointer",color:T.fgMuted,display:"flex",alignItems:"center"}}>
-            <RefreshCw size={13} style={{animation:kpiLoading?"pb-spin .8s linear infinite":undefined}}/>
+          <div style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",fontSize:13,fontWeight:700}} onClick={()=>nav("/profile")}>
+            {name[0]?.toUpperCase()}
+          </div>
+          <button onClick={()=>{signOut();nav("/login");}} style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:6,padding:"4px 10px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+            Sign out
           </button>
         </div>
       </div>
 
-      <div style={{padding:"24px 28px"}}>
+      {/* Sub header */}
+      <div style={{background:"#fff",borderBottom:"1px solid #e0e0e0",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:600,color:"#1a1a2e"}}>Home Dashboard</div>
+          <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>
+            {time.toLocaleDateString("en-KE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}
+          </div>
+        </div>
+        <button onClick={loadKpi} style={{background:"#f3f5f8",border:"1px solid #e0e0e0",borderRadius:6,padding:"6px 14px",fontSize:12,cursor:"pointer",color:"#374151",fontFamily:"inherit"}}>
+          ↻ Refresh
+        </button>
+      </div>
 
+      <div style={S.content}>
         {/* KPI tiles — admin only */}
-        {isAdmin&&(
+        {isAdmin && (
           <div style={{marginBottom:24}}>
-            <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:".07em",marginBottom:12}}>Live Overview</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:12}}>
-              <KpiCard label="Pending Requisitions"  value={kpi.req}      color={T.primary}  icon={ClipboardList}/>
-              <KpiCard label="Active Purchase Orders" value={kpi.po}       color="#7719aa"    icon={ShoppingCart}/>
-              <KpiCard label="Total Stock Items"      value={kpi.items}    color="#038387"    icon={Package}/>
-              <KpiCard label="Active Suppliers"       value={kpi.suppliers}color="#498205"    icon={Briefcase}/>
-              <KpiCard label="Unread Notifications"   value={kpi.notifs}   color="#d83b01"    icon={Bell}/>
-              <KpiCard label="Low Stock Alerts"       value={kpi.lowstock} color="#c19c00"    icon={Star}/>
+            <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>Live Overview</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
+              {[
+                {l:"Requisitions",v:kpi.req,  c:"#0078d4",i:"📋"},
+                {l:"Purchase Orders",v:kpi.po, c:"#7719aa",i:"🛒"},
+                {l:"Total Items",v:kpi.items,  c:"#038387",i:"📦"},
+                {l:"Notifications",v:kpi.notifs,c:"#d83b01",i:"🔔"},
+                {l:"Low Stock",v:kpi.lowstock,  c:"#c19c00",i:"⚠️"},
+                {l:"Pending GRN",v:kpi.grn,     c:"#498205",i:"🚚"},
+              ].map(k=>(
+                <div key={k.l} style={{...S.card,padding:"16px 18px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <span style={{fontSize:22}}>{k.i}</span>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:k.c,marginTop:4}}/>
+                  </div>
+                  <div style={{fontSize:28,fontWeight:700,color:k.c,lineHeight:1,marginBottom:4}}>
+                    {loading?"—":k.v.toLocaleString()}
+                  </div>
+                  <div style={{fontSize:11,color:"#6b7280",fontWeight:500}}>{k.l}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* Module tiles */}
         <div style={{marginBottom:20}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:".07em",marginBottom:12}}>
-            My Modules — {roleLabel}
+          <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>
+            My Modules — {role}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10}}>
-            {visibleMods.map(m=>(
-              <ModuleTile key={m.id} mod={m} active={selMod?.id===m.id} onClick={()=>setSelMod(selMod?.id===m.id?null:m)}/>
+            {mods.map(m=>(
+              <div key={m.id} onClick={()=>setSel(sel?.id===m.id?null:m)}
+                style={{
+                  background:sel?.id===m.id?m.color:`${m.color}ee`,
+                  borderRadius:8,padding:"18px 14px",
+                  cursor:"pointer",textAlign:"center",
+                  color:"#fff",userSelect:"none",
+                  boxShadow:sel?.id===m.id?`0 4px 20px ${m.color}55`:"0 2px 6px rgba(0,0,0,0.10)",
+                  transform:sel?.id===m.id?"translateY(-2px)":"none",
+                  transition:"all .15s",
+                  outline:sel?.id===m.id?"3px solid rgba(255,255,255,0.5)":"none",
+                  outlineOffset:"-3px",
+                }}
+                onMouseEnter={e=>{(e.currentTarget as any).style.transform="translateY(-2px)";(e.currentTarget as any).style.boxShadow=`0 6px 20px ${m.color}44`;}}
+                onMouseLeave={e=>{(e.currentTarget as any).style.transform=sel?.id===m.id?"translateY(-2px)":"none";(e.currentTarget as any).style.boxShadow=sel?.id===m.id?`0 4px 20px ${m.color}55`:"0 2px 6px rgba(0,0,0,0.10)";}}
+              >
+                <div style={{fontSize:28,marginBottom:8,lineHeight:1}}>{m.icon}</div>
+                <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{m.label}</div>
+                <div style={{fontSize:10,opacity:.7,marginTop:4}}>{m.items.length} areas</div>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Expanded sub-links */}
-        {selMod&&(
-          <div style={{background:"#fff",border:`1.5px solid ${selMod.color}33`,borderRadius:T.rLg,boxShadow:`0 2px 16px ${selMod.color}18`,overflow:"hidden",marginBottom:16}}>
-            <div style={{background:selMod.color,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        {sel && (
+          <div style={{...S.card,overflow:"hidden",marginBottom:16,border:`1.5px solid ${sel.color}33`}}>
+            <div style={{background:sel.color,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <selMod.icon size={17} color="#fff"/>
-                <span style={{color:"#fff",fontWeight:700,fontSize:15}}>{selMod.label}</span>
+                <span style={{fontSize:16}}>{sel.icon}</span>
+                <span style={{color:"#fff",fontWeight:700,fontSize:14}}>{sel.label}</span>
               </div>
-              <button onClick={()=>setSelMod(null)} style={{background:"rgba(255,255,255,0.22)",border:"none",color:"#fff",borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>
-                ✕ Close
+              <button onClick={()=>setSel(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:5,padding:"3px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+                Close ✕
               </button>
             </div>
-            <div style={{padding:"12px 8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:2}}>
-              {selMod.items.map(s=>{
-                const Icon = s.i;
-                return (
-                  <button key={s.p} onClick={()=>nav(s.p)}
-                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:T.r,cursor:"pointer",background:"transparent",border:"none",textAlign:"left",transition:"background .12s"}}
-                    onMouseEnter={e=>(e.currentTarget.style.background=T.primaryBg)}
-                    onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <Icon size={14} color={selMod.color}/>
-                    <span style={{fontSize:13,color:T.fg,fontWeight:500}}>{s.l}</span>
-                    <ChevronRight size={11} color={T.fgDim} style={{marginLeft:"auto"}}/>
-                  </button>
-                );
-              })}
+            <div style={{padding:"8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:2}}>
+              {sel.items.map(s=>(
+                <button key={s.p} onClick={()=>nav(s.p)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:6,cursor:"pointer",background:"transparent",border:"none",textAlign:"left",fontFamily:"inherit",transition:"background .1s",width:"100%"}}
+                  onMouseEnter={e=>(e.currentTarget.style.background="#f0f7ff")}
+                  onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+                  <span style={{width:6,height:6,borderRadius:"50%",background:sel.color,flexShrink:0}}/>
+                  <span style={{fontSize:13,color:"#374151",fontWeight:500}}>{s.l}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
         {/* Quick actions */}
         <div>
-          <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:".07em",marginBottom:12}}>Quick Actions</div>
+          <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>Quick Actions</div>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             {[
-              {l:"New Requisition",    p:"/requisitions",   c:T.primary},
-              {l:"Check Inventory",    p:"/items",          c:"#038387"},
-              {l:"Notifications",      p:"/notifications",  c:"#d83b01"},
-              {l:"Email",              p:"/email",          c:"#0072c6"},
+              {l:"+ New Requisition",p:"/requisitions",c:"#0078d4"},
+              {l:"📦 Check Inventory",p:"/items",c:"#038387"},
+              {l:"🔔 Notifications",p:"/notifications",c:"#d83b01"},
+              {l:"📧 Email",p:"/email",c:"#0072c6"},
               ...(isAdmin?[
-                {l:"User Management",  p:"/users",          c:"#b4009e"},
-                {l:"System Settings",  p:"/settings",       c:"#00188f"},
-                {l:"Database Admin",   p:"/admin/database", c:"#7719aa"},
-                {l:"Audit Log",        p:"/audit-log",      c:"#d83b01"},
+                {l:"👥 Users",p:"/users",c:"#b4009e"},
+                {l:"⚙️ Settings",p:"/settings",c:"#00188f"},
+                {l:"🗄️ Database",p:"/admin/database",c:"#7719aa"},
               ]:[]),
             ].map(a=>(
-              <button key={a.p} onClick={()=>nav(a.p)}
-                style={{background:`${a.c}12`,color:a.c,border:`1px solid ${a.c}30`,borderRadius:T.r,padding:"8px 16px",fontSize:13,fontWeight:600,cursor:"pointer",transition:"all .12s"}}
-                onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background=`${a.c}22`;}}
-                onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=`${a.c}12`;}}>
+              <button key={a.p} onClick={()=>nav(a.p)} style={{
+                background:`${a.c}10`,color:a.c,
+                border:`1px solid ${a.c}25`,borderRadius:6,
+                padding:"8px 16px",fontSize:13,fontWeight:600,
+                cursor:"pointer",fontFamily:"inherit",transition:"all .1s",
+              }}
+              onMouseEnter={e=>{(e.currentTarget as any).style.background=`${a.c}20`;}}
+              onMouseLeave={e=>{(e.currentTarget as any).style.background=`${a.c}10`;}}>
                 {a.l}
               </button>
             ))}
           </div>
         </div>
       </div>
-      <style>{`@keyframes pb-spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
