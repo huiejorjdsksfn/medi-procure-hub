@@ -1,6 +1,7 @@
 /**
- * ProcurBosse — Main Entry Point v21.4 NUCLEAR
- * LiveDatabaseEngine wrapped in try/catch — never crashes the app
+ * ProcurBosse — Main Entry v22.5 NUCLEAR
+ * Clean boot — no dynamic imports at startup
+ * Service worker cache buster
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { createRoot } from 'react-dom/client';
@@ -8,30 +9,38 @@ import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
 
-// Safely start LiveDatabaseEngine - wrapped so it NEVER crashes app boot
-if (typeof window !== 'undefined') {
+// Register / update service worker to clear old caches
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    setTimeout(() => {
-      try {
-        import('./engines/db/LiveDatabaseEngine').then(({ liveDbEngine }) => {
-          try { liveDbEngine.start(60_000); } catch (e) { console.warn('[LiveDB] start failed:', e); }
-        }).catch(e => console.warn('[LiveDB] import failed:', e));
-      } catch (e) { console.warn('[LiveDB] engine error:', e); }
-    }, 5000); // 5s delay — let auth fully settle first
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      try {
-        import('./engines/db/LiveDatabaseEngine').then(({ liveDbEngine }) => {
-          if (!liveDbEngine.isRunning()) liveDbEngine.start(60_000);
-        }).catch(() => {});
-      } catch {}
-    }
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        // Force update check
+        reg.update();
+        // Listen for SW telling us to reload
+        navigator.serviceWorker.addEventListener('message', ev => {
+          if (ev.data?.type === 'SW_UPDATED') {
+            console.log('[App] SW updated — fresh content loaded');
+          }
+        });
+      })
+      .catch(e => console.warn('[SW] register failed:', e));
   });
 }
 
-// Mount React app - this must NEVER fail
+// Start LiveDatabaseEngine after app is stable (5s delay)
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    try {
+      import('./engines/db/LiveDatabaseEngine')
+        .then(({ liveDbEngine }) => {
+          try { liveDbEngine.start(60_000); } catch {}
+        })
+        .catch(() => {});
+    } catch {}
+  }, 5000);
+});
+
+// Mount React — this is the ONLY critical path
 const rootEl = document.getElementById('root');
 if (rootEl) {
   createRoot(rootEl).render(
@@ -40,5 +49,13 @@ if (rootEl) {
     </ErrorBoundary>
   );
 } else {
-  console.error('[CRITICAL] #root element not found');
+  // If root is missing, inject it and try again
+  const el = document.createElement('div');
+  el.id = 'root';
+  document.body.appendChild(el);
+  createRoot(el).render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
 }

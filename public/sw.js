@@ -1,42 +1,46 @@
-/* EL5 MediProcure Service Worker v2.0
-   Enables offline capability + install prompt
-*/
-const CACHE_V  = "mediprocure-v2";
-const STATIC   = ["/", "/dashboard", "/manifest.json", "/favicon.png", "/logo.png", "/icon.png"];
+/**
+ * ProcurBosse Service Worker v22.5 NUCLEAR
+ * CACHE BUSTER — clears all old caches and unregisters immediately
+ * Forces browser to load fresh from network always
+ */
+const CACHE_VERSION = 'pb-v22-5-' + Date.now();
 
-self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE_V).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
-  );
+// On install — activate immediately
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", e => {
-  e.waitUntil(
+// On activate — delete ALL old caches and take control
+self.addEventListener('activate', event => {
+  event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_V).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+      Promise.all(keys.map(k => {
+        console.log('[SW] Deleting cache:', k);
+        return caches.delete(k);
+      }))
+    ).then(() => {
+      console.log('[SW] All caches cleared');
+      return self.clients.claim();
+    }).then(() => {
+      // Tell all clients to reload
+      return self.clients.matchAll({ type: 'window' }).then(clients => {
+        clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' }));
+      });
+    })
   );
 });
 
-self.addEventListener("fetch", e => {
-  // Only cache GET requests; never cache Supabase API calls
-  if (e.request.method !== "GET") return;
-  const url = new URL(e.request.url);
-  if (url.hostname.includes("supabase") || url.hostname.includes("ipify")) return;
+// Fetch — ALWAYS go to network, never use cache
+self.addEventListener('fetch', event => {
+  // Skip non-GET and non-http requests
+  if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith('http')) return;
 
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        if (res.ok && res.type === "basic") {
-          const clone = res.clone();
-          caches.open(CACHE_V).then(c => c.put(e.request, clone));
-        }
-        return res;
+  event.respondWith(
+    fetch(event.request, { cache: 'no-cache' })
+      .catch(() => {
+        // Offline fallback — return cached if available
+        return caches.match(event.request);
       })
-      .catch(() => caches.match(e.request).then(r => r || caches.match("/")))
   );
-});
-
-self.addEventListener("message", e => {
-  if (e.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
