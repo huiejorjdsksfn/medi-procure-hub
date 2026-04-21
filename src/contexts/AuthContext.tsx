@@ -136,7 +136,7 @@ export function AuthProvider({ children }:{ children:ReactNode }) {
       // HARD 3-second timeout — ALWAYS initialize no matter what
       const hardTimeout = setTimeout(()=>{
         if(live && !initialized){ console.warn("[Auth] Hard timeout — initializing"); done(); }
-      }, 3000);
+      }, 1500);
 
       try {
         const { data:{ session:s } } = await supabase.auth.getSession();

@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   // After 4s force show whatever we have
   useEffect(() => {
-    const t = setTimeout(() => setForceShow(true), 4000);
+    const t = setTimeout(() => setForceShow(true), 1500);
     return () => clearTimeout(t);
   }, []);
 
