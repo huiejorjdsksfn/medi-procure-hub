@@ -13,46 +13,109 @@
     <title>EL5 MediProcure — ProcurBosse</title>
     <style>
       *,*::before,*::after{box-sizing:border-box}
-      html,body,#root{height:100%;margin:0;padding:0}
+      html,body{height:100%;margin:0;padding:0}
+      #root{height:100%;min-height:100vh}
       body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0d47a1;min-height:100vh}
-      #sp{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#1565c0 0%,#0d47a1 35%,#1a237e 65%,#0a1172 100%);display:flex;align-items:center;justify-content:center;transition:opacity .5s ease}
-      #sp.out{opacity:0;pointer-events:none}
-      .sc{text-align:center;padding:0 20px}
-      .sl{width:80px;height:80px;border-radius:20px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:sp-pulse 1.8s ease-in-out infinite}
-      @keyframes sp-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.2)}50%{transform:scale(1.04);box-shadow:0 0 0 16px rgba(255,255,255,0)}}
-      .st{color:#fff;font-size:20px;font-weight:800;letter-spacing:.02em;margin-bottom:6px}
-      .ss{color:rgba(255,255,255,.55);font-size:12px;font-weight:500;margin-bottom:24px}
-      .sb{width:180px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto;overflow:hidden}
-      .sf{height:100%;background:#fff;border-radius:2px;animation:sp-fill 1.6s ease-in-out infinite}
+
+      /* Splash screen */
+      #sp{
+        position:fixed;inset:0;z-index:9999;
+        background:linear-gradient(135deg,#1565c0 0%,#0d47a1 35%,#1a237e 65%,#0a1172 100%);
+        display:flex;align-items:center;justify-content:center;
+        transition:opacity .5s ease;
+      }
+      #sp.sp-out{opacity:0;pointer-events:none}
+      .sp-inner{text-align:center;padding:0 20px}
+      .sp-logo{
+        width:80px;height:80px;border-radius:20px;
+        background:rgba(255,255,255,.15);
+        border:2px solid rgba(255,255,255,.3);
+        display:flex;align-items:center;justify-content:center;
+        margin:0 auto 20px;
+        animation:sp-pulse 1.8s ease-in-out infinite;
+      }
+      @keyframes sp-pulse{
+        0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.25)}
+        50%{transform:scale(1.04);box-shadow:0 0 0 18px rgba(255,255,255,0)}
+      }
+      .sp-title{color:#fff;font-size:20px;font-weight:800;letter-spacing:.02em;margin-bottom:6px}
+      .sp-sub{color:rgba(255,255,255,.58);font-size:12px;font-weight:500;margin-bottom:24px}
+      .sp-bar{width:180px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto;overflow:hidden}
+      .sp-fill{height:100%;background:#fff;border-radius:2px;animation:sp-fill 1.6s ease-in-out infinite}
       @keyframes sp-fill{0%{width:0;opacity:1}80%{width:100%;opacity:1}100%{width:100%;opacity:0}}
     </style>
   </head>
   <body>
+
+    <!-- Splash — pure CSS, shows immediately, no JS needed -->
     <div id="sp">
-      <div class="sc">
-        <div class="sl">
-          <img src="/icons/icon-48.png" alt="" style="width:44px;height:44px;object-fit:contain" onerror="this.style.display='none'" />
+      <div class="sp-inner">
+        <div class="sp-logo">
+          <img src="/icons/icon-48.png" alt="ProcurBosse"
+               style="width:44px;height:44px;object-fit:contain"
+               onerror="this.style.display='none'" />
         </div>
-        <div class="st">EL5 MediProcure</div>
-        <div class="ss">Embu Level 5 Hospital &bull; Procurement ERP</div>
-        <div class="sb"><div class="sf"></div></div>
+        <div class="sp-title">EL5 MediProcure</div>
+        <div class="sp-sub">Embu Level 5 Hospital &bull; Procurement ERP</div>
+        <div class="sp-bar"><div class="sp-fill"></div></div>
       </div>
     </div>
+
+    <!-- React mounts here -->
     <div id="root"></div>
+
+    <!-- Splash dismissal — runs AFTER body is in DOM -->
     <script>
-      !function(){
-        var s=document.getElementById('sp'),r=document.getElementById('root');
-        var o=new MutationObserver(function(){
-          if(r.children.length>0){
-            s.classList.add('out');
-            setTimeout(function(){s&&s.parentNode&&s.parentNode.removeChild(s)},600);
-            o.disconnect();
+      (function() {
+        var splash = document.getElementById('sp');
+        var root   = document.getElementById('root');
+        if (!splash || !root) return;
+
+        // Watch for React mounting into #root
+        var obs = new MutationObserver(function() {
+          if (root.children.length > 0) {
+            splash.classList.add('sp-out');
+            setTimeout(function() {
+              if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+            }, 600);
+            obs.disconnect();
           }
         });
-        o.observe(r,{childList:true});
-        setTimeout(function(){if(r.children.length===0)window.location.reload()},30000);
-      }();
+        obs.observe(root, { childList: true, subtree: false });
+
+        // Safety: if nothing mounts in 25s, reload once
+        var reloaded = sessionStorage.getItem('pb_reloaded');
+        setTimeout(function() {
+          if (root.children.length === 0) {
+            if (!reloaded) {
+              sessionStorage.setItem('pb_reloaded', '1');
+              window.location.reload();
+            } else {
+              // Second failure - show minimal error with reload button
+              sessionStorage.removeItem('pb_reloaded');
+              if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+              root.innerHTML = [
+                '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;',
+                'background:linear-gradient(135deg,#1565c0,#0d47a1,#1a237e);font-family:Segoe UI,sans-serif">',
+                '<div style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);',
+                'border-radius:16px;padding:40px;max-width:380px;width:90%;text-align:center">',
+                '<div style="font-size:32px;margin-bottom:16px">⚡</div>',
+                '<div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:8px">Connection Issue</div>',
+                '<div style="color:rgba(255,255,255,.65);font-size:13px;margin-bottom:24px;line-height:1.6">',
+                'Unable to load the application. Please check your internet connection.</div>',
+                '<button onclick="sessionStorage.removeItem(\'pb_reloaded\');window.location.reload()" ',
+                'style="background:#fff;color:#0d47a1;border:none;border-radius:10px;padding:12px 32px;',
+                'font-size:14px;font-weight:800;cursor:pointer;width:100%">Try Again</button>',
+                '</div></div>'
+              ].join('');
+            }
+          }
+        }, 25000);
+      })();
     </script>
+
+    <!-- React entry point — MUST be at end of body so DOM exists when it runs -->
     <script type="module" src="/src/main.tsx"></script>
+
   </body>
 </html>

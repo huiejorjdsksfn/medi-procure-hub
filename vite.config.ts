@@ -1,24 +1,52 @@
 /**
- * ProcurBosse v22.0 — Vite Config
- * Production build for EdgeOne deployment
+ * ProcurBosse v22.5 — Vite Config
+ * NUCLEAR: custom plugin moves script to end of body after build
  * EL5 MediProcure | Embu Level 5 Hospital | Kenya
  */
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig(({ mode }) => ({
+// Plugin: move module scripts from <head> to end of <body>
+function moveScriptToBody(): Plugin {
+  return {
+    name: "move-script-to-body",
+    transformIndexHtml: {
+      order: "post",
+      handler(html: string): string {
+        // Extract all module script tags from head
+        const scriptRegex = /<script\s+type="module"[^>]*><\/script>/g;
+        const scripts: string[] = [];
+        let match;
+        while ((match = scriptRegex.exec(html)) !== null) {
+          scripts.push(match[0]);
+        }
+        if (scripts.length === 0) return html;
+        // Remove scripts from wherever they are
+        let result = html;
+        for (const s of scripts) {
+          result = result.replace(s, "");
+        }
+        // Inject before </body>
+        result = result.replace("</body>", scripts.join("\n  ") + "\n  </body>");
+        return result;
+      },
+    },
+  };
+}
+
+export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
     hmr: { overlay: false },
   },
-  plugins: [react()],
+  plugins: [react(), moveScriptToBody()],
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   define: {
-    __APP_VERSION__: JSON.stringify("22.0.2"),
+    __APP_VERSION__: JSON.stringify("22.5.0"),
   },
   build: {
     sourcemap: false,
@@ -26,6 +54,7 @@ export default defineConfig(({ mode }) => ({
     minify: "esbuild",
     cssMinify: true,
     reportCompressedSize: false,
+    modulePreload: { polyfill: false },
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === "CIRCULAR_DEPENDENCY") return;
@@ -49,6 +78,6 @@ export default defineConfig(({ mode }) => ({
   },
   envPrefix: ["VITE_"],
   optimizeDeps: {
-    include: ["react", "react-dom", "@supabase/supabase-js", "lucide-react", "recharts"],
+    include: ["react", "react-dom", "@supabase/supabase-js", "lucide-react"],
   },
 }));
