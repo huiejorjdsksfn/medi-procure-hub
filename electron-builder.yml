@@ -1,5 +1,5 @@
-# ProcurBosse — electron-builder v21.4
-# Targets: Windows 7 SP1 → Windows 11 (x64 + ia32)
+# ProcurBosse — electron-builder v22.6
+# Windows 7 SP1 → Windows 11 (x64 + ia32)
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
 copyright: "© 2026 Embu County Government — All Rights Reserved"
@@ -16,15 +16,13 @@ files:
   - "!src/**/*"
   - "!.github/**/*"
   - "!supabase/**/*"
-  - "!docs/**/*"
+  - "!kiosk-app/**/*"
 
 extraResources:
   - from: public/icons/icon-256.png
     to: icon.png
   - from: public/icons/icon-512.png
     to: icon-512.png
-  - from: public/manifest.json
-    to: manifest.json
 
 win:
   icon: build/icon.ico
@@ -38,26 +36,22 @@ win:
 
 nsis:
   oneClick: false
-  perMachine: false
   allowElevation: true
   allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "ProcurBosse EL5"
+  artifactName: "ProcurBosse-Setup-${arch}.exe"
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
-  installerHeaderIcon: build/icon.ico
-  createDesktopShortcut: always
-  createStartMenuShortcut: true
-  shortcutName: "ProcurBosse ERP"
-  artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"
+  installerHeader: build/icon.png
+  license: null
+  runAfterFinish: true
   deleteAppDataOnUninstall: false
-  unicode: true
   include: build/installer.nsh
 
 publish:
   provider: github
   owner: huiejorjdsksfn
   repo: medi-procure-hub
-  private: false
   releaseType: release
-
-compression: maximum
-removePackageScripts: true
