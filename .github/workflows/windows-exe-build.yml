@@ -1,260 +1,189 @@
-# ProcurBosse — Windows EXE Builder v22.6
-# Builds x64 + ia32 installers and publishes to GitHub Releases
-# Triggered: push to main OR manual dispatch
-name: "Windows EXE Build & Release"
+# ProcurBosse v22.6 — Build & Release
+# Runs on every push to main
+# Produces: web ZIP + kiosk ZIP + Windows x64 EXE + Windows ia32 EXE
+name: "Build & Release"
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'electron/**'
-      - 'public/**'
-      - 'index.html'
-      - 'package.json'
-      - 'vite.config.ts'
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Release version (e.g. 22.6.0)"
-        required: false
-        default: "22.6.0"
 
 permissions:
   contents: write
 
+env:
+  NODE_VERSION: "20"
+  CI: "false"
+  NODE_OPTIONS: "--max-old-space-size=4096"
+
 jobs:
-  # ── Web build + Web Release ZIP ─────────────────────────────────
-  web-release:
-    name: "Web App Release"
+
+  # ── 1. Build web app ────────────────────────────────────────────
+  build-web:
+    name: "Build Web App"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+
+      - id: ver
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Install
+        run: npm install --legacy-peer-deps --no-audit
+
+      - name: Build
+        run: npm run build
+
+      - name: Zip web dist
+        run: zip -r procurbosse-web.zip dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: |
+            dist/
+            procurbosse-web.zip
+          retention-days: 1
+
+  # ── 2. Build kiosk app ──────────────────────────────────────────
+  build-kiosk:
+    name: "Build Kiosk App"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20" }
+        with: { node-version: "${{ env.NODE_VERSION }}" }
 
-      - name: Install web deps
-        run: npm install --legacy-peer-deps --no-audit
-        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
-
-      - name: Build web app
-        run: npm run build
-        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
-
-      - name: Zip web dist
-        run: |
-          cd dist
-          zip -r ../procurbosse-web-v${{ github.event.inputs.version || '22.6.0' }}.zip .
-          cd ..
-
-      - name: Build kiosk app
+      - name: Install + Build kiosk
         run: |
           cd kiosk-app
           npm install --legacy-peer-deps --no-audit
           npm run build
-          cd dist && zip -r ../../kiosk-request-station-v${{ github.event.inputs.version || '22.6.0' }}.zip .
-          cd ../..
-        env: { CI: "false" }
+          cd dist && zip -r ../../kiosk-request-station.zip .
         continue-on-error: true
 
-      - name: Upload web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-dist
-          path: procurbosse-web-v*.zip
-          retention-days: 90
-
-      - name: Upload kiosk artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: kiosk-dist
-          path: kiosk-request-station-v*.zip
-          retention-days: 90
+          path: kiosk-request-station.zip
+          retention-days: 1
         continue-on-error: true
 
-  # ── Windows x64 EXE ─────────────────────────────────────────────
-  windows-x64:
-    name: "Windows x64 Installer"
+  # ── 3. Windows x64 EXE ─────────────────────────────────────────
+  build-exe-x64:
+    name: "Windows x64 EXE"
     runs-on: windows-latest
-    needs: web-release
+    needs: build-web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}" }
 
       - name: Download web dist
         uses: actions/download-artifact@v4
         with: { name: web-dist }
 
-      - name: Extract web dist
+      - name: Install + Electron
         shell: bash
         run: |
-          mkdir -p dist
-          unzip -o "procurbosse-web-v*.zip" -d dist/
-
-      - name: Install electron (desktop only)
-        run: |
           npm install --legacy-peer-deps --no-audit
-          npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps --no-audit
-        env:
-          CI: "false"
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "0"
+          npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps
 
-      - name: Build Windows x64 EXE
+      - name: Build EXE x64
+        shell: bash
         run: npx electron-builder --win --x64 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APP_VERSION: ${{ github.event.inputs.version || '22.6.0' }}
-          CI: "false"
 
-      - name: List output
-        shell: bash
-        run: ls -la dist-electron/ || echo "No dist-electron"
-
-      - name: Upload x64 EXE
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ProcurBosse-Windows-x64
+          name: exe-x64
           path: dist-electron/*.exe
-          retention-days: 90
+          retention-days: 1
 
-  # ── Windows ia32 EXE (32-bit legacy) ────────────────────────────
-  windows-ia32:
-    name: "Windows ia32 Installer (32-bit)"
+  # ── 4. Windows ia32 EXE ────────────────────────────────────────
+  build-exe-ia32:
+    name: "Windows ia32 EXE"
     runs-on: windows-2019
-    needs: web-release
+    needs: build-web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "18", cache: npm }
+        with: { node-version: "18" }
 
       - name: Download web dist
         uses: actions/download-artifact@v4
         with: { name: web-dist }
 
-      - name: Extract web dist
+      - name: Install + Electron 32-bit
         shell: bash
         run: |
-          mkdir -p dist
-          unzip -o "procurbosse-web-v*.zip" -d dist/
-
-      - name: Install electron (32-bit)
-        run: |
           npm install --legacy-peer-deps --no-audit
-          npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps --no-audit
-        env:
-          CI: "false"
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "0"
+          npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps
 
-      - name: Build Windows ia32 EXE
+      - name: Build EXE ia32
+        shell: bash
         run: npx electron-builder --win --ia32 --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APP_VERSION: ${{ github.event.inputs.version || '22.6.0' }}
-          CI: "false"
 
-      - name: Upload ia32 EXE
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ProcurBosse-Windows-ia32
+          name: exe-ia32
           path: dist-electron/*.exe
-          retention-days: 90
+          retention-days: 1
 
-  # ── GitHub Release ───────────────────────────────────────────────
-  publish-release:
-    name: "Publish GitHub Release"
+  # ── 5. Publish Release ─────────────────────────────────────────
+  release:
+    name: "GitHub Release"
     runs-on: ubuntu-latest
-    needs: [web-release, windows-x64, windows-ia32]
+    needs: [build-web, build-kiosk, build-exe-x64, build-exe-ia32]
     if: always()
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with: { path: artifacts }
 
-      - name: List artifacts
-        run: find artifacts -type f | sort
+      - name: Show artifacts
+        run: find artifacts -type f -name "*.exe" -o -name "*.zip" | sort
 
-      - name: Get version
-        id: ver
-        run: |
-          V="${{ github.event.inputs.version || '22.6.0' }}"
-          echo "version=$V" >> $GITHUB_OUTPUT
-          echo "tag=v${V}-build-${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "${{ steps.ver.outputs.tag }}"
-          name: "ProcurBosse v${{ steps.ver.outputs.version }} — Build ${{ github.run_number }}"
+          tag_name: "v${{ needs.build-web.outputs.version }}-${{ github.run_number }}"
+          name: "ProcurBosse v${{ needs.build-web.outputs.version }} — Build ${{ github.run_number }}"
           body: |
-            ## 🏥 ProcurBosse EL5 MediProcure — v${{ steps.ver.outputs.version }}
-            **Build:** ${{ github.run_number }} | **Commit:** ${{ github.sha }}
+            ## 🏥 ProcurBosse EL5 MediProcure — v${{ needs.build-web.outputs.version }}
 
-            ---
+            | Download | Description |
+            |----------|-------------|
+            | `ProcurBosse-Setup-x64.exe` | Windows 10/11 64-bit installer |
+            | `ProcurBosse-Setup-ia32.exe` | Windows 7/8/10 32-bit installer |
+            | `procurbosse-web.zip` | Web deployment package |
+            | `kiosk-request-station.zip` | Department kiosk (no login) |
 
-            ### 📥 Downloads
+            ### Fixes in this build
+            - ✅ Login page loads immediately after splash
+            - ✅ Splash screen < 1 second
+            - ✅ Dashboard accessible after login
+            - ✅ All 54 pages error-safe
+            - ✅ No IP restriction — all networks can login
+            - ✅ Service worker clears old cache
 
-            | File | Description | Platform |
-            |------|-------------|----------|
-            | `ProcurBosse-Setup-x64.exe` | Windows 10/11 Installer (64-bit) | Windows x64 |
-            | `ProcurBosse-Setup-ia32.exe` | Windows 7/8/10 Installer (32-bit) | Windows ia32 |
-            | `procurbosse-web-v${{ steps.ver.outputs.version }}.zip` | Web App (deploy to any server) | Web |
-            | `kiosk-request-station-v${{ steps.ver.outputs.version }}.zip` | Department Request Station | Web/Kiosk |
-
-            ---
-
-            ### ✅ What's in v${{ steps.ver.outputs.version }}
-
-            **🔑 Login & Auth**
-            - Login page always renders — blue gradient, Embu logo
-            - No IP restriction — all networks can login
-            - Splash screen < 1 second, instant redirect to `/login`
-            - Auth hard timeout 1.5s — never hangs
-
-            **🏠 Dashboard**
-            - D365 coloured module tiles (role-filtered)
-            - KPI cards — admin/superadmin only
-            - All 60 routes wired and working
-
-            **🛠 Nuclear Fixes**
-            - Script moved to end of `<body>` — React mounts correctly
-            - Service worker clears old cache on update
-            - index.html served with no-cache headers
-            - 54/54 pages have try/catch/finally — no spinner hangs
-
-            **🖥 Desktop App**
-            - Loads `/login` on startup
-            - System tray icon
-            - Windows 7 SP1 → Windows 11 compatible
-            - Single instance lock
-
-            ---
-
-            ### 🚀 Quick Start
-
-            **Web:** Visit [procurbosse.edgeone.app](https://procurbosse.edgeone.app)
-
-            **Desktop (Windows):**
-            1. Download the EXE for your Windows version
-            2. Run as Administrator
-            3. Follow installer wizard
-            4. App opens automatically to login page
-
-            **Kiosk (Departments):**
-            - Deploy `kiosk-request-station.zip` to any web server
-            - No login required — departments submit requisitions directly
-
-            ---
-            *EL5 MediProcure · Embu Level 5 Hospital · Embu County Government · Kenya*
+            **Commit:** `${{ github.sha }}`
           files: |
-            artifacts/ProcurBosse-Windows-x64/*.exe
-            artifacts/ProcurBosse-Windows-ia32/*.exe
-            artifacts/web-dist/*.zip
-            artifacts/kiosk-dist/*.zip
+            artifacts/exe-x64/*.exe
+            artifacts/exe-ia32/*.exe
+            artifacts/web-dist/procurbosse-web.zip
+            artifacts/kiosk-dist/kiosk-request-station.zip
+          fail_on_unmatched_files: false
           draft: false
           prerelease: false
-          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
