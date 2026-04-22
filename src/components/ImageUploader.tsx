@@ -1,5 +1,5 @@
 /**
- * ImageUploader  -- Reusable drag-drop image upload component v1.0
+ * ImageUploader — Reusable drag-drop image upload component v1.0
  * Used across profiles, suppliers, items, documents
  */
 import { useRef } from "react";

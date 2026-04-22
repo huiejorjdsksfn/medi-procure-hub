@@ -1,8 +1,8 @@
 /**
- * ProcurBosse  -- sms.ts v5.0 (SMS + Voice Calls)
+ * ProcurBosse — sms.ts v5.0 (SMS + Voice Calls)
  * Client-side: calls send-sms and make-call edge functions
- * Twilio primary * Africa's Talking fallback
- * EL5 MediProcure * Embu Level 5 Hospital
+ * Twilio primary · Africa's Talking fallback
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
 

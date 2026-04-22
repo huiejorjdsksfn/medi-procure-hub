@@ -1,5 +1,5 @@
 /**
- * FacilityContext  -- Multi-location support
+ * FacilityContext — Multi-location support
  * Tracks current facility, switches context, loads per-facility settings
  */
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
@@ -60,7 +60,7 @@ export function FacilityProvider({ children }: { children: ReactNode }) {
 
   const loadFacilities = useCallback(async () => {
     try {
-      // Load all active facilities  -- with 5s timeout so it never blocks the app
+      // Load all active facilities — with 5s timeout so it never blocks the app
       const timeoutPromise = new Promise((_,reject) => setTimeout(() => reject(new Error("timeout")), 5000));
       const queryPromise = (supabase as any)
         .from("facilities").select("*").eq("is_active", true).order("is_main", { ascending: false }).order("name");

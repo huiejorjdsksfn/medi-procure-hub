@@ -1,5 +1,5 @@
 /**
- * ProcurBosse  -- GUI Editor v3.0 FULLY ACTIVATED
+ * ProcurBosse — GUI Editor v3.0 FULLY ACTIVATED
  * Changes apply LIVE to the entire running app via CSS custom properties.
  * Saves permanently to Supabase system_settings.
  */
@@ -96,7 +96,7 @@ export default function GuiEditorPage() {
 
   const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV);
 
-  // -- LIVE APPLICATION: apply to DOM immediately on every change --
+  // ── LIVE APPLICATION: apply to DOM immediately on every change ──
   useEffect(() => {
     applyThemeToDOM(cfg as any);
   }, [cfg]);
@@ -112,7 +112,7 @@ export default function GuiEditorPage() {
       nav_bg_color:   p.navBg,    nav_text_color: p.navText,
       page_bg_color:  p.pageBg,
     }));
-    toast({ title: `"${p.name}" applied live ` });
+    toast({ title: `"${p.name}" applied live ✓` });
   };
 
   // Drag-to-reorder nav
@@ -145,7 +145,7 @@ export default function GuiEditorPage() {
     });
     const res = await saveSettings({ ...cfg, ...navKV }, "theme");
     setSaving(false);
-    if (res.ok) toast({ title: "Theme saved & applied ", description: "All users will see changes on next page load" });
+    if (res.ok) toast({ title: "Theme saved & applied ✓", description: "All users will see changes on next page load" });
     else        toast({ title: "Save failed", description: res.error, variant: "destructive" });
   };
 
@@ -155,7 +155,7 @@ export default function GuiEditorPage() {
     toast({ title: "Reset to defaults" });
   };
 
-  // -- Shared styles ----------------------------------------------
+  // ── Shared styles ──────────────────────────────────────────────
   const inp: React.CSSProperties = {
     width:"100%", padding:"7px 10px", border:"1.5px solid #e2e8f0",
     borderRadius:6, fontSize:12.5, outline:"none", background:"#fff",
@@ -167,7 +167,7 @@ export default function GuiEditorPage() {
     color:"#64748b", marginBottom:4,
   };
 
-  // -- Sub-components ---------------------------------------------
+  // ── Sub-components ─────────────────────────────────────────────
   const ColorRow = ({ k, label }: { k: string; label: string }) => (
     <div style={{ marginBottom:10 }}>
       <label style={lbl}>{label}</label>
@@ -220,7 +220,7 @@ export default function GuiEditorPage() {
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
 
-      {/* == LEFT PANEL  -- Controls =============================== */}
+      {/* ══ LEFT PANEL — Controls ═══════════════════════════════ */}
       <div style={{ width:296, flexShrink:0, background:"#fff", borderRight:"1px solid #e2e8f0",
         display:"flex", flexDirection:"column", overflow:"hidden",
         boxShadow:"2px 0 12px rgba(0,0,0,0.06)" }}>
@@ -302,8 +302,8 @@ export default function GuiEditorPage() {
             <div style={{ marginTop:12, padding:14, border:"1px solid #e2e8f0", borderRadius:8, background:"#f8fafc" }}>
               <div style={{ fontSize:10, fontWeight:700, color:"#64748b", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.05em" }}>Live Font Preview</div>
               <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_lg, fontWeight:700, color:"#1e293b", marginBottom:4 }}>Sample Heading Text</div>
-              <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_base, color:"#374151", marginBottom:4 }}>Body text  -- EL5 MediProcure Procurement System, Embu County</div>
-              <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_sm, color:"#64748b" }}>Caption text * Sub-heading * Secondary information</div>
+              <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_base, color:"#374151", marginBottom:4 }}>Body text — EL5 MediProcure Procurement System, Embu County</div>
+              <div style={{ fontFamily:cfg.font_family, fontSize:cfg.font_size_sm, color:"#64748b" }}>Caption text · Sub-heading · Secondary information</div>
             </div>
           </>}
 
@@ -326,7 +326,7 @@ export default function GuiEditorPage() {
             </div>
             <div style={{ height:1, background:"#e2e8f0", margin:"0 0 12px" }}/>
             {/* Nav reorder */}
-            <label style={{ ...lbl, marginBottom:8 }}>Navigation Order  -- Drag to Reorder</label>
+            <label style={{ ...lbl, marginBottom:8 }}>Navigation Order — Drag to Reorder</label>
             <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
               {[...navItems].sort((a, b) => a.order - b.order).map((item, i) => (
                 <div key={item.id}
@@ -395,14 +395,14 @@ export default function GuiEditorPage() {
         </div>
       </div>
 
-      {/* == RIGHT  -- LIVE PREVIEW ================================ */}
+      {/* ══ RIGHT — LIVE PREVIEW ════════════════════════════════ */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
         {/* Preview bar */}
         <div style={{ padding:"8px 16px", background:"#fff", borderBottom:"1px solid #e2e8f0",
           display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
           <Eye style={{ width:14, height:14, color:"#64748b" }}/>
           <span style={{ fontSize:12, fontWeight:700, color:"#374151" }}>Live Preview</span>
-          <span style={{ fontSize:11, color:"#94a3b8" }}>Reflects the real app  -- changes apply instantly</span>
+          <span style={{ fontSize:11, color:"#94a3b8" }}>Reflects the real app — changes apply instantly</span>
           <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
             {(["desktop","tablet","mobile"] as Device[]).map(d => {
               const icons = { desktop:Monitor, tablet:Tablet, mobile:Smartphone };
@@ -505,7 +505,7 @@ export default function GuiEditorPage() {
                     {[
                       { n:"RQQ/001", t:"Medical Supplies Q1",   s:"Approved", bg:"#dcfce7", sc:cfg.success_color, a:"KES 42,500" },
                       { n:"RQQ/002", t:"ICU Equipment",          s:"Pending",  bg:"#fef3c7", sc:cfg.warning_color, a:"KES 120,000" },
-                      { n:"RQQ/003", t:"Lab Reagents  -- Monthly", s:"Draft",    bg:"#f1f5f9", sc:"#64748b",         a:"KES 18,200" },
+                      { n:"RQQ/003", t:"Lab Reagents — Monthly", s:"Draft",    bg:"#f1f5f9", sc:"#64748b",         a:"KES 18,200" },
                     ].map((r, i) => (
                       <tr key={i} style={{ borderBottom:`1px solid ${cfg.border_color}`, background:cfg.card_bg }}>
                         <td style={{ padding: compact ? "4px 10px" : "8px 12px", fontSize:cfg.font_size_sm, fontFamily:"monospace", color:cfg.primary_color, fontWeight:700 }}>{r.n}</td>
@@ -522,7 +522,7 @@ export default function GuiEditorPage() {
                 </table>
                 <div style={{ padding:"7px 12px", background:cfg.page_bg_color,
                   borderTop:`1px solid ${cfg.border_color}`, fontSize:cfg.font_size_sm, color:cfg.text_secondary }}>
-                  3 records * Total: KES 180,700
+                  3 records · Total: KES 180,700
                 </div>
               </div>
               {/* Buttons */}

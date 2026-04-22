@@ -1,254 +1,305 @@
-/**
- * ProcurBosse — Login v13 D365 Style
- * Microsoft Dynamics 365 inspired login
- * EL5 MediProcure · Embu Level 5 Hospital
- */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Eye, EyeOff, Lock, Mail, RefreshCw } from "lucide-react";
+import procurementBg from "@/assets/procurement-bg.jpg";
+import embuLogo from "@/assets/embu-county-logo.jpg";
 
 export default function LoginPage() {
-  const [email,   setEmail]   = useState("");
-  const [pass,    setPass]    = useState("");
-  const [busy,    setBusy]    = useState(false);
-  const [showPw,  setShowPw]  = useState(false);
-  const [err,     setErr]     = useState("");
-  const [ready,   setReady]   = useState(false);
-  const nav = useNavigate();
-  const ref = useRef<HTMLInputElement>(null);
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [loading,    setLoading]    = useState(false);
+  const [showPass,   setShowPass]   = useState(false);
+  const [mounted,    setMounted]    = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const navigate = useNavigate();
 
+  useEffect(() => { setTimeout(() => setMounted(true), 50); }, []);
+
+  // If already logged in, skip login
   useEffect(() => {
-    setReady(true);
-    ref.current?.focus();
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) nav("/dashboard", { replace: true });
-    }).catch(() => {});
-  }, [nav]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate("/dashboard", { replace: true });
+    });
+  }, [navigate]);
 
-  const submit = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy) return;
-    setErr("");
-    if (!email.trim()) { setErr("Email address is required."); return; }
-    if (!pass) { setErr("Password is required."); return; }
-    setBusy(true);
+    if (!email.trim() || !password) {
+      toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(), password: pass,
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
       });
       if (error) throw error;
-      if (data.session) nav("/dashboard", { replace: true });
-    } catch (e: any) {
-      const m = (e?.message || "").toLowerCase();
-      if (m.includes("invalid") || m.includes("credentials")) setErr("Incorrect email or password.");
-      else if (m.includes("confirmed")) setErr("Account not confirmed. Contact your administrator.");
-      else setErr(e?.message || "Sign in failed. Please try again.");
-    } finally { setBusy(false); }
+      navigate("/dashboard", { replace: true });
+    } catch (err: any) {
+      toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast({ title: "Enter your email first", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
+    } else {
+      setForgotSent(true);
+    }
+  };
+
+  // ── Colours ──────────────────────────────────────────────────────────────
+  const BLUE    = "#0e2a4a";
+  const TEAL    = "#0e7490";
+  const TEAL_LT = "#e0f2fe";
+  const ORANGE  = "#C45911";
+
+  // ── Styles ───────────────────────────────────────────────────────────────
+  const s: Record<string, React.CSSProperties> = {
+    root: {
+      position: "fixed", inset: 0,
+      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+      overflow: "hidden",
+    },
+    bg: {
+      position: "absolute", inset: 0,
+      backgroundImage: `url(${procurementBg})`,
+      backgroundSize: "cover", backgroundPosition: "center 40%",
+      filter: "brightness(0.82) saturate(1.15)",
+    },
+    overlay: {
+      position: "absolute", inset: 0,
+      background: "linear-gradient(135deg,rgba(0,18,45,0.55) 0%,rgba(0,0,0,0.15) 50%,rgba(0,25,55,0.60) 100%)",
+    },
+    center: {
+      position: "absolute", inset: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 20,
+    },
+    card: {
+      background: "rgba(255,255,255,0.975)",
+      borderRadius: 8,
+      width: "100%", maxWidth: 390,
+      padding: "40px 36px 32px",
+      boxShadow: "0 24px 64px rgba(0,0,0,0.40), 0 4px 18px rgba(0,0,0,0.18)",
+      opacity: mounted ? 1 : 0,
+      transform: mounted ? "translateY(0) scale(1)" : "translateY(20px) scale(0.97)",
+      transition: "opacity 0.4s cubic-bezier(0.4,0,0.2,1), transform 0.4s cubic-bezier(0.4,0,0.2,1)",
+    },
+    logo: { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 6 },
+    logoImg: { height: 42, width: 42, borderRadius: 8, objectFit: "contain" as const, border: `2px solid ${TEAL_LT}`, padding: 3, background: "#f0f9ff" },
+    sysName: { fontSize: 22, fontWeight: 900, color: BLUE, letterSpacing: "-0.03em", lineHeight: 1.1 },
+    subName: { fontSize: 9.5, color: "#9ca3af", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase" as const },
+    badge: {
+      display: "inline-block",
+      background: `${TEAL}14`, border: `1px solid ${TEAL}28`, color: TEAL,
+      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.1em",
+      padding: "2px 10px", borderRadius: 20, textTransform: "uppercase" as const,
+    },
+    heading: {
+      textAlign: "center" as const, fontSize: 11, fontWeight: 800,
+      color: TEAL, letterSpacing: "0.2em", textTransform: "uppercase" as const,
+      marginTop: 20, marginBottom: 22,
+    },
+    label: { display: "block", fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 5 },
+    inputWrap: { position: "relative" as const, marginBottom: 14 },
+    inputIcon: {
+      position: "absolute" as const, left: 11, top: "50%",
+      transform: "translateY(-50%)", color: "#9ca3af",
+      display: "flex", alignItems: "center",
+    },
+    input: {
+      width: "100%", boxSizing: "border-box" as const,
+      padding: "10px 38px 10px 34px",
+      fontSize: 13, color: BLUE, background: "#f8fafc",
+      border: "1.5px solid #e5e7eb", borderRadius: 6,
+      outline: "none", transition: "border-color 0.15s",
+    },
+    eyeBtn: {
+      position: "absolute" as const, right: 10, top: "50%",
+      transform: "translateY(-50%)",
+      background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2,
+    },
+    btn: {
+      width: "100%", padding: "11px 0",
+      background: `linear-gradient(135deg, ${TEAL} 0%, #0c6380 100%)`,
+      color: "#fff", fontWeight: 800, fontSize: 13.5, letterSpacing: "0.04em",
+      border: "none", borderRadius: 6, cursor: "pointer",
+      boxShadow: `0 4px 14px ${TEAL}40`,
+      transition: "opacity 0.15s, transform 0.15s",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      marginTop: 6,
+    },
+    forgotLink: {
+      display: "block", textAlign: "center" as const, marginTop: 14,
+      fontSize: 12, color: TEAL, fontWeight: 600,
+      background: "none", border: "none", cursor: "pointer",
+      textDecoration: "underline",
+    },
+    footerBar: {
+      position: "absolute" as const, bottom: 0, left: 0, right: 0,
+      background: "rgba(5,12,28,0.88)", backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      gap: 10, padding: "9px 20px",
+      opacity: mounted ? 1 : 0, transition: "opacity 0.8s 0.35s",
+    },
+    footerDot: { width: 6, height: 6, borderRadius: "50%", background: `${ORANGE}cc` },
+    footerText: { fontSize: 10.5, color: "rgba(255,255,255,0.7)", fontWeight: 500 },
   };
 
   return (
-    <div style={{
-      minHeight:"100vh", display:"flex",
-      fontFamily:"'Segoe UI',system-ui,sans-serif",
-      background:"#f3f5f8",
-    }}>
-      {/* LEFT PANEL — D365 blue branding */}
-      <div style={{
-        width:"45%", minHeight:"100vh",
-        background:"linear-gradient(160deg,#0078d4 0%,#005a9e 50%,#003f6e 100%)",
-        display:"flex", flexDirection:"column",
-        justifyContent:"space-between", padding:"48px 52px",
-        position:"relative", overflow:"hidden",
-      }}>
-        {/* Background circles */}
-        <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-          <div style={{position:"absolute",width:400,height:400,borderRadius:"50%",background:"rgba(255,255,255,0.05)",top:-120,right:-120}}/>
-          <div style={{position:"absolute",width:300,height:300,borderRadius:"50%",background:"rgba(255,255,255,0.04)",bottom:-80,left:-60}}/>
-          <div style={{position:"absolute",width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,0.04)",top:"40%",right:"5%"}}/>
-        </div>
+    <div style={s.root}>
+      <div style={s.bg} />
+      <div style={s.overlay} />
 
-        {/* Top logo */}
-        <div style={{position:"relative",zIndex:1}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:56}}>
-            <div style={{
-              width:44,height:44,borderRadius:10,
-              background:"rgba(255,255,255,0.15)",
-              border:"1.5px solid rgba(255,255,255,0.3)",
-              display:"flex",alignItems:"center",justifyContent:"center",
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" opacity=".9"/>
-                <path d="M2 17l10 5 10-5" stroke="white" strokeWidth="1.5" fill="none"/>
-                <path d="M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" fill="none"/>
-              </svg>
-            </div>
+      <div style={s.center}>
+        <div style={s.card}>
+
+          {/* ── Logo ── */}
+          <div style={s.logo}>
+            <img
+              src={embuLogo} alt="EL5H"
+              style={s.logoImg}
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
             <div>
-              <div style={{color:"#fff",fontSize:15,fontWeight:700,letterSpacing:".02em"}}>EL5 MediProcure</div>
-              <div style={{color:"rgba(255,255,255,0.55)",fontSize:11}}>Embu County Government</div>
+              <div style={s.sysName}>EL5 MediProcure</div>
+              <div style={s.subName}>ProcurBosse · Embu Level 5</div>
             </div>
           </div>
 
-          <div style={{color:"#fff",fontSize:36,fontWeight:200,lineHeight:1.2,letterSpacing:"-.01em",marginBottom:20}}>
-            Procurement<br/><strong style={{fontWeight:700}}>ERP System</strong>
-          </div>
-          <div style={{color:"rgba(255,255,255,0.65)",fontSize:13,lineHeight:1.7,maxWidth:340}}>
-            Manage procurement, inventory, finance and supply chain for Embu Level 5 Hospital.
-          </div>
-        </div>
-
-        {/* Module pills */}
-        <div style={{position:"relative",zIndex:1}}>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:32}}>
-            {["Procurement","Finance","Inventory","Quality","Communications","Reports"].map(m=>(
-              <div key={m} style={{
-                background:"rgba(255,255,255,0.12)",
-                border:"1px solid rgba(255,255,255,0.2)",
-                borderRadius:20,padding:"4px 12px",
-                color:"rgba(255,255,255,0.85)",fontSize:11,fontWeight:500,
-              }}>{m}</div>
-            ))}
-          </div>
-          <div style={{color:"rgba(255,255,255,0.35)",fontSize:11}}>
-            ProcurBosse v22.8 · Embu Level 5 Hospital
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT PANEL — login form */}
-      <div style={{
-        flex:1, display:"flex", alignItems:"center", justifyContent:"center",
-        padding:"48px 40px",
-      }}>
-        <div style={{width:"100%",maxWidth:420}}>
-          {/* Header */}
-          <div style={{marginBottom:40}}>
-            <div style={{fontSize:26,fontWeight:700,color:"#1a1a2e",marginBottom:8,letterSpacing:"-.02em"}}>
-              Sign in
-            </div>
-            <div style={{fontSize:14,color:"#6b7280"}}>
-              Sign in with your hospital email account
-            </div>
+          {/* ── Badge ── */}
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <span style={s.badge}>v5.8 · Health Procurement ERP</span>
           </div>
 
-          <form onSubmit={submit} noValidate autoComplete="on">
-            {/* Email field */}
-            <div style={{marginBottom:20}}>
-              <label style={{display:"block",fontSize:13,fontWeight:600,color:"#374151",marginBottom:6}}>
-                Email address
-              </label>
-              <input
-                ref={ref}
-                type="email"
-                autoComplete="username"
-                placeholder="you@embu.health.go.ke"
-                value={email}
-                onChange={e=>setEmail(e.target.value)}
-                disabled={busy}
-                style={{
-                  width:"100%",boxSizing:"border-box" as const,
-                  border:"1.5px solid #d1d5db",borderRadius:8,
-                  padding:"11px 14px",fontSize:14,
-                  color:"#1a1a2e",background:busy?"#f9fafb":"#fff",
-                  outline:"none",fontFamily:"inherit",
-                  transition:"border-color .15s",
-                }}
-                onFocus={e=>e.target.style.borderColor="#0078d4"}
-                onBlur={e=>e.target.style.borderColor="#d1d5db"}
-              />
+          {/* ── Mode heading ── */}
+          <div style={s.heading}>
+            {forgotMode ? "RESET PASSWORD" : "SIGN IN"}
+          </div>
+
+          {/* ── Forgot sent confirmation ── */}
+          {forgotSent ? (
+            <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>📧</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: BLUE, marginBottom: 6 }}>
+                Check your inbox
+              </div>
+              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.75 }}>
+                A reset link was sent to<br />
+                <strong style={{ color: "#374151" }}>{email}</strong>
+              </div>
+              <div style={{ marginTop: 12, padding: "10px 14px", background: "#f0fdf4", borderRadius: 7, border: "1px solid #bbf7d0", fontSize: 11, color: "#166534" }}>
+                Click the link to set a new password. Expires in 1 hour.
+              </div>
+              <button onClick={() => { setForgotMode(false); setForgotSent(false); }} style={s.forgotLink}>
+                ← Back to Sign In
+              </button>
             </div>
 
-            {/* Password field */}
-            <div style={{marginBottom:err?16:28}}>
-              <label style={{display:"block",fontSize:13,fontWeight:600,color:"#374151",marginBottom:6}}>
-                Password
-              </label>
-              <div style={{position:"relative"}}>
+          ) : forgotMode ? (
+            /* ── Forgot form ── */
+            <form onSubmit={handleForgot} autoComplete="off">
+              <div style={s.inputWrap}>
+                <label style={s.label}>Email Address</label>
+                <div style={s.inputIcon}><Mail size={15} /></div>
                 <input
-                  type={showPw?"text":"password"}
-                  autoComplete="current-password"
-                  placeholder="••••••••••"
-                  value={pass}
-                  onChange={e=>setPass(e.target.value)}
-                  disabled={busy}
-                  style={{
-                    width:"100%",boxSizing:"border-box" as const,
-                    border:"1.5px solid #d1d5db",borderRadius:8,
-                    padding:"11px 44px 11px 14px",fontSize:14,
-                    color:"#1a1a2e",background:busy?"#f9fafb":"#fff",
-                    outline:"none",fontFamily:"inherit",
-                    transition:"border-color .15s",
-                  }}
-                  onFocus={e=>e.target.style.borderColor="#0078d4"}
-                  onBlur={e=>e.target.style.borderColor="#d1d5db"}
+                  type="email" value={email} autoFocus
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@embu.go.ke"
+                  style={s.input}
+                  onFocus={e => (e.target.style.borderColor = TEAL)}
+                  onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
                 />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onClick={()=>setShowPw(p=>!p)}
-                  style={{
-                    position:"absolute",right:12,top:"50%",
-                    transform:"translateY(-50%)",
-                    background:"none",border:"none",cursor:"pointer",
-                    color:"#9ca3af",padding:4,fontSize:15,lineHeight:1,
-                  }}
-                >{showPw?"🙈":"👁"}</button>
               </div>
-            </div>
+              <button type="submit" disabled={loading} style={{ ...s.btn, opacity: loading ? 0.75 : 1 }}>
+                {loading ? <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
+                {loading ? "Sending…" : "Send Reset Link"}
+              </button>
+              <button type="button" onClick={() => setForgotMode(false)} style={s.forgotLink}>
+                ← Back to Sign In
+              </button>
+            </form>
 
-            {/* Error message */}
-            {err && (
-              <div style={{
-                background:"#fef2f2",border:"1px solid #fecaca",
-                borderRadius:8,padding:"10px 14px",
-                marginBottom:20,color:"#dc2626",fontSize:13,
-                display:"flex",alignItems:"center",gap:8,
-              }}>
-                <span style={{flexShrink:0}}>⚠</span>
-                <span>{err}</span>
+          ) : (
+            /* ── Sign in form ── */
+            <form onSubmit={handleSignIn} autoComplete="on">
+              {/* Email */}
+              <div style={s.inputWrap}>
+                <label style={s.label}>Email Address</label>
+                <div style={s.inputIcon}><Mail size={15} /></div>
+                <input
+                  type="email" value={email} autoFocus
+                  autoComplete="username"
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@embu.go.ke"
+                  style={s.input}
+                  onFocus={e => (e.target.style.borderColor = TEAL)}
+                  onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
+                />
               </div>
-            )}
 
-            {/* Sign in button */}
-            <button
-              type="submit"
-              disabled={busy}
-              style={{
-                width:"100%",padding:"12px",
-                background:busy?"#93c5fd":"#0078d4",
-                color:"#fff",border:"none",borderRadius:8,
-                fontSize:15,fontWeight:600,
-                cursor:busy?"not-allowed":"pointer",
-                transition:"background .15s",
-                display:"flex",alignItems:"center",
-                justifyContent:"center",gap:8,
-                letterSpacing:".01em",
-                boxShadow:"0 2px 8px rgba(0,120,212,0.3)",
-              }}
-              onMouseEnter={e=>{ if(!busy)(e.currentTarget as HTMLElement).style.background="#106ebe"; }}
-              onMouseLeave={e=>{ if(!busy)(e.currentTarget as HTMLElement).style.background="#0078d4"; }}
-            >
-              {busy
-                ? <><span style={{width:16,height:16,border:"2px solid rgba(255,255,255,.4)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite",display:"inline-block"}}/> Signing in...</>
-                : <>Sign in</>
-              }
-            </button>
-          </form>
+              {/* Password */}
+              <div style={s.inputWrap}>
+                <label style={s.label}>Password</label>
+                <div style={s.inputIcon}><Lock size={15} /></div>
+                <input
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  autoComplete="current-password"
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={s.input}
+                  onFocus={e => (e.target.style.borderColor = TEAL)}
+                  onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
+                />
+                <button type="button" onClick={() => setShowPass(p => !p)} style={s.eyeBtn} tabIndex={-1}>
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
 
-          {/* Footer */}
-          <div style={{
-            marginTop:40,paddingTop:24,
-            borderTop:"1px solid #e5e7eb",
-            textAlign:"center",color:"#9ca3af",fontSize:12,
-          }}>
-            Embu Level 5 Hospital · Embu County Government, Kenya
-          </div>
+              <button type="submit" disabled={loading}
+                style={{ ...s.btn, opacity: loading ? 0.75 : 1 }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget.style.opacity = "0.9"); }}
+                onMouseLeave={e => { (e.currentTarget.style.opacity = loading ? "0.75" : "1"); }}
+              >
+                {loading && <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} />}
+                {loading ? "Signing in…" : "Sign In"}
+              </button>
+
+              <button type="button" onClick={() => setForgotMode(true)} style={s.forgotLink}>
+                Forgot password?
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
-      <style>{`
-        @keyframes spin{to{transform:rotate(360deg)}}
-        input::placeholder{color:#9ca3af}
-      `}</style>
+      {/* ── Footer bar ── */}
+      <div style={s.footerBar}>
+        <div style={s.footerDot} />
+        <span style={s.footerText}>Embu Level 5 Hospital · Embu County Government</span>
+        <div style={s.footerDot} />
+        <span style={{ ...s.footerText, color: "rgba(255,255,255,0.45)" }}>ERP v5.8</span>
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

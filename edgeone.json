@@ -1,6 +1,6 @@
 {
   "build": {
-    "command": "echo 'Using pre-built web directory'",
+    "command": "echo 'Serving pre-built web directory'",
     "directory": "web",
     "environment": {
       "NODE_VERSION": "20",

@@ -1,13 +1,10 @@
 /**
- * EL5 MediProcure  -- Notifications Centre
+ * EL5 MediProcure v5.8 — Notifications Centre
  * Redesigned: full-page notification management with bulk actions, filters, realtime
- * ProcurBosse * Embu Level 5 Hospital
+ * ProcurBosse · Embu Level 5 Hospital
  */
-import * as XLSX from "xlsx";
 import { useState, useEffect, useCallback } from "react";
-import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
-import * as XLSX from "xlsx";
 import { Search, RefreshCw, Check, Trash2, Bell, BellOff, Filter } from "lucide-react";
 
 interface Notification {
@@ -19,10 +16,10 @@ interface Notification {
 }
 
 const PRIORITY_CFG = {
-  low:      { color: "#6b7280", bg: "#6b728015", label: "Low",      emoji: "" },
-  normal:   { color: "#3b82f6", bg: "#3b82f615", label: "Normal",   emoji: "" },
-  high:     { color: "#f97316", bg: "#f9731615", label: "High",     emoji: "" },
-  critical: { color: "#ef4444", bg: "#ef444415", label: "Critical", emoji: "" },
+  low:      { color: "#6b7280", bg: "#6b728015", label: "Low",      emoji: "⚪" },
+  normal:   { color: "#3b82f6", bg: "#3b82f615", label: "Normal",   emoji: "🔵" },
+  high:     { color: "#f97316", bg: "#f9731615", label: "High",     emoji: "🟠" },
+  critical: { color: "#ef4444", bg: "#ef444415", label: "Critical", emoji: "🔴" },
 };
 
 const CAT_COLORS: Record<string, string> = {
@@ -32,8 +29,8 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 const CAT_ICONS: Record<string, string> = {
-  system: "[G]", procurement: "", finance: "", erp: "",
-  budget: "", invoice: "", approval: "[OK]", alert: "[!]", sync: "", general: "",
+  system: "⚙️", procurement: "📦", finance: "💰", erp: "🔄",
+  budget: "📊", invoice: "📋", approval: "✅", alert: "⚠️", sync: "🔁", general: "🔔",
 };
 
 function timeAgo(s: string) {
@@ -61,17 +58,11 @@ export default function NotificationsPage() {
   const showToast = (msg: string) => { setLocalToast(msg); setTimeout(() => setLocalToast(""), 3000); };
 
   const fetchNotifs = useCallback(async () => {
-    try {
-
     setLoading(true);
     const { data } = await supabase.from("notifications").select("*")
       .is("dismissed_at", null).order("created_at", { ascending: false }).limit(300);
     if (data) setNotifs(data as Notification[]);
-    } catch(e: any) {
-      console.warn("[src/pages/NotificationsPage.tsx]:", e?.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   }, []);
 
   useEffect(() => { fetchNotifs(); }, [fetchNotifs]);
@@ -86,13 +77,13 @@ export default function NotificationsPage() {
   async function markRead(ids: string[]) {
     await supabase.from("notifications").update({ is_read: true } as any).in("id", ids);
     setNotifs(p => p.map(n => ids.includes(n.id) ? { ...n, is_read: true } : n));
-    setSelected(new Set()); showToast(`[OK] ${ids.length} marked as read`);
+    setSelected(new Set()); showToast(`✅ ${ids.length} marked as read`);
   }
 
   async function dismiss(ids: string[]) {
     await supabase.from("notifications").update({ dismissed_at: new Date().toISOString() } as any).in("id", ids);
     setNotifs(p => p.filter(n => !ids.includes(n.id)));
-    setSelected(new Set()); showToast(` ${ids.length} dismissed`);
+    setSelected(new Set()); showToast(`🗑️ ${ids.length} dismissed`);
   }
 
   async function markAllRead() {
@@ -100,7 +91,7 @@ export default function NotificationsPage() {
     if (!unread.length) { showToast("All already read!"); return; }
     await supabase.from("notifications").update({ is_read: true } as any).in("id", unread);
     setNotifs(p => p.map(n => ({ ...n, is_read: true })));
-    showToast(`[OK] All ${unread.length} marked as read`);
+    showToast(`✅ All ${unread.length} marked as read`);
   }
 
   async function createTestNotif() {
@@ -110,12 +101,12 @@ export default function NotificationsPage() {
     const prio = prios[Math.floor(Math.random() * prios.length)];
     await supabase.from("notifications").insert({
       title: `Test: ${cat.charAt(0).toUpperCase() + cat.slice(1)} Notification`,
-      message: `This is a system test notification for the ${cat} module. Priority: ${prio}.`,
+      message: `This is a v5.8 test notification for the ${cat} module. Priority: ${prio}.`,
       category: cat, priority: prio, is_read: false,
       action_url: "/dashboard", action_label: "View Details",
       icon: CAT_ICONS[cat],
     } as any);
-    showToast(" Test notification created!"); fetchNotifs();
+    showToast("🔔 Test notification created!"); fetchNotifs();
   }
 
   const categories = ["all", ...Array.from(new Set(notifs.map(n => n.category || "general")))];
@@ -169,13 +160,13 @@ export default function NotificationsPage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#1e293b,#0f172a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
-            
+            🔔
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Notifications Centre</h1>
             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-              {notifs.length} total * {unreadCount} unread
-              {criticalCount > 0 && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>* {criticalCount} critical</span>}
+              {notifs.length} total · {unreadCount} unread
+              {criticalCount > 0 && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>· {criticalCount} critical</span>}
             </div>
           </div>
         </div>
@@ -195,15 +186,15 @@ export default function NotificationsPage() {
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Total",    value: notifs.length,                                         color: "#6b7280", icon: "" },
-          { label: "Unread",   value: unreadCount,                                           color: "#3b82f6", icon: "" },
-          { label: "Critical", value: criticalCount,                                         color: "#ef4444", icon: "" },
-          { label: "High",     value: notifs.filter(n=>n.priority==="high"&&!n.is_read).length, color:"#f97316",icon:""},
-          { label: "Read",     value: notifs.filter(n=>n.is_read).length,                   color: "#22c55e", icon: "[OK]" },
+          { label: "Total",    value: notifs.length,                                         color: "#6b7280", icon: "🔔" },
+          { label: "Unread",   value: unreadCount,                                           color: "#3b82f6", icon: "📬" },
+          { label: "Critical", value: criticalCount,                                         color: "#ef4444", icon: "🔴" },
+          { label: "High",     value: notifs.filter(n=>n.priority==="high"&&!n.is_read).length, color:"#f97316",icon:"🟠"},
+          { label: "Read",     value: notifs.filter(n=>n.is_read).length,                   color: "#22c55e", icon: "✅" },
         ].map((s, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 10, border: "1px solid #f1f5f9", padding: "12px 14px", boxShadow: "0 2px 6px rgba(0,0,0,0.04)", borderLeft: `4px solid ${s.color}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>{loading ? "..." : s.value}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>{loading ? "…" : s.value}</div>
               <span style={{ fontSize: 18 }}>{s.icon}</span>
             </div>
             <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{s.label}</div>
@@ -216,7 +207,7 @@ export default function NotificationsPage() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
             <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#9ca3af" }} />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search notifications..."
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search notifications…"
               style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
           </div>
 
@@ -224,10 +215,10 @@ export default function NotificationsPage() {
           <select value={priorityFilter} onChange={e => { setPriorityFilter(e.target.value); setPage(0); }}
             style={{ padding: "8px 12px", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 12, cursor: "pointer", color: "#374151" }}>
             <option value="all">All Priorities</option>
-            <option value="critical"> Critical</option>
-            <option value="high"> High</option>
-            <option value="normal"> Normal</option>
-            <option value="low"> Low</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="normal">🔵 Normal</option>
+            <option value="low">⚪ Low</option>
           </select>
 
           {/* Read filter */}
@@ -267,7 +258,7 @@ export default function NotificationsPage() {
                   border: `1px solid ${categoryFilter===cat ? c : "#e2e8f0"}`,
                   fontWeight: categoryFilter===cat ? 700 : 400,
                 }}>
-                  {cat === "all" ? "All" : `${CAT_ICONS[cat]||""} ${cat.charAt(0).toUpperCase()+cat.slice(1)}`}
+                  {cat === "all" ? "All" : `${CAT_ICONS[cat]||"🔔"} ${cat.charAt(0).toUpperCase()+cat.slice(1)}`}
                 </button>
               );
             })}
@@ -280,10 +271,10 @@ export default function NotificationsPage() {
         <div style={{ background: "#1e293b", borderRadius: 10, padding: "10px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{selected.size} selected</span>
           <button onClick={() => markRead([...selected])} style={{ padding: "6px 14px", background: "#22c55e", color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-             Mark Read
+            ✓ Mark Read
           </button>
           <button onClick={() => dismiss([...selected])} style={{ padding: "6px 14px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-             Dismiss
+            🗑️ Dismiss
           </button>
           <button onClick={clearSelect} style={{ padding: "6px 14px", background: "transparent", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 7, fontSize: 12, cursor: "pointer" }}>
             Cancel
@@ -298,12 +289,12 @@ export default function NotificationsPage() {
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 24px", color: "#9ca3af" }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}></div>
-            <div>Loading notifications...</div>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🔔</div>
+            <div>Loading notifications…</div>
           </div>
         ) : paginated.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 24px" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>{readFilter === "unread" ? "" : ""}</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>{readFilter === "unread" ? "🎉" : "🔕"}</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
               {readFilter === "unread" ? "All caught up!" : "No notifications found"}
             </div>
@@ -316,7 +307,7 @@ export default function NotificationsPage() {
             {paginated.map((n, idx) => {
               const prio = PRIORITY_CFG[n.priority || "normal"];
               const cat = n.category || "general";
-              const icon = n.icon || CAT_ICONS[cat] || "";
+              const icon = n.icon || CAT_ICONS[cat] || "🔔";
               const catColor = CAT_COLORS[cat] || "#94a3b8";
               const title = n.title || n.subject || "";
               const body = n.message || n.body || "";
@@ -369,12 +360,12 @@ export default function NotificationsPage() {
                         {!n.is_read && (
                           <button onClick={e => { e.stopPropagation(); markRead([n.id]); }} title="Mark read"
                             style={{ padding: "3px 8px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, color: "#059669", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
-                            
+                            ✓
                           </button>
                         )}
                         <button onClick={e => { e.stopPropagation(); dismiss([n.id]); }} title="Dismiss"
                           style={{ padding: "3px 8px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, color: "#ef4444", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
-                          
+                          ✕
                         </button>
                       </div>
                     </div>
@@ -395,7 +386,7 @@ export default function NotificationsPage() {
                     {n.action_url && n.action_label && (
                       <a href={n.action_url} onClick={e => { e.stopPropagation(); markRead([n.id]); }}
                         style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, color: "#3b82f6", fontSize: 11, textDecoration: "none", fontWeight: 600 }}>
-                        {n.action_label} &gt;
+                        {n.action_label} →
                       </a>
                     )}
                   </div>
@@ -409,12 +400,12 @@ export default function NotificationsPage() {
         {totalPages > 1 && (
           <div style={{ padding: "12px 20px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: "#9ca3af" }}>
-              {page * PER + 1}-{Math.min((page + 1) * PER, filtered.length)} of {filtered.length}
+              {page * PER + 1}–{Math.min((page + 1) * PER, filtered.length)} of {filtered.length}
             </span>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
                 style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #e2e8f0", background: page===0?"#f8fafc":"#fff", fontSize: 12, cursor: page===0?"default":"pointer", color: "#374151" }}>
-                Prev
+                ← Prev
               </button>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => (
                 <button key={i} onClick={() => setPage(i)} style={{ padding: "5px 10px", borderRadius: 7, border: "1.5px solid #e2e8f0", background: page===i?"#1e293b":"#fff", color: page===i?"#fff":"#374151", fontSize: 12, cursor: "pointer", fontWeight: page===i?700:400 }}>
@@ -423,7 +414,7 @@ export default function NotificationsPage() {
               ))}
               <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
                 style={{ padding: "5px 12px", borderRadius: 7, border: "1.5px solid #e2e8f0", background: page>=totalPages-1?"#f8fafc":"#fff", fontSize: 12, cursor: page>=totalPages-1?"default":"pointer", color: "#374151" }}>
-                Next Next
+                Next →
               </button>
             </div>
           </div>
@@ -432,7 +423,7 @@ export default function NotificationsPage() {
 
       {/* Footer summary */}
       <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "#cbd5e1" }}>
-        EL5 MediProcure * ProcurBosse * Embu Level 5 Hospital * Notifications realtime-synced via Supabase
+        EL5 MediProcure v5.8 · ProcurBosse · Embu Level 5 Hospital · Notifications realtime-synced via Supabase
       </div>
     </div>
   );

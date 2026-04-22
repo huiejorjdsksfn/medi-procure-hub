@@ -1,7 +1,7 @@
 /**
- * ProcurBosse  -- GRN Workflow Engine v5.0
+ * ProcurBosse — GRN Workflow Engine v5.0
  * Goods Received Note lifecycle management
- * EL5 MediProcure * Embu Level 5 Hospital
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
@@ -85,7 +85,7 @@ export async function executeGRNAction(
     if (action === 'accept') {
       await notifyAccountants({
         title: `GRN ${grnNo}: Invoice Matching Required`,
-        message: `Goods from ${grn.supplier_name || 'supplier'} received  -- match to invoice`,
+        message: `Goods from ${grn.supplier_name || 'supplier'} received — match to invoice`,
         type: 'grn', module: 'Finance', actionUrl: '/accountant',
       });
       triggerGrnEvent(grnId).catch(() => {});

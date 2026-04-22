@@ -7,8 +7,8 @@ import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, BarChart3 } f
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
-function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:0})}`; };
-function genCode() { return `BDG-${new Date().getFullYear()}-${String(Math.floor(100+Math.random()*900))}`; };
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:0})}`;
+const genCode = () => `BDG-${new Date().getFullYear()}-${String(Math.floor(100+Math.random()*900))}`;
 const SC: Record<string,string> = {active:"#15803d",draft:"#6b7280",closed:"#dc2626",exceeded:"#d97706"};
 
 export default function BudgetsPage() {
@@ -25,23 +25,17 @@ export default function BudgetsPage() {
   const [form, setForm] = useState({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});
 
   const load = async () => {
-    try {
-
     setLoading(true);
     const [{data:b},{data:d}] = await Promise.all([
       (supabase as any).from("budgets").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
     setRows(b||[]); setDepts(d||[]);
-    } catch(e: any) {
-      console.warn("[ProcurBosse] Load error:", e?.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
 
-  /* -- Real-time subscription ------------------------------- */
+  /* ── Real-time subscription ─────────────────────────────── */
   useEffect(()=>{
     const ch=(supabase as any).channel("bud-rt").on("postgres_changes",{event:"*",schema:"public",table:"budgets"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -60,12 +54,12 @@ export default function BudgetsPage() {
     const payload={...form,budget_code:editing?editing.budget_code:genCode(),department_name:dept?.name||form.department_name,allocated_amount:Number(form.allocated_amount),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("budgets").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
-      else{logAudit(user?.id,profile?.full_name,"update","budgets",editing.id,{name:form.budget_name});toast({title:"Budget updated "});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
+      else{logAudit(user?.id,profile?.full_name,"update","budgets",editing.id,{name:form.budget_name});toast({title:"Budget updated ✓"});}
     } else {
       const{data,error}=await(supabase as any).from("budgets").insert(payload).select().single();
-      if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
-      else{logAudit(user?.id,profile?.full_name,"create","budgets",data?.id,{name:form.budget_name});toast({title:"Budget created "});}
+      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
+      else{logAudit(user?.id,profile?.full_name,"create","budgets",data?.id,{name:form.budget_name});toast({title:"Budget created ✓"});}
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
@@ -117,7 +111,7 @@ export default function BudgetsPage() {
       <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e1b4b,#3730a3)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Budgets</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} records * {exceededCount} exceeded</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} records · {exceededCount} exceeded</p>
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
@@ -141,7 +135,7 @@ export default function BudgetsPage() {
                 <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                   <td style={{padding:"10px 16px",fontFamily:"monospace",fontSize:10,color:"#6b7280"}}>{r.budget_code}</td>
                   <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937"}}>{r.budget_name}</td>
-                  <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||" --"}</td>
+                  <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||"—"}</td>
                   <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.financial_year}</td>
                   <td style={{padding:"10px 16px",fontWeight:700}}>{fmtKES(r.allocated_amount)}</td>
                   <td style={{padding:"10px 16px",color:pct>90?"#dc2626":pct>70?"#d97706":"#374151"}}>{fmtKES(r.spent_amount||0)}</td>
@@ -181,13 +175,13 @@ export default function BudgetsPage() {
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
                 <select value={form.department_name||form.department_id||""} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value=""> -- Select  --</option>
+                  <option value="">— Select —</option>
                   {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select></div>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category</label>
                 <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value=""> -- Select  --</option>
+                  <option value="">— Select —</option>
                   {["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction","ICT","Staff Training","Utilities","Maintenance","Other"].map(c=><option key={c}>{c}</option>)}
                 </select></div>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>

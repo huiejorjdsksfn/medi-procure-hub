@@ -1,14 +1,14 @@
 /**
- * ProcurBosse  -- Unified API Layer v5.8
+ * ProcurBosse — Unified API Layer v5.8
  * Wraps Supabase with caching, error handling, audit trails, and security
- * Embu Level 5 Hospital * EL5 MediProcure
+ * Embu Level 5 Hospital · EL5 MediProcure
  */
 import { supabase } from "@/integrations/supabase/client";
 import { cache, CACHE_KEYS } from "./cache";
 
 const db = supabase as any;
 
-// -- Rate limiting (simple in-memory) -----------------------------------------
+// ── Rate limiting (simple in-memory) ─────────────────────────────────────────
 const rateLimits = new Map<string, number[]>();
 function checkRateLimit(key: string, maxPerMinute = 60): boolean {
   const now = Date.now();
@@ -18,14 +18,14 @@ function checkRateLimit(key: string, maxPerMinute = 60): boolean {
   return hits.length <= maxPerMinute;
 }
 
-// -- Base API response type ----------------------------------------------------
+// ── Base API response type ────────────────────────────────────────────────────
 export interface ApiResult<T> {
   data: T | null;
   error: string | null;
   cached?: boolean;
 }
 
-// -- Generic fetch wrapper -----------------------------------------------------
+// ── Generic fetch wrapper ─────────────────────────────────────────────────────
 async function apiFetch<T>(
   cacheKey: string | null,
   fetcher: () => Promise<{ data: any; error: any }>,
@@ -46,9 +46,9 @@ async function apiFetch<T>(
   }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // SUPPLIERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const suppliersApi = {
   list: () => apiFetch(CACHE_KEYS.SUPPLIERS,
     () => db.from("suppliers").select("*").order("name").limit(500), 180),
@@ -68,9 +68,9 @@ export const suppliersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // ITEMS / INVENTORY API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const itemsApi = {
   list: (filters?: { category?: string; low_stock?: boolean; limit?: number }) =>
     apiFetch(CACHE_KEYS.ITEMS, () => {
@@ -97,9 +97,9 @@ export const itemsApi = {
     () => db.from("items").select("*").lt("current_quantity", db.raw?.("reorder_level") || 0).limit(100), 60),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // REQUISITIONS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const requisitionsApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -120,9 +120,9 @@ export const requisitionsApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // PURCHASE ORDERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const purchaseOrdersApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -143,9 +143,9 @@ export const purchaseOrdersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // GOODS RECEIVED (GRN) API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const goodsReceivedApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -160,9 +160,9 @@ export const goodsReceivedApi = {
     apiFetch(null, () => db.from("goods_received").insert(data).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // CONTRACTS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const contractsApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -179,9 +179,9 @@ export const contractsApi = {
     apiFetch(null, () => db.from("contracts").update(data).eq("id", id).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // TENDERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const tendersApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -198,9 +198,9 @@ export const tendersApi = {
     apiFetch(null, () => db.from("tenders").update(data).eq("id", id).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // BUDGETS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const budgetsApi = {
   list: (filters?: { status?: string; financial_year?: string }) =>
     apiFetch(CACHE_KEYS.BUDGETS, () => {
@@ -221,9 +221,9 @@ export const budgetsApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // DEPARTMENTS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const departmentsApi = {
   list: () => apiFetch(CACHE_KEYS.DEPARTMENTS,
     () => db.from("departments").select("*").order("name"), 300),
@@ -239,9 +239,9 @@ export const departmentsApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // PAYMENT VOUCHERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const paymentVouchersApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -276,9 +276,9 @@ export const paymentVouchersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // GL / CHART OF ACCOUNTS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const glApi = {
   listAccounts: () => apiFetch(CACHE_KEYS.GL_ACCOUNTS,
     () => db.from("chart_of_accounts").select("*").order("account_code"), 300),
@@ -297,9 +297,9 @@ export const glApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // FIXED ASSETS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const fixedAssetsApi = {
   list: (filters?: { status?: string; category?: string }) =>
     apiFetch(null, () => {
@@ -316,9 +316,9 @@ export const fixedAssetsApi = {
     apiFetch(null, () => db.from("fixed_assets").update(data).eq("id", id).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // NOTIFICATIONS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const notificationsApi = {
   list: () => apiFetch(null,
     () => db.from("notifications").select("*").is("dismissed_at", null)
@@ -336,9 +336,9 @@ export const notificationsApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // DOCUMENTS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const documentsApi = {
   list: (filters?: { category?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -357,9 +357,9 @@ export const documentsApi = {
     apiFetch(null, () => db.from("documents").delete().eq("id", id), 0),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // FACILITIES API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const facilitiesApi = {
   list: () => apiFetch(null,
     () => db.from("facilities").select("*").order("name"), 300),
@@ -367,9 +367,9 @@ export const facilitiesApi = {
     () => db.from("facilities").select("*").eq("id", id).single()),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // USERS & ROLES API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const usersApi = {
   listProfiles: () => apiFetch(CACHE_KEYS.USERS,
     () => db.from("profiles").select("*").order("full_name"), 120),
@@ -392,9 +392,9 @@ export const usersApi = {
     db.from("user_roles").delete().eq("user_id", userId).eq("role", role),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // AUDIT LOG API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const auditApi = {
   list: (filters?: { module?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -405,9 +405,9 @@ export const auditApi = {
     }, 30),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // ERP SYNC API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const erpSyncApi = {
   queueSync: async (syncType: string, direction: "push" | "pull", payload?: any) =>
     db.from("erp_sync_queue").insert({
@@ -426,9 +426,9 @@ export const erpSyncApi = {
     }).eq("id", id),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const settingsApi = {
   get: (key: string) => apiFetch(`setting_${key}`,
     () => db.from("system_settings").select("value").eq("key", key).single(), 600),
@@ -445,9 +445,9 @@ export const settingsApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // BID EVALUATIONS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const bidEvaluationsApi = {
   list: (tenderId?: string) =>
     apiFetch(null, () => {
@@ -461,7 +461,7 @@ export const bidEvaluationsApi = {
     apiFetch(null, () => db.from("bid_evaluations").update(data).eq("id", id).select().single(), 0),
 };
 
-// -- Default export (all modules) ----------------------------------------------
+// ── Default export (all modules) ──────────────────────────────────────────────
 export default {
   suppliers: suppliersApi,
   items: itemsApi,
@@ -486,13 +486,13 @@ export default {
   cache,
 };
 
-// =============================================================================
-//   22 NEW APIs  -- ProcurBosse v5.8 EXPANSION  
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
+// ███████████████  22 NEW APIs — ProcurBosse v5.8 EXPANSION  ██████████████████
+// ═════════════════════════════════════════════════════════════════════════════
 
-// -----------------------------------------------------------------------------
-// API 21  -- CATEGORIES API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 21 — CATEGORIES API
+// ─────────────────────────────────────────────────────────────────────────────
 export const categoriesApi = {
   list: () => apiFetch(CACHE_KEYS.CATEGORIES,
     () => db.from("categories").select("*").order("name"), 300),
@@ -512,9 +512,9 @@ export const categoriesApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 22  -- QUALITY INSPECTIONS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 22 — QUALITY INSPECTIONS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const qualityApi = {
   listInspections: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -544,9 +544,9 @@ export const qualityApi = {
     }).eq("id", id).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
-// API 23  -- JOURNAL VOUCHERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 23 — JOURNAL VOUCHERS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const journalVouchersApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -575,9 +575,9 @@ export const journalVouchersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 24  -- RECEIPT VOUCHERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 24 — RECEIPT VOUCHERS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const receiptVouchersApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -600,9 +600,9 @@ export const receiptVouchersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 25  -- PURCHASE VOUCHERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 25 — PURCHASE VOUCHERS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const purchaseVouchersApi = {
   list: (filters?: { status?: string; supplier_id?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -626,9 +626,9 @@ export const purchaseVouchersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 26  -- SALES VOUCHERS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 26 — SALES VOUCHERS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const salesVouchersApi = {
   list: (filters?: { status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -645,9 +645,9 @@ export const salesVouchersApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 27  -- PROCUREMENT PLANNING API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 27 — PROCUREMENT PLANNING API
+// ─────────────────────────────────────────────────────────────────────────────
 export const procurementPlanApi = {
   list: (filters?: { financial_year?: string; status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -671,9 +671,9 @@ export const procurementPlanApi = {
     () => db.from("procurement_plan_items").select("*").eq("plan_id", planId).order("created_at"), 60),
 };
 
-// -----------------------------------------------------------------------------
-// API 28  -- STOCK / INVENTORY MOVEMENTS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 28 — STOCK / INVENTORY MOVEMENTS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const stockApi = {
   listMovements: (filters?: { item_id?: string; movement_type?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -707,9 +707,9 @@ export const stockApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 29  -- ANALYTICS & DASHBOARD API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 29 — ANALYTICS & DASHBOARD API
+// ─────────────────────────────────────────────────────────────────────────────
 export const analyticsApi = {
   getDashboardKPIs: () => apiFetch("analytics_kpis", async () => {
     const [reqs, pos, budgets, suppliers] = await Promise.all([
@@ -746,9 +746,9 @@ export const analyticsApi = {
       .order("created_at"), 120),
 };
 
-// -----------------------------------------------------------------------------
-// API 30  -- REPORTS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 30 — REPORTS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const reportsApi = {
   list: (filters?: { category?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -771,9 +771,9 @@ export const reportsApi = {
     apiFetch(null, () => db.from("report_schedules").insert({ ...data, is_active: true }).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
-// API 31  -- AUDIT LOG WRITE API (complements read-only auditApi)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 31 — AUDIT LOG WRITE API (complements read-only auditApi)
+// ─────────────────────────────────────────────────────────────────────────────
 export const auditWriteApi = {
   log: async (entry: {
     module: string; action: string; resource_type?: string; resource_id?: string;
@@ -792,9 +792,9 @@ export const auditWriteApi = {
       .eq("user_id", userId).order("created_at", { ascending: false }).limit(limit), 30),
 };
 
-// -----------------------------------------------------------------------------
-// API 32  -- REALTIME SUBSCRIPTIONS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 32 — REALTIME SUBSCRIPTIONS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const realtimeApi = {
   subscribeToTable: (
     table: string,
@@ -836,9 +836,9 @@ export const realtimeApi = {
   },
 };
 
-// -----------------------------------------------------------------------------
-// API 33  -- BATCH OPERATIONS API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 33 — BATCH OPERATIONS API
+// ─────────────────────────────────────────────────────────────────────────────
 export const batchApi = {
   /** Run multiple Supabase operations in parallel and return all results */
   parallel: async <T extends Record<string, Promise<any>>>(ops: T): Promise<{ [K in keyof T]: Awaited<T[K]> }> => {
@@ -864,9 +864,9 @@ export const batchApi = {
     db.from(table).update({ status, ...extra, updated_at: new Date().toISOString() }).in("id", ids),
 };
 
-// -----------------------------------------------------------------------------
-// API 34  -- RECEPTION API (thin wrapper over ReceptionAPI for unified access)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 34 — RECEPTION API (thin wrapper over ReceptionAPI for unified access)
+// ─────────────────────────────────────────────────────────────────────────────
 export const receptionApi = {
   listVisitors: (filters?: { status?: string; date?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -895,9 +895,9 @@ export const receptionApi = {
     apiFetch(null, () => db.from("reception_appointments").insert(data).select().single(), 0),
 };
 
-// -----------------------------------------------------------------------------
-// API 35  -- TELEPHONY API (thin wrapper for unified access)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 35 — TELEPHONY API (thin wrapper for unified access)
+// ─────────────────────────────────────────────────────────────────────────────
 export const telephonyApi = {
   listCalls: (filters?: { direction?: string; status?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -916,9 +916,9 @@ export const telephonyApi = {
       .gte("called_at", new Date(Date.now() - 30 * 86400000).toISOString()), 60),
 };
 
-// -----------------------------------------------------------------------------
-// API 36  -- BACKUP & RESTORE API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 36 — BACKUP & RESTORE API
+// ─────────────────────────────────────────────────────────────────────────────
 export const backupApi = {
   listBackups: () => apiFetch("backup_list",
     () => db.from("backup_jobs").select("*").order("created_at", { ascending: false }).limit(50), 60),
@@ -938,9 +938,9 @@ export const backupApi = {
     apiFetch(null, () => db.from(table).select("*").limit(limit), 0),
 };
 
-// -----------------------------------------------------------------------------
-// API 37  -- IP ACCESS CONTROL API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 37 — IP ACCESS CONTROL API
+// ─────────────────────────────────────────────────────────────────────────────
 export const ipAccessApi = {
   listRules: () => apiFetch("ip_rules",
     () => db.from("ip_access_rules").select("*").order("created_at", { ascending: false }), 300),
@@ -958,9 +958,9 @@ export const ipAccessApi = {
     () => db.from("ip_access_log").select("*").order("accessed_at", { ascending: false }).limit(limit), 30),
 };
 
-// -----------------------------------------------------------------------------
-// API 38  -- WEBMASTER / SYSTEM HEALTH API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 38 — WEBMASTER / SYSTEM HEALTH API
+// ─────────────────────────────────────────────────────────────────────────────
 export const systemApi = {
   getHealth: () => apiFetch("system_health", async () => {
     const start = Date.now();
@@ -990,9 +990,9 @@ export const systemApi = {
     () => db.from("system_metrics").select("*").order("recorded_at", { ascending: false }).limit(100), 60),
 };
 
-// -----------------------------------------------------------------------------
-// API 39  -- EMAIL / INBOX API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 39 — EMAIL / INBOX API
+// ─────────────────────────────────────────────────────────────────────────────
 export const emailApi = {
   listInbox: (filters?: { is_read?: boolean; category?: string; limit?: number }) =>
     apiFetch(null, () => {
@@ -1015,9 +1015,9 @@ export const emailApi = {
       .order("sent_at", { ascending: false }).limit(limit), 60),
 };
 
-// -----------------------------------------------------------------------------
-// API 40  -- SCANNER / BARCODE API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 40 — SCANNER / BARCODE API
+// ─────────────────────────────────────────────────────────────────────────────
 export const scannerApi = {
   lookupBarcode: (barcode: string) => apiFetch(`barcode_${barcode}`,
     () => db.from("items").select("*").eq("barcode", barcode).single(), 300),
@@ -1032,9 +1032,9 @@ export const scannerApi = {
       .order("scanned_at", { ascending: false }).limit(limit), 30),
 };
 
-// -----------------------------------------------------------------------------
-// API 41  -- SUPPLIER SCORING & PERFORMANCE API
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 41 — SUPPLIER SCORING & PERFORMANCE API
+// ─────────────────────────────────────────────────────────────────────────────
 export const supplierPerformanceApi = {
   getScorecard: (supplierId: string) => apiFetch(`supplier_score_${supplierId}`,
     () => db.from("supplier_scorecards").select("*").eq("supplier_id", supplierId)
@@ -1057,9 +1057,9 @@ export const supplierPerformanceApi = {
       .order("rating", { ascending: false }).limit(limit), 300),
 };
 
-// -----------------------------------------------------------------------------
-// API 42  -- SEARCH API (cross-module full-text search)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API 42 — SEARCH API (cross-module full-text search)
+// ─────────────────────────────────────────────────────────────────────────────
 export const searchApi = {
   /** Search across multiple tables in parallel */
   global: async (query: string, limit = 10) => {
@@ -1086,9 +1086,9 @@ export const searchApi = {
     apiFetch(null, () => db.from(table).select("*").ilike(column, `%${query}%`).limit(limit), 30),
 };
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // UPDATED DEFAULT EXPORT (42 APIs total)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 export const api = {
   // Original 20
   suppliers: suppliersApi,

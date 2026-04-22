@@ -1,5 +1,5 @@
 /**
- * Supabase Client  -- EL5 MediProcure v5.8
+ * Supabase Client — EL5 MediProcure v5.8
  * Optimised: fast auth, persistent role cache, minimal round-trips
  */
 import { createClient } from '@supabase/supabase-js';
@@ -38,7 +38,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
 // Untyped client for tables not yet in generated types
 export const db = supabase as ReturnType<typeof createClient>;
 
-// -- Role cache -------------------------------------------------------------
+// ── Role cache ─────────────────────────────────────────────────────────────
 const ROLE_CACHE_KEY = 'el5_auth_v3';
 const ROLE_CACHE_TTL = 20 * 60 * 1000;
 
@@ -67,7 +67,7 @@ export const roleCache = {
   clear() { localStorage.removeItem(ROLE_CACHE_KEY); },
 };
 
-// -- Parallel fetch: profile + roles ---------------------------------------
+// ── Parallel fetch: profile + roles ───────────────────────────────────────
 export async function fetchUserData(userId: string): Promise<{ profile: any; roles: string[] }> {
   const [pRes, rRes] = await Promise.allSettled([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
@@ -80,10 +80,10 @@ export async function fetchUserData(userId: string): Promise<{ profile: any; rol
   return { profile, roles };
 }
 
-// -- QueryClient default options --------------------------------------------
+// ── QueryClient default options ────────────────────────────────────────────
 export const QUERY_DEFAULTS = {
-  staleTime: 30_000,   // 30s  -- data considered fresh
-  gcTime: 5 * 60_000,  // 5min  -- keep in memory
+  staleTime: 30_000,   // 30s — data considered fresh
+  gcTime: 5 * 60_000,  // 5min — keep in memory
   retry: 1,
   refetchOnWindowFocus: false,
 };

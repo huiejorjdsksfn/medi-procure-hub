@@ -1,5 +1,5 @@
 /**
- * FacilitiesPage  -- Admin management of all facilities / sub-locations
+ * FacilitiesPage — Admin management of all facilities / sub-locations
  * Covers: Embu L5H (main), Runyenjes, Ishiara, Mitheru, Kagaari, etc.
  */
 import { useEffect, useState, useCallback } from "react";
@@ -33,13 +33,11 @@ export default function FacilitiesPage() {
   const [form, setForm] = useState<Partial<Facility>>(EMPTY);
 
   const load = useCallback(async () => {
-    try {
-
     setLoading(true);
     const { data } = await (supabase as any)
       .from("facilities").select("*").order("is_main", { ascending:false }).order("name");
     setFacilities(data || []);
-    } catch(e: any) { console.warn("[Page]", e?.message); } finally { setLoading(false); }
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -61,10 +59,10 @@ export default function FacilitiesPage() {
     try {
       if (editing) {
         await (supabase as any).from("facilities").update({ ...form, updated_at: new Date().toISOString() }).eq("id", editing.id);
-        toast({ title:"Facility updated " });
+        toast({ title:"Facility updated ✓" });
       } else {
         await (supabase as any).from("facilities").insert({ ...form });
-        toast({ title:"Facility added " });
+        toast({ title:"Facility added ✓" });
       }
       setShowForm(false);
       load();
@@ -99,7 +97,7 @@ export default function FacilitiesPage() {
           <Building2 style={{ width:20, height:20, color:"#fff" }}/>
           <div>
             <h1 style={{ fontSize:15, fontWeight:900, color:"#fff", margin:0 }}>Health Facilities</h1>
-            <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", margin:0 }}>Embu County Government  -- {facilities.length} facilities</p>
+            <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", margin:0 }}>Embu County Government — {facilities.length} facilities</p>
           </div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
@@ -164,7 +162,7 @@ export default function FacilitiesPage() {
                     </span>
                     {f.is_main && (
                       <span style={{ fontSize:9.5, fontWeight:700, padding:"1px 7px", borderRadius:20, background:"#dcfce7", color:"#166534" }}>
-                         MAIN
+                        ★ MAIN
                       </span>
                     )}
                     {!f.is_active && (
@@ -225,7 +223,7 @@ export default function FacilitiesPage() {
         ))}
       </div>
 
-      {/* === ADD/EDIT MODAL === */}
+      {/* ═══ ADD/EDIT MODAL ═══ */}
       {showForm && (
         <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"flex-start", justifyContent:"center", paddingTop:24, paddingBottom:24, overflowY:"auto" }}>
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)" }} onClick={() => setShowForm(false)}/>
@@ -233,7 +231,7 @@ export default function FacilitiesPage() {
             {/* Modal header */}
             <div style={{ padding:"14px 20px", background:`linear-gradient(90deg,${form.primary_color||"#0a2558"},${form.primary_color||"#0a2558"}bb)`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <h3 style={{ fontSize:14, fontWeight:900, color:"#fff", margin:0 }}>
-                {editing ? `Edit  -- ${editing.name}` : "Add New Facility"}
+                {editing ? `Edit — ${editing.name}` : "Add New Facility"}
               </h3>
               <button onClick={() => setShowForm(false)} style={{ padding:5, borderRadius:6, background:"rgba(255,255,255,0.15)", color:"#fff", border:"none", cursor:"pointer" }}>
                 <X style={{ width:15, height:15 }}/>

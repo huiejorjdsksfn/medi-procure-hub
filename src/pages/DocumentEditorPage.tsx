@@ -1,5 +1,5 @@
 /**
- * ProcurBosse  -- Document Editor
+ * ProcurBosse — Document Editor
  * Rich text editor for creating official hospital documents
  * Supports templates, letterhead, print, and save to library
  */
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
-// --- Types --------------------------------------------------------------------
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface DocMeta {
   id?: string;
   name: string;
@@ -192,7 +192,7 @@ The [Title]<br/>
 const FONT_SIZES = ["8","9","10","11","12","14","16","18","20","22","24","28","32","36","48","72"];
 const FONT_FAMILIES = ["Times New Roman","Arial","Calibri","Georgia","Verdana","Courier New","Cambria","Palatino"];
 
-// --- Toolbar Button ------------------------------------------------------------
+// ─── Toolbar Button ────────────────────────────────────────────────────────────
 const TB = ({ icon: Icon, title, onClick, active }: any) => (
   <button title={title} onClick={onClick}
     style={{ padding:"4px 6px",border:"none",borderRadius:4,cursor:"pointer",background:active?"#e0e7ff":"transparent",color:active?"#4f46e5":"#374151",display:"flex",alignItems:"center",justifyContent:"center" }}
@@ -202,7 +202,7 @@ const TB = ({ icon: Icon, title, onClick, active }: any) => (
   </button>
 );
 
-// --- Main Component ------------------------------------------------------------
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function DocumentEditorPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -289,7 +289,7 @@ export default function DocumentEditorPage() {
       toast({ title: "Save failed: " + res.error.message, variant: "destructive" });
     } else {
       if (!docId) setDocId(res.data?.id);
-      toast({ title: "[OK] Document saved to library" });
+      toast({ title: "✅ Document saved to library" });
       logAudit(user?.id, profile?.full_name, docId?"update":"create", "documents", res.data?.id, { name: meta.name });
     }
     setSaving(false);
@@ -300,7 +300,7 @@ export default function DocumentEditorPage() {
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html><head>
-<title>${meta.name}  -- ${hospitalName}</title>
+<title>${meta.name} — ${hospitalName}</title>
 <style>
   @page { size: A4; margin: 20mm 25mm; }
   body { font-family: 'Times New Roman',serif; font-size:12pt; color:#000; margin:0; padding:0; }
@@ -327,7 +327,7 @@ export default function DocumentEditorPage() {
 </div>
 ${html}
 <div class="footer">
-  <span>${hospitalName}  -- Official Document</span>
+  <span>${hospitalName} — Official Document</span>
   <span>Printed: ${new Date().toLocaleString("en-KE")} | ${sysName}</span>
 </div>
 </body></html>`);
@@ -370,7 +370,7 @@ ${html}
 
   return (
     <div style={S.page}>
-      {/* -- Header -- */}
+      {/* ── Header ── */}
       <div style={S.bar}>
         <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.9)",cursor:"pointer",padding:0 }}>
           <X style={{ width:18,height:18 }} />
@@ -395,12 +395,12 @@ ${html}
           </button>
           <button onClick={save} disabled={saving}
             style={{ padding:"6px 14px",borderRadius:6,border:"none",background:"#C45911",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
-            <Save style={{ width:13,height:13 }} /> {saving ? "Saving..." : "Save"}
+            <Save style={{ width:13,height:13 }} /> {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
 
-      {/* -- Templates Panel -- */}
+      {/* ── Templates Panel ── */}
       {showTemplates && (
         <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"12px 20px",display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center" }}>
           <span style={{ fontSize:12,fontWeight:700,color:"#374151",marginRight:4 }}>Choose template:</span>
@@ -418,7 +418,7 @@ ${html}
         </div>
       )}
 
-      {/* -- Toolbar (edit mode only) -- */}
+      {/* ── Toolbar (edit mode only) ── */}
       {mode === "edit" && (
         <div style={S.tb}>
           {/* Font family */}
@@ -473,7 +473,7 @@ ${html}
         </div>
       )}
 
-      {/* -- Document Metadata Bar -- */}
+      {/* ── Document Metadata Bar ── */}
       <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 16px",display:"flex",alignItems:"center",gap:12,fontSize:12,color:"#6b7280" }}>
         <span>Category:</span>
         <select value={meta.category} onChange={e=>setMeta(p=>({...p,category:e.target.value}))} style={{...S.inp,padding:"2px 6px",fontSize:11}}>
@@ -484,11 +484,11 @@ ${html}
           Save as template
         </label>
         <span style={{ marginLeft:"auto" }}>
-          {mode==="edit" ? " Editing" : " Preview"} | {hospitalName}
+          {mode==="edit" ? "📝 Editing" : "👁 Preview"} | {hospitalName}
         </span>
       </div>
 
-      {/* -- Editor Area -- */}
+      {/* ── Editor Area ── */}
       <div style={{ flex:1,padding:"20px",overflowY:"auto" }}>
         {mode === "edit" ? (
           <div style={S.paper}>

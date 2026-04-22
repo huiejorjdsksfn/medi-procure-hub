@@ -8,8 +8,8 @@ import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printGenericVoucher } from "@/lib/printDocument";
 
-function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`; };
-function genNo() { return `SV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`; };
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
+const genNo = () => `SV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
 const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancelled:"#dc2626"};
 
 export default function SalesVouchersPage() {
@@ -31,8 +31,6 @@ export default function SalesVouchersPage() {
   // hospitalName now from useSystemSettings
 
   const load = async () => {
-    try {
-
     setLoading(true);
     const [{data:sv},{data:d},{data:it}] = await Promise.all([
       (supabase as any).from("sales_vouchers").select("*").order("created_at",{ascending:false}),
@@ -40,15 +38,11 @@ export default function SalesVouchersPage() {
       (supabase as any).from("items").select("id,name,unit_price").order("name"),
     ]);
     setRows(sv||[]); setDepts(d||[]); setItems(it||[]);
-    } catch(e: any) {
-      console.warn("[ProcurBosse] Load error:", e?.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
   useEffect(()=>{load();},[]);
 
-  /* -- Real-time subscription ------------------------------- */
+  /* ── Real-time subscription ─────────────────────────────── */
   useEffect(()=>{
     const ch=(supabase as any).channel("sv-rt").on("postgres_changes",{event:"*",schema:"public",table:"sales_vouchers"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -72,8 +66,8 @@ export default function SalesVouchersPage() {
     const payload={...form,voucher_number:genNo(),subtotal,tax_amount:taxAmt,amount:total,
       department_id:form.department_id||null,line_items:lineItems,status:"confirmed",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("sales_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","sales_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Sales Voucher created "});setShowNew(false);load();}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","sales_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Sales Voucher created ✓"});setShowNew(false);load();}
     setSaving(false);
   };
 
@@ -94,7 +88,7 @@ export default function SalesVouchersPage() {
     printGenericVoucher(v, "Sales Voucher", {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital * Embu County Government'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
       currencySymbol: getSetting('currency_symbol','KES'),
       logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
       hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
@@ -142,7 +136,7 @@ export default function SalesVouchersPage() {
       })()}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#065f46,#0d9488)"}}>
         <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Sales Vouchers</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records * Total: {fmtKES(totalAmt)}</p></div>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records · Total: {fmtKES(totalAmt)}</p></div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#065f46"}}><Plus style={{width:14,height:14}}/>New Sale</button>}
@@ -205,7 +199,7 @@ export default function SalesVouchersPage() {
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
                 <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value=""> -- Select  --</option>
+                  <option value="">— Select —</option>
                   {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select></div>
             </div>
@@ -221,7 +215,7 @@ export default function SalesVouchersPage() {
                     <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
                       <td style={{padding:"4px"}}>
                         <select value={it.item_id} onChange={e=>updateLine(i,"item_id",e.target.value)} style={{width:"100%",padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",boxSizing:"border-box"}}>
-                          <option value=""> -- Item  --</option>
+                          <option value="">— Item —</option>
                           {items.map(it2=><option key={it2.id} value={it2.id}>{it2.name}</option>)}
                         </select>
                       </td>

@@ -1,7 +1,7 @@
 /**
- * ProcurBosse  -- Contract Workflow Engine v5.8
- * Draft -> Active -> Renewed / Expired / Terminated
- * EL5 MediProcure * Embu Level 5 Hospital
+ * ProcurBosse — Contract Workflow Engine v5.8
+ * Draft → Active → Renewed / Expired / Terminated
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';

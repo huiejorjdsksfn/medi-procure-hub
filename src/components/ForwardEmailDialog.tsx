@@ -13,7 +13,7 @@ import {
   CheckCheck, Forward, ChevronDown, Shield, Package,
   Clipboard, Wrench, Info } from "lucide-react";
 
-// --- Role metadata --------------------------------------------------------
+// ─── Role metadata ────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { label: string; color: string; bg: string }> = {
   admin:               { label: "Admin",             color: "#a4262c", bg: "#fde8e8" },
   procurement_manager: { label: "Proc. Manager",     color: "#ca5010", bg: "#fef3e2" },
@@ -61,7 +61,7 @@ export default function ForwardEmailDialog({
 }: ForwardEmailDialogProps) {
   const { user, profile } = useAuth();
 
-  // -- State --------------------------------------------------------------
+  // ── State ──────────────────────────────────────────────────────────────
   const [allUsers, setAllUsers]         = useState<any[]>([]);
   const [loading,  setLoading]          = useState(false);
   const [sending,  setSending]          = useState(false);
@@ -74,7 +74,7 @@ export default function ForwardEmailDialog({
   const [ccSelf,   setCcSelf]           = useState(false);
   const [sent,     setSent]             = useState(false);
 
-  // -- Fetch users on open ------------------------------------------------
+  // ── Fetch users on open ────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
     setSent(false);
@@ -82,7 +82,7 @@ export default function ForwardEmailDialog({
     setSearch("");
     setTab("all");
     setPriority(record.priority || "normal");
-    setSubject(`FWD: ${record.type.replace("_"," ").replace(/\b\w/g,c=>c.toUpperCase())} ${record.number} - Action Required`);
+    setSubject(`FWD: ${record.type.replace("_"," ").replace(/\b\w/g,c=>c.toUpperCase())} ${record.number} – Action Required`);
     setBody(buildDefaultBody());
     fetchUsers();
   }, [open, record.id]);
@@ -110,7 +110,7 @@ export default function ForwardEmailDialog({
   const buildDefaultBody = () =>
     `Dear Colleague,\n\nThis is to inform you of the following ${record.type.replace("_"," ")} that requires your attention.\n\nReference No : ${record.number}\n${record.amount != null ? `Amount       : KSH ${Number(record.amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}\n` : ""}${record.priority ? `Priority     : ${record.priority.toUpperCase()}\n` : ""}${record.status ? `Current Status: ${record.status.toUpperCase()}\n` : ""}${record.justification ? `\nJustification:\n${record.justification}\n` : ""}\nPlease review this ${record.type.replace("_"," ")} and take the necessary action at your earliest convenience.\n\nKind regards,\n${profile?.full_name || "MediProcure System"}\nEmbu Level 5 Hospital`;
 
-  // -- Filtered user list -------------------------------------------------
+  // ── Filtered user list ─────────────────────────────────────────────────
   const visibleUsers = allUsers
     .filter(u => !recipients.some(r => r.id === u.id))
     .filter(u => {
@@ -137,14 +137,14 @@ export default function ForwardEmailDialog({
   const addGroup = (groupRoles: string[] | null) => {
     const toAdd = allUsers.filter(u => {
       if (recipients.some(r => r.id === u.id)) return false;
-      if (groupRoles === null) return true; // All Users  -- everyone with an email
+      if (groupRoles === null) return true; // All Users — everyone with an email
       return groupRoles.some(r => u.roles.includes(r));
     });
     setRecipients(p => [...p, ...toAdd.map((u: any) => ({ id: u.id, name: u.full_name || u.email, email: u.email, roles: u.roles }))]);
     toast({ title: `Added ${toAdd.length} recipient${toAdd.length !== 1 ? "s" : ""}` });
   };
 
-  // -- Send ---------------------------------------------------------------
+  // ── Send ───────────────────────────────────────────────────────────────
   const handleSend = async () => {
     if (recipients.length === 0) {
       toast({ title: "No recipients", description: "Add at least one recipient.", variant: "destructive" });
@@ -190,7 +190,7 @@ export default function ForwardEmailDialog({
 
       setSent(true);
       toast({
-        title: "[OK] Forwarded successfully",
+        title: "✅ Forwarded successfully",
         description: `Email sent to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""}.`,
       });
       setTimeout(() => { onClose(); setSent(false); }, 1200);
@@ -199,7 +199,7 @@ export default function ForwardEmailDialog({
     } finally { setSending(false); }
   };
 
-  // -- UI helpers ---------------------------------------------------------
+  // ── UI helpers ─────────────────────────────────────────────────────────
   const RoleBadge = ({ role }: { role: string }) => {
     const m = ROLE_META[role] || { label: role, color: "#555", bg: "#f0f0f0" };
     return (
@@ -237,7 +237,7 @@ export default function ForwardEmailDialog({
           padding: 0,
         }}
       >
-        {/* -- Header --------------------------------------------------- */}
+        {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0"
           style={{ background: "linear-gradient(135deg,#f8faff,#fff)" }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow"
@@ -248,8 +248,8 @@ export default function ForwardEmailDialog({
             <h2 className="text-sm font-bold text-gray-900">Forward {typeLabel}</h2>
             <p className="text-[11px] text-gray-500 truncate">
               {record.number}
-              {record.amount != null && ` * KSH ${Number(record.amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`}
-              {record.status && ` * ${record.status.toUpperCase()}`}
+              {record.amount != null && ` · KSH ${Number(record.amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`}
+              {record.status && ` · ${record.status.toUpperCase()}`}
             </p>
           </div>
           {/* Priority pills */}
@@ -268,7 +268,7 @@ export default function ForwardEmailDialog({
           </div>
         </div>
 
-        {/* -- Body ----------------------------------------------------- */}
+        {/* ── Body ───────────────────────────────────────────────────── */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
           {/* LEFT: User picker */}
@@ -302,7 +302,7 @@ export default function ForwardEmailDialog({
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
                 <input value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Search by name, email or role..."
+                  placeholder="Search by name, email or role…"
                   className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-blue-400"/>
               </div>
             </div>
@@ -341,7 +341,7 @@ export default function ForwardEmailDialog({
             {/* Count */}
             <div className="px-3 py-2 border-t border-gray-200 bg-white shrink-0">
               <p className="text-[10px] text-gray-400">
-                {allUsers.length} total users * {visibleUsers.length} shown
+                {allUsers.length} total users · {visibleUsers.length} shown
                 {tab === "admins" && ` (admins only)`}
                 {tab === "nonAdmins" && ` (non-admins)`}
               </p>
@@ -356,7 +356,7 @@ export default function ForwardEmailDialog({
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest w-12 shrink-0">To:</span>
                 {recipients.length === 0 && (
-                  <span className="text-xs text-gray-300 italic">Select recipients from the left panel...</span>
+                  <span className="text-xs text-gray-300 italic">Select recipients from the left panel…</span>
                 )}
               </div>
               {recipients.length > 0 && (
@@ -382,7 +382,7 @@ export default function ForwardEmailDialog({
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest w-12 shrink-0">Subj:</span>
               <input value={subject} onChange={e => setSubject(e.target.value)}
                 className="flex-1 text-sm border-0 outline-none bg-transparent text-gray-800 placeholder-gray-300"
-                placeholder="Email subject..."/>
+                placeholder="Email subject…"/>
             </div>
 
             {/* Body */}
@@ -392,7 +392,7 @@ export default function ForwardEmailDialog({
                 onChange={e => setBody(e.target.value)}
                 className="w-full h-full resize-none text-xs border-0 outline-none bg-transparent text-gray-700 leading-relaxed"
                 style={{ fontFamily: "Segoe UI, system-ui, sans-serif" }}
-                placeholder="Compose your message..."
+                placeholder="Compose your message…"
               />
             </div>
 
@@ -445,7 +445,7 @@ export default function ForwardEmailDialog({
                   {sent
                     ? <><CheckCheck className="w-3.5 h-3.5"/> Sent!</>
                     : sending
-                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> Sending...</>
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> Sending…</>
                     : <><Send className="w-3.5 h-3.5"/> Forward & Email</>
                   }
                 </button>

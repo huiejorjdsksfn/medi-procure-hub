@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ProcurBosse Build Script   Python
+ProcurBosse Build Script — Python
 Builds both v1 (Win7/8 ia32) and v2 (Win10/11 x64) EXE installers
 and packages them into a ZIP with all required DLLs.
 Run: python build_procurbosse.py [--v1] [--v2] [--all] [--zip]
@@ -17,7 +17,7 @@ PKG_FILE = ROOT / "package.json"
 BUILDER_CFG = ROOT / "electron-builder.yml"
 BUILDS_DIR = ROOT / "builds"
 
-#    DLL list required for Windows 7/8/10/11                   
+# ── DLL list required for Windows 7/8/10/11 ──────────────────
 WIN7_DLLS = [
     "vcruntime140.dll", "vcruntime140_1.dll", "ucrtbase.dll",
     "msvcp140.dll", "msvcp140_1.dll",
@@ -30,8 +30,8 @@ ELECTRON_DLLS = [
 
 def log(msg, level="INFO"):
     ts = datetime.now().strftime("%H:%M:%S")
-    symbols = {"INFO":"","OK":"","ERR":"","WARN":"","BUILD":""}
-    print(f"[{ts}] {symbols.get(level,' ')} {msg}")
+    symbols = {"INFO":"ℹ️","OK":"✅","ERR":"❌","WARN":"⚠️","BUILD":"🔨"}
+    print(f"[{ts}] {symbols.get(level,'·')} {msg}")
 
 def run(cmd, cwd=None, env=None):
     """Run command and return exit code."""
@@ -73,7 +73,7 @@ def build_web():
     code = run(["npm", "run", "build"], env=env)
     if code != 0:
         log("Web build failed!", "ERR"); return False
-    log(f"Web build OK   {sum(1 for _ in (DIST_WEB/'assets').glob('*'))} assets", "OK")
+    log(f"Web build OK — {sum(1 for _ in (DIST_WEB/'assets').glob('*'))} assets", "OK")
     return True
 
 def build_exe(arch="x64", version=None):
@@ -110,61 +110,61 @@ def create_zip(v1_exe=None, v2_exe=None):
     ts = datetime.now().strftime("%Y%m%d_%H%M")
     zip_path = BUILDS_DIR / f"ProcurBosse_v2.0_{ts}_Windows.zip"
     
-    readme = f"""ProcurBosse   EL5 MediProcure Windows Installer Package
+    readme = f"""ProcurBosse — EL5 MediProcure Windows Installer Package
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 Hospital: Embu Level 5 Hospital, Embu County Government
-System: EL5 MediProcure v2.0   All 40+ ERP Modules
+System: EL5 MediProcure v2.0 — All 40+ ERP Modules
 
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 FILES IN THIS PACKAGE:
-    ProcurBosse-v2.x-Win10-x64-Setup.exe
-        For Windows 10 / 11 (64-bit)   RECOMMENDED
-        Modern PCs, laptops, workstations
-  
-    ProcurBosse-v1.x-Win7-ia32-Setup.exe
-         For Windows 7 SP1 / 8 / 8.1 / 10 (32-bit)
-         Legacy hospital PCs
+  ┌─ ProcurBosse-v2.x-Win10-x64-Setup.exe
+  │     → For Windows 10 / 11 (64-bit) — RECOMMENDED
+  │     → Modern PCs, laptops, workstations
+  │
+  └─ ProcurBosse-v1.x-Win7-ia32-Setup.exe
+        → For Windows 7 SP1 / 8 / 8.1 / 10 (32-bit)
+        → Legacy hospital PCs
 
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 INSTALLATION:
-  1. Right-click the correct .exe  "Run as Administrator"
+  1. Right-click the correct .exe → "Run as Administrator"
   2. Follow the setup wizard
   3. Choose installation folder (default: C:\\Program Files\\ProcurBosse)
   4. Launch from Desktop shortcut or Start Menu
 
 SYSTEM REQUIREMENTS:
-                                                             
-                   v2 (Modern)          v1 (Legacy)          
-                                                             
-   Windows         10 / 11              7 SP1 / 8 / 8.1 / 10
-   Architecture    64-bit               32 or 64-bit         
-   RAM             4 GB minimum         2 GB minimum         
-   Disk            500 MB               350 MB               
-   Internet        Required             Required             
-                                                             
+  ┌────────────────┬─────────────────────┬──────────────────────┐
+  │                │ v2 (Modern)         │ v1 (Legacy)          │
+  ├────────────────┼─────────────────────┼──────────────────────┤
+  │ Windows        │ 10 / 11             │ 7 SP1 / 8 / 8.1 / 10│
+  │ Architecture   │ 64-bit              │ 32 or 64-bit         │
+  │ RAM            │ 4 GB minimum        │ 2 GB minimum         │
+  │ Disk           │ 500 MB              │ 350 MB               │
+  │ Internet       │ Required            │ Required             │
+  └────────────────┴─────────────────────┴──────────────────────┘
 
 DATABASE:
   Live connection to: yvjfehnzbzjliizjvuhq.supabase.co
   All data is stored securely in Supabase PostgreSQL
 
 INCLUDED DLLs (automatically installed by setup):
-    vcruntime140.dll / vcruntime140_1.dll   Visual C++ Runtime
-    ucrtbase.dll        Universal C Runtime (Win7 support)
-    d3dcompiler_47.dll   DirectX Shader Compiler
-    chrome_elf.dll     Chromium Error Reporting
-    libEGL.dll / libGLESv2.dll   SwiftShader Software Renderer
-    ffmpeg.dll         Multimedia Framework
+  • vcruntime140.dll / vcruntime140_1.dll — Visual C++ Runtime
+  • ucrtbase.dll      — Universal C Runtime (Win7 support)
+  • d3dcompiler_47.dll — DirectX Shader Compiler
+  • chrome_elf.dll   — Chromium Error Reporting
+  • libEGL.dll / libGLESv2.dll — SwiftShader Software Renderer
+  • ffmpeg.dll       — Multimedia Framework
 
 IP RESTRICTION:
   This app enforces IP whitelisting when configured by admin.
   Unauthorized IPs are automatically disconnected.
-  Configure in: Admin  Settings  Security  IP Restriction
+  Configure in: Admin → Settings → Security → IP Restriction
 
 SUPPORT:
   Repository: https://github.com/huiejorjdsksfn/medi-procure-hub
-  Hospital IT: IT Department   Embu Level 5 Hospital
+  Hospital IT: IT Department — Embu Level 5 Hospital
 """
     
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zf:

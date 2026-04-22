@@ -1,32 +1,12 @@
 /**
- * ProcurBosse  -- Document Parser v1.0
+ * ProcurBosse — Document Parser v1.0
  * Parses Word (.docx), Excel (.xlsx/.xls), CSV, PDF text extraction
  * Maps parsed data to ERP modules (requisitions, items, suppliers, etc.)
- * EL5 MediProcure * Embu Level 5 Hospital
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import * as XLSX from "xlsx";
 
-export type FileKind = "excel" | "word" | "csv" | "pdf" | "image" | "pptx" | "json" | "xml" | "text" | "zip" | "video" | "audio" | "unknown";
-
-/** All accepted file types with metadata */
-export const FILE_TYPE_META: Record<FileKind, { label:string; color:string; bg:string; extensions:string[]; maxMB:number; parseable:boolean }> = {
-  excel:   { label:"Excel",      color:"#16a34a", bg:"#16a34a18", extensions:[".xlsx",".xls",".ods"],             maxMB:50,  parseable:true  },
-  word:    { label:"Word",       color:"#1d4ed8", bg:"#1d4ed818", extensions:[".docx",".doc"],                    maxMB:50,  parseable:true  },
-  pdf:     { label:"PDF",        color:"#dc2626", bg:"#dc262618", extensions:[".pdf"],                            maxMB:100, parseable:true  },
-  csv:     { label:"CSV",        color:"#059669", bg:"#05986918", extensions:[".csv"],                            maxMB:20,  parseable:true  },
-  pptx:    { label:"PowerPoint", color:"#f97316", bg:"#f9731618", extensions:[".pptx",".ppt"],                    maxMB:100, parseable:false },
-  image:   { label:"Image",      color:"#7c3aed", bg:"#7c3aed18", extensions:[".jpg",".jpeg",".png",".webp",".gif",".svg",".bmp",".tiff"], maxMB:20, parseable:false },
-  json:    { label:"JSON",       color:"#0891b2", bg:"#0891b218", extensions:[".json"],                           maxMB:10,  parseable:true  },
-  xml:     { label:"XML",        color:"#0369a1", bg:"#0369a118", extensions:[".xml"],                            maxMB:10,  parseable:true  },
-  text:    { label:"Text",       color:"#6b7280", bg:"#6b728018", extensions:[".txt",".log",".md"],               maxMB:10,  parseable:true  },
-  zip:     { label:"Archive",    color:"#8b5cf6", bg:"#8b5cf618", extensions:[".zip",".tar",".gz",".rar"],        maxMB:200, parseable:false },
-  video:   { label:"Video",      color:"#f43f5e", bg:"#f43f5e18", extensions:[".mp4",".webm",".mov",".mpeg"],     maxMB:500, parseable:false },
-  audio:   { label:"Audio",      color:"#ec4899", bg:"#ec489918", extensions:[".mp3",".wav",".ogg",".m4a"],       maxMB:100, parseable:false },
-  unknown: { label:"Other",      color:"#9ca3af", bg:"#9ca3af18", extensions:[],                                  maxMB:50,  parseable:false },
-};
-
-/** Accept string for file inputs  -- all supported formats */
-export const ACCEPT_ALL = ".xlsx,.xls,.ods,.docx,.doc,.pdf,.csv,.pptx,.ppt,.jpg,.jpeg,.png,.webp,.gif,.svg,.bmp,.tiff,.json,.xml,.txt,.log,.md,.zip,.tar,.gz,.mp4,.webm,.mov,.mp3,.wav,.ogg,.m4a";
+export type FileKind = "excel" | "word" | "csv" | "pdf" | "image" | "unknown";
 
 export interface ParsedDocument {
   kind: FileKind;
@@ -50,16 +30,9 @@ export function detectKind(file: File): FileKind {
   const mime = file.type.toLowerCase();
   if (mime.includes("spreadsheet") || mime.includes("excel") || name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".ods")) return "excel";
   if (mime.includes("wordprocessing") || mime.includes("msword") || name.endsWith(".docx") || name.endsWith(".doc")) return "word";
-  if (mime.includes("presentationml") || mime.includes("powerpoint") || name.endsWith(".pptx") || name.endsWith(".ppt")) return "pptx";
-  if (mime === "application/pdf" || name.endsWith(".pdf")) return "pdf";
   if (mime === "text/csv" || name.endsWith(".csv")) return "csv";
-  if (mime === "application/json" || name.endsWith(".json")) return "json";
-  if (mime.includes("xml") || name.endsWith(".xml")) return "xml";
-  if (mime === "text/plain" || name.endsWith(".txt") || name.endsWith(".md") || name.endsWith(".log")) return "text";
+  if (mime === "application/pdf" || name.endsWith(".pdf")) return "pdf";
   if (mime.startsWith("image/")) return "image";
-  if (mime.startsWith("video/") || name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mov")) return "video";
-  if (mime.startsWith("audio/") || name.endsWith(".mp3") || name.endsWith(".wav") || name.endsWith(".ogg")) return "audio";
-  if (mime.includes("zip") || mime.includes("tar") || mime.includes("gzip") || name.endsWith(".zip") || name.endsWith(".tar") || name.endsWith(".gz") || name.endsWith(".rar")) return "zip";
   return "unknown";
 }
 
@@ -70,7 +43,7 @@ export function fmtSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-/** Parse Excel / CSV -> tables */
+/** Parse Excel / CSV → tables */
 export async function parseExcel(file: File): Promise<ParsedDocument> {
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: "array", cellDates: true });
@@ -161,7 +134,7 @@ export async function parseWord(file: File): Promise<ParsedDocument> {
   }
 }
 
-/** PDF  -- extract text via PDF.js (client side) */
+/** PDF — extract text via PDF.js (client side) */
 export async function parsePDF(file: File): Promise<ParsedDocument> {
   try {
     // Try PDF.js dynamic import

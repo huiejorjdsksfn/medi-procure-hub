@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -32,7 +31,6 @@ const REPORT_TYPES = [
 const TX_TYPE_FILTER = ["ALL","Purchase","Receipt","Payment","Issue","Transfer"];
 
 export default function ReportsPage() {
-  const nav = useNavigate();
   const { profile } = useAuth();
   const { get: getSetting } = useSystemSettings();
   const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
@@ -51,7 +49,6 @@ export default function ReportsPage() {
   const [stockList, setStockList] = useState<any[]>([]);
   const [stockSearch, setStockSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [viewMode, setViewMode] = useState<"ALL" | "Latest 100" | "This Month">("ALL");
 
   useEffect(() => {
     /* settings via useSystemSettings hook */
@@ -83,23 +80,15 @@ export default function ReportsPage() {
         invAmt: d.reduce((s:number,r:any) => s + Number(r.total_value||r.net_book_value||0), 0) || purchaseAmt,
       });
     } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
-    finally { setLoading(false); }
+    setLoading(false);
   },[reportType, startDate, endDate]);
 
   useEffect(() => { loadReport(); }, [loadReport]);
 
-  const filteredRows = useMemo(() => {
-    let base = rows.filter(r => {
-      if (!search) return true;
-      return Object.values(r).some(v => String(v || "").toLowerCase().includes(search.toLowerCase()));
-    });
-    if (viewMode === "Latest 100") return base.slice(0, 100);
-    if (viewMode === "This Month") {
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-      return base.filter(r => r.created_at && r.created_at >= startOfMonth);
-    }
-    return base;
-  }, [rows, search, viewMode]);
+  const filteredRows = rows.filter(r => {
+    if (!search) return true;
+    return Object.values(r).some(v => String(v||"").toLowerCase().includes(search.toLowerCase()));
+  });
 
   const filteredStock = stockSearch
     ? stockList.filter(s => s.name.toLowerCase().includes(stockSearch.toLowerCase()))
@@ -139,7 +128,7 @@ export default function ReportsPage() {
       .footer{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:8px;font-size:9px;color:#9ca3af;text-align:center}
       @media print{@page{margin:1.2cm}body{margin:0}}
     </style></head><body>
-    <div class="lh">${logoHtml}<div class="lh-info"><h2>${hospitalName}</h2><small>${reportType.label} Report * ${startDate} to ${endDate}</small></div></div>
+    <div class="lh">${logoHtml}<div class="lh-info"><h2>${hospitalName}</h2><small>${reportType.label} Report · ${startDate} to ${endDate}</small></div></div>
     <div class="kpi-row">
       <div class="kpi" style="background:#c0392b"><div class="val">${fmtKES(kpi.purchase)}</div><div class="lbl">Total Value</div></div>
       <div class="kpi" style="background:#7d6608"><div class="val">${fmtKES(kpi.received)}</div><div class="lbl">Received</div></div>
@@ -149,14 +138,14 @@ export default function ReportsPage() {
     </div>
     <table><thead><tr>${cols.map(c=>`<th>${c.replace(/_/g," ")}</th>`).join("")}</tr></thead>
     <tbody>${rowsHtml}</tbody></table>
-    <div class="footer">${hospitalName} * ${sysName} * Printed ${new Date().toLocaleString("en-KE")}</div>
+    <div class="footer">${hospitalName} · ${sysName} · Printed ${new Date().toLocaleString("en-KE")}</div>
     </body></html>`);
     win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
 
   return (
       <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",display:"flex",flexDirection:"column"}}>
-      {/* -- RETRO HEADER (VB6 style) -- */}
+      {/* ── RETRO HEADER (VB6 style) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap" as const,gap:8}}>
           {/* Logo + Title */}
@@ -164,10 +153,10 @@ export default function ReportsPage() {
             {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain"}} alt=""/>}
             <div>
               <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
-              <p style={{fontSize:11,color:"#555",margin:0}}>Reports  -- {reportType.label}</p>
+              <p style={{fontSize:11,color:"#555",margin:0}}>Reports & Data Extraction — {reportType.label}</p>
             </div>
           </div>
-          {/* Date Range controls  -- retro style */}
+          {/* Date Range controls — retro style */}
           <div style={{background:"#ececec",border:"1px solid #aaa",borderRadius:4,padding:"6px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap" as const}}>
             <div style={{border:"1px solid #aaa",padding:"2px 4px",borderRadius:3}}>
               <span style={{fontSize:10,color:"#555",fontWeight:700}}>Date Range</span>
@@ -212,17 +201,17 @@ export default function ReportsPage() {
             </div>
             <button onClick={printReport}
               style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
-               Print
+              🖨 Print
             </button>
             <button onClick={exportExcel}
               style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
-               Save
+              💾 Save
             </button>
           </div>
         </div>
       </div>
 
-      {/* -- KPI TILES (colored boxes like Inventory Management System V2.0) -- */}
+      {/* ── KPI TILES (colored boxes like Inventory Management System V2.0) ── */}
       <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"8px 12px"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
           {[
@@ -240,10 +229,10 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* -- MAIN LAYOUT: Left stock panel + Right transaction grid -- */}
+      {/* ── MAIN LAYOUT: Left stock panel + Right transaction grid ── */}
       <div style={{display:"flex",gap:0,minHeight:400,flex:1}}>
 
-        {/* LEFT PANEL  -- Available Stocks (like original image) */}
+        {/* LEFT PANEL — Available Stocks (like original image) */}
         <div style={{width:200,background:"#d4d0c8",borderRight:"2px solid #999",display:"flex",flexDirection:"column",flexShrink:0}}>
           <div style={{background:"#d4d0c8",borderBottom:"1px solid #aaa",padding:"6px 8px"}}>
             <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Available Stocks</span>
@@ -278,15 +267,15 @@ export default function ReportsPage() {
             <button onClick={()=>setStockSearch("")}
               style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Refresh</button>
             <button
-              onClick={loadReport} style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Extract</button>
+              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Extract</button>
           </div>
         </div>
 
-        {/* RIGHT PANEL  -- Transactions */}
+        {/* RIGHT PANEL — Transactions */}
         <div style={{flex:1,display:"flex",flexDirection:"column",background:"#d4d0c8"}}>
           {/* Transaction controls (Add/Update row) */}
           <div style={{background:"#d4d0c8",border:"2px inset #aaa",margin:"6px 8px 4px",padding:"6px 10px",borderRadius:3}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#1a1a2e",marginBottom:6}}>{reportType.label}  -- Add / Extract</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#1a1a2e",marginBottom:6}}>{reportType.label} — Add / Extract</div>
             <div style={{display:"flex",flexWrap:"wrap" as const,gap:12,alignItems:"flex-end"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
@@ -315,22 +304,19 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Transaction type radio  -- Show ALL / specific */}
+          {/* Transaction type radio — Show ALL / specific */}
           <div style={{padding:"2px 12px 4px",display:"flex",gap:16,alignItems:"center"}}>
             <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Show Records:</span>
-            {(["ALL","Latest 100","This Month"] as const).map(v=>(
+            {["ALL","Latest 100","This Month"].map(v=>(
               <label key={v} style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:11}}>
-                <input type="radio" name="txview" value={v}
-                  checked={viewMode===v}
-                  onChange={()=>setViewMode(v)}
-                  style={{accentColor:"#1a3a6b"}}/>
+                <input type="radio" name="txview" value={v} defaultChecked={v==="ALL"} style={{accentColor:"#1a3a6b"}}/>
                 {v}
               </label>
             ))}
             <span style={{marginLeft:"auto",fontSize:10,color:"#666"}}>{filteredRows.length} records</span>
           </div>
 
-          {/* Transaction DATA TABLE  -- classic blue header */}
+          {/* Transaction DATA TABLE — classic blue header */}
           <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",overflow:"auto"}}>
             {loading ? (
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:128}}>
@@ -372,13 +358,13 @@ export default function ReportsPage() {
           <div style={{borderTop:"2px solid #999",background:"#d4d0c8",padding:"4px 8px",display:"flex",gap:8,alignItems:"center"}}>
             <button onClick={printReport}
               style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",display:"flex",alignItems:"center",gap:6}}>
-               Print Report
+              🖨 Print Report
             </button>
             <button onClick={exportExcel}
               style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",display:"flex",alignItems:"center",gap:6}}>
-               Export Excel
+              📊 Export Excel
             </button>
-            <span style={{fontSize:10,color:"#666",marginLeft:8}}>{filteredRows.length} records * {startDate} to {endDate}</span>
+            <span style={{fontSize:10,color:"#666",marginLeft:8}}>{filteredRows.length} records · {startDate} to {endDate}</span>
           </div>
         </div>
       </div>

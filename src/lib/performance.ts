@@ -1,11 +1,11 @@
 /**
- * ProcurBosse  -- Performance Utilities v5.9
+ * ProcurBosse — Performance Utilities v5.9
  * Lazy loading, deduplication, concurrency control, debounce/throttle
- * Embu Level 5 Hospital * EL5 MediProcure
+ * Embu Level 5 Hospital · EL5 MediProcure
  */
 import { lazy, ComponentType, LazyExoticComponent } from "react";
 
-// -- Lazy load with retry ------------------------------------------------------
+// ── Lazy load with retry ──────────────────────────────────────────────────────
 export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
   retries = 3,
@@ -20,7 +20,7 @@ export function lazyWithRetry<T extends ComponentType<any>>(
   );
 }
 
-// -- Platform detection --------------------------------------------------------
+// ── Platform detection ────────────────────────────────────────────────────────
 export const Platform = {
   isElectron: () => !!(window as any).electronAPI,
   isWeb:      () => !(window as any).electronAPI,
@@ -30,7 +30,7 @@ export const Platform = {
   isLowEnd:   () => (navigator as any).hardwareConcurrency <= 2,
 };
 
-// -- Open URL ------------------------------------------------------------------
+// ── Open URL ──────────────────────────────────────────────────────────────────
 export async function openURL(url: string): Promise<void> {
   if (Platform.isElectron()) {
     await (window as any).electronAPI?.openExternal(url);
@@ -39,7 +39,7 @@ export async function openURL(url: string): Promise<void> {
   }
 }
 
-// -- Performance marks ---------------------------------------------------------
+// ── Performance marks ─────────────────────────────────────────────────────────
 export function mark(name: string): void {
   try { performance.mark(name); } catch { /* */ }
 }
@@ -51,7 +51,7 @@ export function measure(name: string, start: string, end: string): number {
   } catch { return 0; }
 }
 
-// -- Prefetch route ------------------------------------------------------------
+// ── Prefetch route ────────────────────────────────────────────────────────────
 export function preloadRoute(path: string): void {
   if ("requestIdleCallback" in window) {
     (window as any).requestIdleCallback(() => {
@@ -63,7 +63,7 @@ export function preloadRoute(path: string): void {
   }
 }
 
-// -- Request deduplication -----------------------------------------------------
+// ── Request deduplication ─────────────────────────────────────────────────────
 // Prevents N identical in-flight API calls from firing simultaneously
 const inflightMap = new Map<string, Promise<any>>();
 
@@ -74,8 +74,8 @@ export function dedupe<T>(key: string, factory: () => Promise<T>): Promise<T> {
   return promise;
 }
 
-// -- Concurrency limiter -------------------------------------------------------
-// Useful for bulk operations  -- run max N promises at a time
+// ── Concurrency limiter ───────────────────────────────────────────────────────
+// Useful for bulk operations — run max N promises at a time
 export async function pLimit<T>(
   tasks: Array<() => Promise<T>>,
   concurrency = 4
@@ -94,7 +94,7 @@ export async function pLimit<T>(
   return results;
 }
 
-// -- Debounce ------------------------------------------------------------------
+// ── Debounce ──────────────────────────────────────────────────────────────────
 export function debounce<T extends (...args: any[]) => any>(
   fn: T,
   delayMs: number
@@ -106,7 +106,7 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// -- Throttle ------------------------------------------------------------------
+// ── Throttle ──────────────────────────────────────────────────────────────────
 export function throttle<T extends (...args: any[]) => any>(
   fn: T,
   limitMs: number
@@ -121,7 +121,7 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 }
 
-// -- Retry with exponential backoff --------------------------------------------
+// ── Retry with exponential backoff ────────────────────────────────────────────
 export async function withRetry<T>(
   fn: () => Promise<T>,
   maxAttempts = 3,
@@ -141,7 +141,7 @@ export async function withRetry<T>(
   throw lastError;
 }
 
-// -- Timeout wrapper -----------------------------------------------------------
+// ── Timeout wrapper ───────────────────────────────────────────────────────────
 export function withTimeout<T>(promise: Promise<T>, ms: number, label = "request"): Promise<T> {
   return Promise.race([
     promise,
@@ -151,14 +151,14 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label = "request
   ]);
 }
 
-// -- Chunk array ---------------------------------------------------------------
+// ── Chunk array ───────────────────────────────────────────────────────────────
 export function chunk<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
   return chunks;
 }
 
-// -- Memoize (synchronous) -----------------------------------------------------
+// ── Memoize (synchronous) ─────────────────────────────────────────────────────
 export function memoize<T extends (...args: any[]) => any>(fn: T): T {
   const cache = new Map<string, ReturnType<T>>();
   return ((...args: any[]) => {
@@ -170,7 +170,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T): T {
   }) as T;
 }
 
-// -- Measure async performance -------------------------------------------------
+// ── Measure async performance ─────────────────────────────────────────────────
 export async function timed<T>(label: string, fn: () => Promise<T>): Promise<{ result: T; ms: number }> {
   const start = performance.now();
   const result = await fn();
@@ -179,7 +179,7 @@ export async function timed<T>(label: string, fn: () => Promise<T>): Promise<{ r
   return { result, ms };
 }
 
-// -- Idle-time task runner -----------------------------------------------------
+// ── Idle-time task runner ─────────────────────────────────────────────────────
 export function onIdle(callback: () => void): void {
   if ("requestIdleCallback" in window) {
     (window as any).requestIdleCallback(callback, { timeout: 2000 });
@@ -188,7 +188,7 @@ export function onIdle(callback: () => void): void {
   }
 }
 
-// -- Preload critical API data on app init -------------------------------------
+// ── Preload critical API data on app init ─────────────────────────────────────
 export function scheduleApiWarmUp(warmUpTasks: Array<() => void>): void {
   onIdle(() => warmUpTasks.forEach(task => { try { task(); } catch { /* silent */ } }));
 }

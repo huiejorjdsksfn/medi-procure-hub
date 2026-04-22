@@ -1,8 +1,8 @@
 /**
- * ProcurBosse  -- LiveDatabaseEngine v1.0
+ * ProcurBosse — LiveDatabaseEngine v1.0
  * Auto-polls every 60s: tests all 42+ APIs, tracks schema, logs health metrics
- * Singleton  -- call liveDbEngine.start() once on app init
- * EL5 MediProcure * Embu Level 5 Hospital
+ * Singleton — call liveDbEngine.start() once on app init
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -105,7 +105,7 @@ class LiveDatabaseEngine {
     this.initRealtime();
     this.runCycle();
     this.intervalId = setInterval(() => this.runCycle(), this.intervalMs);
-    console.log(`[LiveDB]  started  -- ${intervalMs / 1000}s interval`);
+    console.log(`[LiveDB] ▶ started — ${intervalMs / 1000}s interval`);
   }
 
   stop() {
@@ -114,7 +114,7 @@ class LiveDatabaseEngine {
     this.intervalId = null;
     this.realtimeChannel = null;
     this.running = false;
-    console.log("[LiveDB]  stopped");
+    console.log("[LiveDB] ■ stopped");
   }
 
   forceRun()   { return this.runCycle(); }
@@ -177,7 +177,7 @@ class LiveDatabaseEngine {
     };
 
     this.emit(snapshot);
-    console.log(`[LiveDB] #${this.runNumber}  -- ${healthy}/${tables.length} OK | ${dbLatency}ms ping | ${twilioStatus} Twilio | ${Math.round(performance.now() - cycleStart)}ms`);
+    console.log(`[LiveDB] #${this.runNumber} — ${healthy}/${tables.length} OK | ${dbLatency}ms ping | ${twilioStatus} Twilio | ${Math.round(performance.now() - cycleStart)}ms`);
   }
 
   private async runAllTableTests(): Promise<TableHealth[]> {

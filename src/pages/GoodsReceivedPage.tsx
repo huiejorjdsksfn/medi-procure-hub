@@ -1,6 +1,5 @@
 
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -45,18 +44,15 @@ export default function GoodsReceivedPage() {
 
   const load = async()=>{
     setLoading(true);
-    try {
-      const [{data:g},{data:s}] = await Promise.all([
-        (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
-        (supabase as any).from("suppliers").select("id,name").order("name"),
-      ]);
-      setGrns(g||[]); setSuppliers(s||[]);
-    } catch(e:any){ console.warn("[GRN] load:",e?.message); }
-    finally { setLoading(false); }
+    const [{data:g},{data:s}] = await Promise.all([
+      (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
+      (supabase as any).from("suppliers").select("id,name").order("name"),
+    ]);
+    setGrns(g||[]); setSuppliers(s||[]); setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
 
-  /* -- Real-time subscription ------------------------------- */
+  /* ── Real-time subscription ─────────────────────────────── */
   useEffect(()=>{
     const ch=(supabase as any).channel("grn-rt").on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -68,7 +64,7 @@ export default function GoodsReceivedPage() {
     printGRN(g, {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital * Embu County Government'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
       currencySymbol: getSetting('currency_symbol','KES'),
       logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
       hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
@@ -108,7 +104,7 @@ export default function GoodsReceivedPage() {
       ...form, grn_number:num, supplier_name:supp?.name||form.supplier_name,
       created_by:user?.id, created_by_name:profile?.full_name
     }).select().single();
-    if(error||!data){toast({title:"Save failed",description:error?.message||"Database error  -- please try again",variant:"destructive"});setSaving(false);return;}
+    if(error||!data){toast({title:"Save failed",description:error?.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
     const validItems = grnItems.filter(it=>it.item_name.trim());
     if(validItems.length>0){
       await(supabase as any).from("goods_received_items").insert(
@@ -116,7 +112,7 @@ export default function GoodsReceivedPage() {
       );
     }
     logAudit(user?.id,profile?.full_name,"create","goods_received",data?.id,{grn:num});
-    toast({title:"GRN created ",description:num});
+    toast({title:"GRN created ✓",description:num});
     if(data?.id) triggerGrnEvent(data.id).catch(()=>{});
     setShowForm(false); resetForm(); setSaving(false); load();
   };
@@ -198,10 +194,10 @@ export default function GoodsReceivedPage() {
               const ic=(g.goods_received_items||[]).length;
               return(<tr key={g.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#f9fafb"}} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0fdf4"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#f9fafb"}>
                 <td style={{padding:"10px 14px",fontWeight:800,color:"#047857",fontFamily:"monospace",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.grn_number}</td>
-                <td style={{padding:"10px 14px",color:"#374151",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.po_reference||" --"}</td>
-                <td style={{padding:"10px 14px",fontWeight:600,color:"#1f2937",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.supplier_name||" --"}</td>
-                <td style={{padding:"10px 14px",color:"#6b7280",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.received_date?new Date(g.received_date).toLocaleDateString("en-KE"):g.created_at?new Date(g.created_at).toLocaleDateString("en-KE"):" --"}</td>
-                <td style={{padding:"10px 14px",textAlign:"center",color:ic>0?"#065f46":"#9ca3af",fontWeight:ic>0?700:400}}>{ic>0?ic:" --"}</td>
+                <td style={{padding:"10px 14px",color:"#374151",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.po_reference||"—"}</td>
+                <td style={{padding:"10px 14px",fontWeight:600,color:"#1f2937",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.supplier_name||"—"}</td>
+                <td style={{padding:"10px 14px",color:"#6b7280",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.received_date?new Date(g.received_date).toLocaleDateString("en-KE"):g.created_at?new Date(g.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                <td style={{padding:"10px 14px",textAlign:"center",color:ic>0?"#065f46":"#9ca3af",fontWeight:ic>0?700:400}}>{ic>0?ic:"—"}</td>
                 <td style={{padding:"10px 14px",cursor:"pointer"}} onClick={()=>setViewGrn(g)}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label}</span></td>
                 <td style={{padding:"10px 14px"}}><div style={{display:"flex",gap:4}}>
                   <button onClick={()=>setViewGrn(g)} title="View" style={{padding:"4px 8px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#15803d"}}/></button>
@@ -222,10 +218,10 @@ export default function GoodsReceivedPage() {
               <button onClick={()=>setViewGrn(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
-              {[["PO Reference",viewGrn.po_reference],["Supplier",viewGrn.supplier_name],["Received Date",viewGrn.received_date?new Date(viewGrn.received_date).toLocaleDateString("en-KE"):" --"],["Delivery Note",viewGrn.delivery_note_number||" --"],["Carrier/Driver",viewGrn.carrier_name||" --"],["Status",viewGrn.status],["Created By",viewGrn.created_by_name||" --"]].map(([l,v])=>(
+              {[["PO Reference",viewGrn.po_reference],["Supplier",viewGrn.supplier_name],["Received Date",viewGrn.received_date?new Date(viewGrn.received_date).toLocaleDateString("en-KE"):"—"],["Delivery Note",viewGrn.delivery_note_number||"—"],["Carrier/Driver",viewGrn.carrier_name||"—"],["Status",viewGrn.status],["Created By",viewGrn.created_by_name||"—"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f3f4f6"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:"#111827"}}>{v||" --"}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#111827"}}>{v||"—"}</span>
                 </div>
               ))}
               {viewGrn.remarks&&<div style={{padding:12,background:"#f9fafb",borderRadius:8,fontSize:12,color:"#374151"}}>{viewGrn.remarks}</div>}
@@ -237,8 +233,8 @@ export default function GoodsReceivedPage() {
                       <thead><tr style={{background:"#065f46"}}>{["Item","UOM","Qty Ord.","Qty Rcvd","Unit Price"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontWeight:700,fontSize:9,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
                       <tbody>{viewGrn.goods_received_items.map((it:any,i:number)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#f9fafb"}}>
-                          <td style={{padding:"7px 10px",fontWeight:600,color:"#1f2937"}}>{it.item_name||it.description||" --"}</td>
-                          <td style={{padding:"7px 10px",color:"#6b7280"}}>{it.unit_of_measure||" --"}</td>
+                          <td style={{padding:"7px 10px",fontWeight:600,color:"#1f2937"}}>{it.item_name||it.description||"—"}</td>
+                          <td style={{padding:"7px 10px",color:"#6b7280"}}>{it.unit_of_measure||"—"}</td>
                           <td style={{padding:"7px 10px",textAlign:"center",color:"#374151"}}>{it.quantity_ordered||0}</td>
                           <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700,color:"#047857"}}>{it.quantity_received||0}</td>
                           <td style={{padding:"7px 10px",textAlign:"right",color:"#374151"}}>KES {Number(it.unit_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</td>
@@ -264,8 +260,8 @@ export default function GoodsReceivedPage() {
               <div style={{fontSize:11,fontWeight:800,color:"#065f46",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,paddingBottom:6,borderBottom:"2px solid #d1fae5"}}>Header Information</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
                 <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Supplier</label>
-                  <select value={form.supplier_name||form.supplier_id||" --"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||p.supplier_name}))} style={inp}>
-                    <option value=""> -- Select Supplier  --</option>
+                  <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||p.supplier_name}))} style={inp}>
+                    <option value="">— Select Supplier —</option>
                     {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                   </select></div>
                 <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Supplier Name (manual)</label><input value={form.supplier_name} onChange={e=>setForm(p=>({...p,supplier_name:e.target.value}))} placeholder="Or type supplier name..." style={inp}/></div>
@@ -311,7 +307,7 @@ export default function GoodsReceivedPage() {
                     ))}
                   </tbody>
                   <tfoot><tr style={{background:"#f0fdf4",borderTop:"2px solid #d1fae5"}}>
-                    <td colSpan={4} style={{padding:"7px 8px",textAlign:"right",fontSize:11,fontWeight:800,color:"#065f46"}}>TOTALS  Next</td>
+                    <td colSpan={4} style={{padding:"7px 8px",textAlign:"right",fontSize:11,fontWeight:800,color:"#065f46"}}>TOTALS →</td>
                     <td style={{padding:"7px 8px",textAlign:"center",fontWeight:800,color:"#065f46"}}>{grnItems.reduce((s,it)=>s+Number(it.quantity_ordered||0),0)||0}</td>
                     <td style={{padding:"7px 8px",textAlign:"center",fontWeight:800,color:"#047857"}}>{grnItems.reduce((s,it)=>s+Number(it.quantity_received||0),0)||0}</td>
                     <td style={{padding:"7px 8px",textAlign:"right",fontWeight:800,color:"#065f46"}}>KES {grnItems.reduce((s,it)=>s+(Number(it.quantity_received||0)*Number(it.unit_price||0)),0).toLocaleString("en-KE",{minimumFractionDigits:2})}</td>

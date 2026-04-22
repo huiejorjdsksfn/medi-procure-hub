@@ -1,7 +1,7 @@
 /**
- * ProcurBosse  -- Tender Workflow Engine v5.8
- * Draft -> Published -> Evaluation -> Awarded / Cancelled
- * EL5 MediProcure * Embu Level 5 Hospital
+ * ProcurBosse — Tender Workflow Engine v5.8
+ * Draft → Published → Evaluation → Awarded / Cancelled
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
@@ -86,7 +86,7 @@ export async function executeTenderAction(
     if (action === 'award') {
       await notifyProcurement({
         title: `Tender ${tNo} Awarded`,
-        message: `Tender awarded  -- proceed with contract creation`,
+        message: `Tender awarded — proceed with contract creation`,
         type: 'success', module: 'Tenders', actionUrl: '/tenders',
       });
     }

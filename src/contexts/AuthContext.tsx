@@ -1,19 +1,28 @@
 /**
- * ProcurBosse — AuthContext v6.0 NUCLEAR REBUILD
- * Fastest possible auth: check localStorage cache FIRST, then Supabase
- * Never shows loading screen to logged-in users
- * Always redirects to /login for logged-out users within 500ms
+ * ProcurBosse — AuthContext v4.0
+ * Persistent session engine — no logout/access-denied on refresh
+ * Dual-store: IndexedDB primary + localStorage fallback
+ * Background token refresh + role cache
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { sessionEngine } from "@/lib/sessionEngine";
 
 export type ProcurementRole =
-  | "admin" | "superadmin" | "webmaster" | "database_admin"
+  | "admin" | "superadmin" | "webmaster"
+  | "database_admin"
   | "procurement_manager" | "procurement_officer"
   | "inventory_manager" | "warehouse_officer"
   | "requisitioner" | "accountant";
+
+const ALL_ROLES: ProcurementRole[] = [
+  "admin","superadmin","webmaster","database_admin",
+  "procurement_manager","procurement_officer",
+  "inventory_manager","warehouse_officer",
+  "requisitioner","accountant",
+];
 
 const ROLE_PRIORITY: ProcurementRole[] = [
   "superadmin","webmaster","admin","database_admin",
@@ -21,191 +30,193 @@ const ROLE_PRIORITY: ProcurementRole[] = [
   "accountant","inventory_manager","warehouse_officer","requisitioner",
 ];
 
-// Cache keys
-const CACHE_KEY   = "pb_auth_v6";
-const CACHE_TTL   = 25 * 60 * 1000; // 25 min
-
-interface CachedAuth { userId: string; roles: string[]; profile: any; ts: number; }
-
-const cache = {
-  read(uid: string): CachedAuth | null {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (!raw) return null;
-      const c: CachedAuth = JSON.parse(raw);
-      if (c.userId !== uid) return null;
-      if (Date.now() - c.ts > CACHE_TTL) { localStorage.removeItem(CACHE_KEY); return null; }
-      return c;
-    } catch { return null; }
-  },
-  write(uid: string, roles: string[], profile: any) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ userId:uid, roles, profile, ts:Date.now() })); } catch {}
-  },
-  clear() { try { localStorage.removeItem(CACHE_KEY); } catch {} },
-};
-
-async function fetchProfile(uid: string): Promise<{ profile: any; roles: string[] }> {
-  try {
-    const [pRes, rRes] = await Promise.allSettled([
-      (supabase as any).from("profiles").select("*").eq("id", uid).maybeSingle(),
-      (supabase as any).from("user_roles").select("role").eq("user_id", uid),
-    ]);
-    const profile = pRes.status === "fulfilled" ? pRes.value?.data : null;
-    const roles   = rRes.status === "fulfilled"
-      ? ((rRes.value?.data as any[]) || []).map((r: any) => r.role)
-      : [];
-    return { profile, roles: roles.length ? roles : ["requisitioner"] };
-  } catch { return { profile: null, roles: ["requisitioner"] }; }
-}
-
-interface AuthCtx {
+interface AuthContextType {
   session:      Session | null;
   user:         User | null;
-  profile:      any;
+  profile:      any | null;
   roles:        string[];
   loading:      boolean;
   initialized:  boolean;
-  primaryRole:  ProcurementRole;
-  hasRole:      (...r: ProcurementRole[]) => boolean;
-  hasAnyRole:   (r: ProcurementRole[]) => boolean;
   signOut:      () => Promise<void>;
+  hasRole:      (...roles: ProcurementRole[]) => boolean;
+  hasAnyRole:   (roles: ProcurementRole[]) => boolean;
+  primaryRole:  ProcurementRole;
   refreshRoles: () => Promise<void>;
-  updateProfile:(d: any) => Promise<void>;
+  updateProfile:(data: Partial<any>) => Promise<void>;
 }
 
-const Ctx = createContext<AuthCtx>({
-  session:null, user:null, profile:null, roles:[], loading:true, initialized:false,
-  primaryRole:"requisitioner",
-  hasRole:()=>false, hasAnyRole:()=>false,
-  signOut:async()=>{}, refreshRoles:async()=>{}, updateProfile:async()=>{},
+const AuthContext = createContext<AuthContextType>({
+  session: null, user: null, profile: null,
+  roles: [], loading: true, initialized: false,
+  signOut: async () => {},
+  hasRole: () => false,
+  hasAnyRole: () => false,
+  primaryRole: "requisitioner",
+  refreshRoles: async () => {},
+  updateProfile: async () => {},
 });
 
-export const useAuth = () => useContext(Ctx);
+export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session,     setSession]     = useState<Session|null>(null);
-  const [user,        setUser]        = useState<User|null>(null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [session,     setSession]     = useState<Session | null>(null);
+  const [user,        setUser]        = useState<User | null>(null);
   const [profile,     setProfile]     = useState<any>(null);
   const [roles,       setRoles]       = useState<string[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  const setDone = useCallback((s: Session|null, p: any, r: string[]) => {
-    setSession(s);
-    setUser(s?.user ?? null);
-    setProfile(p);
-    setRoles(r.length ? r : ["requisitioner"]);
-    setLoading(false);
-    setInitialized(true);
+  /* Apply profile + roles to state */
+  const applyUserData = useCallback((data: { profile: any; roles: string[] }) => {
+    setProfile(data.profile);
+    setRoles(data.roles.length ? data.roles : ["requisitioner"]); // Never empty roles
   }, []);
 
-  const primaryRole: ProcurementRole = (() => {
-    for (const r of ROLE_PRIORITY) { if (roles.includes(r)) return r; }
-    return "requisitioner";
-  })();
-
-  const hasRole    = useCallback((...r: ProcurementRole[]) => r.some(x => roles.includes(x)), [roles]);
-  const hasAnyRole = useCallback((r: ProcurementRole[]) => r.some(x => roles.includes(x)), [roles]);
-
-  const signOut = useCallback(async () => {
-    cache.clear();
-    await supabase.auth.signOut().catch(() => {});
-    setDone(null, null, []);
-  }, [setDone]);
-
+  /* Refresh roles from DB (clears cache) */
   const refreshRoles = useCallback(async () => {
-    const s = (await supabase.auth.getSession().catch(() => ({ data: { session: null } }))).data.session;
+    const s = (await supabase.auth.getSession()).data.session;
     if (!s?.user) return;
-    const d = await fetchProfile(s.user.id);
-    setProfile(d.profile);
-    setRoles(d.roles);
-    cache.write(s.user.id, d.roles, d.profile);
-  }, []);
+    const data = await sessionEngine.updateRoles(s.user.id);
+    applyUserData(data);
+  }, [applyUserData]);
 
-  const updateProfile = useCallback(async (data: any) => {
-    const uid = (await supabase.auth.getSession().catch(() => ({ data:{session:null} }))).data.session?.user?.id;
-    if (!uid) return;
-    try { await (supabase as any).from("profiles").update(data).eq("id", uid); } catch {}
+  /* Update profile locally and in DB */
+  const updateProfile = useCallback(async (data: Partial<any>) => {
+    const curr = (await supabase.auth.getSession()).data.session?.user;
+    if (!curr) return;
+    await (supabase as any).from("profiles").update(data).eq("id", curr.id);
     setProfile((p: any) => ({ ...p, ...data }));
   }, []);
 
   useEffect(() => {
-    let live = true;
+    let mounted = true;
 
-    // HARD TIMEOUT: 2 seconds max — always initialize
-    const timeout = setTimeout(() => {
-      if (live && !initialized) {
-        console.warn("[Auth] 2s timeout — forcing done");
-        setLoading(false);
+    const init = async () => {
+      /* ── Step 1: Try stored session for instant render (no flash) ── */
+      const stored = await sessionEngine.read();
+      if (stored && mounted) {
+        applyUserData({ profile: stored.profile, roles: stored.roles });
         setInitialized(true);
       }
-    }, 2000);
 
-    const boot = async () => {
+      /* ── Step 2: Verify with Supabase (authoritative) ── */
+      const safety = setTimeout(() => { if (mounted) setLoading(false); }, 6000);
+
       try {
-        const { data: { session: s } } = await supabase.auth.getSession();
-        if (!live) { clearTimeout(timeout); return; }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
 
-        if (s?.user) {
-          // Check localStorage cache first — instant render for returning users
-          const cached = cache.read(s.user.id);
-          if (cached) {
-            clearTimeout(timeout);
-            setDone(s, cached.profile, cached.roles);
-            // Silently refresh in background
-            fetchProfile(s.user.id).then(d => {
-              if (live) { setProfile(d.profile); setRoles(d.roles); cache.write(s.user.id, d.roles, d.profile); }
-            }).catch(() => {});
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          /* Use cached roles instantly, refresh in background */
+          const cached = sessionEngine.readRolesCache();
+          if (cached && mounted) {
+            applyUserData(cached);
+            setLoading(false);
+            setInitialized(true);
+            /* Silently refresh roles */
+            sessionEngine.updateRoles(session.user.id)
+              .then(d => { if (mounted) applyUserData(d); })
+              .catch(() => {});
           } else {
-            const d = await fetchProfile(s.user.id);
-            if (live) {
-              cache.write(s.user.id, d.roles, d.profile);
-              clearTimeout(timeout);
-              setDone(s, d.profile, d.roles);
+            const fresh = await sessionEngine.buildFromAuth(
+              session.user.id,
+              session.user.email || "",
+              session.access_token
+            );
+            await sessionEngine.save(fresh);
+            if (mounted) {
+              applyUserData({ profile: fresh.profile, roles: fresh.roles });
+              setLoading(false);
+              setInitialized(true);
             }
           }
+          sessionEngine.startRefresh(session.user.id);
         } else {
-          // Not logged in — done immediately
-          clearTimeout(timeout);
-          setDone(null, null, []);
+          if (mounted) {
+            setLoading(false);
+            setInitialized(true);
+            /* Clear stale stored session */
+            if (stored) await sessionEngine.clear();
+          }
         }
-      } catch (e) {
-        console.warn("[Auth] boot error:", e);
-        if (live) { clearTimeout(timeout); setLoading(false); setInitialized(true); }
+      } catch {
+        /* Network failure — use stored session if available */
+        if (stored && mounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
+      } finally {
+        clearTimeout(safety);
+        if (mounted) setLoading(false);
       }
     };
 
-    boot();
+    init();
 
-    // Auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
-      if (!live) return;
+    /* ── Auth state change listener ── */
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
 
-      if (event === "SIGNED_IN" && s?.user) {
-        const cached = cache.read(s.user.id);
+      if (event === "SIGNED_IN" && session?.user) {
+        const cached = sessionEngine.readRolesCache();
         if (cached) {
-          setDone(s, cached.profile, cached.roles);
-          fetchProfile(s.user.id).then(d => {
-            if (live) { setProfile(d.profile); setRoles(d.roles); cache.write(s.user.id, d.roles, d.profile); }
-          }).catch(() => {});
+          applyUserData(cached);
+          setLoading(false);
+          setInitialized(true);
+          sessionEngine.updateRoles(session.user.id)
+            .then(d => { if (mounted) applyUserData(d); });
         } else {
-          const d = await fetchProfile(s.user.id).catch(() => ({ profile: null, roles: [] as string[] }));
-          if (live) { cache.write(s.user.id, d.roles, d.profile); setDone(s, d.profile, d.roles); }
+          const fresh = await sessionEngine.buildFromAuth(
+            session.user.id, session.user.email || "", session.access_token
+          );
+          await sessionEngine.save(fresh);
+          if (mounted) applyUserData({ profile: fresh.profile, roles: fresh.roles });
         }
+        sessionEngine.startRefresh(session.user.id);
+        setLoading(false);
+        setInitialized(true);
       } else if (event === "SIGNED_OUT") {
-        cache.clear();
-        if (live) setDone(null, null, []);
-      } else if (event === "TOKEN_REFRESHED" && s?.user) {
-        setSession(s);
+        await sessionEngine.clear();
+        setProfile(null);
+        setRoles([]);
+        setInitialized(true);
+        setLoading(false);
+      } else if (event === "TOKEN_REFRESHED" && session?.user) {
+        /* Silent token refresh — don't disturb UI */
+        const stored = await sessionEngine.read();
+        if (stored) {
+          await sessionEngine.save({ ...stored, token: session.access_token, expiresAt: Date.now() + 8 * 60 * 60 * 1000 });
+        }
       }
     });
 
-    return () => { live = false; clearTimeout(timeout); subscription.unsubscribe(); };
-  }, []); // eslint-disable-line
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [applyUserData]);
+
+  const signOut = async () => {
+    await sessionEngine.clear();
+    await supabase.auth.signOut();
+    setSession(null); setUser(null); setProfile(null); setRoles([]);
+  };
+
+  const hasRole   = (...r: ProcurementRole[]) => r.some(role => roles.includes(role));
+  const hasAnyRole = (r: ProcurementRole[]) => r.some(role => roles.includes(role));
+  const primaryRole = (ROLE_PRIORITY.find(r => roles.includes(r)) || "requisitioner") as ProcurementRole;
 
   return (
-    <Ctx.Provider value={{ session, user, profile, roles, loading, initialized, primaryRole, hasRole, hasAnyRole, signOut, refreshRoles, updateProfile }}>
+    <AuthContext.Provider value={{
+      session, user, profile, roles, loading, initialized,
+      signOut, hasRole, hasAnyRole, primaryRole, refreshRoles, updateProfile,
+    }}>
       {children}
-    </Ctx.Provider>
+    </AuthContext.Provider>
   );
-}
+};
