@@ -23,5 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 *.envvite.config.ts.bak
-
-# web/ is intentionally tracked for EdgeOne deployment

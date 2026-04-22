@@ -1,5 +1,5 @@
 /**
- * EL5 MediProcure  -- Live System Broadcast
+ * EL5 MediProcure — Live System Broadcast
  * Sends real-time admin messages to all connected users
  * Uses Supabase Realtime channel broadcasts + notifications table
  */
@@ -68,7 +68,7 @@ export async function persistBroadcast(
 }
 
 /**
- * Send a complete broadcast  -- realtime + persisted to notifications
+ * Send a complete broadcast — realtime + persisted to notifications
  */
 export async function sendSystemBroadcast(
   payload: BroadcastPayload,

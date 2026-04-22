@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { Plus, RefreshCw, Download, X, Save, Trash2, Eye, CheckCircle, XCircle, AlertTriangle, Clock, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
-function genNo() { return `QI/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Math.floor(100+Math.random()*9900))}`; };
+const genNo = ()=>`QI/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Math.floor(100+Math.random()*9900))}`;
 const RC: Record<string,{bg:string;color:string}> = {
   pass:{bg:"#dcfce7",color:"#15803d"},fail:{bg:"#fee2e2",color:"#dc2626"},
   conditional:{bg:"#fef3c7",color:"#92400e"},pending:{bg:"#f3f4f6",color:"#6b7280"},
@@ -27,23 +27,16 @@ export default function InspectionsPage() {
   const [form, setForm] = useState({inspection_date:new Date().toISOString().slice(0,10),grn_reference:"",supplier_id:"",supplier_name:"",item_name:"",quantity_inspected:"",quantity_accepted:"",quantity_rejected:"",result:"pending",rejection_reason:"",inspector_name:profile?.full_name||"",corrective_action:"",notes:""});
 
   const load = async()=>{
-    try {
-
     setLoading(true);
     const [{data:i},{data:s}] = await Promise.all([
       (supabase as any).from("inspections").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("suppliers").select("id,name").order("name"),
     ]);
-    setRows(i||[]); setSuppliers(s||[]);
-    } catch(e: any) {
-      console.warn("[ProcurBosse] Load error:", e?.message);
-    } finally {
-      setLoading(false);
-    }
+    setRows(i||[]); setSuppliers(s||[]); setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
 
-  /* -- Real-time subscription ------------------------------- */
+  /* ── Real-time subscription ─────────────────────────────── */
   useEffect(()=>{
     const ch=(supabase as any).channel("ins-rt").on("postgres_changes",{event:"*",schema:"public",table:"inspections"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -57,8 +50,8 @@ export default function InspectionsPage() {
       quantity_inspected:Number(form.quantity_inspected||0),quantity_accepted:Number(form.quantity_accepted||0),quantity_rejected:Number(form.quantity_rejected||0),
       created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("inspections").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","inspections",data?.id,{item:form.item_name});toast({title:"Inspection recorded "});setShowNew(false);load();}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","inspections",data?.id,{item:form.item_name});toast({title:"Inspection recorded ✓"});setShowNew(false);load();}
     setSaving(false);
   };
 
@@ -76,7 +69,7 @@ export default function InspectionsPage() {
       <div style={{background:"linear-gradient(90deg,#134e4a,#0f766e)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>QC Inspections</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} total * {stats.pass} passed * {stats.fail} failed</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} total · {stats.pass} passed · {stats.fail} failed</p>
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}><Download style={{width:13,height:13}}/>Export</button>
@@ -121,14 +114,14 @@ export default function InspectionsPage() {
               return(<tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#f9fafb"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0fdf4"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#f9fafb"}>
-                <td style={{padding:"9px 12px",fontWeight:700,color:"#0f766e",fontFamily:"monospace",fontSize:11}}>{r.inspection_number||" --"}</td>
-                <td style={{padding:"9px 12px",fontWeight:600,color:"#1f2937"}}>{r.item_name||" --"}</td>
-                <td style={{padding:"9px 12px",color:"#374151"}}>{r.supplier_name||" --"}</td>
-                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.inspection_date?new Date(r.inspection_date).toLocaleDateString("en-KE"):" --"}</td>
+                <td style={{padding:"9px 12px",fontWeight:700,color:"#0f766e",fontFamily:"monospace",fontSize:11}}>{r.inspection_number||"—"}</td>
+                <td style={{padding:"9px 12px",fontWeight:600,color:"#1f2937"}}>{r.item_name||"—"}</td>
+                <td style={{padding:"9px 12px",color:"#374151"}}>{r.supplier_name||"—"}</td>
+                <td style={{padding:"9px 12px",color:"#6b7280"}}>{r.inspection_date?new Date(r.inspection_date).toLocaleDateString("en-KE"):"—"}</td>
                 <td style={{padding:"9px 12px",textAlign:"center",color:"#374151"}}>{r.quantity_inspected||0}</td>
                 <td style={{padding:"9px 12px",textAlign:"center",color:"#15803d",fontWeight:700}}>{r.quantity_accepted||0}</td>
                 <td style={{padding:"9px 12px",textAlign:"center",color:"#dc2626",fontWeight:700}}>{r.quantity_rejected||0}</td>
-                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:rc.bg,color:rc.color}}>{r.result||" --"}</span></td>
+                <td style={{padding:"9px 12px"}}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:rc.bg,color:rc.color}}>{r.result||"—"}</span></td>
                 <td style={{padding:"9px 12px"}}>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={()=>setDetail(r)} style={{padding:"4px 8px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#15803d"}}/></button>
@@ -149,10 +142,10 @@ export default function InspectionsPage() {
               <button onClick={()=>setDetail(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
             <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
-              {[["Item",detail.item_name],["Supplier",detail.supplier_name||" --"],["Date",detail.inspection_date?new Date(detail.inspection_date).toLocaleDateString("en-KE"):" --"],["Inspector",detail.inspector_name||" --"],["Qty Inspected",String(detail.quantity_inspected||0)],["Qty Accepted",String(detail.quantity_accepted||0)],["Qty Rejected",String(detail.quantity_rejected||0)],["Result",detail.result],["GRN Reference",detail.grn_reference||" --"]].map(([l,v])=>(
+              {[["Item",detail.item_name],["Supplier",detail.supplier_name||"—"],["Date",detail.inspection_date?new Date(detail.inspection_date).toLocaleDateString("en-KE"):"—"],["Inspector",detail.inspector_name||"—"],["Qty Inspected",String(detail.quantity_inspected||0)],["Qty Accepted",String(detail.quantity_accepted||0)],["Qty Rejected",String(detail.quantity_rejected||0)],["Result",detail.result],["GRN Reference",detail.grn_reference||"—"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f3f4f6"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize"}}>{v||" --"}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#111827",textTransform:"capitalize"}}>{v||"—"}</span>
                 </div>
               ))}
               {detail.rejection_reason&&<div style={{padding:10,background:"#fef2f2",borderRadius:8,fontSize:12,color:"#dc2626"}}><b>Rejection Reason:</b> {detail.rejection_reason}</div>}
@@ -173,7 +166,7 @@ export default function InspectionsPage() {
             <div style={{padding:18,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Inspection Date</label><input type="date" value={form.inspection_date} onChange={e=>setForm(p=>({...p,inspection_date:e.target.value}))} style={inp}/></div>
               <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Supplier</label>
-                <select value={form.supplier_name||form.supplier_id||" --"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||""}))} style={inp}>
+                <select value={form.supplier_name||form.supplier_id||"—"} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||""}))} style={inp}>
                   <option value="">Select supplier...</option>
                   {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>

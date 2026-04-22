@@ -1,376 +1,707 @@
 /**
- * ProcurBosse — AdminDatabasePage v4.0 NUCLEAR
- * Power BI / D365 style database admin (Image 3 reference)
- * Table explorer · Query runner · Live stats · Health checks
+ * ProcurBosse — Admin Database GUI v3.0
+ * Full ERP database manager: white/black Times New Roman design
+ * Real SQL editor, live realtime, all tables, triggers, edge functions
  * EL5 MediProcure · Embu Level 5 Hospital
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { T } from "@/lib/theme";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 import {
-  Database, RefreshCw, Play, AlertTriangle, CheckCircle,
-  Table, Search, Download, BarChart3, Activity, Clock,
-  ChevronRight, ChevronDown, Filter, Zap, Server, HardDrive,
-  TrendingUp, Eye, Trash2, Plus, Settings, Shield,
+  Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
+  Download, Server, Table as TableIcon, Code2, Activity, Wifi,
+  ChevronRight, ChevronDown, Filter, Copy, AlertTriangle,
+  CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye,
+  ToggleLeft, ToggleRight, Settings
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import RoleGuard from "@/components/RoleGuard";
 
-const db = supabase as any;
-
-interface TableStat { name:string; count:number; size?:string; lastUpdated?:string; status:"ok"|"warn"|"error"; }
-interface QueryResult { columns:string[]; rows:any[][]; rowCount:number; duration:number; error?:string; }
-
-const KNOWN_TABLES = [
-  "profiles","user_roles","items","categories","departments","suppliers",
-  "requisitions","purchase_orders","goods_received","tenders","contracts",
-  "bid_evaluations","notifications","audit_logs","emails","sms_logs",
-  "facilities","settings","ip_allowlist","sessions","payment_vouchers",
-  "invoice_matching","payment_proposals","budget_control","gl_postings",
-  "inspections","non_conformances","fixed_assets","chart_of_accounts",
-  "budgets","erp_sync_queue","requisition_items","purchase_order_items",
+// ── Table groups with all 57 tables ──────────────────────────────────────────
+const TABLE_GROUPS = [
+  { id:"procurement", label:"Procurement",         color:"#003087", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","bid_evaluations","tenders","contracts","suppliers"] },
+  { id:"inventory",   label:"Inventory & Stock",   color:"#107c10", tables:["items","item_categories","departments","stock_movements"] },
+  { id:"finance",     label:"Finance & Vouchers",  color:"#8B4513", tables:["payment_vouchers","receipt_vouchers","journal_vouchers","purchase_vouchers","sales_vouchers","budgets","chart_of_accounts","bank_accounts","gl_entries","fixed_assets"] },
+  { id:"quality",     label:"Quality Control",     color:"#005C3C", tables:["inspections","non_conformance"] },
+  { id:"users",       label:"Users & Access",      color:"#4B0082", tables:["profiles","user_roles","roles","permissions"] },
+  { id:"email",       label:"Email",               color:"#B22222", tables:["email_inbox","email_sent","email_drafts","email_attachments"] },
+  { id:"system",      label:"System & Settings",   color:"#333333", tables:["system_settings","system_config","system_broadcasts","system_errors","module_settings","notifications","notification_recipients","audit_log","backup_jobs","query_log","edge_function_logs"] },
+  { id:"documents",   label:"Documents",           color:"#006B6B", tables:["documents","reports","inbox_items","admin_inbox"] },
+  { id:"network",     label:"Network & DB",        color:"#1A237E", tables:["network_whitelist","ip_access_log","odbc_connections","external_connections"] },
+  { id:"sms",         label:"SMS & Logs",          color:"#5D4037", tables:["sms_log","db_admin_log","db_fix_scripts"] },
 ];
 
-const QUICK_QUERIES = [
-  { label:"Pending Requisitions", sql:"SELECT id,title,status,created_at FROM requisitions WHERE status IN ('submitted','pending') ORDER BY created_at DESC LIMIT 20" },
-  { label:"Active Users",         sql:"SELECT p.full_name,p.email,ur.role FROM profiles p JOIN user_roles ur ON ur.user_id=p.id ORDER BY p.created_at DESC LIMIT 20" },
-  { label:"Low Stock Items",      sql:"SELECT name,sku,current_quantity,unit FROM items WHERE current_quantity < 5 ORDER BY current_quantity ASC LIMIT 20" },
-  { label:"Recent Audit Log",     sql:"SELECT action,table_name,user_id,created_at FROM audit_logs ORDER BY created_at DESC LIMIT 20" },
-  { label:"PO Summary",           sql:"SELECT status,COUNT(*) as count,SUM(total_amount) as total FROM purchase_orders GROUP BY status" },
-  { label:"All Tables Row Count", sql:"SELECT schemaname,tablename,n_live_tup as rows FROM pg_stat_user_tables ORDER BY n_live_tup DESC" },
-];
+// ── Styles (Clean white Inter design — v5.8) ─────────────────────────────────
+const S = {
+  font:  "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+  bg:    "#ffffff",
+  bg2:   "#f8fafc",
+  fg:    "#0f172a",
+  fg2:   "#475569",
+  border:"#e2e8f0",
+  head:  "#f1f5f9",
+  blue:  "#2563eb",
+  sel:   "rgba(37,99,235,0.08)",
+  err:   "#dc2626",
+  ok:    "#16a34a",
+  warn:  "#d97706",
+  mono:  "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace",
+};
 
-/* Mini bar chart (Power BI style) */
-function MiniBar({ label, val, max, color }: { label:string; val:number; max:number; color:string }) {
-  const pct = max > 0 ? Math.min(100, Math.round(val/max*100)) : 0;
-  return (
-    <div style={{ marginBottom:8 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3, color:T.fgMuted }}>
-        <span>{label}</span><span style={{ fontWeight:700, color }}>{val.toLocaleString()}</span>
-      </div>
-      <div style={{ height:6, background:T.bg2, borderRadius:3, overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${pct}%`, background:color, borderRadius:3, transition:"width .5s" }} />
-      </div>
-    </div>
-  );
-}
+const CELL: React.CSSProperties = {
+  border: `1px solid #e2e8f0`,
+  padding: "6px 12px",
+  fontSize: 12,
+  fontFamily: S.font,
+  color: "#0f172a",
+  whiteSpace: "nowrap",
+  maxWidth: 220,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  background: "transparent",
+};
 
-/* KPI tile */
-function KpiTile({ label, value, sub, icon:Icon, color }: { label:string; value:string|number; sub?:string; icon:any; color:string }) {
-  return (
-    <div style={{ background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px", boxShadow:T.shadow }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
-        <div style={{ width:36,height:36,borderRadius:T.r,background:`${color}14`,display:"flex",alignItems:"center",justifyContent:"center" }}>
-          <Icon size={18} color={color} />
-        </div>
-      </div>
-      <div style={{ fontSize:26, fontWeight:800, color, lineHeight:1, marginBottom:4 }}>
-        {typeof value==="number"?value.toLocaleString():value}
-      </div>
-      <div style={{ fontSize:12, color:T.fgMuted, fontWeight:500 }}>{label}</div>
-      {sub && <div style={{ fontSize:11, color:T.fgDim, marginTop:2 }}>{sub}</div>}
-    </div>
-  );
-}
+// ── Main Component ─────────────────────────────────────────────────────────────
+function DBInner() {
+  const { user, profile } = useAuth();
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"realtime"|"stats">("tables");
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
+  const [selectedTable, setSelectedTable] = useState<string>("requisitions");
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [tableColumns, setTableColumns] = useState<string[]>([]);
+  const [allColumns, setAllColumns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalRows, setTotalRows] = useState(0);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState("created_at");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [editingRow, setEditingRow] = useState<any>(null);
+  const [newRow, setNewRow] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string|null>(null);
+  const [sql, setSql] = useState(`-- ProcurBosse Real SQL Editor
+-- Embu Level 5 Hospital · EL5 MediProcure
+-- Write any SQL query here
 
-export default function AdminDatabasePage() {
-  const [tableStats, setTableStats] = useState<TableStat[]>([]);
-  const [selected,   setSelected]   = useState<string>("requisitions");
-  const [tableData,  setTableData]  = useState<any[]>([]);
-  const [sql,        setSql]        = useState(QUICK_QUERIES[0].sql);
-  const [result,     setResult]     = useState<QueryResult|null>(null);
-  const [running,    setRunning]    = useState(false);
-  const [loading,    setLoading]    = useState(false);
-  const [expanded,   setExpanded]   = useState(true);
-  const [search,     setSearch]     = useState("");
-  const [totals,     setTotals]     = useState({ tables:0, totalRows:0, dbSize:"~", uptime:"Online" });
-  const [activeTab,  setActiveTab]  = useState<"explorer"|"query"|"health">("explorer");
+SELECT 
+  t.table_name,
+  (SELECT COUNT(*) FROM information_schema.columns c 
+   WHERE c.table_name = t.table_name AND c.table_schema = 'public') AS columns,
+  (SELECT COUNT(*) FROM pg_policies p WHERE p.tablename = t.table_name) AS policies
+FROM information_schema.tables t
+WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+ORDER BY t.table_name;`);
+  const [sqlResult, setSqlResult] = useState<any[]>([]);
+  const [sqlError, setSqlError] = useState<string|null>(null);
+  const [sqlRunning, setSqlRunning] = useState(false);
+  const [sqlMs, setSqlMs] = useState<number|null>(null);
+  const [schemaData, setSchemaData] = useState<any[]>([]);
+  const [triggers, setTriggers] = useState<any[]>([]);
+  const [stats, setStats] = useState<any[]>([]);
+  const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
+  const [realtimeOn, setRealtimeOn] = useState(false);
+  const [tableCounts, setTableCounts] = useState<Record<string,number>>({});
+  const sqlRef = useRef<HTMLTextAreaElement>(null);
+  const rtChannel = useRef<any>(null);
 
-  /* Load all table counts */
-  const loadStats = useCallback(async () => {
+  // ── Load table data ──────────────────────────────────────────────────────────
+  const loadTable = useCallback(async () => {
+    if (!selectedTable) return;
     setLoading(true);
     try {
-      const stats: TableStat[] = [];
-      await Promise.allSettled(
-        KNOWN_TABLES.map(async t => {
-          try {
-            const { count, error } = await db.from(t).select("id",{count:"exact",head:true});
-            stats.push({ name:t, count:count??0, status:error?"error":"ok" });
-          } catch {
-            stats.push({ name:t, count:0, status:"error" });
-          }
-        })
-      );
-      stats.sort((a,b) => b.count-a.count);
-      setTableStats(stats);
-      const totalRows = stats.reduce((s,t)=>s+t.count,0);
-      setTotals(v => ({...v, tables:stats.length, totalRows }));
-    } catch(e:any){ console.warn('[AdminDB]',e?.message); }
-    finally { setLoading(false); }
-  }, []);
+      // Get columns
+      const { data: cols } = await (supabase as any)
+        .from("information_schema.columns")
+        .select("column_name,data_type,is_nullable,column_default")
+        .eq("table_schema","public")
+        .eq("table_name", selectedTable)
+        .order("ordinal_position");
+      
+      if (cols) {
+        setAllColumns(cols);
+        setTableColumns(cols.map((c: any) => c.column_name));
+      }
 
-  /* Load table rows */
-  const loadTable = useCallback(async (tbl: string) => {
-    try {
-      const { data } = await db.from(tbl).select("*").limit(50).order("created_at",{ascending:false});
+      // Count
+      const { count } = await (supabase as any).from(selectedTable)
+        .select("*", { count:"exact", head:true });
+      setTotalRows(count || 0);
+
+      // Data
+      let q = (supabase as any).from(selectedTable).select("*");
+      if (sortCol) q = q.order(sortCol, { ascending: sortAsc });
+      q = q.range(page * pageSize, (page + 1) * pageSize - 1);
+      const { data, error } = await q;
+      if (error) throw error;
       setTableData(data || []);
-    } catch { setTableData([]); }
-  }, []);
+    } catch (e: any) {
+      toast({ title:"Load error: " + e.message, variant:"destructive" });
+      setTableData([]);
+    }
+    setLoading(false);
+  }, [selectedTable, page, pageSize, sortCol, sortAsc]);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
-  useEffect(() => { if (selected) loadTable(selected); }, [selected, loadTable]);
+  useEffect(() => { loadTable(); }, [loadTable]);
 
-  /* Run SQL */
-  const runSql = async () => {
-    setRunning(true); setResult(null);
+  // ── Load table row counts ────────────────────────────────────────────────────
+  useEffect(() => {
+    const allTables = TABLE_GROUPS.flatMap(g => g.tables);
+    Promise.all(allTables.map(async t => {
+      try {
+        const { count } = await (supabase as any).from(t).select("*",{count:"exact",head:true});
+        return [t, count || 0];
+      } catch { return [t, 0]; }
+    })).then(results => {
+      setTableCounts(Object.fromEntries(results));
+    });
+  }, [selectedTable]);
+
+  // ── Run SQL ──────────────────────────────────────────────────────────────────
+  async function runSQL() {
+    if (!sql.trim()) return;
+    setSqlRunning(true); setSqlError(null); setSqlResult([]);
     const t0 = Date.now();
     try {
-      const { data, error } = await db.rpc("exec_sql", { query: sql }).select();
+      const { data, error } = await (supabase as any).rpc("exec_sql", { query: sql });
       if (error) throw error;
-      const rows = data || [];
-      const cols = rows.length ? Object.keys(rows[0]) : [];
-      setResult({ columns:cols, rows:rows.map((r:any)=>cols.map(c=>r[c])), rowCount:rows.length, duration:Date.now()-t0 });
-    } catch (e:any) {
-      setResult({ columns:[], rows:[], rowCount:0, duration:Date.now()-t0, error:e?.message||"Query failed" });
+      const ms = Date.now() - t0;
+      setSqlMs(ms);
+      setSqlResult(Array.isArray(data) ? data : [{ result: data }]);
+      // Log query
+      await (supabase as any).from("query_log").insert({
+        query_text: sql.slice(0,500),
+        query_type: sql.trim().slice(0,6).toUpperCase(),
+        rows_affected: Array.isArray(data) ? data.length : 0,
+        execution_ms: ms,
+        executed_by: user?.id
+      });
+      toast({ title: `✅ Query executed (${ms}ms, ${Array.isArray(data) ? data.length : 0} rows)` });
+    } catch (e: any) {
+      setSqlError(e.message);
+      setSqlMs(Date.now() - t0);
+      toast({ title:"SQL Error: " + e.message, variant:"destructive" });
     }
-    setRunning(false);
-  };
+    setSqlRunning(false);
+  }
 
-  const filteredTables = tableStats.filter(t => !search || t.name.includes(search.toLowerCase()));
-  const maxCount = Math.max(...tableStats.map(t=>t.count), 1);
-  const topTables = [...tableStats].sort((a,b)=>b.count-a.count).slice(0,8);
+  // ── Load schema ──────────────────────────────────────────────────────────────
+  async function loadSchema() {
+    const { data } = await (supabase as any).rpc("exec_sql", {
+      query: `SELECT table_name, column_name, data_type, is_nullable, column_default
+              FROM information_schema.columns
+              WHERE table_schema='public' AND table_name='${selectedTable}'
+              ORDER BY ordinal_position`
+    });
+    if (data) setSchemaData(data);
+  }
 
-  const tblCols = tableData.length ? Object.keys(tableData[0]) : [];
+  // ── Load triggers ────────────────────────────────────────────────────────────
+  async function loadTriggers() {
+    const { data } = await (supabase as any).rpc("exec_sql", {
+      query: `SELECT trigger_name, event_object_table, event_manipulation, action_timing,
+                     action_statement
+              FROM information_schema.triggers WHERE trigger_schema='public'
+              ORDER BY event_object_table, trigger_name`
+    });
+    if (data) setTriggers(data);
+  }
+
+  // ── Load stats ───────────────────────────────────────────────────────────────
+  async function loadStats() {
+    const { data } = await (supabase as any).rpc("exec_sql", {
+      query: `SELECT table_name, column_count, policy_count, trigger_count FROM db_stats`
+    });
+    if (data) setStats(data);
+  }
+
+  // ── Realtime ─────────────────────────────────────────────────────────────────
+  function toggleRealtime() {
+    if (realtimeOn) {
+      rtChannel.current?.unsubscribe();
+      setRealtimeOn(false);
+      toast({ title: "🔴 Realtime disconnected" });
+    } else {
+      rtChannel.current = (supabase as any)
+        .channel("db-changes-monitor")
+        .on("postgres_changes", { event:"*", schema:"public", table:selectedTable }, (payload: any) => {
+          setRealtimeLog(p => [{
+            time: new Date().toLocaleTimeString("en-KE"),
+            event: payload.eventType,
+            table: payload.table,
+            data: JSON.stringify(payload.new || payload.old || {}).slice(0,120)
+          }, ...p.slice(0,49)]);
+        })
+        .subscribe();
+      setRealtimeOn(true);
+      toast({ title: "🟢 Realtime connected to " + selectedTable });
+    }
+  }
+
+  // ── Save row edit ────────────────────────────────────────────────────────────
+  async function saveEdit() {
+    if (!editingRow) return;
+    const { id, ...data } = editingRow;
+    const { error } = await (supabase as any).from(selectedTable).update(data).eq("id", id);
+    if (error) { toast({ title:"Update failed: "+error.message, variant:"destructive" }); return; }
+    toast({ title:"✅ Row updated" });
+    setEditingRow(null);
+    loadTable();
+  }
+
+  async function saveNew() {
+    if (!newRow) return;
+    const { error } = await (supabase as any).from(selectedTable).insert(newRow);
+    if (error) { toast({ title:"Insert failed: "+error.message, variant:"destructive" }); return; }
+    toast({ title:"✅ Row inserted" });
+    setNewRow(null);
+    loadTable();
+  }
+
+  async function deleteRow(id: string) {
+    const { error } = await (supabase as any).from(selectedTable).delete().eq("id", id);
+    if (error) { toast({ title:"Delete failed: "+error.message, variant:"destructive" }); return; }
+    toast({ title:"Row deleted" });
+    setDeleteConfirm(null);
+    loadTable();
+  }
+
+  function exportExcel() {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tableData), selectedTable);
+    XLSX.writeFile(wb, `${selectedTable}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  // ── Tab nav ──────────────────────────────────────────────────────────────────
+  const tabs = [
+    { id:"tables",   label:"Tables",        icon:TableIcon },
+    { id:"sql",      label:"SQL Editor",    icon:Code2 },
+    { id:"schema",   label:"Schema",        icon:Layers },
+    { id:"triggers", label:"Triggers",      icon:Zap },
+    { id:"realtime", label:"Realtime",      icon:Activity },
+    { id:"stats",    label:"DB Stats",      icon:BarChart3 },
+  ];
 
   return (
-    <div style={{ background:T.bg, minHeight:"100vh", fontFamily:"'Segoe UI','Inter',system-ui,sans-serif" }}>
+    <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:S.font,color:S.fg,minHeight:"100%" }}>
 
-      {/* Header */}
-      <div style={{ background:"#fff", borderBottom:`1px solid ${T.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <Database size={18} color={T.primary} />
-          <div>
-            <div style={{ fontSize:16, fontWeight:700, color:T.fg }}>Database Administration</div>
-            <div style={{ fontSize:11, color:T.fgDim }}>EL5 MediProcure · Supabase PostgreSQL</div>
-          </div>
+      {/* ── Header ── */}
+      <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
+        <Database style={{ width:20,height:20 }} />
+        <div>
+          <div style={{ fontSize:15,fontWeight:700,fontFamily:S.font }}>Database Administration</div>
+          <div style={{ fontSize:10,opacity:0.7,fontFamily:S.font }}>EL5 MediProcure · Supabase · yvjfehnzbzjliizjvuhq</div>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={loadStats} style={{ display:"flex",alignItems:"center",gap:6,background:T.bg,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"6px 12px",cursor:"pointer",fontSize:13,color:T.fg }}>
-            <RefreshCw size={13} className={loading?"animate-spin":""} />Refresh
-          </button>
-          <button style={{ display:"flex",alignItems:"center",gap:6,background:T.primary,border:"none",borderRadius:T.r,padding:"6px 14px",cursor:"pointer",fontSize:13,color:"#fff",fontWeight:600 }}>
-            <Download size={13} />Export
+        <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
+          <div style={{ background:realtimeOn?"#00cc44":"#666",width:8,height:8,borderRadius:"50%" }} />
+          <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
+          <button onClick={loadTable} style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
+            <RefreshCw style={{ width:12,height:12 }} />
           </button>
         </div>
       </div>
 
-      {/* KPI Row (Power BI style) */}
-      <div style={{ padding:"20px 24px 0" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:12, marginBottom:20 }}>
-          <KpiTile label="Total Tables" value={totals.tables} icon={Table} color={T.primary} sub="Active schemas" />
-          <KpiTile label="Total Rows" value={totals.totalRows} icon={HardDrive} color="#7719aa" sub="Across all tables" />
-          <KpiTile label="DB Status" value={loading?"Checking":"Online"} icon={Server} color="#038387" sub="Supabase PostgreSQL" />
-          <KpiTile label="Uptime" value="99.9%" icon={Activity} color="#498205" sub="Last 30 days" />
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display:"flex", gap:0, borderBottom:`1px solid ${T.border}`, marginBottom:0 }}>
-          {(["explorer","query","health"] as const).map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} style={{
-              padding:"10px 20px", border:"none", background:"none", cursor:"pointer",
-              fontSize:13, fontWeight: activeTab===t ? 700 : 400,
-              color: activeTab===t ? T.primary : T.fgMuted,
-              borderBottom: activeTab===t ? `2px solid ${T.primary}` : "2px solid transparent",
-              textTransform:"capitalize",
-            }}>{t==="explorer"?"Table Explorer":t==="query"?"SQL Query":t==="health"?"Health Check":t}</button>
-          ))}
-        </div>
+      {/* ── Tab bar ── */}
+      <div style={{ display:"flex",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"rgba(255,255,255,0.05)",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"rgba(255,255,255,0.6)" }}>
+            <t.icon style={{ width:13,height:13 }} />
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      <div style={{ padding:"0 24px 24px", marginTop:16 }}>
+      {/* ── Main content ── */}
+      <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
 
-        {/* ── TABLE EXPLORER ── */}
-        {activeTab==="explorer" && (
-          <div style={{ display:"grid", gridTemplateColumns:"260px 1fr", gap:16 }}>
-            {/* Left: table list */}
-            <div style={{ background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, overflow:"hidden", boxShadow:T.shadow }}>
-              <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:8 }}>
-                <Search size={13} color={T.fgMuted} />
-                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter tables..." style={{ border:"none",outline:"none",fontSize:12,flex:1,color:T.fg }} />
-              </div>
-              <div style={{ overflow:"auto", maxHeight:"60vh" }}>
-                {filteredTables.map(t => (
-                  <button key={t.name} onClick={() => setSelected(t.name)} style={{
-                    display:"flex", alignItems:"center", gap:8, width:"100%", padding:"8px 14px",
-                    border:"none", cursor:"pointer", textAlign:"left", fontSize:12, fontWeight: selected===t.name ? 700 : 400,
-                    background: selected===t.name ? T.primaryBg : "transparent",
-                    color: selected===t.name ? T.primary : T.fg,
-                    borderLeft: selected===t.name ? `3px solid ${T.primary}` : "3px solid transparent",
-                    transition:"all .1s",
-                  }}>
-                    <Table size={12} color={t.status==="error"?"#a4262c":selected===t.name?T.primary:T.fgMuted} />
-                    <span style={{ flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name}</span>
-                    <span style={{ fontSize:10, color:T.fgDim, fontWeight:400 }}>{t.count.toLocaleString()}</span>
-                    {t.status==="error" && <AlertTriangle size={10} color="#a4262c" />}
+        {/* Left sidebar — table tree */}
+        {activeTab === "tables" && (
+          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+            <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables…"
+                style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
+            </div>
+            {TABLE_GROUPS.map(grp => {
+              const filtered = grp.tables.filter(t => t.toLowerCase().includes(search.toLowerCase()));
+              if (filtered.length === 0) return null;
+              const isOpen = openGroups.has(grp.id);
+              return (
+                <div key={grp.id}>
+                  <button onClick={() => setOpenGroups(p => { const s=new Set(p); s.has(grp.id)?s.delete(grp.id):s.add(grp.id); return s; })}
+                    style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"transparent",border:"none",cursor:"pointer",borderBottom:`1px solid rgba(255,255,255,0.05)` }}>
+                    {isOpen ? <ChevronDown style={{ width:11,height:11,color:grp.color }} /> : <ChevronRight style={{ width:11,height:11,color:grp.color }} />}
+                    <span style={{ fontSize:11,fontWeight:700,color:grp.color,fontFamily:S.font }}>{grp.label}</span>
+                    <span style={{ fontSize:9,color:"#888",marginLeft:"auto",fontFamily:S.font }}>({filtered.length})</span>
                   </button>
-                ))}
+                  {isOpen && filtered.map(t => (
+                    <button key={t} onClick={() => { setSelectedTable(t); setPage(0); setSearch(""); }}
+                      style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 4px 22px",background:selectedTable===t?"rgba(59,130,246,0.2)":"transparent",border:"none",borderBottom:`1px solid #e8e8e8`,cursor:"pointer" }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:5 }}>
+                        <TableIcon style={{ width:10,height:10,color:grp.color,flexShrink:0 }} />
+                        <span style={{ fontSize:11,fontFamily:S.font,color:S.fg,fontWeight:selectedTable===t?700:400 }}>{t}</span>
+                      </div>
+                      {tableCounts[t] !== undefined && (
+                        <span style={{ fontSize:9,color:"#888",background:"#e0e0e0",borderRadius:8,padding:"0 4px",fontFamily:S.font }}>{tableCounts[t]}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── TABLES tab ── */}
+        {activeTab === "tables" && (
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+            {/* Toolbar */}
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
+              <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
+              <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
+                <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font }}>
+                  {[25,50,100,200,500].map(n=><option key={n}>{n}</option>)}
+                </select>
+                <button onClick={() => setNewRow(Object.fromEntries(tableColumns.filter(c=>c!=="id"&&c!=="created_at"&&c!=="updated_at").map(c=>[c,""])))}
+                  style={{ border:`1px solid #003087`,background:"#003087",color:"#fff",padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <Plus style={{ width:11,height:11 }} /> New Row
+                </button>
+                <button onClick={exportExcel} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <Download style={{ width:11,height:11 }} /> Export
+                </button>
+                <button onClick={toggleRealtime} style={{ border:`1px solid ${realtimeOn?"#006600":"#b0b0b0"}`,background:realtimeOn?"#006600":S.bg,color:realtimeOn?"#fff":S.fg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                  {realtimeOn?"Stop RT":"Live RT"}
+                </button>
               </div>
             </div>
 
-            {/* Right: table data */}
-            <div style={{ background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, overflow:"hidden", boxShadow:T.shadow }}>
-              <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <Table size={14} color={T.primary} />
-                  <span style={{ fontSize:14, fontWeight:700, color:T.fg }}>{selected}</span>
-                  <span style={{ fontSize:11, color:T.fgMuted, background:T.primaryBg, padding:"2px 8px", borderRadius:10 }}>
-                    {tableStats.find(t=>t.name===selected)?.count?.toLocaleString() || 0} rows
-                  </span>
-                </div>
-                <div style={{ display:"flex", gap:6 }}>
-                  <button onClick={() => loadTable(selected)} style={{ background:T.bg,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"4px 10px",cursor:"pointer",fontSize:12,color:T.fg,display:"flex",alignItems:"center",gap:4 }}>
-                    <RefreshCw size={11} />Refresh
-                  </button>
+            {/* New row form */}
+            {newRow && (
+              <div style={{ padding:"8px 12px",background:"#fef3c7",borderBottom:`1px solid ${S.border}`,display:"flex",gap:8,flexWrap:"wrap" as const,alignItems:"center" }}>
+                <span style={{ fontSize:11,fontWeight:700,fontFamily:S.font }}>New Row:</span>
+                {Object.keys(newRow).slice(0,8).map(k => (
+                  <div key={k} style={{ display:"flex",alignItems:"center",gap:3 }}>
+                    <label style={{ fontSize:10,fontFamily:S.font,color:"#666" }}>{k}:</label>
+                    <input value={newRow[k]} onChange={e=>setNewRow((p:any)=>({...p,[k]:e.target.value}))}
+                      style={{ border:`1px solid ${S.border}`,padding:"2px 5px",fontSize:11,fontFamily:S.font,width:100 }} />
+                  </div>
+                ))}
+                <button onClick={saveNew} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Insert</button>
+                <button onClick={()=>setNewRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Cancel</button>
+              </div>
+            )}
+
+            {/* Table */}
+            <div style={{ flex:1,overflow:"auto" }}>
+              {loading ? (
+                <div style={{ padding:20,textAlign:"center",fontFamily:S.font }}>Loading {selectedTable}…</div>
+              ) : (
+                <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                  <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
+                    <tr>
+                      <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
+                      {tableColumns.map(col => (
+                        <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
+                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
+                          {col}{sortCol===col?(sortAsc?" ▲":" ▼"):""}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableData.map((row, ri) => (
+                      <tr key={row.id||ri} style={{ background:ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)" }}
+                        onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
+                        onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)")}>
+                        <td style={{ ...CELL,width:60,textAlign:"center" }}>
+                          <div style={{ display:"flex",gap:3,justifyContent:"center" }}>
+                            <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
+                              <Edit3 style={{ width:12,height:12,color:"#003087" }} />
+                            </button>
+                            <button title="Delete" onClick={() => setDeleteConfirm(row.id)} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
+                              <Trash2 style={{ width:12,height:12,color:"#cc0000" }} />
+                            </button>
+                            <button title="Copy ID" onClick={() => { navigator.clipboard.writeText(row.id||""); toast({title:"ID copied"}); }} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
+                              <Copy style={{ width:11,height:11,color:"#666" }} />
+                            </button>
+                          </div>
+                        </td>
+                        {tableColumns.map(col => (
+                          <td key={col} style={CELL} title={String(row[col]??"")} >
+                            {editingRow?.id === row.id
+                              ? <input value={editingRow[col]??""} onChange={e=>setEditingRow((p:any)=>({...p,[col]:e.target.value}))}
+                                  style={{ border:`1px solid #003087`,padding:"1px 4px",fontSize:11,fontFamily:S.font,width:"100%",minWidth:80 }} />
+                              : (() => {
+                                  const v = row[col];
+                                  if (v === null || v === undefined) return <span style={{ color:"#999" }}>null</span>;
+                                  if (typeof v === "boolean") return <span style={{ color:v?"#006600":"#cc0000",fontWeight:700 }}>{v?"true":"false"}</span>;
+                                  const sv = String(v);
+                                  if (sv.includes("T") && sv.includes(":") && sv.length > 16) return sv.slice(0,16).replace("T"," ");
+                                  if (typeof v === "object") return <span style={{ color:"#555",fontStyle:"italic" as const }}>[JSON]</span>;
+                                  return sv.slice(0,100);
+                                })()
+                            }
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Pagination */}
+            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)",fontFamily:S.font,fontSize:11 }}>
+              <span>Page {page+1} of {Math.ceil(totalRows/pageSize)} ({totalRows.toLocaleString()} rows)</span>
+              <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
+                <button disabled={page===0} onClick={()=>setPage(0)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>«</button>
+                <button disabled={page===0} onClick={()=>setPage(p=>p-1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>‹</button>
+                <button disabled={(page+1)*pageSize>=totalRows} onClick={()=>setPage(p=>p+1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>›</button>
+                <button disabled={(page+1)*pageSize>=totalRows} onClick={()=>setPage(Math.ceil(totalRows/pageSize)-1)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>»</button>
+              </div>
+            </div>
+
+            {/* Edit modal */}
+            {editingRow && (
+              <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <div style={{ background:"#1e293b",border:`2px solid #3b82f6`,padding:20,maxWidth:700,width:"90%",maxHeight:"80vh",overflowY:"auto",fontFamily:S.font }}>
+                  <div style={{ display:"flex",justifyContent:"space-between",marginBottom:14 }}>
+                    <span style={{ fontSize:14,fontWeight:700,color:"#60a5fa",fontFamily:S.font }}>Edit Row — {selectedTable}</span>
+                    <button onClick={()=>setEditingRow(null)} style={{ background:"none",border:"none",cursor:"pointer" }}><X style={{ width:16,height:16 }} /></button>
+                  </div>
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                    {Object.keys(editingRow).map(k => (
+                      <div key={k}>
+                        <label style={{ fontSize:10,fontWeight:700,color:"#333",fontFamily:S.font,display:"block",marginBottom:2 }}>{k}</label>
+                        <input value={editingRow[k]??""} onChange={e=>setEditingRow((p:any)=>({...p,[k]:e.target.value}))}
+                          disabled={k==="id"||k==="created_at"}
+                          style={{ width:"100%",border:`1px solid ${k==="id"?"#ccc":S.border}`,padding:"5px 8px",fontSize:12,fontFamily:S.font,background:k==="id"||k==="created_at"?"#f5f5f5":S.bg,boxSizing:"border-box" }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop:14,display:"flex",gap:8,justifyContent:"flex-end" }}>
+                    <button onClick={saveEdit} style={{ background:"#003087",color:"#fff",border:"none",padding:"7px 20px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700 }}>Save Changes</button>
+                    <button onClick={()=>setEditingRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"7px 16px",cursor:"pointer",fontFamily:S.font,fontSize:12 }}>Cancel</button>
+                  </div>
                 </div>
               </div>
-              <div style={{ overflow:"auto", maxHeight:"56vh" }}>
-                {tableData.length > 0 ? (
-                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-                    <thead>
-                      <tr style={{ background:T.bg, position:"sticky", top:0, zIndex:1 }}>
-                        {tblCols.map(c => (
-                          <th key={c} style={{ padding:"8px 12px", textAlign:"left", color:T.fgMuted, fontWeight:600, borderBottom:`1px solid ${T.border}`, whiteSpace:"nowrap", fontSize:11, textTransform:"uppercase", letterSpacing:".04em" }}>{c}</th>
+            )}
+
+            {/* Delete confirm */}
+            {deleteConfirm && (
+              <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <div style={{ background:"#1e293b",border:`2px solid #ef4444`,padding:24,maxWidth:400,fontFamily:S.font }}>
+                  <div style={{ fontSize:14,fontWeight:700,color:"#cc0000",marginBottom:12 }}>Confirm Delete</div>
+                  <p style={{ fontSize:12,marginBottom:16 }}>Delete row ID: <code style={{ fontFamily:S.mono }}>{deleteConfirm.slice(0,20)}…</code>?<br/>This cannot be undone.</p>
+                  <div style={{ display:"flex",gap:8,justifyContent:"flex-end" }}>
+                    <button onClick={()=>deleteRow(deleteConfirm)} style={{ background:"#cc0000",color:"#fff",border:"none",padding:"6px 16px",cursor:"pointer",fontFamily:S.font,fontWeight:700 }}>Delete</button>
+                    <button onClick={()=>setDeleteConfirm(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"6px 14px",cursor:"pointer",fontFamily:S.font }}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── SQL EDITOR tab ── */}
+        {activeTab === "sql" && (
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real SQL Editor — PostgreSQL</span>
+              {sqlMs !== null && <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
+              <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
+                <button onClick={()=>setSql("SELECT * FROM " + selectedTable + " LIMIT 50;")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                  Select *
+                </button>
+                <button onClick={()=>setSql("SELECT COUNT(*) FROM " + selectedTable + ";")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                  Count
+                </button>
+                <button onClick={()=>setSql(`SELECT table_name, column_count, policy_count, trigger_count FROM db_stats ORDER BY table_name;`)} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                  DB Stats
+                </button>
+                <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
+                  <Play style={{ width:12,height:12 }} />{sqlRunning?"Running…":"Run ▶"}
+                </button>
+              </div>
+            </div>
+            <div style={{ flex:"0 0 220px",borderBottom:`2px solid #003087`,position:"relative" }}>
+              <textarea
+                ref={sqlRef}
+                value={sql}
+                onChange={e=>setSql(e.target.value)}
+                onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
+                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#1e293b",background:"#f8fafc",resize:"none",outline:"none",boxSizing:"border-box",lineHeight:1.6 }}
+                placeholder="-- Write SQL here (Ctrl+Enter to run)"
+                spellCheck={false}
+              />
+              <div style={{ position:"absolute",bottom:4,right:8,fontSize:10,color:"#999",fontFamily:S.font }}>Ctrl+Enter to run</div>
+            </div>
+            <div style={{ flex:1,overflow:"auto",padding:0 }}>
+              {sqlError && (
+                <div style={{ padding:"8px 14px",background:"rgba(248,113,113,0.1)",borderBottom:`1px solid #cc0000`,fontFamily:S.mono,fontSize:12,color:"#cc0000" }}>
+                  <AlertTriangle style={{ width:12,height:12,display:"inline",marginRight:6 }} />Error: {sqlError}
+                </div>
+              )}
+              {sqlResult.length > 0 && (
+                <div>
+                  <div style={{ padding:"4px 12px",background:"rgba(74,222,128,0.1)",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600" }}>
+                    <CheckCircle style={{ width:11,height:11,display:"inline",marginRight:6 }} />{sqlResult.length} row(s) returned in {sqlMs}ms
+                  </div>
+                  <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                    <thead style={{ position:"sticky",top:0 }}>
+                      <tr>
+                        {Object.keys(sqlResult[0]).map(k => (
+                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{k}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {tableData.map((row,i) => (
-                        <tr key={i} style={{ borderBottom:`1px solid ${T.border}` }} onMouseEnter={e=>(e.currentTarget.style.background=T.bg)} onMouseLeave={e=>(e.currentTarget.style.background="")}>
-                          {tblCols.map(c => (
-                            <td key={c} style={{ padding:"7px 12px", color:T.fg, maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                              {row[c]===null||row[c]===undefined ? <span style={{color:T.fgDim,fontStyle:"italic"}}>null</span>
-                                : typeof row[c]==="boolean" ? <span style={{color:row[c]?T.success:T.error}}>{String(row[c])}</span>
-                                : String(row[c]).slice(0,120)}
-                            </td>
+                      {sqlResult.map((r,i) => (
+                        <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                          {Object.values(r).map((v:any,j) => (
+                            <td key={j} style={CELL}>{v===null?<span style={{ color:"#999" }}>null</span>:String(v).slice(0,200)}</td>
                           ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                ) : (
-                  <div style={{ padding:40, textAlign:"center", color:T.fgMuted }}>
-                    <Database size={36} style={{ opacity:.2, display:"block", margin:"0 auto 12px" }} />
-                    <div>No data or table not found</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── SQL QUERY ── */}
-        {activeTab==="query" && (
-          <div style={{ display:"grid", gridTemplateColumns:"220px 1fr", gap:16 }}>
-            {/* Quick queries */}
-            <div style={{ background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, overflow:"hidden", boxShadow:T.shadow }}>
-              <div style={{ padding:"12px 14px", borderBottom:`1px solid ${T.border}`, fontSize:12, fontWeight:600, color:T.fgMuted, textTransform:"uppercase", letterSpacing:".06em" }}>Quick Queries</div>
-              {QUICK_QUERIES.map(q => (
-                <button key={q.label} onClick={() => setSql(q.sql)} style={{ display:"block", width:"100%", padding:"9px 14px", border:"none", cursor:"pointer", textAlign:"left", fontSize:12, background:"transparent", color:T.fg, borderBottom:`1px solid ${T.border}`, transition:"background .1s" }}
-                  onMouseEnter={e=>(e.currentTarget.style.background=T.primaryBg)}
-                  onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                  <ChevronRight size={11} style={{ marginRight:4 }} color={T.primary} />
-                  {q.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Editor + results */}
-            <div>
-              <div style={{ background:"#1e1e2e", borderRadius:T.rLg, overflow:"hidden", boxShadow:T.shadow, marginBottom:12 }}>
-                <div style={{ padding:"8px 14px", background:"#16213e", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <span style={{ fontSize:12, color:"rgba(255,255,255,.5)", fontFamily:"monospace" }}>SQL Editor</span>
-                  <button onClick={runSql} disabled={running} style={{ display:"flex",alignItems:"center",gap:6,background:T.primary,color:"#fff",border:"none",borderRadius:T.r,padding:"5px 14px",cursor:running?"not-allowed":"pointer",fontSize:12,fontWeight:600,opacity:running?.7:1 }}>
-                    <Play size={12} fill="#fff" />{running?"Running...":"Run Query"}
-                  </button>
-                </div>
-                <textarea value={sql} onChange={e=>setSql(e.target.value)} rows={6}
-                  style={{ width:"100%", background:"#1e1e2e", color:"#a9b7d0", border:"none", outline:"none", padding:"14px 16px", fontSize:13, fontFamily:"'Cascadia Code','Fira Code',monospace", resize:"vertical", boxSizing:"border-box", lineHeight:1.7 }} />
-              </div>
-
-              {result && (
-                <div style={{ background:"#fff", border:`1px solid ${result.error?T.error:T.border}`, borderRadius:T.rLg, overflow:"hidden", boxShadow:T.shadow }}>
-                  <div style={{ padding:"10px 16px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:10 }}>
-                    {result.error ? <AlertTriangle size={14} color={T.error} /> : <CheckCircle size={14} color={T.success} />}
-                    <span style={{ fontSize:12, fontWeight:600, color:result.error?T.error:T.success }}>
-                      {result.error ? "Query Error" : `${result.rowCount} rows · ${result.duration}ms`}
-                    </span>
-                  </div>
-                  {result.error ? (
-                    <div style={{ padding:16, color:T.error, fontSize:13, fontFamily:"monospace" }}>{result.error}</div>
-                  ) : (
-                    <div style={{ overflow:"auto", maxHeight:"40vh" }}>
-                      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-                        <thead>
-                          <tr style={{ background:T.bg }}>
-                            {result.columns.map(c => (
-                              <th key={c} style={{ padding:"8px 12px",textAlign:"left",color:T.fgMuted,fontWeight:600,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap",fontSize:11,textTransform:"uppercase" }}>{c}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {result.rows.map((r,i) => (
-                            <tr key={i} style={{ borderBottom:`1px solid ${T.border}` }}>
-                              {r.map((v,j) => (
-                                <td key={j} style={{ padding:"7px 12px",color:T.fg,maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                                  {v===null||v===undefined?<span style={{color:T.fgDim,fontStyle:"italic"}}>null</span>:String(v).slice(0,120)}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ── HEALTH CHECK ── */}
-        {activeTab==="health" && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-            {/* Table sizes */}
-            <div style={{ background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px", boxShadow:T.shadow }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16, paddingBottom:12, borderBottom:`1px solid ${T.border}` }}>
-                <BarChart3 size={16} color={T.primary} />
-                <span style={{ fontSize:14, fontWeight:700, color:T.fg }}>Table Row Distribution</span>
-              </div>
-              {topTables.map(t => (
-                <MiniBar key={t.name} label={t.name} val={t.count} max={maxCount} color={t.status==="error"?T.error:T.primary} />
-              ))}
-            </div>
-
-            {/* Table health */}
-            <div style={{ background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px", boxShadow:T.shadow }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16, paddingBottom:12, borderBottom:`1px solid ${T.border}` }}>
-                <Shield size={16} color="#498205" />
-                <span style={{ fontSize:14, fontWeight:700, color:T.fg }}>Table Health Status</span>
-              </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:4, overflow:"auto", maxHeight:360 }}>
-                {tableStats.map(t => (
-                  <div key={t.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 10px", borderRadius:T.r, background:T.bg }}>
-                    {t.status==="ok"
-                      ? <CheckCircle size={13} color={T.success} />
-                      : <AlertTriangle size={13} color={T.error} />}
-                    <span style={{ flex:1, fontSize:12, color:T.fg }}>{t.name}</span>
-                    <span style={{ fontSize:11, color:T.fgMuted }}>{t.count.toLocaleString()} rows</span>
-                    <span style={{ fontSize:10, color:t.status==="ok"?T.success:T.error, fontWeight:600, textTransform:"uppercase" }}>{t.status}</span>
-                  </div>
+        {/* ── SCHEMA tab ── */}
+        {activeTab === "schema" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087",marginBottom:10 }}>Schema: {selectedTable}</div>
+            <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+              <thead>
+                <tr>
+                  {["Column","Data Type","Nullable","Default"].map(h=>(
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {allColumns.map((col,i) => (
+                  <tr key={col.column_name} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                    <td style={{ ...CELL,fontWeight:700 }}>{col.column_name}</td>
+                    <td style={{ ...CELL,fontFamily:S.mono }}>{col.data_type}</td>
+                    <td style={{ ...CELL,color:col.is_nullable==="YES"?"#cc6600":"#006600",fontWeight:700 }}>{col.is_nullable}</td>
+                    <td style={{ ...CELL,fontFamily:S.mono,color:"#555",fontSize:11 }}>{col.column_default?.slice(0,60) || "—"}</td>
+                  </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── TRIGGERS tab ── */}
+        {activeTab === "triggers" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Database Triggers ({triggers.length})</span>
+              <button onClick={loadTriggers} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
+            </div>
+            <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+              <thead>
+                <tr>
+                  {["Trigger Name","Table","Event","Timing"].map(h=>(
+                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {triggers.map((t,i) => (
+                  <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                    <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{t.trigger_name}</td>
+                    <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.event_object_table}</td>
+                    <td style={{ ...CELL,color:t.event_manipulation==="DELETE"?"#cc0000":t.event_manipulation==="INSERT"?"#006600":"#cc6600",fontWeight:700 }}>{t.event_manipulation}</td>
+                    <td style={{ ...CELL }}>{t.action_timing}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── REALTIME tab ── */}
+        {activeTab === "realtime" && (
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+            <div style={{ padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.head,display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real-time Monitor — {selectedTable}</span>
+              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                <div style={{ width:8,height:8,borderRadius:"50%",background:realtimeOn?"#00cc44":"#cc0000" }} />
+                <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Connected":"Disconnected"}</span>
               </div>
+              <button onClick={toggleRealtime} style={{ background:realtimeOn?"#cc0000":"#006600",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:700 }}>
+                {realtimeOn?"Stop Listening":"Start Listening"}
+              </button>
+              <button onClick={()=>setRealtimeLog([])} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Clear Log</button>
+            </div>
+            <div style={{ flex:1,overflow:"auto",background:"#1e1e1e",padding:10 }}>
+              {realtimeLog.length === 0 ? (
+                <div style={{ color:"#4ade80",fontFamily:S.mono,fontSize:12,padding:10 }}>
+                  {realtimeOn ? "▶ Listening for changes on " + selectedTable + "…" : "Click 'Start Listening' to monitor real-time changes"}
+                </div>
+              ) : realtimeLog.map((log,i) => (
+                <div key={i} style={{ fontFamily:S.mono,fontSize:11,marginBottom:4,color:"#4ade80" }}>
+                  <span style={{ color:"#60a5fa" }}>[{log.time}]</span>{" "}
+                  <span style={{ color:log.event==="INSERT"?"#4ade80":log.event==="UPDATE"?"#fbbf24":"#f87171",fontWeight:700 }}>{log.event}</span>{" "}
+                  <span style={{ color:"#c084fc" }}>{log.table}</span>{" "}
+                  <span style={{ color:"#1e293b" }}>{log.data}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {/* ── STATS tab ── */}
+        {activeTab === "stats" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Database Statistics ({stats.length || "—"} tables)</span>
+              <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
+            </div>
+            {stats.length > 0 ? (
+              <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                <thead>
+                  <tr>
+                    {["Table","Columns","Policies","Triggers","Rows"].map(h=>(
+                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.map((row,i) => (
+                    <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
+                      <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{row.table_name}</td>
+                      <td style={{ ...CELL,textAlign:"center" }}>{row.column_count}</td>
+                      <td style={{ ...CELL,textAlign:"center",color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
+                      <td style={{ ...CELL,textAlign:"center",color:row.trigger_count>0?"#cc6600":"#666" }}>{row.trigger_count}</td>
+                      <td style={{ ...CELL,textAlign:"right" }}>{(tableCounts[row.table_name]||0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div style={{ fontFamily:S.font,fontSize:12,color:"#666",padding:20 }}>Click Refresh to load statistics…</div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
+  );
+}
+
+export default function AdminDatabasePage() {
+  return (
+    <RoleGuard allowed={["admin","webmaster","database_admin"]}>
+      <DBInner />
+    </RoleGuard>
   );
 }

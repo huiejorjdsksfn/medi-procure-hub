@@ -1,95 +1,55 @@
-/**
- * ProcurBosse — ErrorBoundary v5.0 NUCLEAR
- * On crash: auto-reload after 3s (no ugly error screen shown to users)
- * Shows branded blue reload screen — NOT "Application failed to start"
- * EL5 MediProcure · Embu Level 5 Hospital
- */
 import { Component, ReactNode } from "react";
 
-interface Props  { children: ReactNode; }
-interface State  { crashed: boolean; countdown: number; }
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
 
-export default class ErrorBoundary extends Component<Props, State> {
-  private timer: ReturnType<typeof setInterval> | null = null;
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string;
+}
 
-  state: State = { crashed: false, countdown: 5 };
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    errorMessage: "",
+  };
 
-  static getDerivedStateFromError(): Partial<State> {
-    return { crashed: true, countdown: 5 };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return {
+      hasError: true,
+      errorMessage: error.message || "Unexpected application error",
+    };
   }
 
-  componentDidCatch(error: Error) {
-    console.error("[ProcurBosse] App error caught by ErrorBoundary:", error?.message);
+  componentDidCatch(error: Error, errorInfo: { componentStack: string }) {
+    console.error("[UI_CRASH]", { error, errorInfo });
   }
 
-  componentDidUpdate(_: Props, prev: State) {
-    if (this.state.crashed && !prev.crashed) {
-      this.timer = setInterval(() => {
-        this.setState(s => {
-          if (s.countdown <= 1) {
-            clearInterval(this.timer!);
-            window.location.reload();
-            return s;
-          }
-          return { countdown: s.countdown - 1 };
-        });
-      }, 1000);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.timer) clearInterval(this.timer);
-  }
+  reloadApp = () => {
+    window.location.reload();
+  };
 
   render() {
-    if (!this.state.crashed) return this.props.children;
+    if (!this.state.hasError) return this.props.children;
 
-    // Branded reload screen — no scary error message
     return (
-      <div style={{
-        position: "fixed", inset: 0,
-        background: "linear-gradient(135deg,#1565c0 0%,#0d47a1 35%,#1a237e 65%,#0a1172 100%)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Segoe UI',system-ui,sans-serif",
-      }}>
-        <div style={{ textAlign: "center", color: "#fff", padding: "0 24px" }}>
-          {/* Logo */}
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "rgba(255,255,255,0.15)",
-            border: "2px solid rgba(255,255,255,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px",
-          }}>
-            <img src="/icons/icon-48.png" alt="" style={{ width:44, height:44, objectFit:"contain" }}
-                 onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>EL5 MediProcure</div>
-          <div style={{ fontSize: 14, opacity: .7, marginBottom: 32 }}>Reloading in {this.state.countdown}s...</div>
-
-          {/* Progress ring */}
-          <div style={{
-            width: 48, height: 48, borderRadius: "50%",
-            border: "3px solid rgba(255,255,255,0.2)",
-            borderTopColor: "#fff",
-            margin: "0 auto 24px",
-            animation: "spin .8s linear infinite",
-          }} />
-
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              background: "#fff", color: "#0d47a1",
-              border: "none", borderRadius: 10,
-              padding: "12px 32px", fontSize: 15, fontWeight: 800,
-              cursor: "pointer",
-            }}
-          >
-            Reload Now
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f8fafc", padding: 20 }}>
+        <div style={{ maxWidth: 520, width: "100%", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: 24, boxShadow: "0 8px 24px rgba(15,23,42,.08)" }}>
+          <h1 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>Something went wrong</h1>
+          <p style={{ margin: "10px 0 0", color: "#334155", lineHeight: 1.6 }}>
+            The app crashed before this page could render. Please retry. If it keeps happening, share the error below with support.
+          </p>
+          <pre style={{ marginTop: 16, padding: 12, background: "#0f172a", color: "#e2e8f0", borderRadius: 10, overflowX: "auto", fontSize: 12 }}>
+            {this.state.errorMessage}
+          </pre>
+          <button onClick={this.reloadApp} style={{ marginTop: 16, border: "none", background: "#2563eb", color: "#fff", borderRadius: 10, padding: "10px 14px", fontWeight: 700, cursor: "pointer" }}>
+            Reload app
           </button>
         </div>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
 }
+
+export default ErrorBoundary;

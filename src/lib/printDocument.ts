@@ -1,7 +1,7 @@
 /**
- * ProcurBosse  -- Print Document Utility v3.0
+ * ProcurBosse — Print Document Utility v3.0
  * Adds Embu County + Hospital logos to all printed documents
- * EL5 MediProcure * Embu Level 5 Hospital
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -10,7 +10,7 @@ import logoUrl from "@/assets/logo.png";
 
 const HOSPITAL = {
   name:     "EMBU LEVEL 5 HOSPITAL",
-  ministry: "COUNTY GOVERNMENT OF EMBU  -- DEPARTMENT OF HEALTH",
+  ministry: "COUNTY GOVERNMENT OF EMBU — DEPARTMENT OF HEALTH",
   address:  "P.O. Box 33 - 60100, Embu, Kenya",
   phone:    "+254 68 31055 / +254 722 406595",
   email:    "pghembu@gmail.com",
@@ -50,7 +50,7 @@ export async function addLetterhead(doc: jsPDF, title: string, docNo: string): P
   } else {
     doc.setFillColor(0, 64, 128); doc.circle(23, 17, 11, "F");
     doc.setTextColor(255,255,255); doc.setFontSize(10);
-    doc.text("", 23, 20, { align:"center" });
+    doc.text("🏥", 23, 20, { align:"center" });
   }
 
   // Right: ProcurBosse logo
@@ -141,9 +141,9 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
         startY,
         head: [],
         body: [
-          ["Department:", req.department||" --",          "Priority:",   req.priority||"Normal"],
-          ["Requested By:", req.requester_name||req.requested_by||" --", "Date:", req.created_at?.slice(0,10)||" --"],
-          ["Status:",       req.status?.toUpperCase()||" --",            "Total:", req.total_amount ? `KES ${Number(req.total_amount).toLocaleString()}` : " --"],
+          ["Department:", req.department||"—",          "Priority:",   req.priority||"Normal"],
+          ["Requested By:", req.requester_name||req.requested_by||"—", "Date:", req.created_at?.slice(0,10)||"—"],
+          ["Status:",       req.status?.toUpperCase()||"—",            "Total:", req.total_amount ? `KES ${Number(req.total_amount).toLocaleString()}` : "—"],
         ],
         styles:     { fontSize:8, cellPadding:2 },
         columnStyles:{ 0:{fontStyle:"bold",cellWidth:32}, 1:{cellWidth:60}, 2:{fontStyle:"bold",cellWidth:25}, 3:{cellWidth:50} },
@@ -158,11 +158,11 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
         head: [["#","Item Description","Unit","Qty","Unit Price","Total"]],
         body: items.map((it,i) => [
           i+1,
-          it.item_name||it.description||" --",
+          it.item_name||it.description||"—",
           it.unit_of_measure||"PCS",
           it.quantity||1,
-          it.unit_price ? `KES ${Number(it.unit_price).toLocaleString()}` : " --",
-          it.total_price || it.quantity*it.unit_price ? `KES ${Number(it.total_price||(it.quantity||1)*(it.unit_price||0)).toLocaleString()}` : " --",
+          it.unit_price ? `KES ${Number(it.unit_price).toLocaleString()}` : "—",
+          it.total_price || it.quantity*it.unit_price ? `KES ${Number(it.total_price||(it.quantity||1)*(it.unit_price||0)).toLocaleString()}` : "—",
         ]),
         styles:       { fontSize:8 },
         headStyles:   { fillColor:[0,45,100], textColor:255, fontStyle:"bold" },
@@ -196,10 +196,10 @@ export async function printPurchaseOrder(po: any, items: any[], supplier: any): 
         startY,
         head: [],
         body: [
-          ["Supplier:",    supplier?.name||po.supplier_name||" --",    "LPO No:", po.po_number||" --"],
-          ["Address:",     supplier?.address||" --",                   "Date:",   po.created_at?.slice(0,10)||" --"],
-          ["Contact:",     supplier?.phone||" --",                     "Delivery:", po.expected_delivery_date?.slice(0,10)||"TBD"],
-          ["KRA PIN:",     supplier?.kra_pin||" --",                   "Terms:",  po.payment_terms||"30 days"],
+          ["Supplier:",    supplier?.name||po.supplier_name||"—",    "LPO No:", po.po_number||"—"],
+          ["Address:",     supplier?.address||"—",                   "Date:",   po.created_at?.slice(0,10)||"—"],
+          ["Contact:",     supplier?.phone||"—",                     "Delivery:", po.expected_delivery_date?.slice(0,10)||"TBD"],
+          ["KRA PIN:",     supplier?.kra_pin||"—",                   "Terms:",  po.payment_terms||"30 days"],
         ],
         styles:       { fontSize:8, cellPadding:2 },
         columnStyles: { 0:{fontStyle:"bold",cellWidth:28}, 1:{cellWidth:70}, 2:{fontStyle:"bold",cellWidth:25}, 3:{cellWidth:45} },
@@ -231,7 +231,7 @@ export async function printPurchaseOrder(po: any, items: any[], supplier: any): 
   });
 }
 
-// -- Compatibility aliases (keep existing imports working) ---------------------
+// ── Compatibility aliases (keep existing imports working) ─────────────────────
 export const printLPO = printPurchaseOrder;
 export const printGRN = async (grn: any, items: any[], supplier?: any) => {
   await printDocument({
@@ -243,9 +243,9 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
         startY,
         head: [],
         body: [
-          ["Supplier:", supplier?.name || grn.supplier_name || " --", "GRN No:", grn.grn_number || " --"],
-          ["LPO Ref:", grn.lpo_number || " --", "Date:", grn.created_at?.slice(0,10) || " --"],
-          ["Received By:", grn.received_by_name || " --", "Store:", grn.store_location || "Main Store"],
+          ["Supplier:", supplier?.name || grn.supplier_name || "—", "GRN No:", grn.grn_number || "—"],
+          ["LPO Ref:", grn.lpo_number || "—", "Date:", grn.created_at?.slice(0,10) || "—"],
+          ["Received By:", grn.received_by_name || "—", "Store:", grn.store_location || "Main Store"],
         ],
         styles: { fontSize: 8, cellPadding: 2 },
         columnStyles: { 0:{fontStyle:"bold",cellWidth:30}, 1:{cellWidth:65}, 2:{fontStyle:"bold",cellWidth:22}, 3:{cellWidth:45} },
@@ -256,7 +256,7 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
       autoTable(doc, {
         startY: y2,
         head: [["#","Item Description","Unit","Ordered","Received","Variance","Condition"]],
-        body: items.map((it,i) => [i+1, it.item_name||it.description||" --", it.unit_of_measure||"PCS", it.quantity_ordered||0, it.quantity_received||0, (it.quantity_ordered||0)-(it.quantity_received||0), it.condition||"Good"]),
+        body: items.map((it,i) => [i+1, it.item_name||it.description||"—", it.unit_of_measure||"PCS", it.quantity_ordered||0, it.quantity_received||0, (it.quantity_ordered||0)-(it.quantity_received||0), it.condition||"Good"]),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [0,45,100], textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [240,246,255] },
@@ -276,7 +276,7 @@ export const printJournalVoucher = async (voucher: any, lines: any[]) => {
       autoTable(doc, {
         startY,
         head: [["Account Code","Description","Debit (KES)","Credit (KES)"]],
-        body: (lines||[]).map(l => [l.account_code||" --", l.description||" --", l.debit_amount ? Number(l.debit_amount).toLocaleString() : " --", l.credit_amount ? Number(l.credit_amount).toLocaleString() : " --"]),
+        body: (lines||[]).map(l => [l.account_code||"—", l.description||"—", l.debit_amount ? Number(l.debit_amount).toLocaleString() : "—", l.credit_amount ? Number(l.credit_amount).toLocaleString() : "—"]),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [0,45,100], textColor: 255, fontStyle: "bold" },
         theme: "grid",
@@ -296,9 +296,9 @@ export const printGenericVoucher = async (voucher: any, type: string) => {
         startY,
         head: [],
         body: [
-          ["Payee / Ref:", voucher.payee_name || voucher.reference || " --", "Amount:", voucher.total_amount ? `KES ${Number(voucher.total_amount).toLocaleString()}` : " --"],
-          ["Date:", voucher.created_at?.slice(0,10) || " --", "Status:", (voucher.status || "Draft").toUpperCase()],
-          ["Description:", voucher.description || voucher.notes || " --", "", ""],
+          ["Payee / Ref:", voucher.payee_name || voucher.reference || "—", "Amount:", voucher.total_amount ? `KES ${Number(voucher.total_amount).toLocaleString()}` : "—"],
+          ["Date:", voucher.created_at?.slice(0,10) || "—", "Status:", (voucher.status || "Draft").toUpperCase()],
+          ["Description:", voucher.description || voucher.notes || "—", "", ""],
         ],
         styles: { fontSize: 8, cellPadding: 3 },
         columnStyles: { 0:{fontStyle:"bold",cellWidth:32}, 1:{cellWidth:68}, 2:{fontStyle:"bold",cellWidth:22}, 3:{cellWidth:46} },

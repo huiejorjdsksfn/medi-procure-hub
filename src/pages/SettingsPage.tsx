@@ -1,7 +1,7 @@
 /**
- * ProcurBosse  -- System Settings v5.0
- * Brand new clean build  -- tabbed settings linked to Supabase system_settings
- * EL5 MediProcure * Embu Level 5 Hospital
+ * ProcurBosse — System Settings v5.0
+ * Brand new clean build — tabbed settings linked to Supabase system_settings
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import {
 import RoleGuard from "@/components/RoleGuard";
 import logoImg from "@/assets/logo.png";
 
-// -- Tabs ----------------------------------------------------------------------
+// ── Tabs ──────────────────────────────────────────────────────────────────────
 const TABS = [
   { id:"hospital",   label:"Hospital",    icon:Building2, color:"#0078d4" },
   { id:"email",      label:"Email/SMTP",  icon:Mail,      color:"#059669" },
@@ -28,7 +28,7 @@ const TABS = [
   { id:"system",     label:"System",      icon:Server,    color:"#374151" },
 ];
 
-// -- Sub-components -------------------------------------------------------------
+// ── Sub-components ─────────────────────────────────────────────────────────────
 function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   const bg = on ? "#4f46e5" : "#e2e8f0";
   return (
@@ -69,7 +69,7 @@ function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) 
         </div>
         {onSave && (
           <button onClick={onSave} disabled={saving} style={{ padding:"6px 14px",borderRadius:7,border:"none",background:"rgba(79,70,229,0.8)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
-            <Save style={{ width:12,height:12 }} />{saving ? "Saving..." : "Save"}
+            <Save style={{ width:12,height:12 }} />{saving ? "Saving…" : "Save"}
           </button>
         )}
       </div>
@@ -78,7 +78,7 @@ function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) 
   );
 }
 
-// -- Main inner component -------------------------------------------------------
+// ── Main inner component ───────────────────────────────────────────────────────
 function SettingsInner() {
   const { user, profile } = useAuth();
   const { settings } = useSystemSettings();
@@ -113,7 +113,7 @@ function SettingsInner() {
     keys.forEach(k => { if (s[k] !== undefined) subset[k] = s[k]; });
     const res = await saveSettings(subset);
     if (res.ok) {
-      toast({ title:`[OK] ${keys.length} settings saved & propagated` });
+      toast({ title:`✅ ${keys.length} settings saved & propagated` });
       setDirty(false);
     } else {
       toast({ title:"Save failed: " + (res.error || "Check connection"), variant:"destructive" });
@@ -129,7 +129,7 @@ function SettingsInner() {
     const res = await saveSettings(toSave);
     if (res.ok) {
       await sendSystemBroadcast({ title:"Settings Updated", message:`Settings updated by ${profile?.full_name||user?.email||"Admin"}`, type:"info" });
-      toast({ title:`[OK] All settings saved and propagated` });
+      toast({ title:`✅ All settings saved and propagated` });
       setDirty(false);
     } else {
       toast({ title:"Save failed: " + (res.error || "Check connection"), variant:"destructive" });
@@ -144,11 +144,11 @@ function SettingsInner() {
     if (!toAddr) { setTestRes({ ok:false, msg:"Set hospital email first" }); setTesting(false); return; }
     try {
       const { error, data } = await supabase.functions.invoke("send-email", {
-        body: { to:toAddr, subject:"ProcurBosse SMTP Test  -- " + new Date().toLocaleString("en-KE"), body:"Test email from EL5 MediProcure Settings. SMTP is configured correctly." }
+        body: { to:toAddr, subject:"ProcurBosse SMTP Test — " + new Date().toLocaleString("en-KE"), body:"Test email from EL5 MediProcure Settings. SMTP is configured correctly." }
       });
       if (error) setTestRes({ ok:false, msg:"Edge function: " + error.message });
       else if ((data as any)?.error) setTestRes({ ok:false, msg:"SMTP: " + (data as any).error });
-      else setTestRes({ ok:true, msg:"[OK] Test email sent to " + toAddr });
+      else setTestRes({ ok:true, msg:"✅ Test email sent to " + toAddr });
     } catch (e:any) { setTestRes({ ok:false, msg:"Failed: " + e.message }); }
     setTesting(false);
   }
@@ -166,11 +166,11 @@ function SettingsInner() {
         <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>
           {dirty && (
             <span style={{ fontSize:11,color:"#fbbf24",background:"rgba(251,191,36,0.15)",padding:"3px 10px",borderRadius:20,fontWeight:700 }}>
-               Unsaved
+              ● Unsaved
             </span>
           )}
           <button onClick={saveAll} disabled={saving} style={{ padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#4f46e5,#7c3aed)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>
-            <Save style={{ width:13,height:13 }} />{saving ? "Saving..." : "Save All"}
+            <Save style={{ width:13,height:13 }} />{saving ? "Saving…" : "Save All"}
           </button>
         </div>
       </div>
@@ -191,7 +191,7 @@ function SettingsInner() {
             </button>
           ))}
           <div style={{ margin:"12px",padding:"10px",background:"rgba(79,70,229,0.1)",borderRadius:8,border:"1px solid rgba(79,70,229,0.2)" }}>
-            <div style={{ fontSize:10,fontWeight:700,color:"#818cf8",marginBottom:4 }}> Realtime</div>
+            <div style={{ fontSize:10,fontWeight:700,color:"#818cf8",marginBottom:4 }}>💡 Realtime</div>
             <div style={{ fontSize:10,color:"#64748b",lineHeight:1.5 }}>Settings propagate instantly to all users via Supabase channels.</div>
           </div>
         </div>
@@ -211,7 +211,7 @@ function SettingsInner() {
                 {k:"po_box",          l:"P.O. Box",         p:"P.O. Box 591-60100, Embu"},
                 {k:"hospital_phone",  l:"Phone",            p:"+254 060 000000"},
                 {k:"hospital_email",  l:"Email Address",    p:"info@embu.health.go.ke"},
-                {k:"doc_footer",      l:"Document Footer",  p:"Embu Level 5 Hospital * Embu County Government"},
+                {k:"doc_footer",      l:"Document Footer",  p:"Embu Level 5 Hospital · Embu County Government"},
                 {k:"currency_symbol", l:"Currency Symbol",  p:"KES"},
                 {k:"vat_rate",        l:"VAT Rate (%)",     p:"16"},
               ].map(f => (
@@ -238,7 +238,7 @@ function SettingsInner() {
               ))}
               <FR label="SMTP Password" color="#059669">
                 <div style={{ position:"relative",width:260 }}>
-                  <input type={showPw?"text":"password"} value={get("smtp_pass")} onChange={e=>set("smtp_pass",e.target.value)} style={{...inp,paddingRight:34}} placeholder="********" />
+                  <input type={showPw?"text":"password"} value={get("smtp_pass")} onChange={e=>set("smtp_pass",e.target.value)} style={{...inp,paddingRight:34}} placeholder="••••••••" />
                   <button onClick={() => setShowPw(p=>!p)} style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer" }}>
                     {showPw ? <EyeOff style={{ width:14,height:14,color:"#64748b" }} /> : <Eye style={{ width:14,height:14,color:"#64748b" }} />}
                   </button>
@@ -258,7 +258,7 @@ function SettingsInner() {
               )}
               <div style={{ marginTop:12 }}>
                 <button onClick={testEmail} disabled={testing} style={{ padding:"6px 14px",borderRadius:7,border:"none",background:"rgba(5,150,105,0.6)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer" }}>
-                  {testing ? "Testing..." : "Send Test Email"}
+                  {testing ? "Testing…" : "Send Test Email"}
                 </button>
               </div>
             </Card>
@@ -272,7 +272,7 @@ function SettingsInner() {
               </FR>
               {[
                 {k:"twilio_account_sid",           l:"Account SID",            p:"ACxxxxxxxxxx"},
-                {k:"twilio_auth_token",          l:"Auth Token",             p:"****", pw:true},
+                {k:"twilio_auth_token",          l:"Auth Token",             p:"••••", pw:true},
                 {k:"twilio_messaging_service_sid",l:"Messaging Service SID",  p:"MGd547d8e3273fda2d21afdd6856acb245"},
                 {k:"twilio_phone_number",         l:"Twilio Phone (fallback)", p:"+12025551234"},
                 {k:"sms_hospital_name",           l:"SMS From Name",          p:"EL5 MediProcure"},
@@ -353,7 +353,7 @@ function SettingsInner() {
                 {k:"enable_scanner",        l:"QR Scanner",           s:"Barcode and QR scanning"},
                 {k:"enable_email",          l:"Email System",         s:"Internal mail and notifications"},
                 {k:"realtime_notifications",l:"Real-time Alerts",     s:"Live Supabase channel notifications"},
-                {k:"maintenance_mode",      l:"Maintenance Mode",     s:"[!] Blocks all non-admin access"},
+                {k:"maintenance_mode",      l:"Maintenance Mode",     s:"⚠ Blocks all non-admin access"},
               ].map(f => (
                 <FR key={f.k} label={f.l} sub={f.s} color={f.k==="maintenance_mode"?"#dc2626":"#0369a1"}>
                   <Tog on={get(f.k,"true")!=="false"} onChange={v=>set(f.k,v?"true":"false")} />
@@ -406,7 +406,7 @@ function SettingsInner() {
                 <Tog on={get("print_confidential","true")!=="false"} onChange={v=>set("print_confidential",v?"true":"false")} />
               </FR>
               <div style={{ marginTop:8,padding:"8px 12px",background:"rgba(196,89,17,0.08)",borderRadius:8,fontSize:11,color:"#C45911" }}>
-                <strong>Supported:</strong> Kyocera ECOSYS * HP DeskJet * HP LaserJet * HP Color * Epson TM thermal * Star TSP thermal
+                <strong>Supported:</strong> Kyocera ECOSYS · HP DeskJet · HP LaserJet · HP Color · Epson TM thermal · Star TSP thermal
               </div>
             </Card>
           )}
@@ -415,7 +415,7 @@ function SettingsInner() {
             <Card title="System Configuration" sub="Timezone, date format, uploads" color="#374151" icon={Server}
               onSave={() => save(["date_format","timezone","max_upload_mb","default_user_role","allow_registration"])} saving={saving}>
               <FR label="System Version" color="#374151">
-                <span style={{ fontFamily:"var(--font-mono)",fontWeight:700,color:"#818cf8" }}>ProcurBosse</span>
+                <span style={{ fontFamily:"var(--font-mono)",fontWeight:700,color:"#818cf8" }}>v5.8.0 — ProcurBosse</span>
               </FR>
               <FR label="Date Format" color="#374151">
                 <select value={get("date_format","DD/MM/YYYY")} onChange={e=>set("date_format",e.target.value)} style={{...inp,width:160}}>

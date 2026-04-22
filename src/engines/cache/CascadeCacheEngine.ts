@@ -1,4 +1,4 @@
-/** EL5 MediProcure v5.8  -- Multi-Layer Cascade Cache Engine */
+/** EL5 MediProcure v5.8 — Multi-Layer Cascade Cache Engine */
 interface CacheEntry<T = unknown> { value: T; expiry: number; hitCount: number; }
 export interface CacheOptions { ttl?: number; priority?: string; }
 export interface CacheMetrics { hits: number; misses: number; hitRate: number; totalKeys: number; }

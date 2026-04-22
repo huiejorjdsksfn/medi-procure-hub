@@ -1,5 +1,5 @@
 /**
- * PWA Install Prompt  -- shows "Add to Home Screen" banner
+ * PWA Install Prompt — shows "Add to Home Screen" banner
  * Appears once, remembers dismissal in localStorage
  */
 import { useState, useEffect } from "react";
@@ -11,7 +11,7 @@ export default function PWAInstallPrompt() {
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    try { if (localStorage.getItem("pwa-dismissed")) return; } catch {}
+    if (localStorage.getItem("pwa-dismissed")) return;
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     const handler = (e: any) => {
@@ -33,7 +33,7 @@ export default function PWAInstallPrompt() {
   };
 
   const dismiss = () => {
-    try { localStorage.setItem("pwa-dismissed", "1"); } catch {}
+    localStorage.setItem("pwa-dismissed", "1");
     setShow(false);
   };
 

@@ -1,7 +1,7 @@
 /**
- * EL5 MediProcure v5.8  -- WhatsApp + Twilio Engine
- * Auto-renewal * Session management * Cross-platform delivery
- * ProcurBosse * Embu Level 5 Hospital
+ * EL5 MediProcure v5.8 — WhatsApp + Twilio Engine
+ * Auto-renewal · Session management · Cross-platform delivery
+ * ProcurBosse · Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
 import { sendSms, sendWhatsApp, TWILIO } from "@/lib/sms";

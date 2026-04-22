@@ -1,5 +1,5 @@
 /**
- * useSystemSettings  -- Real-time Supabase system_settings hook
+ * useSystemSettings — Real-time Supabase system_settings hook
  * Any component using this will auto-update the moment admin saves a setting.
  */
 import { useState, useEffect, useCallback } from "react";
@@ -15,7 +15,7 @@ const DEFAULTS: SystemSettings = {
   hospital_phone:      "+254 060 000000",
   primary_color:       "#1a3a6b",
   accent_color:        "#C45911",
-  doc_footer:          "Embu Level 5 Hospital * Embu County Government",
+  doc_footer:          "Embu Level 5 Hospital · Embu County Government",
   currency_symbol:     "KES",
   vat_rate:            "16",
   maintenance_mode:    "false",
@@ -68,7 +68,7 @@ export function useSystemSettings() {
       setLoading(false);
     }
 
-    // Real-time subscription  -- one shared channel
+    // Real-time subscription — one shared channel
     const channel = (supabase as any)
       .channel("sys_settings_rt")
       .on("postgres_changes", {

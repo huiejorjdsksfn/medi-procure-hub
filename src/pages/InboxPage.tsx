@@ -1,4 +1,4 @@
-// InboxPage now unified into EmailPage  -- redirect there
+// InboxPage now unified into EmailPage — redirect there
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 

@@ -1,7 +1,7 @@
 /**
- * EL5 MediProcure  -- SMS Management Dashboard
- * Two-way SMS * Bulk Send * Templates * Conversations * Metrics
- * ProcurBosse * Embu Level 5 Hospital * SMS Gateway
+ * EL5 MediProcure v5.8 — SMS Management Dashboard
+ * Two-way SMS · Bulk Send · Templates · Conversations · Metrics
+ * ProcurBosse · Embu Level 5 Hospital · Twilio +16812972643
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,12 +72,10 @@ export default function SMSPage() {
 
   const loadAll = useCallback(async()=>{
     setLoading(true);
-    try {
-      const [data,m] = await Promise.all([SMSAPI.loadAll(), SMSAPI.getMetrics(7)]);
-      setMessages(data.messages||[]); setTemplates(data.templates||[]);
-      setConversations(data.conversations||[]); setBulkOps(data.bulkOps||[]); setMetrics(m);
-    } catch(e:any){ console.warn('[SMS] load error:',e?.message); }
-    finally { setLoading(false); }
+    const [data,m] = await Promise.all([SMSAPI.loadAll(), SMSAPI.getMetrics(7)]);
+    setMessages(data.messages); setTemplates(data.templates);
+    setConversations(data.conversations); setBulkOps(data.bulkOps); setMetrics(m);
+    setLoading(false);
   },[]);
 
   useEffect(()=>{loadAll();},[loadAll]);
@@ -93,36 +91,36 @@ export default function SMSPage() {
   useEffect(()=>{conEndRef.current?.scrollIntoView({behavior:"smooth"});},[conMessages]);
 
   async function sendSMS(){
-    if(!to.trim()||!body.trim()){showToast("[!] Enter recipient and message");return;}
+    if(!to.trim()||!body.trim()){showToast("⚠️ Enter recipient and message");return;}
     setSending(true);
     const {ok,error}=await SMSAPI.send(to,body,{name,dept,type:msgType});
     setSending(false);
-    if(ok){showToast("[OK] Message sent!");setTo("");setBody("");setName("");loadAll();}
-    else showToast(`[X] Failed: ${error}`);
+    if(ok){showToast("✅ Message sent!");setTo("");setBody("");setName("");loadAll();}
+    else showToast(`❌ Failed: ${error}`);
   }
 
   async function sendBulk(){
     const phones=bulkRecipients.split(/[\n,;]+/).map(p=>p.trim()).filter(Boolean);
-    if(!phones.length||!bulkBody.trim()){showToast("[!] Enter recipients and message");return;}
+    if(!phones.length||!bulkBody.trim()){showToast("⚠️ Enter recipients and message");return;}
     setBulkSending(true); setBulkProgress({ok:0,failed:0,total:phones.length});
     const res=await SMSAPI.sendBulk(phones,bulkBody,{name:bulkName});
     setBulkSending(false); setBulkProgress(res);
-    showToast(`[OK] Bulk done: ${res.ok} sent, ${res.failed} failed`);
+    showToast(`✅ Bulk done: ${res.ok} sent, ${res.failed} failed`);
     setBulkRecipients(""); setBulkBody(""); loadAll();
   }
 
   async function applyTemplate(id:string){
     const tpl=templates.find(t=>t.id===id);
-    if(tpl){setBody(tpl.content);setSelectedTemplate(id);showToast(` Template applied: ${tpl.name}`);}
+    if(tpl){setBody(tpl.content);setSelectedTemplate(id);showToast(`📄 Template applied: ${tpl.name}`);}
   }
 
   async function saveTpl(){
-    if(!editTpl?.name||!editTpl?.content){showToast("[!] Name and content required");return;}
+    if(!editTpl?.name||!editTpl?.content){showToast("⚠️ Name and content required");return;}
     setSavingTpl(true);
     if(editTpl.id){await SMSAPI.updateTemplate(editTpl.id,editTpl);}
     else{await SMSAPI.createTemplate(editTpl);}
     setSavingTpl(false); setEditTpl(null);
-    showToast("[OK] Template saved!"); loadAll();
+    showToast("✅ Template saved!"); loadAll();
   }
 
   async function openConversation(con:SMSConversation){
@@ -143,12 +141,12 @@ export default function SMSPage() {
   const filteredMsgs=messages.filter(m=>!search||(m.recipient_phone||"").includes(search)||(m.recipient_name||"").toLowerCase().includes(search.toLowerCase())||(m.message_body||"").toLowerCase().includes(search.toLowerCase()));
 
   const TABS:{id:Tab;label:string;icon:string}[]=[
-    {id:"compose",label:"Compose",icon:""},
-    {id:"history",label:"History",icon:""},
-    {id:"conversations",label:"Conversations",icon:""},
-    {id:"templates",label:"Templates",icon:""},
-    {id:"bulk",label:"Bulk Send",icon:""},
-    {id:"metrics",label:"Metrics",icon:""},
+    {id:"compose",label:"Compose",icon:"✍️"},
+    {id:"history",label:"History",icon:"📋"},
+    {id:"conversations",label:"Conversations",icon:"💬"},
+    {id:"templates",label:"Templates",icon:"📄"},
+    {id:"bulk",label:"Bulk Send",icon:"📢"},
+    {id:"metrics",label:"Metrics",icon:"📊"},
   ];
 
   return(
@@ -158,14 +156,14 @@ export default function SMSPage() {
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#7c3aed,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}></div>
+          <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#7c3aed,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>💬</div>
           <div>
             <h1 style={{margin:0,fontSize:22,fontWeight:800,color:"#0f172a"}}>SMS & Messaging</h1>
-            <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>SMS & WhatsApp</div>
+            <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>EL5H · +16812972643 (SMS) · +14155238886 (WhatsApp) · Twilio MG2fffc3a…</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <div style={{padding:"5px 12px",borderRadius:20,background:"#f0fdf4",border:"1px solid #bbf7d0",fontSize:11,fontWeight:700,color:"#059669"}}> Twilio Active</div>
+          <div style={{padding:"5px 12px",borderRadius:20,background:"#f0fdf4",border:"1px solid #bbf7d0",fontSize:11,fontWeight:700,color:"#059669"}}>🟢 Twilio Active</div>
           <button onClick={loadAll} style={{...btn("#64748b"),padding:"7px 14px"}}><RefreshCw style={{width:12,height:12,display:"inline",marginRight:4}}/>Refresh</button>
         </div>
       </div>
@@ -173,15 +171,15 @@ export default function SMSPage() {
       {/* KPIs */}
       {metrics&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12,marginBottom:20}}>
         {[
-          {label:"Total (7d)",value:metrics.total,color:"#6b7280",icon:""},
-          {label:"Sent",value:metrics.sent,color:"#22c55e",icon:""},
-          {label:"Received",value:metrics.received,color:"#3b82f6",icon:""},
-          {label:"Failed",value:metrics.failed,color:"#ef4444",icon:"[X]"},
-          {label:"WhatsApp",value:metrics.whatsapp,color:"#25D366",icon:""},
-          {label:"Delivered",value:metrics.delivered,color:"#0891b2",icon:"[OK]"},
+          {label:"Total (7d)",value:metrics.total,color:"#6b7280",icon:"💬"},
+          {label:"Sent",value:metrics.sent,color:"#22c55e",icon:"📤"},
+          {label:"Received",value:metrics.received,color:"#3b82f6",icon:"📥"},
+          {label:"Failed",value:metrics.failed,color:"#ef4444",icon:"❌"},
+          {label:"WhatsApp",value:metrics.whatsapp,color:"#25D366",icon:"🟢"},
+          {label:"Delivered",value:metrics.delivered,color:"#0891b2",icon:"✅"},
         ].map((k,i)=>(
           <div key={i} style={{...card,padding:"12px 14px",borderLeft:`4px solid ${k.color}`}}>
-            <div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontSize:20,fontWeight:800,color:"#0f172a"}}>{loading?"...":k.value}</div><span style={{fontSize:18}}>{k.icon}</span></div>
+            <div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontSize:20,fontWeight:800,color:"#0f172a"}}>{loading?"…":k.value}</div><span style={{fontSize:18}}>{k.icon}</span></div>
             <div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{k.label}</div>
           </div>
         ))}
@@ -197,16 +195,16 @@ export default function SMSPage() {
         ))}
       </div>
 
-      {/* -- COMPOSE -- */}
+      {/* ── COMPOSE ── */}
       {tab==="compose"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
           <div style={card}>
-            <div style={{fontWeight:800,fontSize:15,color:"#0f172a",marginBottom:20}}> New Message</div>
+            <div style={{fontWeight:800,fontSize:15,color:"#0f172a",marginBottom:20}}>✍️ New Message</div>
             {/* Channel toggle */}
             <div style={{display:"flex",gap:6,marginBottom:14}}>
               {(["sms","whatsapp"] as const).map(ch=>(
                 <button key={ch} onClick={()=>setMsgType(ch)} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:msgType===ch?700:500,border:`1.5px solid ${ch==="whatsapp"?"#25D366":"#7c3aed"}`,background:msgType===ch?(ch==="whatsapp"?"#25D36615":"#7c3aed15"):"transparent",color:ch==="whatsapp"?"#25D366":"#7c3aed",cursor:"pointer"}}>
-                  {ch==="whatsapp"?" WhatsApp":" SMS"}
+                  {ch==="whatsapp"?"🟢 WhatsApp":"💬 SMS"}
                 </button>
               ))}
             </div>
@@ -220,27 +218,27 @@ export default function SMSPage() {
               </div>
               <div><label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Apply Template</label>
                 <select value={selectedTemplate} onChange={e=>applyTemplate(e.target.value)} style={inp}>
-                  <option value=""> -- Select Template  --</option>
+                  <option value="">— Select Template —</option>
                   {templates.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Message *</label>
-              <textarea value={body} onChange={e=>setBody(e.target.value)} style={{...inp,height:120,resize:"vertical"}} placeholder="Type your message here..."/>
+              <textarea value={body} onChange={e=>setBody(e.target.value)} style={{...inp,height:120,resize:"vertical"}} placeholder="Type your message here…"/>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                <span style={{fontSize:11,color:"#9ca3af"}}>{body.length}/1600 chars * {Math.ceil(body.length/160)||1} segment{Math.ceil(body.length/160)>1?"s":""}</span>
+                <span style={{fontSize:11,color:"#9ca3af"}}>{body.length}/1600 chars · {Math.ceil(body.length/160)||1} segment{Math.ceil(body.length/160)>1?"s":""}</span>
                 {body&&<button onClick={()=>setBody("")} style={{fontSize:11,color:"#9ca3af",background:"none",border:"none",cursor:"pointer"}}>Clear</button>}
               </div>
             </div>
-            {msgType==="whatsapp"&&<div style={{background:"#fff9ed",border:"1px solid #fde68a",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#92400e"}}>[!] Recipient must first send <strong>join bad-machine</strong> to +14155238886 to activate WhatsApp sandbox.</div>}
+            {msgType==="whatsapp"&&<div style={{background:"#fff9ed",border:"1px solid #fde68a",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#92400e"}}>⚠️ Recipient must first send <strong>join bad-machine</strong> to +14155238886 to activate WhatsApp sandbox.</div>}
             <button onClick={sendSMS} disabled={sending||!to||!body} style={{...btn(sending||!to||!body?"#9ca3af":msgType==="whatsapp"?"#25D366":"#7c3aed"),width:"100%",fontSize:14,padding:"12px"}}>
-              {sending?"Sending...":`${msgType==="whatsapp"?"":""} Send ${msgType==="sms"?"SMS":"WhatsApp"}`}
+              {sending?"Sending…":`${msgType==="whatsapp"?"🟢":"💬"} Send ${msgType==="sms"?"SMS":"WhatsApp"}`}
             </button>
           </div>
           {/* Quick templates sidebar */}
           <div style={card}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}> Quick Templates</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📄 Quick Templates</div>
             {templates.slice(0,6).map(t=>(
               <div key={t.id} style={{padding:"12px",borderRadius:10,border:"1.5px solid #f1f5f9",marginBottom:8,background:"#fafafa",cursor:"pointer"}} onClick={()=>applyTemplate(t.id)}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.border="1.5px solid #7c3aed30"}
@@ -249,25 +247,25 @@ export default function SMSPage() {
                   <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{t.name}</div>
                   <Chip label={t.category} color={t.category==="alert"?"#ef4444":t.category==="procurement"?"#3b82f6":"#6b7280"}/>
                 </div>
-                <div style={{fontSize:11,color:"#6b7280",marginTop:4,lineHeight:1.5}}>{t.content.slice(0,80)}...</div>
+                <div style={{fontSize:11,color:"#6b7280",marginTop:4,lineHeight:1.5}}>{t.content.slice(0,80)}…</div>
                 {t.variables.length>0&&<div style={{fontSize:10,color:"#9ca3af",marginTop:4}}>Variables: {t.variables.map(v=>`{{${v}}}`).join(", ")}</div>}
               </div>
             ))}
             <button onClick={()=>setTab("templates")} style={{width:"100%",padding:"9px",background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>
-              View All Templates  Next
+              View All Templates →
             </button>
           </div>
         </div>
       )}
 
-      {/* -- HISTORY -- */}
+      {/* ── HISTORY ── */}
       {tab==="history"&&(
         <div style={card}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}> Message History</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>📋 Message History</div>
             <div style={{position:"relative",width:260}}>
               <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages..." style={{...inp,paddingLeft:30}}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search messages…" style={{...inp,paddingLeft:30}}/>
             </div>
           </div>
           <div style={{overflowX:"auto"}}>
@@ -278,11 +276,11 @@ export default function SMSPage() {
                 ))}
               </tr></thead>
               <tbody>
-                {loading?<tr><td colSpan={7} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading...</td></tr>:
+                {loading?<tr><td colSpan={7} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
                 filteredMsgs.slice(0,100).map((m,idx)=>(
                   <tr key={m.id||idx} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",fontSize:16}}>{(m as any).direction==="inbound"?"":""}</td>
-                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",fontSize:13,fontWeight:600,color:"#0f172a"}}>{(m as any).recipient_name||" --"}</td>
+                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",fontSize:16}}>{(m as any).direction==="inbound"?"📥":"📤"}</td>
+                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",fontSize:13,fontWeight:600,color:"#0f172a"}}>{(m as any).recipient_name||"—"}</td>
                     <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",fontSize:12,color:"#374151",fontFamily:"monospace"}}>{(m as any).recipient_phone}</td>
                     <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={(m as any).message_type||"sms"} color={(m as any).message_type==="whatsapp"?"#25D366":"#7c3aed"}/></td>
                     <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",fontSize:12,color:"#374151",maxWidth:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(m as any).message_body}</td>
@@ -297,11 +295,11 @@ export default function SMSPage() {
         </div>
       )}
 
-      {/* -- CONVERSATIONS -- */}
+      {/* ── CONVERSATIONS ── */}
       {tab==="conversations"&&(
         <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:16,height:600}}>
           <div style={{...card,overflowY:"auto",padding:"12px"}}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#0f172a"}}> Conversations</div>
+            <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#0f172a"}}>💬 Conversations</div>
             {conversations.map(con=>(
               <div key={con.id} onClick={()=>openConversation(con)} style={{padding:"12px",borderRadius:10,border:`1.5px solid ${activeCon?.id===con.id?"#7c3aed":"#f1f5f9"}`,background:activeCon?.id===con.id?"#7c3aed10":"#fafafa",cursor:"pointer",marginBottom:6,transition:"all 0.15s"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -346,7 +344,7 @@ export default function SMSPage() {
                   <div ref={conEndRef}/>
                 </div>
                 <div style={{padding:"12px 20px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
-                  <input value={replyMsg} onChange={e=>setReplyMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendReply()} placeholder="Type a reply..." style={{...inp,flex:1}}/>
+                  <input value={replyMsg} onChange={e=>setReplyMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendReply()} placeholder="Type a reply…" style={{...inp,flex:1}}/>
                   <button onClick={sendReply} disabled={replySending||!replyMsg} style={btn(replySending||!replyMsg?"#9ca3af":"#7c3aed")}>
                     <Send style={{width:14,height:14}}/>
                   </button>
@@ -354,7 +352,7 @@ export default function SMSPage() {
               </>
             ) : (
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",color:"#9ca3af"}}>
-                <div style={{fontSize:48,marginBottom:12}}></div>
+                <div style={{fontSize:48,marginBottom:12}}>💬</div>
                 <div>Select a conversation</div>
               </div>
             )}
@@ -362,16 +360,16 @@ export default function SMSPage() {
         </div>
       )}
 
-      {/* -- TEMPLATES -- */}
+      {/* ── TEMPLATES ── */}
       {tab==="templates"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}> SMS Templates ({templates.length})</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>📄 SMS Templates ({templates.length})</div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>setEditTpl({name:"",content:"",variables:[],category:"general"})} style={btn("linear-gradient(135deg,#7c3aed,#6d28d9)")}>+ New Template</button>
               {TEMPLATES_PRESETS.length>templates.length&&(
-                <button onClick={async()=>{for(const t of TEMPLATES_PRESETS){if(!templates.find(x=>x.name===t.name)){await SMSAPI.createTemplate(t);}}loadAll();showToast("[OK] Default templates added!");}} style={{...btn("linear-gradient(135deg,#059669,#047857)"),fontSize:12}}>
-                   Add Defaults
+                <button onClick={async()=>{for(const t of TEMPLATES_PRESETS){if(!templates.find(x=>x.name===t.name)){await SMSAPI.createTemplate(t);}}loadAll();showToast("✅ Default templates added!");}} style={{...btn("linear-gradient(135deg,#059669,#047857)"),fontSize:12}}>
+                  📥 Add Defaults
                 </button>
               )}
             </div>
@@ -379,7 +377,7 @@ export default function SMSPage() {
 
           {editTpl&&(
             <div style={{...card,marginBottom:16,border:"1.5px solid #7c3aed30",background:"#7c3aed05"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:14,color:"#7c3aed"}}>{editTpl.id?" Edit Template":"+ New Template"}</div>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:14,color:"#7c3aed"}}>{editTpl.id?"✏️ Edit Template":"+ New Template"}</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
                 <div><label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Name *</label><input value={editTpl.name||""} onChange={e=>setEditTpl(t=>({...t!,name:e.target.value}))} style={inp} placeholder="Template name"/></div>
                 <div><label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Category</label>
@@ -391,7 +389,7 @@ export default function SMSPage() {
               </div>
               <div style={{marginBottom:12}}><label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Content * (use {"{{variable}}"} for variables)</label><textarea value={editTpl.content||""} onChange={e=>setEditTpl(t=>({...t!,content:e.target.value}))} style={{...inp,height:100,resize:"vertical"}}/></div>
               <div style={{display:"flex",gap:10}}>
-                <button onClick={saveTpl} disabled={savingTpl} style={btn(savingTpl?"#9ca3af":"linear-gradient(135deg,#7c3aed,#6d28d9)",savingTpl)}>{savingTpl?"Saving...":" Save Template"}</button>
+                <button onClick={saveTpl} disabled={savingTpl} style={btn(savingTpl?"#9ca3af":"linear-gradient(135deg,#7c3aed,#6d28d9)",savingTpl)}>{savingTpl?"Saving…":"💾 Save Template"}</button>
                 <button onClick={()=>setEditTpl(null)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
               </div>
             </div>
@@ -409,7 +407,7 @@ export default function SMSPage() {
                 <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{fontSize:11,color:"#d1d5db"}}>Used {t.use_count} times</span>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>{setBody(t.content);setTab("compose");showToast(` ${t.name} applied`);}} style={{padding:"4px 10px",background:"#7c3aed12",border:"1px solid #7c3aed25",borderRadius:6,fontSize:11,color:"#7c3aed",cursor:"pointer",fontWeight:700}}>Use</button>
+                    <button onClick={()=>{setBody(t.content);setTab("compose");showToast(`📄 ${t.name} applied`);}} style={{padding:"4px 10px",background:"#7c3aed12",border:"1px solid #7c3aed25",borderRadius:6,fontSize:11,color:"#7c3aed",cursor:"pointer",fontWeight:700}}>Use</button>
                     <button onClick={()=>setEditTpl(t)} style={{padding:"4px 10px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,cursor:"pointer"}}>Edit</button>
                     <button onClick={()=>SMSAPI.deleteTemplate(t.id).then(loadAll)} style={{padding:"4px 10px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,fontSize:11,color:"#ef4444",cursor:"pointer"}}>Del</button>
                   </div>
@@ -420,11 +418,11 @@ export default function SMSPage() {
         </div>
       )}
 
-      {/* -- BULK SEND -- */}
+      {/* ── BULK SEND ── */}
       {tab==="bulk"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
           <div style={card}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:20}}> Bulk SMS Send</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:20}}>📢 Bulk SMS Send</div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Campaign Name</label>
               <input value={bulkName} onChange={e=>setBulkName(e.target.value)} style={inp} placeholder="e.g. Supplier Payment Notice"/>
@@ -436,8 +434,8 @@ export default function SMSPage() {
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5,textTransform:"uppercase"}}>Message *</label>
-              <textarea value={bulkBody} onChange={e=>setBulkBody(e.target.value)} style={{...inp,height:100,resize:"vertical"}} placeholder="Message to send to all recipients..."/>
-              <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{bulkBody.length}/1600 * {Math.ceil(bulkBody.length/160)||1} segment{Math.ceil(bulkBody.length/160)>1?"s":""}</div>
+              <textarea value={bulkBody} onChange={e=>setBulkBody(e.target.value)} style={{...inp,height:100,resize:"vertical"}} placeholder="Message to send to all recipients…"/>
+              <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{bulkBody.length}/1600 · {Math.ceil(bulkBody.length/160)||1} segment{Math.ceil(bulkBody.length/160)>1?"s":""}</div>
             </div>
             {bulkProgress&&<div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:"12px 16px",marginBottom:14}}>
               <div style={{fontWeight:700,color:"#059669",marginBottom:6}}>Last Campaign Results</div>
@@ -448,18 +446,18 @@ export default function SMSPage() {
               </div>
             </div>}
             <button onClick={sendBulk} disabled={bulkSending||!bulkRecipients||!bulkBody} style={{...btn(bulkSending||!bulkRecipients||!bulkBody?"#9ca3af":"linear-gradient(135deg,#7c3aed,#6d28d9)"),width:"100%",fontSize:14,padding:"12px"}}>
-              {bulkSending?"Sending...":" Send Bulk SMS"}
+              {bulkSending?"Sending…":"📢 Send Bulk SMS"}
             </button>
           </div>
           <div style={card}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}> Bulk Operations Log</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📜 Bulk Operations Log</div>
             {bulkOps.map(op=>(
               <div key={op.id} style={{padding:"12px 14px",borderRadius:10,border:"1.5px solid #f1f5f9",marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{op.name||"Unnamed Campaign"}</div>
                   <Chip label={op.status||"completed"} color={op.status==="completed"?"#22c55e":op.status==="failed"?"#ef4444":"#f97316"}/>
                 </div>
-                <div style={{fontSize:12,color:"#6b7280",marginTop:4,lineHeight:1.5}}>{op.body?.slice(0,80)}...</div>
+                <div style={{fontSize:12,color:"#6b7280",marginTop:4,lineHeight:1.5}}>{op.body?.slice(0,80)}…</div>
                 <div style={{display:"flex",gap:12,marginTop:6,fontSize:12}}>
                   <span><strong style={{color:"#22c55e"}}>{op.successful_count}</strong>/{op.recipients_count} sent</span>
                   {op.failed_count>0&&<span><strong style={{color:"#ef4444"}}>{op.failed_count}</strong> failed</span>}
@@ -471,11 +469,11 @@ export default function SMSPage() {
         </div>
       )}
 
-      {/* -- METRICS -- */}
+      {/* ── METRICS ── */}
       {tab==="metrics"&&metrics&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
           <div style={card}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}> SMS Metrics (7 days)</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📊 SMS Metrics (7 days)</div>
             {[
               {label:"Total Messages",value:metrics.total,color:"#3b82f6"},
               {label:"Sent (Outbound)",value:metrics.sent,color:"#22c55e"},
@@ -493,12 +491,12 @@ export default function SMSPage() {
             ))}
           </div>
           <div style={card}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>[G] Twilio Configuration</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>⚙️ Twilio Configuration</div>
             {[
               {label:"SMS Number",value:"+16812972643"},
               {label:"WhatsApp Number",value:"+14155238886"},
               {label:"Messaging Service",value:"EL5H"},
-              {label:"Service SID",value:"Configured"},
+              {label:"Service SID",value:"MGd547d8e3273fda2d21afdd6856acb245"},
               {label:"WhatsApp Join Code",value:"join bad-machine"},
               {label:"Voice Webhook",value:"https://demo.twilio.com/welcome/voice/"},
             ].map((row,i)=>(
@@ -508,7 +506,7 @@ export default function SMSPage() {
               </div>
             ))}
             <a href="https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine&type=phone_number&app_absent=0" target="_blank" rel="noopener noreferrer" style={{display:"block",marginTop:14,...btn("#25D366"),textAlign:"center",textDecoration:"none"}}>
-               Open WhatsApp Sandbox  Next
+              🟢 Open WhatsApp Sandbox →
             </a>
           </div>
         </div>

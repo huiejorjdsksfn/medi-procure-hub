@@ -1,362 +1,348 @@
-/**
- * ProcurBosse v21.0 -- Items / Stock (Full CRUD)
- * Add, Edit, Delete, View, Stock adjust, Print, Export
- * EL5 MediProcure | Embu Level 5 Hospital | Kenya
- * BUILD-SAFE: zero non-ASCII chars
- */
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { T } from "@/lib/theme";
-import {
-  Plus, Search, RefreshCw, Package, ChevronRight,
-  AlertTriangle, X, Download, Edit3, Trash2,
-  Printer, Save, Eye, ArrowUpDown, TrendingDown
-} from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { Package, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye, Plus, Edit, AlertTriangle, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
-const db = supabase as any;
-const INV = "#038387";
+const TYPES = ["pharmaceutical","medical_equipment","consumable","reagent","laboratory","surgical","general","other"];
 
-const S = {
-  page: { background:T.bg, minHeight:"100%", fontFamily:"'Segoe UI','Inter',system-ui,sans-serif" } as React.CSSProperties,
-  hdr:  { background:INV, padding:"0 24px", display:"flex", alignItems:"stretch", minHeight:44, boxShadow:"0 2px 6px rgba(0,80,80,.3)" } as React.CSSProperties,
-  bc:   { background:"#fff", padding:"7px 24px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:6, fontSize:12, color:T.fgMuted } as React.CSSProperties,
-  cmd:  { background:"#fff", borderBottom:`1px solid ${T.border}`, padding:"6px 24px", display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" as const } as React.CSSProperties,
-  body: { padding:"16px 24px" } as React.CSSProperties,
-  card: { background:"#fff", border:`1px solid ${T.border}`, borderRadius:T.rLg, boxShadow:"0 1px 4px rgba(0,0,0,.06)", overflow:"hidden" } as React.CSSProperties,
-  th:   { padding:"8px 12px", textAlign:"left" as const, fontSize:10, fontWeight:700, color:T.fgDim, borderBottom:`1px solid ${T.border}`, background:T.bg, whiteSpace:"nowrap" as const },
-  td:   { padding:"9px 12px", fontSize:12, color:T.fg, borderBottom:`1px solid ${T.border}18` },
-  inp:  { border:`1px solid ${T.border}`, borderRadius:T.r, padding:"7px 11px", fontSize:13, outline:"none", background:"#fff", color:T.fg, fontFamily:"inherit", width:"100%", boxSizing:"border-box" as const } as React.CSSProperties,
+const SC: Record<string,{bg:string;color:string}> = {
+  active:      {bg:"#dcfce7",color:"#15803d"},
+  inactive:    {bg:"#fee2e2",color:"#dc2626"},
+  discontinued:{bg:"#f3f4f6",color:"#6b7280"},
 };
 
-function RBtn({icon:Icon,label,onClick,col=INV,disabled=false}:any) {
-  return(
-    <button onClick={onClick} disabled={disabled}
-      style={{display:"flex",flexDirection:"column" as const,alignItems:"center",gap:2,padding:"5px 10px",border:"none",background:"transparent",cursor:disabled?"not-allowed":"pointer",color:disabled?"#9aaab8":col,borderRadius:T.r,fontSize:10,fontWeight:600,opacity:disabled?.5:1,fontFamily:"inherit"}}
-      onMouseEnter={e=>!disabled&&((e.currentTarget as any).style.background="#f0fafa")}
-      onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}>
-      <Icon size={18}/>{label}
-    </button>
-  );
-}
-
-function StockBadge({qty,min}:{qty:number;min:number}) {
-  let col=T.success,bg=T.successBg,lbl="OK";
-  if(qty<=0){col=T.error;bg=T.errorBg;lbl="OUT";}
-  else if(qty<=min){col=T.warning;bg=T.warningBg;lbl="LOW";}
-  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 8px",borderRadius:99,fontSize:10,fontWeight:700,color:col,background:bg}}>{lbl}</span>;
-}
-
-interface Item {
-  id:string; name:string; description?:string; sku?:string; category?:string;
-  unit_of_measure?:string; current_quantity?:number; minimum_quantity?:number;
-  unit_price?:number; location?:string; status?:string; created_at:string;
-  reorder_point?:number; max_quantity?:number;
-}
-
-const BLANK:Partial<Item>={name:"",description:"",sku:"",category:"",unit_of_measure:"units",current_quantity:0,minimum_quantity:10,unit_price:0,location:"",status:"active",reorder_point:5,max_quantity:1000};
+const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
+const sel: React.CSSProperties = {...inp};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
 
 export default function ItemsPage() {
-  const nav=useNavigate();
-  const {profile}=useAuth();
-  const canEdit=["admin","superadmin","webmaster","inventory_manager","procurement_manager"].includes(profile?.role||"");
+  const { user, profile, roles } = useAuth();
+  const { get: getSetting } = useSystemSettings();
+  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
+  const sysName = getSetting("system_name","EL5 MediProcure");
+  const canEdit = roles.includes("admin")||roles.includes("inventory_manager")||roles.includes("procurement_manager");
 
-  const [rows,setRows]           = useState<Item[]>([]);
-  const [cats,setCats]           = useState<string[]>([]);
-  const [loading,setLoading]     = useState(true);
-  const [search,setSearch]       = useState("");
-  const [catFilter,setCatFilter] = useState("all");
-  const [stockFilter,setStockFilter]=useState("all");
-  const [sortField,setSortField] = useState("name");
-  const [sortDir,setSortDir]     = useState<"asc"|"desc">("asc");
-  const [selected,setSelected]   = useState<Set<string>>(new Set());
-  const [modal,setModal]         = useState<"add"|"edit"|"view"|null>(null);
-  const [editRow,setEditRow]     = useState<Partial<Item>>(BLANK);
-  const [saving,setSaving]       = useState(false);
-  const [delId,setDelId]         = useState<string|null>(null);
-  const [kpi,setKpi]             = useState({total:0,low:0,out:0,value:0});
+  const [items,       setItems]       = useState<any[]>([]);
+  const [cats,        setCats]        = useState<any[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState("");
+  const [typeFilter,  setTypeFilter]  = useState("all");
+  const [statusFilter,setStatusFilter]= useState("all");
+  const [lowOnly,     setLowOnly]     = useState(false);
+  const [showForm,    setShowForm]    = useState(false);
+  const [editing,     setEditing]     = useState<any>(null);
+  const [viewItem,    setViewItem]    = useState<any>(null);
+  const [saving,      setSaving]      = useState(false);
+  // hospitalName now from useSystemSettings
+  // sysName now from useSystemSettings
 
-  const load=useCallback(async()=>{
-    try {
-
-    setLoading(true);
-    const {data}=await db.from("items").select("*").order("name");
-    if(data){
-      setRows(data);
-      const allCats=[...new Set(data.map((r:Item)=>r.category).filter(Boolean))] as string[];
-      setCats(allCats);
-      const low=data.filter((r:Item)=>(r.current_quantity||0)>0&&(r.current_quantity||0)<=(r.minimum_quantity||0)).length;
-      const out=data.filter((r:Item)=>(r.current_quantity||0)<=0).length;
-      const val=data.reduce((s:number,r:Item)=>s+(r.current_quantity||0)*(r.unit_price||0),0);
-      setKpi({total:data.length,low,out,value:val});
-    }
-    } catch(e: any) { console.warn("[Load]", e?.message); } finally { setLoading(false); }
-  },[]);
-
-  useEffect(()=>{
-    load();
-    const ch=db.channel("items_rt").on("postgres_changes",{event:"*",schema:"public",table:"items"},load).subscribe();
-    return()=>db.removeChannel(ch);
-  },[load]);
-
-  const filtered=rows.filter(r=>{
-    const q=search.toLowerCase();
-    if(q&&!r.name.toLowerCase().includes(q)&&!(r.sku||"").toLowerCase().includes(q)&&!(r.category||"").toLowerCase().includes(q))return false;
-    if(catFilter!=="all"&&r.category!==catFilter)return false;
-    if(stockFilter==="low"&&!((r.current_quantity||0)>0&&(r.current_quantity||0)<=(r.minimum_quantity||0)))return false;
-    if(stockFilter==="out"&&(r.current_quantity||0)>0)return false;
-    if(stockFilter==="ok"&&(r.current_quantity||0)<=(r.minimum_quantity||0))return false;
-    return true;
-  }).sort((a,b)=>{
-    const va=(a as any)[sortField]??"";
-    const vb=(b as any)[sortField]??"";
-    const c=String(va).localeCompare(String(vb),undefined,{numeric:true});
-    return sortDir==="asc"?c:-c;
+  const [form, setForm] = useState({
+    name:"", sku:"", item_type:"pharmaceutical", category_id:"",
+    unit_price:"", quantity_in_stock:"", reorder_level:"10",
+    unit_of_measure:"pcs", description:"", status:"active",
+    brand:"", manufacturer:"", country_of_origin:"",
+    storage_conditions:"", shelf_life_days:"", batch_number:"",
+    expiry_date:"", supplier_id:"", cost_price:"",
+    location_in_store:"", is_controlled:false, is_consumable:true,
+    notes:"",
   });
 
-  const toggleSort=(f:string)=>{
-    if(sortField===f)setSortDir(d=>d==="asc"?"desc":"asc");
-    else{setSortField(f);setSortDir("asc");}
+  useEffect(()=>{
+    /* settings via useSystemSettings hook */
+    supabase.from("item_categories").select("*").then(({data})=>setCats(data||[]));
+  },[]);
+
+  const load = useCallback(async()=>{
+    setLoading(true);
+    const {data}=await supabase.from("items").select("*,item_categories(name)").order("name");
+    setItems(data||[]);
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{
+    const ch=supabase.channel("items-rt").on("postgres_changes",{event:"*",schema:"public",table:"items"},()=>load()).subscribe();
+    return ()=>{supabase.removeChannel(ch);};
+  },[load]);
+
+  const openEdit=(it:any)=>{
+    setEditing(it);
+    setForm({...form, name:it.name||"",sku:it.sku||"",item_type:it.item_type||"pharmaceutical",category_id:it.category_id||"",unit_price:String(it.unit_price||""),quantity_in_stock:String(it.quantity_in_stock||""),reorder_level:String(it.reorder_level||10),unit_of_measure:it.unit_of_measure||"",description:it.description||"",status:it.status||"active",brand:it.brand||"",manufacturer:it.manufacturer||"",country_of_origin:it.country_of_origin||"",storage_conditions:it.storage_conditions||"",shelf_life_days:String(it.shelf_life_days||""),batch_number:it.batch_number||"",expiry_date:it.expiry_date||"",supplier_id:it.supplier_id||"",cost_price:String(it.cost_price||""),location_in_store:it.location_in_store||"",is_controlled:it.is_controlled||false,is_consumable:it.is_consumable!==false,notes:it.notes||""});
+    setShowForm(true);
   };
+  const openCreate=()=>{ setEditing(null); setForm({name:"",sku:"",item_type:"pharmaceutical",category_id:"",unit_price:"",quantity_in_stock:"",reorder_level:"10",unit_of_measure:"",description:"",status:"active",brand:"",manufacturer:"",country_of_origin:"",storage_conditions:"",shelf_life_days:"",batch_number:"",expiry_date:"",supplier_id:"",cost_price:"",location_in_store:"",is_controlled:false,is_consumable:true,notes:""}); setShowForm(true); };
 
   const save=async()=>{
-    if(!editRow.name?.trim()){toast({title:"Name required",variant:"destructive"});return;}
+    if(!form.name.trim()){toast({title:"Item name is required",variant:"destructive"});return;}
+    if(form.unit_price!==undefined&&Number(form.unit_price)<0){toast({title:"Unit price cannot be negative",variant:"destructive"});return;}
+    if(form.quantity_in_stock!==undefined&&Number(form.quantity_in_stock)<0){toast({title:"Stock quantity cannot be negative",variant:"destructive"});return;}
+    if(form.reorder_level!==undefined&&Number(form.reorder_level)<0){toast({title:"Reorder level cannot be negative",variant:"destructive"});return;}
     setSaving(true);
+    const payload:any={...form,unit_price:Number(form.unit_price)||0,quantity_in_stock:Number(form.quantity_in_stock)||0,reorder_level:Number(form.reorder_level)||10,cost_price:Number(form.cost_price)||0,shelf_life_days:form.shelf_life_days?Number(form.shelf_life_days):null,category_id:form.category_id||null,supplier_id:form.supplier_id||null};
     try{
-      if(modal==="add"){
-        const{error}=await db.from("items").insert([{...editRow,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}]);
+      if(editing){
+        const{error}=await supabase.from("items").update(payload).eq("id",editing.id);
         if(error)throw error;
-        toast({title:"Item added"});
-      }else{
-        const{id,created_at,...rest}=editRow as any;
-        const{error}=await db.from("items").update({...rest,updated_at:new Date().toISOString()}).eq("id",id);
-        if(error)throw error;
+        logAudit(user?.id,profile?.full_name,"update","items",editing.id,{name:form.name});
         toast({title:"Item updated"});
+      }else{
+        const{data,error}=await supabase.from("items").insert(payload).select().single();
+        if(error)throw error;
+        logAudit(user?.id,profile?.full_name,"create","items",data?.id,{name:form.name});
+        toast({title:"Item created",description:form.name});
       }
-      setModal(null);load();
+      setShowForm(false); load();
     }catch(e:any){toast({title:"Error",description:e.message,variant:"destructive"});}
-    finally{setSaving(false);}
+    setSaving(false);
   };
 
-  const deleteItem=async(id:string)=>{
-    await db.from("items").delete().eq("id",id);
-    toast({title:"Item deleted"});setDelId(null);load();
-  };
-
-  const adjustStock=async(id:string,delta:number)=>{
-    const item=rows.find(r=>r.id===id);
-    if(!item)return;
-    const newQty=Math.max(0,(item.current_quantity||0)+delta);
-    await db.from("items").update({current_quantity:newQty,updated_at:new Date().toISOString()}).eq("id",id);
-    toast({title:`Stock adjusted: ${delta>0?"+":""}${delta}`});load();
+  const deleteItem = async (it:any) => {
+    if(!confirm(`Delete "${it.name}"?`)) return;
+    const {error} = await supabase.from("items").delete().eq("id",it.id);
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});return;}
+    logAudit(user?.id,profile?.full_name,"delete","items",it.id,{name:it.name});
+    toast({title:"Item deleted"});
+    load();
   };
 
   const exportExcel=()=>{
-    const data=filtered.map(r=>({Name:r.name,SKU:r.sku||"",Category:r.category||"",UoM:r.unit_of_measure||"",Qty:r.current_quantity||0,MinQty:r.minimum_quantity||0,Price:r.unit_price||0,Value:((r.current_quantity||0)*(r.unit_price||0)).toFixed(2),Location:r.location||"",Status:r.status||""}));
-    const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Inventory");
-    XLSX.writeFile(wb,`inventory_${new Date().toISOString().slice(0,10)}.xlsx`);
+    const wb=XLSX.utils.book_new();
+    const header=[[hospitalName],[sysName+" — Items Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const rows=filtered.map(it=>({Name:it.name,SKU:it.sku,Type:it.item_type,Category:it.item_categories?.name||"",UoM:it.unit_of_measure,"Unit Price":it.unit_price,"Qty in Stock":it.quantity_in_stock,"Reorder Level":it.reorder_level,Status:it.status,"Stock Value":Number(it.unit_price||0)*Number(it.quantity_in_stock||0)}));
+    const ws=XLSX.utils.aoa_to_sheet([...header,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
+    ws["!cols"]=Object.keys(rows[0]||{}).map(()=>({wch:16}));
+    XLSX.utils.book_append_sheet(wb,ws,"Items");
+    XLSX.writeFile(wb,`Items_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast({title:"Exported",description:`${filtered.length} items`});
   };
 
-  const printInv=()=>{
-    const w=window.open("","_blank","width=1000,height=700");if(!w)return;
-    const rows_html=filtered.map(r=>`<tr><td>${r.name}</td><td>${r.sku||"-"}</td><td>${r.category||"-"}</td><td style="text-align:center;font-weight:700;color:${(r.current_quantity||0)<=(r.minimum_quantity||0)?"#b91c1c":"#047857"}">${r.current_quantity||0}</td><td>${r.minimum_quantity||0}</td><td>KES ${(r.unit_price||0).toFixed(2)}</td><td>KES ${((r.current_quantity||0)*(r.unit_price||0)).toFixed(2)}</td><td>${r.location||"-"}</td></tr>`).join("");
-    w.document.write(`<!DOCTYPE html><html><head><title>Inventory Report</title><style>body{font-family:Segoe UI,Arial;margin:30px;font-size:12px;}h2{color:${INV};}table{width:100%;border-collapse:collapse;margin-top:14px;}th{background:${INV};color:#fff;padding:8px 10px;text-align:left;font-size:11px;}td{padding:7px 10px;border-bottom:1px solid #eee;}.kpi{display:inline-block;padding:8px 14px;margin:4px;background:#f0fafa;border-left:3px solid ${INV};border-radius:4px;}@media print{button{display:none}}</style></head><body><h2>Inventory Report - Embu Level 5 Hospital</h2><div style="color:#666;font-size:11px;margin-bottom:10px">${new Date().toLocaleString("en-KE")} | ${filtered.length} items</div><div><div class="kpi"><b>Total Items</b><br/>${kpi.total}</div><div class="kpi"><b>Low Stock</b><br/><span style="color:#d97706">${kpi.low}</span></div><div class="kpi"><b>Out of Stock</b><br/><span style="color:#b91c1c">${kpi.out}</span></div><div class="kpi"><b>Total Value</b><br/>KES ${kpi.value.toLocaleString()}</div></div><table><thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Qty</th><th>Min Qty</th><th>Unit Price</th><th>Value</th><th>Location</th></tr></thead><tbody>${rows_html}</tbody></table><br/><button onclick="window.print()">Print</button></body></html>`);
-    w.document.close();setTimeout(()=>w.print(),400);
+  const printAll = () => {
+    const win = window.open("","_blank","width=1100,height=800");
+    if(!win) return;
+    win.document.write(`<html><head><title>Items Register</title>
+    <style>body{font-family:'Segoe UI',Arial;font-size:11px;margin:20px}h2{color:#1a3d12}table{width:100%;border-collapse:collapse}th{background:#1a3d12;color:#fff;padding:6px 10px;text-align:left;font-size:10px}td{padding:5px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9fafb}@media print{@page{margin:1cm}}</style>
+    </head><body><h2>${hospitalName} — Items Register</h2><p style="font-size:10px;color:#888">Generated: ${new Date().toLocaleString("en-KE")} · ${filtered.length} items · Total Value: KES ${totalValue.toLocaleString()}</p>
+    <table><thead><tr><th>#</th><th>Name</th><th>SKU</th><th>Type</th><th>Category</th><th>UoM</th><th>Unit Price</th><th>Qty</th><th>Reorder</th><th>Status</th><th>Stock Value</th></tr></thead>
+    <tbody>${filtered.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.sku||"—"}</td><td>${it.item_type||"—"}</td><td>${it.item_categories?.name||"—"}</td><td>${it.unit_of_measure||"—"}</td><td>KES ${Number(it.unit_price||0).toLocaleString()}</td><td>${it.quantity_in_stock||0}</td><td>${it.reorder_level||10}</td><td>${it.status||"active"}</td><td>KES ${(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td></tr>`).join("")}
+    </tbody></table></body></html>`);
+    win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
 
-  const F=(label:string,key:keyof Item,type="text",opts?:string[])=>(
-    <div style={{marginBottom:14}} key={key}>
-      <label style={{display:"block",fontSize:11,fontWeight:700,color:T.fgMuted,marginBottom:5}}>{label}</label>
-      {opts
-        ?<select value={(editRow as any)[key]??""} disabled={modal==="view"} onChange={e=>setEditRow(p=>({...p,[key]:e.target.value}))} style={S.inp}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select>
-        :<input type={type} value={(editRow as any)[key]??""} disabled={modal==="view"} onChange={e=>setEditRow(p=>({...p,[key]:type==="number"?Number(e.target.value):e.target.value}))} style={S.inp}/>
-      }
-    </div>
-  );
+  const filtered=items.filter(it=>{
+    if(typeFilter!=="all"&&it.item_type!==typeFilter) return false;
+    if(statusFilter!=="all"&&it.status!==statusFilter) return false;
+    if(lowOnly&&Number(it.quantity_in_stock)>Number(it.reorder_level||10)) return false;
+    if(search){const q=search.toLowerCase();return (it.name||"").toLowerCase().includes(q)||(it.sku||"").toLowerCase().includes(q);}
+    return true;
+  });
 
-  return(
-    <div style={S.page}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}`}</style>
+  const totalValue=filtered.reduce((s,it)=>s+Number(it.unit_price||0)*Number(it.quantity_in_stock||0),0);
+  const lowStockCount=items.filter(it=>Number(it.quantity_in_stock)<=Number(it.reorder_level||10)).length;
+
+  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
+
+  return (
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",padding:16}}>
+      <style>{`
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .item-row:hover td{background:#f0fdf4!important}
+        @media(max-width:768px){.items-header{flex-direction:column!important;align-items:flex-start!important}.items-filters{flex-wrap:wrap!important}.items-table{font-size:11px!important}.col-hide{display:none!important}}
+        @media(max-width:480px){.items-header-btns{flex-wrap:wrap!important}}
+      `}</style>
+      {/* KPI TILES */}
+      {(()=>{
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        const lowStock=items.filter(it=>Number(it.quantity_in_stock||0)<=Number(it.reorder_level||10)).length;
+        const activeItems=items.filter(it=>it.status==="active").length;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
+            {[
+              {label:"Total Stock Value",val:fmtK(totalValue),bg:"#c0392b"},
+              {label:"Total Items",val:items.length,bg:"#7d6608"},
+              {label:"Active Items",val:activeItems,bg:"#0e6655"},
+              {label:"Low Stock",val:lowStock,bg:"#6c3483"},
+              {label:"Categories",val:cats.length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
-      <div style={S.hdr}>
-        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <Package size={20} color="#fff"/>
+      <div  style={{background:"linear-gradient(90deg,#1a3d12,#375623,#4d7c30)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(55,86,35,0.35)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <Package style={{width:22,height:22,color:"#fff"}}/>
           <div>
-            <div style={{fontWeight:800,fontSize:15,color:"#fff"}}>Items & Stock Management</div>
-            <div style={{fontSize:9,color:"rgba(255,255,255,.55)"}}>Inventory Control | EL5 MediProcure</div>
-          </div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,padding:"0 8px"}}>
-          <span style={{fontSize:11,color:"rgba(255,255,255,.6)"}}>{rows.length} items</span>
-          <button onClick={()=>nav("/dashboard")} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:6,padding:"4px 10px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Dashboard</button>
-        </div>
-      </div>
-      {/* Breadcrumb */}
-      <div style={S.bc}>
-        <span style={{cursor:"pointer",color:T.primary}} onClick={()=>nav("/dashboard")}>Home</span>
-        <ChevronRight size={12}/><span>Inventory</span><ChevronRight size={12}/><span style={{fontWeight:600}}>Items</span>
-      </div>
-      {/* KPI bar */}
-      <div style={{background:"#fff",borderBottom:`1px solid ${T.border}`,padding:"8px 24px",display:"flex",gap:12,alignItems:"center"}}>
-        {[{l:"Total Items",v:kpi.total,c:INV},{l:"Low Stock",v:kpi.low,c:T.warning},{l:"Out of Stock",v:kpi.out,c:T.error},{l:`Total Value: KES ${kpi.value.toLocaleString()}`,v:null,c:T.success}].map((k,i)=>(
-          <div key={i} style={{display:"flex",flexDirection:"column"as const,gap:1,paddingRight:12,borderRight:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,fontWeight:700,color:T.fgDim}}>{k.l}</span>
-            {k.v!==null&&<span style={{fontSize:18,fontWeight:800,color:k.c}}>{k.v}</span>}
-          </div>
-        ))}
-        <button onClick={load} style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:T.r,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-          <RefreshCw size={12}/>Refresh
-        </button>
-      </div>
-      {/* Command bar */}
-      <div style={S.cmd}>
-        {canEdit&&<RBtn icon={Plus}    label="New Item"  onClick={()=>{setEditRow({...BLANK});setModal("add");}}  col={INV}/>}
-        {canEdit&&<RBtn icon={Edit3}   label="Edit"      onClick={()=>{if(selected.size===1)setEditRow({...rows.find(r=>r.id===[...selected][0])!});setModal("edit");}} col={T.primary} disabled={selected.size!==1}/>}
-        {canEdit&&<RBtn icon={Trash2}  label="Delete"    onClick={()=>{if(selected.size===1)setDelId([...selected][0]);}} col={T.error} disabled={selected.size!==1}/>}
-        <div style={{width:1,height:30,background:T.border,margin:"0 4px"}}/>
-        <RBtn icon={Eye}     label="View"    onClick={()=>{if(selected.size===1){setEditRow({...rows.find(r=>r.id===[...selected][0])!});setModal("view");}}} disabled={selected.size!==1}/>
-        <RBtn icon={Printer} label="Print"   onClick={printInv}/>
-        <RBtn icon={Download} label="Export" onClick={exportExcel}/>
-        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{border:`1px solid ${T.border}`,borderRadius:T.r,padding:"5px 10px",fontSize:12,background:"#fff",color:T.fg,fontFamily:"inherit"}}>
-            <option value="all">All Categories</option>
-            {cats.map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={stockFilter} onChange={e=>setStockFilter(e.target.value)} style={{border:`1px solid ${T.border}`,borderRadius:T.r,padding:"5px 10px",fontSize:12,background:"#fff",color:T.fg,fontFamily:"inherit"}}>
-            <option value="all">All Stock</option>
-            <option value="ok">In Stock</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
-          </select>
-          <div style={{display:"flex",alignItems:"center",gap:6,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"5px 10px",background:"#fff"}}>
-            <Search size={13} color={T.fgDim}/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items..." style={{border:"none",outline:"none",fontSize:12,color:T.fg,fontFamily:"inherit",width:160}}/>
-            {search&&<button onClick={()=>setSearch("")} style={{border:"none",background:"transparent",cursor:"pointer",padding:0,display:"flex"}}><X size={12}/></button>}
-          </div>
-        </div>
-      </div>
-      {/* Table */}
-      <div style={S.body}>
-        <div style={S.card}>
-          {loading?(
-            <div style={{padding:40,textAlign:"center"as const,color:T.fgDim}}>Loading inventory...</div>
-          ):filtered.length===0?(
-            <div style={{padding:40,textAlign:"center"as const,color:T.fgDim}}>
-              <Package size={40} color={T.fgDim} style={{marginBottom:12,opacity:.4}}/>
-              <div style={{fontSize:14,fontWeight:600}}>No items found</div>
-              {canEdit&&<button onClick={()=>{setEditRow({...BLANK});setModal("add");}} style={{marginTop:12,display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",background:INV,color:"#fff",border:"none",borderRadius:T.r,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}><Plus size={14}/>Add First Item</button>}
+            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Items &amp; Inventory</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>
+              {filtered.length} items · Value: KES {totalValue.toLocaleString()} · <span style={{color:lowStockCount>0?"#fca5a5":"rgba(255,255,255,0.5)"}}>{lowStockCount} low stock</span>
             </div>
-          ):(
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead><tr>
-                  <th style={S.th}><input type="checkbox" onChange={e=>{if(e.target.checked)setSelected(new Set(filtered.map(r=>r.id)));else setSelected(new Set());}}/></th>
-                  {[["name","Name"],["sku","SKU"],["category","Category"],["unit_of_measure","UoM"],["current_quantity","Qty"],["minimum_quantity","Min Qty"],["unit_price","Price"],["location","Location"]].map(([f,l])=>(
-                    <th key={f} style={{...S.th,cursor:"pointer"}} onClick={()=>toggleSort(f)}>
-                      <div style={{display:"flex",alignItems:"center",gap:4}}>{l}<ArrowUpDown size={10} color={sortField===f?INV:T.fgDim}/></div>
-                    </th>
-                  ))}
-                  <th style={S.th}>Status</th>
-                  {canEdit&&<th style={S.th}>Actions</th>}
-                </tr></thead>
-                <tbody>
-                  {filtered.map(r=>{
-                    const isLow=(r.current_quantity||0)<=(r.minimum_quantity||0)&&(r.current_quantity||0)>0;
-                    const isOut=(r.current_quantity||0)<=0;
-                    return(
-                      <tr key={r.id} style={{background:selected.has(r.id)?`${INV}11`:undefined}}
-                        onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=selected.has(r.id)?`${INV}22`:"#f8fbfb"}
-                        onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=selected.has(r.id)?`${INV}11`:""}>
-                        <td style={S.td}><input type="checkbox" checked={selected.has(r.id)} onChange={e=>{const s=new Set(selected);if(e.target.checked)s.add(r.id);else s.delete(r.id);setSelected(s);}}/></td>
-                        <td style={{...S.td,fontWeight:600,cursor:"pointer",color:INV}} onClick={()=>{setEditRow({...r});setModal("view");}}>
-                          {isOut&&<AlertTriangle size={12} color={T.error} style={{marginRight:4,verticalAlign:"middle"}}/>}
-                          {isLow&&!isOut&&<TrendingDown size={12} color={T.warning} style={{marginRight:4,verticalAlign:"middle"}}/>}
-                          {r.name}
-                        </td>
-                        <td style={{...S.td,fontFamily:"monospace",fontSize:11}}>{r.sku||"-"}</td>
-                        <td style={S.td}>{r.category||"-"}</td>
-                        <td style={S.td}>{r.unit_of_measure||"-"}</td>
-                        <td style={{...S.td,fontWeight:700,color:isOut?T.error:isLow?T.warning:T.success}}>{r.current_quantity||0}</td>
-                        <td style={S.td}>{r.minimum_quantity||0}</td>
-                        <td style={S.td}>KES {(r.unit_price||0).toFixed(2)}</td>
-                        <td style={S.td}>{r.location||"-"}</td>
-                        <td style={S.td}><StockBadge qty={r.current_quantity||0} min={r.minimum_quantity||0}/></td>
-                        {canEdit&&(
-                          <td style={S.td}>
-                            <div style={{display:"flex",alignItems:"center",gap:4}}>
-                              <button onClick={()=>{setEditRow({...r});setModal("edit");}} style={{padding:"4px 7px",background:T.primaryBg,border:`1px solid ${T.primary}33`,borderRadius:T.r,cursor:"pointer",display:"flex",alignItems:"center",color:T.primary}}><Edit3 size={12}/></button>
-                              <button onClick={()=>adjustStock(r.id,1)} style={{padding:"4px 7px",background:T.successBg,border:`1px solid ${T.success}33`,borderRadius:T.r,cursor:"pointer",fontSize:11,fontWeight:700,color:T.success,fontFamily:"inherit"}}>+1</button>
-                              <button onClick={()=>adjustStock(r.id,-1)} style={{padding:"4px 7px",background:T.errorBg,border:`1px solid ${T.error}33`,borderRadius:T.r,cursor:"pointer",fontSize:11,fontWeight:700,color:T.error,fontFamily:"inherit"}}>-1</button>
-                              <button onClick={()=>setDelId(r.id)} style={{padding:"4px 7px",background:T.errorBg,border:`1px solid ${T.error}33`,borderRadius:T.r,cursor:"pointer",display:"flex",alignItems:"center",color:T.error}}><Trash2 size={12}/></button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          </div>
+        </div>
+        <div  style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
+          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
+            <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
+          </button>
+          <button onClick={printAll} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff"}}>
+            <Printer style={{width:13,height:13}}/>Print
+          </button>
+          <button onClick={exportExcel} style={{...btnSm,background:"rgba(52,211,153,0.85)",color:"#fff"}}>
+            <FileSpreadsheet style={{width:13,height:13}}/>Export
+          </button>
+          {canEdit&&(
+            <button onClick={openCreate} style={{...btnSm,background:"#fff",color:"#1a3d12",fontWeight:800}}>
+              <Plus style={{width:13,height:13}}/>Add Item
+            </button>
           )}
         </div>
-        {filtered.length>0&&<div style={{padding:"8px 0",fontSize:11,color:T.fgDim}}>Showing {filtered.length} of {rows.length} items{selected.size>0&&<span style={{marginLeft:12,color:INV,fontWeight:700}}>{selected.size} selected</span>}</div>}
       </div>
 
-      {/* ADD/EDIT/VIEW MODAL */}
-      {modal&&(
-        <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setModal(null)}>
-          <div style={{background:"#fff",borderRadius:T.rLg,width:640,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.2)",animation:"fadeIn .18s"}} onClick={e=>e.stopPropagation()}>
-            <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,background:INV}}>
-              <Package size={18} color="#fff"/>
-              <div style={{flex:1,fontWeight:800,color:"#fff",fontSize:14}}>
-                {modal==="add"?"Add New Item":modal==="edit"?`Edit: ${editRow.name}`:`View: ${editRow.name}`}
-              </div>
-              <button onClick={()=>setModal(null)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,cursor:"pointer",padding:"4px 7px",display:"flex",color:"#fff"}}><X size={14}/></button>
+      {/* Filters */}
+      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
+        <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...sel,width:"auto",padding:"5px 10px",fontSize:12}}>
+          <option value="all">All Types</option>
+          {TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}
+        </select>
+        <div style={{display:"flex",gap:4}}>
+          {["all","active","inactive","discontinued"].map(s=>(
+            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3d12":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <button onClick={()=>setLowOnly(v=>!v)} style={{...btnSm,background:lowOnly?"#ef4444":"#f3f4f6",color:lowOnly?"#fff":"#6b7280",fontSize:11,padding:"4px 10px",borderRadius:20}}>
+          <AlertTriangle style={{width:12,height:12}}/> Low Stock {lowStockCount>0&&`(${lowStockCount})`}
+        </button>
+        <div style={{flex:1,minWidth:180,position:"relative"}}>
+          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items..."
+            style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
+          <table  style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{background:"#1a3d12"}}>
+                {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
+                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
+                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading items...</span>
+                </td></tr>
+              ) : filtered.length===0 ? (
+                <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No items found</td></tr>
+              ) : filtered.map((it,i)=>{
+                const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
+                const s=SC[it.status]||{bg:"#f3f4f6",color:"#6b7280"};
+                return (
+                  <tr key={it.id} >
+                    <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
+                    <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{it.name}</td>
+                    <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.sku||"—"}</td>
+                    <td style={{padding:"7px 12px",color:"#374151",textTransform:"capitalize",background:i%2===0?"#fff":"#f9fafb"}}>{(it.item_type||"").replace(/_/g," ")}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.item_categories?.name||"—"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.unit_of_measure||"—"}</td>
+                    <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
+                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
+                      <span style={{fontWeight:700,color:isLow?"#dc2626":"#15803d"}}>{it.quantity_in_stock||0}</span>
+                      {isLow&&<AlertTriangle style={{width:11,height:11,color:"#ef4444",marginLeft:4,verticalAlign:"middle"}}/>}
+                    </td>
+                    <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{it.reorder_level||10}</td>
+                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
+                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color,textTransform:"capitalize"}}>{it.status||"active"}</span>
+                    </td>
+                    <td style={{padding:"7px 12px",fontWeight:600,color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>KES {(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td>
+                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>setViewItem(it)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}>
+                          <Eye style={{width:12,height:12}}/>
+                        </button>
+                        {canEdit&&<button onClick={()=>openEdit(it)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dcfce7",color:"#15803d"}}>
+                          <Edit style={{width:12,height:12}}/>
+                        </button>}
+                        {canEdit&&<button onClick={()=>deleteItem(it)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}>
+                          <Trash2 style={{width:12,height:12}}/>
+                        </button>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap" as const}}>
+          <span>{filtered.length} items</span>
+          <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
+          {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>⚠ {lowStockCount} low stock</span>}
+        </div>
+      </div>
+
+      {/* View Modal */}
+      {viewItem&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(540px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
+              <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewItem.name}</div>
+              <button onClick={()=>setViewItem(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
-            <div style={{padding:"20px 24px"}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 20px"}}>
-                {F("Item Name *","name")}
-                {F("SKU / Code","sku")}
-                {F("Category","category")}
-                {F("Unit of Measure","unit_of_measure")}
-                {F("Current Quantity","current_quantity","number")}
-                {F("Minimum Quantity","minimum_quantity","number")}
-                {F("Reorder Point","reorder_point","number")}
-                {F("Max Quantity","max_quantity","number")}
-                {F("Unit Price (KES)","unit_price","number")}
-                {F("Location / Bin","location")}
-                {F("Status","status","text",["active","inactive"])}
-              </div>
-              <div style={{marginBottom:14}}>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:T.fgMuted,marginBottom:5}}>Description</label>
-                <textarea value={editRow.description||""} disabled={modal==="view"} onChange={e=>setEditRow(p=>({...p,description:e.target.value}))} rows={2} style={{...S.inp,resize:"vertical"as const}}/>
-              </div>
-              {modal!=="view"&&(
-                <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:8,borderTop:`1px solid ${T.border}`}}>
-                  <button onClick={()=>setModal(null)} style={{padding:"8px 16px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:T.r,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                  <button onClick={save} disabled={saving} style={{padding:"8px 18px",background:saving?T.fgDim:INV,color:"#fff",border:"none",borderRadius:T.r,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:7,fontFamily:"inherit"}}>
-                    {saving?<RefreshCw size={14} style={{animation:"spin 1s linear infinite"}}/>:<Save size={14}/>}
-                    {saving?"Saving...":modal==="add"?"Add Item":"Save Changes"}
-                  </button>
-                </div>
-              )}
+            <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              {[["SKU",viewItem.sku],["Type",(viewItem.item_type||"").replace(/_/g," ")],["Category",viewItem.item_categories?.name],["Unit of Measure",viewItem.unit_of_measure],["Unit Price",`KES ${Number(viewItem.unit_price||0).toLocaleString()}`],["Qty in Stock",viewItem.quantity_in_stock],["Reorder Level",viewItem.reorder_level],["Status",viewItem.status]].map(([k,v])=>(
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"—"}</div></div>
+              ))}
+              {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:"#374151"}}>{viewItem.description}</div></div>}
+            </div>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
+              {canEdit&&<button onClick={()=>{setViewItem(null);openEdit(viewItem);}} style={{padding:"7px 16px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
+              <button onClick={()=>setViewItem(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* DELETE CONFIRM */}
-      {delId&&(
-        <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{background:"#fff",borderRadius:T.rLg,padding:24,width:380,boxShadow:"0 16px 48px rgba(0,0,0,.2)"}}>
-            <div style={{fontSize:16,fontWeight:800,color:T.error,marginBottom:12}}>Delete Item?</div>
-            <div style={{fontSize:13,color:T.fgMuted,marginBottom:20}}>This will permanently delete <b>{rows.find(r=>r.id===delId)?.name}</b>. This cannot be undone.</div>
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>setDelId(null)} style={{padding:"8px 16px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:T.r,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>deleteItem(delId)} style={{padding:"8px 16px",background:T.error,color:"#fff",border:"none",borderRadius:T.r,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+      {/* Add/Edit Modal */}
+      {showForm&&(
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.55)"}}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
+              <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Item":"New Item"}</div>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+            </div>
+            <div style={{overflowY:"auto",padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              <div style={{gridColumn:"1/-1"}}><label style={lbl}>Item Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Amoxicillin 500mg"/></div>
+              <div><label style={lbl}>SKU / Code</label><input value={form.sku} onChange={e=>setForm(p=>({...p,sku:e.target.value}))} style={inp} placeholder="ITEM-001"/></div>
+              <div><label style={lbl}>Item Type</label><select value={form.item_type} onChange={e=>setForm(p=>({...p,item_type:e.target.value}))} style={sel}>{TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}</select></div>
+              <div><label style={lbl}>Category</label><select value={form.category_id} onChange={e=>setForm(p=>({...p,category_id:e.target.value}))} style={sel}><option value="">— None —</option>{cats.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+              <div><label style={lbl}>Unit of Measure</label><input value={form.unit_of_measure} onChange={e=>setForm(p=>({...p,unit_of_measure:e.target.value}))} style={inp} placeholder="Tablets, Vials, Pcs..."/></div>
+              <div><label style={lbl}>Unit Price (KES)</label><input type="number" value={form.unit_price} onChange={e=>setForm(p=>({...p,unit_price:e.target.value}))} style={inp}/></div>
+              <div><label style={lbl}>Quantity in Stock</label><input type="number" value={form.quantity_in_stock} onChange={e=>setForm(p=>({...p,quantity_in_stock:e.target.value}))} style={inp}/></div>
+              <div><label style={lbl}>Reorder Level</label><input type="number" value={form.reorder_level} onChange={e=>setForm(p=>({...p,reorder_level:e.target.value}))} style={inp}/></div>
+              <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={sel}><option value="active">Active</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></div>
+              <div style={{gridColumn:"1/-1"}}><label style={lbl}>Description</label><textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
+            </div>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+                {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Package style={{width:13,height:13}}/>}
+                {saving?"Saving...":"Save Item"}
+              </button>
             </div>
           </div>
         </div>

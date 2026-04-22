@@ -1,5 +1,5 @@
 /**
- * ProcurBosse  -- Universal Form Renderer
+ * ProcurBosse — Universal Form Renderer
  * Renders forms from FORM_FIELDS definitions
  * Shared across Requisitions, PO, GRN, Vouchers, Suppliers, Tenders
  */
@@ -97,7 +97,7 @@ export function renderField(
           required={field.required}
           {...props}
         >
-          <option value=""> -- Select  --</option>
+          <option value="">— Select —</option>
           {(options || field.options || []).map(o => (
             <option key={o} value={o}>{o}</option>
           ))}

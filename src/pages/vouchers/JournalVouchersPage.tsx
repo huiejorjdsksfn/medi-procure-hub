@@ -8,8 +8,8 @@ import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printJournalVoucher } from "@/lib/printDocument";
 
-function fmtKES(n:number) { return `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`; };
-function genNo() { return `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`; };
+const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
+const genNo = () => `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
 const SC: Record<string,string> = {draft:"#6b7280",approved:"#15803d",posted:"#0369a1",rejected:"#dc2626"};
 
 export default function JournalVouchersPage() {
@@ -30,23 +30,17 @@ export default function JournalVouchersPage() {
   const { get: getSetting } = useSystemSettings();
 
   const load = async () => {
-    try {
-
     setLoading(true);
     const [{data:jv},{data:c}] = await Promise.all([
       (supabase as any).from("journal_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("chart_of_accounts").select("account_code,account_name").eq("is_active",true).order("account_code"),
     ]);
     setRows(jv||[]); setCoa(c||[]);
-    } catch(e: any) {
-      console.warn("[ProcurBosse] Load error:", e?.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
   useEffect(()=>{load();},[]);
 
-  /* -- Real-time subscription ------------------------------- */
+  /* ── Real-time subscription ─────────────────────────────── */
   useEffect(()=>{
     const ch=(supabase as any).channel("jv-rt").on("postgres_changes",{event:"*",schema:"public",table:"journal_vouchers"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -58,20 +52,20 @@ export default function JournalVouchersPage() {
 
   const save = async () => {
     if(!form.narration){toast({title:"Narration required",variant:"destructive"});return;}
-    if(!isBalanced){toast({title:"Journal is not balanced  -- debits must equal credits",variant:"destructive"});return;}
+    if(!isBalanced){toast({title:"Journal is not balanced — debits must equal credits",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,journal_number:genNo(),entries:entries.filter(e=>e.account_code||e.debit||e.credit),
       total_debit:totalDebit,total_credit:totalCredit,is_balanced:isBalanced,status:"draft",
       created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("journal_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error  -- please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","journal_vouchers",data?.id,{number:payload.journal_number});toast({title:"Journal Voucher created "});setShowNew(false);load();}
+    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","journal_vouchers",data?.id,{number:payload.journal_number});toast({title:"Journal Voucher created ✓"});setShowNew(false);load();}
     setSaving(false);
   };
 
   const approve = async (id:string) => {
     await(supabase as any).from("journal_vouchers").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name}).eq("id",id);
-    toast({title:"Journal approved "}); load();
+    toast({title:"Journal approved ✓"}); load();
   };
 
   const deleteRow = async (id:string) => {
@@ -91,7 +85,7 @@ export default function JournalVouchersPage() {
     printJournalVoucher(v, {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital * Embu County Government'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
       currencySymbol: getSetting('currency_symbol','KES'),
       logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
       hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
@@ -167,11 +161,11 @@ export default function JournalVouchersPage() {
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#312e81"}}>{r.journal_number}</td>
                 <td style={{padding:"10px 16px"}}>{new Date(r.journal_date).toLocaleDateString("en-KE")}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.reference||" --"}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.reference||"—"}</td>
                 <td style={{padding:"10px 16px",color:"#374151"}}>{r.narration}</td>
                 <td style={{padding:"10px 16px",fontWeight:600}}>{fmtKES(r.total_debit)}</td>
                 <td style={{padding:"10px 16px",fontWeight:600}}>{fmtKES(r.total_credit)}</td>
-                <td style={{padding:"10px 16px"}}><span style={{fontSize:10,fontWeight:700,color:r.is_balanced?"#15803d":"#dc2626"}}>{r.is_balanced?" Yes":" No"}</span></td>
+                <td style={{padding:"10px 16px"}}><span style={{fontSize:10,fontWeight:700,color:r.is_balanced?"#15803d":"#dc2626"}}>{r.is_balanced?"✓ Yes":"✗ No"}</span></td>
                 <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
                 <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
                   <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
@@ -236,7 +230,7 @@ export default function JournalVouchersPage() {
                     <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700,color:"#374151"}}>TOTALS</td>
                     <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right",color:"#1a3a6b"}}>{fmtKES(totalDebit)}</td>
                     <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right",color:"#1a3a6b"}}>{fmtKES(totalCredit)}</td>
-                    <td style={{padding:"8px",fontSize:12,fontWeight:700,color:isBalanced?"#15803d":"#dc2626"}}>{isBalanced?" Balanced":" Unbalanced"}</td>
+                    <td style={{padding:"8px",fontSize:12,fontWeight:700,color:isBalanced?"#15803d":"#dc2626"}}>{isBalanced?"✓ Balanced":"✗ Unbalanced"}</td>
                   </tr>
                 </tbody>
               </table>

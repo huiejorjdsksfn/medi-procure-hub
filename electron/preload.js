@@ -1,28 +1,32 @@
 /**
- * ProcurBosse — Preload Script v22.6
- * Secure bridge between renderer and main process
- * EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse Preload — secure IPC bridge
+ * Exposed as window.procurBosse in the renderer
  */
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  // App info
-  getVersion:    () => ipcRenderer.invoke('app-version'),
-  getName:       () => ipcRenderer.invoke('app-name'),
-  isDev:         () => ipcRenderer.invoke('is-dev'),
-  getPlatform:   () => ipcRenderer.invoke('platform'),
-
-  // Shell
-  openExternal:  (url)        => ipcRenderer.invoke('open-external', url),
-
-  // File system
-  saveFile:      (opts)       => ipcRenderer.invoke('show-save-dialog', opts),
-  openFile:      (opts)       => ipcRenderer.invoke('show-open-dialog', opts),
-  writeFile:     (path, data) => ipcRenderer.invoke('write-file', path, data),
-  readFile:      (path)       => ipcRenderer.invoke('read-file', path),
-
-  // Environment detection
+contextBridge.exposeInMainWorld('procurBosse', {
+  // Identity
+  appName:    'ProcurBosse',
   isElectron: true,
+
+  // App info
+  getVersion:  () => ipcRenderer.invoke('get-app-version'),
+  getPlatform: () => ipcRenderer.invoke('get-platform'),
+  getAppPath:  () => ipcRenderer.invoke('get-app-path'),
+  getUserData: () => ipcRenderer.invoke('get-user-data'),
+  isPackaged:  () => ipcRenderer.invoke('is-packaged'),
+  isWin7:      () => ipcRenderer.invoke('is-win7'),
+
+  // Navigation
+  navigate: (route) => ipcRenderer.invoke('navigate', route),
+
+  // Updates
+  checkForUpdates: () => ipcRenderer.invoke('check-updates'),
+
+  // File system (dialogs)
+  showSaveDialog: (opts) => ipcRenderer.invoke('show-save-dialog', opts),
+  showOpenDialog: (opts) => ipcRenderer.invoke('show-open-dialog', opts),
+  writeFile:      (args) => ipcRenderer.invoke('write-file', args),
 });

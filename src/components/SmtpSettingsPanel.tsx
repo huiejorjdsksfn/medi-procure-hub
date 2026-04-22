@@ -1,7 +1,7 @@
 /**
- * EL5 MediProcure  -- SMTP Settings Panel
- * Supabase SMTP + Resend integration * Twilio messaging config
- * ProcurBosse * Embu Level 5 Hospital
+ * EL5 MediProcure v5.8 — SMTP Settings Panel
+ * Supabase SMTP + Resend integration · Twilio messaging config
+ * ProcurBosse · Embu Level 5 Hospital
  */
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,7 @@ const DEFAULT: SmtpConfig = {
   smtp_user: "resend",
   smtp_pass: "",
   smtp_from_email: "noreply@embu.go.ke",
-  smtp_from_name: "EL5 MediProcure  -- ProcurBosse",
+  smtp_from_name: "EL5 MediProcure — ProcurBosse",
   smtp_enabled: "true",
   resend_api_key: "",
   email_test_address: "tecnojin03@gmail.com",
@@ -92,7 +92,7 @@ export default function SmtpSettingsPanel() {
       await (supabase as any).from("system_settings").upsert({ key, value }, { onConflict: "key" });
     }
     setSaving(false);
-    showToast("[OK] Configuration saved successfully!");
+    showToast("✅ Configuration saved successfully!");
   }
 
   async function testEmail() {
@@ -101,8 +101,8 @@ export default function SmtpSettingsPanel() {
       const { data, error } = await (supabase as any).functions.invoke("send-email", {
         body: {
           to: config.email_test_address,
-          subject: "[OK] EL5 MediProcure  -- SMTP Test",
-          body: `SMTP test from ProcurBosse\n\nProvider: ${config.smtp_provider}\nHost: ${config.smtp_host}\nFrom: ${config.smtp_from_email}\n\nThis confirms your email configuration is working correctly.\n\nEmbu Level 5 Hospital * ProcurBosse ERP`,
+          subject: "✅ EL5 MediProcure v5.8 — SMTP Test",
+          body: `SMTP test from ProcurBosse v5.8\n\nProvider: ${config.smtp_provider}\nHost: ${config.smtp_host}\nFrom: ${config.smtp_from_email}\n\nThis confirms your email configuration is working correctly.\n\nEmbu Level 5 Hospital · ProcurBosse ERP`,
           hospitalName: "EL5 MediProcure",
         },
       });
@@ -119,13 +119,13 @@ export default function SmtpSettingsPanel() {
       const { error } = await (supabase as any).functions.invoke("send-sms", {
         body: {
           to: config.twilio_phone_number,
-          message: `[OK] EL5 MediProcure SMS test from ProcurBosse. Twilio SID: ${config.twilio_messaging_service_sid}. Hospital: Embu Level 5.`,
+          message: `✅ EL5 MediProcure v5.8 SMS test from ProcurBosse. Twilio SID: ${config.twilio_messaging_service_sid}. Hospital: Embu Level 5.`,
           hospitalName: "EL5 MediProcure",
         },
       });
-      showToast(error ? `[X] SMS test failed: ${error.message}` : "[OK] SMS test sent!", !error);
+      showToast(error ? `❌ SMS test failed: ${error.message}` : "✅ SMS test sent!", !error);
     } catch (e: any) {
-      showToast(`[X] ${e.message}`, false);
+      showToast(`❌ ${e.message}`, false);
     }
     setSmsTest(false);
   }
@@ -143,16 +143,16 @@ export default function SmtpSettingsPanel() {
     ], { onConflict: "key" });
     setConfig(c => ({ ...c, supabase_smtp_active: "true", smtp_enabled: "true", smtp_provider: "supabase" }));
     setSaving(false);
-    showToast("[OK] Supabase SMTP activated via Resend!");
+    showToast("✅ Supabase SMTP activated via Resend!");
   }
 
   const tabs: { id: "email"|"twilio"|"supabase"; label: string; icon: string }[] = [
-    { id: "email", label: "Email / SMTP", icon: "" },
-    { id: "twilio", label: "Twilio / SMS / WhatsApp", icon: "" },
-    { id: "supabase", label: "Supabase SMTP Config", icon: "" },
+    { id: "email", label: "Email / SMTP", icon: "📧" },
+    { id: "twilio", label: "Twilio / SMS / WhatsApp", icon: "📱" },
+    { id: "supabase", label: "Supabase SMTP Config", icon: "⚡" },
   ];
 
-  if (loading) return <div style={{ padding: 24, color: "#9ca3af", fontSize: 14 }}>Loading configuration...</div>;
+  if (loading) return <div style={{ padding: 24, color: "#9ca3af", fontSize: 14 }}>Loading configuration…</div>;
 
   return (
     <div style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: "4px 0" }}>
@@ -177,10 +177,10 @@ export default function SmtpSettingsPanel() {
         ))}
       </div>
 
-      {/* -- EMAIL TAB -- */}
+      {/* ── EMAIL TAB ── */}
       {activeTab === "email" && (
         <div>
-          <div style={SECTION_TITLE}> Email / SMTP Configuration</div>
+          <div style={SECTION_TITLE}>📧 Email / SMTP Configuration</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={LABEL}>Provider</label>
@@ -205,7 +205,7 @@ export default function SmtpSettingsPanel() {
             </div>
             <div>
               <label style={LABEL}>SMTP Password / API Key</label>
-              <input type="password" value={config.smtp_pass} onChange={e => set("smtp_pass", e.target.value)} style={INP} placeholder="re_xxxx... or your SMTP password" />
+              <input type="password" value={config.smtp_pass} onChange={e => set("smtp_pass", e.target.value)} style={INP} placeholder="re_xxxx… or your SMTP password" />
             </div>
             <div>
               <label style={LABEL}>Resend API Key</label>
@@ -225,7 +225,7 @@ export default function SmtpSettingsPanel() {
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
               <div style={{ padding: "6px 14px", borderRadius: 8, background: config.smtp_enabled === "true" ? "#f0fdf4" : "#fef9c3", border: `1px solid ${config.smtp_enabled === "true" ? "#bbf7d0" : "#fde68a"}`, fontSize: 12, fontWeight: 700, color: config.smtp_enabled === "true" ? "#059669" : "#d97706" }}>
-                {config.smtp_enabled === "true" ? " SMTP Enabled" : " SMTP Disabled"}
+                {config.smtp_enabled === "true" ? "🟢 SMTP Enabled" : "🟡 SMTP Disabled"}
               </div>
               <button onClick={() => set("smtp_enabled", config.smtp_enabled === "true" ? "false" : "true")} style={{ padding: "8px 14px", background: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                 Toggle
@@ -241,21 +241,21 @@ export default function SmtpSettingsPanel() {
 
           <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
             <button onClick={save} disabled={saving} style={BTN("linear-gradient(135deg,#0369a1,#0284c7)", saving)}>
-              {saving ? "Saving..." : " Save Email Config"}
+              {saving ? "Saving…" : "💾 Save Email Config"}
             </button>
             <button onClick={testEmail} disabled={testing} style={BTN("linear-gradient(135deg,#059669,#047857)", testing)}>
-              {testing ? "Sending..." : " Send Test Email"}
+              {testing ? "Sending…" : "📧 Send Test Email"}
             </button>
           </div>
         </div>
       )}
 
-      {/* -- TWILIO TAB -- */}
+      {/* ── TWILIO TAB ── */}
       {activeTab === "twilio" && (
         <div>
-          <div style={SECTION_TITLE}> Twilio SMS / Voice / WhatsApp</div>
+          <div style={SECTION_TITLE}>📱 Twilio SMS / Voice / WhatsApp</div>
           <div style={{ background: "linear-gradient(135deg,#0369a1,#0284c7)", borderRadius: 12, padding: "16px 20px", marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}> EL5H Messaging Service  -- Active Configuration</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}>📡 EL5H Messaging Service — Active Configuration</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               {[
                 { label: "SMS Number", value: "+16812972643" },
@@ -275,7 +275,7 @@ export default function SmtpSettingsPanel() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
-              ["Account SID", "twilio_account_sid", "ACxxxx...", "password"],
+              ["Account SID", "twilio_account_sid", "ACxxxx…", "password"],
               ["Auth Token", "twilio_auth_token", "your_auth_token", "password"],
               ["Phone Number", "twilio_phone_number", "+16812972643", "text"],
               ["Messaging Service SID", "twilio_messaging_service_sid", "MGd547d8e3273fda2d21afdd6856acb245", "text"],
@@ -290,49 +290,49 @@ export default function SmtpSettingsPanel() {
 
           {/* WhatsApp link */}
           <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 16px", marginTop: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#059669", marginBottom: 8 }}> WhatsApp Sandbox Setup</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#059669", marginBottom: 8 }}>🟢 WhatsApp Sandbox Setup</div>
             <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.7 }}>
               Send <strong>join bad-machine</strong> to <strong>+14155238886</strong> on WhatsApp to activate the sandbox.
             </div>
             <a href="https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine&type=phone_number&app_absent=0"
               target="_blank" rel="noopener noreferrer"
               style={{ display: "inline-block", marginTop: 10, padding: "8px 16px", background: "#25D366", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-               Open WhatsApp Sandbox  Next
+              🟢 Open WhatsApp Sandbox →
             </a>
             <a href="https://demo.twilio.com/welcome/voice/"
               target="_blank" rel="noopener noreferrer"
               style={{ display: "inline-block", marginTop: 10, marginLeft: 10, padding: "8px 16px", background: "#0369a1", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-               Voice Webhook  Next
+              📞 Voice Webhook →
             </a>
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
             <button onClick={save} disabled={saving} style={BTN("linear-gradient(135deg,#0369a1,#0284c7)", saving)}>
-              {saving ? "Saving..." : " Save Twilio Config"}
+              {saving ? "Saving…" : "💾 Save Twilio Config"}
             </button>
             <button onClick={testSms} disabled={smsTest} style={BTN("linear-gradient(135deg,#7c3aed,#6d28d9)", smsTest)}>
-              {smsTest ? "Sending..." : " Test SMS"}
+              {smsTest ? "Sending…" : "📱 Test SMS"}
             </button>
           </div>
         </div>
       )}
 
-      {/* -- SUPABASE SMTP TAB -- */}
+      {/* ── SUPABASE SMTP TAB ── */}
       {activeTab === "supabase" && (
         <div>
-          <div style={SECTION_TITLE}> Supabase SMTP Configuration</div>
+          <div style={SECTION_TITLE}>⚡ Supabase SMTP Configuration</div>
 
           <div style={{ background: "linear-gradient(135deg,#1e293b,#0f172a)", borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginBottom: 4 }}>Supabase EL5 MediProcure ERP</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 16 }}>EL5 MediProcure * Embu Level 5 Hospital</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginBottom: 4 }}>Supabase Project: yvjfehnzbzjliizjvuhq</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 16 }}>EL5 MediProcure · Embu Level 5 Hospital</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               {[
-                { label: "Project URL", value: "https://system-db" },
+                { label: "Project URL", value: "https://yvjfehnzbzjliizjvuhq.supabase.co" },
                 { label: "SMTP Provider", value: "Resend (via Supabase)" },
                 { label: "SMTP Host", value: "smtp.resend.com" },
                 { label: "SMTP Port", value: "465 (SSL)" },
                 { label: "Edge Function", value: "send-email (v4)" },
-                { label: "Status", value: config.supabase_smtp_active === "true" ? " Active" : " Inactive" },
+                { label: "Status", value: config.supabase_smtp_active === "true" ? "🟢 Active" : "🔴 Inactive" },
               ].map((r, i) => (
                 <div key={i} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "10px 14px" }}>
                   <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>{r.label}</div>
@@ -343,20 +343,20 @@ export default function SmtpSettingsPanel() {
           </div>
 
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: "18px 20px", marginBottom: 16, border: "1.5px solid #e2e8f0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}> Supabase Dashboard  -- Email Settings</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>📋 Supabase Dashboard — Email Settings</div>
             <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.9 }}>
-              <strong>1.</strong> Go to: <a href="https://supabase.com/dashboardhnzbzjliizjvuhq/settings/auth" target="_blank" rel="noopener noreferrer" style={{ color: "#0369a1" }}>Supabase Dashboard  Next Auth Settings</a><br/>
+              <strong>1.</strong> Go to: <a href="https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq/settings/auth" target="_blank" rel="noopener noreferrer" style={{ color: "#0369a1" }}>Supabase Dashboard → Auth Settings</a><br/>
               <strong>2.</strong> Enable "Custom SMTP" under Email section<br/>
               <strong>3.</strong> SMTP Host: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>smtp.resend.com</code><br/>
-              <strong>4.</strong> Port: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>465</code> * User: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>resend</code><br/>
-              <strong>5.</strong> Password: Your Resend API key (re_xxxx...)<br/>
+              <strong>4.</strong> Port: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>465</code> · User: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>resend</code><br/>
+              <strong>5.</strong> Password: Your Resend API key (re_xxxx…)<br/>
               <strong>6.</strong> Sender: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>EL5 MediProcure &lt;noreply@embu.go.ke&gt;</code>
             </div>
           </div>
 
           <div style={{ background: config.supabase_smtp_active === "true" ? "#f0fdf4" : "#fef2f2", borderRadius: 10, padding: "14px 18px", marginBottom: 20, border: `1px solid ${config.supabase_smtp_active === "true" ? "#bbf7d0" : "#fecaca"}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: config.supabase_smtp_active === "true" ? "#059669" : "#dc2626", marginBottom: 4 }}>
-              {config.supabase_smtp_active === "true" ? " Supabase SMTP is ACTIVE" : " Supabase SMTP is INACTIVE"}
+              {config.supabase_smtp_active === "true" ? "🟢 Supabase SMTP is ACTIVE" : "🔴 Supabase SMTP is INACTIVE"}
             </div>
             <div style={{ fontSize: 12, color: "#374151" }}>
               {config.supabase_smtp_active === "true"
@@ -367,14 +367,14 @@ export default function SmtpSettingsPanel() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={activateSupabaseSMTP} disabled={saving} style={BTN("linear-gradient(135deg,#059669,#047857)", saving)}>
-              {saving ? "Activating..." : " Activate Supabase SMTP"}
+              {saving ? "Activating…" : "⚡ Activate Supabase SMTP"}
             </button>
             <button onClick={testEmail} disabled={testing} style={BTN("linear-gradient(135deg,#0369a1,#0284c7)", testing)}>
-              {testing ? "Testing..." : " Test via Supabase SMTP"}
+              {testing ? "Testing…" : "📧 Test via Supabase SMTP"}
             </button>
-            <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer"
+            <a href="https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq/functions" target="_blank" rel="noopener noreferrer"
               style={{ ...BTN("#6366f1"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
-               Edge Functions Dashboard  Next
+              🔗 Edge Functions Dashboard →
             </a>
           </div>
         </div>

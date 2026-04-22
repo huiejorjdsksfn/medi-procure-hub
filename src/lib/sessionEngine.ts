@@ -1,8 +1,8 @@
 /**
- * ProcurBosse  -- Session Persistence Engine v2.0
+ * ProcurBosse — Session Persistence Engine v2.0
  * Prevents logout / access-denied on page refresh or token expiry
  * Uses IndexedDB + localStorage dual-store with background refresh
- * EL5 MediProcure * Embu Level 5 Hospital
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,7 +24,7 @@ export interface StoredSession {
   rolesCachedAt: number;
 }
 
-/* -- IndexedDB helpers --------------------------------------------------- */
+/* ── IndexedDB helpers ─────────────────────────────────────────────────── */
 function openDB(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
     const req = indexedDB.open(DB_NAME, 1);
@@ -69,7 +69,7 @@ async function idbClear(): Promise<void> {
   } catch {}
 }
 
-/* -- Session Engine class ------------------------------------------------ */
+/* ── Session Engine class ──────────────────────────────────────────────── */
 class SessionEngine {
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private refreshing = false;
@@ -83,7 +83,7 @@ class SessionEngine {
     } catch {}
   }
 
-  /** Read session  -- IndexedDB first, localStorage fallback */
+  /** Read session — IndexedDB first, localStorage fallback */
   async read(): Promise<StoredSession | null> {
     const idb = await idbGet();
     if (idb && Date.now() < idb.expiresAt) return idb;
