@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Documents & File Import v6.0
- * Upload Word/Excel/PDF/CSV · Parse & map to ERP modules · Hardcopy digitisation
- * Realtime sync · Full document library · Admin controls
- * EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse - Documents & File Import v6.0
+ * Upload Word/Excel/PDF/CSV - Parse & map to ERP modules - Hardcopy digitisation
+ * Realtime sync - Full document library - Admin controls
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +24,7 @@ import {
 
 const db = supabase as any;
 
-/* ── Types ──────────────────────────────────────────────────────────────── */
+/* - Types - */
 interface DocRecord {
   id: string; name: string; category: string; description?: string;
   file_type?: string; file_url?: string; storage_path?: string;
@@ -39,7 +39,7 @@ interface ImportRecord {
   parsed_tables?: any[]; parsed_text?: string; document_id?: string;
 }
 
-/* ── File type config ────────────────────────────────────────────────────── */
+/* - File type config - */
 const FILE_ICONS: Record<string, { icon: any; color: string; bg: string }> = {
   excel:   { icon: FileSpreadsheet, color: "#16a34a", bg: "#16a34a18" },
   csv:     { icon: FileSpreadsheet, color: "#059669", bg: "#05986918" },
@@ -58,7 +58,7 @@ const MODULE_LABELS: Record<string, string> = {
 
 const CATS = ["all","general","policy","template","contract","report","letter","form","procedure","system","import"];
 
-/* ── Styles ──────────────────────────────────────────────────────────────── */
+/* - Styles - */
 const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px" };
 const inp: React.CSSProperties = { width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"8px 12px", color:T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
 const btn = (bg: string, border?: string): React.CSSProperties => ({
@@ -68,13 +68,13 @@ const btn = (bg: string, border?: string): React.CSSProperties => ({
   fontSize:13, fontWeight:700, cursor:"pointer",
 });
 
-/* ════════════════════════════════════════════════════════════════════════ */
+/* - */
 export default function DocumentsPage() {
   const nav = useNavigate();
   const { user, profile, roles } = useAuth();
   const isAdmin = roles?.includes("admin") || roles?.includes("procurement_manager");
 
-  /* ── State ── */
+  /* - State - */
   const [tab, setTab]               = useState<"library"|"upload"|"imports"|"hardcopy">("library");
   const [docs, setDocs]             = useState<DocRecord[]>([]);
   const [imports, setImports]       = useState<ImportRecord[]>([]);
@@ -92,7 +92,7 @@ export default function DocumentsPage() {
   const [importing, setImporting]   = useState(false);
   const fileInputRef                = useRef<HTMLInputElement>(null);
 
-  /* ── Load data ── */
+  /* - Load data - */
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -114,7 +114,7 @@ export default function DocumentsPage() {
     return () => db.removeChannel(ch);
   }, [load]);
 
-  /* ── File drop handling ── */
+  /* - File drop handling - */
   const handleFiles = useCallback((files: File[]) => {
     const items: UploadQueueItem[] = files.map(f => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
@@ -132,7 +132,7 @@ export default function DocumentsPage() {
     handleFiles(Array.from(e.dataTransfer.files));
   }, [handleFiles]);
 
-  /* ── Upload + Parse + Store ── */
+  /* - Upload + Parse + Store - */
   const processItem = useCallback(async (qi: UploadQueueItem) => {
     setQueue(prev => prev.map(q => q.id===qi.id ? {...q, status:"uploading", progress:10} : q));
     setParsing(qi.id);
@@ -206,7 +206,7 @@ export default function DocumentsPage() {
         setMapModal({ qi, doc: parsed });
       }
 
-      toast({ title:"✅ Uploaded", description:`${qi.file.name} processed (${parsed?.tables.length||0} tables found)` });
+      toast({ title:"- Uploaded", description:`${qi.file.name} processed (${parsed?.tables.length||0} tables found)` });
     } catch(e:any) {
       setQueue(prev => prev.map(q => q.id===qi.id ? {...q, status:"error", error:e.message} : q));
       toast({ title:"Upload failed", description:e.message, variant:"destructive" });
@@ -216,7 +216,7 @@ export default function DocumentsPage() {
     }
   }, [user, load]);
 
-  /* ── Import rows into ERP module ── */
+  /* - Import rows into ERP module - */
   const importRows = useCallback(async (qi: UploadQueueItem, doc: ParsedDocument, targetModule: string, table: ParsedTable) => {
     if (!table.rows.length) return;
     setImporting(true);
@@ -272,7 +272,7 @@ export default function DocumentsPage() {
         .update({ mapped_records: [{ module:targetModule, count:imported }], status:"complete" })
         .eq("document_id", qi.docId);
 
-      toast({ title:`✅ Imported ${imported} records`, description:`${failed} skipped · Module: ${MODULE_LABELS[targetModule]}` });
+      toast({ title:`- Imported ${imported} records`, description:`${failed} skipped - Module: ${MODULE_LABELS[targetModule]}` });
       setMapModal(null);
       load();
     } catch(e:any) {
@@ -280,7 +280,7 @@ export default function DocumentsPage() {
     } finally { setImporting(false); }
   }, [user, load]);
 
-  /* ── Delete document ── */
+  /* - Delete document - */
   const deleteDoc = async (doc: DocRecord) => {
     if (!confirm(`Delete "${doc.name}"?`)) return;
     if (doc.storage_path) {
@@ -291,7 +291,7 @@ export default function DocumentsPage() {
     load();
   };
 
-  /* ── Download ── */
+  /* - Download - */
   const downloadDoc = async (doc: DocRecord) => {
     if (!doc.storage_path) { window.open(doc.file_url, "_blank"); return; }
     const { data } = await supabase.storage.from("documents").download(doc.storage_path);
@@ -302,7 +302,7 @@ export default function DocumentsPage() {
     }
   };
 
-  /* ── Filtered docs ── */
+  /* - Filtered docs - */
   const filteredDocs = docs.filter(d => {
     const s = search.toLowerCase();
     const matchSearch = !s || d.name?.toLowerCase().includes(s) || d.description?.toLowerCase().includes(s) || d.original_filename?.toLowerCase().includes(s);
@@ -311,7 +311,7 @@ export default function DocumentsPage() {
     return matchSearch && matchCat && matchType;
   });
 
-  /* ═══════════════════════════════════════════════════════════════════════ */
+  /* - */
   return (
     <div style={{ padding:20, minHeight:"100vh", background:T.bg }}>
       <style>{`
@@ -326,7 +326,7 @@ export default function DocumentsPage() {
         <div>
           <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>Documents & File Imports</h1>
           <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>
-            {docs.length} documents · {imports.filter(i=>i.status==="complete").length} imports complete · Upload Word, Excel, PDF, CSV
+            {docs.length} documents - {imports.filter(i=>i.status==="complete").length} imports complete - Upload Word, Excel, PDF, CSV
           </div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
@@ -363,7 +363,7 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {/* ═══════════ LIBRARY TAB ═══════════ */}
+      {/* - LIBRARY TAB - */}
       {tab==="library"&&(
         <div>
           {/* Search + filters */}
@@ -417,7 +417,7 @@ export default function DocumentsPage() {
                       </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:700,color:T.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{doc.name}</div>
-                        <div style={{fontSize:10,color:T.fgDim,marginTop:2}}>{doc.original_filename||"—"}</div>
+                        <div style={{fontSize:10,color:T.fgDim,marginTop:2}}>{doc.original_filename||"-"}</div>
                         <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap"}}>
                           {doc.file_type&&<span style={{padding:"1px 7px",borderRadius:99,fontSize:9,fontWeight:700,background:fc.bg,color:fc.color,border:`1px solid ${fc.color}44`}}>{doc.file_type.toUpperCase()}</span>}
                           {doc.category&&<span style={{padding:"1px 7px",borderRadius:99,fontSize:9,fontWeight:700,background:`${T.primary}18`,color:T.primary}}>{doc.category}</span>}
@@ -428,7 +428,7 @@ export default function DocumentsPage() {
                     {doc.description&&<div style={{fontSize:11,color:T.fgMuted,lineHeight:1.5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{doc.description}</div>}
                     {doc.import_status==="parsed"&&(
                       <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:T.success,background:T.successBg,border:`1px solid ${T.success}33`,borderRadius:6,padding:"4px 8px"}}>
-                        <CheckCircle size={11}/> Parsed · {doc.metadata?.tableCount||0} tables extracted
+                        <CheckCircle size={11}/> Parsed - {doc.metadata?.tableCount||0} tables extracted
                       </div>
                     )}
                     <div style={{display:"flex",gap:6,marginTop:"auto"}}>
@@ -445,7 +445,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* ═══════════ UPLOAD TAB ═══════════ */}
+      {/* - UPLOAD TAB - */}
       {tab==="upload"&&(
         <div>
           {/* Drop zone */}
@@ -496,7 +496,7 @@ export default function DocumentsPage() {
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:12,fontWeight:600,color:T.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qi.file.name}</div>
-                          <div style={{fontSize:10,color:T.fgDim,marginTop:1}}>{fmtSize(qi.file.size)} · {qi.kind.toUpperCase()}</div>
+                          <div style={{fontSize:10,color:T.fgDim,marginTop:1}}>{fmtSize(qi.file.size)} - {qi.kind.toUpperCase()}</div>
                           {(qi.status==="uploading"||qi.status==="parsing")&&(
                             <div style={{marginTop:6,background:T.bg,borderRadius:4,overflow:"hidden",height:4}}>
                               <div style={{width:`${qi.progress}%`,height:"100%",background:T.primary,transition:"width .3s",borderRadius:4}}/>
@@ -504,13 +504,13 @@ export default function DocumentsPage() {
                           )}
                           {qi.status==="done"&&qi.parsedDoc&&(
                             <div style={{fontSize:10,color:T.success,marginTop:2}}>
-                              ✅ {qi.parsedDoc.tables.length} tables · {qi.parsedDoc.mappedRows.length} rows parsed
+                              - {qi.parsedDoc.tables.length} tables - {qi.parsedDoc.mappedRows.length} rows parsed
                               {qi.parsedDoc.suggestedModule&&qi.parsedDoc.suggestedModule!=="documents"&&(
-                                <span style={{color:T.accent,marginLeft:6}}>→ {MODULE_LABELS[qi.parsedDoc.suggestedModule]}</span>
+                                <span style={{color:T.accent,marginLeft:6}}>- {MODULE_LABELS[qi.parsedDoc.suggestedModule]}</span>
                               )}
                             </div>
                           )}
-                          {qi.status==="error"&&<div style={{fontSize:10,color:T.error,marginTop:2}}>⚠ {qi.error}</div>}
+                          {qi.status==="error"&&<div style={{fontSize:10,color:T.error,marginTop:2}}>- {qi.error}</div>}
                         </div>
                         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
                           {qi.status==="queued"&&(
@@ -534,7 +534,7 @@ export default function DocumentsPage() {
                       {qi.status==="done"&&qi.parsedDoc&&qi.parsedDoc.tables.length>0&&qi.parsedDoc.suggestedModule&&qi.parsedDoc.suggestedModule!=="documents"&&(
                         <button onClick={()=>setMapModal({qi,doc:qi.parsedDoc!})}
                           style={{...btn(T.accent),marginTop:10,fontSize:11,padding:"6px 14px"}}>
-                          <ArrowRight size={12}/> Import {qi.parsedDoc.tables[0].rowCount} rows → {MODULE_LABELS[qi.parsedDoc.suggestedModule]}
+                          <ArrowRight size={12}/> Import {qi.parsedDoc.tables[0].rowCount} rows - {MODULE_LABELS[qi.parsedDoc.suggestedModule]}
                         </button>
                       )}
                     </div>
@@ -553,7 +553,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* ═══════════ IMPORTS TAB ═══════════ */}
+      {/* - IMPORTS TAB - */}
       {tab==="imports"&&(
         <div style={card}>
           <div style={{fontWeight:700,color:T.fg,fontSize:14,marginBottom:14}}>Import History ({imports.length})</div>
@@ -581,8 +581,8 @@ export default function DocumentsPage() {
                         </div>
                       </td>
                       <td style={{padding:"9px 12px"}}><span style={{fontSize:11,fontWeight:700,color:fc.color}}>{imp.file_type?.toUpperCase()}</span></td>
-                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim}}>{imp.file_size?fmtSize(imp.file_size):"—"}</td>
-                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgMuted}}>{imp.mapped_to?MODULE_LABELS[imp.mapped_to]||imp.mapped_to:"—"}</td>
+                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim}}>{imp.file_size?fmtSize(imp.file_size):"-"}</td>
+                      <td style={{padding:"9px 12px",fontSize:11,color:T.fgMuted}}>{imp.mapped_to?MODULE_LABELS[imp.mapped_to]||imp.mapped_to:"-"}</td>
                       <td style={{padding:"9px 12px",fontSize:11,color:T.fgMuted}}>{imp.parsed_tables?.length||0}</td>
                       <td style={{padding:"9px 12px"}}>
                         <span style={{padding:"2px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:`${statusColor}18`,color:statusColor}}>{imp.status}</span>
@@ -597,7 +597,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* ═══════════ HARDCOPY GUIDE TAB ═══════════ */}
+      {/* - HARDCOPY GUIDE TAB - */}
       {tab==="hardcopy"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           <div style={card}>
@@ -612,7 +612,7 @@ export default function DocumentsPage() {
               {step:"1",title:"Scan or photograph",desc:"Use a scanner or phone camera (Office Lens / Adobe Scan) to capture the hardcopy document. Save as PDF or JPG."},
               {step:"2",title:"Upload the file",desc:"Go to Upload & Import tab, drag-drop or click to select the scanned file. Supports PDF, JPG, PNG."},
               {step:"3",title:"System parses content",desc:"ProcurBosse automatically extracts text and tables from the file using AI-assisted parsing."},
-              {step:"4",title:"Map to ERP module",desc:"Review suggested mapping (e.g. LPO → Purchase Orders, stores requisition → Requisitions) and confirm import."},
+              {step:"4",title:"Map to ERP module",desc:"Review suggested mapping (e.g. LPO - Purchase Orders, stores requisition - Requisitions) and confirm import."},
               {step:"5",title:"Records created",desc:"ERP records are created automatically. The original file is stored in the document library for audit reference."},
             ].map(({step,title,desc})=>(
               <div key={step} style={{display:"flex",gap:12,marginBottom:14}}>
@@ -674,7 +674,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* ═══════════ MAPPING MODAL ═══════════ */}
+      {/* - MAPPING MODAL - */}
       {mapModal&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setMapModal(null)}>
           <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,padding:28,width:"100%",maxWidth:680,maxHeight:"90vh",overflowY:"auto",animation:"fadeIn .2s"}} onClick={e=>e.stopPropagation()}>
@@ -715,7 +715,7 @@ export default function DocumentsPage() {
                       {table.rows.slice(0,5).map((row,ri)=>(
                         <tr key={ri} style={{borderBottom:`1px solid ${T.border}22`}}>
                           {table.headers.slice(0,6).map(h=>(
-                            <td key={h} style={{padding:"5px 10px",color:T.fg,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row[h]||"—"}</td>
+                            <td key={h} style={{padding:"5px 10px",color:T.fg,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row[h]||"-"}</td>
                           ))}
                         </tr>
                       ))}
@@ -732,7 +732,7 @@ export default function DocumentsPage() {
                   disabled={importing}
                   style={{...btn(T.success),marginTop:12}}>
                   {importing?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<ArrowRight size={13}/>}
-                  {importing?"Importing...`":`Import ${table.rowCount} rows → ${MODULE_LABELS[(document.getElementById("targetModule") as HTMLSelectElement)?.value||"documents"]||"ERP"}`}
+                  {importing?"Importing...`":`Import ${table.rowCount} rows - ${MODULE_LABELS[(document.getElementById("targetModule") as HTMLSelectElement)?.value||"documents"]||"ERP"}`}
                 </button>
               </div>
             ))}
@@ -747,7 +747,7 @@ export default function DocumentsPage() {
   );
 }
 
-/* ── Queue item type ─────────────────────────────────────────────────────── */
+/* - Queue item type - */
 interface UploadQueueItem {
   id: string; file: File; kind: string;
   status: "queued"|"uploading"|"parsing"|"done"|"error";

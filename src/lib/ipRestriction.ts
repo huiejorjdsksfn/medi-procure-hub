@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — IP Restriction Engine
+ * ProcurBosse - IP Restriction Engine
  * Reads network_whitelist table + system_settings to enforce IP access.
  * Logs every check to ip_access_log table.
  * Called from NetworkGuard component on every app load.

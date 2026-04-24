@@ -1,11 +1,11 @@
 /**
- * ProcurBosse — D365/Power BI Design System v6.0
- * Microsoft Dynamics 365 ERP aesthetic — white cards, blue ribbon, Segoe UI
- * EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse - D365/Power BI Design System v6.0
+ * Microsoft Dynamics 365 ERP aesthetic - white cards, blue ribbon, Segoe UI
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 
 export const T = {
-  // ── Surfaces (light base, D365 style) ──────────────────────────────────────
+  // - Surfaces (light base, D365 style) -
   bg:        "#f3f5f8",   // page background (very light grey)
   bg1:       "#eef1f5",
   bg2:       "#e8ecf1",
@@ -14,23 +14,23 @@ export const T = {
   border:    "#dde1e7",
   borderHov: "#c5cad3",
 
-  // ── Text ───────────────────────────────────────────────────────────────────
+  // - Text -
   fg:        "#1a1a2e",   // near-black
   fgMuted:   "#5a6475",
   fgDim:     "#8d96a3",
 
-  // ── D365 Brand blue ────────────────────────────────────────────────────────
+  // - D365 Brand blue -
   primary:    "#0078d4",  // Microsoft blue
   primaryHov: "#106ebe",
   primaryDark:"#005a9e",
   primaryBg:  "#e8f4fd",
 
-  // ── Accent / orange ────────────────────────────────────────────────────────
+  // - Accent / orange -
   accent:     "#d83b01",  // D365 orange-red
   accentHov:  "#b83200",
   accentBg:   "#fdf1ed",
 
-  // ── Status ─────────────────────────────────────────────────────────────────
+  // - Status -
   success:    "#107c10",
   successBg:  "#dff6dd",
   warning:    "#d39a04",
@@ -40,7 +40,7 @@ export const T = {
   info:       "#0078d4",
   infoBg:     "#e8f4fd",
 
-  // ── Module ribbon colors (D365 palette) ────────────────────────────────────
+  // - Module ribbon colors (D365 palette) -
   procurement:"#0078d4",   // blue
   finance:    "#7719aa",   // purple
   inventory:  "#038387",   // teal
@@ -51,19 +51,19 @@ export const T = {
   hr:         "#b4009e",   // magenta
   reports:    "#5c2d91",   // deep purple
 
-  // ── Radius ─────────────────────────────────────────────────────────────────
+  // - Radius -
   r:    4,
   rMd:  6,
   rLg:  8,
   rXl:  12,
 
-  // ── Shadow ─────────────────────────────────────────────────────────────────
+  // - Shadow -
   shadow:    "0 2px 8px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)",
   shadowMd:  "0 4px 16px rgba(0,0,0,0.12), 0 0 1px rgba(0,0,0,0.08)",
   shadowLg:  "0 8px 32px rgba(0,0,0,0.16)",
 } as const;
 
-// ── Component helpers ─────────────────────────────────────────────────────────
+// - Component helpers -
 export const statusBadge = (status: string): React.CSSProperties => {
   const map: Record<string,[string,string]> = {
     active:    [T.success, T.successBg],

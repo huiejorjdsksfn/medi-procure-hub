@@ -1,4 +1,4 @@
-/** EL5 MediProcure v5.8 — Reception API (Optimized) */
+/** EL5 MediProcure v5.8 - Reception API (Optimized) */
 import { supabase } from "@/integrations/supabase/client";
 import { cacheEngine } from "@/engines/cache/CascadeCacheEngine";
 const db = supabase as any;

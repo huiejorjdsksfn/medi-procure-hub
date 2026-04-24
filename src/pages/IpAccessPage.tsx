@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — IP Access Control & Live Network Monitor v3.0
- * Real-time public + private IP detection · Activity feed · Whitelist CRUD
- * EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse - IP Access Control & Live Network Monitor v3.0
+ * Real-time public + private IP detection - Activity feed - Whitelist CRUD
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,13 +18,13 @@ import {
 
 const db = supabase as any;
 
-/* ── Styles ── */
+/* - Styles - */
 const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px" };
 const inp: React.CSSProperties  = { width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"8px 12px", color:T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
 const btn = (bg:string, bd?:string):React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:7, padding:"8px 14px", background:bg, color:bd?T.fgMuted:"#fff", border:`1px solid ${bd||"transparent"}`, borderRadius:T.r, fontSize:12, fontWeight:700, cursor:"pointer" });
 const badge = (col:string):React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px", borderRadius:99, fontSize:9, fontWeight:700, background:col+"20", color:col, border:`1px solid ${col}44` });
 
-/* ── IP helpers ── */
+/* - IP helpers - */
 const IP_SERVICES = ["https://api.ipify.org?format=json","https://api64.ipify.org?format=json"];
 
 async function getPublicIP(): Promise<{ip:string;source:string}|null> {
@@ -50,7 +50,7 @@ function classifyIP(ip: string): "public"|"private"|"loopback" {
   return "public";
 }
 
-/* ── Pulse dot ── */
+/* - Pulse dot - */
 const Pulse = ({ color=T.success }:{color?:string}) => (
   <span style={{ position:"relative", display:"inline-flex", width:8, height:8 }}>
     <span style={{ position:"absolute", inset:0, borderRadius:"50%", background:color, opacity:.4, animation:"ping 1.5s infinite" }}/>
@@ -186,7 +186,7 @@ export default function IpAccessPage() {
         <Shield size={22} color={T.primary}/>
         <div>
           <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>IP Access Control & Network Monitor</h1>
-          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>Live public/private IP detection · Realtime activity · Block/allow rules</div>
+          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>Live public/private IP detection - Realtime activity - Block/allow rules</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={detectMyIP} disabled={ipFetching} style={btn(T.bg2,T.border)}>
@@ -198,7 +198,7 @@ export default function IpAccessPage() {
         </div>
       </div>
 
-      {/* ── IP Info Row ── */}
+      {/* - IP Info Row - */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
         {/* Public IP */}
         <div style={{...card,borderColor:myPublicIP?T.primary+"55":T.border}}>
@@ -213,7 +213,7 @@ export default function IpAccessPage() {
                 <div style={{fontSize:11,color:T.fgMuted,lineHeight:1.8}}>
                   <div><MapPin size={10} style={{verticalAlign:"middle",marginRight:4}}/>{[ipGeo.city,ipGeo.region,ipGeo.country_name||ipGeo.country].filter(Boolean).join(", ")||"Unknown location"}</div>
                   {(ipGeo.org||ipGeo.isp)&&<div><Signal size={10} style={{verticalAlign:"middle",marginRight:4}}/>{ipGeo.org||ipGeo.isp}</div>}
-                  {(ipGeo.latitude||ipGeo.lat)&&<div>📍 {(ipGeo.latitude||ipGeo.lat)?.toFixed(4)}°, {(ipGeo.longitude||ipGeo.lon)?.toFixed(4)}°</div>}
+                  {(ipGeo.latitude||ipGeo.lat)&&<div>- {(ipGeo.latitude||ipGeo.lat)?.toFixed(4)}-, {(ipGeo.longitude||ipGeo.lon)?.toFixed(4)}-</div>}
                 </div>
               )}
               <div style={{display:"flex",gap:6,marginTop:10}}>
@@ -274,7 +274,7 @@ export default function IpAccessPage() {
         ))}
       </div>
 
-      {/* ══ MONITOR ══ */}
+      {/* - MONITOR - */}
       {tab==="monitor"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
           <div style={card}>
@@ -310,7 +310,7 @@ export default function IpAccessPage() {
                           </div>
                         </td>
                         <td style={{padding:"8px 10px"}}><span style={badge(clsColor)}>{cls}</span></td>
-                        <td style={{padding:"8px 10px",fontSize:11,color:T.fg}}>{profile?.full_name||(log.user_id?.slice(0,8)||"—")}</td>
+                        <td style={{padding:"8px 10px",fontSize:11,color:T.fg}}>{profile?.full_name||(log.user_id?.slice(0,8)||"-")}</td>
                         <td style={{padding:"8px 10px",fontSize:10,color:T.fgDim}}>{fmtAgo(log.created_at)}</td>
                         <td style={{padding:"8px 10px"}}><span style={badge(isBlocked?T.error:T.success)}>{isBlocked?"Blocked":"Active"}</span></td>
                         <td style={{padding:"8px 10px"}}>
@@ -331,7 +331,7 @@ export default function IpAccessPage() {
           <div style={card}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
               <Radio size={14} color={T.accent}/><span style={{fontWeight:800,fontSize:13,color:T.fg}}>Live Stream</span>
-              <span style={{...badge(T.accent),fontSize:9,animation:"ping 2s infinite"}}>● LIVE</span>
+              <span style={{...badge(T.accent),fontSize:9,animation:"ping 2s infinite"}}>- LIVE</span>
             </div>
             <div ref={logRef} style={{height:500,overflowY:"auto",display:"flex",flexDirection:"column",gap:4}}>
               {(rtEvents.length?rtEvents:logs.slice(0,30)).map((log,i)=>{
@@ -348,7 +348,7 @@ export default function IpAccessPage() {
                       {isBlocked&&<span style={{fontSize:9,color:T.error,fontWeight:700}}>BLOCKED</span>}
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.fgDim}}>
-                      <span>{profile?.full_name||(log.user_id?log.user_id.slice(0,8)+"…":"anon")}{log.action?` · ${log.action}`:""}</span>
+                      <span>{profile?.full_name||(log.user_id?log.user_id.slice(0,8)+"-":"anon")}{log.action?` - ${log.action}`:""}</span>
                       <span>{fmtAgo(log.created_at)}</span>
                     </div>
                   </div>
@@ -359,7 +359,7 @@ export default function IpAccessPage() {
         </div>
       )}
 
-      {/* ══ WHITELIST ══ */}
+      {/* - WHITELIST - */}
       {tab==="whitelist"&&(
         <div style={card}>
           <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:14}}>Access Rules ({whitelist.length})</div>
@@ -378,7 +378,7 @@ export default function IpAccessPage() {
                   <tr key={w.id} style={{borderBottom:`1px solid ${T.border}18`}}
                     onMouseEnter={e=>(e.currentTarget.style.background=T.bg2)}
                     onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <td style={{padding:"9px 12px",fontWeight:600,color:T.fg}}>{w.label||"—"}</td>
+                    <td style={{padding:"9px 12px",fontWeight:600,color:T.fg}}>{w.label||"-"}</td>
                     <td style={{padding:"9px 12px"}}><code style={{color:T.primary,fontFamily:"monospace"}}>{w.cidr}</code></td>
                     <td style={{padding:"9px 12px"}}><span style={badge(tc)}>{w.type}</span></td>
                     <td style={{padding:"9px 12px"}}>
@@ -388,8 +388,8 @@ export default function IpAccessPage() {
                         </span>
                       </button>
                     </td>
-                    <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.notes||"—"}</td>
-                    <td style={{padding:"9px 12px",fontSize:10,color:T.fgDim}}>{w.created_at?new Date(w.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td style={{padding:"9px 12px",fontSize:11,color:T.fgDim,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.notes||"-"}</td>
+                    <td style={{padding:"9px 12px",fontSize:10,color:T.fgDim}}>{w.created_at?new Date(w.created_at).toLocaleDateString("en-KE"):"-"}</td>
                     <td style={{padding:"9px 12px"}}>
                       <button onClick={()=>deleteRule(w.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.error,padding:4}}><Trash2 size={13}/></button>
                     </td>
@@ -401,7 +401,7 @@ export default function IpAccessPage() {
         </div>
       )}
 
-      {/* ══ LOGS ══ */}
+      {/* - LOGS - */}
       {tab==="logs"&&(
         <div style={card}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
@@ -428,14 +428,14 @@ export default function IpAccessPage() {
                       <td style={{padding:"5px 10px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:5}}>
                           <span style={{width:5,height:5,borderRadius:"50%",background:cls==="public"?T.primary:"#7c3aed",flexShrink:0}}/>
-                          <code style={{fontSize:11,color:T.fg,fontFamily:"monospace"}}>{log.ip_address||"—"}</code>
+                          <code style={{fontSize:11,color:T.fg,fontFamily:"monospace"}}>{log.ip_address||"-"}</code>
                         </div>
                       </td>
                       <td style={{padding:"5px 10px"}}><span style={{fontSize:9,color:cls==="public"?T.primary:"#7c3aed",fontWeight:700}}>{cls}</span></td>
-                      <td style={{padding:"5px 10px",color:T.fg,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile?.full_name||(log.user_id?log.user_id.slice(0,8)+"…":"—")}</td>
-                      <td style={{padding:"5px 10px",color:T.fgMuted,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{log.action||"—"}</td>
+                      <td style={{padding:"5px 10px",color:T.fg,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile?.full_name||(log.user_id?log.user_id.slice(0,8)+"-":"-")}</td>
+                      <td style={{padding:"5px 10px",color:T.fgMuted,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{log.action||"-"}</td>
                       <td style={{padding:"5px 10px"}}><span style={badge(log.status==="blocked"?T.error:T.success)}>{log.status||"ok"}</span></td>
-                      <td style={{padding:"5px 10px",color:T.fgDim,fontSize:9,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={log.user_agent}>{log.user_agent?.slice(0,40)||"—"}</td>
+                      <td style={{padding:"5px 10px",color:T.fgDim,fontSize:9,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={log.user_agent}>{log.user_agent?.slice(0,40)||"-"}</td>
                     </tr>
                   );
                 })}
@@ -445,15 +445,15 @@ export default function IpAccessPage() {
         </div>
       )}
 
-      {/* ══ SESSIONS ══ */}
+      {/* - SESSIONS - */}
       {tab==="sessions"&&(
         <div style={card}>
           <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:14}}>User Sessions ({Object.keys(profiles).length})</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
             {Object.values(profiles).map((p:any)=>{
               const lastLog=logs.find(l=>l.user_id===p.id);
-              const ip=lastLog?.ip_address||"—";
-              const cls=ip!=="—"?classifyIP(ip):null;
+              const ip=lastLog?.ip_address||"-";
+              const cls=ip!=="-"?classifyIP(ip):null;
               return(
                 <div key={p.id} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
@@ -479,7 +479,7 @@ export default function IpAccessPage() {
         </div>
       )}
 
-      {/* ══ SETTINGS ══ */}
+      {/* - SETTINGS - */}
       {tab==="settings"&&(
         <div style={{maxWidth:560}}>
           <div style={card}>
@@ -512,7 +512,7 @@ export default function IpAccessPage() {
         </div>
       )}
 
-      {/* ══ ADD RULE MODAL ══ */}
+      {/* - ADD RULE MODAL - */}
       {showForm&&(
         <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowForm(false)}>
           <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,padding:28,width:500,animation:"fadeIn .2s"}} onClick={e=>e.stopPropagation()}>

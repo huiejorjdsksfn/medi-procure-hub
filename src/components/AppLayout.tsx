@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — AppLayout v7.0 Microsoft Dynamics 365 Style
- * White top bar · Blue ribbon tabs · Sub-command bar · Live badge counts
- * EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse - AppLayout v7.0 Microsoft Dynamics 365 Style
+ * White top bar - Blue ribbon tabs - Sub-command bar - Live badge counts
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -24,7 +24,7 @@ import {
 
 const db = supabase as any;
 
-/* ── Live badge counts (realtime) ─────────────────────────────────── */
+/* - Live badge counts (realtime) - */
 function useLiveCounts() {
   const [c, setC] = useState<Record<string,number>>({});
   const load = useCallback(async () => {
@@ -57,7 +57,7 @@ function useLiveCounts() {
 const Badge = ({n,col}:{n:number;col:string}) =>
   n>0 ? <span style={{minWidth:17,height:17,borderRadius:10,background:col,color:"#fff",fontSize:10,fontWeight:700,lineHeight:"17px",textAlign:"center",padding:"0 4px",display:"inline-block",flexShrink:0}}>{n>99?"99+":n}</span> : null;
 
-/* ── Module / nav definitions ──────────────────────────────────────── */
+/* - Module / nav definitions - */
 const MODS = [
   {id:"procurement",label:"Procurement",col:T.procurement,
    roles:["admin","superadmin","webmaster","procurement_manager","procurement_officer","requisitioner","inventory_manager","warehouse_officer"],
@@ -167,7 +167,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       <style>{`@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
       <SystemBroadcastBanner/>
 
-      {/* ═══ TOP BAR (D365 blue header) ═══════════════════════════ */}
+      {/* - TOP BAR (D365 blue header) - */}
       <div style={{height:44,background:T.primary,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.25)"}}>
         <img src={logoImg} alt="" style={{width:24,height:24,borderRadius:3,objectFit:"contain",background:"rgba(255,255,255,.12)",padding:2,flexShrink:0}}/>
         <div style={{lineHeight:1}}>
@@ -202,10 +202,10 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         </button>
       </div>
 
-      {/* ═══ ADMIN QUICK BAR ═════════════════════════════════════ */}
+      {/* - ADMIN QUICK BAR - */}
       {(isAdmin||isDbAdmin)&&(
         <div style={{background:T.accent,padding:"3px 14px",display:"flex",gap:5,alignItems:"center",flexShrink:0,overflowX:"auto"}}>
-          <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,whiteSpace:"nowrap"}}>⚡ ADMIN</span>
+          <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,whiteSpace:"nowrap"}}>- ADMIN</span>
           {[{l:"Users",p:"/users"},{l:"IP Stats",p:"/admin/ip-access"},{l:"DB Monitor",p:"/admin/db-test"},{l:"Settings",p:"/settings"},{l:"Webmaster",p:"/webmaster"},{l:"Superadmin",p:"/superadmin"}].map(a=>(
             <button key={a.p} onClick={()=>nav(a.p)} style={{padding:"2px 10px",borderRadius:T.r,background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.28)",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}
               onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.28)")}
@@ -216,7 +216,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         </div>
       )}
 
-      {/* ═══ D365 RIBBON (module tabs) ════════════════════════════ */}
+      {/* - D365 RIBBON (module tabs) - */}
       <div style={{background:"#fff",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"stretch",padding:"0 8px",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflowX:"auto"}}>
         <button onClick={()=>{setActiveMod(null);nav("/dashboard");}}
           style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",background:"transparent",border:"none",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
@@ -240,7 +240,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         })}
       </div>
 
-      {/* ═══ SUB-NAV COMMAND BAR ════════════════════════════════== */}
+      {/* - SUB-NAV COMMAND BAR -== */}
       {activeModDef&&(
         <div style={{background:"#f8f9fa",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"4px 12px",gap:2,overflowX:"auto",flexShrink:0}}>
           {activeModDef.items.map(item=>{
@@ -258,7 +258,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         </div>
       )}
 
-      {/* ═══ PAGE CONTENT ════════════════════════════════════════ */}
+      {/* - PAGE CONTENT - */}
       <div style={{flex:1,overflowY:"auto",overflowX:"hidden",background:T.bg}}>
         {children}
       </div>

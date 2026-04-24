@@ -37,8 +37,8 @@ const PRIORITY_CONFIG = {
 };
 
 const DEFAULT_ICONS: Record<string, string> = {
-  system: "⚙️", procurement: "📦", finance: "💰", erp: "🔄",
-  budget: "📊", invoice: "📋", approval: "✅", alert: "⚠️", sync: "🔁",
+  system: "-", procurement: "-", finance: "-", erp: "-",
+  budget: "-", invoice: "-", approval: "-", alert: "-", sync: "-",
 };
 
 export default function NotificationBell() {
@@ -276,12 +276,12 @@ export default function NotificationBell() {
           <div style={{ overflowY: "auto", flex: 1 }}>
             {loading && (
               <div style={{ textAlign: "center", padding: "32px", color: "rgba(255,255,255,0.3)" }}>
-                Loading…
+                Loading-
               </div>
             )}
             {!loading && filtered.length === 0 && (
               <div style={{ textAlign: "center", padding: "48px 24px" }}>
-                <div style={{ fontSize: "36px", marginBottom: 12 }}>🔔</div>
+                <div style={{ fontSize: "36px", marginBottom: 12 }}>-</div>
                 <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "14px" }}>
                   {filter === "unread" ? "All caught up!" : "No notifications"}
                 </div>
@@ -293,7 +293,7 @@ export default function NotificationBell() {
             {!loading && filtered.map((n, i) => {
               const prio = PRIORITY_CONFIG[n.priority || "normal"];
               const cat = n.category || "system";
-              const icon = n.icon || DEFAULT_ICONS[cat] || "🔔";
+              const icon = n.icon || DEFAULT_ICONS[cat] || "-";
               const isExpired = n.expires_at && new Date(n.expires_at) < new Date();
 
               return (
@@ -365,7 +365,7 @@ export default function NotificationBell() {
                             padding: "2px 6px", fontSize: "16px", lineHeight: 1,
                             flexShrink: 0,
                           }}
-                        >×</button>
+                        >-</button>
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
@@ -409,7 +409,7 @@ export default function NotificationBell() {
                             fontSize: "11px", textDecoration: "none", fontWeight: 600,
                           }}
                         >
-                          {n.action_label} →
+                          {n.action_label} -
                         </a>
                       )}
                     </div>
@@ -429,7 +429,7 @@ export default function NotificationBell() {
             <a href="/notifications" onClick={() => setOpen(false)} style={{
               color: "#60a5fa", fontSize: "13px", textDecoration: "none", fontWeight: 500,
             }}>
-              View all notifications →
+              View all notifications -
             </a>
             <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px" }}>
               {notifications.length} total

@@ -1,5 +1,5 @@
 /**
- * FacilitySwitcher — Compact dropdown in the top bar
+ * FacilitySwitcher - Compact dropdown in the top bar
  * Lets users switch between their assigned facilities
  */
 import { useState, useRef, useEffect } from "react";
@@ -18,7 +18,7 @@ export default function FacilitySwitcher() {
   }, []);
 
   if (!facility || userFacilities.length <= 1) {
-    // Single facility — show as static label
+    // Single facility - show as static label
     return (
       <div style={{ display:"flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:3, background:"rgba(255,255,255,0.08)" }}>
         <Building2 style={{ width:11, height:11, color:"rgba(255,255,255,0.5)" }}/>
@@ -70,7 +70,7 @@ export default function FacilitySwitcher() {
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:1 }}>
                   <MapPin style={{ width:9, height:9, color:"#94a3b8", flexShrink:0 }}/>
-                  <span style={{ fontSize:10, color:"#94a3b8" }}>{f.location} · Level {f.level}</span>
+                  <span style={{ fontSize:10, color:"#94a3b8" }}>{f.location} - Level {f.level}</span>
                   {f.is_main && <span style={{ fontSize:9, fontWeight:700, color:"#0a2558", background:"#dbeafe", padding:"0px 5px", borderRadius:4 }}>MAIN</span>}
                 </div>
               </div>

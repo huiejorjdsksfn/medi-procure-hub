@@ -1,6 +1,6 @@
 /**
- * ProcurBosse — RoleGuard v3.0
- * Superadmin / webmaster bypass · No access-denied flash on refresh
+ * ProcurBosse - RoleGuard v3.0
+ * Superadmin / webmaster bypass - No access-denied flash on refresh
  * Graceful degradation while session loads
  */
 import { useAuth, ProcurementRole } from "@/contexts/AuthContext";
@@ -45,7 +45,7 @@ export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
             style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"9px 18px",
               background:T.bg2, border:`1px solid ${T.border}`, borderRadius:T.r,
               cursor:"pointer", fontSize:13, fontWeight:600, color:T.fgMuted }}>
-            ← Back
+            - Back
           </button>
           <button onClick={() => navigate("/dashboard")}
             style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"9px 18px",
@@ -77,7 +77,7 @@ export function RoleBanner({ message, type="info" }: { message:string; type?:"in
 export default function RoleGuard({ allowed, children, fallback }: RoleGuardProps) {
   const { roles, loading, initialized } = useAuth();
 
-  /* While auth is loading — show spinner, never show access denied */
+  /* While auth is loading - show spinner, never show access denied */
   if (loading && !initialized) {
     return (
       <div style={{ minHeight:200, display:"flex", alignItems:"center", justifyContent:"center" }}>

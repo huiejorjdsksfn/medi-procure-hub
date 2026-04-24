@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — Client-side Cache Layer v5.9
+ * ProcurBosse - Client-side Cache Layer v5.9
  * LRU cache with TTL, prefetch queue, tag-based invalidation & warm-up
- * Embu Level 5 Hospital · EL5 MediProcure
+ * Embu Level 5 Hospital - EL5 MediProcure
  */
 
 interface CacheEntry<T> {

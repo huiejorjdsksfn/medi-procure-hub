@@ -39,7 +39,7 @@ export default function ReceiptVouchersPage() {
   };
   useEffect(()=>{load();},[]);
 
-  /* ── Real-time subscription ─────────────────────────────── */
+  /* - Real-time subscription - */
   useEffect(()=>{
     const ch=(supabase as any).channel("rcv-rt").on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -50,8 +50,8 @@ export default function ReceiptVouchersPage() {
     setSaving(true);
     const payload={...form,receipt_number:genNo(),amount:Number(form.amount),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("receipt_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","receipt_vouchers",data?.id,{received_from:form.received_from});toast({title:"Receipt Voucher created ✓"});setShowNew(false);load();}
+    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","receipt_vouchers",data?.id,{received_from:form.received_from});toast({title:"Receipt Voucher created -"});setShowNew(false);load();}
     setSaving(false);
   };
 
@@ -65,7 +65,7 @@ export default function ReceiptVouchersPage() {
     printGenericVoucher(v, "Receipt Voucher", {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital - Embu County Government'),
       currencySymbol: getSetting('currency_symbol','KES'),
       logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
       hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
@@ -126,7 +126,7 @@ export default function ReceiptVouchersPage() {
       {/* Header */}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#065f46,#047857)"}}>
         <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Receipt Vouchers</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records · Total: {fmtKES(totalAmt)}</p></div>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records - Total: {fmtKES(totalAmt)}</p></div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#065f46"}}><Plus style={{width:14,height:14}}/>New Receipt</button>}
@@ -189,7 +189,7 @@ export default function ReceiptVouchersPage() {
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
                 <select value={form.department_id||""} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">— Select —</option>
+                  <option value="">- Select -</option>
                   {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select></div>
               <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
@@ -212,7 +212,7 @@ export default function ReceiptVouchersPage() {
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setDetail(null)}/>
           <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid #e5e7eb"}}>
-              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>Receipt Voucher — {detail.receipt_number}</h3>
+              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>Receipt Voucher - {detail.receipt_number}</h3>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>printVoucher(detail)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#065f46",color:"#fff"}}><Printer style={{width:12,height:12}}/>Print</button>
                 <button onClick={()=>setDetail(null)}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>

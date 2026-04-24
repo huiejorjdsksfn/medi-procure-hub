@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Document Parser v1.0
+ * ProcurBosse - Document Parser v1.0
  * Parses Word (.docx), Excel (.xlsx/.xls), CSV, PDF text extraction
  * Maps parsed data to ERP modules (requisitions, items, suppliers, etc.)
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import * as XLSX from "xlsx";
 
@@ -43,7 +43,7 @@ export function fmtSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-/** Parse Excel / CSV → tables */
+/** Parse Excel / CSV - tables */
 export async function parseExcel(file: File): Promise<ParsedDocument> {
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: "array", cellDates: true });
@@ -134,7 +134,7 @@ export async function parseWord(file: File): Promise<ParsedDocument> {
   }
 }
 
-/** PDF — extract text via PDF.js (client side) */
+/** PDF - extract text via PDF.js (client side) */
 export async function parsePDF(file: File): Promise<ParsedDocument> {
   try {
     // Try PDF.js dynamic import

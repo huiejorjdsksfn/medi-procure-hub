@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Unified DB Client v1.0
+ * ProcurBosse - Unified DB Client v1.0
  * MySQL primary + Supabase failover
- * All queries go through this client — transparent failover
- * EL5 MediProcure · Embu Level 5 Hospital
+ * All queries go through this client - transparent failover
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,7 +67,7 @@ class UnifiedDBClient {
     this.listeners.forEach(fn => fn(mode));
   }
 
-  /** Primary DB query — always Supabase for now (MySQL proxy via edge function) */
+  /** Primary DB query - always Supabase for now (MySQL proxy via edge function) */
   from(table: string) {
     /* When MySQL is primary, route through edge function proxy */
     if (this.isMySQL()) {
@@ -141,7 +141,7 @@ class UnifiedDBClient {
     if (this.failoverActive) return;
     this.failoverActive = true;
     this.notify("failover");
-    console.warn("[DBClient] MySQL unavailable — switched to Supabase failover");
+    console.warn("[DBClient] MySQL unavailable - switched to Supabase failover");
   }
 
   private startHealthCheck() {
@@ -152,7 +152,7 @@ class UnifiedDBClient {
         if (!error && this.failoverActive) {
           this.failoverActive = false;
           this.notify("mysql");
-          console.info("[DBClient] MySQL restored — switched back from failover");
+          console.info("[DBClient] MySQL restored - switched back from failover");
         }
       } catch {}
     }, 60_000);
@@ -161,4 +161,4 @@ class UnifiedDBClient {
 
 export const dbClient = new UnifiedDBClient();
 /* Export as drop-in replacement for direct supabase usage */
-export const db = (supabase as any); // always use Supabase for now — MySQL proxy optional
+export const db = (supabase as any); // always use Supabase for now - MySQL proxy optional

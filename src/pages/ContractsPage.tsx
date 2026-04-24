@@ -10,7 +10,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const genNo = () => `CNT/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
-const fmtDate = (d:string) => d?new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}):"—";
+const fmtDate = (d:string) => d?new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}):"-";
 
 const S_CFG:Record<string,{bg:string;color:string;label:string;icon:any}> = {
   active:    {bg:"#dcfce7",color:"#15803d",label:"Active",icon:CheckCircle},
@@ -101,14 +101,14 @@ export default function ContractsPage() {
     const payload={...form,contract_number:form.contract_number||genNo(),total_value:parseFloat(form.total_value)||0,performance_score:parseInt(form.performance_score)||0,created_by:user?.id,supplier_name:sup?.name};
     if(editing){
       const{error}=await(supabase as any).from("contracts").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
-      toast({title:"Contract updated ✓"});
+      if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});setSaving(false);return;}
+      toast({title:"Contract updated -"});
     } else {
       const{data,error}=await(supabase as any).from("contracts").insert(payload).select().single();
-      if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
+      if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});setSaving(false);return;}
       logAudit(user?.id,profile?.full_name,"create","contracts",data?.id,{});
-      await notifyProcurement({title:"New Contract Created",message:`${payload.contract_number}: ${form.title} — ${sup?.name||""}`,type:"procurement",module:"Contracts",senderId:user?.id});
-      toast({title:"Contract created ✓"});
+      await notifyProcurement({title:"New Contract Created",message:`${payload.contract_number}: ${form.title} - ${sup?.name||""}`,type:"procurement",module:"Contracts",senderId:user?.id});
+      toast({title:"Contract created -"});
     }
     setShowNew(false);setEditing(null);load();setSaving(false);
   };
@@ -160,7 +160,7 @@ export default function ContractsPage() {
           </div>
           <div>
             <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Contracts</h1>
-            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Supplier contracts & agreements · {rows.length} contracts</p>
+            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Supplier contracts & agreements - {rows.length} contracts</p>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -212,7 +212,7 @@ export default function ContractsPage() {
               </td></tr>
             ):filtered.map(r=>{
               const cfg=sc(r.status); const days=daysLeft(r.end_date); const SIcon=cfg.icon;
-              const supName = r.suppliers?.name||r.supplier_name||"—";
+              const supName = r.suppliers?.name||r.supplier_name||"-";
               return(
                 <tr key={r.id} style={{borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fafafa"}
@@ -226,7 +226,7 @@ export default function ContractsPage() {
                   <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}>
                     {days!==null?<span style={{fontSize:12,fontWeight:700,color:days<0?"#dc2626":days<30?"#d97706":"#15803d"}}>
                       {days<0?`${Math.abs(days)}d ago`:days===0?"Today":`${days}d`}
-                    </span>:"—"}
+                    </span>:"-"}
                   </td>
                   <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}>
                     <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>
@@ -299,7 +299,7 @@ export default function ContractsPage() {
             <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
               <div style={{fontSize:17,fontWeight:800,color:"#111827"}}>{detail.title}</div>
               <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,display:"inline-block"}}>{sc(detail.status).label}</span>
-              {[["Supplier",detail.suppliers?.name||detail.supplier_name||"—"],["Total Value",fmtKES(detail.total_value)],["Start Date",fmtDate(detail.start_date)],["End Date",fmtDate(detail.end_date)],["Performance Score",`${detail.performance_score||0}/100`],["Payment Terms",detail.payment_terms||"—"],["Delivery Terms",detail.delivery_terms||"—"]].map(([l,v])=>(
+              {[["Supplier",detail.suppliers?.name||detail.supplier_name||"-"],["Total Value",fmtKES(detail.total_value)],["Start Date",fmtDate(detail.start_date)],["End Date",fmtDate(detail.end_date)],["Performance Score",`${detail.performance_score||0}/100`],["Payment Terms",detail.payment_terms||"-"],["Delivery Terms",detail.delivery_terms||"-"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f9fafb"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
                   <span style={{fontSize:13,fontWeight:700,color:"#111827",maxWidth:"60%",textAlign:"right"}}>{v}</span>

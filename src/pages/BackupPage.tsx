@@ -52,7 +52,7 @@ function BackupInner() {
 
     // Insert job record
     const { data: job } = await (supabase as any).from("backup_jobs").insert({
-      label: `Full Backup — ${new Date().toLocaleString("en-KE")}`,
+      label: `Full Backup - ${new Date().toLocaleString("en-KE")}`,
       status: "running",
       initiated_by: user?.id,
       started_at: new Date().toISOString(),
@@ -84,7 +84,7 @@ function BackupInner() {
     // Summary sheet
     setProgress(85);
     const summaryRows = [
-      [`${hospitalName} — ${sysName}`],
+      [`${hospitalName} - ${sysName}`],
       [`Full Database Backup`],
       [`Generated: ${new Date().toLocaleString("en-KE")}`],
       [`Initiated by: ${profile?.full_name || "Admin"}`],
@@ -132,7 +132,7 @@ function BackupInner() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       if (!confirm(`Restore from "${file.name}"? This will overwrite current data.`)) return;
-      toast({ title: "Restore initiated", description: `Processing ${file.name} — manual DB restore required via Supabase dashboard.` });
+      toast({ title: "Restore initiated", description: `Processing ${file.name} - manual DB restore required via Supabase dashboard.` });
       logAudit(user?.id, profile?.full_name, "restore", "backup", undefined, { file: file.name });
     };
     fileInput.click();
@@ -147,7 +147,7 @@ function BackupInner() {
             <h1 style={{fontSize:18,fontWeight:900,color:"#1f2937",display:"flex",alignItems:"center",gap:8}}>
               <Archive style={{width:20,height:20, color:"#1a3a6b" }} /> Backup & Recovery
             </h1>
-            <p style={{fontSize:12,color:"#6b7280",marginTop:4}}>Full database backup to Excel — {BACKUP_TABLES.length} tables, all records</p>
+            <p style={{fontSize:12,color:"#6b7280",marginTop:4}}>Full database backup to Excel - {BACKUP_TABLES.length} tables, all records</p>
           </div>
           <button onClick={runBackup} disabled={running}
             style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",borderRadius:10,fontSize:14,fontWeight:700,color:"#fff",border:"none",cursor:"pointer", background:running?"#9ca3af":"linear-gradient(135deg,#1a3a6b,#1d4a87)" }}>
@@ -212,8 +212,8 @@ function BackupInner() {
                 <div style={{fontSize:10,color:"#9ca3af",display:"flex",alignItems:"center",gap:8,marginTop:2}}>
                   <Clock style={{width:12,height:12}} />
                   {new Date(j.started_at).toLocaleString("en-KE",{dateStyle:"medium",timeStyle:"short"})}
-                  {j.completed_at && <span>→ {new Date(j.completed_at).toLocaleTimeString("en-KE",{timeStyle:"short"})}</span>}
-                  {j.row_counts && <span>• {Object.values(j.row_counts as Record<string,number>).reduce((a,b)=>a+b,0).toLocaleString()} records</span>}
+                  {j.completed_at && <span>- {new Date(j.completed_at).toLocaleTimeString("en-KE",{timeStyle:"short"})}</span>}
+                  {j.row_counts && <span>- {Object.values(j.row_counts as Record<string,number>).reduce((a,b)=>a+b,0).toLocaleString()} records</span>}
                 </div>
               </div>
               <span style={{fontSize:9,padding:"2px 8px",borderRadius:20,fontWeight:700,textTransform:"capitalize", background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7", color:j.status==="completed"?"#065f46":j.status==="failed"?"#991b1b":"#92400e" }}>
@@ -282,7 +282,7 @@ function BackupInner() {
         </div>
         <div style={{padding:20}}>
           <div style={{padding:16,borderRadius:12,marginBottom:16,background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)"}}>
-            <p style={{fontSize:12,color:"#dc2626",fontWeight:600}}>⚠️ Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
+            <p style={{fontSize:12,color:"#dc2626",fontWeight:600}}>- Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>

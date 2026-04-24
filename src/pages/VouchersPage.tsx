@@ -72,17 +72,17 @@ export default function VouchersPage() {
     const dept=depts.find(d=>d.id===form.department_id);
     const payload={voucher_number:form.voucher_number||genNo(),requested_by:form.requested_by||profile?.full_name,department_id:form.department_id||null,department_name:dept?.name,purpose:form.purpose,date:form.date,items:validItems,total_value:total(validItems),status:"pending",created_by:user?.id};
     const{data,error}=await(supabase as any).from("vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});setSaving(false);return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});setSaving(false);return;}
     logAudit(user?.id,profile?.full_name,"create","vouchers",data?.id,{});
-    await notifyProcurement({title:"New Store Voucher",message:`${payload.voucher_number} — ${form.purpose.slice(0,60)}`,type:"voucher",module:"Vouchers",senderId:user?.id});
-    toast({title:"Voucher submitted ✓"});
+    await notifyProcurement({title:"New Store Voucher",message:`${payload.voucher_number} - ${form.purpose.slice(0,60)}`,type:"voucher",module:"Vouchers",senderId:user?.id});
+    toast({title:"Voucher submitted -"});
     setShowNew(false); setForm({voucher_number:"",requested_by:profile?.full_name||"",department_id:"",purpose:"",date:new Date().toISOString().split("T")[0],items:[{...EMPTY}]});
     load(); setSaving(false);
   };
 
   const approve=async(v:any)=>{
     await(supabase as any).from("vouchers").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name,approved_at:new Date().toISOString()}).eq("id",v.id);
-    toast({title:"Voucher approved ✓"}); load();
+    toast({title:"Voucher approved -"}); load();
   };
   const reject_=async(v:any)=>{
     await(supabase as any).from("vouchers").update({status:"rejected"}).eq("id",v.id);
@@ -90,7 +90,7 @@ export default function VouchersPage() {
   };
   const issue=async(v:any)=>{
     await(supabase as any).from("vouchers").update({status:"issued",issued_by:profile?.full_name,issued_at:new Date().toISOString()}).eq("id",v.id);
-    toast({title:"Issued ✓"}); load();
+    toast({title:"Issued -"}); load();
   };
 
   const addItem=()=>setForm(p=>({...p,items:[...p.items,{...EMPTY}]}));
@@ -136,13 +136,13 @@ export default function VouchersPage() {
           </div>
           <div>
             <h1 style={{fontSize:22,fontWeight:900,color:"#111827",margin:0}}>Store Vouchers</h1>
-            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Issue vouchers · {rows.length} total</p>
+            <p style={{fontSize:13,color:"#6b7280",margin:0}}>Issue vouchers - {rows.length} total</p>
           </div>
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
           {/* Quick links to voucher types */}
           {[{label:"Payment",path:"/vouchers/payment"},{label:"Receipt",path:"/vouchers/receipt"},{label:"Journal",path:"/vouchers/journal"}].map(l=>(
-            <button key={l.path} onClick={()=>navigate(l.path)} style={{padding:"7px 12px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0369a1"}}>{l.label} Vouchers →</button>
+            <button key={l.path} onClick={()=>navigate(l.path)} style={{padding:"7px 12px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0369a1"}}>{l.label} Vouchers -</button>
           ))}
           <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}><Download style={{width:13,height:13}}/> Export</button>
           <button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(92,45,145,0.3)"}}>
@@ -192,9 +192,9 @@ export default function VouchersPage() {
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:800,color:"#5C2D91",fontFamily:"monospace"}} onClick={()=>setDetail(r)}>{r.voucher_number}</td>
                   <td style={{padding:"12px 14px",fontSize:13,color:"#111827",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} onClick={()=>setDetail(r)}>{r.purpose}</td>
                   <td style={{padding:"12px 14px",fontSize:13,color:"#374151"}} onClick={()=>setDetail(r)}>{r.requested_by}</td>
-                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.departments?.name||r.department_name||"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.departments?.name||r.department_name||"-"}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"#111827"}} onClick={()=>setDetail(r)}>{fmtKES(r.total_value||0)}</td>
-                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.date?new Date(r.date).toLocaleDateString("en-KE"):"—"}</td>
+                  <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.date?new Date(r.date).toLocaleDateString("en-KE"):"-"}</td>
                   <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
@@ -232,7 +232,7 @@ export default function VouchersPage() {
                     {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
-                <div><LBL>Purpose / Nature of Issue</LBL>{INP(form.purpose,v=>setForm(p=>({...p,purpose:v})),"e.g. Ward supplies — April")}</div>
+                <div><LBL>Purpose / Nature of Issue</LBL>{INP(form.purpose,v=>setForm(p=>({...p,purpose:v})),"e.g. Ward supplies - April")}</div>
               </div>
 
               {/* Items table */}
@@ -303,17 +303,17 @@ export default function VouchersPage() {
                 <div>
                   <div style={{fontSize:15,fontWeight:900,textTransform:"uppercase"}}>Embu County Government</div>
                   <div style={{fontSize:13,fontWeight:700}}>Embu Level 5 Hospital</div>
-                  <div style={{fontSize:11}}>P.O. Box 1 – 60100, Embu, Kenya</div>
+                  <div style={{fontSize:11}}>P.O. Box 1 - 60100, Embu, Kenya</div>
                 </div>
                 <div style={{marginLeft:"auto",textAlign:"right"}}>
                   <div style={{fontSize:16,fontWeight:900,textTransform:"uppercase"}}>STORE REQUISITION VOUCHER</div>
                   <div style={{fontSize:13,fontWeight:700,marginTop:4}}>No: {print.voucher_number}</div>
-                  <div style={{fontSize:11}}>Date: {print.date?new Date(print.date).toLocaleDateString("en-KE",{dateStyle:"long"}):"—"}</div>
+                  <div style={{fontSize:11}}>Date: {print.date?new Date(print.date).toLocaleDateString("en-KE",{dateStyle:"long"}):"-"}</div>
                 </div>
               </div>
               <table style={{width:"100%",borderCollapse:"collapse",marginBottom:8,fontSize:12}}>
                 <tbody>
-                  {[["Requested by",print.requested_by||"—"],["Department",print.departments?.name||print.department_name||"—"],["Purpose / Nature",print.purpose||"—"]].map(([l,v])=>(
+                  {[["Requested by",print.requested_by||"-"],["Department",print.departments?.name||print.department_name||"-"],["Purpose / Nature",print.purpose||"-"]].map(([l,v])=>(
                     <tr key={l}><td style={{padding:"4px 8px",border:"1px solid #999",fontWeight:700,width:180}}>{l}:</td><td style={{padding:"4px 8px",border:"1px solid #999"}}>{v}</td></tr>
                   ))}
                 </tbody>
@@ -330,13 +330,13 @@ export default function VouchersPage() {
                   {(print.items||[]).map((it:any,i:number)=>(
                     <tr key={i}>
                       <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"center"}}>{i+1}</td>
-                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.code_no||"—"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.code_no||"-"}</td>
                       <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.item_description}</td>
                       <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"center"}}>{it.unit_of_issue}</td>
                       <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right"}}>{it.quantity_required}</td>
-                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right"}}>{it.quantity_issued||"—"}</td>
-                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right"}}>{it.value?Number(it.value).toLocaleString():"—"}</td>
-                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.remarks||"—"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right"}}>{it.quantity_issued||"-"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc",textAlign:"right"}}>{it.value?Number(it.value).toLocaleString():"-"}</td>
+                      <td style={{padding:"5px 8px",border:"1px solid #ccc"}}>{it.remarks||"-"}</td>
                     </tr>
                   ))}
                   <tr style={{fontWeight:800,background:"#f3f4f6"}}>

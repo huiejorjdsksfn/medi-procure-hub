@@ -78,7 +78,7 @@ export default function PurchaseOrdersPage() {
     (s: number, it: any) => s + (Number(it.quantity)||0) * (Number(it.unit_price)||0), 0
   );
 
-  /* ── Load ── */
+  /* - Load - */
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await (supabase as any).from("purchase_orders")
@@ -97,7 +97,7 @@ export default function PurchaseOrdersPage() {
     return ()=>(supabase as any).removeChannel(ch);
   },[load]);
 
-  /* ── Validation ── */
+  /* - Validation - */
   const validate = () => {
     const e: Record<string,string> = {};
     if (!form.po_number.trim())      e.po_number    = "PO Number is required";
@@ -118,7 +118,7 @@ export default function PurchaseOrdersPage() {
     return Object.keys(e).length === 0;
   };
 
-  /* ── Save ── */
+  /* - Save - */
   const save = async () => {
     if (!validate()) {
       toast({title:"Please fix validation errors",variant:"destructive"});
@@ -148,18 +148,18 @@ export default function PurchaseOrdersPage() {
           .update({...payload, updated_at: new Date().toISOString()})
           .eq("id", editing.id);
         if (error) throw error;
-        toast({title:"Purchase Order updated ✓"});
+        toast({title:"Purchase Order updated -"});
         logAudit(user?.id,profile?.full_name,"update","purchase_orders",editing.id,{po_number:payload.po_number});
       } else {
         const { data, error } = await (supabase as any).from("purchase_orders")
           .insert(payload).select("id").single();
         if (error) throw error;
         savedId = data?.id;
-        toast({title:"Purchase Order created ✓",description:`PO ${payload.po_number} saved as ${payload.status}`});
+        toast({title:"Purchase Order created -",description:`PO ${payload.po_number} saved as ${payload.status}`});
         logAudit(user?.id,profile?.full_name,"create","purchase_orders",savedId,{po_number:payload.po_number});
         await notifyProcurement({
           title:"New PO Created",
-          message:`${profile?.full_name||"Staff"} created PO ${payload.po_number} — KES ${computedTotal.toLocaleString()}`,
+          message:`${profile?.full_name||"Staff"} created PO ${payload.po_number} - KES ${computedTotal.toLocaleString()}`,
           type:"procurement", module:"PO", actionUrl:"/purchase-orders",
         });
       }
@@ -195,12 +195,12 @@ export default function PurchaseOrdersPage() {
   };
   const closeForm = () => { setShowForm(false); setEditing(null); setErrors({}); };
 
-  /* ── Approve / Cancel ── */
+  /* - Approve / Cancel - */
   const handlePOAction = async (id: string, action: POAction) => {
     if (action === 'cancel' && !confirm("Cancel this Purchase Order?")) return;
     const result = await executePOAction(id, action, user?.id || '', profile?.full_name || '');
     if (result.success) {
-      toast({ title: `PO ${action}${action.endsWith('e') ? 'd' : 'ed'} ✓` });
+      toast({ title: `PO ${action}${action.endsWith('e') ? 'd' : 'ed'} -` });
     } else {
       toast({ title: "Action failed", description: result.error, variant: "destructive" });
     }
@@ -210,12 +210,12 @@ export default function PurchaseOrdersPage() {
   const approve = (id: string) => handlePOAction(id, 'approve');
   const cancelPO = (id: string) => handlePOAction(id, 'cancel');
 
-  /* ── Print ── */
+  /* - Print - */
   const handlePrintLPO = (po:any) => {
     printLPO(po, {
       hospitalName:   getSetting("hospital_name","Embu Level 5 Hospital"),
       sysName:        getSetting("system_name","EL5 MediProcure"),
-      docFooter:      getSetting("doc_footer","Embu Level 5 Hospital · Embu County Government"),
+      docFooter:      getSetting("doc_footer","Embu Level 5 Hospital - Embu County Government"),
       currencySymbol: getSetting("currency_symbol","KES"),
       logoUrl:         getSetting("logo_url") || getSetting("system_logo_url") || "",
       hospitalAddress: getSetting("hospital_address","Embu Town, Embu County, Kenya"),
@@ -227,11 +227,11 @@ export default function PurchaseOrdersPage() {
     });
   };
 
-  /* ── Export ── */
+  /* - Export - */
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
     const header = [[getSetting("hospital_name","Embu Level 5 Hospital")],
-      [getSetting("system_name","EL5 MediProcure")+" — Purchase Orders"],
+      [getSetting("system_name","EL5 MediProcure")+" - Purchase Orders"],
       [`Exported: ${new Date().toLocaleString("en-KE")}`],[]];
     const rows = filtered.map(po=>({
       "PO Number":po.po_number,"Supplier":po.suppliers?.name||po.supplier_name||"",
@@ -247,7 +247,7 @@ export default function PurchaseOrdersPage() {
     toast({title:"Exported",description:`${filtered.length} records`});
   };
 
-  /* ── Filter ── */
+  /* - Filter - */
   const filtered = orders.filter(po=>{
     if(statusFilter!=="all"&&po.status!==statusFilter) return false;
     if(search){const q=search.toLowerCase();return (po.po_number||"").toLowerCase().includes(q)||(po.suppliers?.name||po.supplier_name||"").toLowerCase().includes(q)||(po.department||"").toLowerCase().includes(q);}
@@ -269,7 +269,7 @@ export default function PurchaseOrdersPage() {
     <div style={{padding:16,display:"flex",flexDirection:"column",background:"#f8fafc",minHeight:"100%",gap:10,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
 
-      {/* ── KPI TILES ── */}
+      {/* - KPI TILES - */}
       {(()=>{
         const totalVal = orders.reduce((s,r)=>s+Number(r.total_amount||0),0);
         const recVal   = orders.filter(r=>r.status==="received").reduce((s,r)=>s+Number(r.total_amount||0),0);
@@ -291,13 +291,13 @@ export default function PurchaseOrdersPage() {
         );
       })()}
 
-      {/* ── HEADER ── */}
+      {/* - HEADER - */}
       <div style={{borderRadius:12,background:"linear-gradient(90deg,#92400e,#C45911,#d97706)",boxShadow:"0 4px 16px rgba(196,89,17,0.3)",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <ShoppingCart style={{width:20,height:20,color:"#fff"}}/>
           <div>
             <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Purchase Orders</h1>
-            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length} of {orders.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}</p>
+            <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{filtered.length} of {orders.length} orders - Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}</p>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -318,7 +318,7 @@ export default function PurchaseOrdersPage() {
         </div>
       </div>
 
-      {/* ── FILTERS ── */}
+      {/* - FILTERS - */}
       <div style={{display:"flex",flexWrap:"wrap" as const,gap:8,alignItems:"center"}}>
         {["all","draft","pending","approved","sent","partial","received","cancelled"].map(s=>(
           <button key={s} onClick={()=>setStatusFilter(s)}
@@ -329,13 +329,13 @@ export default function PurchaseOrdersPage() {
         ))}
         <div style={{position:"relative",marginLeft:"auto"}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search POs, suppliers…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search POs, suppliers-"
             style={{paddingLeft:32,paddingRight:32,paddingTop:6,paddingBottom:6,borderRadius:20,border:"1.5px solid #e5e7eb",fontSize:12,outline:"none"}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12,color:"#9ca3af"}}/></button>}
         </div>
       </div>
 
-      {/* ── TABLE ── */}
+      {/* - TABLE - */}
       <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
@@ -351,7 +351,7 @@ export default function PurchaseOrdersPage() {
                 <tr key={i}><td colSpan={8} style={{padding:"12px 16px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:6,animation:"pulse 1.5s infinite"}}/></td></tr>
               )) : filtered.length===0 ? (
                 <tr><td colSpan={8} style={{padding:"40px 16px",textAlign:"center",color:"#9ca3af",fontSize:13}}>
-                  {orders.length===0?"No purchase orders yet — create your first one":"No orders match your filter"}
+                  {orders.length===0?"No purchase orders yet - create your first one":"No orders match your filter"}
                 </td></tr>
               ) : filtered.map((po,i)=>{
                 const s = STATUS_CFG[po.status]||{bg:"#f3f4f6",color:"#6b7280",label:po.status};
@@ -360,14 +360,14 @@ export default function PurchaseOrdersPage() {
                     onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#fff7ed"}
                     onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}>
                     <td style={{padding:"10px 12px",color:"#9ca3af",fontSize:11}}>{i+1}</td>
-                    <td style={{padding:"10px 12px",fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#c2410c"}}>{po.po_number||"—"}</td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937"}}>{po.suppliers?.name||po.supplier_name||"—"}</td>
-                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11}}>{po.department||"—"}</td>
+                    <td style={{padding:"10px 12px",fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#c2410c"}}>{po.po_number||"-"}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937"}}>{po.suppliers?.name||po.supplier_name||"-"}</td>
+                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11}}>{po.department||"-"}</td>
                     <td style={{padding:"10px 12px"}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label||po.status}</span>
                     </td>
                     <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap"}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
-                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{po.delivery_date||"—"}</td>
+                    <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{po.delivery_date||"-"}</td>
                     <td style={{padding:"10px 12px"}}>
                       <div style={{display:"flex",gap:4}}>
                         <button onClick={()=>setViewPO(po)} title="View" style={{padding:5,borderRadius:6,background:"#fff7ed",color:"#ea580c",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
@@ -390,13 +390,13 @@ export default function PurchaseOrdersPage() {
           </table>
         </div>
         <div style={{padding:"8px 16px",background:"#f8fafc",borderTop:"1px solid #e5e7eb",fontSize:11,color:"#6b7280"}}>
-          {filtered.length} orders · Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}
+          {filtered.length} orders - Total: KES {filtered.reduce((s,p)=>s+Number(p.total_amount||0),0).toLocaleString()}
         </div>
       </div>
 
-      {/* ════════════════════════════════════════
+      {/* -
           CREATE / EDIT MODAL
-      ════════════════════════════════════════ */}
+      - */}
       {showForm&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:40,paddingBottom:20}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={closeForm}/>
@@ -438,19 +438,19 @@ export default function PurchaseOrdersPage() {
                 {/* Supplier */}
                 <div style={{gridColumn:"1/-1"}}>
                   <label style={lbl}>Supplier *</label>
-                  <select value={form.supplier_name||form.supplier_id||"—"}
+                  <select value={form.supplier_name||form.supplier_id||"-"}
                     onChange={e=>{
                       const s = suppliers.find(x=>x.id===e.target.value);
                       setForm((p:any)=>({...p,supplier_id:e.target.value,supplier_name:s?.name||""}));
                     }}
                     style={{...inp,borderColor:errors.supplier?"#dc2626":"#e5e7eb"}}>
-                    <option value="">— Select a supplier —</option>
+                    <option value="">- Select a supplier -</option>
                     {suppliers.map(s=><option key={s.id} value={s.id}>{s.name} {s.category?`(${s.category})`:""}</option>)}
                   </select>
                   {!form.supplier_id&&(
                     <div style={{marginTop:6}}>
                       <input value={form.supplier_name} onChange={e=>setForm((p:any)=>({...p,supplier_name:e.target.value}))}
-                        placeholder="Or type supplier name manually…"
+                        placeholder="Or type supplier name manually-"
                         style={{...inp,fontSize:11,padding:"6px 10px",borderColor:errors.supplier?"#dc2626":"#e5e7eb"}}/>
                     </div>
                   )}
@@ -479,7 +479,7 @@ export default function PurchaseOrdersPage() {
                 <div>
                   <label style={lbl}>Requesting Department</label>
                   <select value={form.department} onChange={e=>setForm((p:any)=>({...p,department:e.target.value}))} style={inp}>
-                    <option value="">— Select department —</option>
+                    <option value="">- Select department -</option>
                     {departments.map(d=><option key={d.id} value={d.name}>{d.name}</option>)}
                   </select>
                 </div>
@@ -488,12 +488,12 @@ export default function PurchaseOrdersPage() {
                 <div>
                   <label style={lbl}>Notes / Special Instructions</label>
                   <textarea value={form.notes} onChange={e=>setForm((p:any)=>({...p,notes:e.target.value}))} rows={2}
-                    placeholder="Delivery instructions, quality requirements…"
+                    placeholder="Delivery instructions, quality requirements-"
                     style={{...inp,resize:"none"}}/>
                 </div>
               </div>
 
-              {/* ── LINE ITEMS ── */}
+              {/* - LINE ITEMS - */}
               <div style={{marginTop:20}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                   <label style={{...lbl,marginBottom:0}}>Line Items *</label>
@@ -518,7 +518,7 @@ export default function PurchaseOrdersPage() {
                           <td style={{padding:"6px 10px",color:"#9ca3af",width:28}}>{i+1}</td>
                           <td style={{padding:"4px 6px"}}>
                             <input value={it.description} onChange={e=>setItem(i,"description",e.target.value)}
-                              placeholder="Item description…"
+                              placeholder="Item description-"
                               style={{width:"100%",border:errors[`qty_${i}`]?"1px solid #dc2626":"1px solid #e5e7eb",borderRadius:4,padding:"4px 8px",fontSize:11,outline:"none",minWidth:140,color:"#111827"}}/>
                           </td>
                           <td style={{padding:"4px 6px",width:70}}>
@@ -565,7 +565,7 @@ export default function PurchaseOrdersPage() {
             <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",gap:10,justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#fafafa"}}>
               <div style={{fontSize:11,color:"#6b7280"}}>
                 Total: <strong style={{color:"#92400e",fontSize:14}}>KES {computedTotal.toLocaleString()}</strong>
-                {" "}· {form.items.filter((it:any)=>it.description.trim()).length} item(s)
+                {" "}- {form.items.filter((it:any)=>it.description.trim()).length} item(s)
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={closeForm} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13,color:"#374151"}}>
@@ -578,7 +578,7 @@ export default function PurchaseOrdersPage() {
                 <button onClick={()=>{setForm((p:any)=>({...p,status:"pending"}));save();}} disabled={saving}
                   style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",borderRadius:8,color:"#fff",border:"none",background:"linear-gradient(90deg,#92400e,#C45911)",cursor:"pointer",fontSize:12,fontWeight:700,opacity:saving?0.7:1}}>
                   {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
-                  {saving?"Saving…":"Submit for Approval"}
+                  {saving?"Saving-":"Submit for Approval"}
                 </button>
               </div>
             </div>
@@ -586,9 +586,9 @@ export default function PurchaseOrdersPage() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════
+      {/* -
           VIEW MODAL
-      ════════════════════════════════════════ */}
+      - */}
       {viewPO&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)"}} onClick={()=>setViewPO(null)}/>
@@ -596,7 +596,7 @@ export default function PurchaseOrdersPage() {
             <div style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#92400e,#C45911)"}}>
               <div>
                 <h3 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>{viewPO.po_number}</h3>
-                <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{viewPO.suppliers?.name||viewPO.supplier_name||"—"}</p>
+                <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{viewPO.suppliers?.name||viewPO.supplier_name||"-"}</p>
               </div>
               <div style={{display:"flex",gap:8}}>
                 {canCreate&&["draft","pending"].includes(viewPO.status)&&(
@@ -620,13 +620,13 @@ export default function PurchaseOrdersPage() {
                   {l:"Total",v:`KES ${Number(viewPO.total_amount||0).toLocaleString()}`},
                   {l:"Delivery Date",v:viewPO.delivery_date},
                   {l:"Payment Terms",v:viewPO.payment_terms},
-                  {l:"Department",v:viewPO.department||"—"},
-                  {l:"Date Created",v:viewPO.created_at?new Date(viewPO.created_at).toLocaleDateString("en-KE"):"—"},
-                  {l:"Supplier Phone",v:viewPO.suppliers?.phone||"—"},
+                  {l:"Department",v:viewPO.department||"-"},
+                  {l:"Date Created",v:viewPO.created_at?new Date(viewPO.created_at).toLocaleDateString("en-KE"):"-"},
+                  {l:"Supplier Phone",v:viewPO.suppliers?.phone||"-"},
                 ].map(r=>(
                   <div key={r.l}>
                     <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af"}}>{r.l}</div>
-                    <div style={{fontSize:13,color:"#1f2937",fontWeight:500,marginTop:2}}>{r.v||"—"}</div>
+                    <div style={{fontSize:13,color:"#1f2937",fontWeight:500,marginTop:2}}>{r.v||"-"}</div>
                   </div>
                 ))}
               </div>
