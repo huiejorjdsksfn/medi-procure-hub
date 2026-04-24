@@ -159,17 +159,17 @@ export default function AuditLogPage() {
                       onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"rgba(255,255,255,0.02)":"transparent"}>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.3)"}}>{(page-1)*PAGE_SIZE+i+1}</td>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap"}}>
-                        {l.created_at?new Date(l.created_at).toLocaleString("en-KE",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—"}
+                        {l.created_at?new Date(l.created_at).toLocaleString("en-KE",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"-"}
                       </td>
                       <td style={{padding:"8px 12px",fontWeight:700,color:"rgba(255,255,255,0.85)",whiteSpace:"nowrap"}}>{l.user_name||"System"}</td>
                       <td style={{padding:"8px 12px"}}>
-                        <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:st.bg,color:st.color}}>{l.action||"—"}</span>
+                        <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:st.bg,color:st.color}}>{l.action||"-"}</span>
                       </td>
-                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize"}}>{l.module||"—"}</td>
-                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"...":"—"}</td>
-                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"—"}</td>
+                      <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize"}}>{l.module||"-"}</td>
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"...":"-"}</td>
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"-"}</td>
                       <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"rgba(255,255,255,0.35)"}}>
-                        {l.details?JSON.stringify(l.details).slice(0,60):"—"}
+                        {l.details?JSON.stringify(l.details).slice(0,60):"-"}
                       </td>
                     </tr>
                   );
@@ -180,13 +180,13 @@ export default function AuditLogPage() {
         )}
         {totalPages>1&&(
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid #e2e8f0"}}>
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>Showing {(page-1)*PAGE_SIZE+1}-{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
             <div style={{display:"flex",gap:4}}>
               <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>‹</button>
+                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>-</button>
               <span style={{padding:"4px 10px",background:"rgba(96,165,250,0.2)",border:"1px solid rgba(96,165,250,0.3)",color:"#93c5fd",borderRadius:6,fontSize:12,fontWeight:700}}>{page}/{totalPages}</span>
               <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>›</button>
+                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>-</button>
             </div>
           </div>
         )}

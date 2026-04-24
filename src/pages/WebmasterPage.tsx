@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Superadmin / Webmaster Control Centre v4.0
- * Full codebase view · Live edit · Template upload · System health
+ * ProcurBosse - Superadmin / Webmaster Control Centre v4.0
+ * Full codebase view - Live edit - Template upload - System health
  * Role: superadmin / webmaster / admin
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,7 @@ import {
 
 const db = supabase as any;
 
-/* ── Codebase file tree (static manifest — key files) ────────────────── */
+/* - Codebase file tree (static manifest - key files) - */
 const CODE_FILES = [
   { path:"src/App.tsx",                       group:"Core",      desc:"Main router & layout wrapper" },
   { path:"src/main.tsx",                      group:"Core",      desc:"App entry point, engine init" },
@@ -53,7 +53,7 @@ const GROUP_COLORS: Record<string,string> = {
   Engine:"#8b5cf6",Comms:"#0369a1",Edge:"#c45910",CI:"#374151","CI/CD":"#374151"
 };
 
-/* ── System module toggles ──────────────────────────────────────────── */
+/* - System module toggles - */
 const MODULES = [
   {key:"enable_procurement",    label:"Procurement",       color:"#1d4ed8"},
   {key:"enable_financials",     label:"Financials",        color:"#7c3aed"},
@@ -82,7 +82,7 @@ const ROLE_CAPS: Record<string,string[]> = {
 
 type WMTab = "overview"|"modules"|"roles"|"codebase"|"broadcast"|"system"|"terminal"|"deploy";
 
-/* ── Styles ──────────────────────────────────────────────────────────── */
+/* - Styles - */
 const card: React.CSSProperties = {background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"16px 20px"};
 const inp: React.CSSProperties  = {width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"8px 12px",color:T.fg,fontSize:13,outline:"none",boxSizing:"border-box"};
 const btnS=(bg:string,bdr?:string):React.CSSProperties=>({display:"inline-flex",alignItems:"center",gap:7,padding:"8px 14px",background:bg,color:bdr?T.fgMuted:"#fff",border:`1px solid ${bdr||"transparent"}`,borderRadius:T.r,fontSize:12,fontWeight:700,cursor:"pointer"});
@@ -154,7 +154,7 @@ export default function WebmasterPage() {
     if (c==="help") {
       add("Commands: help | status | users | roles | modules | clear | nav <path> | reload");
     } else if (c==="status") {
-      add(`DB: Supabase connected ✅`);
+      add(`DB: Supabase connected -`);
       add(`Users: ${kpis.users} | Requisitions: ${kpis.requisitions} | Items: ${kpis.items}`);
       add(`Unread notifications: ${kpis.unreadNotifs}`);
     } else if (c==="users") {
@@ -164,7 +164,7 @@ export default function WebmasterPage() {
     } else if (c==="modules") {
       MODULES.forEach(m=>add(`${m.label}: ${settings[m.key]==="false"?"DISABLED":"ENABLED"}`));
     } else if (c==="clear") {
-      setTermOutput(["Terminal cleared — type 'help' for commands"]);
+      setTermOutput(["Terminal cleared - type 'help' for commands"]);
     } else if (c.startsWith("nav ")) {
       nav(c.slice(4)); add(`Navigating to ${c.slice(4)}...`);
     } else if (c==="reload") {
@@ -198,7 +198,7 @@ export default function WebmasterPage() {
         <div>
           <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>Superadmin / Webmaster Control Centre</h1>
           <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>
-            ProcurBosse v5.9 · EL5 MediProcure · Full system control for {roles.filter(r=>["superadmin","webmaster","admin"].includes(r)).join(", ")||"admin"}
+            ProcurBosse v5.9 - EL5 MediProcure - Full system control for {roles.filter(r=>["superadmin","webmaster","admin"].includes(r)).join(", ")||"admin"}
           </div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
@@ -222,7 +222,7 @@ export default function WebmasterPage() {
         ))}
       </div>
 
-      {/* ═══ OVERVIEW ═══ */}
+      {/* - OVERVIEW - */}
       {tab==="overview"&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
@@ -284,7 +284,7 @@ export default function WebmasterPage() {
         </div>
       )}
 
-      {/* ═══ MODULES ═══ */}
+      {/* - MODULES - */}
       {tab==="modules"&&(
         <div style={card}>
           <div style={{fontWeight:800,color:T.fg,fontSize:15,marginBottom:16}}>System Module Controls</div>
@@ -310,7 +310,7 @@ export default function WebmasterPage() {
         </div>
       )}
 
-      {/* ═══ ROLE CAPABILITIES ═══ */}
+      {/* - ROLE CAPABILITIES - */}
       {tab==="roles"&&(
         <div>
           <div style={{fontSize:12,color:T.fgMuted,marginBottom:12}}>
@@ -337,7 +337,7 @@ export default function WebmasterPage() {
         </div>
       )}
 
-      {/* ═══ CODEBASE ═══ */}
+      {/* - CODEBASE - */}
       {tab==="codebase"&&(
         <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:14,height:"calc(100vh - 200px)"}}>
           {/* File tree */}
@@ -398,7 +398,7 @@ export default function WebmasterPage() {
         </div>
       )}
 
-      {/* ═══ BROADCAST ═══ */}
+      {/* - BROADCAST - */}
       {tab==="broadcast"&&(
         <div style={{maxWidth:680}}>
           <div style={card}>
@@ -424,7 +424,7 @@ export default function WebmasterPage() {
         </div>
       )}
 
-      {/* ═══ SYSTEM ═══ */}
+      {/* - SYSTEM - */}
       {tab==="system"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           <div style={card}>
@@ -472,25 +472,25 @@ export default function WebmasterPage() {
         </div>
       )}
 
-      {/* ═══ TERMINAL ═══ */}
+      {/* - TERMINAL - */}
       {tab==="terminal"&&(
         <div style={{...card,fontFamily:"monospace"}}>
           <div style={{fontWeight:800,color:T.fg,fontSize:14,marginBottom:10}}>Webmaster Console</div>
           <div ref={termRef} style={{background:"#0a0f1e",borderRadius:8,padding:16,height:380,overflowY:"auto",marginBottom:10,fontSize:12,lineHeight:1.8}}>
             {termOutput.map((l,i)=>(
-              <div key={i} style={{color:l.startsWith("EL5")||l.startsWith("---")?"#38bdf8":l.startsWith("✅")?"#22c55e":l.startsWith("❌")?"#ef4444":"#94a3b8"}}>{l}</div>
+              <div key={i} style={{color:l.startsWith("EL5")||l.startsWith("---")?"#38bdf8":l.startsWith("-")?"#22c55e":l.startsWith("-")?"#ef4444":"#94a3b8"}}>{l}</div>
             ))}
           </div>
           <div style={{display:"flex",gap:8}}>
-            <span style={{color:T.primary,fontSize:13,display:"flex",alignItems:"center"}}>▸</span>
+            <span style={{color:T.primary,fontSize:13,display:"flex",alignItems:"center"}}>-</span>
             <input value={termInput} onChange={e=>setTermInput(e.target.value)}
-              onKeyDown={e=>{if(e.key==="Enter"){setTermOutput(p=>[...p,`▸ ${termInput}`]);runCmd(termInput);setTermInput("");}}}
+              onKeyDown={e=>{if(e.key==="Enter"){setTermOutput(p=>[...p,`- ${termInput}`]);runCmd(termInput);setTermInput("");}}}
               style={{...inp,flex:1,fontFamily:"monospace",fontSize:12}} placeholder="Type command and press Enter..."/>
           </div>
         </div>
       )}
 
-      {/* ═══ DEPLOY ═══ */}
+      {/* - DEPLOY - */}
       {tab==="deploy"&&(
         <div style={{maxWidth:680}}>
           <div style={card}>
@@ -520,7 +520,7 @@ export default function WebmasterPage() {
                 key:"last_deploy_message",value:msg,category:"deploy"
               },{onConflict:"key"});
               toast({title:"Deploy triggered",description:"Push committed to GitHub Actions. CI/CD will build and deploy automatically."});
-              addLog(`🚀 Deploy triggered: "${msg}"`);
+              addLog(`- Deploy triggered: "${msg}"`);
               setTab("terminal");
             }} style={{...btnS(T.primary),marginBottom:12}}>
               <ArrowRight size={13}/> Trigger Deploy

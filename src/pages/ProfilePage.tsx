@@ -38,7 +38,7 @@ export default function ProfilePage() {
     try{
       const{error}=await(supabase as any).from("profiles").update({full_name:fullName,phone_number:phone,department,updated_at:new Date().toISOString()}).eq("id",user.id);
       if(error) throw error;
-      toast({title:"Profile updated ✓"});
+      toast({title:"Profile updated -"});
     }catch(e:any){ toast({title:"Error",description:e.message,variant:"destructive"}); }
     setSaving(false);
   };
@@ -47,8 +47,8 @@ export default function ProfilePage() {
     if(!user?.email) return;
     setResetSending(true);
     const{error}=await(supabase as any).auth.resetPasswordForEmail(user.email,{redirectTo:window.location.origin+"/reset-password"});
-    if(error) toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
-    else{ setResetSent(true); toast({title:"Password reset email sent ✓"}); }
+    if(error) toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});
+    else{ setResetSent(true); toast({title:"Password reset email sent -"}); }
     setResetSending(false);
   };
 
@@ -64,7 +64,7 @@ export default function ProfilePage() {
             <div style={{width:64,height:64,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
               <User style={{width:28,height:28,color:"#fff"}}/>
             </div>
-            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{fullName||user?.email?.split("@")[0]||"—"}</div>
+            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{fullName||user?.email?.split("@")[0]||"-"}</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{user?.email}</div>
           </div>
           <div style={{padding:"16px 20px",marginTop:-24}}>
@@ -94,7 +94,7 @@ export default function ProfilePage() {
           {/* Account info */}
           <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:12,fontWeight:800,color:"#374151",marginBottom:12,display:"flex",alignItems:"center",gap:6}}><Mail style={{width:14,height:14,color:"#6b7280"}}/>Account Information</div>
-            {[["Email",user?.email||"—"],["User ID",user?.id?.slice(0,16)+"..."||"—"],["Last Sign-In",user?.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleDateString("en-KE"):"-"]].map(([l,v])=>(
+            {[["Email",user?.email||"-"],["User ID",user?.id?.slice(0,16)+"..."||"-"],["Last Sign-In",user?.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleDateString("en-KE"):"-"]].map(([l,v])=>(
               <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f9fafb"}}>
                 <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
                 <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{v}</span>
@@ -108,7 +108,7 @@ export default function ProfilePage() {
             <button onClick={sendReset} disabled={resetSending||resetSent}
               style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:resetSent?"#dcfce7":"#f9fafb",color:resetSent?"#15803d":"#374151",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,width:"100%",justifyContent:"center",opacity:resetSending?0.7:1}}>
               {resetSending?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Key style={{width:13,height:13}}/>}
-              {resetSent?"Reset Email Sent ✓":resetSending?"Sending...":"Send Password Reset Email"}
+              {resetSent?"Reset Email Sent -":resetSending?"Sending...":"Send Password Reset Email"}
             </button>
           </div>
           {/* Recent activity */}
@@ -119,7 +119,7 @@ export default function ProfilePage() {
               </div>
               {activityLog.map((a,i)=>(
                 <div key={i} style={{padding:"7px 14px",display:"flex",justifyContent:"space-between",borderBottom:"1px solid #f9fafb",fontSize:11}}>
-                  <span style={{color:"#374151",fontWeight:600,textTransform:"capitalize"}}>{a.action} · <span style={{color:"#6b7280"}}>{a.module}</span></span>
+                  <span style={{color:"#374151",fontWeight:600,textTransform:"capitalize"}}>{a.action} - <span style={{color:"#6b7280"}}>{a.module}</span></span>
                   <span style={{color:"#9ca3af"}}>{a.created_at?new Date(a.created_at).toLocaleDateString("en-KE"):""}</span>
                 </div>
               ))}

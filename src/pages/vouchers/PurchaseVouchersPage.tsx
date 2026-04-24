@@ -41,7 +41,7 @@ export default function PurchaseVouchersPage() {
   };
   useEffect(()=>{load();},[]);
 
-  /* ── Real-time subscription ─────────────────────────────── */
+  /* - Real-time subscription - */
   useEffect(()=>{
     const ch=(supabase as any).channel("puv-rt").on("postgres_changes",{event:"*",schema:"public",table:"purchase_vouchers"},()=>load()).subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
@@ -64,14 +64,14 @@ export default function PurchaseVouchersPage() {
     const payload={...form,voucher_number:genNo(),supplier_id:form.supplier_id||null,subtotal,tax_amount:taxAmt,amount:total,
       line_items:items,status:"pending",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("purchase_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","purchase_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Purchase Voucher created ✓"});setShowNew(false);load();}
+    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
+    else{logAudit(user?.id,profile?.full_name,"create","purchase_vouchers",data?.id,{number:payload.voucher_number});toast({title:"Purchase Voucher created -"});setShowNew(false);load();}
     setSaving(false);
   };
 
   const approve = async (id:string) => {
     await(supabase as any).from("purchase_vouchers").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name}).eq("id",id);
-    toast({title:"Approved ✓"}); load();
+    toast({title:"Approved -"}); load();
   };
 
   const deleteRow = async (id:string) => {
@@ -91,7 +91,7 @@ export default function PurchaseVouchersPage() {
     printGenericVoucher(v, "Purchase Voucher", {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital · Embu County Government'),
+      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital - Embu County Government'),
       currencySymbol: getSetting('currency_symbol','KES'),
       logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
       hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
@@ -139,7 +139,7 @@ export default function PurchaseVouchersPage() {
       })()}
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#7c2d12,#b45309)"}}>
         <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Purchase Vouchers</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records · Total: {fmtKES(totalAmt)}</p></div>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records - Total: {fmtKES(totalAmt)}</p></div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
           {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#7c2d12"}}><Plus style={{width:14,height:14}}/>New Voucher</button>}
@@ -160,7 +160,7 @@ export default function PurchaseVouchersPage() {
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#7c2d12"}}>{r.voucher_number}</td>
                 <td style={{padding:"10px 16px",fontWeight:500}}>{r.supplier_name}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.invoice_number||"—"}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.invoice_number||"-"}</td>
                 <td style={{padding:"10px 16px"}}>{new Date(r.voucher_date).toLocaleDateString("en-KE")}</td>
                 <td style={{padding:"10px 16px",fontWeight:700}}>{fmtKES(r.amount)}</td>
                 <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
@@ -188,7 +188,7 @@ export default function PurchaseVouchersPage() {
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Supplier *</label>
                 <select value={form.supplier_id} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,supplier_name:s?.name||""}));}}
                   style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">— Select —</option>
+                  <option value="">- Select -</option>
                   {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select></div>
               {[["Invoice No.","invoice_number"],["Date","voucher_date","date"],["Due Date","due_date","date"],["PO Reference","po_reference"],["Expense Account","expense_account"],["Tax Rate (%)","tax_rate","number"]].map(([l,k,t])=>(

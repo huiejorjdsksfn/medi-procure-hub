@@ -31,8 +31,8 @@ export default function CategoriesPage() {
     if(!form.name){toast({title:"Name required",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,created_by:user?.id};
-    if(editing){ await(supabase as any).from("categories").update(payload).eq("id",editing.id); toast({title:"Category updated ✓"});}
-    else{ await(supabase as any).from("categories").insert(payload); toast({title:"Category created ✓"});}
+    if(editing){ await(supabase as any).from("categories").update(payload).eq("id",editing.id); toast({title:"Category updated -"});}
+    else{ await(supabase as any).from("categories").insert(payload); toast({title:"Category created -"});}
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
 
@@ -84,8 +84,8 @@ export default function CategoriesPage() {
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f0f9ff"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#fafafa"}>
                 <td style={{padding:"9px 14px",fontWeight:700,color:"#1f2937"}}>{r.name}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.description||"—"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.parent_category||"—"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.description||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.parent_category||"-"}</td>
                 <td style={{padding:"9px 14px"}}>
                   <div style={{display:"flex",gap:6}}>
                     {canManage&&<button onClick={()=>{setEditing(r);setForm({name:r.name,description:r.description||"",parent_category:r.parent_category||""});setShowNew(true);}}

@@ -64,13 +64,13 @@ export default function LoginPage() {
     }
   };
 
-  // ── Colours ──────────────────────────────────────────────────────────────
+  // - Colours -
   const BLUE    = "#0e2a4a";
   const TEAL    = "#0e7490";
   const TEAL_LT = "#e0f2fe";
   const ORANGE  = "#C45911";
 
-  // ── Styles ───────────────────────────────────────────────────────────────
+  // - Styles -
   const s: Record<string, React.CSSProperties> = {
     root: {
       position: "fixed", inset: 0,
@@ -171,7 +171,7 @@ export default function LoginPage() {
       <div style={s.center}>
         <div style={s.card}>
 
-          {/* ── Logo ── */}
+          {/* - Logo - */}
           <div style={s.logo}>
             <img
               src={embuLogo} alt="EL5H"
@@ -180,24 +180,24 @@ export default function LoginPage() {
             />
             <div>
               <div style={s.sysName}>EL5 MediProcure</div>
-              <div style={s.subName}>ProcurBosse · Embu Level 5</div>
+              <div style={s.subName}>ProcurBosse - Embu Level 5</div>
             </div>
           </div>
 
-          {/* ── Badge ── */}
+          {/* - Badge - */}
           <div style={{ textAlign: "center", marginTop: 8 }}>
-            <span style={s.badge}>v5.8 · Health Procurement ERP</span>
+            <span style={s.badge}>v5.8 - Health Procurement ERP</span>
           </div>
 
-          {/* ── Mode heading ── */}
+          {/* - Mode heading - */}
           <div style={s.heading}>
             {forgotMode ? "RESET PASSWORD" : "SIGN IN"}
           </div>
 
-          {/* ── Forgot sent confirmation ── */}
+          {/* - Forgot sent confirmation - */}
           {forgotSent ? (
             <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>📧</div>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>-</div>
               <div style={{ fontSize: 15, fontWeight: 800, color: BLUE, marginBottom: 6 }}>
                 Check your inbox
               </div>
@@ -209,12 +209,12 @@ export default function LoginPage() {
                 Click the link to set a new password. Expires in 1 hour.
               </div>
               <button onClick={() => { setForgotMode(false); setForgotSent(false); }} style={s.forgotLink}>
-                ← Back to Sign In
+                - Back to Sign In
               </button>
             </div>
 
           ) : forgotMode ? (
-            /* ── Forgot form ── */
+            /* - Forgot form - */
             <form onSubmit={handleForgot} autoComplete="off">
               <div style={s.inputWrap}>
                 <label style={s.label}>Email Address</label>
@@ -230,15 +230,15 @@ export default function LoginPage() {
               </div>
               <button type="submit" disabled={loading} style={{ ...s.btn, opacity: loading ? 0.75 : 1 }}>
                 {loading ? <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
-                {loading ? "Sending…" : "Send Reset Link"}
+                {loading ? "Sending-" : "Send Reset Link"}
               </button>
               <button type="button" onClick={() => setForgotMode(false)} style={s.forgotLink}>
-                ← Back to Sign In
+                - Back to Sign In
               </button>
             </form>
 
           ) : (
-            /* ── Sign in form ── */
+            /* - Sign in form - */
             <form onSubmit={handleSignIn} autoComplete="on">
               {/* Email */}
               <div style={s.inputWrap}>
@@ -264,7 +264,7 @@ export default function LoginPage() {
                   value={password}
                   autoComplete="current-password"
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="-"
                   style={s.input}
                   onFocus={e => (e.target.style.borderColor = TEAL)}
                   onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
@@ -280,7 +280,7 @@ export default function LoginPage() {
                 onMouseLeave={e => { (e.currentTarget.style.opacity = loading ? "0.75" : "1"); }}
               >
                 {loading && <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} />}
-                {loading ? "Signing in…" : "Sign In"}
+                {loading ? "Signing in-" : "Sign In"}
               </button>
 
               <button type="button" onClick={() => setForgotMode(true)} style={s.forgotLink}>
@@ -291,10 +291,10 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Footer bar ── */}
+      {/* - Footer bar - */}
       <div style={s.footerBar}>
         <div style={s.footerDot} />
-        <span style={s.footerText}>Embu Level 5 Hospital · Embu County Government</span>
+        <span style={s.footerText}>Embu Level 5 Hospital - Embu County Government</span>
         <div style={s.footerDot} />
         <span style={{ ...s.footerText, color: "rgba(255,255,255,0.45)" }}>ERP v5.8</span>
       </div>

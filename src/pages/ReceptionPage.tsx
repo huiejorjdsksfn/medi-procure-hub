@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Reception Module v5.8
+ * ProcurBosse - Reception Module v5.8
  * Hospital front-desk ERP: visitor log, Twilio calls & SMS, WhatsApp, live real-time
  * Role-customized views for all user roles
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ const TWILIO_VOICE_WEBHOOK = "https://demo.twilio.com/welcome/voice/";
 
 const CALL_C: Record<string,string> = {incoming:"#0369a1",outgoing:"#059669",missed:"#dc2626",voicemail:"#9333ea"};
 const VISIT_C: Record<string,string> = {checked_in:"#059669",checked_out:"#6b7280",waiting:"#d97706",denied:"#dc2626"};
-const fmtDate = (d:string) => d ? new Date(d).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true}) : "—";
+const fmtDate = (d:string) => d ? new Date(d).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true}) : "-";
 const BS = (bg:string):React.CSSProperties => ({display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:bg,color:"#fff",fontWeight:700,fontSize:12.5,cursor:"pointer"});
 const INP:React.CSSProperties = {padding:"9px 12px",border:"1.5px solid #d1d5db",borderRadius:8,fontSize:13,color:"#111",background:"#fff",outline:"none",width:"100%",boxSizing:"border-box"};
 
@@ -36,7 +36,7 @@ function Chip({label,color}:{label:string;color:string}) {
   return <span style={{padding:"2px 9px",borderRadius:12,background:color+"18",color,fontSize:11,fontWeight:700,border:"1px solid "+color+"44",textTransform:"capitalize"}}>{label.replace("_"," ")}</span>;
 }
 
-// Role-based tab config — all users get visitors + messages; admins get calls + whatsapp
+// Role-based tab config - all users get visitors + messages; admins get calls + whatsapp
 function getTabsForRole(role: string) {
   const allTabs = ["visitors","calls","messages","whatsapp","notify_all"];
   if (role === "admin" || role === "database_admin") return allTabs;
@@ -51,20 +51,20 @@ function getTabsForRole(role: string) {
 
 function getRoleWelcome(role: string) {
   const msgs: Record<string,string> = {
-    admin: "Full reception — visitors, calls, SMS, WhatsApp, broadcast notifications",
+    admin: "Full reception - visitors, calls, SMS, WhatsApp, broadcast notifications",
     database_admin: "Full reception access",
-    procurement_manager: "Procurement reception — all messaging and visitor functions",
-    procurement_officer: "Procurement desk — visitor tracking and messaging",
-    accountant: "Finance reception — visitor log, messages, and WhatsApp",
-    inventory_manager: "Inventory desk — visitor log, messages, call tracking",
-    warehouse_officer: "Warehouse reception — visitor log, messages, call tracking",
-    requisitioner: "Reception — visitor log and messaging",
+    procurement_manager: "Procurement reception - all messaging and visitor functions",
+    procurement_officer: "Procurement desk - visitor tracking and messaging",
+    accountant: "Finance reception - visitor log, messages, and WhatsApp",
+    inventory_manager: "Inventory desk - visitor log, messages, call tracking",
+    warehouse_officer: "Warehouse reception - visitor log, messages, call tracking",
+    requisitioner: "Reception - visitor log and messaging",
   };
   return msgs[role] || "Reception module";
 }
 
 
-// ── Broadcast SMS/WhatsApp to all users ───────────────────────────────────
+// - Broadcast SMS/WhatsApp to all users -
 function NotifyAllTab() {
   const [msg,     setMsg]     = useState("");
   const [channel, setChannel] = useState<"sms"|"whatsapp">("sms");
@@ -109,7 +109,7 @@ function NotifyAllTab() {
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
       {/* Compose */}
       <div style={s.card}>
-        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📢 Broadcast Message</div>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>- Broadcast Message</div>
 
         <div style={{marginBottom:12}}>
           <label style={s.label}>Channel</label>
@@ -117,7 +117,7 @@ function NotifyAllTab() {
             {(["sms","whatsapp"] as const).map(ch=>(
               <button key={ch} onClick={()=>setChannel(ch)}
                 style={{...s.btn(channel===ch?"#0e7490":"#f1f5f9"),color:channel===ch?"#fff":"#374151",flex:1,fontSize:12}}>
-                {ch==="sms"?"📱 SMS":"🟢 WhatsApp"}
+                {ch==="sms"?"- SMS":"- WhatsApp"}
               </button>
             ))}
           </div>
@@ -133,21 +133,21 @@ function NotifyAllTab() {
         <div style={{marginBottom:12}}>
           <label style={s.label}>Message</label>
           <textarea value={msg} onChange={e=>setMsg(e.target.value)} placeholder="Type your broadcast message..." style={s.ta}/>
-          <div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>[EL5 MediProcure] prefix added automatically · {msg.length}/1560 chars</div>
+          <div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>[EL5 MediProcure] prefix added automatically - {msg.length}/1560 chars</div>
         </div>
 
         <button onClick={sendAll} disabled={loading||!msg.trim()||targets.length===0}
           style={{...s.btn(loading||!msg.trim()||targets.length===0?"#9ca3af":"#0e7490"),width:"100%",justifyContent:"center"}}>
-          {loading?`Sending to ${targets.length}…`:`📤 Send to ${targets.length} user${targets.length!==1?"s":""}`}
+          {loading?`Sending to ${targets.length}-`:`- Send to ${targets.length} user${targets.length!==1?"s":""}`}
         </button>
 
         {result&&(
           <div style={{marginTop:12,padding:"10px 14px",borderRadius:8,
             background:result.ok?"#f0fdf4":"#fef2f2",border:`1px solid ${result.ok?"#bbf7d0":"#fecaca"}`}}>
             <div style={{fontSize:12,fontWeight:700,color:result.ok?"#166534":"#dc2626"}}>
-              {result.ok?`✅ Sent: ${result.sent}/${result.total}`:`❌ ${result.error||"Send failed"}`}
+              {result.ok?`- Sent: ${result.sent}/${result.total}`:`- ${result.error||"Send failed"}`}
             </div>
-            {result.failed>0&&<div style={{fontSize:11,color:"#d97706",marginTop:4}}>⚠️ {result.failed} failed</div>}
+            {result.failed>0&&<div style={{fontSize:11,color:"#d97706",marginTop:4}}>- {result.failed} failed</div>}
           </div>
         )}
       </div>
@@ -156,7 +156,7 @@ function NotifyAllTab() {
       <div style={s.card}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>
-            👥 Recipients ({targets.length}/{filtered.length})
+            - Recipients ({targets.length}/{filtered.length})
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>setSelected(filtered.map(u=>u.id))} style={{...s.btn("#0369a1"),fontSize:11,padding:"5px 10px"}}>All</button>
@@ -171,10 +171,10 @@ function NotifyAllTab() {
                 background:selected.includes(u.id)?"#eff6ff":"#f8fafc",border:`1px solid ${selected.includes(u.id)?"#93c5fd":"#f1f5f9"}`}}>
               <div style={{width:14,height:14,borderRadius:3,border:`2px solid ${selected.includes(u.id)?"#0369a1":"#d1d5db"}`,
                 background:selected.includes(u.id)?"#0369a1":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {selected.includes(u.id)&&<span style={{color:"#fff",fontSize:9,fontWeight:900}}>✓</span>}
+                {selected.includes(u.id)&&<span style={{color:"#fff",fontSize:9,fontWeight:900}}>-</span>}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"—"}</div>
+                <div style={{fontSize:12,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"-"}</div>
                 <div style={{fontSize:10,color:"#6b7280"}}>{u.phone_number}</div>
               </div>
               {u.department&&<span style={{fontSize:9,background:"#e0f2fe",color:"#0369a1",padding:"2px 6px",borderRadius:6,fontWeight:600,flexShrink:0}}>{u.department}</span>}
@@ -277,7 +277,7 @@ export default function ReceptionPage() {
     if(!error){
       setShowVF(false);setVF({...EV});
       if(vF.phone) await sms(vF.phone,`Welcome to ${hosName}. You are registered to visit ${vF.host_name||"staff"} in ${vF.host_department||"the hospital"}. Please proceed to the reception desk.`);
-      toast({title:"✅ Visitor registered"});
+      toast({title:"- Visitor registered"});
     } else toast({title:"Error",description:error.message,variant:"destructive"});
     setSaving(false);
   }
@@ -286,7 +286,7 @@ export default function ReceptionPage() {
     if(!cF.caller_phone.trim()){toast({title:"Phone required",variant:"destructive"});return;}
     setSaving(true);
     const {error}=await(supabase as any).from("reception_calls").insert({...cF,called_at:new Date().toISOString()});
-    if(!error){setShowCF(false);setCF({...EC});toast({title:"✅ Call logged"});}
+    if(!error){setShowCF(false);setCF({...EC});toast({title:"- Call logged"});}
     else toast({title:"Error",description:error.message,variant:"destructive"});
     setSaving(false);
   }
@@ -298,7 +298,7 @@ export default function ReceptionPage() {
     if(ok){
       await(supabase as any).from("reception_messages").insert({...mF,status:"sent",sent_at:new Date().toISOString()});
       setShowMF(false);setMF({...EM});
-      toast({title:"✅ SMS sent"});
+      toast({title:"- SMS sent"});
     } else toast({title:"SMS failed",variant:"destructive"});
     setSaving(false);
   }
@@ -307,7 +307,7 @@ export default function ReceptionPage() {
   const filterCalls = calls.filter(c=>!search||c.caller_name?.toLowerCase().includes(search.toLowerCase())||c.caller_phone?.includes(search));
   const filterMsgs = messages.filter(m=>!search||m.recipient_name?.toLowerCase().includes(search.toLowerCase())||m.recipient_phone?.includes(search));
 
-  const tabLabels: Record<string,string> = {visitors:"👥 Visitors",calls:"📞 Calls",messages:"💬 SMS/Messages",whatsapp:"🟢 WhatsApp",notify_all:"📢 Notify All"};
+  const tabLabels: Record<string,string> = {visitors:"- Visitors",calls:"- Calls",messages:"- SMS/Messages",whatsapp:"- WhatsApp",notify_all:"- Notify All"};
 
   return (
     <div style={{padding:"20px 24px",fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",maxWidth:1400,margin:"0 auto"}}>
@@ -316,21 +316,21 @@ export default function ReceptionPage() {
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:40,height:40,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#0284c7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏥</div>
+            <div style={{width:40,height:40,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#0284c7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>-</div>
             <div>
               <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#0f172a",letterSpacing:"-0.02em"}}>Reception Desk</h1>
-              <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{hosName} · ProcurBosse v5.8 · {getRoleWelcome(primaryRole)}</div>
+              <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{hosName} - ProcurBosse v5.8 - {getRoleWelcome(primaryRole)}</div>
             </div>
           </div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <span style={{padding:"4px 10px",borderRadius:20,background:rtOn?"#f0fdf4":"#fef9c3",border:`1px solid ${rtOn?"#bbf7d0":"#fde68a"}`,fontSize:11,fontWeight:700,color:rtOn?"#059669":"#d97706"}}>
-            {rtOn?"🟢 Live":"🟡 Connecting..."}
+            {rtOn?"- Live":"- Connecting..."}
           </span>
           {primaryRole === "admin" && (
             <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
               style={{...BS("#25D366"),textDecoration:"none",fontSize:11}}>
-              🟢 Join WhatsApp Sandbox
+              - Join WhatsApp Sandbox
             </a>
           )}
           <button onClick={load} style={BS("#64748b")}><RefreshCw style={{width:12,height:12}}/> Refresh</button>
@@ -343,7 +343,7 @@ export default function ReceptionPage() {
       {/* Twilio Info Banner */}
       <div style={{background:"linear-gradient(135deg,#0369a1,#0284c7)",borderRadius:12,padding:"14px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>📡 EL5H Messaging Service</div>
+          <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>- EL5H Messaging Service</div>
           <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>SMS: {TWILIO_PHONE}</span>
           <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>WhatsApp: {WHATSAPP_NO}</span>
           <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>Service SID: {TWILIO_MSG_SID}</span>
@@ -351,11 +351,11 @@ export default function ReceptionPage() {
         <div style={{display:"flex",gap:8}}>
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
             style={{padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,textDecoration:"none"}}>
-            🟢 WhatsApp Sandbox →
+            - WhatsApp Sandbox -
           </a>
           <a href={TWILIO_VOICE_WEBHOOK} target="_blank" rel="noopener noreferrer"
             style={{padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,textDecoration:"none"}}>
-            📞 Voice Webhook →
+            - Voice Webhook -
           </a>
         </div>
       </div>
@@ -363,15 +363,15 @@ export default function ReceptionPage() {
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
         {[
-          {label:"Total Visitors",value:visitors.length,icon:"👥",color:"#0369a1"},
-          {label:"Currently In",value:visitors.filter(v=>v.status==="checked_in").length,icon:"✅",color:"#059669"},
-          {label:"Waiting",value:visitors.filter(v=>v.status==="waiting").length,icon:"⏳",color:"#d97706"},
-          {label:"Calls Today",value:calls.filter(c=>new Date(c.called_at).toDateString()===new Date().toDateString()).length,icon:"📞",color:"#7c3aed"},
-          {label:"SMS Sent",value:messages.filter(m=>m.status==="sent").length,icon:"💬",color:"#0891b2"},
+          {label:"Total Visitors",value:visitors.length,icon:"-",color:"#0369a1"},
+          {label:"Currently In",value:visitors.filter(v=>v.status==="checked_in").length,icon:"-",color:"#059669"},
+          {label:"Waiting",value:visitors.filter(v=>v.status==="waiting").length,icon:"-",color:"#d97706"},
+          {label:"Calls Today",value:calls.filter(c=>new Date(c.called_at).toDateString()===new Date().toDateString()).length,icon:"-",color:"#7c3aed"},
+          {label:"SMS Sent",value:messages.filter(m=>m.status==="sent").length,icon:"-",color:"#0891b2"},
         ].map((k,i)=>(
           <div key={i} style={{background:"#fff",borderRadius:10,border:"1px solid #f1f5f9",padding:"14px 16px",boxShadow:"0 2px 6px rgba(0,0,0,0.05)",borderLeft:`4px solid ${k.color}`}}>
             <div style={{fontSize:20,marginBottom:4}}>{k.icon}</div>
-            <div style={{fontSize:22,fontWeight:800,color:"#0f172a"}}>{loading?"…":k.value}</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#0f172a"}}>{loading?"-":k.value}</div>
             <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{k.label}</div>
           </div>
         ))}
@@ -393,16 +393,16 @@ export default function ReceptionPage() {
       {/* Search */}
       <div style={{position:"relative",marginBottom:16,maxWidth:360}}>
         <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" style={{...INP,paddingLeft:32}}/>
+        <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search-" style={{...INP,paddingLeft:32}}/>
       </div>
 
-      {/* ── VISITORS TAB ── */}
+      {/* - VISITORS TAB - */}
       {tab==="visitors" && (
         <>
           {showVF && (
             <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>👤 Register New Visitor</div>
+                <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>- Register New Visitor</div>
                 <button onClick={()=>setShowVF(false)} style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280"}}><X style={{width:16,height:16}}/></button>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
@@ -415,7 +415,7 @@ export default function ReceptionPage() {
                 <div>
                   <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
                   <select value={vF.host_department} onChange={e=>setVF(f=>({...f,host_department:e.target.value}))} style={INP}>
-                    <option value="">— Select —</option>
+                    <option value="">- Select -</option>
                     {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
@@ -426,7 +426,7 @@ export default function ReceptionPage() {
               </div>
               <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
                 <button onClick={()=>setShowVF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-                <button onClick={saveVisitor} disabled={saving} style={BS(saving?"#9ca3af":"#0369a1")}>{saving?"Saving…":"✅ Register Visitor"}</button>
+                <button onClick={saveVisitor} disabled={saving} style={BS(saving?"#9ca3af":"#0369a1")}>{saving?"Saving-":"- Register Visitor"}</button>
               </div>
             </div>
           )}
@@ -442,17 +442,17 @@ export default function ReceptionPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
+                  {loading?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading-</td></tr>:
                   filterVisitors.length===0?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>No visitors found</td></tr>:
                   filterVisitors.map(v=>(
                     <tr key={v.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
                       <td style={{padding:"10px 14px",fontSize:13,fontWeight:700,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{v.full_name}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.id_number||"—"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.phone||"—"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.organization||"—"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.purpose||"—"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_name||"—"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_department||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.id_number||"-"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.phone||"-"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.organization||"-"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.purpose||"-"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_name||"-"}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_department||"-"}</td>
                       <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={v.status||"waiting"} color={VISIT_C[v.status]||"#6b7280"}/></td>
                       <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(v.check_in_time)}</td>
                       <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}>
@@ -470,13 +470,13 @@ export default function ReceptionPage() {
         </>
       )}
 
-      {/* ── CALLS TAB ── */}
+      {/* - CALLS TAB - */}
       {tab==="calls" && (
         <>
           {showCF && (
             <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14}}>📞 Log Call</div>
+                <div style={{fontWeight:700,fontSize:14}}>- Log Call</div>
                 <button onClick={()=>setShowCF(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
@@ -495,14 +495,14 @@ export default function ReceptionPage() {
                 <div>
                   <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
                   <select value={cF.department} onChange={e=>setCF(f=>({...f,department:e.target.value}))} style={INP}>
-                    <option value="">— Select —</option>
+                    <option value="">- Select -</option>
                     {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
               </div>
               <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
                 <button onClick={()=>setShowCF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-                <button onClick={saveCall} disabled={saving} style={BS(saving?"#9ca3af":"#059669")}>{saving?"Saving…":"📞 Log Call"}</button>
+                <button onClick={saveCall} disabled={saving} style={BS(saving?"#9ca3af":"#059669")}>{saving?"Saving-":"- Log Call"}</button>
               </div>
             </div>
           )}
@@ -516,15 +516,15 @@ export default function ReceptionPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading?<tr><td colSpan={7} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
+                {loading?<tr><td colSpan={7} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading-</td></tr>:
                 filterCalls.map(c=>(
                   <tr key={c.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
                     <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={c.call_status||"incoming"} color={CALL_C[c.call_status]||"#0369a1"}/></td>
                     <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{c.caller_name||"Unknown"}</td>
                     <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.caller_phone}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.purpose||"—"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.department||"—"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.staff_contacted||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.purpose||"-"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.department||"-"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.staff_contacted||"-"}</td>
                     <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(c.called_at)}</td>
                   </tr>
                 ))}
@@ -534,13 +534,13 @@ export default function ReceptionPage() {
         </>
       )}
 
-      {/* ── MESSAGES TAB ── */}
+      {/* - MESSAGES TAB - */}
       {tab==="messages" && (
         <>
           {showMF && (
             <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14}}>💬 Send SMS Message</div>
+                <div style={{fontWeight:700,fontSize:14}}>- Send SMS Message</div>
                 <button onClick={()=>setShowMF(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -553,18 +553,18 @@ export default function ReceptionPage() {
                 <div>
                   <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
                   <select value={mF.department} onChange={e=>setMF(f=>({...f,department:e.target.value}))} style={INP}>
-                    <option value="">— Select —</option>
+                    <option value="">- Select -</option>
                     {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div style={{gridColumn:"span 2"}}>
                   <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Message *</label>
-                  <textarea value={mF.message_body} onChange={e=>setMF(f=>({...f,message_body:e.target.value}))} style={{...INP,height:80,resize:"vertical"}} placeholder="Type your SMS message here…"/>
+                  <textarea value={mF.message_body} onChange={e=>setMF(f=>({...f,message_body:e.target.value}))} style={{...INP,height:80,resize:"vertical"}} placeholder="Type your SMS message here-"/>
                 </div>
               </div>
               <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
                 <button onClick={()=>setShowMF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-                <button onClick={sendMsg} disabled={saving} style={BS(saving?"#9ca3af":"#7c3aed")}>{saving?"Sending…":"📤 Send SMS"}</button>
+                <button onClick={sendMsg} disabled={saving} style={BS(saving?"#9ca3af":"#7c3aed")}>{saving?"Sending-":"- Send SMS"}</button>
               </div>
             </div>
           )}
@@ -578,12 +578,12 @@ export default function ReceptionPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading?<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading…</td></tr>:
+                {loading?<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading-</td></tr>:
                 filterMsgs.map(m=>(
                   <tr key={m.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"-"}</td>
                     <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.recipient_phone}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.department||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.department||"-"}</td>
                     <td style={{padding:"10px 14px",fontSize:12,color:"#374151",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"}}>{m.message_body}</td>
                     <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.status||"pending"} color={m.status==="sent"?"#059669":"#d97706"}/></td>
                     <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(m.sent_at||m.created_at)}</td>
@@ -595,7 +595,7 @@ export default function ReceptionPage() {
         </>
       )}
 
-      {/* ── WHATSAPP TAB ── */}
+      {/* - WHATSAPP TAB - */}
 
       {tab==="notify_all" && (
         <NotifyAllTab />
@@ -605,10 +605,10 @@ export default function ReceptionPage() {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
           {/* WhatsApp Sandbox Setup */}
           <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>🟢 WhatsApp Business Sandbox</div>
-            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Twilio WhatsApp Sandbox · EL5H Messaging Service</div>
+            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>- WhatsApp Business Sandbox</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Twilio WhatsApp Sandbox - EL5H Messaging Service</div>
             <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:16,marginBottom:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#059669",marginBottom:8}}>📱 To activate WhatsApp:</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#059669",marginBottom:8}}>- To activate WhatsApp:</div>
               <ol style={{margin:0,paddingLeft:20,fontSize:13,color:"#374151",lineHeight:2}}>
                 <li>Send <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to <strong>{WHATSAPP_NO}</strong> on WhatsApp</li>
                 <li>Or click the button below to open WhatsApp directly</li>
@@ -633,39 +633,39 @@ export default function ReceptionPage() {
             <div style={{display:"flex",gap:10}}>
               <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
                 style={{...BS("#25D366"),textDecoration:"none",flex:1,justifyContent:"center"}}>
-                🟢 Open WhatsApp →
+                - Open WhatsApp -
               </a>
               <a href={TWILIO_VOICE_WEBHOOK} target="_blank" rel="noopener noreferrer"
                 style={{...BS("#0369a1"),textDecoration:"none",flex:1,justifyContent:"center"}}>
-                📞 Voice Webhook →
+                - Voice Webhook -
               </a>
             </div>
           </div>
 
           {/* Send WhatsApp Message */}
           <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>📤 Send WhatsApp Message</div>
-            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>via Twilio WhatsApp API · EL5H Messaging Service</div>
+            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>- Send WhatsApp Message</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>via Twilio WhatsApp API - EL5H Messaging Service</div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Recipient Phone (with country code)</label>
               <input type="tel" value={whatsappTo} onChange={e=>setWhatsappTo(e.target.value)} style={INP} placeholder="+254700000000"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Message</label>
-              <textarea value={whatsappMsg} onChange={e=>setWhatsappMsg(e.target.value)} style={{...INP,height:100,resize:"vertical"}} placeholder="Type your WhatsApp message…"/>
+              <textarea value={whatsappMsg} onChange={e=>setWhatsappMsg(e.target.value)} style={{...INP,height:100,resize:"vertical"}} placeholder="Type your WhatsApp message-"/>
               <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{whatsappMsg.length}/1600 characters</div>
             </div>
             <div style={{background:"#fff9ed",border:"1px solid #fde68a",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#92400e"}}>
-              ⚠️ Recipient must first join the sandbox by sending <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to {WHATSAPP_NO}
+              - Recipient must first join the sandbox by sending <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to {WHATSAPP_NO}
             </div>
             <button onClick={sendWhatsApp} disabled={waLoading} style={{...BS(waLoading?"#9ca3af":"#25D366"),width:"100%",justifyContent:"center",fontSize:14,padding:"12px"}}>
-              {waLoading?"Sending…":"🟢 Send WhatsApp Message"}
+              {waLoading?"Sending-":"- Send WhatsApp Message"}
             </button>
           </div>
 
           {/* WhatsApp Message History */}
           <div style={{gridColumn:"span 2",background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>📜 Message History</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>- Message History</div>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr style={{background:"#f8fafc"}}>
@@ -677,7 +677,7 @@ export default function ReceptionPage() {
               <tbody>
                 {messages.map(m=>(
                   <tr key={m.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"-"}</td>
                     <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.recipient_phone}</td>
                     <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.message_type||"sms"} color={m.message_type==="whatsapp"?"#25D366":"#7c3aed"}/></td>
                     <td style={{padding:"10px 14px",fontSize:12,color:"#374151",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"}}>{m.message_body}</td>

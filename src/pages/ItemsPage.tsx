@@ -104,7 +104,7 @@ export default function ItemsPage() {
   const deleteItem = async (it:any) => {
     if(!confirm(`Delete "${it.name}"?`)) return;
     const {error} = await supabase.from("items").delete().eq("id",it.id);
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});return;}
     logAudit(user?.id,profile?.full_name,"delete","items",it.id,{name:it.name});
     toast({title:"Item deleted"});
     load();
@@ -112,7 +112,7 @@ export default function ItemsPage() {
 
   const exportExcel=()=>{
     const wb=XLSX.utils.book_new();
-    const header=[[hospitalName],[sysName+" — Items Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const header=[[hospitalName],[sysName+" - Items Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
     const rows=filtered.map(it=>({Name:it.name,SKU:it.sku,Type:it.item_type,Category:it.item_categories?.name||"",UoM:it.unit_of_measure,"Unit Price":it.unit_price,"Qty in Stock":it.quantity_in_stock,"Reorder Level":it.reorder_level,Status:it.status,"Stock Value":Number(it.unit_price||0)*Number(it.quantity_in_stock||0)}));
     const ws=XLSX.utils.aoa_to_sheet([...header,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
     ws["!cols"]=Object.keys(rows[0]||{}).map(()=>({wch:16}));
@@ -126,9 +126,9 @@ export default function ItemsPage() {
     if(!win) return;
     win.document.write(`<html><head><title>Items Register</title>
     <style>body{font-family:'Segoe UI',Arial;font-size:11px;margin:20px}h2{color:#1a3d12}table{width:100%;border-collapse:collapse}th{background:#1a3d12;color:#fff;padding:6px 10px;text-align:left;font-size:10px}td{padding:5px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9fafb}@media print{@page{margin:1cm}}</style>
-    </head><body><h2>${hospitalName} — Items Register</h2><p style="font-size:10px;color:#888">Generated: ${new Date().toLocaleString("en-KE")} · ${filtered.length} items · Total Value: KES ${totalValue.toLocaleString()}</p>
+    </head><body><h2>${hospitalName} - Items Register</h2><p style="font-size:10px;color:#888">Generated: ${new Date().toLocaleString("en-KE")} - ${filtered.length} items - Total Value: KES ${totalValue.toLocaleString()}</p>
     <table><thead><tr><th>#</th><th>Name</th><th>SKU</th><th>Type</th><th>Category</th><th>UoM</th><th>Unit Price</th><th>Qty</th><th>Reorder</th><th>Status</th><th>Stock Value</th></tr></thead>
-    <tbody>${filtered.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.sku||"—"}</td><td>${it.item_type||"—"}</td><td>${it.item_categories?.name||"—"}</td><td>${it.unit_of_measure||"—"}</td><td>KES ${Number(it.unit_price||0).toLocaleString()}</td><td>${it.quantity_in_stock||0}</td><td>${it.reorder_level||10}</td><td>${it.status||"active"}</td><td>KES ${(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td></tr>`).join("")}
+    <tbody>${filtered.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.sku||"-"}</td><td>${it.item_type||"-"}</td><td>${it.item_categories?.name||"-"}</td><td>${it.unit_of_measure||"-"}</td><td>KES ${Number(it.unit_price||0).toLocaleString()}</td><td>${it.quantity_in_stock||0}</td><td>${it.reorder_level||10}</td><td>${it.status||"active"}</td><td>KES ${(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td></tr>`).join("")}
     </tbody></table></body></html>`);
     win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
@@ -183,7 +183,7 @@ export default function ItemsPage() {
           <div>
             <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Items &amp; Inventory</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>
-              {filtered.length} items · Value: KES {totalValue.toLocaleString()} · <span style={{color:lowStockCount>0?"#fca5a5":"rgba(255,255,255,0.5)"}}>{lowStockCount} low stock</span>
+              {filtered.length} items - Value: KES {totalValue.toLocaleString()} - <span style={{color:lowStockCount>0?"#fca5a5":"rgba(255,255,255,0.5)"}}>{lowStockCount} low stock</span>
             </div>
           </div>
         </div>
@@ -255,10 +255,10 @@ export default function ItemsPage() {
                   <tr key={it.id} >
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{it.name}</td>
-                    <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.sku||"—"}</td>
+                    <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.sku||"-"}</td>
                     <td style={{padding:"7px 12px",color:"#374151",textTransform:"capitalize",background:i%2===0?"#fff":"#f9fafb"}}>{(it.item_type||"").replace(/_/g," ")}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.item_categories?.name||"—"}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.unit_of_measure||"—"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.item_categories?.name||"-"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.unit_of_measure||"-"}</td>
                     <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
                       <span style={{fontWeight:700,color:isLow?"#dc2626":"#15803d"}}>{it.quantity_in_stock||0}</span>
@@ -291,7 +291,7 @@ export default function ItemsPage() {
         <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap" as const}}>
           <span>{filtered.length} items</span>
           <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
-          {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>⚠ {lowStockCount} low stock</span>}
+          {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>- {lowStockCount} low stock</span>}
         </div>
       </div>
 
@@ -305,7 +305,7 @@ export default function ItemsPage() {
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[["SKU",viewItem.sku],["Type",(viewItem.item_type||"").replace(/_/g," ")],["Category",viewItem.item_categories?.name],["Unit of Measure",viewItem.unit_of_measure],["Unit Price",`KES ${Number(viewItem.unit_price||0).toLocaleString()}`],["Qty in Stock",viewItem.quantity_in_stock],["Reorder Level",viewItem.reorder_level],["Status",viewItem.status]].map(([k,v])=>(
-                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"—"}</div></div>
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"-"}</div></div>
               ))}
               {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:"#374151"}}>{viewItem.description}</div></div>}
             </div>
@@ -329,7 +329,7 @@ export default function ItemsPage() {
               <div style={{gridColumn:"1/-1"}}><label style={lbl}>Item Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Amoxicillin 500mg"/></div>
               <div><label style={lbl}>SKU / Code</label><input value={form.sku} onChange={e=>setForm(p=>({...p,sku:e.target.value}))} style={inp} placeholder="ITEM-001"/></div>
               <div><label style={lbl}>Item Type</label><select value={form.item_type} onChange={e=>setForm(p=>({...p,item_type:e.target.value}))} style={sel}>{TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}</select></div>
-              <div><label style={lbl}>Category</label><select value={form.category_id} onChange={e=>setForm(p=>({...p,category_id:e.target.value}))} style={sel}><option value="">— None —</option>{cats.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+              <div><label style={lbl}>Category</label><select value={form.category_id} onChange={e=>setForm(p=>({...p,category_id:e.target.value}))} style={sel}><option value="">- None -</option>{cats.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
               <div><label style={lbl}>Unit of Measure</label><input value={form.unit_of_measure} onChange={e=>setForm(p=>({...p,unit_of_measure:e.target.value}))} style={inp} placeholder="Tablets, Vials, Pcs..."/></div>
               <div><label style={lbl}>Unit Price (KES)</label><input type="number" value={form.unit_price} onChange={e=>setForm(p=>({...p,unit_price:e.target.value}))} style={inp}/></div>
               <div><label style={lbl}>Quantity in Stock</label><input type="number" value={form.quantity_in_stock} onChange={e=>setForm(p=>({...p,quantity_in_stock:e.target.value}))} style={inp}/></div>

@@ -49,12 +49,12 @@ export default function ProcurementPlanningPage() {
     const payload={...form,plan_number:editing?editing.plan_number:genNo(),item_description:form.description||form.title||"",department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("procurement_plans").update(payload).eq("id",editing.id);
-      if(!error){toast({title:"Plan updated ✓"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}
-      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
+      if(!error){toast({title:"Plan updated -"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}
+      else toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});
     } else {
       const{data,error}=await(supabase as any).from("procurement_plans").insert(payload).select().single();
-      if(!error){toast({title:"Plan created ✓"});logAudit(user?.id,profile?.full_name,"create","procurement_plans",data?.id,{title:form.title});}
-      else toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});
+      if(!error){toast({title:"Plan created -"});logAudit(user?.id,profile?.full_name,"create","procurement_plans",data?.id,{title:form.title});}
+      else toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
@@ -102,7 +102,7 @@ export default function ProcurementPlanningPage() {
       <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e40af)"}}>
         <div>
           <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Procurement Planning</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} plans · Est. Budget: {fmtKES(totalBudget)}</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} plans - Est. Budget: {fmtKES(totalBudget)}</p>
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
@@ -124,9 +124,9 @@ export default function ProcurementPlanningPage() {
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                 <td style={{padding:"10px 16px",fontFamily:"monospace",fontSize:10,color:"#1e40af"}}>{r.plan_number}</td>
                 <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||"—"}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||"—"}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.procurement_method||"—"}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||"-"}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||"-"}</td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.procurement_method||"-"}</td>
                 <td style={{padding:"10px 16px",fontWeight:700,color:"#374151"}}>{fmtKES(r.estimated_budget||0)}</td>
                 <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.financial_year}</td>
                 <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,textTransform:"capitalize",background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
@@ -153,11 +153,11 @@ export default function ProcurementPlanningPage() {
               ))}
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
                 <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">— Select —</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                  <option value="">- Select -</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select></div>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category</label>
                 <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">— Select —</option>{CATS.map(c=><option key={c}>{c}</option>)}
+                  <option value="">- Select -</option>{CATS.map(c=><option key={c}>{c}</option>)}
                 </select></div>
               <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Procurement Method</label>
                 <select value={form.procurement_method} onChange={e=>setForm(p=>({...p,procurement_method:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>

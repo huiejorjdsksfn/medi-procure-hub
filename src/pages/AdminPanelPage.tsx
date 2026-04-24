@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — Admin Panel v6.0 (D365 Style)
- * Live IP stats · User password view/reset · Twilio test · D365 layout
- * EL5 MediProcure · Embu Level 5 Hospital
+ * ProcurBosse - Admin Panel v6.0 (D365 Style)
+ * Live IP stats - User password view/reset - Twilio test - D365 layout
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,7 @@ import {
 
 const db = supabase as any;
 
-/* ── D365 styles ─────────────────────────────────────────────────── */
+/* - D365 styles - */
 const S = {
   page:   { background:T.bg, minHeight:"100vh", fontFamily:"'Segoe UI','Inter',sans-serif" },
   header: { background:"#fff", borderBottom:`1px solid ${T.border}`, padding:"16px 24px", display:"flex", alignItems:"center", gap:14, boxShadow:"0 1px 3px rgba(0,0,0,.06)" },
@@ -34,7 +34,7 @@ const S = {
   btn:    (bg:string,col="white") => ({ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 14px", background:bg, color:col, border:"none", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer" }),
 };
 
-/* ── Nav items ───────────────────────────────────────────────────── */
+/* - Nav items - */
 const NAVS = [
   {id:"overview",  label:"Overview",       icon:LayoutDashboard, col:"#4f46e5"},
   {id:"iplive",    label:"Live IP Stats",  icon:Globe,           col:"#0078d4"},
@@ -46,7 +46,7 @@ const NAVS = [
   {id:"system",    label:"System Info",    icon:Server,          col:"#374151"},
 ];
 
-/* ── IP detection ─────────────────────────────────────────────────── */
+/* - IP detection - */
 const IP_SOURCES = ["https://api.ipify.org?format=json","https://api64.ipify.org?format=json"];
 async function getMyIP(): Promise<{ip:string}|null> {
   for (const url of IP_SOURCES) {
@@ -156,7 +156,7 @@ export default function AdminPanelPage() {
     const s=await checkTwilioStatus();
     setTwilioStatus(s);
     setTwilioLoading(false);
-    toast({title:s.ok?"✅ Twilio Connected":"❌ Twilio Error",description:s.ok?`SMS: ${s.sms_from} | WA: ${s.wa_from}`:(s.error||"Connection failed"),variant:s.ok?"default":"destructive"});
+    toast({title:s.ok?"- Twilio Connected":"- Twilio Error",description:s.ok?`SMS: ${s.sms_from} | WA: ${s.wa_from}`:(s.error||"Connection failed"),variant:s.ok?"default":"destructive"});
   };
 
   /* Send test SMS */
@@ -165,7 +165,7 @@ export default function AdminPanelPage() {
     setSmsSending(true);
     const r = await sendSms({to:smsTest.to,message:smsTest.msg,module:"admin_test"});
     setSmsSending(false);
-    toast({title:r.ok?"✅ SMS Sent":"❌ SMS Failed",description:r.ok?`Sent via ${r.results[0]?.provider}`:(r.error||r.results[0]?.error||"Failed"),variant:r.ok?"default":"destructive"});
+    toast({title:r.ok?"- SMS Sent":"- SMS Failed",description:r.ok?`Sent via ${r.results[0]?.provider}`:(r.error||r.results[0]?.error||"Failed"),variant:r.ok?"default":"destructive"});
   };
 
   /* Test call */
@@ -174,7 +174,7 @@ export default function AdminPanelPage() {
     setCalling(true);
     const r = await makeCall({to:callTo,message:"Hello from EL5 MediProcure hospital. This is a test call."});
     setCalling(false);
-    toast({title:r.ok?"✅ Call Initiated":"❌ Call Failed",description:r.ok?`SID: ${r.sid}`:(r.error||"Failed"),variant:r.ok?"default":"destructive"});
+    toast({title:r.ok?"- Call Initiated":"- Call Failed",description:r.ok?`SID: ${r.sid}`:(r.error||"Failed"),variant:r.ok?"default":"destructive"});
   };
 
   /* Reset password */
@@ -188,11 +188,11 @@ export default function AdminPanelPage() {
       if(error){
         // Fallback: store temp password for admin reference
         await db.from("system_settings").upsert({key:`temp_pw_${pwdUser.id}`,value:newPwd,category:"temp_passwords"},{onConflict:"key"});
-        toast({title:"⚠️ Temp password stored",description:`Password saved. User must update on next login.`});
+        toast({title:"- Temp password stored",description:`Password saved. User must update on next login.`});
       } else {
         // Clear any stored temp password
         await db.from("system_settings").delete().eq("key",`temp_pw_${pwdUser.id}`);
-        toast({title:"✅ Password reset",description:`${pwdUser.full_name}'s password updated`});
+        toast({title:"- Password reset",description:`${pwdUser.full_name}'s password updated`});
       }
     } catch(e:any){toast({title:"Error",description:e.message,variant:"destructive"});}
     setSaving(false);setNewPwd("");setPwdUser(null);loadUsers();
@@ -215,7 +215,7 @@ export default function AdminPanelPage() {
     toast({title:"Broadcast sent"});
   };
 
-  /* ── RENDER ── */
+  /* - RENDER - */
   const fmtAgo=(s:string)=>{const d=Date.now()-new Date(s).getTime();return d<60000?`${Math.floor(d/1000)}s`:d<3600000?`${Math.floor(d/60000)}m`:`${Math.floor(d/3600000)}h`;};
 
   return (
@@ -227,7 +227,7 @@ export default function AdminPanelPage() {
         <div style={{width:36,height:36,borderRadius:T.r,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}><LayoutDashboard size={18} color={T.primary}/></div>
         <div>
           <h1 style={{margin:0,fontSize:18,fontWeight:700,color:T.fg}}>Administration</h1>
-          <div style={{fontSize:12,color:T.fgMuted}}>System control · Live IP monitor · User management · Twilio configuration</div>
+          <div style={{fontSize:12,color:T.fgMuted}}>System control - Live IP monitor - User management - Twilio configuration</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={()=>{loadKpi();loadUsers();loadIPData();}} style={S.btn(T.bg2,T.fg)}><RefreshCw size={13}/> Refresh</button>
@@ -236,7 +236,7 @@ export default function AdminPanelPage() {
       </div>
 
       <div style={S.body}>
-        {/* ── D365 LEFT SIDEBAR ── */}
+        {/* - D365 LEFT SIDEBAR - */}
         <div style={S.sidebar}>
           {NAVS.map(n=>(
             <button key={n.id} onClick={()=>setSec(n.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 16px",background:sec===n.id?`${n.col}12`:"transparent",border:"none",borderLeft:`3px solid ${sec===n.id?n.col:"transparent"}`,color:sec===n.id?n.col:T.fgMuted,fontSize:13,fontWeight:sec===n.id?600:400,cursor:"pointer",transition:"all .12s"}}
@@ -247,10 +247,10 @@ export default function AdminPanelPage() {
           ))}
         </div>
 
-        {/* ── MAIN CONTENT AREA ── */}
+        {/* - MAIN CONTENT AREA - */}
         <div style={S.main}>
 
-          {/* ═══ OVERVIEW ═══ */}
+          {/* - OVERVIEW - */}
           {sec==="overview"&&(
             <div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12,marginBottom:20}}>
@@ -317,7 +317,7 @@ export default function AdminPanelPage() {
                       <div key={i} style={{display:"flex",gap:10,padding:"6px 16px",borderBottom:`1px solid ${T.border}22`,alignItems:"center"}}>
                         <div style={{width:28,height:28,borderRadius:"50%",background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,fontWeight:700,color:T.primary}}>{u.full_name?.[0]||"?"}</span></div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,fontWeight:600,color:T.fg,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"—"}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:T.fg,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"-"}</div>
                           <div style={{fontSize:10,color:T.fgMuted}}>{u.roles?.[0]?.replace(/_/g," ")||"No role"}</div>
                         </div>
                         <button onClick={()=>{setPwdUser(u);setSec("users");}} style={{...S.btn(`${T.primary}14`,T.primary),padding:"3px 8px",fontSize:10}}>
@@ -331,7 +331,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ LIVE IP STATS ═══ */}
+          {/* - LIVE IP STATS - */}
           {sec==="iplive"&&(
             <div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
@@ -412,10 +412,10 @@ export default function AdminPanelPage() {
                       {ipLog.slice(0,30).map((l,i)=>(
                         <tr key={i} style={{borderBottom:`1px solid ${T.border}18`}} onMouseEnter={e=>(e.currentTarget.style.background=T.bg)} onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
                           <td style={{padding:"6px 12px",color:T.fgDim,fontSize:10,whiteSpace:"nowrap"}}>{new Date(l.created_at).toLocaleString("en-KE",{timeZone:"Africa/Nairobi",hour:"2-digit",minute:"2-digit"})}</td>
-                          <td style={{padding:"6px 12px"}}><code style={{fontFamily:"monospace",fontSize:11,color:T.fg}}>{l.ip_address||"—"}</code></td>
+                          <td style={{padding:"6px 12px"}}><code style={{fontFamily:"monospace",fontSize:11,color:T.fg}}>{l.ip_address||"-"}</code></td>
                           <td style={{padding:"6px 12px"}}><span style={{fontSize:9,fontWeight:700,color:classIP(l.ip_address||"")==="public"?T.primary:T.inventory}}>{classIP(l.ip_address||"")}</span></td>
-                          <td style={{padding:"6px 12px",fontSize:11,color:T.fg,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.user_id?.slice(0,8)||"—"}</td>
-                          <td style={{padding:"6px 12px",fontSize:11,color:T.fgMuted}}>{l.action||"—"}</td>
+                          <td style={{padding:"6px 12px",fontSize:11,color:T.fg,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.user_id?.slice(0,8)||"-"}</td>
+                          <td style={{padding:"6px 12px",fontSize:11,color:T.fgMuted}}>{l.action||"-"}</td>
                           <td style={{padding:"6px 12px"}}><span style={{padding:"2px 7px",borderRadius:T.r,fontSize:10,fontWeight:600,background:l.status==="blocked"?T.errorBg:T.successBg,color:l.status==="blocked"?T.error:T.success}}>{l.status||"ok"}</span></td>
                         </tr>
                       ))}
@@ -426,7 +426,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ USER PASSWORDS ═══ */}
+          {/* - USER PASSWORDS - */}
           {sec==="users"&&(
             <div>
               {/* Password reset form */}
@@ -471,7 +471,7 @@ export default function AdminPanelPage() {
                           <td style={{padding:"9px 14px"}}>
                             <div style={{display:"flex",alignItems:"center",gap:8}}>
                               <div style={{width:30,height:30,borderRadius:"50%",background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:12,fontWeight:700,color:T.primary}}>{u.full_name?.[0]||"?"}</span></div>
-                              <span style={{fontWeight:600,color:T.fg}}>{u.full_name||"—"}</span>
+                              <span style={{fontWeight:600,color:T.fg}}>{u.full_name||"-"}</span>
                             </div>
                           </td>
                           <td style={{padding:"9px 14px",color:T.fgMuted,fontSize:11}}>{u.email}</td>
@@ -486,11 +486,11 @@ export default function AdminPanelPage() {
                           <td style={{padding:"9px 14px"}}>
                             {tp?(
                               <div style={{display:"flex",alignItems:"center",gap:5}}>
-                                <code style={{fontSize:11,fontFamily:"monospace",color:T.warning,background:T.warningBg,padding:"2px 7px",borderRadius:T.r}}>{showPwd[u.id]?tp:"••••••••"}</code>
+                                <code style={{fontSize:11,fontFamily:"monospace",color:T.warning,background:T.warningBg,padding:"2px 7px",borderRadius:T.r}}>{showPwd[u.id]?tp:"-"}</code>
                                 <button onClick={()=>setShowPwd(p=>({...p,[u.id]:!p[u.id]}))} style={{background:"none",border:"none",cursor:"pointer",color:T.fgDim,padding:2}}>{showPwd[u.id]?<EyeOff size={11}/>:<Eye size={11}/>}</button>
                                 <button onClick={()=>{navigator.clipboard.writeText(tp);toast({title:"Copied"});}} style={{background:"none",border:"none",cursor:"pointer",color:T.fgDim,padding:2}}><Copy size={11}/></button>
                               </div>
-                            ):<span style={{fontSize:10,color:T.fgDim}}>—</span>}
+                            ):<span style={{fontSize:10,color:T.fgDim}}>-</span>}
                           </td>
                           <td style={{padding:"9px 14px"}}>
                             <div style={{display:"flex",gap:5}}>
@@ -507,7 +507,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ TWILIO ═══ */}
+          {/* - TWILIO - */}
           {sec==="twilio"&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {/* Status + config */}
@@ -533,7 +533,7 @@ export default function AdminPanelPage() {
                     </button>
                     {twilioStatus&&(
                       <div style={{marginTop:10,padding:"8px 12px",borderRadius:T.r,background:twilioStatus.ok?T.successBg:T.errorBg,border:`1px solid ${twilioStatus.ok?T.success:T.error}44`,fontSize:12,color:twilioStatus.ok?T.success:T.error}}>
-                        {twilioStatus.ok?"✅ Connected — Twilio API live":"❌ "+twilioStatus.error}
+                        {twilioStatus.ok?"- Connected - Twilio API live":"- "+twilioStatus.error}
                         {twilioStatus.ok&&<div style={{fontSize:10,marginTop:4,color:T.fgMuted}}>SMS: {twilioStatus.sms_from} | WA: {twilioStatus.wa_from}</div>}
                       </div>
                     )}
@@ -578,7 +578,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ ROLES ═══ */}
+          {/* - ROLES - */}
           {sec==="roles"&&(
             <div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
@@ -611,7 +611,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ MODULE TOGGLES ═══ */}
+          {/* - MODULE TOGGLES - */}
           {sec==="modules"&&(
             <div style={S.card}>
               <div style={S.cardHd(T.warning)}><Settings size={14} color={T.warning}/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Module Controls</span></div>
@@ -636,7 +636,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ BROADCAST ═══ */}
+          {/* - BROADCAST - */}
           {sec==="broadcast"&&(
             <div style={{maxWidth:600}}>
               <div style={S.card}>
@@ -652,7 +652,7 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* ═══ SYSTEM INFO ═══ */}
+          {/* - SYSTEM INFO - */}
           {sec==="system"&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               <div style={S.card}>

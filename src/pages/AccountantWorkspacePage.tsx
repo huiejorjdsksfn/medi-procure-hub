@@ -13,14 +13,14 @@ interface GLEntry { id: string; gl_account?: string; debit?: number; credit?: nu
 interface Payment { id: string; voucher_number?: string; payee?: string; total_amount?: number; status: string; payment_method?: string; created_at: string; due_date?: string; }
 
 const TABS: { id: Tab; label: string; icon: string; color: string }[] = [
-  { id: "workspace",        label: "Workspace",       icon: "📊", color: "#059669" },
-  { id: "invoice_matching", label: "Invoice Match",   icon: "📋", color: "#f97316" },
-  { id: "payments",         label: "Payments",        icon: "💳", color: "#3b82f6" },
-  { id: "budget",           label: "Budget Control",  icon: "📈", color: "#8b5cf6" },
-  { id: "erp_sync",         label: "ERP Sync",        icon: "🔄", color: "#06b6d4" },
-  { id: "journal",          label: "Journal/Ledger",  icon: "📖", color: "#ec4899" },
-  { id: "quotations",       label: "Quotations",      icon: "📝", color: "#eab308" },
-  { id: "reports",          label: "Reports",         icon: "📑", color: "#6366f1" },
+  { id: "workspace",        label: "Workspace",       icon: "-", color: "#059669" },
+  { id: "invoice_matching", label: "Invoice Match",   icon: "-", color: "#f97316" },
+  { id: "payments",         label: "Payments",        icon: "-", color: "#3b82f6" },
+  { id: "budget",           label: "Budget Control",  icon: "-", color: "#8b5cf6" },
+  { id: "erp_sync",         label: "ERP Sync",        icon: "-", color: "#06b6d4" },
+  { id: "journal",          label: "Journal/Ledger",  icon: "-", color: "#ec4899" },
+  { id: "quotations",       label: "Quotations",      icon: "-", color: "#eab308" },
+  { id: "reports",          label: "Reports",         icon: "-", color: "#6366f1" },
 ];
 
 const STATUS_COLORS: Record<string,string> = {
@@ -94,10 +94,10 @@ export default function AccountantWorkspacePage() {
       const totalApproved = (payData || []).reduce((s: number, r: any) => s + (r.total_amount || 0), 0);
 
       setKpis([
-        { label: "Pending Invoice Matches", value: pendingInvoices ?? 0, sub: "Awaiting 3-way match", color: "#f97316", icon: "📋" },
-        { label: "ERP Sync Queue", value: pendingSync ?? 0, sub: "Pending to Dynamics 365", color: "#3b82f6", icon: "🔄", trend: (pendingSync ?? 0) > 5 ? "↑ High" : "✓ Normal" },
-        { label: "Budget Alerts", value: activeAlerts ?? 0, sub: "Over-budget requests pending", color: "#ef4444", icon: "⚠️" },
-        { label: "Approved Payments", value: fmt(totalApproved), sub: "This period", color: "#22c55e", icon: "💰" },
+        { label: "Pending Invoice Matches", value: pendingInvoices ?? 0, sub: "Awaiting 3-way match", color: "#f97316", icon: "-" },
+        { label: "ERP Sync Queue", value: pendingSync ?? 0, sub: "Pending to Dynamics 365", color: "#3b82f6", icon: "-", trend: (pendingSync ?? 0) > 5 ? "- High" : "- Normal" },
+        { label: "Budget Alerts", value: activeAlerts ?? 0, sub: "Over-budget requests pending", color: "#ef4444", icon: "-" },
+        { label: "Approved Payments", value: fmt(totalApproved), sub: "This period", color: "#22c55e", icon: "-" },
       ]);
 
       setSyncQueue(syncs || []);
@@ -132,30 +132,30 @@ export default function AccountantWorkspacePage() {
       payload: { triggered_by: "accountant_workspace_v58", timestamp: new Date().toISOString() },
     } as any);
     setSyncing(false);
-    if (!error) { showToast("✅ Manual sync queued to Dynamics 365!"); fetchAll(); }
-    else showToast("❌ Sync failed: " + error.message);
+    if (!error) { showToast("- Manual sync queued to Dynamics 365!"); fetchAll(); }
+    else showToast("- Sync failed: " + error.message);
   }
 
   async function approveInvoiceMatch(id: string) {
     const { error } = await supabase.from("invoice_matching").update({ status: "matched" } as any).eq("id", id);
-    if (!error) { showToast("✅ Invoice match approved!"); fetchAll(); }
-    else showToast("❌ " + error.message);
+    if (!error) { showToast("- Invoice match approved!"); fetchAll(); }
+    else showToast("- " + error.message);
   }
 
   async function rejectInvoiceMatch(id: string) {
     const { error } = await supabase.from("invoice_matching").update({ status: "rejected" } as any).eq("id", id);
-    if (!error) { showToast("⚠️ Invoice match rejected."); fetchAll(); }
-    else showToast("❌ " + error.message);
+    if (!error) { showToast("- Invoice match rejected."); fetchAll(); }
+    else showToast("- " + error.message);
   }
 
   async function approveBudgetOverride(id: string) {
     const { error } = await supabase.from("budget_alerts").update({ override_approved: true, status: "approved" } as any).eq("id", id);
-    if (!error) { showToast("✅ Budget override approved!"); fetchAll(); }
-    else showToast("❌ " + error.message);
+    if (!error) { showToast("- Budget override approved!"); fetchAll(); }
+    else showToast("- " + error.message);
   }
 
   async function createQuotation() {
-    if (!newQuote.total_amount) { showToast("⚠️ Enter a total amount."); return; }
+    if (!newQuote.total_amount) { showToast("- Enter a total amount."); return; }
     const qNum = `QT-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
     const { error } = await supabase.from("quotations").insert({
       quotation_number: qNum,
@@ -166,23 +166,23 @@ export default function AccountantWorkspacePage() {
       status: "draft",
     } as any);
     if (!error) {
-      showToast(`✅ Quotation ${qNum} created!`);
+      showToast(`- Quotation ${qNum} created!`);
       setShowNewQuotation(false);
       setNewQuote({ supplier_id: "", notes: "", valid_until: "", total_amount: "" });
       fetchAll();
-    } else showToast("❌ " + error.message);
+    } else showToast("- " + error.message);
   }
 
   async function sendQuotation(id: string) {
     const { error } = await supabase.from("quotations").update({ status: "sent" } as any).eq("id", id);
-    if (!error) { showToast("📤 Quotation sent to supplier!"); fetchAll(); }
-    else showToast("❌ " + error.message);
+    if (!error) { showToast("- Quotation sent to supplier!"); fetchAll(); }
+    else showToast("- " + error.message);
   }
 
   async function approvePayment(id: string) {
     const { error } = await supabase.from("payment_vouchers").update({ status: "approved" } as any).eq("id", id);
-    if (!error) { showToast("✅ Payment approved!"); fetchAll(); }
-    else showToast("❌ " + error.message);
+    if (!error) { showToast("- Payment approved!"); fetchAll(); }
+    else showToast("- " + error.message);
   }
 
   async function exportReport() {
@@ -209,10 +209,10 @@ export default function AccountantWorkspacePage() {
     const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
     setExportLoading(false);
-    showToast("📥 Report exported!");
+    showToast("- Report exported!");
   }
 
-  // ── Styles ──
+  // - Styles -
   const card: React.CSSProperties = { background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", padding: "20px 24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
   const tblHead: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", padding: "10px 14px", borderBottom: "2px solid #f1f5f9", background: "#f8fafc", textAlign: "left" };
   const tblCell: React.CSSProperties = { fontSize: 13, color: "#374151", padding: "11px 14px", borderBottom: "1px solid #f8fafc" };
@@ -234,23 +234,23 @@ export default function AccountantWorkspacePage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#059669,#047857)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>💼</div>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#059669,#047857)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>-</div>
             <div>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>Accountant Workspace</h1>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>EL5 MediProcure v5.8 · Finance & Procurement Bridge · Dynamics 365 ERP</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>EL5 MediProcure v5.8 - Finance & Procurement Bridge - Dynamics 365 ERP</div>
             </div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <div style={{ padding: "6px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 20, fontSize: 11, fontWeight: 700, color: "#059669" }}>
-            🟢 ERP Connected
+            - ERP Connected
           </div>
           <button onClick={triggerManualSync} disabled={syncing} style={{ ...btnPrimary, display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ display: "inline-block", animation: syncing ? "spin 1s linear infinite" : "none" }}>🔄</span>
-            {syncing ? "Syncing…" : "Sync to D365"}
+            <span style={{ display: "inline-block", animation: syncing ? "spin 1s linear infinite" : "none" }}>-</span>
+            {syncing ? "Syncing-" : "Sync to D365"}
           </button>
           <button onClick={fetchAll} style={{ padding: "9px 16px", background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#374151" }}>
-            ↻ Refresh
+            - Refresh
           </button>
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function AccountantWorkspacePage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{k.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>{loading ? "…" : k.value}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>{loading ? "-" : k.value}</div>
                 {k.sub && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{k.sub}</div>}
                 {k.trend && <div style={{ fontSize: 11, color: k.color, marginTop: 4, fontWeight: 600 }}>{k.trend}</div>}
               </div>
@@ -293,13 +293,13 @@ export default function AccountantWorkspacePage() {
         ))}
       </div>
 
-      {/* ── WORKSPACE TAB ── */}
+      {/* - WORKSPACE TAB - */}
       {tab === "workspace" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {/* ERP Status */}
           <div style={card}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
-              🔌 ERP Connection Status
+              - ERP Connection Status
             </div>
             {[
               { label: "Dynamics 365 Connection", status: "Connected", color: "#22c55e" },
@@ -318,8 +318,8 @@ export default function AccountantWorkspacePage() {
 
           {/* Pending Tasks */}
           <div style={card}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a" }}>⏳ Approval Tasks</div>
-            {loading ? <div style={{ color: "#9ca3af", fontSize: 13 }}>Loading…</div> : (
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a" }}>- Approval Tasks</div>
+            {loading ? <div style={{ color: "#9ca3af", fontSize: 13 }}>Loading-</div> : (
               <>
                 {invoiceMatches.filter(i => i.status === "pending").slice(0,4).map(inv => (
                   <div key={inv.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f8fafc" }}>
@@ -328,8 +328,8 @@ export default function AccountantWorkspacePage() {
                       <div style={{ fontSize: 11, color: "#9ca3af" }}>3-way match pending</div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => approveInvoiceMatch(inv.id)} style={btnSm("#22c55e")}>✓ Match</button>
-                      <button onClick={() => rejectInvoiceMatch(inv.id)} style={btnSm("#ef4444")}>✗</button>
+                      <button onClick={() => approveInvoiceMatch(inv.id)} style={btnSm("#22c55e")}>- Match</button>
+                      <button onClick={() => rejectInvoiceMatch(inv.id)} style={btnSm("#ef4444")}>-</button>
                     </div>
                   </div>
                 ))}
@@ -343,7 +343,7 @@ export default function AccountantWorkspacePage() {
                   </div>
                 ))}
                 {invoiceMatches.filter(i => i.status === "pending").length === 0 && budgetAlerts.filter(b => !b.override_approved).length === 0 && (
-                  <div style={{ textAlign: "center", padding: "20px 0", color: "#9ca3af", fontSize: 13 }}>✅ No pending tasks</div>
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "#9ca3af", fontSize: 13 }}>- No pending tasks</div>
                 )}
               </>
             )}
@@ -351,15 +351,15 @@ export default function AccountantWorkspacePage() {
 
           {/* Quick Actions */}
           <div style={card}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a" }}>⚡ Quick Actions</div>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a" }}>- Quick Actions</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                { label: "New Quotation",   icon: "📝", action: () => { setTab("quotations"); setShowNewQuotation(true); }, color: "#eab308" },
-                { label: "Sync to ERP",     icon: "🔄", action: triggerManualSync,   color: "#06b6d4" },
-                { label: "Export Report",   icon: "📥", action: () => setTab("reports"), color: "#6366f1" },
-                { label: "Budget Review",   icon: "📊", action: () => setTab("budget"), color: "#8b5cf6" },
-                { label: "Payment Run",     icon: "💳", action: () => setTab("payments"), color: "#3b82f6" },
-                { label: "GL Entries",      icon: "📖", action: () => setTab("journal"), color: "#ec4899" },
+                { label: "New Quotation",   icon: "-", action: () => { setTab("quotations"); setShowNewQuotation(true); }, color: "#eab308" },
+                { label: "Sync to ERP",     icon: "-", action: triggerManualSync,   color: "#06b6d4" },
+                { label: "Export Report",   icon: "-", action: () => setTab("reports"), color: "#6366f1" },
+                { label: "Budget Review",   icon: "-", action: () => setTab("budget"), color: "#8b5cf6" },
+                { label: "Payment Run",     icon: "-", action: () => setTab("payments"), color: "#3b82f6" },
+                { label: "GL Entries",      icon: "-", action: () => setTab("journal"), color: "#ec4899" },
               ].map((a, i) => (
                 <button key={i} onClick={a.action} style={{ padding: "12px", background: `${a.color}08`, border: `1.5px solid ${a.color}22`, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "#374151", transition: "all 0.15s" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `${a.color}18`; }}
@@ -373,12 +373,12 @@ export default function AccountantWorkspacePage() {
 
           {/* Recent Sync */}
           <div style={card}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a" }}>🔄 Recent ERP Syncs</div>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: "#0f172a" }}>- Recent ERP Syncs</div>
             {syncQueue.slice(0,6).map(s => (
               <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #f8fafc" }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{s.sync_type || s.entity_type || "sync"}</div>
-                  <div style={{ fontSize: 10, color: "#9ca3af" }}>{fmtDate(s.created_at)} · {s.direction}</div>
+                  <div style={{ fontSize: 10, color: "#9ca3af" }}>{fmtDate(s.created_at)} - {s.direction}</div>
                 </div>
                 {statusBadge(s.status)}
               </div>
@@ -388,13 +388,13 @@ export default function AccountantWorkspacePage() {
         </div>
       )}
 
-      {/* ── INVOICE MATCHING TAB ── */}
+      {/* - INVOICE MATCHING TAB - */}
       {tab === "invoice_matching" && (
         <div style={card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>📋 Three-Way Invoice Matching</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Match Purchase Orders · Goods Received Notes · Supplier Invoices</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>- Three-Way Invoice Matching</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Match Purchase Orders - Goods Received Notes - Supplier Invoices</div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <select style={{ ...inputS, width: "auto" }} defaultValue="all">
@@ -405,7 +405,7 @@ export default function AccountantWorkspacePage() {
               </select>
             </div>
           </div>
-          {loading ? <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>Loading invoice matches…</div> : (
+          {loading ? <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>Loading invoice matches-</div> : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -420,21 +420,21 @@ export default function AccountantWorkspacePage() {
                     <tr key={inv.id} style={{ transition: "background 0.15s" }}
                       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f8fafc"}
                       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
-                      <td style={tblCell}><span style={{ fontWeight: 600 }}>{inv.po_number || "—"}</span></td>
-                      <td style={tblCell}>{inv.grn_number || "—"}</td>
-                      <td style={tblCell}>{inv.invoice_number || "—"}</td>
-                      <td style={tblCell}>{inv.supplier || "—"}</td>
+                      <td style={tblCell}><span style={{ fontWeight: 600 }}>{inv.po_number || "-"}</span></td>
+                      <td style={tblCell}>{inv.grn_number || "-"}</td>
+                      <td style={tblCell}>{inv.invoice_number || "-"}</td>
+                      <td style={tblCell}>{inv.supplier || "-"}</td>
                       <td style={tblCell}><span style={{ fontWeight: 600, color: "#059669" }}>{fmt(inv.amount || 0)}</span></td>
                       <td style={tblCell}>{statusBadge(inv.status)}</td>
-                      <td style={tblCell}><span style={{ fontSize: 16 }}>✅</span></td>
+                      <td style={tblCell}><span style={{ fontSize: 16 }}>-</span></td>
                       <td style={tblCell}>
                         {inv.status === "pending" ? (
                           <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => approveInvoiceMatch(inv.id)} style={btnSm("#22c55e")}>✓ Approve</button>
-                            <button onClick={() => rejectInvoiceMatch(inv.id)} style={btnSm("#ef4444")}>✗ Reject</button>
+                            <button onClick={() => approveInvoiceMatch(inv.id)} style={btnSm("#22c55e")}>- Approve</button>
+                            <button onClick={() => rejectInvoiceMatch(inv.id)} style={btnSm("#ef4444")}>- Reject</button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: 12, color: "#9ca3af" }}>—</span>
+                          <span style={{ fontSize: 12, color: "#9ca3af" }}>-</span>
                         )}
                       </td>
                     </tr>
@@ -447,17 +447,17 @@ export default function AccountantWorkspacePage() {
         </div>
       )}
 
-      {/* ── PAYMENTS TAB ── */}
+      {/* - PAYMENTS TAB - */}
       {tab === "payments" && (
         <div style={card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>💳 Payment Management</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Create · Approve · Export Payment Proposals</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>- Payment Management</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Create - Approve - Export Payment Proposals</div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button style={{ ...btnPrimary, background: "linear-gradient(135deg,#3b82f6,#1d4ed8)" }}>+ New Payment Run</button>
-              <button onClick={() => { setReportType("payment_register"); exportReport(); }} style={{ ...btnPrimary, background: "linear-gradient(135deg,#6366f1,#4f46e5)" }}>📥 Export</button>
+              <button onClick={() => { setReportType("payment_register"); exportReport(); }} style={{ ...btnPrimary, background: "linear-gradient(135deg,#6366f1,#4f46e5)" }}>- Export</button>
             </div>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -475,15 +475,15 @@ export default function AccountantWorkspacePage() {
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f8fafc"}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
                     <td style={tblCell}><span style={{ fontWeight: 600, color: "#3b82f6" }}>{p.voucher_number || p.id.slice(-8)}</span></td>
-                    <td style={tblCell}>{p.payee || "—"}</td>
+                    <td style={tblCell}>{p.payee || "-"}</td>
                     <td style={tblCell}><span style={{ fontWeight: 700, color: "#059669" }}>{fmt(p.total_amount || 0)}</span></td>
                     <td style={tblCell}><span style={{ textTransform: "capitalize" }}>{p.payment_method || "bank"}</span></td>
                     <td style={tblCell}>{statusBadge(p.status)}</td>
-                    <td style={tblCell}>{p.due_date ? fmtDate(p.due_date) : "—"}</td>
+                    <td style={tblCell}>{p.due_date ? fmtDate(p.due_date) : "-"}</td>
                     <td style={tblCell}>
                       {p.status === "pending" || p.status === "draft" ? (
-                        <button onClick={() => approvePayment(p.id)} style={btnSm("#22c55e")}>✓ Approve</button>
-                      ) : <span style={{ fontSize: 12, color: "#9ca3af" }}>—</span>}
+                        <button onClick={() => approvePayment(p.id)} style={btnSm("#22c55e")}>- Approve</button>
+                      ) : <span style={{ fontSize: 12, color: "#9ca3af" }}>-</span>}
                     </td>
                   </tr>
                 ))}
@@ -494,12 +494,12 @@ export default function AccountantWorkspacePage() {
         </div>
       )}
 
-      {/* ── BUDGET CONTROL TAB ── */}
+      {/* - BUDGET CONTROL TAB - */}
       {tab === "budget" && (
         <div style={{ display: "grid", gap: 20 }}>
           <div style={card}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a", marginBottom: 4 }}>📈 Budget Control & Monitoring</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Monitor budget consumption · Approve over-budget requests · Vote head tracking</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a", marginBottom: 4 }}>- Budget Control & Monitoring</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Monitor budget consumption - Approve over-budget requests - Vote head tracking</div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -515,7 +515,7 @@ export default function AccountantWorkspacePage() {
                       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f8fafc"}
                       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
                       <td style={tblCell}>{b.message || b.alert_type || "Budget Alert"}</td>
-                      <td style={tblCell}><span style={{ fontFamily: "monospace", fontWeight: 600 }}>{b.budget_code || "—"}</span></td>
+                      <td style={tblCell}><span style={{ fontFamily: "monospace", fontWeight: 600 }}>{b.budget_code || "-"}</span></td>
                       <td style={tblCell}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
@@ -525,7 +525,7 @@ export default function AccountantWorkspacePage() {
                         </div>
                       </td>
                       <td style={tblCell}>{statusBadge(b.severity || b.status || "warning")}</td>
-                      <td style={tblCell}><span style={{ fontSize: 16 }}>{b.override_approved ? "✅" : "❌"}</span></td>
+                      <td style={tblCell}><span style={{ fontSize: 16 }}>{b.override_approved ? "-" : "-"}</span></td>
                       <td style={tblCell}>{fmtDate(b.created_at)}</td>
                       <td style={tblCell}>
                         {!b.override_approved && (
@@ -536,24 +536,24 @@ export default function AccountantWorkspacePage() {
                   ))}
                 </tbody>
               </table>
-              {budgetAlerts.length === 0 && <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af", fontSize: 14 }}>✅ No budget alerts</div>}
+              {budgetAlerts.length === 0 && <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af", fontSize: 14 }}>- No budget alerts</div>}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── ERP SYNC TAB ── */}
+      {/* - ERP SYNC TAB - */}
       {tab === "erp_sync" && (
         <div style={{ display: "grid", gap: 20 }}>
           <div style={card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>🔄 ERP Synchronisation Module</div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Bidirectional data flow · Dynamics 365 · Azure Logic Apps middleware</div>
+                <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>- ERP Synchronisation Module</div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Bidirectional data flow - Dynamics 365 - Azure Logic Apps middleware</div>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={triggerManualSync} disabled={syncing} style={btnPrimary}>
-                  {syncing ? "⏳ Syncing…" : "🚀 Manual Sync"}
+                  {syncing ? "- Syncing-" : "- Manual Sync"}
                 </button>
                 {[
                   { label: "Push POs",      type: "purchase_orders_push" },
@@ -563,7 +563,7 @@ export default function AccountantWorkspacePage() {
                 ].map(btn => (
                   <button key={btn.type} onClick={async () => {
                     await supabase.from("erp_sync_queue").insert({ sync_type: btn.type, direction: btn.type.includes("pull") ? "pull" : "push", status: "pending", is_manual: true, payload: {} } as any);
-                    showToast(`✅ ${btn.label} queued!`); fetchAll();
+                    showToast(`- ${btn.label} queued!`); fetchAll();
                   }} style={{ ...btnPrimary, background: "linear-gradient(135deg,#0e7490,#0c6380)", fontSize: 12, padding: "8px 14px" }}>
                     {btn.label}
                   </button>
@@ -574,8 +574,8 @@ export default function AccountantWorkspacePage() {
             {/* Sync direction indicators */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
               {[
-                { label: "Push to D365", desc: "POs · GRNs · Invoices · Journal Entries", icon: "⬆️", color: "#3b82f6" },
-                { label: "Pull from D365", desc: "Vendor Master · GL Accounts · Payment Status", icon: "⬇️", color: "#22c55e" },
+                { label: "Push to D365", desc: "POs - GRNs - Invoices - Journal Entries", icon: "-", color: "#3b82f6" },
+                { label: "Pull from D365", desc: "Vendor Master - GL Accounts - Payment Status", icon: "-", color: "#22c55e" },
               ].map((dir, i) => (
                 <div key={i} style={{ padding: "16px", background: `${dir.color}08`, border: `1.5px solid ${dir.color}20`, borderRadius: 10 }}>
                   <div style={{ fontSize: 22, marginBottom: 6 }}>{dir.icon}</div>
@@ -600,10 +600,10 @@ export default function AccountantWorkspacePage() {
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f8fafc"}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
                     <td style={tblCell}><span style={{ fontWeight: 600 }}>{s.sync_type || s.entity_type || "sync"}</span></td>
-                    <td style={tblCell}><span style={{ fontSize: 16 }}>{s.direction === "push" ? "⬆️" : "⬇️"}</span> {s.direction}</td>
+                    <td style={tblCell}><span style={{ fontSize: 16 }}>{s.direction === "push" ? "-" : "-"}</span> {s.direction}</td>
                     <td style={tblCell}>{statusBadge(s.status)}</td>
-                    <td style={tblCell}><span style={{ fontSize: 14 }}>{s.is_manual ? "✅" : "🤖"}</span></td>
-                    <td style={tblCell}><span style={{ fontSize: 14 }}>{s.gl_verified ? "✅" : "—"}</span></td>
+                    <td style={tblCell}><span style={{ fontSize: 14 }}>{s.is_manual ? "-" : "-"}</span></td>
+                    <td style={tblCell}><span style={{ fontSize: 14 }}>{s.gl_verified ? "-" : "-"}</span></td>
                     <td style={tblCell}>{fmtDate(s.created_at)}</td>
                   </tr>
                 ))}
@@ -614,11 +614,11 @@ export default function AccountantWorkspacePage() {
         </div>
       )}
 
-      {/* ── JOURNAL/LEDGER TAB ── */}
+      {/* - JOURNAL/LEDGER TAB - */}
       {tab === "journal" && (
         <div style={card}>
-          <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a", marginBottom: 4 }}>📖 Journal & GL Ledger View</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Drill-down into ERP postings · GL account entries · Debit/Credit ledger</div>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a", marginBottom: 4 }}>- Journal & GL Ledger View</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Drill-down into ERP postings - GL account entries - Debit/Credit ledger</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -635,11 +635,11 @@ export default function AccountantWorkspacePage() {
                     <tr key={g.id}
                       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f8fafc"}
                       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
-                      <td style={tblCell}><span style={{ fontFamily: "monospace", fontWeight: 700, color: "#3b82f6" }}>{g.gl_account || "—"}</span></td>
-                      <td style={tblCell}>{g.description || "—"}</td>
-                      <td style={tblCell}><span style={{ fontFamily: "monospace", fontSize: 12 }}>{g.reference || "—"}</span></td>
-                      <td style={{ ...tblCell, color: "#059669", fontWeight: 600 }}>{g.debit ? fmt(g.debit) : "—"}</td>
-                      <td style={{ ...tblCell, color: "#ef4444", fontWeight: 600 }}>{g.credit ? fmt(g.credit) : "—"}</td>
+                      <td style={tblCell}><span style={{ fontFamily: "monospace", fontWeight: 700, color: "#3b82f6" }}>{g.gl_account || "-"}</span></td>
+                      <td style={tblCell}>{g.description || "-"}</td>
+                      <td style={tblCell}><span style={{ fontFamily: "monospace", fontSize: 12 }}>{g.reference || "-"}</span></td>
+                      <td style={{ ...tblCell, color: "#059669", fontWeight: 600 }}>{g.debit ? fmt(g.debit) : "-"}</td>
+                      <td style={{ ...tblCell, color: "#ef4444", fontWeight: 600 }}>{g.credit ? fmt(g.credit) : "-"}</td>
                       <td style={{ ...tblCell, fontWeight: 700, color: net >= 0 ? "#059669" : "#ef4444" }}>{fmt(Math.abs(net))}</td>
                       <td style={tblCell}>{statusBadge(g.status || "posted")}</td>
                       <td style={tblCell}>{fmtDate(g.created_at)}</td>
@@ -653,29 +653,29 @@ export default function AccountantWorkspacePage() {
         </div>
       )}
 
-      {/* ── QUOTATIONS TAB ── */}
+      {/* - QUOTATIONS TAB - */}
       {tab === "quotations" && (
         <div style={{ display: "grid", gap: 20 }}>
           <div style={card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>📝 Quotation Creator</div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Create · Send · Manage supplier quotation requests</div>
+                <div style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>- Quotation Creator</div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Create - Send - Manage supplier quotation requests</div>
               </div>
               <button onClick={() => setShowNewQuotation(v => !v)} style={btnPrimary}>
-                {showNewQuotation ? "✕ Cancel" : "+ New Quotation"}
+                {showNewQuotation ? "- Cancel" : "+ New Quotation"}
               </button>
             </div>
 
             {/* New Quotation Form */}
             {showNewQuotation && (
               <div style={{ background: "#f8fafc", borderRadius: 12, padding: "20px", marginBottom: 20, border: "1.5px solid #e2e8f0" }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginBottom: 16 }}>📋 New Quotation</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginBottom: 16 }}>- New Quotation</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Supplier</label>
                     <select value={newQuote.supplier_id} onChange={e => setNewQuote(q => ({ ...q, supplier_id: e.target.value }))} style={inputS}>
-                      <option value="">— Select Supplier —</option>
+                      <option value="">- Select Supplier -</option>
                       {supplierList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
@@ -689,12 +689,12 @@ export default function AccountantWorkspacePage() {
                   </div>
                   <div style={{ gridColumn: "span 3" }}>
                     <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Notes / Terms</label>
-                    <textarea value={newQuote.notes} onChange={e => setNewQuote(q => ({ ...q, notes: e.target.value }))} style={{ ...inputS, height: 72, resize: "vertical" }} placeholder="Quotation terms, scope, delivery notes…" />
+                    <textarea value={newQuote.notes} onChange={e => setNewQuote(q => ({ ...q, notes: e.target.value }))} style={{ ...inputS, height: 72, resize: "vertical" }} placeholder="Quotation terms, scope, delivery notes-" />
                   </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
                   <button onClick={() => setShowNewQuotation(false)} style={{ padding: "9px 18px", background: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, cursor: "pointer", color: "#374151" }}>Cancel</button>
-                  <button onClick={createQuotation} style={btnPrimary}>💾 Create Quotation</button>
+                  <button onClick={createQuotation} style={btnPrimary}>- Create Quotation</button>
                 </div>
               </div>
             )}
@@ -715,13 +715,13 @@ export default function AccountantWorkspacePage() {
                       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f8fafc"}
                       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
                       <td style={tblCell}><span style={{ fontWeight: 700, color: "#eab308" }}>{q.quotation_number}</span></td>
-                      <td style={tblCell}>{q.supplier_name || supplierList.find(s => s.id === q.supplier_id)?.name || "—"}</td>
+                      <td style={tblCell}>{q.supplier_name || supplierList.find(s => s.id === q.supplier_id)?.name || "-"}</td>
                       <td style={tblCell}><span style={{ fontWeight: 600, color: "#059669" }}>{fmt(q.total_amount || 0)}</span></td>
-                      <td style={tblCell}>{q.valid_until ? fmtDate(q.valid_until) : "—"}</td>
+                      <td style={tblCell}>{q.valid_until ? fmtDate(q.valid_until) : "-"}</td>
                       <td style={tblCell}>{statusBadge(q.status)}</td>
                       <td style={tblCell}>
                         {q.status === "draft" && (
-                          <button onClick={() => sendQuotation(q.id)} style={btnSm("#3b82f6")}>📤 Send</button>
+                          <button onClick={() => sendQuotation(q.id)} style={btnSm("#3b82f6")}>- Send</button>
                         )}
                       </td>
                     </tr>
@@ -734,17 +734,17 @@ export default function AccountantWorkspacePage() {
         </div>
       )}
 
-      {/* ── REPORTS TAB ── */}
+      {/* - REPORTS TAB - */}
       {tab === "reports" && (
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20 }}>
           <div style={card}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginBottom: 16 }}>📑 Report Types</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginBottom: 16 }}>- Report Types</div>
             {[
-              { value: "invoice_summary", label: "Invoice Summary", icon: "📋", color: "#f97316" },
-              { value: "payment_register", label: "Payment Register", icon: "💳", color: "#3b82f6" },
-              { value: "budget_alerts", label: "Budget Alerts Report", icon: "📊", color: "#8b5cf6" },
-              { value: "gl_entries", label: "GL Entries Report", icon: "📖", color: "#ec4899" },
-              { value: "erp_sync_log", label: "ERP Sync Log", icon: "🔄", color: "#06b6d4" },
+              { value: "invoice_summary", label: "Invoice Summary", icon: "-", color: "#f97316" },
+              { value: "payment_register", label: "Payment Register", icon: "-", color: "#3b82f6" },
+              { value: "budget_alerts", label: "Budget Alerts Report", icon: "-", color: "#8b5cf6" },
+              { value: "gl_entries", label: "GL Entries Report", icon: "-", color: "#ec4899" },
+              { value: "erp_sync_log", label: "ERP Sync Log", icon: "-", color: "#06b6d4" },
             ].map(r => (
               <button key={r.value} onClick={() => setReportType(r.value)} style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%",
@@ -767,7 +767,7 @@ export default function AccountantWorkspacePage() {
                 <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Generated: {new Date().toLocaleString("en-KE")}</div>
               </div>
               <button onClick={exportReport} disabled={exportLoading} style={btnPrimary}>
-                {exportLoading ? "Exporting…" : "📥 Export CSV"}
+                {exportLoading ? "Exporting-" : "- Export CSV"}
               </button>
             </div>
             {/* Report preview */}
@@ -785,9 +785,9 @@ export default function AccountantWorkspacePage() {
                 ))}
               </div>
               <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>
-                📌 Report covers all {reportType.replace(/_/g," ")} records in the system.<br/>
-                📅 Data as of {new Date().toLocaleDateString("en-KE")}<br/>
-                🏥 Embu Level 5 Hospital · ProcurBosse ERP v5.8
+                - Report covers all {reportType.replace(/_/g," ")} records in the system.<br/>
+                - Data as of {new Date().toLocaleDateString("en-KE")}<br/>
+                - Embu Level 5 Hospital - ProcurBosse ERP v5.8
               </div>
             </div>
           </div>

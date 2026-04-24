@@ -9,7 +9,7 @@ import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import logoImg from "@/assets/logo.png";
 
-// ─── constants ────────────────────────────────────────────────────────────────
+// - constants -
 const MONTHS = ["January","February","March","April","May","June",
                 "July","August","September","October","November","December"];
 
@@ -25,7 +25,7 @@ const STATUS_COL: Record<string,string> = {
   pass:"#15803d", fail:"#dc2626", pending:"#6b7280", conditional:"#92400e"
 };
 
-// ─── row shapes ───────────────────────────────────────────────────────────────
+// - row shapes -
 type IQCRow = {
   id?: string;
   supplier_name: string;
@@ -47,7 +47,7 @@ const emptyIQC  = (): IQCRow  => ({ supplier_name:"", item_code:"", invoice_no:"
 const emptyPend = (): PendRow => ({ date_of_rejection:"", reason_for_pendency:"", responsible:"" });
 const emptyLQC  = (): LQCRow  => ({ line:"", defect_type:"", qty_rejected:"", rejection_rate:"", root_cause:"", corrective_action:"", status:"" });
 
-// ─── shared cell styles ───────────────────────────────────────────────────────
+// - shared cell styles -
 const border = "1px solid #4472c4";
 
 const tdBase: React.CSSProperties = {
@@ -92,7 +92,7 @@ export default function QualityDashboardPage() {
   const [pendRows, setPendRows] = useState<PendRow[]>(Array.from({length:6},  emptyPend));
   const [lqcRows,  setLqcRows]  = useState<LQCRow[]>(Array.from({length:8},  emptyLQC));
 
-  // ── load ────────────────────────────────────────────────────────────────────
+  // - load -
   const load = async () => {
     setLoading(true);
     try {
@@ -103,7 +103,7 @@ export default function QualityDashboardPage() {
           .in("key",["hospital_name","system_name","system_logo_url"]),
       ]);
 
-      // map inspections → IQC rows
+      // map inspections - IQC rows
       if (inspRes.data?.length) {
         setIqcRows(Array.from({length:12}, (_,i) => {
           const r = inspRes.data[i];
@@ -126,7 +126,7 @@ export default function QualityDashboardPage() {
         }));
       }
 
-      // map NCRs → pending-return rows
+      // map NCRs - pending-return rows
       if (ncrRes.data?.length) {
         setPendRows(Array.from({length:6}, (_,i) => {
           const r = ncrRes.data[i];
@@ -149,12 +149,12 @@ export default function QualityDashboardPage() {
 
   useEffect(() => { load(); }, []);
 
-  // ── cell updaters ────────────────────────────────────────────────────────────
+  // - cell updaters -
   const updIQC  = (i:number, f:keyof IQCRow,  v:string) => setIqcRows(r  => r.map((x,j)=>j===i?{...x,[f]:v}:x));
   const updPend = (i:number, f:keyof PendRow, v:string) => setPendRows(r => r.map((x,j)=>j===i?{...x,[f]:v}:x));
   const updLQC  = (i:number, f:keyof LQCRow,  v:string) => setLqcRows(r  => r.map((x,j)=>j===i?{...x,[f]:v}:x));
 
-  // ── save ─────────────────────────────────────────────────────────────────────
+  // - save -
   const saveAll = async () => {
     setSaving(true);
     let saved = 0;
@@ -207,19 +207,19 @@ export default function QualityDashboardPage() {
       }
 
       logAudit(user?.id, profile?.full_name, "update", "quality_dashboard", undefined, { month, year, saved });
-      toast({ title: `Dashboard saved ✓`, description: `${saved} records updated` });
+      toast({ title: `Dashboard saved -`, description: `${saved} records updated` });
     } catch(e:any) {
       toast({ title:"Error", description: e.message, variant:"destructive" });
     }
     setSaving(false);
   };
 
-  // ── print ─────────────────────────────────────────────────────────────────────
+  // - print -
   const doPrint = () => {
     const win = window.open("","_blank","width=1200,height=850");
     if (!win) return;
     win.document.write(`<!DOCTYPE html><html><head>
-      <title>Quality Dashboard — ${month} ${year}</title>
+      <title>Quality Dashboard - ${month} ${year}</title>
       <style>
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:"Calibri",Arial,sans-serif;font-size:9pt;background:#fff;color:#1a1a2e;}
@@ -237,7 +237,7 @@ export default function QualityDashboardPage() {
     setTimeout(() => win.print(), 600);
   };
 
-  // ── export excel ───────────────────────────────────────────────────────────────
+  // - export excel -
   const doExport = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
@@ -248,10 +248,10 @@ export default function QualityDashboardPage() {
     ), "Pending Returns");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lqcRows), "LQC");
     XLSX.writeFile(wb, `Quality_Dashboard_${month}_${year}.xlsx`);
-    toast({ title:"Excel exported ✓" });
+    toast({ title:"Excel exported -" });
   };
 
-  // ── derived stats ────────────────────────────────────────────────────────────
+  // - derived stats -
   const totalRej    = iqcRows.reduce((s,r)=>s+Number(r.rej_qty||0), 0);
   const usedIQC     = iqcRows.filter(r=>r.supplier_name).length;
   const closedIQC   = iqcRows.filter(r=>r.status==="closed"||r.status==="pass").length;
@@ -274,11 +274,11 @@ export default function QualityDashboardPage() {
         /* qrow/qinp/qsel styles now inline */
       `}</style>
 
-      {/* ══ TOP TOOLBAR ══ */}
+      {/* - TOP TOOLBAR - */}
       <div style={{background:"linear-gradient(135deg,#0a2558,#2e75b6)",padding:"10px 18px",display:"flex",alignItems:"center",gap:10,boxShadow:"0 2px 10px rgba(0,0,0,0.2)",flexShrink:0}}>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>Quality Dashboard</div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{hospitalName} · IQC &amp; LQC Tracking Form</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{hospitalName} - IQC &amp; LQC Tracking Form</div>
         </div>
         {/* Month / Year */}
         <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 12px",border:"1px solid rgba(255,255,255,0.2)"}}>
@@ -308,7 +308,7 @@ export default function QualityDashboardPage() {
         </button>
       </div>
 
-      {/* ══ KPI STRIP ══ */}
+      {/* - KPI STRIP - */}
       <div style={{display:"flex",background:"#fff",borderBottom:"2px solid #2e75b6"}}>
         {[
           {label:"Total Rejected",    val:totalRej,   col:"#dc2626"},
@@ -325,11 +325,11 @@ export default function QualityDashboardPage() {
         ))}
       </div>
 
-      {/* ══ PRINTABLE FORM AREA ══ */}
+      {/* - PRINTABLE FORM AREA - */}
       <div style={{padding:"10px 12px",overflowX:"auto"}} ref={printRef}>
         <div style={{minWidth:900}}>
 
-          {/* ── Title row ── */}
+          {/* - Title row - */}
           <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
             <tbody>
               <tr>
@@ -350,7 +350,7 @@ export default function QualityDashboardPage() {
             </tbody>
           </table>
 
-          {/* ══ IQC TABLE ══ */}
+          {/* - IQC TABLE - */}
           <table style={{width:"100%",borderCollapse:"collapse",marginTop:2,tableLayout:"fixed"}}>
             <thead>
               <tr>
@@ -410,7 +410,7 @@ export default function QualityDashboardPage() {
                   <td style={{...tdBase,padding:0}}>
                     <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:row.severity ? SEV_COL[row.severity]||"#1a1a2e" : "#9ca3af",fontWeight:row.severity?700:400}} value={row.severity}
                       onChange={e=>updIQC(i,"severity",e.target.value)}>
-                      <option value="">—</option>
+                      <option value="">-</option>
                       <option value="critical">Critical</option>
                       <option value="major">Major</option>
                       <option value="minor">Minor</option>
@@ -420,7 +420,7 @@ export default function QualityDashboardPage() {
                   <td style={{...tdBase,padding:0}}>
                     <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:"#111827"}} value={row.stage_of_issue}
                       onChange={e=>updIQC(i,"stage_of_issue",e.target.value)}>
-                      <option value="">—</option>
+                      <option value="">-</option>
                       <option>Incoming</option>
                       <option>In-Process</option>
                       <option>Final</option>
@@ -442,7 +442,7 @@ export default function QualityDashboardPage() {
                   <td style={{...tdBase,padding:0}}>
                     <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:"#111827"}} value={row.scar_required}
                       onChange={e=>updIQC(i,"scar_required",e.target.value)}>
-                      <option value="">—</option>
+                      <option value="">-</option>
                       <option>Yes</option>
                       <option>No</option>
                       <option>Pending</option>
@@ -453,7 +453,7 @@ export default function QualityDashboardPage() {
                     background: row.status ? (STATUS_BG[row.status]||"#fff") : "#fff"}}>
                     <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:row.status?(STATUS_COL[row.status]||"#1a1a2e"):"#9ca3af",fontWeight:row.status?700:400}} value={row.status}
                       onChange={e=>updIQC(i,"status",e.target.value)}>
-                      <option value="">—</option>
+                      <option value="">-</option>
                       <option value="open">Open</option>
                       <option value="under_review">Under Review</option>
                       <option value="conditional">Conditional</option>
@@ -467,7 +467,7 @@ export default function QualityDashboardPage() {
             </tbody>
           </table>
 
-          {/* ══ PENDING RETURNS + PHOTO SECTION ══ */}
+          {/* - PENDING RETURNS + PHOTO SECTION - */}
           <table style={{width:"100%",borderCollapse:"collapse",marginTop:2,tableLayout:"fixed"}}>
             <tbody>
               <tr>
@@ -541,7 +541,7 @@ export default function QualityDashboardPage() {
             </tbody>
           </table>
 
-          {/* ══ LQC TABLE ══ */}
+          {/* - LQC TABLE - */}
           <table style={{width:"100%",borderCollapse:"collapse",marginTop:2,tableLayout:"fixed"}}>
             <thead>
               <tr>
@@ -588,7 +588,7 @@ export default function QualityDashboardPage() {
                     background:row.status?(STATUS_BG[row.status]||"#fff"):"#fff"}}>
                     <select style={{width:"100%",border:"none",outline:"none",background:"#f8fafc",fontSize:"9.5px",fontFamily:"inherit",textAlign:"center",cursor:"pointer",color:row.status?(STATUS_COL[row.status]||"#1a1a2e"):"#9ca3af",fontWeight:row.status?700:400}} value={row.status}
                       onChange={e=>updLQC(i,"status",e.target.value)}>
-                      <option value="">—</option>
+                      <option value="">-</option>
                       <option value="open">Open</option>
                       <option value="under_review">In Progress</option>
                       <option value="closed">Closed</option>
@@ -624,7 +624,7 @@ export default function QualityDashboardPage() {
             </tbody>
           </table>
 
-          {/* ══ SIGN-OFF ══ */}
+          {/* - SIGN-OFF - */}
           <table style={{width:"100%",borderCollapse:"collapse",marginTop:2,tableLayout:"fixed"}}>
             <tbody>
               <tr>
@@ -646,7 +646,7 @@ export default function QualityDashboardPage() {
               </tr>
               <tr>
                 <td colSpan={4} style={{...tdBase,background:"#2e75b6",color:"#fff",fontSize:8.5,padding:"4px 10px",textAlign:"center"}}>
-                  {hospitalName} · Quality Dashboard · {month} {year} · Generated by {sysName} · Doc Ref: QD/EL5H/{year}
+                  {hospitalName} - Quality Dashboard - {month} {year} - Generated by {sysName} - Doc Ref: QD/EL5H/{year}
                 </td>
               </tr>
             </tbody>
@@ -655,7 +655,7 @@ export default function QualityDashboardPage() {
         </div>{/* minWidth wrapper */}
       </div>{/* padding wrapper */}
 
-      {/* ══ QUICK NAV FOOTER ══ */}
+      {/* - QUICK NAV FOOTER - */}
       <div style={{display:"flex",gap:8,padding:"10px 12px",background:"#fff",borderTop:"2px solid #2e75b6",flexWrap:"wrap" as const}}>
         <button onClick={()=>navigate("/quality/inspections")}
           style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#0f766e,#134e4a)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
@@ -667,11 +667,11 @@ export default function QualityDashboardPage() {
         </button>
         <button onClick={()=>navigate("/quality/inspections")}
           style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#1d4ed8,#1e40af)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-          View All Inspections →
+          View All Inspections -
         </button>
         <button onClick={()=>navigate("/quality/non-conformance")}
           style={{flex:1,minWidth:140,padding:"9px",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
-          Manage Non-Conformances →
+          Manage Non-Conformances -
         </button>
       </div>
 

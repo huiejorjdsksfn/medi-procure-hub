@@ -31,8 +31,8 @@ export default function DepartmentsPage() {
   const save = async()=>{
     if(!form.name){toast({title:"Department name required",variant:"destructive"});return;}
     setSaving(true);
-    if(editing){ await(supabase as any).from("departments").update(form).eq("id",editing.id); toast({title:"Updated ✓"}); }
-    else{ await(supabase as any).from("departments").insert({...form,created_by:user?.id}); toast({title:"Created ✓"}); }
+    if(editing){ await(supabase as any).from("departments").update(form).eq("id",editing.id); toast({title:"Updated -"}); }
+    else{ await(supabase as any).from("departments").insert({...form,created_by:user?.id}); toast({title:"Created -"}); }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
 
@@ -97,12 +97,12 @@ export default function DepartmentsPage() {
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#f5f3ff"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#eef2ff"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#f5f3ff"}>
-                <td style={{padding:"9px 14px",fontFamily:"monospace",fontSize:10,color:"#6b7280"}}>{r.code||"—"}</td>
+                <td style={{padding:"9px 14px",fontFamily:"monospace",fontSize:10,color:"#6b7280"}}>{r.code||"-"}</td>
                 <td style={{padding:"9px 14px",fontWeight:700,color:"#1f2937"}}>{r.name}</td>
-                <td style={{padding:"9px 14px",color:"#374151"}}>{r.head_of_department||"—"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.phone||"—"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.email||"—"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.budget_center||"—"}</td>
+                <td style={{padding:"9px 14px",color:"#374151"}}>{r.head_of_department||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.phone||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.email||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.budget_center||"-"}</td>
                 <td style={{padding:"9px 14px"}}>
                   <div style={{display:"flex",gap:6}}>
                     {canManage&&<button onClick={()=>{setEditing(r);setForm({name:r.name,code:r.code||"",description:r.description||"",head_of_department:r.head_of_department||"",phone:r.phone||"",email:r.email||"",budget_center:r.budget_center||""});setShowNew(true);}}

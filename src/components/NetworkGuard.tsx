@@ -1,5 +1,5 @@
 /**
- * NetworkGuard v2.0 — IP restriction with Image 3 Access Denied UI
+ * NetworkGuard v2.0 - IP restriction with Image 3 Access Denied UI
  * Clean white card, Embu logo, countdown, "Log Out Now" button
  */
 import { useState, useEffect, useRef } from "react";
@@ -13,7 +13,7 @@ interface DeniedState {
   reason: string;
 }
 
-// ─── Access Denied overlay (Image 3 design) ─────────────────────────────────
+// - Access Denied overlay (Image 3 design) -
 function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogout: () => void }) {
   const [countdown, setCountdown] = useState(10);
 
@@ -34,7 +34,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
       display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "'Segoe UI', system-ui, sans-serif",
     }}>
-      {/* Card — matches Image 3 */}
+      {/* Card - matches Image 3 */}
       <div style={{
         background: "#fff", borderRadius: 20, padding: "40px 36px",
         maxWidth: 420, width: "90%", textAlign: "center",
@@ -47,7 +47,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
             background: "#fee2e2",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <div style={{ fontSize: 36, lineHeight: 1 }}>🚫</div>
+            <div style={{ fontSize: 36, lineHeight: 1 }}>-</div>
           </div>
         </div>
 
@@ -96,7 +96,7 @@ function AccessDeniedOverlay({ denied, onLogout }: { denied: DeniedState; onLogo
         {/* Footer */}
         <div style={{ fontSize:11, color:"#9ca3af", lineHeight:1.6 }}>
           Contact the IT Department to whitelist your IP address.<br/>
-          <span style={{ fontWeight:600 }}>Embu Level 5 Hospital · EL5 MediProcure</span>
+          <span style={{ fontWeight:600 }}>Embu Level 5 Hospital - EL5 MediProcure</span>
         </div>
 
         {/* Logo watermark */}

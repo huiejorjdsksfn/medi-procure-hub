@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Notification Popup v3.0
- * Toast: exact match to image 1 — centered card, logo badge, pink Open button
+ * ProcurBosse - Notification Popup v3.0
+ * Toast: exact match to image 1 - centered card, logo badge, pink Open button
  * Dropdown: dark navy header, scrollable list, mark-all-read
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -40,12 +40,12 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 const TYPE_EMOJI: Record<string, string> = {
-  error:"❌", warning:"⚠️", success:"✅", email:"✉️",
-  procurement:"📋", grn:"📦", voucher:"💰", tender:"⚖️",
-  quality:"🔍", inventory:"📊", system:"⚙️", info:"🔔",
+  error:"-", warning:"-", success:"-", email:"-",
+  procurement:"-", grn:"-", voucher:"-", tender:"-",
+  quality:"-", inventory:"-", system:"-", info:"-",
 };
 
-// ─── Toast popup — exact match to image 1 ─────────────────────────────────
+// - Toast popup - exact match to image 1 -
 function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number; onClose: () => void }) {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
@@ -71,7 +71,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
       transform: visible ? "translateY(0) scale(1)" : "translateY(30px) scale(0.88)",
       pointerEvents: visible ? "auto" : "none",
     }}>
-      {/* ── Outer pink/salmon background like image 1 ── */}
+      {/* - Outer pink/salmon background like image 1 - */}
       <div style={{
         width: 320,
         background: "linear-gradient(145deg, #ffd6d6, #ffb8c6)",
@@ -91,7 +91,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
           <X style={{ width: 12, height: 12, color: "#666" }} />
         </button>
 
-        {/* ── White card (inner) ── */}
+        {/* - White card (inner) - */}
         <div style={{
           background: "#fff",
           borderRadius: 20,
@@ -101,7 +101,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
           position: "relative",
           marginTop: 36,
         }}>
-          {/* Logo badge — overlaps top of white card like image 1 */}
+          {/* Logo badge - overlaps top of white card like image 1 */}
           <div style={{
             position: "absolute",
             top: -38,
@@ -120,7 +120,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
                 width: 54, height: 54, borderRadius: "50%",
                 objectFit: "contain",
               }} />
-              {/* Red count badge — top-right of logo */}
+              {/* Red count badge - top-right of logo */}
               <div style={{
                 position: "absolute", top: -4, right: -4,
                 background: "#ef4444", color: "#fff", borderRadius: "50%",
@@ -137,9 +137,9 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
           </div>
 
           {/* Type emoji */}
-          <div style={{ fontSize: 18, marginBottom: 6 }}>{TYPE_EMOJI[n.type] || "🔔"}</div>
+          <div style={{ fontSize: 18, marginBottom: 6 }}>{TYPE_EMOJI[n.type] || "-"}</div>
 
-          {/* Title — bold, dark */}
+          {/* Title - bold, dark */}
           <div style={{
             fontSize: 17, fontWeight: 800, color: "#1a1a2e",
             marginBottom: 6, lineHeight: 1.3,
@@ -148,16 +148,16 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
             {n.title}
           </div>
 
-          {/* Subtitle — "You have X new notification(s)" */}
+          {/* Subtitle - "You have X new notification(s)" */}
           <div style={{
             fontSize: 12.5, color: "#6b7280",
             marginBottom: 18, lineHeight: 1.5,
             fontFamily: "'Segoe UI', system-ui, sans-serif",
           }}>
-            {n.message?.slice(0, 80)}{n.message?.length > 80 ? "…" : ""}
+            {n.message?.slice(0, 80)}{n.message?.length > 80 ? "-" : ""}
           </div>
 
-          {/* Open button — pink/crimson gradient like image 1 */}
+          {/* Open button - pink/crimson gradient like image 1 */}
           <button
             onClick={() => { if (n.action_url) navigate(n.action_url); close(); }}
             style={{
@@ -192,7 +192,7 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
   );
 }
 
-// ─── Main notification dropdown panel ─────────────────────────────────────
+// - Main notification dropdown panel -
 export default function NotificationPopup({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -224,7 +224,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
 
   useEffect(() => { load(); }, [load]);
 
-  // Real-time subscription — debounced to avoid rapid re-fetches
+  // Real-time subscription - debounced to avoid rapid re-fetches
   useEffect(() => {
     if (!user) return;
     let debounceTimer: ReturnType<typeof setTimeout>;
@@ -267,7 +267,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
 
   return (
     <>
-      {/* Toast popups — stacked with offset */}
+      {/* Toast popups - stacked with offset */}
       {toasts.map((t, idx) => (
         <NotifToast
           key={t.id}
@@ -277,7 +277,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         />
       ))}
 
-      {/* ── Dropdown panel ── */}
+      {/* - Dropdown panel - */}
       <div ref={ref} style={{
         width: 390,
         background: "#fff",
@@ -288,7 +288,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
         fontFamily: "'Segoe UI', system-ui, sans-serif",
       }}>
 
-        {/* ── Header — dark navy like image 2 ── */}
+        {/* - Header - dark navy like image 2 - */}
         <div style={{
           background: "linear-gradient(135deg, #0a2558, #1a3a6b)",
           padding: "18px 20px 22px",
@@ -358,16 +358,16 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
           </div>
         </div>
 
-        {/* ── Notification list ── */}
+        {/* - Notification list - */}
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           {loading && (
             <div style={{ padding: 32, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
-              Loading…
+              Loading-
             </div>
           )}
           {!loading && notifs.length === 0 && (
             <div style={{ padding: 44, textAlign: "center" }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>🔔</div>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>-</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>No notifications</div>
               <div style={{ fontSize: 11.5, color: "#9ca3af", marginTop: 4 }}>You're all caught up!</div>
             </div>
@@ -400,7 +400,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                   flexShrink: 0, fontSize: 16,
                   border: `1px solid ${tc}25`,
                 }}>
-                  {TYPE_EMOJI[n.type] || "🔔"}
+                  {TYPE_EMOJI[n.type] || "-"}
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -416,7 +416,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
                     </div>
                   </div>
                   <div style={{ fontSize: 11.5, color: "#6b7280", marginTop: 3, lineHeight: 1.45 }}>
-                    {n.message?.slice(0, 70)}{n.message?.length > 70 ? "…" : ""}
+                    {n.message?.slice(0, 70)}{n.message?.length > 70 ? "-" : ""}
                   </div>
                   {n.action_url && (
                     <div style={{ marginTop: 5 }}>
@@ -435,7 +435,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
           })}
         </div>
 
-        {/* ── Footer ── */}
+        {/* - Footer - */}
         <div style={{
           padding: "10px 18px",
           borderTop: "1px solid #f3f4f6",
@@ -443,7 +443,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
           background: "#fafafa",
         }}>
           <span style={{ fontSize: 11, color: "#9ca3af" }}>
-            {notifs.length} total · {unread} unread
+            {notifs.length} total - {unread} unread
           </span>
           <button
             onClick={() => { navigate("/notifications"); onClose?.(); }}
@@ -452,7 +452,7 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
               background: "none", border: "none", cursor: "pointer",
             }}
           >
-            View all →
+            View all -
           </button>
         </div>
       </div>

@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — safeQuery v1.0
+ * ProcurBosse - safeQuery v1.0
  * Universal error-safe Supabase wrapper
- * Every query returns data or [] — never throws to UI
- * EL5 MediProcure · Embu Level 5 Hospital
+ * Every query returns data or [] - never throws to UI
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
 

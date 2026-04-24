@@ -24,7 +24,7 @@ export function renderReportPDF(
   yPos += 8;
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(`Embu Level 5 Hospital — Generated ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() / 2, yPos, { align: "center" });
+  doc.text(`Embu Level 5 Hospital - Generated ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() / 2, yPos, { align: "center" });
   yPos += 12;
 
   sections.forEach(section => {

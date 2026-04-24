@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Settings Context v5.0
+ * ProcurBosse - Settings Context v5.0
  * Real-time synced system settings from Supabase system_settings table
  * Falls back to defaults if DB unavailable
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,7 +88,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
-  // Real-time sync — refetch when system_settings changes
+  // Real-time sync - refetch when system_settings changes
   useTableRealtime('system_settings', fetchSettings, 500);
 
   const updateSettings = async (updates: Partial<SystemSettings>) => {

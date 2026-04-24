@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — Report Templates & Print Objects
+ * ProcurBosse - Report Templates & Print Objects
  * Defines structure for all printable reports
  */
 import { PRINT_CONFIG, OBJECT_CODES } from "./index";
@@ -54,7 +54,7 @@ export const REPORT_TEMPLATES: Record<string, ReportTemplate> = {
   PURCHASE_ORDERS: {
     id:           "po_report",
     title:        "Purchase Orders Report",
-    subtitle:     "Local Purchase Orders — Period Summary",
+    subtitle:     "Local Purchase Orders - Period Summary",
     objectCode:   OBJECT_CODES.PURCHASE_ORDER.LOCAL,
     orientation:  "landscape",
     showLetterhead: true,

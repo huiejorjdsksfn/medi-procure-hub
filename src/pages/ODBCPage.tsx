@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — ODBC / MySQL Connection Manager v4.0
- * Full MySQL server integration · Schema migration · Live query editor
+ * ProcurBosse - ODBC / MySQL Connection Manager v4.0
+ * Full MySQL server integration - Schema migration - Live query editor
  * Primary DB setup + Supabase failover config
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,14 +19,14 @@ import {
 
 const db = supabase as any;
 
-/* ── DB type configs ─────────────────────────────────────────────────────── */
+/* - DB type configs - */
 const DB_TYPES = [
-  { value:"mysql",      label:"MySQL",         port:3306,  icon:"🐬", primary:true,  notes:"Recommended primary — MySQL 5.7+ / 8.0" },
-  { value:"mssql",      label:"SQL Server",    port:1433,  icon:"🪟", primary:false, notes:"ODBC Driver 17 or 18 required" },
-  { value:"postgresql", label:"PostgreSQL",    port:5432,  icon:"🐘", primary:false, notes:"libpq / pg driver" },
-  { value:"mariadb",    label:"MariaDB",       port:3306,  icon:"🦭", primary:true,  notes:"MySQL-compatible — MariaDB 10.5+" },
-  { value:"oracle",     label:"Oracle DB",     port:1521,  icon:"☀️", primary:false, notes:"Oracle Instant Client required" },
-  { value:"sqlite",     label:"SQLite",        port:0,     icon:"📦", primary:false, notes:"Local file path" },
+  { value:"mysql",      label:"MySQL",         port:3306,  icon:"-", primary:true,  notes:"Recommended primary - MySQL 5.7+ / 8.0" },
+  { value:"mssql",      label:"SQL Server",    port:1433,  icon:"-", primary:false, notes:"ODBC Driver 17 or 18 required" },
+  { value:"postgresql", label:"PostgreSQL",    port:5432,  icon:"-", primary:false, notes:"libpq / pg driver" },
+  { value:"mariadb",    label:"MariaDB",       port:3306,  icon:"-", primary:true,  notes:"MySQL-compatible - MariaDB 10.5+" },
+  { value:"oracle",     label:"Oracle DB",     port:1521,  icon:"-", primary:false, notes:"Oracle Instant Client required" },
+  { value:"sqlite",     label:"SQLite",        port:0,     icon:"-", primary:false, notes:"Local file path" },
 ];
 
 const STATUS_CFG: Record<string,{color:string;bg:string;label:string}> = {
@@ -45,12 +45,12 @@ const EMPTY = {
 const TABS = ["connections","schema","migration","query","monitor"] as const;
 type Tab = typeof TABS[number];
 
-/* ── Styles ──────────────────────────────────────────────────────────────── */
+/* - Styles - */
 const card: React.CSSProperties = {background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"18px 20px"};
 const inp: React.CSSProperties  = {width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:T.r,padding:"8px 12px",color:T.fg,fontSize:13,outline:"none",boxSizing:"border-box"};
 const btnS=(bg:string,border?:string):React.CSSProperties=>({display:"inline-flex",alignItems:"center",gap:7,padding:"8px 16px",background:bg,color:border?T.fgMuted:"#fff",border:`1px solid ${border||"transparent"}`,borderRadius:T.r,fontSize:13,fontWeight:700,cursor:"pointer"});
 
-/* ════════════════════════════════════════════════════════════════════════ */
+/* - */
 export default function ODBCPage() {
   const { roles } = useAuth();
   const isAdmin = roles.includes("admin") || roles.includes("database_admin");
@@ -137,7 +137,7 @@ export default function ODBCPage() {
         for (const s of settings) {
           await db.from("system_settings").upsert({...s,category:"mysql"},{onConflict:"key"});
         }
-        toast({title:"✅ Set as primary database", description:"MySQL config saved to system settings"});
+        toast({title:"- Set as primary database", description:"MySQL config saved to system settings"});
       }
       setShowForm(false); load();
     } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
@@ -167,7 +167,7 @@ export default function ODBCPage() {
         last_error: ok ? null : msg,
       }).eq("id",conn.id);
       setTestResult(prev => ({...prev,[conn.id]:{status, message:msg}}));
-      toast({title: ok ? "✅ Connected!" : "❌ Failed", description:msg, variant: ok?"default":"destructive"});
+      toast({title: ok ? "- Connected!" : "- Failed", description:msg, variant: ok?"default":"destructive"});
       load();
     } finally { setTesting(null); }
   };
@@ -227,7 +227,7 @@ export default function ODBCPage() {
     const tables = ["requisitions","purchase_orders","suppliers","items","departments","categories",
                     "payment_vouchers","journal_vouchers","receipt_vouchers","budgets","contracts",
                     "tenders","profiles","user_roles","notifications","audit_log","system_settings"];
-    let sql = `-- EL5 MediProcure — MySQL Migration Script\n-- Generated: ${new Date().toISOString()}\n-- Target: MySQL 8.0+\n\nCREATE DATABASE IF NOT EXISTS \`mediprocure\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE \`mediprocure\`;\n\n`;
+    let sql = `-- EL5 MediProcure - MySQL Migration Script\n-- Generated: ${new Date().toISOString()}\n-- Target: MySQL 8.0+\n\nCREATE DATABASE IF NOT EXISTS \`mediprocure\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE \`mediprocure\`;\n\n`;
 
     const typeMap: Record<string,string> = {
       "uuid":"VARCHAR(36)","text":"LONGTEXT","varchar":"VARCHAR(255)",
@@ -259,7 +259,7 @@ export default function ODBCPage() {
     if (!migScript.trim()) { toast({title:"No migration script",variant:"destructive"}); return; }
     setMigRunning(true); setMigLog([]); setMigProgress(0);
     const addLog = (msg:string) => setMigLog(p=>[...p,`[${new Date().toLocaleTimeString()}] ${msg}`]);
-    addLog("🚀 Starting MySQL migration...");
+    addLog("- Starting MySQL migration...");
     try {
       const {data,error} = await supabase.functions.invoke("mysql-proxy",{
         body:{action:"MIGRATE",sql:migScript}
@@ -267,12 +267,12 @@ export default function ODBCPage() {
       if (error) throw error;
       (data?.results||[]).forEach((r:any,i:number) => {
         setMigProgress(Math.round(((i+1)/(data.results.length))*100));
-        addLog(r.ok ? `✅ ${r.sql}...` : `❌ ${r.sql}: ${r.error}`);
+        addLog(r.ok ? `- ${r.sql}...` : `- ${r.sql}: ${r.error}`);
       });
-      addLog("🏁 Migration complete");
+      addLog("- Migration complete");
       toast({title:"Migration complete"});
     } catch(e:any) {
-      addLog(`❌ Error: ${e.message}`);
+      addLog(`- Error: ${e.message}`);
       toast({title:"Migration failed",description:e.message,variant:"destructive"});
     }
     setMigRunning(false);
@@ -289,7 +289,7 @@ export default function ODBCPage() {
       });
       if (error) throw error;
       setQueryResult(data?.rows||[]);
-      toast({title:`✅ ${(data?.rows||[]).length} rows returned`});
+      toast({title:`- ${(data?.rows||[]).length} rows returned`});
     } catch(e:any) {
       setQueryError(e.message);
       /* Fallback: run against Supabase */
@@ -303,7 +303,7 @@ export default function ODBCPage() {
     setQueryRunning(false);
   };
 
-  /* ═══════════ RENDER ═══════════ */
+  /* - RENDER - */
   return (
     <div style={{padding:20,minHeight:"100vh",background:T.bg}}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}`}</style>
@@ -313,7 +313,7 @@ export default function ODBCPage() {
         <Database size={22} color={T.primary}/>
         <div>
           <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>Database Connections & MySQL Migration</h1>
-          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>{conns.length} connections · MySQL primary + Supabase failover architecture</div>
+          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>{conns.length} connections - MySQL primary + Supabase failover architecture</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={load} style={btnS(T.bg2,T.border)}><RefreshCw size={13}/> Refresh</button>
@@ -325,15 +325,15 @@ export default function ODBCPage() {
       <div style={{...card,marginBottom:16,padding:"12px 16px",background:`${T.primary}12`,border:`1px solid ${T.primary}44`}}>
         <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{padding:"4px 10px",borderRadius:6,background:T.primary,color:"#fff",fontSize:11,fontWeight:700}}>🐬 MySQL PRIMARY</div>
+            <div style={{padding:"4px 10px",borderRadius:6,background:T.primary,color:"#fff",fontSize:11,fontWeight:700}}>- MySQL PRIMARY</div>
             <ArrowRight size={14} color={T.fgDim}/>
-            <div style={{padding:"4px 10px",borderRadius:6,background:`${T.success}22`,border:`1px solid ${T.success}44`,color:T.success,fontSize:11,fontWeight:700}}>⚡ Supabase FAILOVER</div>
+            <div style={{padding:"4px 10px",borderRadius:6,background:`${T.success}22`,border:`1px solid ${T.success}44`,color:T.success,fontSize:11,fontWeight:700}}>- Supabase FAILOVER</div>
           </div>
           <div style={{fontSize:11,color:T.fgMuted,flex:1}}>
             ProcurBosse routes all queries to MySQL when configured. If MySQL is unreachable, it automatically falls back to Supabase with no downtime.
           </div>
           <button onClick={()=>{setTab("migration");generateMigration();}} style={btnS("#16a34a")}>
-            <Zap size={13}/> Migrate Schema → MySQL
+            <Zap size={13}/> Migrate Schema - MySQL
           </button>
         </div>
       </div>
@@ -358,7 +358,7 @@ export default function ODBCPage() {
         ))}
       </div>
 
-      {/* ═══ CONNECTIONS ═══ */}
+      {/* - CONNECTIONS - */}
       {tab==="connections"&&(
         <div>
           {loading?<div style={{padding:40,textAlign:"center",color:T.fgDim}}>Loading...</div>
@@ -384,7 +384,7 @@ export default function ODBCPage() {
                           {conn.is_primary&&<span style={{padding:"2px 7px",borderRadius:99,fontSize:9,fontWeight:800,background:`${T.primary}22`,color:T.primary}}>PRIMARY</span>}
                         </div>
                         <div style={{fontSize:11,color:T.fgMuted}}>{conn.host}:{conn.port||dt.port}/{conn.database_name}</div>
-                        <div style={{fontSize:10,color:T.fgDim,marginTop:2}}>{dt.label} · User: {conn.username}</div>
+                        <div style={{fontSize:10,color:T.fgDim,marginTop:2}}>{dt.label} - User: {conn.username}</div>
                       </div>
                       <span style={{padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,border:`1px solid ${sc.color}33`}}>
                         {sc.label}
@@ -413,7 +413,7 @@ export default function ODBCPage() {
         </div>
       )}
 
-      {/* ═══ SCHEMA VIEWER ═══ */}
+      {/* - SCHEMA VIEWER - */}
       {tab==="schema"&&(
         <div>
           <div style={{...card,display:"flex",gap:10,alignItems:"center",marginBottom:14}}>
@@ -461,13 +461,13 @@ export default function ODBCPage() {
         </div>
       )}
 
-      {/* ═══ MIGRATION ═══ */}
+      {/* - MIGRATION - */}
       {tab==="migration"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
           <div style={card}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
               <ArrowRight size={16} color="#16a34a"/>
-              <span style={{fontWeight:800,fontSize:14,color:T.fg}}>Supabase → MySQL Migration</span>
+              <span style={{fontWeight:800,fontSize:14,color:T.fg}}>Supabase - MySQL Migration</span>
             </div>
             <div style={{fontSize:12,color:T.fgMuted,marginBottom:14,lineHeight:1.7}}>
               Generates MySQL-compatible DDL + data migration script from your Supabase schema.
@@ -486,7 +486,7 @@ export default function ODBCPage() {
 
             {migLog.length>0&&(
               <div ref={logRef} style={{background:"#0a0f1e",borderRadius:8,padding:12,height:200,overflowY:"auto",fontSize:11,fontFamily:"monospace",lineHeight:1.8,marginBottom:12}}>
-                {migLog.map((l,i)=><div key={i} style={{color:l.startsWith("✅")?"#22c55e":l.startsWith("❌")?"#ef4444":l.startsWith("🚀")||l.startsWith("🏁")?"#38bdf8":"#6b7280"}}>{l}</div>)}
+                {migLog.map((l,i)=><div key={i} style={{color:l.startsWith("-")?"#22c55e":l.startsWith("-")?"#ef4444":l.startsWith("-")||l.startsWith("-")?"#38bdf8":"#6b7280"}}>{l}</div>)}
               </div>
             )}
 
@@ -530,7 +530,7 @@ export default function ODBCPage() {
         </div>
       )}
 
-      {/* ═══ QUERY EDITOR ═══ */}
+      {/* - QUERY EDITOR - */}
       {tab==="query"&&(
         <div>
           <div style={card}>
@@ -594,7 +594,7 @@ export default function ODBCPage() {
         </div>
       )}
 
-      {/* ═══ MONITOR ═══ */}
+      {/* - MONITOR - */}
       {tab==="monitor"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           <div style={card}>
@@ -636,7 +636,7 @@ export default function ODBCPage() {
         </div>
       )}
 
-      {/* ═══ CONNECTION FORM MODAL ═══ */}
+      {/* - CONNECTION FORM MODAL - */}
       {showForm&&(
         <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowForm(false)}>
           <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,padding:28,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",animation:"fadeIn .2s"}} onClick={e=>e.stopPropagation()}>
@@ -680,7 +680,7 @@ export default function ODBCPage() {
               <div>
                 <label style={{fontSize:11,color:T.fgDim,display:"block",marginBottom:4}}>Password</label>
                 <div style={{position:"relative"}}>
-                  <input value={form.password} onChange={e=>f("password",e.target.value)} style={{...inp,paddingRight:36}} type={showPass.form?"text":"password"} placeholder={editing?"(unchanged)":"••••••••"}/>
+                  <input value={form.password} onChange={e=>f("password",e.target.value)} style={{...inp,paddingRight:36}} type={showPass.form?"text":"password"} placeholder={editing?"(unchanged)":"-"}/>
                   <button onClick={()=>setShowPass(p=>({...p,form:!p.form}))} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:T.fgDim}}>
                     {showPass.form?<EyeOff size={13}/>:<Eye size={13}/>}
                   </button>

@@ -1,5 +1,5 @@
 /**
- * EL5 MediProcure v5.8 — Universal Realtime Hook
+ * EL5 MediProcure v5.8 - Universal Realtime Hook
  * Zero-config Supabase realtime with auto-reconnect and debounce
  * Cross-platform: Web + Electron + PWA
  */
@@ -66,7 +66,7 @@ export function useTableRealtime(table: string, callback: () => void, debounceMs
 }
 
 /**
- * Presence hook — track online users
+ * Presence hook - track online users
  */
 export function usePresence(roomId: string, userId: string) {
   useEffect(() => {

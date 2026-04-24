@@ -1,8 +1,8 @@
 /**
- * ProcurBosse — Users & Security v5.0 (D365-style)
- * Password view/reset · Role assignment · Avatar upload · IP stats per user
+ * ProcurBosse - Users & Security v5.0 (D365-style)
+ * Password view/reset - Role assignment - Avatar upload - IP stats per user
  * Microsoft Dynamics 365 ERP UI pattern
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +43,7 @@ interface UserRow {
   last_active_at?: string; employee_id?: string;
 }
 
-/* ── D365 Ribbon button ─────────────────────────────────────────────────── */
+/* - D365 Ribbon button - */
 const RibbonBtn = ({ icon:Icon, label, onClick, color="inherit", disabled=false }:{ icon:any;label:string;onClick?:()=>void;color?:string;disabled?:boolean }) => (
   <button onClick={onClick} disabled={disabled} style={{
     display:"flex",flexDirection:"column",alignItems:"center",gap:3,
@@ -105,7 +105,7 @@ export default function UsersPage() {
     return match && r;
   });
 
-  /* ── Password reset ── */
+  /* - Password reset - */
   const resetPassword = async (uid: string, newPw: string) => {
     if (newPw.length < 6) { toast({title:"Password must be 6+ characters",variant:"destructive"}); return; }
     setSaving(true);
@@ -113,7 +113,7 @@ export default function UsersPage() {
       const { error } = await supabase.auth.admin?.updateUserById?.(uid, { password: newPw }) || {};
       if (error) throw error;
       setTempPw(prev => ({...prev,[uid]:newPw}));
-      toast({ title:"✅ Password reset", description:`New password set for user` });
+      toast({ title:"- Password reset", description:`New password set for user` });
       setModal(null);
     } catch(e:any) {
       // Fallback: save temp password to system_settings for admin to see
@@ -124,7 +124,7 @@ export default function UsersPage() {
     setSaving(false);
   };
 
-  /* ── User activity ── */
+  /* - User activity - */
   const loadActivity = async (uid: string) => {
     const [{ data: logs }, { data: reqs }, { data: notifs }] = await Promise.all([
       db.from("audit_log").select("*").eq("user_id",uid).order("created_at",{ascending:false}).limit(20),
@@ -148,7 +148,7 @@ export default function UsersPage() {
           if (form.role) await db.from("user_roles").upsert({user_id:uid,role:form.role},{onConflict:"user_id,role"});
           setTempPw(prev=>({...prev,[uid]:pw}));
         }
-        toast({title:"✅ User created",description:`${form.full_name} — temp pw: ${pw}`});
+        toast({title:"- User created",description:`${form.full_name} - temp pw: ${pw}`});
       } else if (modal === "edit" && selected) {
         await db.from("profiles").update({ full_name:form.full_name, phone_number:form.phone_number, department:form.department, avatar_url:form.avatar_url, is_active:form.is_active }).eq("id",selected.id);
         if (form.role && !selected.roles.includes(form.role)) {
@@ -177,7 +177,7 @@ export default function UsersPage() {
     load();
   };
 
-  /* ── Active/inactive counts ── */
+  /* - Active/inactive counts - */
   const activeCount   = users.filter(u => u.is_active !== false).length;
   const inactiveCount = users.filter(u => u.is_active === false).length;
 
@@ -185,7 +185,7 @@ export default function UsersPage() {
     <div style={{minHeight:"100vh",background:D.body,fontFamily:D.font}}>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
 
-      {/* ── D365 RIBBON ── */}
+      {/* - D365 RIBBON - */}
       <div style={{background:`linear-gradient(135deg,${D.ribbonDk},${D.ribbon})`,padding:"0 16px",boxShadow:"0 2px 6px rgba(0,0,0,.2)"}}>
         {/* Tab bar */}
         <div style={{display:"flex",gap:0,marginBottom:0}}>
@@ -215,13 +215,13 @@ export default function UsersPage() {
       </div>
 
       <div style={{display:"flex",height:"calc(100vh - 88px)"}}>
-        {/* ── LEFT PANEL — user list ── */}
+        {/* - LEFT PANEL - user list - */}
         <div style={{width:340,flexShrink:0,background:"#fff",borderRight:`1px solid ${D.border}`,display:"flex",flexDirection:"column"}}>
           {/* Search + filter */}
           <div style={{padding:"10px 12px",borderBottom:`1px solid ${D.border}`}}>
             <div style={{position:"relative",marginBottom:8}}>
               <Search size={13} color={D.fgDim} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)"}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users…"
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users-"
                 style={{...dInp,paddingLeft:28,fontSize:12}}/>
             </div>
             <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{...dInp,fontSize:11}}>
@@ -263,7 +263,7 @@ export default function UsersPage() {
                       </div>
                     }
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:600,color:D.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.full_name||"—"}</div>
+                      <div style={{fontSize:13,fontWeight:600,color:D.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.full_name||"-"}</div>
                       <div style={{fontSize:10,color:D.fgMuted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.email}</div>
                       <div style={{display:"flex",gap:4,marginTop:3}}>
                         {u.roles.slice(0,2).map(r=>{
@@ -283,7 +283,7 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* ── RIGHT PANEL — detail view ── */}
+        {/* - RIGHT PANEL - detail view - */}
         <div style={{flex:1,overflowY:"auto",background:D.body}}>
           {selected ? (
             <div style={{padding:20,animation:"fadeIn .2s"}}>
@@ -326,10 +326,10 @@ export default function UsersPage() {
                   {[
                     {label:"Full Name",    value:selected.full_name},
                     {label:"Email",        value:selected.email},
-                    {label:"Phone",        value:selected.phone_number||"—"},
-                    {label:"Department",   value:selected.department||"—"},
-                    {label:"Employee ID",  value:selected.employee_id||"—"},
-                    {label:"Created",      value:selected.created_at?new Date(selected.created_at).toLocaleDateString("en-KE"):"—"},
+                    {label:"Phone",        value:selected.phone_number||"-"},
+                    {label:"Department",   value:selected.department||"-"},
+                    {label:"Employee ID",  value:selected.employee_id||"-"},
+                    {label:"Created",      value:selected.created_at?new Date(selected.created_at).toLocaleDateString("en-KE"):"-"},
                   ].map(({label,value})=>(
                     <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${D.border}`,fontSize:12}}>
                       <span style={{color:D.fgMuted,fontWeight:600}}>{label}</span>
@@ -348,8 +348,8 @@ export default function UsersPage() {
                     <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:D.body,border:`1px solid ${D.border}`,borderRadius:D.r}}>
                       <span style={{flex:1,fontSize:13,fontFamily:D.fontMono,color:D.fg,letterSpacing:".1em"}}>
                         {pwVisible[selected.id]
-                          ? (tempPw[selected.id] || "••••••••••")
-                          : "••••••••••"}
+                          ? (tempPw[selected.id] || "-")
+                          : "-"}
                       </span>
                       <button onClick={()=>setPwVisible(p=>({...p,[selected.id]:!p[selected.id]}))}
                         style={{background:"none",border:"none",cursor:"pointer",color:D.primary,padding:2}}>
@@ -360,7 +360,7 @@ export default function UsersPage() {
                           style={{background:"none",border:"none",cursor:"pointer",color:D.fgMuted,padding:2}}><Copy size={12}/></button>
                       )}
                     </div>
-                    {tempPw[selected.id]&&<div style={{fontSize:10,color:D.warning,marginTop:3}}>⚠ Temp password set — user must change on login</div>}
+                    {tempPw[selected.id]&&<div style={{fontSize:10,color:D.warning,marginTop:3}}>- Temp password set - user must change on login</div>}
                   </div>
 
                   {/* Roles */}
@@ -417,8 +417,8 @@ export default function UsersPage() {
                         <tr key={i}>
                           <td style={{...dTd,fontSize:11,color:D.fgMuted,whiteSpace:"nowrap"}}>{new Date(a.created_at).toLocaleString("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
                           <td style={dTd}><span style={{fontSize:10,padding:"2px 7px",borderRadius:2,background:a._type==="audit"?D.infoBg:D.successBg,color:a._type==="audit"?D.info:D.success,fontWeight:700}}>{a._type==="audit"?"Audit":"Requisition"}</span></td>
-                          <td style={{...dTd,fontSize:12,maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.action||a.requisition_number||a.description||"—"}</td>
-                          <td style={{...dTd,fontSize:11,color:D.fgMuted}}>{a.module||a.status||"—"}</td>
+                          <td style={{...dTd,fontSize:12,maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.action||a.requisition_number||a.description||"-"}</td>
+                          <td style={{...dTd,fontSize:11,color:D.fgMuted}}>{a.module||a.status||"-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -438,7 +438,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* ── MODALS ── */}
+      {/* - MODALS - */}
       {(modal==="create"||modal==="edit")&&(
         <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setModal(null)}>
           <div style={{background:"#fff",borderRadius:D.rLg,width:520,maxHeight:"90vh",overflowY:"auto",boxShadow:D.shadowLg,animation:"fadeIn .2s"}} onClick={e=>e.stopPropagation()}>

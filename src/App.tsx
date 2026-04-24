@@ -97,7 +97,7 @@ const App = () => (
             <Route path="/index" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<P><DashboardPage /></P>} />
 
-            {/* Procurement — role-gated */}
+            {/* Procurement - role-gated */}
             <Route path="/requisitions" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","requisitioner","warehouse_officer","inventory_manager"]}><RequisitionsPage /></RoleGuard></P>} />
             <Route path="/purchase-orders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant"]}><PurchaseOrdersPage /></RoleGuard></P>} />
             <Route path="/goods-received" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager","accountant"]}><GoodsReceivedPage /></RoleGuard></P>} />
@@ -119,7 +119,7 @@ const App = () => (
             <Route path="/departments" element={<P><DepartmentsPage /></P>} />
             <Route path="/scanner" element={<P><ScannerPage /></P>} />
 
-            {/* Vouchers — role-gated */}
+            {/* Vouchers - role-gated */}
             <Route path="/vouchers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant"]}><VouchersPage /></RoleGuard></P>} />
             <Route path="/vouchers/payment" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant"]}><PaymentVouchersPage /></RoleGuard></P>} />
             <Route path="/vouchers/receipt" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><ReceiptVouchersPage /></RoleGuard></P>} />
@@ -127,7 +127,7 @@ const App = () => (
             <Route path="/vouchers/purchase" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><PurchaseVouchersPage /></RoleGuard></P>} />
             <Route path="/vouchers/sales" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><SalesVouchersPage /></RoleGuard></P>} />
 
-            {/* Financials — role-gated */}
+            {/* Financials - role-gated */}
             <Route path="/financials" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><FinancialDashboardPage /></RoleGuard></P>} />
             <Route path="/financials/dashboard" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><FinancialDashboardPage /></RoleGuard></P>} />
             <Route path="/financials/chart-of-accounts" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><ChartOfAccountsPage /></RoleGuard></P>} />
@@ -140,17 +140,17 @@ const App = () => (
             <Route path="/quality/inspections" element={<P><InspectionsPage /></P>} />
             <Route path="/quality/non-conformance" element={<P><NonConformancePage /></P>} />
 
-            {/* Inbox & Comms */}
+            {/* Inbox & Comms - open to ALL authenticated users */}
             <Route path="/inbox" element={<P><InboxPage /></P>} />
             <Route path="/email" element={<P><EmailPage /></P>} />
+            <Route path="/reception" element={<P><ReceptionPage /></P>} />
+            <Route path="/telephony" element={<P><TelephonyPage /></P>} />
+            <Route path="/sms" element={<P><SMSPage /></P>} />
 
-            {/* Admin — role-gated */}
+            {/* Admin - role-gated */}
             <Route path="/users" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><UsersPage /></RoleGuard></P>} />
             <Route path="/settings" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><SettingsPage /></RoleGuard></P>} />
             <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><AuditLogPage /></RoleGuard></P>} />
-            <Route path="/reception" element={<P><ReceptionPage /></P>} />
-            <Route path="/telephony" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant","inventory_manager","warehouse_officer","requisitioner"]}><TelephonyPage /></RoleGuard></P>} />
-            <Route path="/sms" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant","inventory_manager","warehouse_officer","requisitioner"]}><SMSPage /></RoleGuard></P>} />
               <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
             <Route path="/superadmin" element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />

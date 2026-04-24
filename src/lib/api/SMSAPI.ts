@@ -1,4 +1,4 @@
-/** EL5 MediProcure v5.8 — SMS API (Optimized with bulk, templates, conversations) */
+/** EL5 MediProcure v5.8 - SMS API (Optimized with bulk, templates, conversations) */
 import { supabase } from "@/integrations/supabase/client";
 const db = supabase as any;
 
@@ -30,7 +30,7 @@ export const SMSAPI = {
   async send(phone:string, body:string, opts?:{name?:string; dept?:string; type?:string; templateId?:string}): Promise<{ok:boolean; error?:string}> {
     const to = fmt254(phone);
     const channel = opts?.type === "whatsapp" ? "whatsapp" : "sms";
-    // Edge function handles logging — no duplicate client-side insert needed
+    // Edge function handles logging - no duplicate client-side insert needed
     const { data, error } = await supabase.functions.invoke("send-sms", {
       body: { to, message:body, channel, recipient_name:opts?.name, department:opts?.dept }
     });

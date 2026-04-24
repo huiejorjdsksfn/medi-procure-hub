@@ -1,9 +1,9 @@
 /**
- * ProcurBosse — AuthContext v4.0
- * Persistent session engine — no logout/access-denied on refresh
+ * ProcurBosse - AuthContext v4.0
+ * Persistent session engine - no logout/access-denied on refresh
  * Dual-store: IndexedDB primary + localStorage fallback
  * Background token refresh + role cache
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
@@ -92,14 +92,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true;
 
     const init = async () => {
-      /* ── Step 1: Try stored session for instant render (no flash) ── */
+      /* - Step 1: Try stored session for instant render (no flash) - */
       const stored = await sessionEngine.read();
       if (stored && mounted) {
         applyUserData({ profile: stored.profile, roles: stored.roles });
         setInitialized(true);
       }
 
-      /* ── Step 2: Verify with Supabase (authoritative) ── */
+      /* - Step 2: Verify with Supabase (authoritative) - */
       const safety = setTimeout(() => { if (mounted) setLoading(false); }, 6000);
 
       try {
@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch {
-        /* Network failure — use stored session if available */
+        /* Network failure - use stored session if available */
         if (stored && mounted) {
           setLoading(false);
           setInitialized(true);
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     init();
 
-    /* ── Auth state change listener ── */
+    /* - Auth state change listener - */
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       setSession(session);
@@ -187,7 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setInitialized(true);
         setLoading(false);
       } else if (event === "TOKEN_REFRESHED" && session?.user) {
-        /* Silent token refresh — don't disturb UI */
+        /* Silent token refresh - don't disturb UI */
         const stored = await sessionEngine.read();
         if (stored) {
           await sessionEngine.save({ ...stored, token: session.access_token, expiresAt: Date.now() + 8 * 60 * 60 * 1000 });

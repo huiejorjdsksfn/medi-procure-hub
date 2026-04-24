@@ -95,7 +95,7 @@ export default function SuppliersPage() {
   const deleteSupplier=async(s:any)=>{
     if(!confirm(`Delete supplier "${s.name}"?`)) return;
     const{error}=await supabase.from("suppliers").delete().eq("id",s.id);
-    if(error){toast({title:"Save failed",description:error.message||"Database error — please try again",variant:"destructive"});return;}
+    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});return;}
     logAudit(user?.id,profile?.full_name,"delete","suppliers",s.id,{name:s.name});
     toast({title:"Supplier deleted"}); load();
   };
@@ -116,7 +116,7 @@ export default function SuppliersPage() {
 
   const exportExcel=()=>{
     const wb=XLSX.utils.book_new();
-    const hdr=[[hospitalName],[sysName+" — Supplier Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const hdr=[[hospitalName],[sysName+" - Supplier Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
     const rows=filtered.map(s=>({Name:s.name,Contact:s.contact_person,Email:s.email,Phone:s.phone,Category:s.category,Status:s.status,Rating:s.rating,KRA_PIN:s.kra_pin,Tax_ID:s.tax_id,Bank:s.bank_name,Account:s.bank_account,Address:s.address}));
     const ws=XLSX.utils.aoa_to_sheet([...hdr,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
     ws["!cols"]=Object.keys(rows[0]||{}).map(()=>({wch:20}));
@@ -129,9 +129,9 @@ export default function SuppliersPage() {
     const win=window.open("","_blank","width=1100,height=800");
     if(!win) return;
     win.document.write(`<html><head><title>Suppliers</title><style>body{font-family:'Segoe UI',Arial;font-size:11px;margin:20px}h2{color:#1a3a6b}table{width:100%;border-collapse:collapse}th{background:#1a3a6b;color:#fff;padding:6px 10px;text-align:left;font-size:10px}td{padding:5px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9fafb}@media print{@page{margin:1cm}}</style></head><body>
-    <h2>${hospitalName} — Supplier Register</h2><p style="font-size:10px;color:#888">Generated: ${new Date().toLocaleString("en-KE")} · ${filtered.length} suppliers</p>
+    <h2>${hospitalName} - Supplier Register</h2><p style="font-size:10px;color:#888">Generated: ${new Date().toLocaleString("en-KE")} - ${filtered.length} suppliers</p>
     <table><thead><tr><th>#</th><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Category</th><th>Status</th><th>KRA PIN</th><th>Rating</th></tr></thead>
-    <tbody>${filtered.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td>${s.contact_person||"—"}</td><td>${s.email||"—"}</td><td>${s.phone||"—"}</td><td>${s.category||"—"}</td><td>${s.status||"—"}</td><td>${s.kra_pin||"—"}</td><td>${s.rating||"—"}</td></tr>`).join("")}
+    <tbody>${filtered.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td>${s.contact_person||"-"}</td><td>${s.email||"-"}</td><td>${s.phone||"-"}</td><td>${s.category||"-"}</td><td>${s.status||"-"}</td><td>${s.kra_pin||"-"}</td><td>${s.rating||"-"}</td></tr>`).join("")}
     </tbody></table></body></html>`);
     win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
@@ -140,19 +140,19 @@ export default function SuppliersPage() {
     const win=window.open("","_blank","width=800,height=600");
     if(!win) return;
     win.document.write(`<html><head><title>${s.name}</title><style>body{font-family:'Segoe UI',Arial;margin:20px;font-size:12px}.lh{border-bottom:3px solid #1a3a6b;padding-bottom:10px;margin-bottom:15px}h1{color:#1a3a6b;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-bottom:8px}.label{font-size:9px;font-weight:700;color:#888;text-transform:uppercase}.val{font-size:12px;color:#333;margin-top:2px}@media print{@page{margin:1.5cm}}</style></head><body>
-    <div class="lh"><h2 style="margin:0;color:#1a3a6b">${hospitalName}</h2><div style="font-size:10px;color:#888">${sysName} · Supplier Record</div></div>
+    <div class="lh"><h2 style="margin:0;color:#1a3a6b">${hospitalName}</h2><div style="font-size:10px;color:#888">${sysName} - Supplier Record</div></div>
     <h1>${s.name}</h1>
     <div class="grid">
-      <div class="field"><div class="label">Contact Person</div><div class="val">${s.contact_person||"—"}</div></div>
-      <div class="field"><div class="label">Email</div><div class="val">${s.email||"—"}</div></div>
-      <div class="field"><div class="label">Phone</div><div class="val">${s.phone||"—"}</div></div>
-      <div class="field"><div class="label">Category</div><div class="val">${s.category||"—"}</div></div>
-      <div class="field"><div class="label">KRA PIN</div><div class="val">${s.kra_pin||"—"}</div></div>
-      <div class="field"><div class="label">Tax ID</div><div class="val">${s.tax_id||"—"}</div></div>
-      <div class="field"><div class="label">Bank</div><div class="val">${s.bank_name||"—"}</div></div>
-      <div class="field"><div class="label">Account</div><div class="val">${s.bank_account||"—"}</div></div>
-      <div class="field"><div class="label">Branch</div><div class="val">${s.bank_branch||"—"}</div></div>
-      <div class="field"><div class="label">Rating</div><div class="val">${"★".repeat(s.rating||3)}</div></div>
+      <div class="field"><div class="label">Contact Person</div><div class="val">${s.contact_person||"-"}</div></div>
+      <div class="field"><div class="label">Email</div><div class="val">${s.email||"-"}</div></div>
+      <div class="field"><div class="label">Phone</div><div class="val">${s.phone||"-"}</div></div>
+      <div class="field"><div class="label">Category</div><div class="val">${s.category||"-"}</div></div>
+      <div class="field"><div class="label">KRA PIN</div><div class="val">${s.kra_pin||"-"}</div></div>
+      <div class="field"><div class="label">Tax ID</div><div class="val">${s.tax_id||"-"}</div></div>
+      <div class="field"><div class="label">Bank</div><div class="val">${s.bank_name||"-"}</div></div>
+      <div class="field"><div class="label">Account</div><div class="val">${s.bank_account||"-"}</div></div>
+      <div class="field"><div class="label">Branch</div><div class="val">${s.bank_branch||"-"}</div></div>
+      <div class="field"><div class="label">Rating</div><div class="val">${"-".repeat(s.rating||3)}</div></div>
     </div>
     ${s.address?`<div class="field"><div class="label">Address</div><div class="val">${s.address}</div></div>`:""}
     ${s.notes?`<div class="field"><div class="label">Notes</div><div class="val">${s.notes}</div></div>`:""}
@@ -263,14 +263,14 @@ export default function SuppliersPage() {
                   <tr key={s.id} >
                     <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
                     <td style={{padding:"7px 12px",fontWeight:700,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{s.name}</td>
-                    <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"—"}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.email||"—"}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.phone||"—"}</td>
+                    <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"-"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.email||"-"}</td>
+                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.phone||"-"}</td>
                     <td style={{padding:"7px 12px",textTransform:"capitalize",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize"}}>{s.status||"active"}</span>
                     </td>
-                    <td style={{padding:"7px 12px",color:"#f59e0b",fontSize:13,background:i%2===0?"#fff":"#f9fafb"}}>{"★".repeat(Math.min(s.rating||3,5))}</td>
+                    <td style={{padding:"7px 12px",color:"#f59e0b",fontSize:13,background:i%2===0?"#fff":"#f9fafb"}}>{"-".repeat(Math.min(s.rating||3,5))}</td>
                     <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
                       <div style={{display:"flex",gap:4}}>
                         <button onClick={()=>setViewSupplier(s)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}><Eye style={{width:12,height:12}}/></button>
@@ -298,7 +298,7 @@ export default function SuppliersPage() {
               <button onClick={()=>setViewSupplier(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Rating","★".repeat(viewSupplier.rating||3)],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
+              {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Rating","-".repeat(viewSupplier.rating||3)],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
                 <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
               ))}
               {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
@@ -333,7 +333,7 @@ export default function SuppliersPage() {
                 <div><label style={lbl}>Bank Account</label><input value={form.bank_account} onChange={e=>setForm(p=>({...p,bank_account:e.target.value}))} style={inp}/></div>
                 <div><label style={lbl}>Bank Branch</label><input value={form.bank_branch} onChange={e=>setForm(p=>({...p,bank_branch:e.target.value}))} style={inp}/></div>
                 <div><label style={lbl}>Website</label><input value={form.website} onChange={e=>setForm(p=>({...p,website:e.target.value}))} style={inp} placeholder="https://"/></div>
-                <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}</select></div>
+                <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"-".repeat(n)} ({n})</option>)}</select></div>
                 <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>

@@ -1,7 +1,7 @@
 /**
- * ProcurBosse — Voucher Workflow Engine v5.0
+ * ProcurBosse - Voucher Workflow Engine v5.0
  * Payment, receipt, journal, purchase & counter-requisition voucher lifecycle
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
@@ -85,7 +85,7 @@ export async function executeVoucherAction(
     if (action === 'approve' && table === 'payment_vouchers') {
       await notifyAccountants({
         title: `Voucher ${vNo} Approved`,
-        message: `Payment voucher approved — ready for payment processing`,
+        message: `Payment voucher approved - ready for payment processing`,
         type: 'voucher', module: 'Finance', actionUrl: '/vouchers/payment',
       });
       triggerVoucherEvent('voucher_approved', voucherId).catch(() => {});
