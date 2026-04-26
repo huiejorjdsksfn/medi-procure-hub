@@ -20,7 +20,7 @@
     <meta property="og:title" content="EL5 MediProcure v5.9 — ProcurBosse" />
     <meta property="og:description" content="Health Procurement ERP — Embu Level 5 Hospital" />
     <meta property="og:image" content="/icons/icon-512.png" />
-    <link rel="preconnect" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
+    <link rel="preconnect" href="https://yvjfehnzbzjliizjvuhq.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.bunny.net" />
@@ -42,7 +42,14 @@
       .splash-logo{width:72px;height:72px;border-radius:18px;background:#0d3b7a;display:flex;align-items:center;justify-content:center;animation:splashPulse 1.2s ease-in-out infinite}
       @keyframes splashPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(13,59,122,.4)}50%{transform:scale(1.06);box-shadow:0 0 0 16px rgba(13,59,122,0)}}
     </style>
-        <link rel="stylesheet" href="/assets/index-CSurGk1q.css">
+    <script type="module" crossorigin src="/assets/index-COVB04UR.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-D0kNNEwc.js">
+    <link rel="modulepreload" crossorigin href="/assets/ui-vendor-3Pt5W6Y6.js">
+    <link rel="modulepreload" crossorigin href="/assets/chart-vendor-DkUidBCU.js">
+    <link rel="modulepreload" crossorigin href="/assets/supabase-vendor-GwuzJsDi.js">
+    <link rel="modulepreload" crossorigin href="/assets/xlsx-vendor-DNf0Zvun.js">
+    <link rel="modulepreload" crossorigin href="/assets/pdf-vendor-wI0aWcLZ.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-83_A5iiV.css">
   </head>
   <body>
     <div id="splash">
@@ -60,6 +67,5 @@
         if(s){setTimeout(()=>{s.classList.add('out');setTimeout(()=>s.remove(),400)},800)}
       });
     </script>
-    <script type="module" src="/assets/index-C2e2dU8R.js"></script>
   </body>
 </html>

@@ -219,7 +219,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* - D365 RIBBON (module tabs) - */}
       <div style={{background:"#fff",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"stretch",padding:"0 8px",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflowX:"auto"}}>
         <button onClick={()=>{setActiveMod(null);nav("/dashboard");}}
-          style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",background:"transparent",border:"none",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
+          style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",background:"transparent",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
           onMouseEnter={e=>{(e.currentTarget as any).style.color=T.primary}}
           onMouseLeave={e=>{(e.currentTarget as any).style.color=loc.pathname==="/dashboard"?T.primary:T.fgMuted}}>
           <Home size={13}/>Home
@@ -229,7 +229,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
           const modCnt=mod.items.reduce((a,i)=>a+(cnt[(i as any).b as string]||0),0);
           return(
             <button key={mod.id} onClick={()=>setActiveMod(isAct?null:mod.id)}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,fontSize:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",border:"none",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,fontSize:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
               onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}08`;}}
               onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}08`:"transparent";}}>
               {mod.label}

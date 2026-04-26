@@ -369,7 +369,7 @@ export default function AdminPanelPage() {
                       <div key={ip} style={{display:"flex",gap:8,padding:"8px 16px",borderBottom:`1px solid ${T.border}22`,alignItems:"center"}}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:blockedIPs.has(ip)?T.error:T.success,flexShrink:0}}/>
                         <code style={{fontSize:11,color:T.fg,fontFamily:"monospace",flex:1}}>{ip}</code>
-                        <span style={{fontSize:9,color:T.fgMuted,padding:"1px 6px",borderRadius:T.r,background:classIP(ip)==="public"?T.primaryBg:`${T.inventory}14`,color:classIP(ip)==="public"?T.primary:T.inventory}}>{classIP(ip)}</span>
+                        <span style={{fontSize:9,padding:"1px 6px",borderRadius:T.r,background:classIP(ip)==="public"?T.primaryBg:`${T.inventory}14`,color:classIP(ip)==="public"?T.primary:T.inventory}}>{classIP(ip)}</span>
                         <button onClick={()=>nav("/admin/ip-access")} style={{...S.btn(T.bg2,T.fgMuted),padding:"3px 7px",fontSize:10}}><Eye size={10}/></button>
                       </div>
                     ))}
