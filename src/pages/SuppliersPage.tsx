@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -48,7 +49,7 @@ export default function SuppliersPage() {
   const load = useCallback(async()=>{
     setLoading(true);
     const{data}=await supabase.from("suppliers").select("*").order("name");
-    setSuppliers(data||[]); setLoading(false);
+    const rows=data||[]; setSuppliers(rows); pageCache.set("suppliers",rows); setLoading(false);
   },[]);
 
   useEffect(()=>{ load(); },[load]);

@@ -4,6 +4,7 @@
  * ProcurBosse - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, RefreshCw, Check, Trash2, Bell, BellOff, Filter } from "lucide-react";
 

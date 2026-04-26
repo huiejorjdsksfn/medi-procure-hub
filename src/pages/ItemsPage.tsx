@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -60,7 +61,7 @@ export default function ItemsPage() {
   const load = useCallback(async()=>{
     setLoading(true);
     const {data}=await supabase.from("items").select("*,item_categories(name)").order("name");
-    setItems(data||[]);
+    const rows=data||[]; setItems(rows); pageCache.set("items",rows);
     setLoading(false);
   },[]);
 

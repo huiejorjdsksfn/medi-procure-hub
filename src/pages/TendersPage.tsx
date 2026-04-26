@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -56,8 +57,16 @@ export default function TendersPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const{data}=await(supabase as any).from("tenders").select("*").order("created_at",{ascending:false});
-    setRows(data||[]); setLoading(false);
+    try {
+      const{data,error}=await(supabase as any).from("tenders").select("*").order("created_at",{ascending:false});
+      if(error) throw error;
+      const rows=data||[]; setRows(rows);
+      pageCache.set("tenders",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("tenders");
+      if(cached){ setRows(cached); toast({title:"Showing cached data",description:"Live data temporarily unavailable",variant:"destructive"}); }
+      console.error("[Tenders]",e);
+    } finally { setLoading(false); }
   },[]);
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{

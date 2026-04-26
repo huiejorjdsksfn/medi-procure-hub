@@ -151,4 +151,19 @@ export function applyThemeToDOM(settings: SystemSettings): void {
   apply("--font-size-lg",        "font_size_lg",    "15px");
   apply("--border-radius",       "border_radius",   "8px");
   apply("--content-padding",     "content_padding", "16px");
+  apply("--topbar-height",       "topbar_height",   "44px");
+  apply("--nav-height",          "nav_height",      "44px");
+
+  // Print font as CSS variable
+  const printFont = settings["print_font"] || "Times New Roman";
+  const printSize = settings["print_font_size"] || "11";
+  root.style.setProperty("--print-font", printFont);
+  root.style.setProperty("--print-font-size", printSize + "pt");
+
+  // Compact tables mode as body class
+  if (settings["compact_tables"] === "true") {
+    document.body.classList.add("compact-tables");
+  } else {
+    document.body.classList.remove("compact-tables");
+  }
 }

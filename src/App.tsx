@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FacilityProvider } from "@/contexts/FacilityContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
 
@@ -76,7 +77,9 @@ const queryClient = new QueryClient({
 const P = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <FacilityProvider>
-      <AppLayout>{children}</AppLayout>
+      <AppLayout>
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </AppLayout>
     </FacilityProvider>
   </ProtectedRoute>
 );
