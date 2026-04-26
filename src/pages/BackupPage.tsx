@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";

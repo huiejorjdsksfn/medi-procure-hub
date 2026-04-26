@@ -4,6 +4,7 @@
  * Supports templates, letterhead, print, and save to library
  */
 import { useState, useRef, useCallback, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

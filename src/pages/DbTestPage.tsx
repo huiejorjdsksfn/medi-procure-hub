@@ -4,6 +4,7 @@
  * Admin only - EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useRef, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { liveDbEngine, DbEngineSnapshot, SchemaTable, TableHealth } from "@/engines/db/LiveDatabaseEngine";
 import {

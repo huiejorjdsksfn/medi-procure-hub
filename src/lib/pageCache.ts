@@ -83,3 +83,7 @@ export async function cachedQuery<T>(
 }
 
 export default pageCache;
+
+// Convenience aliases
+export const clearPageCache = pageCache.clearAll.bind(pageCache);
+export const clearSingleCache = pageCache.clear.bind(pageCache);
