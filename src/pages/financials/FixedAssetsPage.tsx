@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -29,12 +30,17 @@ export default function FixedAssetsPage() {
 
   const load = async () => {
     setLoading(true);
+    try {
     const [{data:a},{data:d}] = await Promise.all([
       (supabase as any).from("fixed_assets").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
-    setRows(a||[]); setDepts(d||[]);
-    setLoading(false);
+    const rows=a||[]; setRows(rows); setDepts(d||[]);
+      pageCache.set("fixed_assets",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("fixed_assets"); if(cached) setRows(cached);
+      console.error("[FixedAssets]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
 

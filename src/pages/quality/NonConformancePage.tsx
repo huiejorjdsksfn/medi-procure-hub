@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -30,8 +31,13 @@ export default function NonConformancePage() {
 
   const load = async()=>{
     setLoading(true);
+    try {
     const{data}=await(supabase as any).from("non_conformance").select("*").order("created_at",{ascending:false});
-    setRows(data||[]); setLoading(false);
+    const rows=data||[]; setRows(rows); pageCache.set("non_conformances",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("non_conformances"); if(cached) setRows(cached);
+      console.error("[NonConformance]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
 

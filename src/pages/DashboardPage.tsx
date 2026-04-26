@@ -154,21 +154,27 @@ export default function DashboardPage() {
 
   const load=useCallback(async()=>{
     setLoading(true);
-    const [r,p,pv,i,s,g,c,n,ls,t2]=await Promise.allSettled([
-      db.from("requisitions").select("id",{count:"exact",head:true}).in("status",["submitted","pending"]),
-      db.from("purchase_orders").select("id",{count:"exact",head:true}).in("status",["pending","approved"]),
-      db.from("payment_vouchers").select("id",{count:"exact",head:true}).in("status",["pending"]),
-      db.from("items").select("id",{count:"exact",head:true}),
-      db.from("suppliers").select("id",{count:"exact",head:true}).eq("status","active"),
-      db.from("goods_received").select("id",{count:"exact",head:true}).eq("status","pending"),
-      db.from("contracts").select("id",{count:"exact",head:true}).eq("status","active"),
-      db.from("notifications").select("id",{count:"exact",head:true}).eq("is_read",false),
-      db.from("items").select("id",{count:"exact",head:true}).lt("current_quantity",5),
-      db.from("tenders").select("id",{count:"exact",head:true}).eq("status","open"),
-    ]);
-    const v=(x:any)=>x.status==="fulfilled"?x.value?.count??0:0;
-    setKpi({reqs:v(r),pos:v(p),pvs:v(pv),items:v(i),suppliers:v(s),grn:v(g),contracts:v(c),unread:v(n),lowStock:v(ls),tenders:v(t2)});
-    setLoading(false);
+    try {
+      const [r,p,pv,i,s,g,c,n,ls,t2]=await Promise.allSettled([
+        db.from("requisitions").select("id",{count:"exact",head:true}).in("status",["submitted","pending"]),
+        db.from("purchase_orders").select("id",{count:"exact",head:true}).in("status",["pending","approved"]),
+        db.from("payment_vouchers").select("id",{count:"exact",head:true}).in("status",["pending"]),
+        db.from("items").select("id",{count:"exact",head:true}),
+        db.from("suppliers").select("id",{count:"exact",head:true}).eq("status","active"),
+        db.from("goods_received").select("id",{count:"exact",head:true}).eq("status","pending"),
+        db.from("contracts").select("id",{count:"exact",head:true}).eq("status","active"),
+        db.from("notifications").select("id",{count:"exact",head:true}).eq("is_read",false),
+        db.from("items").select("id",{count:"exact",head:true}).lt("current_quantity",5),
+        db.from("tenders").select("id",{count:"exact",head:true}).eq("status","open"),
+      ]);
+      const v=(x:any)=>x.status==="fulfilled"?x.value?.count??0:0;
+      const kpiData={reqs:v(r),pos:v(p),pvs:v(pv),items:v(i),suppliers:v(s),grn:v(g),contracts:v(c),unread:v(n),lowStock:v(ls),tenders:v(t2)};
+      setKpi(kpiData); pageCache.set("dashboard_kpi",kpiData,2*60*1000);
+    } catch(e:any) {
+      const cached=pageCache.get<any>("dashboard_kpi");
+      if(cached) setKpi(cached);
+      console.error("[Dashboard]",e);
+    } finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{

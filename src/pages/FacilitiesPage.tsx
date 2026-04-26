@@ -3,6 +3,7 @@
  * Covers: Embu L5H (main), Runyenjes, Ishiara, Mitheru, Kagaari, etc.
  */
 import { useEffect, useState, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -34,10 +35,15 @@ export default function FacilitiesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await (supabase as any)
+    try {
+      const { data } = await (supabase as any)
       .from("facilities").select("*").order("is_main", { ascending:false }).order("name");
-    setFacilities(data || []);
-    setLoading(false);
+      if(error) throw error;
+    const rows=data||[]; setFacilities(rows); pageCache.set("facilities",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("facilities"); if(cached) setFacilities(cached);
+      console.error("[facilities]",e);
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);

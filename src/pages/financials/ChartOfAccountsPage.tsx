@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTableRealtime } from "@/hooks/useRealtime";
@@ -25,8 +26,14 @@ export default function ChartOfAccountsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const{data}=await(supabase as any).from("chart_of_accounts").select("*").order("account_code");
-    setRows(data||[]); setLoading(false);
+    try {
+      const { data, error } = await (supabase as any).from("chart_of_accounts").select("*").order("account_code");
+      if(error) throw error;
+    const rows=data||[]; setRows(rows); pageCache.set("chart_of_accounts",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("chart_of_accounts"); if(cached) setRows(cached);
+      console.error("[chart_of_accounts]",e);
+    } finally { setLoading(false); }
   },[]);
   useEffect(()=>{ load(); },[load]);
   useTableRealtime("chart_of_accounts", load);

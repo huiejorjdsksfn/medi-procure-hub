@@ -60,10 +60,16 @@ export default function NotificationsPage() {
 
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
+    try {
     const { data } = await supabase.from("notifications").select("*")
       .is("dismissed_at", null).order("created_at", { ascending: false }).limit(300);
-    if (data) setNotifs(data as Notification[]);
-    setLoading(false);
+    if (error) throw error;
+    const rows=(data||[]) as Notification[]; setNotifs(rows);
+    pageCache.set("notifications",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("notifications"); if(cached) setNotifs(cached as Notification[]);
+      console.error("[Notifications]",e);
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchNotifs(); }, [fetchNotifs]);

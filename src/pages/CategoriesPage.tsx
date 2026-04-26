@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useTableRealtime } from "@/hooks/useRealtime";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,8 +22,14 @@ export default function CategoriesPage() {
 
   const load = useCallback(async()=>{
     setLoading(true);
-    const{data}=await(supabase as any).from("categories").select("*").order("name");
-    setRows(data||[]); setLoading(false);
+    try {
+      const { data, error } = await (supabase as any).from("categories").select("*").order("name");
+      if(error) throw error;
+    const rows=data||[]; setRows(rows); pageCache.set("item_categories",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("item_categories"); if(cached) setRows(cached);
+      console.error("[item_categories]",e);
+    } finally { setLoading(false); }
   },[]);
   useEffect(()=>{ load(); },[load]);
   useTableRealtime("categories", load);
