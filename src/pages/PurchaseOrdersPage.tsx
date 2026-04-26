@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -81,11 +82,17 @@ export default function PurchaseOrdersPage() {
   /* - Load - */
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await (supabase as any).from("purchase_orders")
-      .select("*,suppliers(name,email,phone)")
-      .order("created_at",{ascending:false});
-    setOrders(data||[]);
-    setLoading(false);
+    try {
+      const { data,error } = await (supabase as any).from("purchase_orders")
+        .select("*,suppliers(name,email,phone)")
+        .order("created_at",{ascending:false});
+      if(error) throw error;
+      const rows=data||[]; setOrders(rows); pageCache.set("purchase_orders",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("purchase_orders");
+      if(cached) setOrders(cached);
+      console.error("[PurchaseOrders]",e);
+    } finally { setLoading(false); }
   },[]);
 
   useEffect(()=>{ load(); },[load]);

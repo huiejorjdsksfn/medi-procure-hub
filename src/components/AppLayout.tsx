@@ -163,7 +163,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
   const totalAlerts = (cnt.requisitions||0)+(cnt.purchase_orders||0)+(cnt.payment_vouchers||0);
 
   return (
-    <div style={{height:"100vh",display:"flex",flexDirection:"column",background:T.bg,fontFamily:"'Segoe UI','Inter',system-ui,sans-serif",color:T.fg,overflow:"hidden"}}>
+    <div style={{height:"100vh",display:"flex",flexDirection:"column",background:"var(--color-page-bg,#f3f5f8)",fontFamily:"var(--font-family,'Segoe UI','Inter',system-ui,sans-serif)",fontSize:"var(--font-size-base,13px)",color:"var(--color-text,#1a1a2e)",overflow:"hidden"}}>
       <style>{`@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
       <SystemBroadcastBanner/>
 

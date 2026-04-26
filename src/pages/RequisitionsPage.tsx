@@ -4,6 +4,7 @@
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useEffect, useState, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -71,11 +72,17 @@ export default function RequisitionsPage() {
 
   const load = useCallback(async ()=>{
     setLoading(true);
-    const {data} = await (supabase as any).from("requisitions")
-      .select("*,requisition_items(count)")
-      .order(sortCol,{ascending:sortAsc});
-    setReqs(data||[]);
-    setLoading(false);
+    try {
+      const {data,error} = await (supabase as any).from("requisitions")
+        .select("*,requisition_items(count)")
+        .order(sortCol,{ascending:sortAsc});
+      if(error) throw error;
+      const rows=data||[]; setReqs(rows); pageCache.set("requisitions",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("requisitions");
+      if(cached) setReqs(cached);
+      console.error("[Requisitions]",e);
+    } finally { setLoading(false); }
   },[sortCol,sortAsc]);
 
   useEffect(()=>{load();},[load]);
