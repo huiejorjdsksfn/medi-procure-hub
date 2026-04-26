@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -31,12 +32,17 @@ export default function JournalVouchersPage() {
 
   const load = async () => {
     setLoading(true);
+    try {
     const [{data:jv},{data:c}] = await Promise.all([
       (supabase as any).from("journal_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("chart_of_accounts").select("account_code,account_name").eq("is_active",true).order("account_code"),
     ]);
-    setRows(jv||[]); setCoa(c||[]);
-    setLoading(false);
+    const rows=jv||[]; setRows(rows); setCoa(c||[]);
+      pageCache.set("journal_vouchers",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("journal_vouchers"); if(cached) setRows(cached);
+      console.error("[JournalVouchers]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{load();},[]);
 

@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useTableRealtime } from "@/hooks/useRealtime";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,8 +23,13 @@ export default function DepartmentsPage() {
 
   const load = useCallback(async()=>{
     setLoading(true);
+    try {
     const{data}=await(supabase as any).from("departments").select("*").order("name");
-    setRows(data||[]); setLoading(false);
+    const rows=data||[]; setRows(rows); pageCache.set("departments",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("departments"); if(cached) setRows(cached);
+      console.error("[Departments]",e);
+    } finally { setLoading(false); }
   },[]);
   useEffect(()=>{ load(); },[load]);
   useTableRealtime("departments", load);

@@ -52,12 +52,18 @@ export default function BidEvaluationsPage() {
 
   const load = async () => {
     setLoading(true);
+    try {
     const [e,t,s] = await Promise.all([
       (supabase as any).from("bid_evaluations").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("tenders").select("id,tender_number,title").order("tender_number"),
       (supabase as any).from("suppliers").select("id,name").order("name"),
     ]);
-    setRows(e.data||[]); setTenders(t.data||[]); setSuppliers(s.data||[]); setLoading(false);
+    const rows=e.data||[]; setRows(rows); setTenders(t.data||[]); setSuppliers(s.data||[]);
+      pageCache.set("bid_evaluations",rows);
+    } catch(ex:any) {
+      const cached=pageCache.get<any[]>("bid_evaluations"); if(cached) setRows(cached);
+      console.error("[BidEvals]",ex);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
   useEffect(()=>{

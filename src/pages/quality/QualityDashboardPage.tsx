@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

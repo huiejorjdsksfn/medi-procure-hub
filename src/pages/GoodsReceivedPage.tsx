@@ -45,11 +45,19 @@ export default function GoodsReceivedPage() {
 
   const load = async()=>{
     setLoading(true);
-    const [{data:g},{data:s}] = await Promise.all([
-      (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
-      (supabase as any).from("suppliers").select("id,name").order("name"),
-    ]);
-    setGrns(g||[]); setSuppliers(s||[]); setLoading(false);
+    try {
+      const [{data:g,error:ge},{data:s}] = await Promise.all([
+        (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
+        (supabase as any).from("suppliers").select("id,name").order("name"),
+      ]);
+      if(ge) throw ge;
+      const rows=g||[]; setGrns(rows); setSuppliers(s||[]);
+      pageCache.set("goods_received",rows); pageCache.set("suppliers_lite",s||[]);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("goods_received");
+      if(cached) setGrns(cached);
+      console.error("[GoodsReceived]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
 

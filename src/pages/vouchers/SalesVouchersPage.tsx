@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -32,13 +33,18 @@ export default function SalesVouchersPage() {
 
   const load = async () => {
     setLoading(true);
+    try {
     const [{data:sv},{data:d},{data:it}] = await Promise.all([
       (supabase as any).from("sales_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
       (supabase as any).from("items").select("id,name,unit_price").order("name"),
     ]);
-    setRows(sv||[]); setDepts(d||[]); setItems(it||[]);
-    setLoading(false);
+    const rows=sv||[]; setRows(rows); setDepts(d||[]); setItems(it||[]);
+      pageCache.set("sales_vouchers",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("sales_vouchers"); if(cached) setRows(cached);
+      console.error("[SalesVouchers]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{load();},[]);
 

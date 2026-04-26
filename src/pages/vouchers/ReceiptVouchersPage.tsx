@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -30,12 +31,17 @@ export default function ReceiptVouchersPage() {
 
   const load = async () => {
     setLoading(true);
+    try {
     const [{data:rv},{data:d}] = await Promise.all([
       (supabase as any).from("receipt_vouchers").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
-    setRows(rv||[]); setDepts(d||[]);
-    setLoading(false);
+    const rows=rv||[]; setRows(rows); setDepts(d||[]);
+      pageCache.set("receipt_vouchers",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("receipt_vouchers"); if(cached) setRows(cached);
+      console.error("[ReceiptVouchers]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{load();},[]);
 

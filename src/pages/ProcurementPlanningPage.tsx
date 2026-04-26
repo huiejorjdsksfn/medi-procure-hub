@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -27,12 +28,17 @@ export default function ProcurementPlanningPage() {
 
   const load = async () => {
     setLoading(true);
+    try {
     const [{data:p},{data:d}] = await Promise.all([
       (supabase as any).from("procurement_plans").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
-    setRows(p||[]); setDepts(d||[]);
-    setLoading(false);
+    const rows=p||[]; setRows(rows); setDepts(d||[]);
+      pageCache.set("procurement_plans",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("procurement_plans"); if(cached) setRows(cached);
+      console.error("[ProcurementPlan]",e);
+    } finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
 

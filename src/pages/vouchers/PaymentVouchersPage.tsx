@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -56,13 +57,19 @@ export default function PaymentVouchersPage() {
 
   const fetchVouchers = useCallback(async () => {
     setLoading(true);
+    try {
     const { data, error } = await supabase
       .from("payment_vouchers")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
-    if (!error && data) setVouchers(data as PaymentVoucher[]);
-    setLoading(false);
+    if (error) throw error;
+    const rows=(data||[]) as PaymentVoucher[]; setVouchers(rows);
+    pageCache.set("payment_vouchers",rows);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("payment_vouchers"); if(cached) setVouchers(cached as PaymentVoucher[]);
+      console.error("[PaymentVouchers]",e);
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchVouchers(); }, [fetchVouchers]);

@@ -53,11 +53,19 @@ export default function ContractsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{data:c},{data:s}] = await Promise.all([
-      (supabase as any).from("contracts").select("*,suppliers(name)").order("created_at",{ascending:false}),
-      (supabase as any).from("suppliers").select("id,name").order("name"),
-    ]);
-    setRows(c||[]); setSuppliers(s||[]); setLoading(false);
+    try {
+      const [{data:c,error:ce},{data:s}] = await Promise.all([
+        (supabase as any).from("contracts").select("*,suppliers(name)").order("created_at",{ascending:false}),
+        (supabase as any).from("suppliers").select("id,name").order("name"),
+      ]);
+      if(ce) throw ce;
+      const rows=c||[]; setRows(rows); setSuppliers(s||[]);
+      pageCache.set("contracts",rows); pageCache.set("suppliers_lite",s||[]);
+    } catch(e:any) {
+      const cached=pageCache.get<any[]>("contracts");
+      if(cached) setRows(cached);
+      console.error("[Contracts]",e);
+    } finally { setLoading(false); }
   },[]);
   useEffect(()=>{load();},[load]);
   useEffect(()=>{
