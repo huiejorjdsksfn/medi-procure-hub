@@ -308,3 +308,4 @@ export const printGenericVoucher = async (voucher: any, type: string) => {
     },
   });
 };
+export const printPO = printPurchaseOrder;

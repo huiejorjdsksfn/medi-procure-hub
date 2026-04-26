@@ -108,6 +108,11 @@ class SessionEngine {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
   }
 
+  /** Alias for read() - restore session from storage */
+  async restore(): Promise<StoredSession | null> {
+    return this.read();
+  }
+
   /** Read roles from cache (instant, no network) */
   readRolesCache(): { roles: string[]; profile: any } | null {
     try {
