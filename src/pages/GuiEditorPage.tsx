@@ -9,9 +9,10 @@ import { toast } from "@/hooks/use-toast";
 import {
   Save, RotateCcw, Palette, Type, Layout, Settings2,
   Move, Check, RefreshCw, Monitor, Smartphone, Tablet,
-  ChevronUp, ChevronDown, X, Zap, Eye
+  ChevronUp, ChevronDown, X, Zap, Eye, Wifi, Globe, Shield, Server
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
+import { useRealIP } from "@/hooks/useRealIP";
 
 const PRESETS = [
   { name:"Navy Blue",    primary:"#0a2558", accent:"#C45911", navBg:"#ffffff", navText:"#1e293b", pageBg:"#f8fafc" },
@@ -58,6 +59,9 @@ const DEFAULTS = {
   show_logo_nav:"true",     show_kpi_tiles:"true",
   compact_tables:"false",   show_status_chips:"true",
   show_search_bar:"true",
+  print_font:"Times New Roman",
+  print_font_size:"11",
+  paper_size:"A4",
 };
 
 export default function GuiEditorPage() {
@@ -92,9 +96,13 @@ export default function GuiEditorPage() {
     compact_tables:   get("compact_tables",  DEFAULTS.compact_tables),
     show_status_chips:get("show_status_chips",DEFAULTS.show_status_chips),
     show_search_bar:  get("show_search_bar", DEFAULTS.show_search_bar),
+    print_font:       get("print_font",       "Times New Roman"),
+    print_font_size:  get("print_font_size",  "11"),
+    paper_size:       get("paper_size",       "A4"),
   }));
 
   const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV);
+  const ipInfo = useRealIP();
 
   // - LIVE APPLICATION: apply to DOM immediately on every change -
   useEffect(() => {
@@ -368,6 +376,44 @@ export default function GuiEditorPage() {
             <ToggleRow k="compact_tables"    label="Compact Table Rows"/>
             <ToggleRow k="show_status_chips" label="Coloured Status Badges"/>
             <ToggleRow k="show_search_bar"   label="Show Search Bar in Top Bar"/>
+
+            {/* Print Settings */}
+            <div style={{marginTop:12,marginBottom:6,fontSize:9.5,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Print Settings</div>
+            <SelectRow k="print_font" label="Print Font" opts={["Times New Roman","Arial","Calibri","Georgia","Segoe UI","Helvetica"]}/>
+            <SelectRow k="print_font_size" label="Print Font Size" opts={["9","10","11","12","13","14"]}/>
+            <SelectRow k="paper_size" label="Paper Size" opts={["A4","A3","Letter","Legal"]}/>
+
+            {/* Real IP Info Panel */}
+            <div style={{marginTop:14,padding:"10px 12px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f8fafc"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                <Wifi style={{width:12,height:12,color:"#0078d4"}}/>
+                <span style={{fontSize:11,fontWeight:700,color:"#1e293b"}}>Your Connection</span>
+                {ipInfo.fetching && <span style={{fontSize:9,color:"#94a3b8",marginLeft:"auto"}}>detecting...</span>}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:10.5}}>
+                <div style={{padding:"4px 8px",borderRadius:5,background:"#fff",border:"1px solid #e2e8f0"}}>
+                  <div style={{color:"#94a3b8",fontSize:9,marginBottom:1}}>PUBLIC IP</div>
+                  <div style={{color:"#1e293b",fontWeight:700,fontFamily:"monospace"}}>{ipInfo.publicIP||"—"}</div>
+                </div>
+                <div style={{padding:"4px 8px",borderRadius:5,background:"#fff",border:"1px solid #e2e8f0"}}>
+                  <div style={{color:"#94a3b8",fontSize:9,marginBottom:1}}>PRIVATE IP</div>
+                  <div style={{color:"#1e293b",fontWeight:700,fontFamily:"monospace"}}>{ipInfo.privateIPs[1]||ipInfo.privateIPs[0]||"127.0.0.1"}</div>
+                </div>
+                <div style={{padding:"4px 8px",borderRadius:5,background:"#fff",border:"1px solid #e2e8f0"}}>
+                  <div style={{color:"#94a3b8",fontSize:9,marginBottom:1}}>LOCATION</div>
+                  <div style={{color:"#374151",fontWeight:500}}>{ipInfo.city&&ipInfo.country?`${ipInfo.city}, ${ipInfo.country}`:ipInfo.country||"—"}</div>
+                </div>
+                <div style={{padding:"4px 8px",borderRadius:5,background:"#fff",border:"1px solid #e2e8f0"}}>
+                  <div style={{color:"#94a3b8",fontSize:9,marginBottom:1}}>ISP / ORG</div>
+                  <div style={{color:"#374151",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ipInfo.isp||"—"}</div>
+                </div>
+              </div>
+              {ipInfo.timezone && (
+                <div style={{marginTop:4,fontSize:9.5,color:"#64748b",textAlign:"center"}}>
+                  Timezone: {ipInfo.timezone} • All IPs: {ipInfo.privateIPs.join(", ")}
+                </div>
+              )}
+            </div>
           </>}
 
           <div style={{ height:16 }}/>

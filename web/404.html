@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>EL5 MediProcure — Loading...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Permanent SPA redirect — NEVER show EdgeOne 404
+    // Save the attempted path and redirect to root
+    var path = window.location.pathname;
+    var search = window.location.search;
+    var hash = window.location.hash;
+    // Store intended destination for post-login redirect
+    if (path !== '/' && path !== '/login') {
+      sessionStorage.setItem('el5_redirect_after_load', path + search + hash);
+    }
+    // Immediately redirect to root (React Router handles the rest)
+    window.location.replace('/');
+  </script>
+  <style>
+    body { margin:0; background:#0a1628; display:flex; align-items:center; 
+           justify-content:center; height:100vh; font-family:'Segoe UI',sans-serif; }
+    .msg { color:rgba(255,255,255,0.6); font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="msg">Loading EL5 MediProcure...</div>
+</body>
+</html>
