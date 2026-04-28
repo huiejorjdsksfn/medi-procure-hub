@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { pageCache } from "@/lib/pageCache";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";

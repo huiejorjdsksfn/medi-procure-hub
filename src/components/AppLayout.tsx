@@ -125,7 +125,7 @@ const MODS = [
      {l:"DB Monitor",   p:"/admin/db-test",  I:Activity},
      {l:"Backup",       p:"/backup",         I:Archive},
      {l:"ODBC/MySQL",   p:"/odbc",           I:Server},
-     {l:"Webmaster",    p:"/webmaster",      I:Globe},
+     {l:"Changelog",    p:"/changelog",      I:GitBranch},{l:"Webmaster",    p:"/webmaster",      I:Globe},
      {l:"GUI Editor",   p:"/gui-editor",     I:Code2},
      {l:"Settings",     p:"/settings",       I:Wrench},
      {l:"Superadmin",   p:"/superadmin",     I:Radio},
@@ -206,7 +206,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {(isAdmin||isDbAdmin)&&(
         <div style={{background:T.accent,padding:"3px 14px",display:"flex",gap:5,alignItems:"center",flexShrink:0,overflowX:"auto"}}>
           <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,whiteSpace:"nowrap"}}>- ADMIN</span>
-          {[{l:"Users",p:"/users"},{l:"IP Stats",p:"/admin/ip-access"},{l:"DB Monitor",p:"/admin/db-test"},{l:"Settings",p:"/settings"},{l:"Webmaster",p:"/webmaster"},{l:"Superadmin",p:"/superadmin"}].map(a=>(
+          {[{l:"Users",p:"/users"},{l:"IP Stats",p:"/admin/ip-access"},{l:"DB Monitor",p:"/admin/db-test"},{l:"Settings",p:"/settings"},{l:"Changelog",p:"/changelog"},{l:"Webmaster",p:"/webmaster"},{l:"Superadmin",p:"/superadmin"}].map(a=>(
             <button key={a.p} onClick={()=>nav(a.p)} style={{padding:"2px 10px",borderRadius:T.r,background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.28)",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}
               onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.28)")}
               onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.18)")}>

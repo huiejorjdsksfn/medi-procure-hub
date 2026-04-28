@@ -1,5 +1,7 @@
 
 import { useState, useEffect } from "react";
+import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
+import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

@@ -4,6 +4,7 @@
  * Saves permanently to Supabase system_settings.
  */
 import { useState, useRef, useEffect, useCallback } from "react";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { useSystemSettings, saveSettings, applyThemeToDOM } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import {

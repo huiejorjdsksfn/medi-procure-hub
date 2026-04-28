@@ -58,6 +58,7 @@ import ReceptionPage from "@/pages/ReceptionPage";
 import TelephonyPage from "@/pages/TelephonyPage";
 import SMSPage from "@/pages/SMSPage";
 import WebmasterPage from "@/pages/WebmasterPage";
+import ChangelogPage from "@/pages/ChangelogPage";
 import InboxPage from "@/pages/InboxPage";
 import EmailPage from "@/pages/EmailPage";
 import DocumentsPage from "@/pages/DocumentsPage";

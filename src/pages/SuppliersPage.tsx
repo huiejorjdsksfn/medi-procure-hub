@@ -1,5 +1,7 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { ValidationEngine } from "@/engines/validation/ValidationEngine";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
