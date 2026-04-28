@@ -128,6 +128,10 @@ export async function saveSettings(kvPairs: Record<string, string>, category = "
  */
 export function applyThemeToDOM(settings: SystemSettings): void {
   if (typeof document === "undefined") return;
+  // Persist theme to localStorage so index.html can restore CSS vars instantly on next load
+  try {
+    localStorage.setItem("el5_theme_cache", JSON.stringify(settings));
+  } catch {}
   const root = document.documentElement;
   const apply = (varName: string, key: string, fallback: string) => {
     const val = settings[key] || DEFAULTS[key] || fallback;
