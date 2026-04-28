@@ -4,6 +4,7 @@
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect } from "react";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";

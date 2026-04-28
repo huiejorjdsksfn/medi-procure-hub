@@ -4,6 +4,7 @@
  * EL5 MediProcure, Embu Level 5 Hospital
  */
 import { useEffect, useState, useCallback } from "react";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

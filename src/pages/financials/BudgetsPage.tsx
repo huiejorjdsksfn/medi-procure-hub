@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
