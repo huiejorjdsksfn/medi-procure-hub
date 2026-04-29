@@ -1,8 +1,8 @@
 # ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  EL5 MediProcure — ProcurBosse CI/CD MASTER PIPELINE                    ║
+# ║  EL5 MediProcure — ProcurBosse CI/CD MASTER PIPELINE v9.6               ║
 # ║  Embu Level 5 Hospital · Embu County Government · Kenya                 ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
-name: "🏥 ProcurBosse — CI/CD Master"
+name: "🏥 ProcurBosse — CI/CD Master v9.6"
 
 on:
   push:
@@ -11,16 +11,6 @@ on:
     inputs:
       build_desktop:
         description: "Build Electron EXE (Windows)"
-        required: false
-        default: "true"
-        type: boolean
-      deploy_functions:
-        description: "Deploy Supabase Edge Functions"
-        required: false
-        default: "true"
-        type: boolean
-      run_migrations:
-        description: "Run DB Migrations"
         required: false
         default: "true"
         type: boolean
@@ -36,24 +26,18 @@ permissions:
   actions: write
 
 env:
-  APP_VERSION: "5.9.0"
+  APP_VERSION: "9.6.0"
   NODE_VERSION: "20"
-  VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-  VITE_SUPABASE_PROJECT_ID: "yvjfehnzbzjliizjvuhq"
-  VITE_APP_VERSION: "5.9.0"
-  VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
-  VITE_SYSTEM_NAME: "EL5 MediProcure"
-  VITE_TWILIO_PHONE: "+16812972643"
-  VITE_WHATSAPP_NUMBER: "+14155238886"
-  VITE_TWILIO_MSG_SID: "MGd547d8e3273fda2d21afdd6856acb245"
+  CI: "false"
+  NODE_OPTIONS: "--max-old-space-size=4096"
+
+jobs:
 
 # ══════════════════════════════════════════════════════════════════════════════
-# JOB 1 — Web Build (Vite + TypeScript)
+# JOB 1 — Web Build + Test
 # ══════════════════════════════════════════════════════════════════════════════
-jobs:
   web-build:
-    name: "🌐 Web Build — Vite + TypeScript"
+    name: "🌐 Web Build + Test"
     runs-on: ubuntu-latest
     outputs:
       build-id: ${{ steps.meta.outputs.build_id }}
@@ -62,16 +46,13 @@ jobs:
     steps:
       - name: "📥 Checkout"
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: "🏷️ Build metadata"
+      - name: "🏷️ Metadata"
         id: meta
         run: |
-          BUILD_ID="v${{ env.APP_VERSION }}-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+          BUILD_ID="v${{ env.APP_VERSION }}-$(date +%Y%m%d%H%M)-$(git rev-parse --short HEAD)"
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "version=${{ env.APP_VERSION }}" >> $GITHUB_OUTPUT
-          echo "::notice::🏥 Building ProcurBosse $BUILD_ID"
 
       - name: "⚙️ Setup Node ${{ env.NODE_VERSION }}"
         uses: actions/setup-node@v4
@@ -79,24 +60,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: "🔧 Sync package-lock version"
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          LOCK_VER=$(node -p "require('./package-lock.json').version")
-          if [ "$PKG_VER" != "$LOCK_VER" ]; then
-            echo "Patching package-lock.json: $LOCK_VER → $PKG_VER"
-            node -e "
-              const fs=require('fs');
-              const l=JSON.parse(fs.readFileSync('package-lock.json'));
-              l.version='$PKG_VER';
-              if(l.packages&&l.packages[''])l.packages[''].version='$PKG_VER';
-              fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));
-            "
-          fi
-          echo "✅ Version sync: $PKG_VER"
-
       - name: "📦 Install dependencies"
-        run: npm ci --no-audit --legacy-peer-deps
+        run: npm install --legacy-peer-deps --no-audit
 
       - name: "📝 Write .env"
         run: |
@@ -104,7 +69,7 @@ jobs:
           VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_ANON_KEY }}
           VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
-          VITE_APP_VERSION=5.9.0
+          VITE_APP_VERSION=9.6.0
           VITE_HOSPITAL_NAME=Embu Level 5 Hospital
           VITE_SYSTEM_NAME=EL5 MediProcure
           VITE_TWILIO_PHONE=+16812972643
@@ -112,39 +77,142 @@ jobs:
           VITE_TWILIO_MSG_SID=MGd547d8e3273fda2d21afdd6856acb245
           EOF
 
-      - name: "🔍 TypeScript check (non-blocking)"
-        run: npx tsc --noEmit --skipLibCheck 2>&1 | head -50 || true
+      - name: "🔍 TypeScript check"
+        run: npx tsc --noEmit --skipLibCheck 2>&1 | head -60 || true
         continue-on-error: true
 
       - name: "🏗️ Vite production build"
         run: npm run build
-        env:
-          CI: "false"
-          NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: "✅ Verify dist output"
+      - name: "✅ Verify dist"
         run: |
           echo "--- dist contents ---"
-          ls -lh dist/
-          [ -f dist/index.html ] && echo "✅ index.html present" || (echo "❌ Missing index.html" && exit 1)
-          echo "Total size: $(du -sh dist/ | cut -f1)"
+          ls -lh dist/assets/ | tail -20
+          [ -f dist/index.html ] && echo "✅ index.html present" || exit 1
+          [ -f dist/_redirects ] && echo "✅ _redirects present" || echo "⚠️ no _redirects"
+          echo "Bundle size: $(du -sh dist/assets/index-*.js | head -1)"
+          echo "Total dist: $(du -sh dist/ | cut -f1)"
+
+      - name: "🧪 Test: SPA routing config"
+        run: |
+          cat dist/_redirects
+          python3 -c "
+          import json
+          eo = json.load(open('edgeone.json'))
+          routes = eo.get('routes', [])
+          spa = next((r for r in routes if r.get('dest')=='/index.html' and r.get('status')==200), None)
+          assert spa, 'ERROR: No SPA route in edgeone.json!'
+          print('✅ edgeone.json SPA route:', spa)
+          redir = open('dist/_redirects').read().strip()
+          assert '/* /index.html 200' in redir, f'ERROR: bad _redirects: {redir}'
+          print('✅ _redirects:', redir)
+          "
+
+      - name: "🧪 Test: Bundle content verification"
+        run: |
+          python3 -c "
+          import os, glob
+          bundles = glob.glob('dist/assets/index-*.js')
+          assert bundles, 'No main bundle found!'
+          b = open(bundles[0]).read()
+          ih = open('dist/index.html').read()
+          tests = [
+            (b,  'el5_erp_cache',            'ERPCache IDB'),
+            (b,  'el5c:',                    'ERPCache localStorage'),
+            (b,  'EL5_ROUTE_RESTORED',       'SPARouteRestorer'),
+            (b,  'Supplier name is required','ValidationEngine'),
+            (b,  'autosave:',               'FormEngine'),
+            (b,  'showBrowserPush',         'NotificationEngine'),
+            (b,  'syncAll',                 'SyncEngine'),
+            (b,  'replayQueue',             'OfflineEngine'),
+            (b,  'procurement_manager',     'WorkflowEngine'),
+            (b,  'api.ipify.org',           'useRealIP'),
+            (b,  'getDerivedStateFromError', 'ErrorBoundary'),
+            (b,  'Embu Level 5',           'Hospital name'),
+            (b,  '/changelog',             'ChangelogPage route'),
+            (ih, 'el5_spa_route',          'SPA route saver [HTML]'),
+            (ih, 'el5_theme_cache',        'Theme restore [HTML]'),
+            (ih, 'offline-banner',         'Offline banner [HTML]'),
+          ]
+          ok=fail=0
+          for src,code,label in tests:
+            if code in src: print(f'  ✅ {label}'); ok+=1
+            else: print(f'  ❌ MISSING: {label}'); fail+=1
+          print(f'Bundle: {ok}/{ok+fail} | {len(b)//1024}KB')
+          assert fail==0, f'{fail} bundle checks failed!'
+          "
+
+      - name: "🧪 Test: Page count and structure"
+        run: |
+          python3 -c "
+          import os, re
+          pages = []
+          for root,dirs,files in os.walk('src/pages'):
+            for f in files:
+              if f.endswith('.tsx'): pages.append(os.path.join(root,f))
+          print(f'Pages: {len(pages)}')
+          assert len(pages) >= 54, f'Expected 54+ pages, got {len(pages)}'
+          errors = []
+          for fp in pages:
+            c = open(fp).read()
+            name = fp.replace('src/pages/','')
+            if abs(c.count('{') - c.count('}')) > 8:
+              errors.append(f'BRACE IMBALANCE: {name}')
+            if 'export default' not in c:
+              errors.append(f'NO DEFAULT EXPORT: {name}')
+          if errors:
+            for e in errors: print(f'  ❌ {e}')
+            raise Exception(f'{len(errors)} page errors found')
+          print(f'✅ All {len(pages)} pages valid')
+          "
+
+      - name: "🧪 Test: Engine files exist"
+        run: |
+          python3 -c "
+          import os
+          engines = [
+            'src/engines/notification/NotificationEngine.ts',
+            'src/engines/sync/SyncEngine.ts',
+            'src/engines/validation/ValidationEngine.ts',
+            'src/engines/print/PrintEngine.ts',
+            'src/engines/workflow/WorkflowEngine.ts',
+            'src/engines/erp/ERPEngine.ts',
+            'src/engines/forms/FormEngine.ts',
+            'src/lib/erp-cache/index.ts',
+            'src/lib/erp-cache/offlineEngine.ts',
+            'src/lib/erp-cache/erpApi.ts',
+            'src/lib/version.ts',
+          ]
+          missing = [e for e in engines if not os.path.exists(e)]
+          for m in missing: print(f'  ❌ MISSING: {m}')
+          for e in engines:
+            if os.path.exists(e): print(f'  ✅ {e}')
+          assert not missing, f'{len(missing)} engine files missing!'
+          "
+
+      - name: "📦 Package web ZIP"
+        run: |
+          cd dist
+          zip -r ../ProcurBosse-v${{ env.APP_VERSION }}-Web-$(date +%Y%m%d).zip .
+          cd ..
+          echo "✅ Web ZIP: $(du -sh ProcurBosse-v*.zip | head -1)"
 
       - name: "📤 Upload web artifact"
         uses: actions/upload-artifact@v4
         with:
           name: procurbosse-web-${{ steps.meta.outputs.build_id }}
-          path: dist/
+          path: |
+            dist/
+            ProcurBosse-v${{ env.APP_VERSION }}-Web-*.zip
           retention-days: 30
-          if-no-files-found: error
 
 # ══════════════════════════════════════════════════════════════════════════════
-# JOB 2 — Desktop EXE (Electron + Windows)
+# JOB 2 — Windows x64 EXE (Win10/11)
 # ══════════════════════════════════════════════════════════════════════════════
-  desktop-build:
-    name: "💻 Desktop EXE — Electron Windows"
+  build-exe-x64:
+    name: "💻 Windows x64 EXE (Win10/11)"
     runs-on: windows-latest
     needs: web-build
-    if: github.event_name == 'push' || github.event.inputs.build_desktop != 'false'
 
     steps:
       - name: "📥 Checkout"
@@ -154,213 +222,170 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
 
       - name: "📥 Download web dist"
         uses: actions/download-artifact@v4
         with:
           name: procurbosse-web-${{ needs.web-build.outputs.build-id }}
-          path: dist/
+          path: ./
 
-      - name: "🔧 Sync package-lock version"
+      - name: "📦 Install + Electron"
         shell: bash
         run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          node -e "
-            const fs=require('fs');
-            const l=JSON.parse(fs.readFileSync('package-lock.json'));
-            l.version='$PKG_VER';
-            if(l.packages&&l.packages[''])l.packages[''].version='$PKG_VER';
-            fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));
-          "
-
-      - name: "📦 Install deps + Electron"
-        run: |
-          npm ci --no-audit --legacy-peer-deps
-          npm install --no-save electron electron-builder --legacy-peer-deps
-
-      - name: "🛠️ Ensure Electron main + preload"
-        shell: bash
-        run: |
-          mkdir -p electron public
-          if [ ! -f electron/main.js ]; then
-            cat > electron/main.js << 'EOF'
-          const { app, BrowserWindow, ipcMain, shell } = require('electron');
-          const path = require('path');
-          const fs = require('fs');
-          app.disableHardwareAcceleration();
-          app.commandLine.appendSwitch('disable-gpu');
-          app.commandLine.appendSwitch('use-gl', 'swiftshader');
-          let mainWindow;
-          function createWindow() {
-            mainWindow = new BrowserWindow({
-              width: 1400, height: 900, minWidth: 1024, minHeight: 768,
-              title: 'ProcurBosse — EL5 MediProcure v5.9',
-              webPreferences: {
-                nodeIntegration: false, contextIsolation: true,
-                preload: path.join(__dirname, 'preload.js')
-              },
-              show: false, backgroundColor: '#0f172a'
-            });
-            const rp = path.join(process.resourcesPath || '', 'app', 'index.html');
-            const dp = path.join(__dirname, '../dist/index.html');
-            mainWindow.loadURL(fs.existsSync(rp) ? 'file://' + rp : 'file://' + dp);
-            mainWindow.once('ready-to-show', () => { mainWindow.show(); mainWindow.maximize(); });
-            mainWindow.on('closed', () => { mainWindow = null; });
-            mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-              shell.openExternal(url); return { action: 'deny' };
-            });
-          }
-          app.whenReady().then(() => {
-            createWindow();
-            app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
-          });
-          app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-          ipcMain.handle('app-version', () => app.getVersion());
-          EOF
-          fi
-          if [ ! -f electron/preload.js ]; then
-            cat > electron/preload.js << 'EOF'
-          const { contextBridge, ipcRenderer } = require('electron');
-          contextBridge.exposeInMainWorld('electronAPI', {
-            getVersion: () => ipcRenderer.invoke('app-version'),
-            platform: process.platform
-          });
-          EOF
-          fi
-          # Minimal favicon placeholder
-          if [ ! -f public/favicon.ico ]; then
-            printf '\x00\x00\x01\x00\x01\x00\x01\x01\x00\x00\x01\x00\x18\x00' > public/favicon.ico
-          fi
+          npm install --legacy-peer-deps --no-audit
+          npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps
 
       - name: "📋 Write electron-builder config"
         shell: bash
         run: |
-          cat > eb-ci.yml << 'EOF'
+          cat > eb-x64.yml << 'EBEOF'
           appId: ke.go.embu.mediprocure.procurbosse
           productName: ProcurBosse
-          copyright: "Copyright 2025 Embu County Government"
+          copyright: "© 2026 Embu County Government — All Rights Reserved"
           directories:
-            output: release
+            output: release-x64
           files:
             - "dist/**/*"
             - "electron/**/*"
+            - "package.json"
           win:
+            icon: public/icon.png
+            verifyUpdateCodeSignature: false
             target:
               - target: nsis
-                arch: [x64, ia32]
+                arch: [x64]
               - target: portable
                 arch: [x64]
-            requestedExecutionLevel: requireAdministrator
           nsis:
             oneClick: false
-            perMachine: true
+            perMachine: false
             allowElevation: true
             allowToChangeInstallationDirectory: true
-            createDesktopShortcut: true
+            createDesktopShortcut: always
             createStartMenuShortcut: true
-            shortcutName: "ProcurBosse v5.9"
+            shortcutName: "ProcurBosse v9.6"
+            artifactName: "ProcurBosse-v9.6.0-x64-Setup.exe"
+            deleteAppDataOnUninstall: false
           asar: true
-          extraResources:
-            - from: dist
-              to: app
-              filter: ["**/*"]
-          EOF
+          compression: maximum
+          EBEOF
 
-      - name: "🏗️ Build Windows EXE (x64 + ia32)"
+      - name: "🏗️ Build Windows x64 EXE"
         shell: bash
-        run: npx electron-builder build --config eb-ci.yml --win --x64 --ia32 --publish never
+        run: npx electron-builder build --config eb-x64.yml --win --x64 --publish never
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-      - name: "📋 List release artifacts"
+      - name: "📋 List artifacts"
         shell: bash
-        run: ls -lh release/ 2>/dev/null || echo "⚠️ No release dir produced"
+        run: |
+          echo "=== release-x64 ==="
+          ls -lh release-x64/ 2>/dev/null || echo "no release-x64 dir"
+          find . -name "*.exe" 2>/dev/null | head -10
 
-      - name: "📤 Upload EXE artifact"
+      - name: "📤 Upload x64 EXE"
         uses: actions/upload-artifact@v4
         with:
-          name: procurbosse-exe-${{ needs.web-build.outputs.build-id }}
+          name: exe-x64-${{ needs.web-build.outputs.build-id }}
           path: |
-            release/*.exe
-            release/*.zip
-            release/*.yml
+            release-x64/*.exe
+            release-x64/*.zip
           retention-days: 30
           if-no-files-found: warn
 
 # ══════════════════════════════════════════════════════════════════════════════
-# JOB 3 — Supabase Edge Functions
+# JOB 3 — Windows ia32 EXE (Win7/8/10 32-bit)
 # ══════════════════════════════════════════════════════════════════════════════
-  supabase-functions:
-    name: "⚡ Deploy Edge Functions"
-    runs-on: ubuntu-latest
+  build-exe-ia32:
+    name: "💻 Windows ia32 EXE (Win7/8/10)"
+    runs-on: windows-2019
     needs: web-build
-    if: always() && needs.web-build.result == 'success' && (github.event_name == 'push' || github.event.inputs.deploy_functions != 'false')
 
     steps:
       - name: "📥 Checkout"
         uses: actions/checkout@v4
 
-      - name: "🛠️ Install Supabase CLI"
-        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
-        continue-on-error: true
+      - name: "⚙️ Setup Node 18 (ia32 compat)"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
 
-      - name: "🚀 Deploy edge functions"
+      - name: "📥 Download web dist"
+        uses: actions/download-artifact@v4
+        with:
+          name: procurbosse-web-${{ needs.web-build.outputs.build-id }}
+          path: ./
+
+      - name: "📦 Install + Electron 33 (32-bit)"
+        shell: bash
         run: |
-          for fn in send-email send-sms notify-requisition make-call mysql-proxy; do
-            echo "⚡ Deploying $fn..."
-            supabase functions deploy $fn \
-              --project-ref yvjfehnzbzjliizjvuhq \
-              --no-verify-jwt 2>&1 && echo "✅ $fn deployed" || echo "⚠️ $fn skipped"
-          done
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        continue-on-error: true
+          npm install --legacy-peer-deps --no-audit
+          npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps
 
-      - name: "✅ Functions deploy complete"
-        run: echo "Edge functions step done — Project yvjfehnzbzjliizjvuhq"
-
-# ══════════════════════════════════════════════════════════════════════════════
-# JOB 4 — DB Migrations
-# ══════════════════════════════════════════════════════════════════════════════
-  db-migrations:
-    name: "🗄️ Database Migrations"
-    runs-on: ubuntu-latest
-    needs: web-build
-    if: always() && needs.web-build.result == 'success' && (github.event_name == 'push' || github.event.inputs.run_migrations != 'false')
-
-    steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
-
-      - name: "🛠️ Install Supabase CLI"
-        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
-        continue-on-error: true
-
-      - name: "📋 List migrations"
-        run: ls -la supabase/migrations/ 2>/dev/null || echo "No migrations directory found"
-
-      - name: "🚀 Push DB migrations"
+      - name: "📋 Write electron-builder config"
+        shell: bash
         run: |
-          supabase db push --project-ref yvjfehnzbzjliizjvuhq 2>&1 \
-            && echo "✅ Migrations applied" \
-            || echo "⚠️ Migration push attempted (may already be up to date)"
+          cat > eb-ia32.yml << 'EBEOF'
+          appId: ke.go.embu.mediprocure.procurbosse
+          productName: ProcurBosse
+          copyright: "© 2026 Embu County Government — All Rights Reserved"
+          directories:
+            output: release-ia32
+          files:
+            - "dist/**/*"
+            - "electron/**/*"
+            - "package.json"
+          win:
+            icon: public/icon.png
+            verifyUpdateCodeSignature: false
+            target:
+              - target: nsis
+                arch: [ia32]
+          nsis:
+            oneClick: false
+            perMachine: false
+            allowElevation: true
+            allowToChangeInstallationDirectory: true
+            createDesktopShortcut: always
+            createStartMenuShortcut: true
+            shortcutName: "ProcurBosse v9.6"
+            artifactName: "ProcurBosse-v9.6.0-ia32-Setup.exe"
+          asar: true
+          compression: maximum
+          EBEOF
+
+      - name: "🏗️ Build Windows ia32 EXE"
+        shell: bash
+        run: npx electron-builder build --config eb-ia32.yml --win --ia32 --publish never
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-      - name: "✅ Migrations complete"
-        run: echo "DB migrations step done"
+      - name: "📋 List artifacts"
+        shell: bash
+        run: |
+          ls -lh release-ia32/ 2>/dev/null || echo "no release-ia32 dir"
+          find . -name "*.exe" 2>/dev/null | head -10
+
+      - name: "📤 Upload ia32 EXE"
+        uses: actions/upload-artifact@v4
+        with:
+          name: exe-ia32-${{ needs.web-build.outputs.build-id }}
+          path: |
+            release-ia32/*.exe
+            release-ia32/*.zip
+          retention-days: 30
+          if-no-files-found: warn
 
 # ══════════════════════════════════════════════════════════════════════════════
-# JOB 5 — GitHub Release
+# JOB 4 — GitHub Release with all artifacts
 # ══════════════════════════════════════════════════════════════════════════════
   create-release:
-    name: "🚀 GitHub Release v${{ needs.web-build.outputs.version }}"
+    name: "🚀 Publish GitHub Release v${{ env.APP_VERSION }}"
     runs-on: ubuntu-latest
-    needs: [web-build, desktop-build, supabase-functions, db-migrations]
-    if: always() && needs.web-build.result == 'success' && (github.event_name == 'push' || github.event.inputs.create_release != 'false')
+    needs: [web-build, build-exe-x64, build-exe-ia32]
+    if: always() && needs.web-build.result == 'success'
 
     steps:
       - name: "📥 Checkout"
@@ -370,71 +395,93 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: procurbosse-web-${{ needs.web-build.outputs.build-id }}
-          path: release-web/
+          path: artifacts/web/
         continue-on-error: true
 
-      - name: "📥 Download EXE artifacts"
+      - name: "📥 Download x64 EXE"
         uses: actions/download-artifact@v4
         with:
-          name: procurbosse-exe-${{ needs.web-build.outputs.build-id }}
-          path: release-exe/
+          name: exe-x64-${{ needs.web-build.outputs.build-id }}
+          path: artifacts/exe-x64/
         continue-on-error: true
 
-      - name: "📦 Package web dist as ZIP"
+      - name: "📥 Download ia32 EXE"
+        uses: actions/download-artifact@v4
+        with:
+          name: exe-ia32-${{ needs.web-build.outputs.build-id }}
+          path: artifacts/exe-ia32/
+        continue-on-error: true
+
+      - name: "📦 Prepare release files"
         run: |
-          if [ -d release-web ]; then
-            cd release-web && zip -r ../ProcurBosse-v${{ env.APP_VERSION }}-Web.zip . && cd ..
-            echo "✅ Web ZIP created: $(du -sh ProcurBosse-v${{ env.APP_VERSION }}-Web.zip | cut -f1)"
-          else
-            echo "⚠️ No web dist to package"
-          fi
-        continue-on-error: true
+          mkdir -p release-files
+          # Web ZIP
+          find artifacts/web -name "*.zip" -exec cp {} release-files/ \;
+          # EXE files
+          find artifacts/exe-x64 -name "*.exe" -exec cp {} release-files/ \; 2>/dev/null || true
+          find artifacts/exe-ia32 -name "*.exe" -exec cp {} release-files/ \; 2>/dev/null || true
+          echo "=== Release files ==="
+          ls -lh release-files/ 2>/dev/null || echo "no files"
 
-      - name: "🏷️ Create GitHub Release"
+      - name: "🏷️ Create GitHub Release v${{ env.APP_VERSION }}"
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ env.APP_VERSION }}"
-          name: "🏥 ProcurBosse v${{ env.APP_VERSION }} — EL5 MediProcure Health Procurement ERP"
+          name: "🏥 ProcurBosse v${{ env.APP_VERSION }} — FullRelease"
           draft: false
           prerelease: false
-          generate_release_notes: true
-          token: ${{ secrets.RELEASE_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # 🏥 ProcurBosse v${{ env.APP_VERSION }} — EL5 MediProcure
+            # 🏥 ProcurBosse v${{ env.APP_VERSION }} — EL5 MediProcure FullRelease
 
             **Embu Level 5 Hospital · Embu County Government · Kenya**
+            **Build:** `${{ needs.web-build.outputs.build-id }}`
 
-            ## ✨ v5.9 Highlights
-            - Accountant workspace — invoice matching, GL journal, payment vouchers
-            - Twilio SMS + WhatsApp integration (Africa-ready messaging)
-            - Rebuilt notification system with bulk actions & realtime push
-            - SMTP via Supabase Edge Functions + Resend
-            - Windows EXE installer (x64 + ia32) with NSIS + Portable builds
-            - Multi-location support for 8 Embu County health facilities
-            - Dark navy UI with GUI CSS editor
+            ## ✨ v9.6.0 — FullRelease Highlights
 
-            ## 🏥 Supported Facilities
-            Runyenjes · Ishiara · Mitheru · Kagaari · Chogoria · Kiritiri · Embu Annex · EL5H Main
+            ### 🔧 ERP Engines (6 new)
+            - **NotificationEngine** — realtime push + browser notifications
+            - **SyncEngine** — background 5-min sync of all reference data
+            - **ValidationEngine** — form validation for all 8 ERP entity types
+            - **PrintEngine** — unified print for all document types
+            - **WorkflowEngine** — approval state machine (submit→approve/reject)
+            - **FormEngine** — reusable state + validation + autosave
 
-            ## 📡 Messaging
-            | Channel | Value |
-            |---------|-------|
-            | SMS | +16812972643 |
-            | WhatsApp | +14155238886 (join **bad-machine**) |
-            | Messaging SID | MGd547d8e3273fda2d21afdd6856acb245 |
+            ### 💾 Cache Layer (3 tiers)
+            - ERPCache: Memory → IndexedDB → localStorage (with TTL)
+            - OfflineEngine: mutation queue, replays when back online
+            - 30+ cached ERP API functions with appropriate TTLs
 
-            ## 🛠️ Tech Stack
-            React 18 · TypeScript · Vite 5 · Supabase (PostgreSQL) · Electron 28 · Tailwind CSS · Twilio
+            ### 🗄️ Database
+            - Auto-numbers: RQN/LPO/GRN/TDR/PV/RV/JV/PUV/SV/BDG/FA/NC
+            - Audit triggers on 15 tables
+            - GRN→inventory, low-stock alert, workflow notification triggers
+            - Seeds: 35 Chart of Accounts, 19 departments, 15 item categories
+            - Form tables: requisition_items, purchase_order_items, goods_received_items
+
+            ### 🌐 SPA/404 Fix (Permanent)
+            - EdgeOne 404 eliminated: bare catch-all in edgeone.json
+            - 404.html captures escape, saves path, redirects to /
+            - SPARouteRestorer uses useNavigate (proper React Router hook)
+
+            ### 📋 Changelog
+            - Full release history v1.0.0 → v9.6.0 visible at `/changelog`
 
             ## 📦 Downloads
-            - `ProcurBosse-v${{ env.APP_VERSION }}-Web.zip` — Web build (deploy to any static host)
-            - `*.exe` — Windows installer (x64 recommended, ia32 for legacy)
 
-            ---
-            *Built for Embu County Government Health Division*
-            *Build ID: ${{ needs.web-build.outputs.build-id }}*
+            | File | Platform | Description |
+            |------|----------|-------------|
+            | `ProcurBosse-v9.6.0-x64-Setup.exe` | Windows 10/11 | 64-bit installer |
+            | `ProcurBosse-v9.6.0-ia32-Setup.exe` | Windows 7/8/10 | 32-bit installer |
+            | `ProcurBosse-v9.6.0-Web-*.zip` | Any | Web deployment ZIP |
+
+            ## 🏥 Supported Facilities
+            EL5 Hospital Main · Runyenjes · Ishiara · Mitheru · Kagaari · Chogoria · Kiritiri · Embu Annex
+
+            ## 🛠️ Stack
+            React 18 · TypeScript · Vite 5 · Supabase PostgreSQL · Electron · Tailwind CSS · Twilio
           files: |
-            ProcurBosse-v${{ env.APP_VERSION }}-Web.zip
-            release-exe/*.exe
-            release-exe/*.zip
+            release-files/*.exe
+            release-files/*.zip
+          fail_on_unmatched_files: false
         continue-on-error: true
