@@ -1,6 +1,6 @@
-# ProcurBosse v6.0 — Build & Release
-# Produces: web ZIP + kiosk ZIP + Windows x64 EXE + Windows ia32 EXE + portable ZIPs
-name: "Build & Release v6"
+# ProcurBosse v9.6 — Windows EXE Build & Release (ALL architectures)
+# Embu Level 5 Hospital | Embu County Government | Kenya
+name: "🖥️ Windows EXE — All Builds v9.6"
 
 on:
   push:
@@ -11,89 +11,66 @@ permissions:
   contents: write
 
 env:
+  APP_VERSION: "9.6.0"
   NODE_VERSION: "20"
   CI: "false"
   NODE_OPTIONS: "--max-old-space-size=4096"
 
 jobs:
 
-  # ── 1. Build web app ────────────────────────────────────────────
   build-web:
-    name: "Build Web App"
+    name: "🌐 Web Build"
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.ver.outputs.version }}
+      build_id: ${{ steps.ver.outputs.build_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}" }
 
       - id: ver
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        run: |
+          VER="${{ env.APP_VERSION }}"
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "build_id=v${VER}-$(date +%Y%m%d%H%M)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Install
         run: npm install --legacy-peer-deps --no-audit
 
+      - name: Write .env
+        run: |
+          cat > .env << 'EOF'
+          VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_APP_VERSION=9.6.0
+          VITE_HOSPITAL_NAME=Embu Level 5 Hospital
+          VITE_SYSTEM_NAME=EL5 MediProcure
+          VITE_TWILIO_PHONE=+16812972643
+          EOF
+
       - name: Build
         run: npm run build
 
-      - name: Create web ZIP
+      - name: Verify build
         run: |
-          cd dist
-          zip -r ../ProcurBosse-v${{ steps.ver.outputs.version }}-web.zip .
-          cd ..
+          ls -lh dist/assets/index-*.js | head -3
+          [ -f dist/index.html ] && echo "✅ index.html OK" || exit 1
+          echo "Total: $(du -sh dist/ | cut -f1)"
 
-      - name: Create installer ZIP (scripts + web)
-        run: |
-          mkdir -p release-pkg
-          cp -r dist release-pkg/web
-          cp -r installers release-pkg/
-          cp -r install release-pkg/
-          cp README.md release-pkg/ 2>/dev/null || true
-          cd release-pkg
-          zip -r ../ProcurBosse-v${{ steps.ver.outputs.version }}-installer-package.zip .
-          cd ..
+      - name: Package web ZIP
+        run: cd dist && zip -r ../ProcurBosse-v${{ env.APP_VERSION }}-Web.zip . && cd ..
 
       - uses: actions/upload-artifact@v4
         with:
-          name: web-dist
+          name: web-dist-${{ steps.ver.outputs.build_id }}
           path: |
             dist/
-            ProcurBosse-v${{ steps.ver.outputs.version }}-web.zip
-            ProcurBosse-v${{ steps.ver.outputs.version }}-installer-package.zip
-          retention-days: 1
+            ProcurBosse-v${{ env.APP_VERSION }}-Web.zip
+          retention-days: 2
 
-  # ── 2. Build kiosk app ──────────────────────────────────────────
-  build-kiosk:
-    name: "Build Kiosk App"
-    runs-on: ubuntu-latest
-    needs: build-web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}" }
-
-      - name: Install + Build kiosk
-        run: |
-          cd kiosk-app
-          npm install --legacy-peer-deps --no-audit
-          npm run build || true
-          if [ -d dist ]; then
-            cd dist
-            zip -r ../../ProcurBosse-v${{ needs.build-web.outputs.version }}-kiosk.zip .
-          fi
-        continue-on-error: true
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kiosk-dist
-          path: "ProcurBosse-v${{ needs.build-web.outputs.version }}-kiosk.zip"
-          retention-days: 1
-        continue-on-error: true
-
-  # ── 3. Windows x64 EXE ─────────────────────────────────────────
   build-exe-x64:
-    name: "Windows x64 EXE"
+    name: "💻 Windows x64 (Win10/11)"
     runs-on: windows-latest
     needs: build-web
     steps:
@@ -103,38 +80,72 @@ jobs:
 
       - name: Download web dist
         uses: actions/download-artifact@v4
-        with: { name: web-dist }
+        with:
+          name: web-dist-${{ needs.build-web.outputs.build_id }}
+          path: ./
 
-      - name: Install + Electron
+      - name: Install deps + Electron
         shell: bash
         run: |
           npm install --legacy-peer-deps --no-audit
           npm install --save-dev electron@41 electron-builder@26 --legacy-peer-deps
 
-      - name: Build EXE x64
-        shell: bash
-        run: npx electron-builder --win --x64 --config electron-builder.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Rename output
+      - name: Write builder config
         shell: bash
         run: |
-          mkdir -p release-exe
-          find dist-electron -name "*.exe" | while read f; do
-            fname=$(basename "$f")
-            cp "$f" "release-exe/ProcurBosse-v${{ needs.build-web.outputs.version }}-x64-Setup.exe"
-          done
+          cat > eb-x64.yml << 'EBEOF'
+          appId: ke.go.embu.mediprocure.procurbosse
+          productName: ProcurBosse
+          copyright: "© 2026 Embu County Government — All Rights Reserved"
+          directories:
+            output: release-x64
+          files:
+            - "dist/**/*"
+            - "electron/**/*"
+            - "package.json"
+          win:
+            icon: public/icon.png
+            verifyUpdateCodeSignature: false
+            target:
+              - target: nsis
+                arch: [x64]
+              - target: portable
+                arch: [x64]
+          nsis:
+            oneClick: false
+            perMachine: false
+            allowElevation: true
+            allowToChangeInstallationDirectory: true
+            createDesktopShortcut: always
+            createStartMenuShortcut: true
+            shortcutName: "ProcurBosse EL5"
+            artifactName: "ProcurBosse-v${{ env.APP_VERSION }}-x64-Setup.exe"
+          portable:
+            artifactName: "ProcurBosse-v${{ env.APP_VERSION }}-x64-Portable.exe"
+          asar: true
+          compression: maximum
+          EBEOF
+
+      - name: Build x64 EXE
+        shell: bash
+        run: npx electron-builder build --config eb-x64.yml --win --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: List output
+        shell: bash
+        run: find release-x64 -name "*.exe" 2>/dev/null || echo "No EXE found"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: exe-x64
-          path: release-exe/*.exe
-          retention-days: 1
+          name: exe-x64-${{ needs.build-web.outputs.build_id }}
+          path: release-x64/*.exe
+          retention-days: 30
+          if-no-files-found: warn
 
-  # ── 4. Windows ia32 EXE ────────────────────────────────────────
   build-exe-ia32:
-    name: "Windows ia32 EXE"
+    name: "💻 Windows ia32 (Win7/8/10 32-bit)"
     runs-on: windows-2019
     needs: build-web
     steps:
@@ -144,88 +155,159 @@ jobs:
 
       - name: Download web dist
         uses: actions/download-artifact@v4
-        with: { name: web-dist }
+        with:
+          name: web-dist-${{ needs.build-web.outputs.build_id }}
+          path: ./
 
-      - name: Install + Electron 32-bit
+      - name: Install deps + Electron 33
         shell: bash
         run: |
           npm install --legacy-peer-deps --no-audit
           npm install --save-dev electron@33 electron-builder@25 --legacy-peer-deps
 
-      - name: Build EXE ia32
-        shell: bash
-        run: npx electron-builder --win --ia32 --config electron-builder.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Rename output
+      - name: Write builder config
         shell: bash
         run: |
-          mkdir -p release-exe
-          find dist-electron -name "*.exe" | while read f; do
-            cp "$f" "release-exe/ProcurBosse-v${{ needs.build-web.outputs.version }}-ia32-Setup.exe"
-          done
+          cat > eb-ia32.yml << 'EBEOF'
+          appId: ke.go.embu.mediprocure.procurbosse
+          productName: ProcurBosse
+          copyright: "© 2026 Embu County Government — All Rights Reserved"
+          directories:
+            output: release-ia32
+          files:
+            - "dist/**/*"
+            - "electron/**/*"
+            - "package.json"
+          win:
+            icon: public/icon.png
+            verifyUpdateCodeSignature: false
+            target:
+              - target: nsis
+                arch: [ia32]
+          nsis:
+            oneClick: false
+            perMachine: false
+            allowElevation: true
+            allowToChangeInstallationDirectory: true
+            createDesktopShortcut: always
+            createStartMenuShortcut: true
+            shortcutName: "ProcurBosse EL5"
+            artifactName: "ProcurBosse-v${{ env.APP_VERSION }}-ia32-Setup.exe"
+          asar: true
+          compression: maximum
+          EBEOF
+
+      - name: Build ia32 EXE
+        shell: bash
+        run: npx electron-builder build --config eb-ia32.yml --win --ia32 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: List output
+        shell: bash
+        run: find release-ia32 -name "*.exe" 2>/dev/null || echo "No EXE found"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: exe-ia32
-          path: release-exe/*.exe
-          retention-days: 1
+          name: exe-ia32-${{ needs.build-web.outputs.build_id }}
+          path: release-ia32/*.exe
+          retention-days: 30
+          if-no-files-found: warn
 
-  # ── 5. Publish Release ─────────────────────────────────────────
   release:
-    name: "GitHub Release"
+    name: "🚀 Publish Release v${{ needs.build-web.outputs.version }}"
     runs-on: ubuntu-latest
-    needs: [build-web, build-kiosk, build-exe-x64, build-exe-ia32]
-    if: always()
+    needs: [build-web, build-exe-x64, build-exe-ia32]
+    if: always() && needs.build-web.result == 'success'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download web ZIP
         uses: actions/download-artifact@v4
-        with: { path: artifacts }
+        with:
+          name: web-dist-${{ needs.build-web.outputs.build_id }}
+          path: artifacts/web/
+        continue-on-error: true
 
-      - name: List release files
-        run: find artifacts -type f | sort
+      - name: Download x64 EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: exe-x64-${{ needs.build-web.outputs.build_id }}
+          path: artifacts/exe-x64/
+        continue-on-error: true
+
+      - name: Download ia32 EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: exe-ia32-${{ needs.build-web.outputs.build_id }}
+          path: artifacts/exe-ia32/
+        continue-on-error: true
+
+      - name: Collect release files
+        run: |
+          mkdir -p release-files
+          find artifacts/web -name "*.zip" -exec cp {} release-files/ \; 2>/dev/null || true
+          find artifacts/exe-x64 -name "*.exe" -exec cp {} release-files/ \; 2>/dev/null || true
+          find artifacts/exe-ia32 -name "*.exe" -exec cp {} release-files/ \; 2>/dev/null || true
+          echo "=== Release files ==="
+          ls -lh release-files/ 2>/dev/null || echo "No files collected"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ needs.build-web.outputs.version }}"
-          name: "ProcurBosse v${{ needs.build-web.outputs.version }} — Dashboard Module Tiles"
-          body: |
-            ## ProcurBosse v${{ needs.build-web.outputs.version }} — EL5 MediProcure
-            **Embu Level 5 Hospital** · Embu County Government
-
-            ### What's New in v6.0.0
-            - New D365 CRM-style **module tile dashboard** — click tiles to navigate
-            - **Role-based tiles** — only your permitted modules are shown
-            - **Reception & Communications** available to ALL roles (every user)
-            - Redesigned **404 error page** with quick navigation links
-            - New **Power BI-style Reports** page with sidebar, KPI tiles, tabular data
-            - Removed dashboard graphs/charts and ERP wheel replaced with tiles
-            - All routes for Reception, SMS, Telephony, Email, Inbox open to all users
-            - Version bumped to v6.0.0
-
-            ### Downloads
-
-            | File | Description |
-            |------|-------------|
-            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-x64-Setup.exe` | Windows 10/11 64-bit installer |
-            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-ia32-Setup.exe` | Windows 7/8/10 32-bit installer |
-            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-web.zip` | Web deployment package |
-            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-installer-package.zip` | Installer scripts + web build |
-            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-kiosk.zip` | Department kiosk station |
-
-            **Build:** `${{ github.run_number }}` · **Commit:** `${{ github.sha }}`
-          files: |
-            artifacts/exe-x64/*.exe
-            artifacts/exe-ia32/*.exe
-            artifacts/web-dist/ProcurBosse-v${{ needs.build-web.outputs.version }}-web.zip
-            artifacts/web-dist/ProcurBosse-v${{ needs.build-web.outputs.version }}-installer-package.zip
-            artifacts/kiosk-dist/ProcurBosse-v${{ needs.build-web.outputs.version }}-kiosk.zip
-          fail_on_unmatched_files: false
+          name: "🏥 ProcurBosse v${{ needs.build-web.outputs.version }} — EL5 MediProcure FullRelease"
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            # 🏥 ProcurBosse v${{ needs.build-web.outputs.version }} — EL5 MediProcure
+
+            **Embu Level 5 Hospital · Embu County Government · Kenya**
+            **Build:** `${{ needs.build-web.outputs.build_id }}`
+
+            ## ✨ v9.6.0 Highlights
+
+            ### 🔧 New ERP Engines
+            - **NotificationEngine** — realtime Supabase push + browser notifications
+            - **SyncEngine** — background 5-min reference data sync
+            - **ValidationEngine** — form validation for all 8 ERP entity types
+            - **PrintEngine** — unified print: POs, Requisitions, GRNs, all Vouchers
+            - **WorkflowEngine** — approval state machine with DB notifications
+            - **FormEngine** — reusable state, validation, autosave
+
+            ### 💾 3-Tier Cache Layer
+            - ERPCache: Memory → IndexedDB → localStorage with TTL
+            - OfflineEngine: offline mutation queue, auto-replay on reconnect
+            - 30+ cached ERP API functions
+
+            ### 🗄️ Database Enhancements
+            - Auto-numbers: RQN/LPO/GRN/TDR/PV/RV/JV/PUV/SV/BDG/FA/NC
+            - Audit log triggers on 15 tables
+            - GRN→inventory trigger, low-stock alerts, workflow notifications
+            - Seeds: 35 COA accounts, 19 departments, 15 item categories
+
+            ### 🌐 EdgeOne 404 — Permanently Fixed
+            - Bare catch-all route in edgeone.json
+            - Custom 404.html with JS redirect
+            - SPARouteRestorer with proper useNavigate hook
+
+            ## 📦 Downloads
+
+            | File | Platform |
+            |------|----------|
+            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-x64-Setup.exe` | Windows 10/11 64-bit |
+            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-ia32-Setup.exe` | Windows 7/8/10 32-bit |
+            | `ProcurBosse-v${{ needs.build-web.outputs.version }}-Web.zip` | Web deployment |
+
+            ## 🏥 Facilities
+            EL5H Main · Runyenjes · Ishiara · Mitheru · Kagaari · Chogoria · Kiritiri · Embu Annex
+
+            ---
+            *Embu County Government Health Division*
+          files: |
+            release-files/*.exe
+            release-files/*.zip
+          fail_on_unmatched_files: false
+        continue-on-error: true

@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "5.9.0"),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "9.6.0"),
   },
   build: {
     sourcemap: false,
