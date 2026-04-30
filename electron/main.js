@@ -1,65 +1,86 @@
 /**
- * ProcurBosse — Electron Main Process
- * EL5 MediProcure v9.6.0 Hospital ERP — Embu Level 5 Hospital
- * Compatible: Windows 7 SP1 → Windows 11 (x64 + ia32)
+ * ProcurBosse — Electron Main Process v9.6.0
+ * EL5 MediProcure Hospital ERP — Embu Level 5 Hospital
+ * Compatible: Windows 7 SP1+ → Windows 11 (x64 + ia32)
  *
- * Architecture:
- *  - Loads built React/Vite dist from app.asar
- *  - All data via Supabase (live cloud DB)
- *  - Auto-updates via GitHub Releases (electron-updater)
- *  - Secure preload bridge for native file/dialog APIs
+ * FIXED v9.6.0:
+ *  - navigate() now uses executeJavaScript + electron-navigate custom event
+ *    which React Router intercepts via useEffect listener
+ *  - setWindowOpenHandler called only once
+ *  - DIST_PATH uses __dirname-relative path (works in asar + non-asar)
+ *  - All IPC handlers present: read-file, get-system-info, clear-cache,
+ *    print-document, show-notification
+ *  - SPA did-fail-load handler prevents Electron 404
+ *  - Full crash logging to userData/crash.log
  */
 
 'use strict';
 
-const { app, BrowserWindow, Menu, shell, ipcMain, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog, nativeImage, Notification } = require('electron');
 const path = require('path');
 const fs   = require('fs');
+const os   = require('os');
 
-// ── Constants ────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 const APP_NAME    = 'ProcurBosse';
 const APP_VERSION = app.getVersion();
 const IS_DEV      = process.env.ELECTRON_DEV === '1' || !app.isPackaged;
-const IS_WIN7     = process.platform === 'win32' && (() => {
-  const parts = require('os').release().split('.').map(Number);
-  // NT 6.0 = Vista, 6.1 = Win7, 6.2 = Win8, 6.3 = Win8.1, 10.0 = Win10+
-  return parts[0] < 10;
+
+// Windows 7 detection (NT 6.1)
+const IS_WIN7 = process.platform === 'win32' && (() => {
+  try {
+    const parts = os.release().split('.').map(Number);
+    return parts[0] < 10;
+  } catch { return false; }
 })();
 
-// ── Paths ─────────────────────────────────────────────────────
-const DIST_PATH   = IS_DEV
-  ? path.join(__dirname, '../dist')
-  : path.join(process.resourcesPath, 'app.asar', 'dist');
-const INDEX_HTML  = path.join(DIST_PATH, 'index.html');
-const ICON_PATH   = IS_DEV
-  ? path.join(__dirname, '../public/icon.png')
-  : path.join(process.resourcesPath, 'icon.png');
+// ── Paths ──────────────────────────────────────────────────────────────────
+// Use __dirname relative path — works correctly both packaged (asar) and dev
+const ELECTRON_DIR = __dirname;
+const DIST_PATH    = IS_DEV
+  ? path.resolve(ELECTRON_DIR, '..', 'dist')
+  : path.resolve(ELECTRON_DIR, '..', 'dist');
+const INDEX_HTML   = path.join(DIST_PATH, 'index.html');
+const ICON_PATH    = path.join(
+  IS_DEV ? path.resolve(ELECTRON_DIR, '..', 'public') : process.resourcesPath,
+  'icon.png'
+);
 
-// ── Single instance lock ──────────────────────────────────────
+// ── Crash logging ──────────────────────────────────────────────────────────
+function crashLog(msg) {
+  try {
+    const logFile = path.join(app.getPath('userData'), 'crash.log');
+    fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch {}
+}
+process.on('uncaughtException', err => crashLog(`UNCAUGHT: ${err.stack || err}`));
+process.on('unhandledRejection', (reason) => crashLog(`UNHANDLED_REJECTION: ${reason}`));
+
+// ── Single instance lock ───────────────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) { app.quit(); }
+if (!gotLock) { app.quit(); process.exit(0); }
 
-// ── Windows 7 compatibility flags ────────────────────────────
+// ── Windows 7/8 compatibility ──────────────────────────────────────────────
 if (process.platform === 'win32') {
-  // Disable GPU acceleration on Win7 (avoids d3d crashes)
   if (IS_WIN7) {
     app.disableHardwareAcceleration();
     app.commandLine.appendSwitch('disable-gpu');
     app.commandLine.appendSwitch('disable-gpu-compositing');
     app.commandLine.appendSwitch('disable-gpu-sandbox');
+    app.commandLine.appendSwitch('no-sandbox');
   }
-  // SwiftShader for software rendering fallback
-  app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder');
+  // Software rendering fallback for all Windows
   app.commandLine.appendSwitch('use-angle', 'swiftshader');
+  app.commandLine.appendSwitch('disable-features', 'UseModernGLForCrBug1001971');
 }
 
-// ── Main window ───────────────────────────────────────────────
+// ── Window ─────────────────────────────────────────────────────────────────
 let win = null;
 
 function getIcon() {
   try {
     if (fs.existsSync(ICON_PATH)) return nativeImage.createFromPath(ICON_PATH);
-  } catch { /* silent */ }
+  } catch {}
   return undefined;
 }
 
@@ -67,76 +88,76 @@ function createWindow() {
   const icon = getIcon();
 
   win = new BrowserWindow({
-    width:          1366,
-    height:         768,
-    minWidth:       1024,
-    minHeight:      640,
-    title:          `${APP_NAME} — EL5 MediProcure v9.6.0`,
+    width:  1366,
+    height: 768,
+    minWidth:  1024,
+    minHeight: 640,
+    title: `${APP_NAME} — EL5 MediProcure`,
     icon,
-    show:           false,
+    show: false,
     backgroundColor: '#0a2558',
     webPreferences: {
-      nodeIntegration:            false,
-      contextIsolation:           true,
-      webSecurity:                true,
+      nodeIntegration:             false,
+      contextIsolation:            true,
+      webSecurity:                 true,
       allowRunningInsecureContent: false,
-      preload: path.join(__dirname, 'preload.js'),
-      // Windows 7 compatibility
-      enableRemoteModule:         false,
-      sandbox:                    false,
+      enableRemoteModule:          false,
+      sandbox:                     false,
+      preload: path.join(ELECTRON_DIR, 'preload.js'),
     },
   });
 
-  // Load app
+  // ── Load app ───────────────────────────────────────────────────────────
   if (IS_DEV) {
     win.loadURL('http://localhost:8080');
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    win.loadFile(INDEX_HTML);
-    // SPA routing — prevent ERR_FILE_NOT_FOUND on direct route access
-    win.webContents.on('did-fail-load', (e, errCode, errDesc, url) => {
-      if (errCode === -6 || errDesc === 'ERR_FILE_NOT_FOUND') {
-        // Reload index.html for any failed file load (SPA 404 fix)
-        win.loadFile(INDEX_HTML);
-      }
+    win.loadFile(INDEX_HTML).catch(err => {
+      crashLog(`loadFile failed: ${err.message} — path: ${INDEX_HTML}`);
     });
-    // External links open in default browser
-    win.webContents.setWindowOpenHandler(({ url }) => {
-      if (url.startsWith('https://') || url.startsWith('http://')) {
-        shell.openExternal(url);
+
+    // SPA fix: if file not found (e.g. deep route), reload index.html
+    win.webContents.on('did-fail-load', (e, errCode, errDesc) => {
+      if (errCode === -6 || errCode === -105 || errDesc === 'ERR_FILE_NOT_FOUND' || errDesc === 'ERR_NAME_NOT_RESOLVED') {
+        crashLog(`did-fail-load: ${errCode} ${errDesc} — reloading index.html`);
+        win.loadFile(INDEX_HTML).catch(() => {});
       }
-      return { action: 'deny' };
     });
   }
 
-  // Show after paint (no white flash)
-  win.once('ready-to-show', () => {
-    win.show();
-    win.focus();
-    // Check for updates after 3s (don't block startup)
-    setTimeout(() => { if (win) checkForUpdates(); }, 3000);
-  });
-
-  // Open external links in system browser
+  // ── External link handler (single, definitive) ─────────────────────────
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) {
-      shell.openExternal(url);
+      shell.openExternal(url).catch(() => {});
     }
     return { action: 'deny' };
   });
 
-  // Navigation guard — only allow local app routes
+  // ── Navigation guard ───────────────────────────────────────────────────
   win.webContents.on('will-navigate', (event, url) => {
     const allowed = [
       'http://localhost:8080',
-      `file://${DIST_PATH}`,
+      `file://`,
       'https://yvjfehnzbzjliizjvuhq.supabase.co',
       'wss://yvjfehnzbzjliizjvuhq.supabase.co',
-      'https://api.anthropic.com',
+      'https://api.ipify.org',
+      'https://api64.ipify.org',
+      'https://ipapi.co',
     ];
     if (!allowed.some(a => url.startsWith(a))) {
       event.preventDefault();
+      // Open external URLs in browser
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        shell.openExternal(url).catch(() => {});
+      }
     }
+  });
+
+  // ── Show window when ready ─────────────────────────────────────────────
+  win.once('ready-to-show', () => {
+    win.show();
+    win.focus();
+    setTimeout(() => { if (win) checkForUpdates(false); }, 4000);
   });
 
   win.on('closed', () => { win = null; });
@@ -144,47 +165,44 @@ function createWindow() {
   buildMenu();
 }
 
-// ── Application menu ──────────────────────────────────────────
+// ── Navigation (FIXED: uses electron-navigate custom event) ───────────────
+// React App.tsx listens to window event 'electron-navigate' via useEffect
+function navigate(route) {
+  if (!win) return;
+  const safeRoute = route.replace(/'/g, "\\'");
+  win.webContents.executeJavaScript(`
+    (function(){
+      try {
+        window.dispatchEvent(new CustomEvent('electron-navigate', { detail: '${safeRoute}' }));
+      } catch(e) {
+        console.error('navigate error:', e);
+      }
+    })();
+  `).catch(err => crashLog(`navigate error: ${err.message}`));
+}
+
+// ── Application menu ───────────────────────────────────────────────────────
 function buildMenu() {
   const template = [
     {
       label: APP_NAME,
       submenu: [
-        {
-          label: `Version ${APP_VERSION}`,
-          enabled: false,
-        },
+        { label: `v${APP_VERSION}`, enabled: false },
         { type: 'separator' },
-        {
-          label: 'Reload',
-          accelerator: 'CmdOrCtrl+R',
-          click: () => win && win.reload(),
-        },
-        {
-          label: 'Force Reload',
-          accelerator: 'CmdOrCtrl+Shift+R',
-          click: () => win && win.webContents.reloadIgnoringCache(),
-        },
+        { label: 'Reload',             accelerator: 'CmdOrCtrl+R',       click: () => win?.reload() },
+        { label: 'Hard Reload',        accelerator: 'CmdOrCtrl+Shift+R', click: () => win?.webContents.reloadIgnoringCache() },
         {
           label: 'Clear Cache & Reload',
           click: async () => {
             if (!win) return;
             await win.webContents.session.clearCache();
             win.webContents.reloadIgnoringCache();
-            dialog.showMessageBox(win, { type: 'info', message: 'Cache cleared', buttons: ['OK'] });
           },
         },
         { type: 'separator' },
-        {
-          label: 'Check for Updates',
-          click: () => checkForUpdates(true),
-        },
+        { label: 'Check for Updates', click: () => checkForUpdates(true) },
         { type: 'separator' },
-        {
-          label: 'Quit ProcurBosse',
-          accelerator: 'CmdOrCtrl+Q',
-          click: () => app.quit(),
-        },
+        { label: `Quit ${APP_NAME}`,  accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
       ],
     },
     {
@@ -196,140 +214,76 @@ function buildMenu() {
         { label: 'Goods Received',  accelerator: 'CmdOrCtrl+4', click: () => navigate('/goods-received') },
         { label: 'Inventory',       accelerator: 'CmdOrCtrl+5', click: () => navigate('/items') },
         { label: 'Reports',         accelerator: 'CmdOrCtrl+6', click: () => navigate('/reports') },
-        { label: 'Mail',            accelerator: 'CmdOrCtrl+7', click: () => navigate('/email') },
         { type: 'separator' },
-        { label: 'Suppliers',     click: () => navigate('/suppliers') },
-        { label: 'Contracts',     click: () => navigate('/contracts') },
-        { label: 'Tenders',       click: () => navigate('/tenders') },
-        { label: 'Vouchers',      click: () => navigate('/vouchers/payment') },
-        { label: 'Financials',    click: () => navigate('/financials/dashboard') },
-        { label: 'Quality',       click: () => navigate('/quality/dashboard') },
+        { label: 'Suppliers',   click: () => navigate('/suppliers') },
+        { label: 'Contracts',   click: () => navigate('/contracts') },
+        { label: 'Tenders',     click: () => navigate('/tenders') },
+        { label: 'Vouchers',    click: () => navigate('/vouchers/payment') },
+        { label: 'Financials',  click: () => navigate('/financials/dashboard') },
+        { label: 'Quality',     click: () => navigate('/quality/dashboard') },
+        { label: 'Changelog',   click: () => navigate('/changelog') },
         { type: 'separator' },
-        { label: 'Admin Panel',   click: () => navigate('/admin/panel') },
-        { label: 'Settings',      click: () => navigate('/settings') },
-        { label: 'Database',      click: () => navigate('/admin/database') },
+        { label: 'Admin Panel', click: () => navigate('/admin/panel') },
+        { label: 'Settings',    click: () => navigate('/settings') },
       ],
     },
     {
       label: 'View',
       submenu: [
         {
-          label: 'Zoom In',
-          accelerator: 'CmdOrCtrl+=',
-          click: () => {
-            if (!win) return;
-            const z = win.webContents.getZoomLevel();
-            win.webContents.setZoomLevel(Math.min(z + 0.5, 3));
-          },
+          label: 'Zoom In',  accelerator: 'CmdOrCtrl+=',
+          click: () => { if (!win) return; const z = win.webContents.getZoomLevel(); win.webContents.setZoomLevel(Math.min(z+0.5, 3)); },
         },
         {
-          label: 'Zoom Out',
-          accelerator: 'CmdOrCtrl+-',
-          click: () => {
-            if (!win) return;
-            const z = win.webContents.getZoomLevel();
-            win.webContents.setZoomLevel(Math.max(z - 0.5, -3));
-          },
+          label: 'Zoom Out', accelerator: 'CmdOrCtrl+-',
+          click: () => { if (!win) return; const z = win.webContents.getZoomLevel(); win.webContents.setZoomLevel(Math.max(z-0.5,-3)); },
         },
-        {
-          label: 'Reset Zoom',
-          accelerator: 'CmdOrCtrl+0',
-          click: () => win && win.webContents.setZoomLevel(0),
-        },
+        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: () => win?.webContents.setZoomLevel(0) },
         { type: 'separator' },
-        {
-          label: 'Toggle Full Screen',
-          accelerator: 'F11',
-          click: () => win && win.setFullScreen(!win.isFullScreen()),
-        },
-        {
-          label: 'Developer Tools',
-          accelerator: 'F12',
-          click: () => win && win.webContents.toggleDevTools(),
-        },
+        { label: 'Full Screen',    accelerator: 'F11', click: () => win?.setFullScreen(!win.isFullScreen()) },
+        { label: 'Developer Tools',accelerator: 'F12', click: () => win?.webContents.toggleDevTools() },
       ],
     },
     {
       label: 'Help',
       submenu: [
-        {
-          label: 'About ProcurBosse',
-          click: () => showAbout(),
-        },
-        {
-          label: 'System Information',
-          click: () => showSysInfo(),
-        },
+        { label: 'About ProcurBosse',  click: () => showAbout() },
+        { label: 'System Information', click: () => showSysInfo() },
         { type: 'separator' },
-        {
-          label: 'Open Log File',
-          click: () => {
-            const logPath = path.join(app.getPath('userData'), 'main.log');
-            if (fs.existsSync(logPath)) shell.openPath(logPath);
-            else dialog.showMessageBox(win, { type: 'info', message: 'No log file found.', buttons: ['OK'] });
-          },
-        },
-        {
-          label: 'Open Data Folder',
-          click: () => shell.openPath(app.getPath('userData')),
-        },
+        { label: 'Open Log File',   click: () => { const p = path.join(app.getPath('userData'),'crash.log'); fs.existsSync(p) ? shell.openPath(p) : dialog.showMessageBox(win,{type:'info',message:'No log file.',buttons:['OK']}); } },
+        { label: 'Open Data Folder',click: () => shell.openPath(app.getPath('userData')) },
       ],
     },
   ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-// ── Navigation helper ─────────────────────────────────────────
-function navigate(route) {
-  if (!win) return;
-  win.webContents.executeJavaScript(`
-    (function() {
-      const evt = new PopStateEvent('popstate', { state: {} });
-      window.history.pushState({}, '', '${route}');
-      window.dispatchEvent(evt);
-      // Also dispatch a custom nav event that React Router picks up
-      window.dispatchEvent(new CustomEvent('electron-navigate', { detail: '${route}' }));
-    })();
-  `).catch(() => {
-    // Fallback: reload with hash
-    const base = IS_DEV ? 'http://localhost:8080' : `file://${INDEX_HTML}`;
-    win.loadURL(`${base}#${route}`);
-  });
-}
-
-// ── About dialog ──────────────────────────────────────────────
+// ── About / SysInfo dialogs ────────────────────────────────────────────────
 function showAbout() {
   if (!win) return;
   dialog.showMessageBox(win, {
     type: 'info',
     title: 'About ProcurBosse',
     icon: getIcon() || undefined,
-    message: 'ProcurBosse — EL5 MediProcure v9.6.0',
+    message: `ProcurBosse — EL5 MediProcure`,
     detail: [
       `Version: ${APP_VERSION}`,
       `Electron: ${process.versions.electron}`,
       `Chrome: ${process.versions.chrome}`,
       `Node.js: ${process.versions.node}`,
-      `Platform: ${process.platform} ${process.arch}`,
+      `OS: ${os.type()} ${os.release()} ${process.arch}`,
       '',
       'Embu Level 5 Hospital',
       'Procurement & ERP Management System',
-      'Embu County Government',
-      '',
+      'Embu County Government | Kenya',
       `© ${new Date().getFullYear()} Embu County Government`,
     ].join('\n'),
     buttons: ['Close', 'Check for Updates'],
-    defaultId: 0,
-  }).then(result => {
-    if (result.response === 1) checkForUpdates(true);
-  });
+  }).then(r => { if (r.response === 1) checkForUpdates(true); });
 }
 
 function showSysInfo() {
   if (!win) return;
-  const os = require('os');
   dialog.showMessageBox(win, {
     type: 'info',
     title: 'System Information',
@@ -337,88 +291,123 @@ function showSysInfo() {
     detail: [
       `OS: ${os.type()} ${os.release()} ${os.arch()}`,
       `CPU: ${os.cpus()[0]?.model || 'Unknown'}`,
-      `RAM: ${Math.round(os.totalmem() / 1024 / 1024 / 1024)}GB total / ${Math.round(os.freemem() / 1024 / 1024 / 1024)}GB free`,
+      `RAM: ${Math.round(os.totalmem()/1073741824)}GB / Free: ${Math.round(os.freemem()/1073741824)}GB`,
       `App Path: ${app.getAppPath()}`,
       `Data Path: ${app.getPath('userData')}`,
-      `Supabase: yvjfehnzbzjliizjvuhq.supabase.co`,
+      `Win7 Mode: ${IS_WIN7}`,
+      `Dev Mode: ${IS_DEV}`,
     ].join('\n'),
     buttons: ['Close'],
   });
 }
 
-// ── Auto-update (GitHub Releases) ─────────────────────────────
+// ── Auto-update (GitHub Releases API) ─────────────────────────────────────
 async function checkForUpdates(manual = false) {
   if (IS_DEV) {
-    if (manual) dialog.showMessageBox(win, { type: 'info', message: 'Updates disabled in dev mode', buttons: ['OK'] });
+    if (manual) dialog.showMessageBox(win, { type:'info', message:'Updates disabled in dev mode', buttons:['OK'] });
     return;
   }
-
   try {
     const https = require('https');
-    const latestUrl = 'https://api.github.com/repos/huiejorjdsksfn/medi-procure-hub/releases/latest';
-
-    const data = await new Promise((resolve, reject) => {
-      const req = https.get(latestUrl, {
-        headers: { 'User-Agent': `ProcurBosse/${APP_VERSION}` }
-      }, res => {
-        let body = '';
-        res.on('data', c => body += c);
-        res.on('end', () => {
-          try { resolve(JSON.parse(body)); }
-          catch { reject(new Error('Parse failed')); }
-        });
-      });
-      req.on('error', reject);
-      req.setTimeout(5000, () => req.destroy());
+    const data  = await new Promise((res, rej) => {
+      const req = https.get(
+        'https://api.github.com/repos/huiejorjdsksfn/medi-procure-hub/releases/latest',
+        { headers: { 'User-Agent': `ProcurBosse/${APP_VERSION}` } },
+        r => {
+          let body = '';
+          r.on('data', c => body += c);
+          r.on('end', () => { try { res(JSON.parse(body)); } catch(e) { rej(e); } });
+        }
+      );
+      req.on('error', rej);
+      req.setTimeout(8000, () => req.destroy(new Error('timeout')));
     });
 
-    const latestTag   = (data.tag_name || '').replace(/^v/, '');
-    const downloadUrl = data.assets?.find(a => a.name.includes('Setup.exe'))?.browser_download_url;
+    const latest = (data.tag_name || '').replace(/^v/, '');
+    const dlUrl  = data.assets?.find(a => a.name.includes('Setup.exe'))?.browser_download_url;
+    if (!latest || !dlUrl) { if (manual) dialog.showMessageBox(win,{type:'info',message:'No update available.',buttons:['OK']}); return; }
 
-    if (!latestTag || !downloadUrl) {
-      if (manual) dialog.showMessageBox(win, { type: 'info', message: 'No update available.', buttons: ['OK'] });
-      return;
-    }
+    const isNewer = latest.localeCompare(APP_VERSION, undefined, { numeric:true }) > 0;
+    if (!isNewer) { if (manual) dialog.showMessageBox(win,{type:'info',message:`v${APP_VERSION} is up to date.`,buttons:['OK']}); return; }
 
-    // Simple semver comparison
-    const isNewer = latestTag.localeCompare(APP_VERSION, undefined, { numeric: true }) > 0;
-
-    if (!isNewer) {
-      if (manual) dialog.showMessageBox(win, { type: 'info', message: `You are on the latest version (${APP_VERSION}).`, buttons: ['OK'] });
-      return;
-    }
-
-    // Notify user
     const { response } = await dialog.showMessageBox(win, {
-      type: 'info',
-      title: 'Update Available',
-      message: `ProcurBosse ${latestTag} is available`,
-      detail: `You are running v${APP_VERSION}.\n\nRelease notes:\n${(data.body || '').slice(0, 300)}`,
-      buttons: ['Download Update', 'Later'],
-      defaultId: 0,
+      type: 'info', title: 'Update Available',
+      message: `ProcurBosse v${latest} is available`,
+      detail: `Current: v${APP_VERSION}\n\n${(data.body||'').slice(0,400)}`,
+      buttons: ['Download', 'Later'],
     });
-
-    if (response === 0) shell.openExternal(downloadUrl);
-
-  } catch (err) {
-    if (manual) {
-      dialog.showMessageBox(win, {
-        type: 'warning',
-        message: 'Could not check for updates',
-        detail: err.message,
-        buttons: ['OK'],
-      });
-    }
+    if (response === 0) shell.openExternal(dlUrl).catch(() => {});
+  } catch(err) {
+    if (manual) dialog.showMessageBox(win, { type:'warning', message:'Update check failed', detail: err.message, buttons:['OK'] });
+    crashLog(`update check error: ${err.message}`);
   }
 }
 
-// ── IPC handlers ──────────────────────────────────────────────
+// ── IPC Handlers (ALL handlers — complete set) ─────────────────────────────
 ipcMain.handle('get-app-version',  () => APP_VERSION);
-ipcMain.handle('get-platform',     () => process.platform);
+ipcMain.handle('get-platform',     () => `${process.platform}-${process.arch}`);
 ipcMain.handle('get-app-path',     () => app.getAppPath());
 ipcMain.handle('get-user-data',    () => app.getPath('userData'));
 ipcMain.handle('is-packaged',      () => app.isPackaged);
 ipcMain.handle('is-win7',          () => IS_WIN7);
+ipcMain.handle('navigate',   (_, route)  => navigate(route));
+ipcMain.handle('check-updates',    ()    => checkForUpdates(true));
+
+ipcMain.handle('get-system-info',  () => ({
+  os:       `${os.type()} ${os.release()}`,
+  arch:     process.arch,
+  cpu:      os.cpus()[0]?.model || 'Unknown',
+  ramTotal: Math.round(os.totalmem() / 1073741824),
+  ramFree:  Math.round(os.freemem() / 1073741824),
+  appPath:  app.getAppPath(),
+  userData: app.getPath('userData'),
+  version:  APP_VERSION,
+  electron: process.versions.electron,
+  isWin7:   IS_WIN7,
+  isDev:    IS_DEV,
+}));
+
+ipcMain.handle('clear-cache', async () => {
+  if (!win) return { ok: false };
+  try {
+    await win.webContents.session.clearCache();
+    await win.webContents.session.clearStorageData({ storages: ['appcache','cookies','shadercache','websql','serviceworkers'] });
+    return { ok: true };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('show-notification', (_, { title, body }) => {
+  try {
+    if (Notification.isSupported()) {
+      new Notification({ title: title || APP_NAME, body: body || '' }).show();
+    }
+    return { ok: true };
+  } catch(e) { return { ok: false, error: e.message }; }
+});
+
+ipcMain.handle('print-document', async (_, options = {}) => {
+  if (!win) return { ok: false };
+  try {
+    await new Promise((res, rej) => {
+      win.webContents.print({
+        silent: false,
+        printBackground: true,
+        color: true,
+        margins: { marginType: 'printableArea' },
+        pageSize: options.pageSize || 'A4',
+        ...options,
+      }, (success, failReason) => {
+        if (success) res(true);
+        else rej(new Error(failReason || 'print failed'));
+      });
+    });
+    return { ok: true };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+});
 
 ipcMain.handle('show-save-dialog', async (_, opts) => {
   if (!win) return null;
@@ -430,23 +419,30 @@ ipcMain.handle('show-open-dialog', async (_, opts) => {
   return dialog.showOpenDialog(win, opts);
 });
 
-ipcMain.handle('check-updates', () => checkForUpdates(true));
-
-ipcMain.handle('navigate', (_, route) => navigate(route));
-
 ipcMain.handle('write-file', async (_, { filePath, data }) => {
   try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, data);
-    return { ok: true };
-  } catch (e) {
+    return { ok: true, filePath };
+  } catch(e) {
     return { ok: false, error: e.message };
   }
 });
 
-// ── App lifecycle ─────────────────────────────────────────────
+ipcMain.handle('read-file', async (_, { filePath }) => {
+  try {
+    if (!fs.existsSync(filePath)) return { ok: false, error: 'File not found' };
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return { ok: true, data };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+// ── App lifecycle ──────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow();
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -461,10 +457,4 @@ app.on('second-instance', () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
-});
-
-// Crash reporter
-process.on('uncaughtException', err => {
-  const log = path.join(app.getPath('userData'), 'crash.log');
-  fs.appendFileSync(log, `[${new Date().toISOString()}] ${err.stack}\n`);
 });
