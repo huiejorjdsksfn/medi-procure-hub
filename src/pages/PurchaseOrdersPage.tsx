@@ -3,6 +3,7 @@ import { ERPCache } from "@/lib/erp-cache";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
 import { pageCache } from "@/lib/pageCache";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";

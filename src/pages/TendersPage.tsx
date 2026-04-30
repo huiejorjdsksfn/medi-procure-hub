@@ -3,6 +3,7 @@ import { ERPCache } from "@/lib/erp-cache";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
 import { pageCache } from "@/lib/pageCache";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -74,7 +75,26 @@ export default function TendersPage() {
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{
     const ch=(supabase as any).channel("tenders-rt").on("postgres_changes",{event:"*",schema:"public",table:"tenders"},load).subscribe();
-    return ()=>(supabase as any).removeChannel(ch);
+    const handlePrint = async (tender:any) => {
+    await PrintEngine.report(
+      `Tender: ${tender.title}`,
+      `<table style="width:100%;border-collapse:collapse">
+        <tr><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;background:#f5f5f5">Field</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;background:#f5f5f5">Details</th></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Tender Number</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.tender_number||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Title</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.title||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Category</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.category||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Status</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.status||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Estimated Value</td><td style="padding:8px;border-bottom:1px solid #eee">KES ${(tender.estimated_value||0).toLocaleString()}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Opening Date</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.opening_date||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Closing Date</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.closing_date||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Procurement Method</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.procurement_method||"Open Tender"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Reference Number</td><td style="padding:8px;border-bottom:1px solid #eee">${tender.reference_number||"-"}</td></tr>
+        <tr><td style="padding:8px">Description</td><td style="padding:8px">${tender.description||"-"}</td></tr>
+      </table>`
+    );
+  };
+
+  return ()=>(supabase as any).removeChannel(ch);
   },[load]);
 
   const openNew = (v?:any) => {

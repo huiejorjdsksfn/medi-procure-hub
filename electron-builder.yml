@@ -1,5 +1,5 @@
-# ProcurBosse — electron-builder configuration
-# Targets: Windows 7 SP1 → Windows 11 (x64 + ia32)
+# ProcurBosse v9.6.0 electron-builder config
+# Windows 7 SP1 → Windows 11 | x64 + ia32
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
 copyright: "© 2026 Embu County Government — All Rights Reserved"
@@ -16,39 +16,44 @@ files:
   - "!src/**/*"
   - "!.github/**/*"
   - "!supabase/**/*"
+  - "!web/**/*"
 
 extraResources:
   - from: public/icon.png
     to: icon.png
   - from: public/logo.png
     to: logo.png
-  - from: public/manifest.json
-    to: manifest.json
 
 win:
-  icon: public/icon.png
-  certificateSubjectName: ""
+  icon: build/icon.ico
   verifyUpdateCodeSignature: false
+  requestedExecutionLevel: requireAdministrator
   target:
     - target: nsis
       arch:
         - x64
         - ia32
+    - target: portable
+      arch:
+        - x64
 
 nsis:
   oneClick: false
   perMachine: false
   allowElevation: true
   allowToChangeInstallationDirectory: true
-  installerIcon: public/icon.png
-  uninstallerIcon: public/icon.png
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: "ProcurBosse"
+  shortcutName: "ProcurBosse EL5"
   artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"
   deleteAppDataOnUninstall: false
   unicode: true
   include: build/installer.nsh
+
+portable:
+  artifactName: "ProcurBosse-v${version}-${arch}-Portable.exe"
 
 publish:
   provider: github
@@ -58,4 +63,4 @@ publish:
   releaseType: release
 
 compression: maximum
-removePackageScripts: true
+asar: true
