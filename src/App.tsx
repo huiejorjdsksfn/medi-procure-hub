@@ -88,23 +88,38 @@ const P = ({ children }: { children: React.ReactNode }) => (
 
 
 /** Restores exact URL after 404.html redirect or direct URL access on EdgeOne */
+/** Also handles Electron menu navigation via window event electron-navigate */
 function SPARouteRestorer() {
   const nav = _useNav();
   const loc = _useLoc();
+
+  // Restore SPA route from 404.html / index.html preserver
   _useEff(() => {
-    // Read route saved by 404.html / index.html preserver script
     const saved = (window as any).__EL5_INITIAL_ROUTE as string | null;
     if (saved && !((window as any).__EL5_ROUTE_RESTORED)) {
       (window as any).__EL5_ROUTE_RESTORED = true;
       (window as any).__EL5_INITIAL_ROUTE = null;
       const clean = saved.split("?")[0].split("#")[0];
-      // Only navigate if the current path differs
       if (clean && clean !== "/" && clean !== loc.pathname && clean !== "/index.html") {
         nav(saved, { replace: true });
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Listen for Electron menu navigation events
+  _useEff(() => {
+    const handler = (e: Event) => {
+      const route = (e as CustomEvent).detail as string;
+      if (route && route !== loc.pathname) {
+        nav(route, { replace: false });
+      }
+    };
+    window.addEventListener("electron-navigate", handler);
+    return () => window.removeEventListener("electron-navigate", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav]);
+
   return null;
 }
 
