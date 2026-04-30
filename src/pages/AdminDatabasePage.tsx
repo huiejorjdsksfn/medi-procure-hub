@@ -284,6 +284,11 @@ ORDER BY t.table_name;`);
     { id:"stats",    label:"DB Stats",      icon:BarChart3 },
   ];
 
+  // Cleanup rtChannel on unmount
+  React.useEffect(()=>{
+    return ()=>{ if(rtChannel.current){ (supabase as any).removeChannel(rtChannel.current); rtChannel.current=null; } };
+  },[]);
+
   return (
     <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:S.font,color:S.fg,minHeight:"100%" }}>
 

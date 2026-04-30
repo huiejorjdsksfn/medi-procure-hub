@@ -183,6 +183,7 @@ const App = () => (
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
             <Route path="/superadmin" element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
+            <Route path="/changelog" element={<P><ChangelogPage /></P>} />
             <Route path="/backup" element={<P><RoleGuard allowed={["admin","superadmin","database_admin"]}><BackupPage /></RoleGuard></P>} />
             <Route path="/odbc" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><ODBCPage /></RoleGuard></P>} />
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />

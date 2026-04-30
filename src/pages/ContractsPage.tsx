@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
 import { pageCache } from "@/lib/pageCache";
+import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -72,7 +73,24 @@ export default function ContractsPage() {
   useEffect(()=>{load();},[load]);
   useEffect(()=>{
     const ch=(supabase as any).channel("contracts-rt").on("postgres_changes",{event:"*",schema:"public",table:"contracts"},load).subscribe();
-    return ()=>(supabase as any).removeChannel(ch);
+    const handlePrint = async (contract:any) => {
+    await PrintEngine.report(
+      `Contract: ${contract.title||contract.contract_number}`,
+      `<table style="width:100%;border-collapse:collapse">
+        <tr><th style="padding:8px;border-bottom:1px solid #ddd;background:#f5f5f5;text-align:left">Field</th><th style="padding:8px;border-bottom:1px solid #ddd;background:#f5f5f5;text-align:left">Details</th></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Contract Number</td><td style="padding:8px;border-bottom:1px solid #eee">${contract.contract_number||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Title</td><td style="padding:8px;border-bottom:1px solid #eee">${contract.title||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Supplier</td><td style="padding:8px;border-bottom:1px solid #eee">${contract.suppliers?.name||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Status</td><td style="padding:8px;border-bottom:1px solid #eee">${contract.status||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Contract Value</td><td style="padding:8px;border-bottom:1px solid #eee">KES ${(contract.contract_value||0).toLocaleString()}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Start Date</td><td style="padding:8px;border-bottom:1px solid #eee">${contract.start_date||"-"}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">End Date</td><td style="padding:8px;border-bottom:1px solid #eee">${contract.end_date||"-"}</td></tr>
+        <tr><td style="padding:8px">Description</td><td style="padding:8px">${contract.description||"-"}</td></tr>
+      </table>`
+    );
+  };
+
+  return ()=>(supabase as any).removeChannel(ch);
   },[load]);
 
   const openNew = (v?:any) => {

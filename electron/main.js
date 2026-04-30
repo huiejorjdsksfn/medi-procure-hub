@@ -1,6 +1,6 @@
 /**
  * ProcurBosse — Electron Main Process
- * EL5 MediProcure Hospital ERP — Embu Level 5 Hospital
+ * EL5 MediProcure v9.6.0 Hospital ERP — Embu Level 5 Hospital
  * Compatible: Windows 7 SP1 → Windows 11 (x64 + ia32)
  *
  * Architecture:
@@ -71,7 +71,7 @@ function createWindow() {
     height:         768,
     minWidth:       1024,
     minHeight:      640,
-    title:          `${APP_NAME} — EL5 MediProcure`,
+    title:          `${APP_NAME} — EL5 MediProcure v9.6.0`,
     icon,
     show:           false,
     backgroundColor: '#0a2558',
@@ -93,6 +93,20 @@ function createWindow() {
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
     win.loadFile(INDEX_HTML);
+    // SPA routing — prevent ERR_FILE_NOT_FOUND on direct route access
+    win.webContents.on('did-fail-load', (e, errCode, errDesc, url) => {
+      if (errCode === -6 || errDesc === 'ERR_FILE_NOT_FOUND') {
+        // Reload index.html for any failed file load (SPA 404 fix)
+        win.loadFile(INDEX_HTML);
+      }
+    });
+    // External links open in default browser
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        shell.openExternal(url);
+      }
+      return { action: 'deny' };
+    });
   }
 
   // Show after paint (no white flash)
@@ -292,7 +306,7 @@ function showAbout() {
     type: 'info',
     title: 'About ProcurBosse',
     icon: getIcon() || undefined,
-    message: 'ProcurBosse — EL5 MediProcure',
+    message: 'ProcurBosse — EL5 MediProcure v9.6.0',
     detail: [
       `Version: ${APP_VERSION}`,
       `Electron: ${process.versions.electron}`,
