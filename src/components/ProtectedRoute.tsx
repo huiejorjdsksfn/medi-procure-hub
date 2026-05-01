@@ -1,46 +1,37 @@
-/**
- * ProtectedRoute v3.0 - Uses SessionEngine for instant render (no blank screen)
- * Shows loading spinner only on first cold load, never redirects mid-session
- */
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { T } from "@/lib/theme";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { session, loading, initialized } = useAuth();
+  const { session, loading } = useAuth();
 
-  /* Show loading only on very first cold load */
-  if (loading && !initialized) {
+  if (loading) {
     return (
-      <div style={{
-        minHeight:"100vh", display:"flex", alignItems:"center",
-        justifyContent:"center", flexDirection:"column", gap:16,
-        background:T.bg, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",
-      }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ width:40, height:40, borderRadius:10, background:T.card, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <img src="/icons/icon-32.png" alt="" style={{ width:28, height:28, objectFit:"contain" }}/>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(145deg,#0a2e6e,#1565c0,#29b6f6)", fontFamily: "Segoe UI, system-ui, sans-serif" }}
+      >
+        <div className="text-center">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl"
+            style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
+          >
+            <img src="/favicon.png" alt="" className="w-9 h-9 object-contain drop-shadow"
+              style={{ filter: "brightness(0) invert(1)" }}
+              onError={e => ((e.target as HTMLElement).style.display = "none")}
+            />
           </div>
-          <div>
-            <div style={{ fontSize:16, fontWeight:800, color:T.fg }}>EL5 MediProcure</div>
-            <div style={{ fontSize:10, color:T.fgDim, marginTop:2 }}>Embu Level 5 Hospital</div>
-          </div>
+          <div className="w-8 h-8 border-[3px] border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3"/>
+          <p className="text-white/70 text-sm font-medium">Loading MediProcure…</p>
+          <p className="text-white/40 text-xs mt-1">Embu Level 5 Hospital</p>
         </div>
-        <div style={{
-          width:32, height:32, borderRadius:"50%",
-          border:`3px solid ${T.border}`,
-          borderTopColor:T.primary,
-          animation:"spin 0.8s linear infinite",
-        }}/>
-        <div style={{ fontSize:11, color:T.fgDim }}>Loading session...</div>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
 
-  /* Once initialized - redirect if no session */
-  if (initialized && !session) return <Navigate to="/login" replace />;
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
 
   return <>{children}</>;
 };

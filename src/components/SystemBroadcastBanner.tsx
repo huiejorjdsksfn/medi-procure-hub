@@ -1,5 +1,5 @@
 /**
- * System Broadcast Banner - shown at top of app when admin sends live message
+ * System Broadcast Banner — shown at top of app when admin sends live message
  * Auto-dismisses, shows countdown, links to action URL
  */
 import { useState, useEffect, useRef } from "react";
@@ -69,7 +69,7 @@ export default function SystemBroadcastBanner() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {b.actionUrl && (
                 <a href={b.actionUrl} style={{ fontSize: 11, fontWeight: 800, color: cfg.color, textDecoration: "none", padding: "4px 10px", border: `1px solid ${cfg.color}`, borderRadius: 5 }}>
-                  View -
+                  View →
                 </a>
               )}
               <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, opacity: 0.6, minWidth: 24, textAlign: "center" }}>{b.remaining}s</span>
