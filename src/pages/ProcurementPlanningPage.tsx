@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, Calendar, BarChart3 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
 const genNo = () => `PP/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
@@ -15,7 +13,6 @@ const CATS = ["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Con
 
 export default function ProcurementPlanningPage() {
   const { user, profile, hasRole } = useAuth();
-  const { get: getSetting } = useSystemSettings();
   const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
@@ -28,17 +25,12 @@ export default function ProcurementPlanningPage() {
 
   const load = async () => {
     setLoading(true);
-    try {
     const [{data:p},{data:d}] = await Promise.all([
       (supabase as any).from("procurement_plans").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("departments").select("id,name").order("name"),
     ]);
-    const rows=p||[]; setRows(rows); setDepts(d||[]);
-      pageCache.set("procurement_plans",rows);
-    } catch(e:any) {
-      const cached=pageCache.get<any[]>("procurement_plans"); if(cached) setRows(cached);
-      console.error("[ProcurementPlan]",e);
-    } finally { setLoading(false); }
+    setRows(p||[]); setDepts(d||[]);
+    setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
 
@@ -52,15 +44,15 @@ export default function ProcurementPlanningPage() {
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
     const dept = depts.find(d=>d.id===form.department_id);
-    const payload={...form,plan_number:editing?editing.plan_number:genNo(),item_description:form.description||form.title||"",department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
+    const payload={...form,plan_number:editing?editing.plan_number:genNo(),department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("procurement_plans").update(payload).eq("id",editing.id);
-      if(!error){toast({title:"Plan updated -"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}
-      else toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});
+      if(!error){toast({title:"Plan updated ✓"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}
+      else toast({title:"Error",description:error.message,variant:"destructive"});
     } else {
       const{data,error}=await(supabase as any).from("procurement_plans").insert(payload).select().single();
-      if(!error){toast({title:"Plan created -"});logAudit(user?.id,profile?.full_name,"create","procurement_plans",data?.id,{title:form.title});}
-      else toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});
+      if(!error){toast({title:"Plan created ✓"});logAudit(user?.id,profile?.full_name,"create","procurement_plans",data?.id,{title:form.title});}
+      else toast({title:"Error",description:error.message,variant:"destructive"});
     }
     setSaving(false); setShowNew(false); setEditing(null); load();
   };
@@ -82,63 +74,41 @@ export default function ProcurementPlanningPage() {
   const totalBudget = filtered.reduce((s,r)=>s+Number(r.estimated_budget||0),0);
 
   return (
-      <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
-      {/* KPI TILES */}
-      {(()=>{
-        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
-        const approved=rows.filter(r=>r.status==="approved").length;
-        const active=rows.filter(r=>r.status==="active").length;
-        return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
-            {[
-              {label:"Total Est. Budget",val:fmtK(totalBudget),bg:"#c0392b"},
-              {label:"Total Plans",val:rows.length,bg:"#7d6608"},
-              {label:"Approved",val:approved,bg:"#0e6655"},
-              {label:"Active",val:active,bg:"#6c3483"},
-              {label:"Showing",val:filtered.length,bg:"#1a252f"},
-            ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
-                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e40af)"}}>
+    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
+      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#0f172a,#1e40af)"}}>
         <div>
-          <h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Procurement Planning</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} plans - Est. Budget: {fmtKES(totalBudget)}</p>
+          <h1 className="text-base font-black text-white">Procurement Planning</h1>
+          <p className="text-[10px] text-white/50">{rows.length} plans · Est. Budget: {fmtKES(totalBudget)}</p>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e40af"}}><Plus style={{width:14,height:14}}/>New Plan</button>}
+        <div className="flex gap-2">
+          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#1e40af"}}><Plus className="w-3.5 h-3.5"/>New Plan</button>}
         </div>
       </div>
-      <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search plans..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#ffffff"}}>
+      <div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search plans…" className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
+      <div className="rounded-2xl shadow-sm overflow-hidden">
+        <table className="w-full text-xs">
+          <thead><tr style={{background:"#0f172a"}}>
             {["Plan No.","Title","Dept.","Category","Method","Budget","FY","Status","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
+              <th key={h} className="px-4 py-3 text-left font-bold text-white/70 text-[10px] uppercase">{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={9} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={9} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No procurement plans yet</td></tr>:
+            {loading?<tr><td colSpan={9} className="py-8 text-center"><RefreshCw className="w-4 h-4 animate-spin text-gray-300 mx-auto"/></td></tr>:
+            filtered.length===0?<tr><td colSpan={9} className="py-8 text-center text-gray-400 text-xs">No procurement plans yet</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                <td style={{padding:"10px 16px",fontFamily:"monospace",fontSize:10,color:"#1e40af"}}>{r.plan_number}</td>
-                <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||"-"}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||"-"}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.procurement_method||"-"}</td>
-                <td style={{padding:"10px 16px",fontWeight:700,color:"#374151"}}>{fmtKES(r.estimated_budget||0)}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.financial_year}</td>
-                <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,textTransform:"capitalize",background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
-                  {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                <td className="px-4 py-2.5 font-mono text-[10px]" style={{color:"#1e40af"}}>{r.plan_number}</td>
+                <td className="px-4 py-2.5 font-semibold text-gray-800 max-w-[160px] truncate">{r.title}</td>
+                <td className="px-4 py-2.5 text-gray-500">{r.department_name||"—"}</td>
+                <td className="px-4 py-2.5 text-gray-500">{r.category||"—"}</td>
+                <td className="px-4 py-2.5 text-gray-500">{r.procurement_method||"—"}</td>
+                <td className="px-4 py-2.5 font-bold text-gray-700">{fmtKES(r.estimated_budget||0)}</td>
+                <td className="px-4 py-2.5 text-gray-500">{r.financial_year}</td>
+                <td className="px-4 py-2.5"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold capitalize" style={{background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
+                <td className="px-4 py-2.5"><div className="flex gap-1.5">
+                  {canManage&&<button onClick={()=>openEdit(r)} className="p-1.5 rounded-lg bg-blue-50"><Edit className="w-3 h-3 text-blue-600"/></button>}
+                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} className="p-1.5 rounded-lg bg-red-50"><Trash2 className="w-3 h-3 text-red-500"/></button>}
                 </div></td>
               </tr>
             ))}
@@ -146,43 +116,43 @@ export default function ProcurementPlanningPage() {
         </table>
       </div>
       {showNew&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}><h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Plan":"New Procurement Plan"}</h3><button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button></div>
-            <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Plan Title *</label>
-                <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>{setShowNew(false);setEditing(null);}}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 overflow-y-auto max-h-[92vh] space-y-4">
+            <div className="flex items-center justify-between"><h3 className="font-black text-gray-800">{editing?"Edit Plan":"New Procurement Plan"}</h3><button onClick={()=>{setShowNew(false);setEditing(null);}}><X className="w-5 h-5 text-gray-400"/></button></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Plan Title *</label>
+                <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
               {[["Financial Year","financial_year"],["Start Date","start_date","date"],["End Date","end_date","date"],["Estimated Budget (KES)","estimated_budget","number"]].map(([l,k,t])=>(
-                <div key={k}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
+                <div key={k}><label className="block mb-1 text-xs font-semibold text-gray-500">{l}</label>
+                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
               ))}
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
-                <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">- Select -</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Department</label>
+                <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  <option value="">— Select —</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                 </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category</label>
-                <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">- Select -</option>{CATS.map(c=><option key={c}>{c}</option>)}
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Category</label>
+                <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  <option value="">— Select —</option>{CATS.map(c=><option key={c}>{c}</option>)}
                 </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Procurement Method</label>
-                <select value={form.procurement_method} onChange={e=>setForm(p=>({...p,procurement_method:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Procurement Method</label>
+                <select value={form.procurement_method} onChange={e=>setForm(p=>({...p,procurement_method:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
                   {["Open Tender","Restricted Tender","Direct Procurement","Request for Quotation","Framework Agreement"].map(m=><option key={m}>{m}</option>)}
                 </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
-                <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  {["draft","approved","active","completed","cancelled"].map(s=><option key={s} style={{textTransform:"capitalize"}}>{s}</option>)}
+              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Status</label>
+                <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  {["draft","approved","active","completed","cancelled"].map(s=><option key={s} className="capitalize">{s}</option>)}
                 </select></div>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
-                <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Justification</label>
-                <textarea value={form.justification} onChange={e=>setForm(p=>({...p,justification:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-            </div></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#1e40af"}}>
-                {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
-                {saving?"Saving...":editing?"Update Plan":"Create Plan"}
+              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Description</label>
+                <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none resize-none"/></div>
+              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Justification</label>
+                <textarea value={form.justification} onChange={e=>setForm(p=>({...p,justification:e.target.value}))} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none resize-none"/></div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} className="px-4 py-2 rounded-xl border text-sm">Cancel</button>
+              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold" style={{background:"#1e40af"}}>
+                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Save className="w-3.5 h-3.5"/>}
+                {saving?"Saving…":editing?"Update Plan":"Create Plan"}
               </button>
             </div>
           </div>

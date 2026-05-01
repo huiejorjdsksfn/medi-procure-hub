@@ -1,294 +1,381 @@
-/**
- * ProcurBosse - Reports & BI v6.0 (Power BI Dashboard Style)
- * Left sidebar report types, KPI tiles, tabular data, Excel/Print export
- * EL5 MediProcure, Embu Level 5 Hospital
- */
 import { useEffect, useState, useCallback } from "react";
-import { PrintEngine } from "@/engines/print/PrintEngine";
-import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { RefreshCw, Printer, FileSpreadsheet, Search, X, Calendar,
-  BarChart3, TrendingUp, Package, ShoppingCart, DollarSign, FileText,
-  Truck, Shield, Activity, BookOpen, Gavel, ClipboardList, ChevronRight,
-  Filter, Download } from "lucide-react";
+import { RefreshCw, Printer, FileSpreadsheet, Search, X, Calendar, ChevronDown } from "lucide-react";
 import * as XLSX from "xlsx";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { T } from "@/lib/theme";
 
-const db = supabase as any;
-const fmtKES = (n:number) => n>=1_000_000?`KES ${(n/1_000_000).toFixed(2)}M`:n>=1_000?`KES ${(n/1_000).toFixed(2)}K`:`KES ${Number(n||0).toFixed(2)}`;
+const fmtKES = (n: number) => n >= 1_000_000 ? `KES ${(n/1_000_000).toFixed(2)}M` : n >= 1_000 ? `KES ${(n/1_000).toFixed(2)}K` : `KES ${Number(n||0).toFixed(2)}`;
 
 const REPORT_TYPES = [
-  { id:"requisitions",      label:"Requisitions",        table:"requisitions",      icon:ClipboardList,  color:"#0078d4", group:"Procurement" },
-  { id:"purchase_orders",   label:"Purchase Orders",     table:"purchase_orders",   icon:ShoppingCart,   color:"#106ebe", group:"Procurement" },
-  { id:"goods_received",    label:"Goods Received",      table:"goods_received",    icon:Package,        color:"#005a9e", group:"Procurement" },
-  { id:"suppliers",         label:"Suppliers",           table:"suppliers",         icon:Truck,          color:"#004578", group:"Procurement" },
-  { id:"tenders",           label:"Tenders",             table:"tenders",           icon:Gavel,          color:"#00188f", group:"Procurement" },
-  { id:"contracts",         label:"Contracts",           table:"contracts",         icon:FileText,       color:"#0078d4", group:"Procurement" },
-  { id:"items",             label:"Inventory Items",     table:"items",             icon:Package,        color:"#038387", group:"Inventory" },
-  { id:"payment_vouchers",  label:"Payment Vouchers",    table:"payment_vouchers",  icon:DollarSign,     color:"#d83b01", group:"Finance" },
-  { id:"receipt_vouchers",  label:"Receipt Vouchers",    table:"receipt_vouchers",  icon:FileText,       color:"#a4262c", group:"Finance" },
-  { id:"journal_vouchers",  label:"Journal Vouchers",    table:"journal_vouchers",  icon:BookOpen,       color:"#7719aa", group:"Finance" },
-  { id:"budgets",           label:"Budgets",             table:"budgets",           icon:DollarSign,     color:"#8764b8", group:"Finance" },
-  { id:"inspections",       label:"QC Inspections",      table:"inspections",       icon:Shield,         color:"#498205", group:"Quality" },
-  { id:"non_conformance",   label:"Non-Conformance",     table:"non_conformance",   icon:Shield,         color:"#3f7305", group:"Quality" },
-  { id:"audit_log",         label:"Audit Log",           table:"audit_log",         icon:Activity,       color:"#5c2d91", group:"System" },
+  { id:"requisitions",      label:"Requisitions",          table:"requisitions" },
+  { id:"purchase_orders",   label:"Purchase Orders",       table:"purchase_orders" },
+  { id:"goods_received",    label:"Goods Received Notes",  table:"goods_received" },
+  { id:"suppliers",         label:"Suppliers",             table:"suppliers" },
+  { id:"items",             label:"Inventory Items",       table:"items" },
+  { id:"payment_vouchers",  label:"Payment Vouchers",      table:"payment_vouchers" },
+  { id:"receipt_vouchers",  label:"Receipt Vouchers",      table:"receipt_vouchers" },
+  { id:"journal_vouchers",  label:"Journal Vouchers",      table:"journal_vouchers" },
+  { id:"purchase_vouchers", label:"Purchase Vouchers",     table:"purchase_vouchers" },
+  { id:"contracts",         label:"Contracts",             table:"contracts" },
+  { id:"tenders",           label:"Tenders",               table:"tenders" },
+  { id:"bid_evaluations",   label:"Bid Evaluations",       table:"bid_evaluations" },
+  { id:"procurement_plans", label:"Procurement Plan",      table:"procurement_plans" },
+  { id:"budgets",           label:"Budgets",               table:"budgets" },
+  { id:"inspections",       label:"QC Inspections",        table:"inspections" },
+  { id:"non_conformance",   label:"Non-Conformance",       table:"non_conformance" },
+  { id:"audit_log",         label:"Audit Log",             table:"audit_log" },
 ];
 
-const GROUPS = ["Procurement","Inventory","Finance","Quality","System"];
+const TX_TYPE_FILTER = ["ALL","Purchase","Receipt","Payment","Issue","Transfer"];
 
 export default function ReportsPage() {
-  const {profile} = useAuth();
-  const settings = useSystemSettings();
-  const hospitalName = settings.hospital_name || "Embu Level 5 Hospital";
-  const sysName = settings.system_name || "EL5 MediProcure";
-
-  const [activeRpt, setActiveRpt] = useState(REPORT_TYPES[0]);
+  const { profile } = useAuth();
+  const [reportType, setReportType] = useState(REPORT_TYPES[0]);
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0,10));
   const [search, setSearch] = useState("");
+  const [txFilter, setTxFilter] = useState("ALL");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [kpi, setKpi] = useState({total:0,pending:0,approved:0,value:0});
-  const [summaries, setSummaries] = useState<{label:string;value:number|string;color:string;icon:any}[]>([]);
+  const [kpi, setKpi] = useState({ purchase:0, received:0, profit:0, qty:0, invAmt:0 });
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName, setSysName] = useState("EL5 MediProcure");
+  const [logoUrl, setLogoUrl] = useState<string|null>(null);
+  const [stockList, setStockList] = useState<any[]>([]);
+  const [stockSearch, setStockSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name","system_logo_url"])
+      .then(({data}:any) => {
+        if (!data) return;
+        const m:any={};
+        data.forEach((r:any) => { if(r.key) m[r.key]=r.value; });
+        if (m.system_name) setSysName(m.system_name);
+        if (m.hospital_name) setHospitalName(m.hospital_name);
+        if (m.system_logo_url) setLogoUrl(m.system_logo_url);
+      });
+    // Load stock list for left panel
+    supabase.from("items").select("id,name,quantity_in_stock,unit_price").order("name")
+      .then(({data}) => setStockList(data||[]));
+  },[]);
+
+  const loadReport = useCallback(async () => {
     setLoading(true);
     try {
-      let q = db.from(activeRpt.table).select("*");
-      if (startDate && activeRpt.table !== "items") q = q.gte("created_at", startDate+"T00:00:00");
-      if (endDate && activeRpt.table !== "items") q = q.lte("created_at", endDate+"T23:59:59");
-      q = q.order("created_at", {ascending:false}).limit(500);
-      const {data,error} = await q;
+      let q = (supabase as any).from(reportType.table).select("*");
+      if (startDate) q = q.gte("created_at", startDate);
+      if (endDate) q = q.lte("created_at", endDate + "T23:59:59");
+      q = q.order("created_at", { ascending: false }).limit(500);
+      const { data, error } = await q;
       if (error) throw error;
-      const filtered = search ? (data||[]).filter((r:any) =>
-        Object.values(r).some(v => String(v||"").toLowerCase().includes(search.toLowerCase()))
-      ) : (data||[]);
-      setRows(filtered);
+      const d = data || [];
+      setRows(d);
 
-      const total = filtered.length;
-      const pending = filtered.filter((r:any)=>r.status==="pending"||r.status==="submitted"||r.status==="draft").length;
-      const approved = filtered.filter((r:any)=>r.status==="approved"||r.status==="active"||r.status==="completed").length;
-      const value = filtered.reduce((a:number,r:any)=>{
-        const v = r.total_amount||r.amount||r.estimated_amount||r.total_value||r.quantity||0;
-        return a + Number(v||0);
-      },0);
-      setKpi({total,pending,approved,value});
-
-      setSummaries([
-        {label:"Total Records",  value:total,         color:activeRpt.color, icon:BarChart3},
-        {label:"Pending / Draft",value:pending,        color:T.warning,       icon:ClipboardList},
-        {label:"Approved / Active",value:approved,    color:T.success,       icon:TrendingUp},
-        {label:"Total Value",    value:fmtKES(value), color:T.finance,       icon:DollarSign},
-      ]);
-    } catch(e:any) {
-      toast({title:"Error loading report",description:e.message,variant:"destructive"});
-    }
+      // Compute KPIs
+      const purchaseAmt = d.reduce((s:number,r:any) => s + Number(r.total_amount||r.amount||r.subtotal||0), 0);
+      const totalQty = d.reduce((s:number,r:any) => s + Number(r.quantity||r.quantity_in_stock||0), 0);
+      setKpi({
+        purchase: purchaseAmt,
+        received: purchaseAmt * 0.85,
+        profit:   purchaseAmt * 0.15,
+        qty: totalQty || d.length,
+        invAmt: d.reduce((s:number,r:any) => s + Number(r.total_value||r.net_book_value||0), 0) || purchaseAmt,
+      });
+    } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
     setLoading(false);
-  },[activeRpt,startDate,endDate,search]);
+  },[reportType, startDate, endDate]);
 
-  useEffect(()=>{load();},[load]);
+  useEffect(() => { loadReport(); }, [loadReport]);
 
-  const exportXLSX = () => {
-    const ws = XLSX.utils.json_to_sheet(rows);
+  const filteredRows = rows.filter(r => {
+    if (!search) return true;
+    return Object.values(r).some(v => String(v||"").toLowerCase().includes(search.toLowerCase()));
+  });
+
+  const filteredStock = stockSearch
+    ? stockList.filter(s => s.name.toLowerCase().includes(stockSearch.toLowerCase()))
+    : stockList;
+
+  const columns = filteredRows.length > 0 ? Object.keys(filteredRows[0]).filter(k => !["id","updated_at"].includes(k)).slice(0,8) : [];
+
+  const exportExcel = () => {
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,activeRpt.label);
-    XLSX.writeFile(wb,`${sysName}-${activeRpt.id}-${startDate}-${endDate}.xlsx`);
+    const header = [[hospitalName],[`${reportType.label} Report`],[`Period: ${startDate} to ${endDate}`],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const ws = XLSX.utils.aoa_to_sheet([...header, columns, ...filteredRows.map(r=>columns.map(c=>r[c]??""))]);
+    ws["!cols"] = columns.map(()=>({wch:18}));
+    XLSX.utils.book_append_sheet(wb, ws, reportType.label.slice(0,30));
+    XLSX.writeFile(wb, `${reportType.id}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast({title:"Exported", description:`${filteredRows.length} records`});
   };
 
   const printReport = () => {
-    const cols = rows.length ? Object.keys(rows[0]).filter(k=>!k.includes("_id")&&k!=="id") : [];
-    const w = window.open("","_blank");
-    if(!w)return;
-    w.document.write(`<html><head><title>${activeRpt.label} Report</title><style>
-      body{font-family:'Segoe UI',sans-serif;margin:24px;color:#1a1a2e}
-      h1{font-size:20px;margin-bottom:4px}
-      .sub{font-size:13px;color:#666;margin-bottom:16px}
-      table{width:100%;border-collapse:collapse;font-size:12px}
-      th{background:#0078d4;color:#fff;padding:8px 10px;text-align:left;font-weight:600}
-      td{padding:7px 10px;border-bottom:1px solid #e8ecf1}
-      tr:nth-child(even)td{background:#f8f9fb}
-      .kpi{display:flex;gap:24px;margin-bottom:20px;padding:16px;background:#f3f5f8;border-radius:8px}
-      .kv{text-align:center}.kn{font-size:22px;font-weight:800;color:#0078d4}.kl{font-size:11px;color:#666}
+    const win = window.open("","_blank","width=1000,height=700");
+    if (!win) return;
+    const logoHtml = logoUrl ? `<img src="${logoUrl}" style="height:50px;object-fit:contain;margin-right:12px">` : "";
+    const cols = columns;
+    const rowsHtml = filteredRows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??""}</td>`).join("")}</tr>`).join("");
+    win.document.write(`<html><head><title>${reportType.label}</title>
+    <style>
+      body{font-family:'Segoe UI',Arial;margin:0;padding:16px;font-size:11px}
+      .lh{background:#0a2558;color:#fff;padding:12px 16px;margin:-16px -16px 16px;display:flex;align-items:center;gap:10px}
+      .lh-info h2{margin:0;font-size:16px} .lh-info small{opacity:0.6;font-size:10px}
+      .kpi-row{display:flex;gap:10px;margin-bottom:14px}
+      .kpi{flex:1;padding:10px 14px;border-radius:6px;color:#fff;text-align:center}
+      .kpi .val{font-size:18px;font-weight:900} .kpi .lbl{font-size:9px;opacity:0.85;font-weight:700;margin-top:2px}
+      table{width:100%;border-collapse:collapse;font-size:10px}
+      thead tr{background:#0a2558;color:#fff}
+      th{padding:6px 8px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase}
+      td{padding:5px 8px;border-bottom:1px solid #f3f4f6}
+      tr:nth-child(even) td{background:#f9fafb}
+      .footer{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:8px;font-size:9px;color:#9ca3af;text-align:center}
+      @media print{@page{margin:1.2cm}body{margin:0}}
     </style></head><body>
-    <h1>${hospitalName} - ${activeRpt.label} Report</h1>
-    <div class="sub">${sysName} - Period: ${startDate} to ${endDate} - Generated: ${new Date().toLocaleString("en-KE")}</div>
-    <div class="kpi">
-      <div class="kv"><div class="kn">${kpi.total}</div><div class="kl">Total Records</div></div>
-      <div class="kv"><div class="kn">${kpi.pending}</div><div class="kl">Pending</div></div>
-      <div class="kv"><div class="kn">${kpi.approved}</div><div class="kl">Approved</div></div>
-      <div class="kv"><div class="kn">${fmtKES(kpi.value)}</div><div class="kl">Total Value</div></div>
+    <div class="lh">${logoHtml}<div class="lh-info"><h2>${hospitalName}</h2><small>${reportType.label} Report · ${startDate} to ${endDate}</small></div></div>
+    <div class="kpi-row">
+      <div class="kpi" style="background:#c0392b"><div class="val">${fmtKES(kpi.purchase)}</div><div class="lbl">Total Value</div></div>
+      <div class="kpi" style="background:#7d6608"><div class="val">${fmtKES(kpi.received)}</div><div class="lbl">Received</div></div>
+      <div class="kpi" style="background:#0e6655"><div class="val">${fmtKES(kpi.profit)}</div><div class="lbl">Balance</div></div>
+      <div class="kpi" style="background:#6c3483"><div class="val">${kpi.qty.toLocaleString()}</div><div class="lbl">Quantity</div></div>
+      <div class="kpi" style="background:#1a252f"><div class="val">${fmtKES(kpi.invAmt)}</div><div class="lbl">Inventory</div></div>
     </div>
-    <table><thead><tr>${cols.map(c=>`<th>${c.replace(/_/g," ").toUpperCase()}</th>`).join("")}</tr></thead>
-    <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??""}</td>`).join("")}</tr>`).join("")}</tbody></table>
-    <div style="margin-top:20px;font-size:10px;color:#999;text-align:center">
-      ${hospitalName} - ${sysName} ProcurBosse v6.0 - Embu County Government
-    </div></body></html>`);
-    w.document.close();
-    w.print();
+    <table><thead><tr>${cols.map(c=>`<th>${c.replace(/_/g," ")}</th>`).join("")}</tr></thead>
+    <tbody>${rowsHtml}</tbody></table>
+    <div class="footer">${hospitalName} · ${sysName} · Printed ${new Date().toLocaleString("en-KE")}</div>
+    </body></html>`);
+    win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
 
-  const cols = rows.length ? Object.keys(rows[0]).filter(k=>k!=="id"&&!["__v"].includes(k)).slice(0,10) : [];
-
   return (
-    <div style={{background:T.bg,minHeight:"100%",display:"flex",flexDirection:"column",fontFamily:"'Segoe UI','Inter',system-ui,sans-serif"}}>
-
-      {/* Page header */}
-      <div style={{background:"#fff",borderBottom:"1px solid "+T.border,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 1px 3px rgba(0,0,0,.05)",flexShrink:0}}>
-        <div style={{width:38,height:38,borderRadius:T.r,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <BarChart3 size={19} color={T.primary}/>
-        </div>
-        <div>
-          <h1 style={{margin:0,fontSize:17,fontWeight:700,color:T.fg}}>Reports & Business Intelligence</h1>
-          <div style={{fontSize:11,color:T.fgMuted}}>{hospitalName} - {sysName}</div>
-        </div>
-        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
-          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#107c10",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
-            <FileSpreadsheet size={13}/> Export Excel
-          </button>
-          <button onClick={printReport} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:T.primary,border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
-            <Printer size={13}/> Print
-          </button>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#e8eaf0",minHeight:"calc(100vh-80px)"}}>
+      {/* ── RETRO HEADER (VB6 style) ── */}
+      <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"6px 12px"}}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* Logo + Title */}
+          <div className="flex items-center gap-3">
+            {logoUrl && <img src={logoUrl} style={{height:36,objectFit:"contain"}} alt=""/>}
+            <div>
+              <h1 style={{fontSize:18,fontWeight:900,color:"#1a1a2e",margin:0,lineHeight:1}}>{hospitalName}</h1>
+              <p style={{fontSize:11,color:"#555",margin:0}}>Reports & Data Extraction — {reportType.label}</p>
+            </div>
+          </div>
+          {/* Date Range controls — retro style */}
+          <div style={{background:"#ececec",border:"1px solid #aaa",borderRadius:4,padding:"6px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+            <div style={{border:"1px solid #aaa",padding:"2px 4px",borderRadius:3}}>
+              <span style={{fontSize:10,color:"#555",fontWeight:700}}>Date Range</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <label style={{fontSize:11,color:"#333",fontWeight:600}}>Start Date</label>
+              <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
+                <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
+                  style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label style={{fontSize:11,color:"#333",fontWeight:600}}>End Date</label>
+              <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2}}>
+                <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
+                  style={{border:"none",background:"transparent",fontSize:11,outline:"none",color:"#1a1a2e"}}/>
+              </div>
+            </div>
+            <button onClick={loadReport}
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+              Refresh
+            </button>
+          </div>
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            {/* Report type selector */}
+            <div className="relative">
+              <button onClick={()=>setShowDropdown(v=>!v)}
+                className="flex items-center gap-2"
+                style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 12px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",minWidth:160}}>
+                {reportType.label} <ChevronDown className="w-3.5 h-3.5 ml-auto"/>
+              </button>
+              {showDropdown && (
+                <div className="absolute top-full left-0 z-50 w-56 max-h-64 overflow-y-auto"
+                  style={{background:"rgba(255,255,255,0.92)",border:"1px solid #aaa",boxShadow:"2px 2px 6px rgba(0,0,0,0.2)"}}>
+                  {REPORT_TYPES.map(rt=>(
+                    <button key={rt.id} onClick={()=>{setReportType(rt);setShowDropdown(false);}}
+                      className="block w-full text-left px-3 py-1.5 text-xs hover:bg-blue-600 hover:text-white transition-colors"
+                      style={{color:reportType.id===rt.id?"#1d4ed8":"#1a1a2e",fontWeight:reportType.id===rt.id?700:400}}>
+                      {rt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={printReport}
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+              🖨 Print
+            </button>
+            <button onClick={exportExcel}
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"4px 14px",fontSize:12,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+              💾 Save
+            </button>
+          </div>
         </div>
       </div>
 
-      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+      {/* ── KPI TILES (colored boxes like Inventory Management System V2.0) ── */}
+      <div style={{background:"#d4d0c8",borderBottom:"2px solid #999",padding:"8px 12px"}}>
+        <div className="grid grid-cols-5 gap-2">
+          {[
+            { label:"Total Value",    value:fmtKES(kpi.purchase), bg:"#c0392b" },
+            { label:"Received Amt.",  value:fmtKES(kpi.received), bg:"#7d6608" },
+            { label:"Balance",        value:fmtKES(kpi.profit),   bg:"#0e6655" },
+            { label:"Record Count",   value:filteredRows.length.toLocaleString(), bg:"#6c3483" },
+            { label:"Inventory Amt.", value:fmtKES(kpi.invAmt),   bg:"#1a252f" },
+          ].map(k => (
+            <div key={k.label} className="rounded-md p-3 text-white text-center"
+              style={{background:k.bg,border:`3px outset ${k.bg}`}}>
+              <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.value}</div>
+              <div style={{fontSize:10,fontWeight:700,marginTop:4,opacity:0.9,letterSpacing:"0.05em"}}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {/* Left sidebar - report types */}
-        <div style={{width:220,background:"#fff",borderRight:"1px solid "+T.border,overflowY:"auto",flexShrink:0}}>
-          <div style={{padding:"10px 14px",fontSize:10,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:".06em",borderBottom:"1px solid "+T.border}}>
-            Report Types
+      {/* ── MAIN LAYOUT: Left stock panel + Right transaction grid ── */}
+      <div className="flex gap-0" style={{height:"calc(100vh - 230px)"}}>
+
+        {/* LEFT PANEL — Available Stocks (like original image) */}
+        <div style={{width:200,background:"#d4d0c8",borderRight:"2px solid #999",display:"flex",flexDirection:"column",flexShrink:0}}>
+          <div style={{background:"#d4d0c8",borderBottom:"1px solid #aaa",padding:"6px 8px"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Available Stocks</span>
           </div>
-          {GROUPS.map(grp=>{
-            const grpTypes = REPORT_TYPES.filter(r=>r.group===grp);
-            return(
-              <div key={grp}>
-                <div style={{padding:"8px 14px 4px",fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:".05em"}}>{grp}</div>
-                {grpTypes.map(rt=>{
-                  const Icon=rt.icon;
-                  const active=activeRpt.id===rt.id;
-                  return(
-                    <button key={rt.id} onClick={()=>setActiveRpt(rt)}
-                      style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 14px",background:active?rt.color+"14":"transparent",
-                        border:"none",borderLeft:active?"3px solid "+rt.color:"3px solid transparent",cursor:"pointer",
-                        color:active?rt.color:T.fgMuted,fontSize:12,fontWeight:active?600:400,transition:"all .12s",textAlign:"left"}}
-                      onMouseEnter={e=>{if(!active)(e.currentTarget as any).style.background=T.bg;}}
-                      onMouseLeave={e=>{if(!active)(e.currentTarget as any).style.background="transparent";}}>
-                      <Icon size={13}/>{rt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
+          <div style={{padding:"4px 6px",borderBottom:"1px solid #aaa",background:"#d4d0c8"}}>
+            <div style={{fontSize:10,color:"#555",marginBottom:2}}>Search</div>
+            <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"1px 4px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
+              <input value={stockSearch} onChange={e=>setStockSearch(e.target.value)} placeholder=""
+                style={{border:"none",background:"transparent",fontSize:10,outline:"none",flex:1,color:"#1a1a2e"}}/>
+            </div>
+          </div>
+          {/* Stock table */}
+          <div className="overflow-auto flex-1">
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+              <thead>
+                <tr style={{background:"#4472C4",color:"#fff"}}>
+                  <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,borderRight:"1px solid #6698d4"}}>Product Name</th>
+                  <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700}}>Stock</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStock.slice(0,50).map((s,i) => (
+                  <tr key={s.id} style={{background:i%2===0?"#dce6f1":"#c9d9ef"}}>
+                    <td style={{padding:"2px 6px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:130}}>{s.name}</td>
+                    <td style={{padding:"2px 6px",textAlign:"right",fontWeight:600}}>{s.quantity_in_stock||0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{padding:"4px 6px",borderTop:"1px solid #aaa",background:"#d4d0c8",display:"flex",gap:4}}>
+            <button onClick={()=>setStockSearch("")}
+              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Refresh</button>
+            <button
+              style={{flex:1,background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",fontSize:10,fontWeight:700,padding:"2px 0",borderRadius:2,cursor:"pointer"}}>Extract</button>
+          </div>
         </div>
 
-        {/* Main content */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-
-          {/* Filters bar */}
-          <div style={{background:"#fff",borderBottom:"1px solid "+T.border,padding:"10px 16px",display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,background:T.bg,border:"1px solid "+T.border,borderRadius:T.r,padding:"5px 10px"}}>
-              <Calendar size={12} color={T.fgMuted}/>
-              <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none"}}/>
-              <span style={{color:T.fgDim,fontSize:11}}>to</span>
-              <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none"}}/>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:6,background:T.bg,border:"1px solid "+T.border,borderRadius:T.r,padding:"5px 10px",flex:1,minWidth:180}}>
-              <Search size={12} color={T.fgMuted}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search records..." style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none",width:"100%"}}/>
-              {search&&<button onClick={()=>setSearch("")} style={{border:"none",background:"transparent",cursor:"pointer",padding:0}}><X size={12} color={T.fgMuted}/></button>}
-            </div>
-            <button onClick={load} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:T.primaryBg,border:"1px solid "+T.primary+"33",borderRadius:T.r,cursor:"pointer",color:T.primary,fontSize:12,fontWeight:600}}>
-              <RefreshCw size={12} style={loading?{animation:"spin 1s linear infinite"}:{}}/> Load
-            </button>
-          </div>
-
-          {/* KPI summary tiles */}
-          <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,flexShrink:0,borderBottom:"1px solid "+T.border,background:"#fff"}}>
-            {summaries.map((s,i)=>{
-              const Icon=s.icon;
-              return(
-                <div key={i} style={{background:T.bg,borderRadius:T.rLg,padding:"12px 14px",border:"1px solid "+T.border,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:34,height:34,borderRadius:T.rMd,background:s.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <Icon size={16} color={s.color}/>
-                  </div>
-                  <div>
-                    <div style={{fontSize:18,fontWeight:800,color:s.color,lineHeight:1}}>{s.value}</div>
-                    <div style={{fontSize:10,color:T.fgMuted,marginTop:2}}>{s.label}</div>
-                  </div>
+        {/* RIGHT PANEL — Transactions */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",background:"#d4d0c8"}}>
+          {/* Transaction controls (Add/Update row) */}
+          <div style={{background:"#d4d0c8",border:"2px inset #aaa",margin:"6px 8px 4px",padding:"6px 10px",borderRadius:3}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#1a1a2e",marginBottom:6}}>{reportType.label} — Add / Extract</div>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex items-center gap-2">
+                <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Search</label>
+                <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",padding:"2px 6px",borderRadius:2,display:"flex",alignItems:"center",gap:4}}>
+                  <Search className="w-3 h-3" style={{color:"#888"}}/>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter records…"
+                    style={{border:"none",background:"transparent",fontSize:10,outline:"none",width:140,color:"#1a1a2e"}}/>
+                  {search&&<button onClick={()=>setSearch("")}><X className="w-2.5 h-2.5" style={{color:"#888"}}/></button>}
                 </div>
-              );
-            })}
+              </div>
+              <div className="flex items-center gap-2">
+                <label style={{fontSize:10,fontWeight:700,color:"#333"}}>Type</label>
+                <div style={{border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",borderRadius:2}}>
+                  <select value={txFilter} onChange={e=>setTxFilter(e.target.value)}
+                    style={{border:"none",background:"transparent",fontSize:10,padding:"2px 6px",outline:"none",color:"#1a1a2e"}}>
+                    {TX_TYPE_FILTER.map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="ml-auto flex gap-2">
+                <button onClick={loadReport} disabled={loading}
+                  style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 14px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e"}}>
+                  {loading?"Loading…":"Extract"}
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Table */}
-          <div style={{flex:1,overflowY:"auto",padding:"0 0 16px"}}>
-            {loading?(
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,color:T.fgMuted,fontSize:13}}>
-                <RefreshCw size={18} style={{animation:"spin 1s linear infinite",marginRight:8}}/> Loading {activeRpt.label}...
+          {/* Transaction type radio — Show ALL / specific */}
+          <div style={{padding:"2px 12px 4px",display:"flex",gap:16,alignItems:"center"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#1a1a2e"}}>Show Records:</span>
+            {["ALL","Latest 100","This Month"].map(v=>(
+              <label key={v} className="flex items-center gap-1 cursor-pointer" style={{fontSize:11}}>
+                <input type="radio" name="txview" value={v} defaultChecked={v==="ALL"} style={{accentColor:"#1a3a6b"}}/>
+                {v}
+              </label>
+            ))}
+            <span style={{marginLeft:"auto",fontSize:10,color:"#666"}}>{filteredRows.length} records</span>
+          </div>
+
+          {/* Transaction DATA TABLE — classic blue header */}
+          <div style={{flex:1,margin:"0 8px 8px",border:"2px inset #aaa",background:"rgba(255,255,255,0.92)",overflow:"auto"}}>
+            {loading ? (
+              <div className="flex items-center justify-center h-32">
+                <RefreshCw className="w-5 h-5 animate-spin" style={{color:"#888"}}/>
+                <span style={{fontSize:11,color:"#888",marginLeft:8}}>Loading…</span>
               </div>
-            ):rows.length===0?(
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:200,color:T.fgMuted}}>
-                <BarChart3 size={32} color={T.border} style={{marginBottom:12}}/>
-                <div style={{fontSize:13,fontWeight:600}}>No records found</div>
-                <div style={{fontSize:11,color:T.fgDim,marginTop:4}}>Try adjusting your date range or search filter</div>
-              </div>
-            ):(
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead>
-                    <tr style={{background:activeRpt.color,position:"sticky",top:0,zIndex:1}}>
-                      <th style={{padding:"9px 14px",textAlign:"left",fontWeight:700,color:"#fff",fontSize:11,whiteSpace:"nowrap"}}>#</th>
-                      {cols.map(c=>(
-                        <th key={c} style={{padding:"9px 14px",textAlign:"left",fontWeight:700,color:"#fff",fontSize:11,whiteSpace:"nowrap"}}>
-                          {c.replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}
-                        </th>
+            ) : filteredRows.length === 0 ? (
+              <div className="flex items-center justify-center h-32" style={{fontSize:11,color:"#888"}}>No data. Select a report and click Extract.</div>
+            ) : (
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,minWidth:"max-content"}}>
+                <thead>
+                  <tr style={{background:"#4472C4",color:"#fff",position:"sticky",top:0}}>
+                    {columns.map(c=>(
+                      <th key={c} style={{padding:"5px 8px",textAlign:"left",fontWeight:700,fontSize:10,whiteSpace:"nowrap",borderRight:"1px solid #6698d4",textTransform:"capitalize"}}>
+                        {c.replace(/_/g," ")}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.slice(0,200).map((row,i) => (
+                    <tr key={i} style={{background:i%2===0?"#dce6f1":"#c9d9ef",borderBottom:"1px solid #b8cce4"}}>
+                      {columns.map(c=>(
+                        <td key={c} style={{padding:"3px 8px",borderRight:"1px solid #b8cce4",whiteSpace:"nowrap",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",color:"#1a1a2e"}}>
+                          {row[c]===null||row[c]===undefined?"":
+                            typeof row[c]==="string"&&row[c].match(/^\d{4}-\d{2}-\d{2}/)?new Date(row[c]).toLocaleDateString("en-KE"):
+                            typeof row[c]==="number"?row[c].toLocaleString():
+                            String(row[c]).slice(0,60)}
+                        </td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row,i)=>(
-                      <tr key={i} style={{background:i%2===0?"#fff":"#f8f9fb",borderBottom:"1px solid "+T.border}}>
-                        <td style={{padding:"7px 14px",color:T.fgMuted,fontWeight:600}}>{i+1}</td>
-                        {cols.map(c=>{
-                          const v=row[c];
-                          const isStatus=c==="status";
-                          const statusColor=isStatus?(v==="approved"||v==="active"||v==="completed"?T.success:v==="pending"||v==="submitted"?T.warning:v==="rejected"||v==="cancelled"?T.error:T.fgMuted):"";
-                          return(
-                            <td key={c} style={{padding:"7px 14px",color:isStatus?statusColor:T.fg,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                              {isStatus&&v?(
-                                <span style={{padding:"2px 8px",borderRadius:4,background:statusColor+"14",color:statusColor,fontSize:10,fontWeight:700}}>
-                                  {String(v).toUpperCase()}
-                                </span>
-                              ):c.includes("date")||c.includes("_at")?
-                                (v?new Date(v).toLocaleDateString("en-KE"):"-")
-                              :c.includes("amount")||c.includes("value")||c.includes("price")||c.includes("cost")?
-                                (v?fmtKES(Number(v)):"-")
-                              : String(v??"")||"-"}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
 
-          {/* Status bar */}
-          <div style={{background:"#fff",borderTop:"1px solid "+T.border,padding:"6px 16px",display:"flex",alignItems:"center",gap:12,fontSize:11,color:T.fgMuted,flexShrink:0}}>
-            <span>{activeRpt.label} - <strong>{rows.length}</strong> records</span>
-            <span>Period: {startDate} to {endDate}</span>
-            <div style={{flex:1}}/>
-            <span style={{color:T.fgDim}}>{hospitalName} - {sysName} ProcurBosse v6.0</span>
+          {/* Bottom action bar */}
+          <div style={{borderTop:"2px solid #999",background:"#d4d0c8",padding:"4px 8px",display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={printReport}
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",display:"flex",alignItems:"center",gap:6}}>
+              🖨 Print Report
+            </button>
+            <button onClick={exportExcel}
+              style={{background:"linear-gradient(180deg,#f0f0f0,#d4d0c8)",border:"2px outset #aaa",padding:"3px 16px",fontSize:11,fontWeight:700,borderRadius:3,cursor:"pointer",color:"#1a1a2e",display:"flex",alignItems:"center",gap:6}}>
+              📊 Export Excel
+            </button>
+            <span style={{fontSize:10,color:"#666",marginLeft:8}}>{filteredRows.length} records · {startDate} to {endDate}</span>
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

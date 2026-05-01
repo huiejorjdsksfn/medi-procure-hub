@@ -1,355 +1,250 @@
-/**
- * ProcurBosse - Requisitions Page v3.0
- * ERP-style: status tabs, search bar, KPI tiles, professional table
- * EL5 MediProcure - Embu Level 5 Hospital
- */
 import { useEffect, useState, useCallback } from "react";
-import { ValidationEngine } from "@/engines/validation/ValidationEngine";
-import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
-import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
-  CheckCircle, XCircle, Clock, ClipboardList, Send, AlertTriangle,
-  Download, Edit3, ChevronDown
+  CheckCircle, XCircle, Clock, ClipboardList, ChevronDown, Send,
+  AlertTriangle, Download
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { printRequisition } from "@/lib/printDocument";
-import { useDepartments } from "@/hooks/useDropdownData";
-import {
-  executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
-  generateRequisitionNumber, type RequisitionAction
-} from "@/lib/procurement/requisitionWorkflow";
+import { notifyProcurement, sendNotification } from "@/lib/notify";
 
-// - Status config -
-const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = Object.fromEntries(
-  Object.entries(STATUS_CONFIG).map(([k, v]) => [k, { ...v, border: v.bg }])
-) as any;
-
-// - Styles -
-const CARD_STYLE: React.CSSProperties = {
-  background:"#fff",
-  border:"1px solid #e5e7eb",
-  borderRadius:12,
-  padding:"14px 18px",
-  boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
+const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
+  draft:     {bg:"#f3f4f6",color:"#6b7280",label:"Draft"},
+  submitted: {bg:"#dbeafe",color:"#1d4ed8",label:"Submitted"},
+  pending:   {bg:"#fef3c7",color:"#92400e",label:"Pending"},
+  approved:  {bg:"#dcfce7",color:"#15803d",label:"Approved"},
+  rejected:  {bg:"#fee2e2",color:"#dc2626",label:"Rejected"},
+  ordered:   {bg:"#e0f2fe",color:"#0369a1",label:"Ordered"},
+  received:  {bg:"#d1fae5",color:"#065f46",label:"Received"},
 };
-
-// - Format helpers -
-const fmtKES = (n:number) => {
-  if(n>=1_000_000) return `KES ${(n/1_000_000).toFixed(1)}M`;
-  if(n>=1000)      return `KES ${(n/1000).toFixed(0)}K`;
-  return `KES ${n.toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-};
-const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "-";
 
 export default function RequisitionsPage() {
   const { user, profile, roles } = useAuth();
-  const canApprove = roles?.includes("admin")||roles?.includes("procurement_manager");
-  const canCreate  = !roles?.includes("warehouse_officer");
-  const { getSetting } = useSystemSettings();
-  const { departments } = useDepartments();
-  const currencySymbol = getSetting("currency_symbol","KES");
+  const canApprove = roles.includes("admin") || roles.includes("procurement_manager");
+  const canCreate = !roles.includes("warehouse_officer") && !roles.includes("inventory_manager");
+  const [reqs, setReqs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [viewReq, setViewReq] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
+  const [saving, setSaving] = useState(false);
+  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  const [sysName, setSysName] = useState("EL5 MediProcure");
 
-  const [reqs,       setReqs]       = useState<any[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [search,     setSearch]     = useState("");
-  const [statusTab,  setStatusTab]  = useState("all");
-  const [priority,   setPriority]   = useState("all");
-  const [viewReq,    setViewReq]    = useState<any>(null);
-  const [showForm,   setShowForm]   = useState(false);
-  const [editReq,    setEditReq]    = useState<any>(null);
-  const [saving,     setSaving]     = useState(false);
-  const [sortCol,    setSortCol]    = useState("created_at");
-  const [sortAsc,    setSortAsc]    = useState(false);
-  const [rejectId,   setRejectId]   = useState<string|null>(null);
-  const [rejectReason,setRejectReason]=useState("");
-
-  const EMPTY_FORM = {title:"",department:"",priority:"normal",notes:"",delivery_date:"",justification:"",cost_centre:"",fund_source:"County Fund"};
-  const [form, setForm] = useState({...EMPTY_FORM});
-
-  const load = useCallback(async ()=>{
-    setLoading(true);
-    try {
-      const {data,error} = await (supabase as any).from("requisitions")
-        .select("*,requisition_items(count)")
-        .order(sortCol,{ascending:sortAsc});
-      if(error) throw error;
-      const rows=data||[]; setReqs(rows); pageCache.set("requisitions",rows);
-    } catch(e:any) {
-      const cached=pageCache.get<any[]>("requisitions");
-      if(cached) setReqs(cached);
-      console.error("[Requisitions]",e);
-    } finally { setLoading(false); }
-  },[sortCol,sortAsc]);
-
-  useEffect(()=>{load();},[load]);
-
-  // Real-time
   useEffect(()=>{
-    const ch=(supabase as any).channel("reqs-v3").on("postgres_changes",{event:"*",schema:"public",table:"requisitions"},load).subscribe();
-    return()=>(supabase as any).removeChannel(ch);
-  },[load]);
+    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
+      .then(({data}:any)=>{ if(!data) return; const m:any={}; data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value; }); if(m.system_name) setSysName(m.system_name); if(m.hospital_name) setHospitalName(m.hospital_name); });
+  },[]);
 
-  // - Actions -
-  async function handleAction(id: string, action: RequisitionAction, reason?: string) {
-    const result = await executeRequisitionAction(id, action, user?.id || '', profile?.full_name || '', { reason });
-    if (result.success) {
-      toast({ title: `Requisition ${action}${action.endsWith('e') ? 'd' : 'ed'} -` });
-    } else {
-      toast({ title: `Action failed`, description: result.error, variant: 'destructive' });
-    }
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await (supabase as any).from("requisitions")
+      .select("*,requisition_items(*)")
+      .order("created_at",{ascending:false});
+    setReqs(data||[]);
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{ load(); },[load]);
+
+  const approve = async (id:string) => {
+    const req = reqs.find(r=>r.id===id);
+    await (supabase as any).from("requisitions").update({status:"approved",approved_by:user?.id,approved_at:new Date().toISOString()}).eq("id",id);
+    logAudit(user?.id,profile?.full_name,"approve","requisitions",id,{});
+    toast({title:"Requisition Approved ✓"});
+    // Notify the requester
+    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Approved ✓",message:`Your requisition "${req.title||req.requisition_number}" has been approved.`,type:"success",module:"Procurement",actionUrl:"/requisitions"});
+    await notifyProcurement({title:"Requisition Approved",message:`${profile?.full_name||"Manager"} approved requisition ${req?.requisition_number||id.slice(0,8)}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
     load();
-  }
+  };
+  const reject = async (id:string) => {
+    const req = reqs.find(r=>r.id===id);
+    await (supabase as any).from("requisitions").update({status:"rejected"}).eq("id",id);
+    logAudit(user?.id,profile?.full_name,"reject","requisitions",id,{});
+    toast({title:"Requisition Rejected",variant:"destructive"});
+    if(req?.requested_by) await sendNotification({userId:req.requested_by,title:"Requisition Rejected",message:`Your requisition "${req.title||req.requisition_number}" was not approved.`,type:"warning",module:"Procurement",actionUrl:"/requisitions"});
+    load();
+  };
 
-  async function approve(id: string) { await handleAction(id, 'approve'); }
-
-  async function rejectConfirm() {
-    if (!rejectId) return;
-    await handleAction(rejectId, 'reject', rejectReason || 'Rejected by manager');
-    setRejectId(null); setRejectReason("");
-  }
-
-  async function submit(id: string) { await handleAction(id, 'submit'); }
-
-  async function save(){
-    if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}
+  const save = async () => {
+    if(!form.title.trim()){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
-    const num = editReq?.requisition_number||`RQQ/EL5H/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;
-    const payload={...form,requisition_number:num,status:editReq?.status||"draft",requested_by:user?.id,requester_name:profile?.full_name};
-    let error:any;
-    if(editReq){
-      ({error}=await (supabase as any).from("requisitions").update(payload).eq("id",editReq.id));
-    } else {
-      ({error}=await (supabase as any).from("requisitions").insert(payload));
-    }
-    if(error){toast({title:"Save failed",description:error.message||"Database error",variant:"destructive"});setSaving(false);return;}
-    toast({title:editReq?"Requisition updated -":"Requisition created -",description:num});
-    setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); load();
+    const prefix="RQQ/EL5H";
+    const num=`${prefix}/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;
+    const {data,error}=await (supabase as any).from("requisitions").insert({
+      ...form, requisition_number:num, status:"draft",
+      requested_by:user?.id, requester_name:profile?.full_name,
+    }).select().single();
+    if(error){toast({title:"Error",description:error.message,variant:"destructive"});setSaving(false);return;}
+    logAudit(user?.id,profile?.full_name,"create","requisitions",data?.id,{title:form.title});
+    toast({title:"Requisition Created",description:num});
+    await notifyProcurement({title:"New Requisition Submitted",message:`${profile?.full_name||"Staff"} submitted requisition ${num}`,type:"procurement",module:"Procurement",actionUrl:"/requisitions"});
+    setShowForm(false);
+    setForm({title:"",department:"",priority:"normal",notes:"",delivery_date:""});
+    load();
     setSaving(false);
-  }
+  };
 
-  function exportExcel(){
-    const wb=XLSX.utils.book_new();
-    const header=[[getSetting("hospital_name","Embu Level 5 Hospital")],[getSetting("system_name","EL5 MediProcure")+" - Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
-    const rows=filtered.map(r=>({
-      "Req No":r.requisition_number,"Title":r.title,"Department":r.department||"","Priority":r.priority,
-      "Status":r.status,"Requester":r.requester_name||"","Date":fmtDate(r.created_at),
-      "Delivery Date":fmtDate(r.delivery_date),"Total Amount":r.total_amount||0,"Notes":r.notes||"",
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const header = [[hospitalName],[sysName+" — Requisitions Register"],[`Generated: ${new Date().toLocaleString("en-KE")}`],[]];
+    const rows = filtered.map(r=>({
+      "Req No.":r.requisition_number,"Title":r.title,"Department":r.department,
+      "Priority":r.priority,"Status":r.status,"Requester":r.requester_name,
+      "Amount":r.total_amount||0,"Date":r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"",
+      "Approved By":r.approved_by||"","Notes":r.notes||"",
     }));
-    const ws=XLSX.utils.aoa_to_sheet(header);
-    XLSX.utils.sheet_add_json(ws,rows,{origin:"A5"});
+    const ws = XLSX.utils.aoa_to_sheet([...header,...[Object.keys(rows[0]||{})],...rows.map(r=>Object.values(r))]);
+    ws["!cols"] = Object.keys(rows[0]||{}).map(()=>({wch:18}));
     XLSX.utils.book_append_sheet(wb,ws,"Requisitions");
     XLSX.writeFile(wb,`Requisitions_${new Date().toISOString().slice(0,10)}.xlsx`);
     toast({title:"Exported",description:`${filtered.length} records`});
-  }
+  };
 
-  // - Filter & stats -
+  const printReq = (r:any) => {
+    const win=window.open("","_blank","width=800,height=600");
+    if(!win) return;
+    const items = (r.requisition_items||[]).map((i:any)=>`<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6">${i.item_name||"—"}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">${i.quantity||0}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6">${i.unit_of_measure||"—"}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">KES ${Number(i.unit_price||0).toLocaleString()}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right">KES ${Number((i.quantity||0)*(i.unit_price||0)).toLocaleString()}</td></tr>`).join("");
+    win.document.write(`<html><head><title>${r.requisition_number}</title>
+    <style>body{font-family:'Segoe UI',Arial;margin:0;padding:20px;font-size:12px;color:#1f2937}.lh{background:#0a2558;color:#fff;padding:15px 20px;margin:-20px -20px 20px}.lh h2{margin:0;font-size:18px}.lh small{opacity:0.6;font-size:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}.field{}.lbl{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}.val{font-size:12px;color:#1f2937}table{width:100%;border-collapse:collapse}thead tr{background:#1a3a6b;color:#fff}th{padding:8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase}@media print{@page{margin:1cm}}</style>
+    </head><body>
+    <div class="lh"><h2>${hospitalName}</h2><small>${sysName} · Requisition Voucher</small></div>
+    <h3 style="color:#1a3a6b;margin-bottom:12px">${r.requisition_number}</h3>
+    <div class="grid">
+      <div class="field"><div class="lbl">Title</div><div class="val">${r.title||"—"}</div></div>
+      <div class="field"><div class="lbl">Department</div><div class="val">${r.department||"—"}</div></div>
+      <div class="field"><div class="lbl">Status</div><div class="val">${r.status||"—"}</div></div>
+      <div class="field"><div class="lbl">Priority</div><div class="val">${r.priority||"—"}</div></div>
+      <div class="field"><div class="lbl">Requester</div><div class="val">${r.requester_name||"—"}</div></div>
+      <div class="field"><div class="lbl">Date</div><div class="val">${r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</div></div>
+    </div>
+    <table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th>UoM</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>${items||"<tr><td colspan='5' style='text-align:center;padding:12px;color:#9ca3af'>No items</td></tr>"}</tbody></table>
+    <div style="margin-top:15px;border-top:2px solid #1a3a6b;padding-top:10px;text-align:right">
+      <strong>Total: KES ${Number(r.total_amount||0).toLocaleString()}</strong>
+    </div>
+    <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+      ${["Requested By","Recommended By","Approved By"].map(s=>`<div><div style="border-top:1px solid #ccc;margin-bottom:4px;padding-top:4px;font-size:9px;color:#888">${s}</div></div>`).join("")}
+    </div>
+    </body></html>`);
+    win.document.close();win.focus();setTimeout(()=>win.print(),400);
+  };
+
   const filtered = reqs.filter(r=>{
-    if(statusTab!=="all"&&r.status!==statusTab) return false;
-    if(priority!=="all"&&r.priority!==priority) return false;
-    if(search){
-      const q=search.toLowerCase();
-      return (r.requisition_number||"").toLowerCase().includes(q)||(r.title||"").toLowerCase().includes(q)||(r.requester_name||"").toLowerCase().includes(q)||(r.department||"").toLowerCase().includes(q);
-    }
+    if(statusFilter!=="all"&&r.status!==statusFilter) return false;
+    if(search){const q=search.toLowerCase();return (r.title||"").toLowerCase().includes(q)||(r.requisition_number||"").toLowerCase().includes(q)||(r.department||"").toLowerCase().includes(q)||(r.requester_name||"").toLowerCase().includes(q);}
     return true;
-  }).sort((a,b)=>{
-    const va=a[sortCol]||""; const vb=b[sortCol]||"";
-    return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
   });
 
-  const COUNTS={all:reqs.length,draft:reqs.filter(r=>r.status==="draft").length,submitted:reqs.filter(r=>r.status==="submitted").length,pending:reqs.filter(r=>r.status==="pending").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length,ordered:reqs.filter(r=>r.status==="ordered").length};
-  const totalValue=reqs.reduce((s,r)=>s+Number(r.total_amount||0),0);
-  const approvedValue=reqs.filter(r=>r.status==="approved").reduce((s,r)=>s+Number(r.total_amount||0),0);
-  const pendingCount=COUNTS.submitted+COUNTS.pending;
+  const stats = {all:reqs.length,pending:reqs.filter(r=>r.status==="pending"||r.status==="submitted").length,approved:reqs.filter(r=>r.status==="approved").length,rejected:reqs.filter(r=>r.status==="rejected").length};
 
-  const toggleSort=(col:string)=>{if(sortCol===col)setSortAsc(a=>!a);else{setSortCol(col);setSortAsc(true);}};
-  const SortInd=({col}:{col:string})=>sortCol===col?<span style={{fontSize:9,marginLeft:3}}>{sortAsc?"-":"-"}</span>:null;
-
-  // - Render -
   return (
-    <div style={{minHeight:"100vh",background:"#0d1b35",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-
-      {/* - KPI TILES - */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-        {[
-          {label:"Total Value",     val:fmtKES(totalValue),    bg:"#dc2626",  icon:"-"},
-          {label:"Approved Value",  val:fmtKES(approvedValue), bg:"#059669",  icon:"-"},
-          {label:"Pending Approval",val:String(pendingCount),  bg:"#d97706",  icon:"-"},
-          {label:"Total Records",   val:String(reqs.length),   bg:"#6366f1",  icon:"-"},
-          {label:"Approved",        val:String(COUNTS.approved),bg:"#0078d4", icon:"-"},
-        ].map((kpi,i)=>(
-          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
-            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase"}}>{kpi.label}</div>
-            <div style={{fontSize:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums"}}>{kpi.val}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* - PAGE HEADER - */}
-      <div style={{padding:"16px 20px 0",display:"flex",alignItems:"center",gap:10,background:"transparent"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
-          </div>
+    <div className="p-4 space-y-3" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      {/* Header */}
+      <div className="rounded-2xl px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+        style={{background:"linear-gradient(90deg,#0a2558,#1a3a6b,#1d4a87)",boxShadow:"0 4px 16px rgba(26,58,107,0.35)"}}>
+        <div className="flex items-center gap-3">
+          <ClipboardList className="w-5 h-5 text-white"/>
           <div>
-            <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>Requisitions</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Purchase requisition management - {reqs.length} records</div>
+            <h1 className="text-base font-black text-white">Requisitions</h1>
+            <p className="text-[10px] text-white/50">{filtered.length} of {reqs.length} records</p>
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
-            <Download style={{width:13,height:13}}/> Export
+        <div className="flex flex-wrap gap-2">
+          <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading?"animate-spin":""}`}/>
           </button>
-          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
-            <RefreshCw style={{width:13,height:13}}/> Refresh
+          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/80 text-white text-xs font-semibold hover:bg-green-500">
+            <FileSpreadsheet className="w-3.5 h-3.5"/>Export
           </button>
-          {canCreate&&(
-            <button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setShowForm(true);}}
-              style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(5,150,105,0.35)"}}>
-              <Plus style={{width:14,height:14}}/> New Requisition
+          {canCreate && (
+            <button onClick={()=>setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-blue-900 text-xs font-bold hover:bg-blue-50">
+              <Plus className="w-3.5 h-3.5"/>New Requisition
             </button>
           )}
         </div>
       </div>
 
-      {/* - STATUS TABS - */}
-      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" as const,background:"transparent"}}>
-        {Object.entries({all:"All",...Object.fromEntries(Object.entries(STATUS_CFG).map(([k,v])=>[k,v.label]))}).map(([key,label])=>{
-          const cnt=COUNTS[key as keyof typeof COUNTS]??0;
-          const isActive=statusTab===key;
-          const cfg=STATUS_CFG[key];
-          return (
-            <button key={key} onClick={()=>setStatusTab(key)}
-              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"rgba(255,255,255,0.06)",cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex",alignItems:"center",gap:5}}>
-              {cfg?.dot&&isActive&&<span style={{width:6,height:6,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>}
-              {label} ({key==="all"?reqs.length:cnt})
-            </button>
-          );
-        })}
-        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",fontSize:12,color:"#e2e8f0",cursor:"pointer"}}>
-            <option value="all">All Priority</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="normal">Normal</option>
-            <option value="low">Low</option>
-          </select>
+      {/* Stat chips */}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(stats).map(([k,v])=>(
+          <button key={k} onClick={()=>setStatusFilter(k==="all"?"all":k)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            style={{
+              background:statusFilter===(k==="all"?"all":k)?"#1a3a6b":"#f3f4f6",
+              color:statusFilter===(k==="all"?"all":k)?"#fff":"#6b7280"
+            }}>
+            {k==="pending"&&<Clock className="w-3 h-3"/>}
+            {k==="approved"&&<CheckCircle className="w-3 h-3"/>}
+            {k==="rejected"&&<XCircle className="w-3 h-3"/>}
+            <span className="capitalize">{k}</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold"
+              style={{background:statusFilter===(k==="all"?"all":k)?"rgba(255,255,255,0.25)":"#e5e7eb"}}>
+              {String(v)}
+            </span>
+          </button>
+        ))}
+        <div className="relative ml-auto">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisitions…"
+            className="pl-8 pr-8 py-1.5 rounded-full border border-gray-200 text-xs outline-none focus:border-blue-400 w-52"/>
+          {search&&<button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-gray-400"/></button>}
         </div>
       </div>
 
-      {/* - SEARCH BAR - */}
-      <div style={{padding:"10px 20px"}}>
-        <div style={{position:"relative",maxWidth:"100%"}}>
-          <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisition number, title, requester, department-"
-            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
-        </div>
-      </div>
-
-      {/* - TABLE - */}
-      <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+      {/* Table */}
+      <div className="rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full" style={{fontSize:12}}>
             <thead>
-              <tr style={{borderBottom:"2px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)"}}>
-                {[
-                  {col:"requisition_number",label:"REQ NO",    w:150},
-                  {col:"title",            label:"TITLE",      w:220},
-                  {col:"department",       label:"DEPARTMENT", w:120},
-                  {col:"priority",         label:"PRIORITY",   w:90},
-                  {col:"requester_name",   label:"REQUESTER",  w:140},
-                  {col:"created_at",       label:"DATE",       w:100},
-                  {col:"delivery_date",    label:"DELIVERY",   w:100},
-                  {col:"total_amount",     label:"AMOUNT",     w:110},
-                  {col:"status",           label:"STATUS",     w:110},
-                  {col:"",                 label:"ACTIONS",    w:90},
-                ].map(h=>(
-                  <th key={h.col} onClick={()=>h.col&&toggleSort(h.col)}
-                    style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap",cursor:h.col?"pointer":"default",userSelect:"none",width:h.w}}>
-                    {h.label}{h.col&&<SortInd col={h.col}/>}
-                  </th>
+              <tr style={{background:"#0a2558"}}>
+                {["#","Req Number","Title","Department","Priority","Status","Requester","Amount","Date","Actions"].map(h=>(
+                  <th key={h} className="text-left px-3 py-2.5 text-white/70 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {loading&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center",color:"#9ca3af",fontSize:13}}>Loading requisitions-</td></tr>
-              )}
-              {!loading&&filtered.length===0&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
-                  <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
-                  <div style={{fontSize:13,color:"#9ca3af"}}>No requisitions found{search?` for "${search}"`:""}.</div>
-                  {canCreate&&!search&&<button onClick={()=>setShowForm(true)} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
-                </td></tr>
-              )}
-              {!loading&&filtered.map((r,ri)=>{
-                const cfg=STATUS_CFG[r.status]||STATUS_CFG.draft;
-                const isPending=r.status==="submitted"||r.status==="pending";
-                const isDraft=r.status==="draft";
-                const prioColor={urgent:"#dc2626",high:"#d97706",normal:"#059669",low:"#6b7280"}[r.priority as string]||"#6b7280";
-
+              {loading?(
+                Array(5).fill(0).map((_,i)=>(
+                  <tr key={i}><td colSpan={10} className="px-4 py-3 animate-pulse"><div className="h-3 bg-gray-200 rounded w-full"/></td></tr>
+                ))
+              ):filtered.length===0?(
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-gray-400">No requisitions found</td></tr>
+              ):filtered.map((r,i)=>{
+                const s=STATUS_CFG[r.status]||{bg:"#f3f4f6",color:"#6b7280",label:r.status};
+                const isPending = r.status==="submitted"||r.status==="pending";
                 return (
-                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)",transition:"background 0.1s"}}
-                    onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
-                    onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)")}>
-
-                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
-                      {r.requisition_number||"-"}
-                    </td>
-                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      <div style={{fontWeight:600,color:"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
-                      {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
-                    </td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"-"}</td>
-                    <td style={{padding:"10px 14px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
-                    </td>
-                    <td style={{padding:"10px 14px",color:"#94a3b8",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"-"}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"-"}</td>
-                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
-                      {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"-"}
-                    </td>
-                    <td style={{padding:"10px 14px"}}>
-                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
-                        <span style={{width:5,height:5,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>
-                        {cfg.label}
+                  <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition-colors group">
+                    <td className="px-3 py-2.5 text-gray-400">{i+1}</td>
+                    <td className="px-3 py-2.5 font-mono text-xs font-bold text-blue-900">{r.requisition_number||"—"}</td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-800 max-w-[200px] truncate">{r.title||"—"}</td>
+                    <td className="px-3 py-2.5 text-gray-600">{r.department||"—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${r.priority==="urgent"||r.priority==="high"?"bg-red-100 text-red-700":r.priority==="normal"?"bg-blue-100 text-blue-700":"bg-gray-100 text-gray-500"}`}>
+                        {r.priority||"normal"}
                       </span>
                     </td>
-                    <td style={{padding:"10px 14px"}}>
-                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-                        <button title="View" onClick={()=>setViewReq(r)} style={{padding:5,borderRadius:6,border:"none",background:"#f0f9ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <Eye style={{width:13,height:13,color:"#0369a1"}}/>
-                        </button>
-                        {(isDraft||r.requested_by===user?.id)&&(
-                          <button title="Edit" onClick={()=>{setEditReq(r);setForm({title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"});setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <Edit3 style={{width:13,height:13,color:"#059669"}}/>
-                          </button>
-                        )}
-                        {isDraft&&(
-                          <button title="Submit" onClick={()=>submit(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#eff6ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <Send style={{width:13,height:13,color:"#3b82f6"}}/>
-                          </button>
-                        )}
-                        {isPending&&canApprove&&(
+                    <td className="px-3 py-2.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{background:s.bg,color:s.color}}>{s.label}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-600">{r.requester_name||"—"}</td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-800">{r.total_amount?`KES ${Number(r.total_amount).toLocaleString()}`:"—"}</td>
+                    <td className="px-3 py-2.5 text-gray-400 text-[10px] whitespace-nowrap">{r.created_at?new Date(r.created_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={()=>setViewReq(r)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"><Eye className="w-3 h-3"/></button>
+                        <button onClick={()=>printReq(r)} className="p-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100"><Printer className="w-3 h-3"/></button>
+                        {canApprove&&isPending&&(
                           <>
-                            <button title="Approve" onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                              <CheckCircle style={{width:13,height:13,color:"#059669"}}/>
-                            </button>
-                            <button title="Reject" onClick={()=>setRejectId(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#fff1f2",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                              <XCircle style={{width:13,height:13,color:"#dc2626"}}/>
-                            </button>
+                            <button onClick={()=>approve(r.id)} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100"><CheckCircle className="w-3 h-3"/></button>
+                            <button onClick={()=>reject(r.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="w-3 h-3"/></button>
                           </>
                         )}
-                        <button title="Print" onClick={()=>printRequisition(r,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <Printer style={{width:13,height:13,color:"#ca8a04"}}/>
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -358,141 +253,114 @@ export default function RequisitionsPage() {
             </tbody>
           </table>
         </div>
-        {/* Footer */}
-        <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:"#9ca3af"}}>
-          <span>Showing {filtered.length} of {reqs.length} requisitions</span>
-          <span>{reqs.length>0&&`Total value: ${fmtKES(totalValue)}`}</span>
+        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400">
+          {filtered.length} requisition{filtered.length!==1?"s":""}
+          {filtered.length>0&&` · Total: KES ${filtered.reduce((s,r)=>s+Number(r.total_amount||0),0).toLocaleString()}`}
         </div>
       </div>
 
-      {/* - CREATE / EDIT MODAL - */}
+      {/* Create form modal */}
       {showForm&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
-              </div>
-              <div>
-                <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>Embu Level 5 Hospital - {editReq?.requisition_number||"New"}</div>
-              </div>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowForm(false)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between" style={{background:"#0a2558"}}>
+              <h3 className="text-sm font-black text-white flex items-center gap-2"><ClipboardList className="w-4 h-4"/>New Requisition</h3>
+              <button onClick={()=>setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
             </div>
-            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              {[
-                {k:"title",l:"Requisition Title *",p:"e.g. Medical Supplies - Pharmacy",span:2,req:true},
-                {k:"department",l:"Department",p:"e.g. Pharmacy",span:1},
-                {k:"priority",l:"Priority",p:"",span:1,type:"select",opts:["urgent","high","normal","low"]},
-                {k:"delivery_date",l:"Required By Date",p:"",span:1,type:"date"},
-                {k:"cost_centre",l:"Cost Centre",p:"e.g. PHARM-001",span:1},
-                {k:"fund_source",l:"Fund Source",p:"County Fund",span:1,type:"select",opts:["County Fund","National Fund","Donor Fund","NHIF","Other"]},
-                {k:"justification",l:"Justification",p:"Why is this needed?",span:2,type:"textarea"},
-                {k:"notes",l:"Additional Notes",p:"Any other information-",span:2,type:"textarea"},
-              ].map(field=>(
-                <div key={field.k} style={{gridColumn:field.span===2?"span 2":"span 1"}}>
-                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#94a3b8",marginBottom:4}}>{field.l}</label>
-                  {field.type==="select"?(
-                    <select value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
-                      {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize"}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
-                    </select>
-                  ):field.type==="textarea"?(
-                    <textarea value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+            <div className="p-5 space-y-4">
+              {[{k:"title",l:"Title *",ph:"e.g. Medical Supplies Q1 2025"},{k:"department",l:"Department",ph:"e.g. Pharmacy"},{k:"notes",l:"Notes / Justification",ph:"Brief description…"}].map(f=>(
+                <div key={f.k}>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">{f.l}</label>
+                  {f.k==="notes"?(
+                    <textarea value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} rows={3} placeholder={f.ph}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 resize-none"/>
                   ):(
-                    <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={e=>setForm(p=>({...p,[field.k]:e.target.value}))} placeholder={field.p} style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                    <input value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400"/>
                   )}
                 </div>
               ))}
-            </div>
-            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
-                {saving?"Saving-":editReq?"Update Requisition":"Create Requisition"}
-              </button>
-              {!editReq&&(
-                <button onClick={async()=>{await save();/* submit after save handled by status */}} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
-                  Save &amp; Submit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* - VIEW DETAIL MODAL - */}
-      {viewReq&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
-              </div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>{viewReq.requisition_number}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>{viewReq.title}</div>
-              </div>
-              <span style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
-                {STATUS_CFG[viewReq.status]?.label||viewReq.status}
-              </span>
-              <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
-              </button>
-            </div>
-            <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[
-                {l:"Requisition Number",v:viewReq.requisition_number},
-                {l:"Status",v:STATUS_CFG[viewReq.status]?.label||viewReq.status},
-                {l:"Title",v:viewReq.title},
-                {l:"Department",v:viewReq.department||"-"},
-                {l:"Priority",v:viewReq.priority||"normal"},
-                {l:"Requester",v:viewReq.requester_name||"-"},
-                {l:"Date Raised",v:fmtDate(viewReq.created_at)},
-                {l:"Required By",v:viewReq.delivery_date?fmtDate(viewReq.delivery_date):"-"},
-                {l:"Total Amount",v:viewReq.total_amount?`${currencySymbol} ${Number(viewReq.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2})}`: "-"},
-                {l:"Fund Source",v:viewReq.fund_source||"-"},
-                {l:"Cost Centre",v:viewReq.cost_centre||"-"},
-                {l:"Approved By",v:viewReq.approved_by_name||"-"},
-                {l:"Justification",v:viewReq.justification||"-",span:2},
-                {l:"Notes",v:viewReq.notes||"-",span:2},
-                ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"-",span:2,warn:true}]:[]),
-              ].map((row:any,i:number)=>(
-                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"rgba(239,68,68,0.15)":"rgba(255,255,255,0.05)",borderRadius:8,border: `1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
-                  <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Priority</label>
+                  <select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400">
+                    {["low","normal","high","urgent"].map(v=><option key={v} value={v} className="capitalize">{v}</option>)}
+                  </select>
                 </div>
-              ))}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Delivery Date</label>
+                  <input type="date" value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400"/>
+                </div>
+              </div>
             </div>
-            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" as const}}>
-              {(viewReq.status==="submitted"||viewReq.status==="pending")&&canApprove&&(
-                <>
-                  <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Approve</button>
-                  <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Reject</button>
-                </>
-              )}
-              {viewReq.status==="draft"&&(
-                <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Submit for Approval</button>
-              )}
-              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>- Print</button>
-              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>Close</button>
+            <div className="px-5 py-3 border-t flex gap-2 justify-end">
+              <button onClick={()=>setShowForm(false)} className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={save} disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold"
+                style={{background:"#1a3a6b",opacity:saving?0.7:1}}>
+                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Send className="w-3.5 h-3.5"/>}
+                {saving?"Saving…":"Create Requisition"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* - REJECT DIALOG - */}
-      {rejectId&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:440,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-              <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
-              <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>Reject Requisition</div>
+      {/* View modal */}
+      {viewReq&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setViewReq(null)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-3 flex items-center justify-between" style={{background:"#0a2558"}}>
+              <div><h3 className="text-sm font-black text-white">{viewReq.requisition_number}</h3><p className="text-[10px] text-white/40">{viewReq.title}</p></div>
+              <div className="flex gap-2">
+                <button onClick={()=>printReq(viewReq)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 text-white text-xs"><Printer className="w-3 h-3"/>Print</button>
+                {canApprove&&(viewReq.status==="submitted"||viewReq.status==="pending")&&(
+                  <>
+                    <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-500 text-white text-xs"><CheckCircle className="w-3 h-3"/>Approve</button>
+                    <button onClick={()=>{reject(viewReq.id);setViewReq(null);}} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500 text-white text-xs"><XCircle className="w-3 h-3"/>Reject</button>
+                  </>
+                )}
+                <button onClick={()=>setViewReq(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70"><X className="w-4 h-4"/></button>
+              </div>
             </div>
-            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)-" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
-              <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
+            <div className="overflow-y-auto p-5">
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  {l:"Department",v:viewReq.department},{l:"Priority",v:viewReq.priority},
+                  {l:"Status",v:viewReq.status},{l:"Requester",v:viewReq.requester_name},
+                  {l:"Total",v:viewReq.total_amount?`KES ${Number(viewReq.total_amount).toLocaleString()}`:"—"},
+                  {l:"Date",v:viewReq.created_at?new Date(viewReq.created_at).toLocaleDateString("en-KE"):"—"},
+                ].map(r=>(
+                  <div key={r.l}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{r.l}</div>
+                    <div className="text-sm text-gray-800 font-medium mt-0.5">{r.v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              {viewReq.notes&&<div className="mb-4 p-3 rounded-xl bg-gray-50"><p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Notes</p><p className="text-sm text-gray-700">{viewReq.notes}</p></div>}
+              {(viewReq.requisition_items||[]).length>0&&(
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-gray-400 mb-2">Line Items ({viewReq.requisition_items.length})</p>
+                  <table className="w-full text-xs">
+                    <thead><tr style={{background:"#1a3a6b"}}>{["Item","Qty","UoM","Unit Price","Total"].map(h=><th key={h} className="text-left px-3 py-2 text-white/80 text-[10px] uppercase font-bold">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {viewReq.requisition_items.map((it:any,i:number)=>(
+                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-3 py-2 font-medium">{it.item_name||"—"}</td>
+                          <td className="px-3 py-2">{it.quantity}</td>
+                          <td className="px-3 py-2 text-gray-500">{it.unit_of_measure||"—"}</td>
+                          <td className="px-3 py-2">KES {Number(it.unit_price||0).toLocaleString()}</td>
+                          <td className="px-3 py-2 font-semibold">KES {Number((it.quantity||0)*(it.unit_price||0)).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
