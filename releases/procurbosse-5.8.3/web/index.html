@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-128.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d3b7a" />
+  <meta name="description" content="EL5 MediProcure — Health Procurement ERP for Embu Level 5 Hospital. ProcurBosse by Embu County Government." />
+  <meta name="application-name" content="ProcurBosse" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ProcurBosse" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="msapplication-TileColor" content="#0d3b7a" />
+  <meta name="msapplication-TileImage" content="/icons/icon-192.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="EL5 MediProcure — ProcurBosse" />
+  <meta property="og:description" content="Health Procurement ERP — Embu Level 5 Hospital" />
+  <meta property="og:image" content="/icons/icon-512.png" />
+  <link rel="preconnect" href="https://yvjfehnzbzjliizjvuhq.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="preconnect" href="https://fonts.bunny.net" />
+  <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet" />
+  <title>EL5 MediProcure v9 — ProcurBosse</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body,#root{height:100%;margin:0;padding:0}
+    body{font-family:'Segoe UI','Inter',system-ui,sans-serif;background:#0a1628}
+    /* Skeleton shimmer */
+    .skel{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%;animation:skel 1.5s infinite;border-radius:6px}
+    @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    /* Custom scrollbar */
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:#0f172a}
+    ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:#475569}
+    /* Splash screen */
+    #splash{position:fixed;inset:0;background:#0a1628;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s}
+    #splash.out{opacity:0;pointer-events:none}
+    .splash-logo{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#0d3b7a,#1a5ca8);display:flex;align-items:center;justify-content:center;animation:splashPulse 1.4s ease-in-out infinite;box-shadow:0 0 40px rgba(13,59,122,0.6)}
+    @keyframes splashPulse{0%,100%{transform:scale(1);box-shadow:0 0 30px rgba(13,59,122,0.4)}50%{transform:scale(1.06);box-shadow:0 0 60px rgba(13,59,122,0.8)}}
+    .splash-title{color:rgba(255,255,255,0.9);font-size:15px;font-weight:700;letter-spacing:0.12em;margin-top:20px;font-family:'Segoe UI',sans-serif}
+    .splash-sub{color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:0.08em;margin-top:6px;font-family:'Segoe UI',sans-serif}
+    .splash-bar{width:160px;height:2px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:28px;overflow:hidden}
+    .splash-progress{height:100%;background:linear-gradient(90deg,#0078d4,#1a5ca8);border-radius:2px;animation:progress 2.5s ease-in-out infinite}
+    @keyframes progress{0%{width:0%;margin-left:0}60%{width:100%;margin-left:0}100%{width:0%;margin-left:100%}}
+    /* Offline banner */
+    #offline-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#d97706;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:8px;z-index:99998;font-family:'Segoe UI',sans-serif}
+    body.offline #offline-banner{display:block}
+    /* CSS custom properties — overridden by GUI Editor */
+    :root{
+      --font-family:'Segoe UI','Inter',system-ui,sans-serif;
+      --font-size-base:13px;--font-size-sm:11px;--font-size-lg:15px;
+      --border-radius:8px;--content-padding:16px;
+      --color-primary:#0078d4;--color-accent:#C45911;
+      --color-nav-bg:#ffffff;--color-nav-text:#1e293b;
+      --color-page-bg:#f3f5f8;--color-card-bg:#ffffff;
+      --color-text:#1a1a2e;--color-text-muted:#64748b;
+      --color-border:#dde1e7;--color-success:#107c10;
+      --color-warning:#d39a04;--color-danger:#a4262c;
+      --print-font:'Times New Roman',serif;--print-font-size:11pt;
+      --topbar-height:40px;--nav-height:44px;
+    }
+    *,*::before,*::after{font-family:var(--font-family)}
+    @media print{*,*::before,*::after{font-family:var(--print-font)!important;font-size:var(--print-font-size)!important}}
+  </style>
+  <!-- SPA Route Preserver: saves URL before any redirect, restored after app loads -->
+  <script>
+    (function(){
+      var p=window.location.pathname,s=window.location.search,h=window.location.hash;
+      // Save intended route for post-init navigation
+      if(p!=='/'&&p!=='/login'&&p!=='/index.html'&&!p.startsWith('/assets')){
+        try{sessionStorage.setItem('el5_spa_route',p+s+h);}catch(e){}
+      }
+      // Restore cached CSS vars from localStorage (instant, before React loads)
+      try{
+        var settings=JSON.parse(localStorage.getItem('el5_theme_cache')||'{}');
+        var root=document.documentElement;
+        var map={
+          primary_color:'--color-primary',accent_color:'--color-accent',
+          nav_bg_color:'--color-nav-bg',nav_text_color:'--color-nav-text',
+          page_bg_color:'--color-page-bg',card_bg:'--color-card-bg',
+          text_primary:'--color-text',text_secondary:'--color-text-muted',
+          border_color:'--color-border',success_color:'--color-success',
+          warning_color:'--color-warning',danger_color:'--color-danger',
+          font_family:'--font-family',font_size_base:'--font-size-base',
+          font_size_sm:'--font-size-sm',font_size_lg:'--font-size-lg',
+          border_radius:'--border-radius',content_padding:'--content-padding',
+          topbar_height:'--topbar-height',nav_height:'--nav-height',
+          print_font:'--print-font',print_font_size:'--print-font-size',
+        };
+        Object.keys(map).forEach(function(k){
+          if(settings[k])root.style.setProperty(map[k],settings[k]);
+        });
+        if(settings.compact_tables==='true')document.body.classList.add('compact-tables');
+      }catch(e){}
+    })();
+  </script>
+  <script type="module" crossorigin src="/assets/index-BvD1CFzH.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/react-vendor-D4EGQjET.js">
+  <link rel="modulepreload" crossorigin href="/assets/ui-vendor-CMzz3QVP.js">
+  <link rel="modulepreload" crossorigin href="/assets/chart-vendor-Bpb3I_m_.js">
+  <link rel="modulepreload" crossorigin href="/assets/supabase-vendor-GwuzJsDi.js">
+  <link rel="modulepreload" crossorigin href="/assets/xlsx-vendor-DaVhO591.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-BNDU2CS-.css">
+</head>
+<body>
+  <!-- Offline banner -->
+  <div id="offline-banner">⚠️ You are offline — EL5 MediProcure is running in cached mode</div>
+
+  <!-- Splash screen -->
+  <div id="splash">
+    <div class="splash-logo">
+      <img src="/icons/icon-48.png" alt="ProcurBosse"
+        style="width:46px;height:46px;object-fit:contain"
+        onerror="this.style.display='none'" />
+    </div>
+    <div class="splash-title">EL5 MEDIPROCURE</div>
+    <div class="splash-sub">Embu Level 5 Hospital · Embu County Government</div>
+    <div class="splash-bar"><div class="splash-progress"></div></div>
+    <div style="color:rgba(255,255,255,0.25);font-size:9px;margin-top:20px;font-family:'Segoe UI',sans-serif">ProcurBosse v9 · Health Procurement ERP</div>
+  </div>
+
+  <!-- React root -->
+  <div id="root"></div>
+
+  <script>
+    // ── Offline/online detection ──────────────────────────────────────────────
+    function setOnlineState(){
+      document.body.classList.toggle('offline',!navigator.onLine);
+    }
+    setOnlineState();
+    window.addEventListener('online',  setOnlineState);
+    window.addEventListener('offline', setOnlineState);
+
+    // ── Splash removal ────────────────────────────────────────────────────────
+    window.addEventListener('load',function(){
+      var s=document.getElementById('splash');
+      if(!s)return;
+      // Remove splash when React has rendered (#root has children) or after 3s
+      var check=setInterval(function(){
+        var root=document.getElementById('root');
+        if(root&&root.children.length>0){
+          clearInterval(check);
+          s.classList.add('out');
+          setTimeout(function(){if(s.parentNode)s.parentNode.removeChild(s);},420);
+        }
+      },50);
+      setTimeout(function(){
+        clearInterval(check);
+        s.classList.add('out');
+        setTimeout(function(){if(s.parentNode)s.parentNode.removeChild(s);},420);
+      },4000);
+    });
+
+    // ── SPA route restore after load ──────────────────────────────────────────
+    // Exposes the saved route for React Router to pick up
+    window.__EL5_INITIAL_ROUTE = (function(){
+      try{
+        var r=sessionStorage.getItem('el5_spa_route');
+        if(r){sessionStorage.removeItem('el5_spa_route');return r;}
+      }catch(e){}
+      return null;
+    })();
+  </script>
+</body>
+</html>

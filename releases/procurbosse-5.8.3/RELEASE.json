@@ -1,0 +1,18 @@
+{
+  "name": "EL5 MediProcure (ProcurBosse)",
+  "version": "5.8.3",
+  "label": "Stable — Full v3.2 Modules",
+  "buildDate": "2026-05-02T05:38:08Z",
+  "hospital": "Embu Level 5 Hospital",
+  "county": "Embu County Government",
+  "supabaseProject": "yvjfehnzbzjliizjvuhq",
+  "deployUrl": "https://procurbosse.edgeone.app",
+  "demoAccounts": {
+    "admin":             {"email": "tecnojin03@gmail.com",    "password": "Admin@1234"},
+    "procurement_manager":{"email": "manager@el5.co.ke",     "password": "Manager@1234"},
+    "accountant":        {"email": "accountant@el5.co.ke",   "password": "Account@1234"},
+    "procurement_officer":{"email": "officer@el5.co.ke",     "password": "Officer@1234"},
+    "requisitioner":     {"email": "requisitioner@el5.co.ke","password": "Req@12345"},
+    "warehouse_officer": {"email": "warehouse@el5.co.ke",    "password": "Warehouse@1234"}
+  }
+}

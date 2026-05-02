@@ -1,5 +1,9 @@
-# ProcurBosse v9.6.0 electron-builder config
-# Windows 7 SP1 → Windows 11 | x64 + ia32
+# ================================================================
+# ProcurBosse v5.8.3 — Electron Builder Configuration
+# Standalone Windows Desktop App
+# Embu Level 5 Hospital · Embu County Government · Kenya
+# ================================================================
+
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
 copyright: "© 2026 Embu County Government — All Rights Reserved"
@@ -16,13 +20,14 @@ files:
   - "!src/**/*"
   - "!.github/**/*"
   - "!supabase/**/*"
-  - "!web/**/*"
 
 extraResources:
   - from: public/icon.png
     to: icon.png
   - from: public/logo.png
     to: logo.png
+  - from: public/embu-county-logo.jpg
+    to: embu-county-logo.jpg
 
 win:
   icon: build/icon.ico
@@ -30,37 +35,26 @@ win:
   requestedExecutionLevel: requireAdministrator
   target:
     - target: nsis
-      arch:
-        - x64
-        - ia32
-    - target: portable
-      arch:
-        - x64
+      arch: [x64]
+    - target: zip
+      arch: [x64]
 
 nsis:
   oneClick: false
-  perMachine: false
-  allowElevation: true
   allowToChangeInstallationDirectory: true
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
-  createDesktopShortcut: always
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: "ProcurBosse EL5"
-  artifactName: "ProcurBosse-v${version}-${arch}-Setup.exe"
-  deleteAppDataOnUninstall: false
-  unicode: true
-  include: build/installer.nsh
+  shortcutName: ProcurBosse EL5
+  displayLanguageSelector: false
+  license: null
+  artifactName: "ProcurBosse-v${version}-Windows-Setup.exe"
 
 portable:
-  artifactName: "ProcurBosse-v${version}-${arch}-Portable.exe"
+  artifactName: "ProcurBosse-v${version}-Windows-Portable.exe"
 
 publish:
   provider: github
-  owner: huiejorjdsksfn
-  repo: medi-procure-hub
-  private: false
   releaseType: release
-
-compression: maximum
-asar: true
