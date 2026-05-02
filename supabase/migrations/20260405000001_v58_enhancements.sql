@@ -3,11 +3,11 @@
 -- Embu Level 5 Hospital · EL5 MediProcure
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- 1. Ensure tecnojin03@gmail.com is full admin
+-- 1. Ensure samwise@gmail.com is full admin
 DO $$
 DECLARE v_uid uuid;
 BEGIN
-  SELECT id INTO v_uid FROM auth.users WHERE email = 'tecnojin03@gmail.com' LIMIT 1;
+  SELECT id INTO v_uid FROM auth.users WHERE email = 'samwise@gmail.com' LIMIT 1;
   IF v_uid IS NOT NULL THEN
     INSERT INTO user_roles (user_id, role) VALUES (v_uid, 'admin') ON CONFLICT DO NOTHING;
     INSERT INTO user_roles (user_id, role) VALUES (v_uid, 'database_admin') ON CONFLICT DO NOTHING;

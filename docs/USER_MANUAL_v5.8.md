@@ -35,7 +35,7 @@ EL5 MediProcure (ProcurBosse) is a comprehensive Health Procurement ERP system b
 - **Administration**: Users, Roles, Settings, Audit Logs, Backup
 
 **Tech Stack**: React + TypeScript + Vite · Supabase (PostgreSQL) · Tencent EdgeOne (CDN)  
-**Version**: v5.8 | **Admin Email**: tecnojin03@gmail.com
+**Version**: v5.8 | **Admin Email**: samwise@gmail.com
 
 ---
 
@@ -73,7 +73,7 @@ Two methods to reset your password:
 After receiving credentials from ICT:
 - You will be prompted to set your own password on first login via the reset link
 - Your role (Accountant, Procurement Officer, etc.) is set by the Administrator
-- Contact `tecnojin03@gmail.com` for role changes or access issues
+- Contact `samwise@gmail.com` for role changes or access issues
 
 ---
 
@@ -387,7 +387,7 @@ Central control panel with:
 - Reset user passwords
 - View last login dates
 
-**Primary Admin**: `tecnojin03@gmail.com` — Full admin access, cannot be demoted via UI.
+**Primary Admin**: `samwise@gmail.com` — Full admin access, cannot be demoted via UI.
 
 ### 9.3 Settings
 
@@ -512,7 +512,7 @@ Ensure the admin account has full access:
 ```sql
 UPDATE public.profiles 
 SET role = 'admin', is_active = TRUE
-WHERE email = 'tecnojin03@gmail.com';
+WHERE email = 'samwise@gmail.com';
 ```
 
 ---
@@ -672,4 +672,4 @@ The system uses several caching strategies:
 ---
 
 *EL5 MediProcure v5.8 · ProcurBosse · Embu Level 5 Hospital · Embu County Government*  
-*Health Procurement Division · ICT Contact: tecnojin03@gmail.com*
+*Health Procurement Division · ICT Contact: samwise@gmail.com*

@@ -37,10 +37,10 @@ ON CONFLICT (key) DO NOTHING;
 -- then run the role assignments below once users exist.
 -- 
 -- OR use the Supabase CLI:
---   supabase auth admin create-user --email tecnojin03@gmail.com --password Admin@1234
+--   supabase auth admin create-user --email samwise@gmail.com --password samwise@gmail.com
 --
 -- Demo accounts:
---   Admin:            tecnojin03@gmail.com    / Admin@1234
+--   Admin:            samwise@gmail.com    / samwise@gmail.com
 --   Proc. Manager:    manager@el5.co.ke       / Manager@1234
 --   Accountant:       accountant@el5.co.ke    / Account@1234
 --   Proc. Officer:    officer@el5.co.ke       / Officer@1234
@@ -70,7 +70,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Auto-assign roles if users already exist
-SELECT assign_role_by_email('tecnojin03@gmail.com',    'admin');
+SELECT assign_role_by_email('samwise@gmail.com',    'admin');
 SELECT assign_role_by_email('manager@el5.co.ke',       'procurement_manager');
 SELECT assign_role_by_email('accountant@el5.co.ke',    'accountant');
 SELECT assign_role_by_email('officer@el5.co.ke',       'procurement_officer');

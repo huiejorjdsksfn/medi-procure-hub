@@ -701,4 +701,4 @@ All 16 edge functions are deployed to Supabase and called by the frontend:
 ---
 
 *EL5 MediProcure ProcurBosse v21.4 · Embu Level 5 Hospital · Embu County Government · April 2026*  
-*Technical support: tecnojin03@gmail.com · System: https://procurbosse.edgeone.app*
+*Technical support: samwise@gmail.com · System: https://procurbosse.edgeone.app*

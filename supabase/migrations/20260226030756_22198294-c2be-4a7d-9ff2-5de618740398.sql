@@ -16,5 +16,5 @@ CREATE POLICY "Admins can manage user roles" ON public.user_roles FOR ALL TO aut
 
 -- Assign admin role to existing admin user if exists
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin'::app_role FROM auth.users WHERE email = 'tecnojin03@gmail.com'
+SELECT id, 'admin'::app_role FROM auth.users WHERE email = 'samwise@gmail.com'
 ON CONFLICT (user_id, role) DO NOTHING;
