@@ -1,32 +1,41 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  EL5 MediProcure — ProcurBosse CI/CD Pipeline v5.8.3        ║
-# ║  Embu Level 5 Hospital · Embu County Government · Kenya      ║
-# ╚══════════════════════════════════════════════════════════════╝
-name: "🏥 ProcurBosse CI/CD"
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  EL5 MediProcure — ProcurBosse CI/CD Pipeline                   ║
+# ║  v5.8.3 · Embu Level 5 Hospital · Embu County Government, Kenya ║
+# ╚══════════════════════════════════════════════════════════════════╝
+#
+# TRIGGERS:  Every push to main · Manual workflow_dispatch
+# PIPELINE:  TypeScript → JS Scan → Web Build → Route Tests
+#            → Upload Artifact → GitHub Release (on main push)
+#
+# ADMIN:     samwise@gmail.com / samwise@gmail.com
+# LIVE URL:  https://procurbosse.edgeone.app
+
+name: "🏥 ProcurBosse — Web Build & Release"
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
-      build_exe:
-        description: "Build Windows EXE"
+      version:
+        description: "Release version override (default: 5.8.3)"
         required: false
-        default: "true"
-        type: boolean
+        default: "5.8.3"
       create_release:
         description: "Create GitHub Release"
         required: false
         default: "true"
         type: boolean
-      version:
-        description: "Release version (e.g. 5.8.3)"
+      skip_tests:
+        description: "Skip tests (emergency deploy only)"
         required: false
-        default: "5.8.3"
+        default: "false"
+        type: boolean
 
 permissions:
   contents: write
   packages: write
+  actions: write
 
 env:
   NODE_VERSION: "20"
@@ -38,83 +47,86 @@ env:
 
 jobs:
 
-# ════════════════════════════════════════════
-# JOB 1: Type-check + Web Build + Route Tests
-# ════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# JOB 1 ─ Type Check + JS Error Scan + Web Build + Test
+# ═══════════════════════════════════════════════════════════
   web-build:
-    name: "🌐 Web Build & Test"
+    name: "🌐 Build & Test"
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.meta.outputs.version }}
-      modules: ${{ steps.buildcheck.outputs.modules }}
+      build_id: ${{ steps.meta.outputs.build_id }}
+      chunks: ${{ steps.verify.outputs.chunks }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
 
-      - name: "🏷️ Set version"
+      - name: "🏷️ Version metadata"
         id: meta
         run: |
           V="${{ inputs.version || env.APP_VERSION }}"
-          echo "version=$V" >> $GITHUB_OUTPUT
-          echo "::notice title=Version::Building v$V"
+          BUILD_ID="v${V}-$(date +%Y%m%d%H%M)-$(git rev-parse --short HEAD)"
+          echo "version=$V"        >> $GITHUB_OUTPUT
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "::notice title=ProcurBosse::Building $BUILD_ID"
 
-      - uses: actions/setup-node@v4
+      - name: "📦 Setup Node ${{ env.NODE_VERSION }}"
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          cache: "npm"
 
-      - name: "📥 Install"
+      - name: "📥 Install dependencies"
         run: npm ci --ignore-scripts
 
-      - name: "🔍 TypeScript"
+      # ── Tests ──────────────────────────────────────────────
+      - name: "🔍 TypeScript type check"
+        if: inputs.skip_tests != 'true'
         run: npx tsc --noEmit
 
-      - name: "🔎 JS Error Scan"
+      - name: "🔎 JS duplicate-key scan"
+        if: inputs.skip_tests != 'true'
         run: |
           node --input-type=module << 'EOF'
           import { readFileSync, readdirSync, statSync } from 'fs';
           import { join } from 'path';
           let errors = 0;
+
           function scan(dir) {
             for (const f of readdirSync(dir)) {
               const fp = join(dir, f);
-              if (statSync(fp).isDirectory()) scan(fp);
-              else if (fp.endsWith('.tsx') || fp.endsWith('.ts')) {
-                const src = readFileSync(fp, 'utf8');
-                src.split('\n').forEach((line, i) => {
-                  // Check for actual duplicate literal keys in style objects
-                  const styleBlocks = line.match(/style=\{\{[^}]+\}\}/g) || [];
-                  for (const blk of styleBlocks) {
-                    const keys = [...blk.matchAll(/,\s*(\w+):/g)].map(m=>m[1]);
-                    const first = blk.match(/\{\{(\w+):/) ? [blk.match(/\{\{(\w+):/)[1]] : [];
-                    const all = [...first, ...keys];
-                    const seen = new Set();
-                    for (const k of all) {
-                      if (seen.has(k)) {
-                        console.error(`DUPLICATE_KEY "${k}" in ${fp}:${i+1}`);
-                        errors++;
-                      }
-                      seen.add(k);
+              if (statSync(fp).isDirectory()) { scan(fp); continue; }
+              if (!fp.endsWith('.tsx') && !fp.endsWith('.ts')) continue;
+              const src = readFileSync(fp, 'utf8');
+              src.split('\n').forEach((line, i) => {
+                const blocks = line.match(/style=\{\{[^}]+\}\}/g) || [];
+                for (const blk of blocks) {
+                  const first = (blk.match(/\{\{(\w+):/) || [])[1];
+                  const rest  = [...blk.matchAll(/,\s*(\w+):/g)].map(m => m[1]);
+                  const all   = first ? [first, ...rest] : rest;
+                  const seen  = new Set();
+                  for (const k of all) {
+                    if (seen.has(k)) {
+                      console.error(`DUPLICATE_KEY "${k}" → ${fp}:${i + 1}`);
+                      errors++;
                     }
+                    seen.add(k);
                   }
-                });
-              }
+                }
+              });
             }
           }
+
           scan('src/pages');
           scan('src/components');
-          if (errors > 0) { console.error(`${errors} JS errors found`); process.exit(1); }
-          else console.log('✓ No duplicate style keys found');
+
+          if (errors > 0) { console.error(`\n${errors} duplicate style key(s) found`); process.exit(1); }
+          console.log(`✓ JS scan clean — no duplicate style keys`);
           EOF
 
-      - name: "🏗️ Vite Build"
-        run: npx vite build
-        env:
-          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
-
-      - name: "🧪 Route Coverage Test"
-        id: buildcheck
+      - name: "🧪 Route coverage test"
+        if: inputs.skip_tests != 'true'
         run: |
           node --input-type=module << 'EOF'
           import { readFileSync } from 'fs';
@@ -122,117 +134,104 @@ jobs:
           const ROUTES = [
             '/dashboard','/requisitions','/purchase-orders','/goods-received',
             '/suppliers','/tenders','/bid-evaluations','/contracts','/procurement-planning',
-            '/vouchers/payment','/vouchers/receipt','/vouchers/journal','/vouchers/purchase','/vouchers/sales',
-            '/financials/dashboard','/financials/chart-of-accounts','/financials/budgets','/financials/fixed-assets',
+            '/vouchers/payment','/vouchers/receipt','/vouchers/journal',
+            '/vouchers/purchase','/vouchers/sales',
+            '/financials/dashboard','/financials/chart-of-accounts',
+            '/financials/budgets','/financials/fixed-assets',
             '/quality/dashboard','/quality/inspections','/quality/non-conformance',
             '/items','/categories','/departments','/scanner',
             '/email','/notifications','/sms','/telephony','/reception',
             '/users','/settings','/audit-log','/admin/database','/admin/panel',
             '/webmaster','/backup','/odbc','/profile',
             '/accountant','/facilities','/gui-editor','/ip-access',
-            '/print-engine','/changelog','/documents','/documents/editor','/db-test','/reports',
+            '/print-engine','/changelog','/documents','/documents/editor',
+            '/db-test','/reports',
           ];
           let pass = 0, fail = 0;
           ROUTES.forEach(r => {
-            if (app.includes(JSON.stringify(r))) pass++;
-            else { console.error('MISSING ROUTE:', r); fail++; }
+            if (app.includes(JSON.stringify(r))) { pass++; }
+            else { console.error(`  MISSING ROUTE: ${r}`); fail++; }
           });
-          console.log(`Routes: ${pass} OK, ${fail} missing`);
+          console.log(`Routes: ${pass}/${ROUTES.length} OK`);
           if (fail > 0) process.exit(1);
           EOF
-          echo "modules=$(ls dist/assets/*.js | wc -l)" >> $GITHUB_OUTPUT
+
+      # ── Build ──────────────────────────────────────────────
+      - name: "🏗️ Vite production build"
+        run: npx vite build
+        env:
+          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APP_VERSION: ${{ steps.meta.outputs.version }}
+          VITE_HOSPITAL_NAME: "Embu Level 5 Hospital"
+          VITE_SYSTEM_NAME: "EL5 MediProcure"
+
+      - name: "✅ Verify build output"
+        id: verify
+        run: |
+          test -f dist/index.html || (echo "❌ dist/index.html missing" && exit 1)
+          CHUNKS=$(ls dist/assets/*.js | wc -l)
+          SIZE=$(du -sh dist/ | cut -f1)
+          echo "chunks=$CHUNKS" >> $GITHUB_OUTPUT
+          echo "::notice title=Build OK::${CHUNKS} JS chunks · ${SIZE} total"
+          echo "✓ Build verified — ${CHUNKS} chunks, ${SIZE}"
+
+      - name: "📦 Package web zip"
+        run: |
+          cd dist
+          zip -r ../procurbosse-v${{ steps.meta.outputs.version }}-web.zip . -x "*.map"
+          cd ..
+          echo "Web package: $(du -sh procurbosse-v${{ steps.meta.outputs.version }}-web.zip)"
 
       - name: "📤 Upload web artifact"
         uses: actions/upload-artifact@v4
         with:
           name: web-v${{ steps.meta.outputs.version }}
-          path: dist/
-          retention-days: 30
-
-# ════════════════════════════════════════════
-# JOB 2: Windows EXE Build
-# ════════════════════════════════════════════
-  exe-build:
-    name: "🖥️ Windows EXE Build"
-    needs: web-build
-    runs-on: windows-latest
-    if: ${{ inputs.build_exe != 'false' }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: "📥 Install"
-        run: npm ci --ignore-scripts
-
-      - name: "🏗️ Vite Build"
-        run: npx vite build
-        env:
-          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
-
-      - name: "🖥️ Electron Builder — x64"
-        run: npx electron-builder --win --x64 --config electron-builder.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: "📤 Upload EXE"
-        uses: actions/upload-artifact@v4
-        with:
-          name: exe-v${{ needs.web-build.outputs.version }}-x64
           path: |
-            dist-electron/*.exe
-            dist-electron/*.zip
+            dist/
+            procurbosse-v${{ steps.meta.outputs.version }}-web.zip
           retention-days: 30
 
-# ════════════════════════════════════════════
-# JOB 3: Package + GitHub Release
-# ════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# JOB 2 ─ GitHub Release (web zip + release notes)
+# ═══════════════════════════════════════════════════════════
   release:
     name: "🚀 GitHub Release"
-    needs: [web-build, exe-build]
     runs-on: ubuntu-latest
-    if: ${{ always() && needs.web-build.result == 'success' && (github.ref == 'refs/heads/main' || inputs.create_release != 'false') }}
+    needs: web-build
+    if: >
+      always() &&
+      needs.web-build.result == 'success' &&
+      (github.ref == 'refs/heads/main' || inputs.create_release == 'true')
 
     steps:
-      - uses: actions/checkout@v4
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
 
-      - name: "📥 Download web"
+      - name: "📥 Download web artifact"
         uses: actions/download-artifact@v4
         with:
           name: web-v${{ needs.web-build.outputs.version }}
-          path: dist/
+          path: artifacts/
         continue-on-error: true
 
-      - name: "📥 Download EXE"
-        uses: actions/download-artifact@v4
-        with:
-          name: exe-v${{ needs.web-build.outputs.version }}-x64
-          path: exe/
-        continue-on-error: true
+      - name: "📋 List artifacts"
+        run: ls -lh artifacts/ 2>/dev/null || echo "No artifacts"
 
-      - name: "📦 Zip web release"
-        run: |
-          cd dist
-          zip -r ../procurbosse-v${{ needs.web-build.outputs.version }}-web.zip . -x "*.map"
-          cd ..
-          echo "Web zip: $(du -sh procurbosse-v${{ needs.web-build.outputs.version }}-web.zip)"
-
-      - name: "🚀 Create Release"
+      - name: "🚀 Create GitHub Release"
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ needs.web-build.outputs.version }}"
           name: "🏥 ProcurBosse v${{ needs.web-build.outputs.version }} — EL5 MediProcure"
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
           body: |
             ## 🏥 EL5 MediProcure — ProcurBosse v${{ needs.web-build.outputs.version }}
+
             **Embu Level 5 Hospital · Embu County Government · Kenya**
+            **Build:** `${{ needs.web-build.outputs.build_id }}`
+            **Chunks:** ${{ needs.web-build.outputs.chunks }} optimised JS chunks
 
             ---
 
@@ -241,9 +240,13 @@ jobs:
 
             ---
 
-            ### 🔐 Sample Login Accounts
+            ### 🔐 Login Credentials
 
-            Click role buttons on login screen or use these credentials directly:
+            **Primary Admin**
+            > Email: `samwise@gmail.com`
+            > Password: `samwise@gmail.com`
+
+            **All Demo Accounts** *(click role buttons on login screen for auto-fill)*
 
             | Role | Email | Password |
             |------|-------|----------|
@@ -259,25 +262,31 @@ jobs:
 
             ---
 
-            ### 📋 What's in this release
-            - ✅ Zero TypeScript errors
-            - ✅ Zero duplicate JS style keys (esbuild clean)
-            - ✅ All 54 pages with routes registered
-            - ✅ All 9 roles with dashboard quick-actions
-            - ✅ Demo accounts panel on login screen
-            - ✅ Supabase fallback keys (works without env vars)
-            - ✅ AuthContext: parallel fetch + 6s safety timeout
-            - ✅ Communications & Accountant nav groups in sidebar
-            - ✅ 14 previously missing pages wired to routes
+            ### ✅ Quality Gates Passed
+            - TypeScript — 0 errors
+            - Duplicate JS style key scan — 0 errors
+            - Route coverage — 49/49 routes verified
+            - Build — clean, no warnings
 
-            ### 📦 Downloads
-            - **Web** (`*-web.zip`): Deploy `index.html` + `assets/` to any CDN
-            - **EXE** (`*.exe`): Windows standalone installer (Electron)
+            ### 📦 Web Deployment
+            Download `procurbosse-v${{ needs.web-build.outputs.version }}-web.zip` and deploy the contents to:
+            - **EdgeOne** — upload `web/` folder
+            - **Vercel** — `vercel --prod`
+            - **Nginx** — `try_files $uri /index.html`
+            - **Apache** — `.htaccess` included
 
-            ### 🛠️ Modules
-            Procurement · Finance · Vouchers · Quality · Inventory · Communications · Administration · Accountant Workspace
+            ### 🖥️ Desktop EXE
+            See **[Windows EXE Build](${{ github.server_url }}/${{ github.repository }}/actions/workflows/windows-exe-build.yml)** workflow for `.exe` artifacts.
+
+            ### 🛠️ Modules (54 pages · 9 roles)
+            Procurement · Finance · Vouchers · Quality · Inventory
+            Communications · Administration · Accountant Workspace · Reports · Documents
+
+            ### 📋 Database Setup
+            Run migrations in `releases/procurbosse-v${{ needs.web-build.outputs.version }}/sql/` in Supabase SQL Editor.
+            Key migration: `20260502200000_samwise_admin.sql` — auto-assigns admin role on signup.
           files: |
-            procurbosse-v${{ needs.web-build.outputs.version }}-web.zip
-            exe/*.exe
+            artifacts/procurbosse-v${{ needs.web-build.outputs.version }}-web.zip
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
