@@ -1,7 +1,7 @@
 {
   "name": "procurbosse",
   "private": true,
-  "version": "9.6.0",
+  "version": "5.8.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,7 +24,15 @@
     "electron:build:both": "npm run build && electron-builder --win --x64 --ia32 --config electron-builder.yml",
     "release:patch": "npm version patch && git push && git push --tags",
     "release:minor": "npm version minor && git push && git push --tags",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:roles": "node scripts/test-all-roles.mjs",
+    "build:release": "bash scripts/build-releases.sh",
+    "build:web": "vite build",
+    "build:electron": "electron-builder --win --x64 --config electron-builder.yml",
+    "test:js": "node scripts/test-all-roles.mjs",
+    "build:all": "bash scripts/build-all-releases.sh",
+    "build:exe": "electron-builder --win --x64 --config electron-builder.yml",
+    "lint:roles": "node --input-type=module scripts/test-all-roles.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
@@ -119,7 +127,7 @@
     "workbox-window": "^7.4.0"
   },
   "productName": "ProcurBosse - EL5 MediProcure",
-  "description": "EL5 MediProcure \u2014 Health Procurement ERP for Embu Level 5 Hospital. ProcurBosse v9.6",
+  "description": "EL5 MediProcure — ProcurBosse ERP for Embu Level 5 Hospital, Embu County Government",
   "author": {
     "name": "Embu County Government",
     "email": "it@embu.health.go.ke"

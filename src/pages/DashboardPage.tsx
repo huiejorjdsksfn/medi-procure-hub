@@ -9,7 +9,8 @@ import {
   ClipboardList, Shield, Mail, Settings, Users, FileText,
   Calendar, FileCheck, Search, Database, TrendingUp,
   Activity, Archive, Receipt, Scale, Building2, PiggyBank,
-  Layers, Globe, BookMarked, Cpu, Eye, Lock, Server
+  Layers, Globe, BookMarked, Cpu, Eye, Lock, Server,
+  BookOpen, UserCircle
 } from "lucide-react";
 
 const QUICK: Record<string,{label:string;path:string;icon:any;color:string;desc:string}[]> = {
@@ -92,14 +93,42 @@ const QUICK: Record<string,{label:string;path:string;icon:any;color:string;desc:
     {label:"Email",            path:"/email",                  icon:Mail,          color:"#c0185a", desc:"Email"},
     {label:"Documents",        path:"/documents",              icon:FileText,      color:"#92400e", desc:"Documents"},
   ],
+  accountant:[
+    {label:"Accountant Workspace",path:"/accountant",          icon:DollarSign,    color:"#0369a1", desc:"Invoice matching & payments"},
+    {label:"Payment Vouchers", path:"/vouchers/payment",       icon:DollarSign,    color:"#5C2D91", desc:"Process payments"},
+    {label:"Receipt Vouchers", path:"/vouchers/receipt",       icon:Receipt,       color:"#107c10", desc:"Record receipts"},
+    {label:"Journal Vouchers", path:"/vouchers/journal",       icon:BookMarked,    color:"#1a3a6b", desc:"Journal entries"},
+    {label:"Financials",       path:"/financials/dashboard",   icon:TrendingUp,    color:"#0e7490", desc:"Financial overview"},
+    {label:"Budgets",          path:"/financials/budgets",     icon:PiggyBank,     color:"#b45309", desc:"Budget management"},
+    {label:"Chart of Accounts",path:"/financials/chart-of-accounts",icon:BookOpen, color:"#374151", desc:"GL accounts"},
+    {label:"Reports",          path:"/reports",                icon:BarChart3,     color:"#9333ea", desc:"Analytics"},
+    {label:"Audit Log",        path:"/audit-log",              icon:Activity,      color:"#78350f", desc:"Activity trail"},
+    {label:"Email",            path:"/email",                  icon:Mail,          color:"#c0185a", desc:"Email"},
+  ],
+  database_admin:[
+    {label:"Admin Database",   path:"/admin/database",         icon:Database,      color:"#1e3a5f", desc:"DB management"},
+    {label:"Admin Panel",      path:"/admin/panel",            icon:Settings,      color:"#0a2558", desc:"Administration"},
+    {label:"Backup",           path:"/backup",                 icon:Archive,       color:"#374151", desc:"Backup & restore"},
+    {label:"ODBC",             path:"/odbc",                   icon:Cpu,           color:"#374151", desc:"ODBC connection"},
+    {label:"Audit Log",        path:"/audit-log",              icon:Activity,      color:"#78350f", desc:"Activity trail"},
+    {label:"DB Test",          path:"/db-test",                icon:Database,      color:"#1e3a5f", desc:"Connection test"},
+    {label:"Settings",         path:"/settings",               icon:Settings,      color:"#6b7280", desc:"System config"},
+  ],
+  reception:[
+    {label:"Reception",        path:"/reception",              icon:UserCircle,    color:"#0369a1", desc:"Reception desk"},
+    {label:"Email",            path:"/email",                  icon:Mail,          color:"#c0185a", desc:"Email"},
+    {label:"Notifications",    path:"/notifications",          icon:Activity,      color:"#7c3aed", desc:"Notifications"},
+    {label:"Documents",        path:"/documents",              icon:FileText,      color:"#92400e", desc:"Documents"},
+    {label:"Suppliers",        path:"/suppliers",              icon:Truck,         color:"#374151", desc:"Supplier directory"},
+  ],
 };
 
 const DATE_OPT: Intl.DateTimeFormatOptions = {weekday:"long",year:"numeric",month:"long",day:"numeric"};
 
 export default function DashboardPage() {
-  const { profile, roles } = useAuth();
+  const { profile, roles, primaryRole: authPrimaryRole } = useAuth();
   const navigate  = useNavigate();
-  const primaryRole = roles[0] || "requisitioner";
+  const primaryRole = authPrimaryRole || roles[0] || "requisitioner";
   const actions   = QUICK[primaryRole] || QUICK.requisitioner;
 
   const [sysName, setSysName] = useState("EL5 MediProcure");

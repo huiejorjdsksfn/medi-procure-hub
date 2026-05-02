@@ -317,7 +317,7 @@ function AdminInner() {
                     {label:"ODBC Connections", path:"/odbc",          icon:Sliders,   color:"#374151"},
                   ].map(b=>(
                     <button key={b.path} onClick={()=>navigate(b.path)}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 0",borderBottom:"1px solid #f9fafb",background:"transparent",border:"none",borderBottom:"1px solid #f9fafb",cursor:"pointer",textAlign:"left" as const}}>
+                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 0",borderBottom:"1px solid #f9fafb",background:"transparent",border:"none",cursor:"pointer",textAlign:"left" as const}}>
                       <div style={{width:28,height:28,borderRadius:6,background:`${b.color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <b.icon style={{width:13,height:13,color:b.color}}/>
                       </div>

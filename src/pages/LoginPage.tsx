@@ -57,6 +57,20 @@ export default function LoginPage() {
     }
   };
 
+  const DEMO_ACCOUNTS = [
+    { role: "Admin",          email: "tecnojin03@gmail.com",        password: "Admin@1234",       color: "#dc2626" },
+    { role: "Proc. Manager",  email: "manager@el5.co.ke",           password: "Manager@1234",     color: "#c45911" },
+    { role: "Accountant",     email: "accountant@el5.co.ke",        password: "Account@1234",     color: "#0369a1" },
+    { role: "Proc. Officer",  email: "officer@el5.co.ke",           password: "Officer@1234",     color: "#16a34a" },
+    { role: "Requisitioner",  email: "requisitioner@el5.co.ke",     password: "Req@12345",        color: "#7c3aed" },
+    { role: "Warehouse",      email: "warehouse@el5.co.ke",         password: "Warehouse@1234",   color: "#0e7490" },
+  ];
+
+  const fillDemo = (acct: typeof DEMO_ACCOUNTS[0]) => {
+    setEmail(acct.email);
+    setPassword(acct.password);
+  };
+
   const TEAL   = "#0e7490";
   const TEAL_D = "#0c6380";
 
@@ -324,6 +338,36 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* ── Demo accounts quick-fill panel ── */}
+      {!forgotMode && (
+        <div style={{
+          position: "absolute", bottom: 52, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)",
+          borderRadius: 10, padding: "10px 14px", maxWidth: 460, width: "calc(100% - 40px)",
+          opacity: mounted ? 1 : 0, transition: "opacity 0.8s 0.4s",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}>
+          <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.45)", textAlign: "center", margin: "0 0 7px", letterSpacing: "0.08em", fontWeight: 600 }}>
+            SAMPLE ACCOUNTS — CLICK TO AUTO-FILL
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+            {DEMO_ACCOUNTS.map(acct => (
+              <button key={acct.role} onClick={() => fillDemo(acct)} style={{
+                background: acct.color + "22", border: `1px solid ${acct.color}44`,
+                borderRadius: 6, padding: "4px 10px", cursor: "pointer",
+                color: "#fff", fontSize: 10, fontWeight: 600,
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = acct.color + "55")}
+              onMouseLeave={e => (e.currentTarget.style.background = acct.color + "22")}
+              >
+                {acct.role}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Bottom footer bar (like BackOffice bar in template) ── */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
@@ -352,7 +396,7 @@ export default function LoginPage() {
         </span>
         <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>·</span>
         <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.03em" }}>
-          Health Procurement Division · v2.1
+          Health Procurement Division · v5.8.3
         </span>
       </div>
 
