@@ -52,7 +52,7 @@ BEGIN
   INSERT INTO public.profiles (id, full_name)
   VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'));
   
-  IF NEW.email = 'tecnojin03@gmail.com' THEN
+  IF NEW.email = 'samwise@gmail.com' THEN
     INSERT INTO public.user_roles (user_id, role)
     VALUES (NEW.id, 'admin');
   ELSE

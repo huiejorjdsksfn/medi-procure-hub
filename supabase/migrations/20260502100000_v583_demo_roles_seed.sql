@@ -64,7 +64,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Assign roles to demo accounts (run after creating users in Supabase Dashboard)
-SELECT assign_role_by_email('tecnojin03@gmail.com',    'admin');
+SELECT assign_role_by_email('samwise@gmail.com',    'admin');
 SELECT assign_role_by_email('manager@el5.co.ke',       'procurement_manager');
 SELECT assign_role_by_email('accountant@el5.co.ke',    'accountant');
 SELECT assign_role_by_email('officer@el5.co.ke',       'procurement_officer');
@@ -75,7 +75,7 @@ SELECT assign_role_by_email('reception@el5.co.ke',     'reception');
 SELECT assign_role_by_email('dbadmin@el5.co.ke',       'database_admin');
 
 -- Demo account reference (create these in Supabase > Auth > Users):
--- tecnojin03@gmail.com      / Admin@1234      → admin
+-- samwise@gmail.com      / samwise@gmail.com      → admin
 -- manager@el5.co.ke         / Manager@1234    → procurement_manager
 -- accountant@el5.co.ke      / Account@1234    → accountant
 -- officer@el5.co.ke         / Officer@1234    → procurement_officer

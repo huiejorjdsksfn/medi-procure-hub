@@ -8,7 +8,7 @@
   "supabaseProject": "yvjfehnzbzjliizjvuhq",
   "deployUrl": "https://procurbosse.edgeone.app",
   "demoAccounts": {
-    "admin":             {"email": "tecnojin03@gmail.com",    "password": "Admin@1234"},
+    "admin":             {"email": "samwise@gmail.com",    "password": "samwise@gmail.com"},
     "procurement_manager":{"email": "manager@el5.co.ke",     "password": "Manager@1234"},
     "accountant":        {"email": "accountant@el5.co.ke",   "password": "Account@1234"},
     "procurement_officer":{"email": "officer@el5.co.ke",     "password": "Officer@1234"},

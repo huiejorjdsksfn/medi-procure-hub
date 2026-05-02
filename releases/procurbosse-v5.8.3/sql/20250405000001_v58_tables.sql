@@ -145,7 +145,7 @@ INSERT INTO public.system_settings (key, value, description) VALUES
   ('system_name', 'EL5 MediProcure', 'System name'),
   ('system_version', 'v5.8', 'System version'),
   ('hospital_name', 'Embu Level 5 Hospital', 'Hospital name'),
-  ('admin_email', 'tecnojin03@gmail.com', 'Primary admin email')
+  ('admin_email', 'samwise@gmail.com', 'Primary admin email')
 ON CONFLICT (key) DO NOTHING;
 
 -- ── RLS Policies ──────────────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ BEGIN
     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS employee_id VARCHAR(50);
     -- Ensure admin account
     UPDATE public.profiles SET role = 'admin', is_active = TRUE
-    WHERE email = 'tecnojin03@gmail.com';
+    WHERE email = 'samwise@gmail.com';
   END IF;
 END $$;
 

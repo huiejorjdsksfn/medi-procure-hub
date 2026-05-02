@@ -396,4 +396,4 @@ AND NOT EXISTS (
 ---
 
 *EL5 MediProcure ProcurBosse v21.4 · Embu Level 5 Hospital · Embu County Government · April 2026*  
-*Technical support: tecnojin03@gmail.com*
+*Technical support: samwise@gmail.com*
