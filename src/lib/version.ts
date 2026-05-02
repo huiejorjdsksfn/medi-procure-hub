@@ -135,9 +135,41 @@ export const RELEASES: Release[] = [
     modules:["All 54 pages","Full Engine Suite"],
     dbMigrations:0, engines:["All engines"], pagesAdded:0, bugsFixed:13,
   },
+  {
+    version: "3.2.0", date:"2026-05-02", codename:"V3Restore",
+    status:"lts", highlights:[
+      "Restored all v3.1 src/ modules (63 files)",
+      "Wired 14 previously missing pages to routes",
+      "Communications & Accountant nav groups in sidebar",
+      "Supabase fallback keys — no blank screen on EdgeOne",
+      "NotificationsPage, SMSPage, TelephonyPage, ReceptionPage activated",
+      "GuiEditorPage, FacilitiesPage, IpAccessPage, PrintEnginePage activated",
+      "AccountantWorkspacePage, ChangelogPage, DocumentEditorPage activated",
+    ],
+    modules:["All v3.1 Modules","Communications","Accountant Workspace"],
+    dbMigrations:1, engines:[], pagesAdded:14, bugsFixed:3,
+  },
+  {
+    version: "5.8.3", date:"2026-05-02", codename:"StableRelease",
+    status:"stable", highlights:[
+      "Zero TypeScript errors — full clean build",
+      "AdminPanelPage: duplicate borderBottom style key removed",
+      "DashboardPage: priority-based primaryRole from AuthContext",
+      "All 9 roles now have QUICK action maps on Dashboard",
+      "AuthContext: parallel profile+roles fetch + 6s safety timeout",
+      "RoleGuard: adminBypass + all 9 roles + AccessDenied page",
+      "LoginPage: sample accounts panel — click-to-autofill for all roles",
+      "54 routes verified in CI/CD route coverage test",
+      "Release packages: procurbosse-v5.8.3 + procurbosse-v3.2.0",
+      "CI/CD: TS check → JS scan → build → route test → EXE → GitHub Release",
+      "DB migration: user_roles RLS + assign_role_by_email() function",
+    ],
+    modules:["All 54 Pages","All 9 Roles","Procurement","Finance","Vouchers","Quality","Inventory","Communications","Administration","Accountant Workspace"],
+    dbMigrations:2, engines:["AuthEngine","RoleEngine","ReleaseEngine"], pagesAdded:0, bugsFixed:8,
+  },
 ];
 
-export const CURRENT_VERSION = "9.6.0";
+export const CURRENT_VERSION = "5.8.3";
 export const CURRENT_RELEASE = RELEASES.find(r => r.version === CURRENT_VERSION)!;
 
 export function getReleaseByVersion(v: string): Release|undefined {
