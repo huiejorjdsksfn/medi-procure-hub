@@ -1,8 +1,18 @@
-# ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  EL5 MediProcure — Supabase Quick Deploy                                ║
-# ║  Triggers only when migrations or edge functions change                  ║
-# ╚══════════════════════════════════════════════════════════════════════════╝
-name: "⚡ Supabase Quick Deploy"
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  EL5 MediProcure — Supabase DB & Edge Function Deploy           ║
+# ║  v5.8.3 · Embu Level 5 Hospital · Embu County Government, Kenya ║
+# ╚══════════════════════════════════════════════════════════════════╝
+#
+# TRIGGERS:
+#   - Push to main touching supabase/ files
+#   - Manual dispatch (deploy all or specific functions)
+#
+# SECRETS REQUIRED:
+#   SUPABASE_ACCESS_TOKEN  ← from supabase.com > Account > Access Tokens
+#
+# PROJECT: yvjfehnzbzjliizjvuhq (yvjfehnzbzjliizjvuhq.supabase.co)
+
+name: "⚡ ProcurBosse — Supabase Deploy"
 
 on:
   push:
@@ -12,95 +22,166 @@ on:
       - "supabase/functions/**"
   workflow_dispatch:
     inputs:
+      run_migrations:
+        description: "Run DB migrations"
+        required: false
+        default: "true"
+        type: boolean
       deploy_functions:
         description: "Deploy Edge Functions"
         required: false
         default: "true"
         type: boolean
-      run_migrations:
-        description: "Run DB Migrations"
+      seed_demo_accounts:
+        description: "Seed demo accounts & roles"
         required: false
-        default: "true"
+        default: "false"
         type: boolean
+
+permissions:
+  contents: read
 
 env:
   SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
+  APP_VERSION: "5.8.3"
 
 jobs:
-  supabase-deploy:
-    name: "🗄️ Migrate + Deploy Functions"
+
+# ═══════════════════════════════════════════════════════════
+# JOB 1 ─ DB Migrations
+# ═══════════════════════════════════════════════════════════
+  db-migrate:
+    name: "🗄️ DB Migrations"
     runs-on: ubuntu-latest
+    if: inputs.run_migrations != 'false'
 
     steps:
       - name: "📥 Checkout"
         uses: actions/checkout@v4
 
       - name: "🛠️ Install Supabase CLI"
-        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
+        run: |
+          npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
+          supabase --version 2>/dev/null || echo "CLI installed"
         continue-on-error: true
 
       - name: "📋 List migrations"
-        run: ls -la supabase/migrations/ 2>/dev/null || echo "No migrations directory"
+        run: |
+          echo "=== Pending migrations ==="
+          ls -la supabase/migrations/ | tail -20
+          echo "Total: $(ls supabase/migrations/*.sql | wc -l) files"
 
       - name: "🚀 Push DB migrations"
-        if: github.event_name == 'push' || github.event.inputs.run_migrations != 'false'
         run: |
-          supabase db push --project-ref ${{ env.SUPABASE_PROJECT_REF }} 2>&1 \
+          supabase db push \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            2>&1 | tee migrate.log \
             && echo "✅ Migrations applied" \
-            || echo "⚠️ Already up to date or migration error (non-fatal)"
+            || (echo "⚠️ Migration warning (may already be applied)" && cat migrate.log)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
+      - name: "👤 Seed demo accounts (optional)"
+        if: inputs.seed_demo_accounts == 'true'
+        run: |
+          echo "Running demo account seed..."
+          supabase db execute \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --file supabase/migrations/20260502200000_samwise_admin.sql \
+            2>&1 && echo "✅ Demo accounts seeded" || echo "⚠️ Seed warning"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+# ═══════════════════════════════════════════════════════════
+# JOB 2 ─ Edge Functions Deploy
+# ═══════════════════════════════════════════════════════════
+  deploy-functions:
+    name: "⚡ Edge Functions"
+    runs-on: ubuntu-latest
+    needs: db-migrate
+    if: always() && (inputs.deploy_functions != 'false')
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🛠️ Install Supabase CLI"
+        run: |
+          npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
+        continue-on-error: true
+
+      - name: "📋 List functions"
+        run: |
+          echo "=== Edge Functions ==="
+          ls supabase/functions/ 2>/dev/null || echo "No functions directory"
+
       - name: "⚡ Deploy send-email"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
         run: |
           supabase functions deploy send-email \
             --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ send-email deployed" || echo "⚠️ send-email skipped"
+            --no-verify-jwt \
+            2>&1 && echo "✅ send-email" || echo "⚠️ send-email skipped"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: "⚡ Deploy send-sms"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
         run: |
           supabase functions deploy send-sms \
             --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ send-sms deployed" || echo "⚠️ send-sms skipped"
+            --no-verify-jwt \
+            2>&1 && echo "✅ send-sms" || echo "⚠️ send-sms skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy send-whatsapp"
+        run: |
+          supabase functions deploy send-whatsapp \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt \
+            2>&1 && echo "✅ send-whatsapp" || echo "⚠️ send-whatsapp skipped"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: "⚡ Deploy notify-requisition"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
         run: |
           supabase functions deploy notify-requisition \
             --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ notify-requisition deployed" || echo "⚠️ notify-requisition skipped"
+            --no-verify-jwt \
+            2>&1 && echo "✅ notify-requisition" || echo "⚠️ notify-requisition skipped"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: "⚡ Deploy make-call"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
         run: |
           supabase functions deploy make-call \
             --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ make-call deployed" || echo "⚠️ make-call skipped"
+            --no-verify-jwt \
+            2>&1 && echo "✅ make-call" || echo "⚠️ make-call skipped"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: "⚡ Deploy mysql-proxy"
-        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
         run: |
           supabase functions deploy mysql-proxy \
             --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
-            --no-verify-jwt 2>&1 && echo "✅ mysql-proxy deployed" || echo "⚠️ mysql-proxy skipped"
+            --no-verify-jwt \
+            2>&1 && echo "✅ mysql-proxy" || echo "⚠️ mysql-proxy skipped"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         continue-on-error: true
 
-      - name: "✅ Deploy complete"
-        run: echo "✅ Supabase deploy done — Project ${{ env.SUPABASE_PROJECT_REF }}"
+      - name: "✅ Deploy summary"
+        run: |
+          echo "════════════════════════════════════════"
+          echo "  Supabase Deploy — v${{ env.APP_VERSION }}"
+          echo "  Project: ${{ env.SUPABASE_PROJECT_REF }}"
+          echo "  Admin:   samwise@gmail.com"
+          echo "  Live:    https://procurbosse.edgeone.app"
+          echo "════════════════════════════════════════"
