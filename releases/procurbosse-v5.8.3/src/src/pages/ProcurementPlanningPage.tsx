@@ -1,163 +1,237 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
-import { logAudit } from "@/lib/audit";
-import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, Calendar, BarChart3 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { Calendar, Plus, Trash2, Edit2, Save, X, FileText, Clock, CheckCircle, AlertTriangle, Download } from "lucide-react";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
-const genNo = () => `PP/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
-const SC: Record<string,string> = {draft:"#6b7280",approved:"#15803d",active:"#0369a1",completed:"#7c3aed",cancelled:"#dc2626"};
-const CATS = ["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction","ICT","Stationery","Furniture","Services","Utilities"];
+interface Plan {
+  id?: string;
+  title: string;
+  department: string;
+  category: string;
+  estimated_amount: number;
+  planned_date: string;
+  status: string;
+  priority: string;
+  notes: string;
+  created_at?: string;
+}
+
+const EMPTY: Plan = { title: "", department: "", category: "", estimated_amount: 0, planned_date: "", status: "draft", priority: "medium", notes: "" };
+const STATUS_COLORS: Record<string, string> = { draft: "#9ca3af", planned: "#0369a1", approved: "#10b981", cancelled: "#ef4444", completed: "#7c3aed" };
+const PRIORITY_COLORS: Record<string, string> = { low: "#6b7280", medium: "#f59e0b", high: "#ef4444", critical: "#7c2d12" };
 
 export default function ProcurementPlanningPage() {
-  const { user, profile, hasRole } = useAuth();
-  const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
-  const [rows, setRows] = useState<any[]>([]);
-  const [depts, setDepts] = useState<any[]>([]);
+  const { roles } = useAuth();
+  const canEdit = roles.some(r => ["admin","procurement_manager","procurement_officer"].includes(r));
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [showNew, setShowNew] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<Plan>(EMPTY);
+  const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
-  const load = async () => {
+  useEffect(() => { load(); }, []);
+
+  async function load() {
     setLoading(true);
-    const [{data:p},{data:d}] = await Promise.all([
-      (supabase as any).from("procurement_plans").select("*").order("created_at",{ascending:false}),
-      (supabase as any).from("departments").select("id,name").order("name"),
-    ]);
-    setRows(p||[]); setDepts(d||[]);
+    const { data } = await supabase.from("procurement_plans").select("*").order("planned_date", { ascending: true });
+    setPlans(data || []);
     setLoading(false);
-  };
-  useEffect(()=>{ load(); },[]);
+  }
 
-  const openEdit = (r:any) => {
-    setEditing(r);
-    setForm({title:r.title,description:r.description||"",financial_year:r.financial_year||"2025/26",start_date:r.start_date||"",end_date:r.end_date||"",department_id:r.department_id||"",category:r.category||"",procurement_method:r.procurement_method||"Open Tender",estimated_budget:String(r.estimated_budget||0),justification:r.justification||"",status:r.status||"draft"});
-    setShowNew(true);
-  };
-
-  const save = async () => {
-    if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
+  async function save() {
+    if (!form.title.trim()) return;
     setSaving(true);
-    const dept = depts.find(d=>d.id===form.department_id);
-    const payload={...form,plan_number:editing?editing.plan_number:genNo(),department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
-    if(editing){
-      const{error}=await(supabase as any).from("procurement_plans").update(payload).eq("id",editing.id);
-      if(!error){toast({title:"Plan updated ✓"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}
-      else toast({title:"Error",description:error.message,variant:"destructive"});
+    if (editing) {
+      await supabase.from("procurement_plans").update(form).eq("id", editing);
     } else {
-      const{data,error}=await(supabase as any).from("procurement_plans").insert(payload).select().single();
-      if(!error){toast({title:"Plan created ✓"});logAudit(user?.id,profile?.full_name,"create","procurement_plans",data?.id,{title:form.title});}
-      else toast({title:"Error",description:error.message,variant:"destructive"});
+      await supabase.from("procurement_plans").insert(form);
     }
-    setSaving(false); setShowNew(false); setEditing(null); load();
-  };
+    setSaving(false);
+    setShowForm(false);
+    setEditing(null);
+    setForm(EMPTY);
+    load();
+  }
 
-  const deleteRow = async (id:string) => {
-    if(!confirm("Delete this plan?")) return;
-    await(supabase as any).from("procurement_plans").delete().eq("id",id);
-    toast({title:"Deleted"}); load();
-  };
+  async function del(id: string) {
+    if (!confirm("Delete this plan?")) return;
+    await supabase.from("procurement_plans").delete().eq("id", id);
+    load();
+  }
 
-  const exportExcel = () => {
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb,ws,"Procurement Plans");
-    XLSX.writeFile(wb,`procurement_plans_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported"});
-  };
+  function startEdit(p: Plan) {
+    setForm(p);
+    setEditing(p.id || null);
+    setShowForm(true);
+  }
 
-  const filtered = search ? rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))) : rows;
-  const totalBudget = filtered.reduce((s,r)=>s+Number(r.estimated_budget||0),0);
+  const filtered = plans.filter(p =>
+    (filterStatus === "all" || p.status === filterStatus) &&
+    (p.title?.toLowerCase().includes(search.toLowerCase()) || p.department?.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const totalBudget = filtered.reduce((s, p) => s + (parseFloat(String(p.estimated_amount)) || 0), 0);
 
   return (
-    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
-      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#0f172a,#1e40af)"}}>
+    <div style={{ padding: 24, background: "#f8fafc", minHeight: "100vh" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <h1 className="text-base font-black text-white">Procurement Planning</h1>
-          <p className="text-[10px] text-white/50">{rows.length} plans · Est. Budget: {fmtKES(totalBudget)}</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", margin: 0 }}>Procurement Planning</h1>
+          <p style={{ fontSize: 13, color: "#6b7280", margin: "4px 0 0" }}>Annual procurement calendar and budget planning</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({title:"",description:"",financial_year:"2025/26",start_date:"",end_date:"",department_id:"",category:"",procurement_method:"Open Tender",estimated_budget:"",justification:"",status:"draft"});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#1e40af"}}><Plus className="w-3.5 h-3.5"/>New Plan</button>}
-        </div>
+        {canEdit && (
+          <button onClick={() => { setForm(EMPTY); setEditing(null); setShowForm(true); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px",
+              background: "#0369a1", color: "#fff", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+            <Plus style={{ width: 15, height: 15 }} /> New Plan
+          </button>
+        )}
       </div>
-      <div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search plans…" className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
-      <div className="rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-xs">
-          <thead><tr style={{background:"#0f172a"}}>
-            {["Plan No.","Title","Dept.","Category","Method","Budget","FY","Status","Actions"].map(h=>(
-              <th key={h} className="px-4 py-3 text-left font-bold text-white/70 text-[10px] uppercase">{h}</th>))}
-          </tr></thead>
-          <tbody>
-            {loading?<tr><td colSpan={9} className="py-8 text-center"><RefreshCw className="w-4 h-4 animate-spin text-gray-300 mx-auto"/></td></tr>:
-            filtered.length===0?<tr><td colSpan={9} className="py-8 text-center text-gray-400 text-xs">No procurement plans yet</td></tr>:
-            filtered.map((r,i)=>(
-              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                <td className="px-4 py-2.5 font-mono text-[10px]" style={{color:"#1e40af"}}>{r.plan_number}</td>
-                <td className="px-4 py-2.5 font-semibold text-gray-800 max-w-[160px] truncate">{r.title}</td>
-                <td className="px-4 py-2.5 text-gray-500">{r.department_name||"—"}</td>
-                <td className="px-4 py-2.5 text-gray-500">{r.category||"—"}</td>
-                <td className="px-4 py-2.5 text-gray-500">{r.procurement_method||"—"}</td>
-                <td className="px-4 py-2.5 font-bold text-gray-700">{fmtKES(r.estimated_budget||0)}</td>
-                <td className="px-4 py-2.5 text-gray-500">{r.financial_year}</td>
-                <td className="px-4 py-2.5"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold capitalize" style={{background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                <td className="px-4 py-2.5"><div className="flex gap-1.5">
-                  {canManage&&<button onClick={()=>openEdit(r)} className="p-1.5 rounded-lg bg-blue-50"><Edit className="w-3 h-3 text-blue-600"/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} className="p-1.5 rounded-lg bg-red-50"><Trash2 className="w-3 h-3 text-red-500"/></button>}
-                </div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Summary cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Total Plans", value: plans.length, color: "#0369a1" },
+          { label: "Approved", value: plans.filter(p => p.status === "approved").length, color: "#10b981" },
+          { label: "Pending", value: plans.filter(p => p.status === "draft" || p.status === "planned").length, color: "#f59e0b" },
+          { label: "Est. Budget", value: `KES ${plans.reduce((s,p) => s + (parseFloat(String(p.estimated_amount))||0),0).toLocaleString()}`, color: "#7c3aed", wide: true },
+        ].map(c => (
+          <div key={c.label} style={{ background: "#fff", borderRadius: 10, padding: "14px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: c.color, margin: "0 0 2px" }}>{c.value}</p>
+            <p style={{ fontSize: 11, color: "#9ca3af", margin: 0, fontWeight: 600 }}>{c.label}</p>
+          </div>
+        ))}
       </div>
-      {showNew&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>{setShowNew(false);setEditing(null);}}/>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 overflow-y-auto max-h-[92vh] space-y-4">
-            <div className="flex items-center justify-between"><h3 className="font-black text-gray-800">{editing?"Edit Plan":"New Procurement Plan"}</h3><button onClick={()=>{setShowNew(false);setEditing(null);}}><X className="w-5 h-5 text-gray-400"/></button></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Plan Title *</label>
-                <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
-              {[["Financial Year","financial_year"],["Start Date","start_date","date"],["End Date","end_date","date"],["Estimated Budget (KES)","estimated_budget","number"]].map(([l,k,t])=>(
-                <div key={k}><label className="block mb-1 text-xs font-semibold text-gray-500">{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/></div>
-              ))}
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Department</label>
-                <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  <option value="">— Select —</option>{depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
-                </select></div>
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Category</label>
-                <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  <option value="">— Select —</option>{CATS.map(c=><option key={c}>{c}</option>)}
-                </select></div>
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Procurement Method</label>
-                <select value={form.procurement_method} onChange={e=>setForm(p=>({...p,procurement_method:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  {["Open Tender","Restricted Tender","Direct Procurement","Request for Quotation","Framework Agreement"].map(m=><option key={m}>{m}</option>)}
-                </select></div>
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Status</label>
-                <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
-                  {["draft","approved","active","completed","cancelled"].map(s=><option key={s} className="capitalize">{s}</option>)}
-                </select></div>
-              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Description</label>
-                <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none resize-none"/></div>
-              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Justification</label>
-                <textarea value={form.justification} onChange={e=>setForm(p=>({...p,justification:e.target.value}))} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none resize-none"/></div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} className="px-4 py-2 rounded-xl border text-sm">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold" style={{background:"#1e40af"}}>
-                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Save className="w-3.5 h-3.5"/>}
-                {saving?"Saving…":editing?"Update Plan":"Create Plan"}
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search plans..."
+          style={{ padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 13, flex: 1, minWidth: 160 }} />
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          style={{ padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 13, background: "#fff" }}>
+          <option value="all">All Status</option>
+          {["draft","planned","approved","completed","cancelled"].map(s => (
+            <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Modal form */}
+      {showForm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: 28, width: 520, maxWidth: "95vw", maxHeight: "90vh", overflow: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{editing ? "Edit Plan" : "New Procurement Plan"}</h2>
+              <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                <X style={{ width: 18, height: 18, color: "#6b7280" }} />
               </button>
+            </div>
+            {[
+              { label: "Title *", key: "title", type: "text" },
+              { label: "Department", key: "department", type: "text" },
+              { label: "Category", key: "category", type: "text" },
+              { label: "Estimated Amount (KES)", key: "estimated_amount", type: "number" },
+              { label: "Planned Date", key: "planned_date", type: "date" },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>{f.label}</label>
+                <input type={f.type} value={(form as any)[f.key]} onChange={e => setForm({ ...form, [f.key]: f.type === "number" ? parseFloat(e.target.value)||0 : e.target.value })}
+                  style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13, boxSizing: "border-box" }} />
+              </div>
+            ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Status</label>
+                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
+                  style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13 }}>
+                  {["draft","planned","approved","completed","cancelled"].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Priority</label>
+                <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
+                  style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13 }}>
+                  {["low","medium","high","critical"].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Notes</label>
+              <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3}
+                style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={save} disabled={saving} style={{
+                flex: 1, padding: "10px", background: "#0369a1", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                {saving ? "Saving…" : "Save Plan"}
+              </button>
+              <button onClick={() => setShowForm(false)} style={{
+                padding: "10px 20px", background: "#f3f4f6", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Plans table */}
+      <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{filtered.length} plans · Est. KES {totalBudget.toLocaleString()}</span>
+        </div>
+        {loading ? <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Loading…</div> :
+          filtered.length === 0 ? <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>No procurement plans yet. {canEdit && "Click 'New Plan' to get started."}</div> :
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Title","Department","Category","Est. Amount","Date","Priority","Status",""].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p, i) => (
+                <tr key={p.id || i} style={{ borderBottom: "1px solid #f9fafb" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                  onMouseLeave={e => e.currentTarget.style.background = ""}>
+                  <td style={{ padding: "10px 14px", fontWeight: 600, color: "#111827" }}>{p.title}</td>
+                  <td style={{ padding: "10px 14px", color: "#6b7280" }}>{p.department || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "#6b7280" }}>{p.category || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "#111827", fontWeight: 600 }}>
+                    KES {(parseFloat(String(p.estimated_amount))||0).toLocaleString()}
+                  </td>
+                  <td style={{ padding: "10px 14px", color: "#6b7280" }}>{p.planned_date || "—"}</td>
+                  <td style={{ padding: "10px 14px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: PRIORITY_COLORS[p.priority] || "#6b7280" }}>
+                      {(p.priority || "medium").toUpperCase()}
+                    </span>
+                  </td>
+                  <td style={{ padding: "10px 14px" }}>
+                    <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700,
+                      background: STATUS_COLORS[p.status] + "22", color: STATUS_COLORS[p.status] || "#6b7280" }}>
+                      {p.status || "draft"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "10px 14px" }}>
+                    {canEdit && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => startEdit(p)} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer" }}>
+                          <Edit2 style={{ width: 12, height: 12, color: "#6b7280" }} />
+                        </button>
+                        <button onClick={() => del(p.id!)} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #fee2e2", background: "#fff", cursor: "pointer" }}>
+                          <Trash2 style={{ width: 12, height: 12, color: "#ef4444" }} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        }
+      </div>
     </div>
   );
 }
