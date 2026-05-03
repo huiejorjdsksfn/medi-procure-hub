@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, WifiOff, Wifi } from "lucide-react";
 import procurementBg from "@/assets/procurement-bg.jpg";
 import embuLogo from "@/assets/embu-county-logo.jpg";
 
@@ -14,7 +15,8 @@ export default function LoginPage() {
   const [mounted,  setMounted]  = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const { signIn, online } = useAuth();
 
   useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
 
@@ -26,12 +28,12 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) throw error;
-      navigate("/dashboard");
+      const result = await signIn(email.trim(), password);
+      if (result.error) {
+        toast({ title: "Sign in failed", description: result.error, variant: "destructive" });
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err: any) {
       toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
     } finally {
@@ -143,6 +145,28 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
+
+          {/* ── Offline status banner ── */}
+          {!online && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+              background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8,
+              marginBottom: 14, fontSize: 11, color: "#92400e", fontWeight: 600,
+            }}>
+              <WifiOff style={{ width: 14, height: 14, flexShrink: 0 }} />
+              Offline mode — using cached credentials
+            </div>
+          )}
+          {online && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "5px 10px",
+              background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6,
+              marginBottom: 10, fontSize: 10, color: "#065f46", fontWeight: 600,
+            }}>
+              <Wifi style={{ width: 12, height: 12 }} />
+              Connected
+            </div>
+          )}
 
           {/* ── SIGN IN heading ── */}
           <div style={{

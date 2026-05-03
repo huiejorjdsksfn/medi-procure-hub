@@ -110,7 +110,7 @@ const MODULES = [
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, roles, signOut } = useAuth();
+  const { user, profile, roles, signOut, online, offlineMode } = useAuth();
   const location  = useLocation();
   const navigate  = useNavigate();
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -285,6 +285,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
         <SystemBroadcastBanner/>
+
+        {/* Offline mode banner */}
+        {(!online || offlineMode) && (
+          <div style={{
+            display:"flex", alignItems:"center", gap:8, padding:"6px 16px",
+            background: offlineMode ? "#fef3c7" : "#fff7ed",
+            borderBottom:"1px solid #fde68a",
+            fontSize:11, fontWeight:700, color:"#92400e",
+          }}>
+            <span style={{fontSize:14}}>📡</span>
+            {offlineMode
+              ? "OFFLINE MODE — Using cached data. Changes will sync when online."
+              : "No internet connection — some features may be unavailable."}
+          </div>
+        )}
 
         {/* Topbar */}
         <header style={{height:50,flexShrink:0,background:"linear-gradient(135deg,#0a2558 0%,#1a3a6b 60%,#1d4a87 100%)",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",padding:"0 14px",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,0.2)",zIndex:90,position:"relative"}}>
