@@ -2,7 +2,7 @@
 
 **EL5 MediProcure** | Embu Level 5 Hospital | Embu County Government | Kenya
 
-> **Status**: lts | Built: 2026-05-02 17:25 UTC
+> **Status**: lts | Built: 2026-05-03 12:19 UTC
 
 ---
 

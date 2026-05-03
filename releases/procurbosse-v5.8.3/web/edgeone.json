@@ -1,17 +1,24 @@
 {
   "build": {
-    "command": "echo 'pre-built'",
-    "directory": "web",
+    "command": "npm ci --ignore-scripts && npx vite build",
+    "directory": "dist",
     "environment": {
       "NODE_VERSION": "20",
-      "CI": "false"
+      "CI": "false",
+      "VITE_SUPABASE_URL": "https://yvjfehnzbzjliizjvuhq.supabase.co",
+      "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
     }
   },
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html",
-      "status": 200
-    }
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/icons/(.*)",  "dest": "/icons/$1" },
+    { "src": "/fonts/(.*)",  "dest": "/fonts/$1" },
+    { "src": "/(.*)\\.ico",  "dest": "/$1.ico" },
+    { "src": "/(.*)\\.png",  "dest": "/$1.png" },
+    { "src": "/(.*)\\.svg",  "dest": "/$1.svg" },
+    { "src": "/(.*)\\.jpg",  "dest": "/$1.jpg" },
+    { "src": "/(.*)\\.json", "dest": "/$1.json" },
+    { "src": "/(.*)\\.txt",  "dest": "/$1.txt" },
+    { "src": "/(.*)",        "dest": "/index.html", "status": 200 }
   ]
 }

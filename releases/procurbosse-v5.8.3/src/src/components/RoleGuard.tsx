@@ -1,35 +1,24 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, ProcurementRole } from "@/contexts/AuthContext";
 import { Shield, Lock, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// All system roles
-export const ALL_ROLES = [
-  "admin","database_admin","procurement_manager","procurement_officer",
-  "accountant","inventory_manager","warehouse_officer","requisitioner","reception"
-] as const;
-
-export type SystemRole = typeof ALL_ROLES[number];
-
 interface RoleGuardProps {
-  allowed: string[];
+  allowed: ProcurementRole[];
   children: React.ReactNode;
   fallback?: React.ReactNode;
-  /** If true, admin always passes even if not in allowed list */
-  adminBypass?: boolean;
 }
 
 // Banner shown at top of pages where user has limited access
 export function RoleBanner({ message, type = "info" }: { message: string; type?: "info" | "warning" | "readonly" }) {
   const colors = {
-    info:     { bg: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
-    warning:  { bg: "#fffbeb", border: "#fde68a", text: "#d97706" },
-    readonly: { bg: "#f9fafb", border: "#e5e7eb", text: "#6b7280" },
+    info:     { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", icon: "text-blue-500" },
+    warning:  { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "text-amber-500" },
+    readonly: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-600", icon: "text-gray-400" },
   };
   const c = colors[type];
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px",
-      fontSize:12, borderBottom:`1px solid ${c.border}`, background:c.bg, color:c.text }}>
-      <Shield style={{ width:14, height:14, flexShrink:0 }}/>
+    <div className={`flex items-center gap-2 px-4 py-2.5 text-xs border-b ${c.bg} ${c.border} ${c.text}`}>
+      <Shield className={`w-4 h-4 shrink-0 ${c.icon}`}/>
       <span>{message}</span>
     </div>
   );
@@ -39,24 +28,19 @@ export function RoleBanner({ message, type = "info" }: { message: string; type?:
 export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
   const navigate = useNavigate();
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-      minHeight:"calc(100vh - 120px)", background:"#f9fafb" }}>
-      <div style={{ textAlign:"center", maxWidth:360, padding:"0 24px" }}>
-        <div style={{ width:64, height:64, borderRadius:16, background:"#fee2e2",
-          display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-          <Lock style={{ width:28, height:28, color:"#ef4444" }}/>
+    <div className="h-full flex items-center justify-center bg-gray-50" style={{ minHeight: "calc(100vh - 120px)" }}>
+      <div className="text-center max-w-sm px-6">
+        <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+          <Lock className="w-8 h-8 text-red-400"/>
         </div>
-        <h2 style={{ fontSize:18, fontWeight:700, color:"#111827", margin:"0 0 8px" }}>Access Restricted</h2>
-        <p style={{ fontSize:13, color:"#6b7280", margin:"0 0 4px" }}>You do not have permission to view this page.</p>
-        <p style={{ fontSize:11, color:"#9ca3af", margin:"0 0 24px" }}>
-          Required roles: {requiredRoles.join(", ")}
+        <h2 className="text-lg font-bold text-gray-900 mb-2">Access Restricted</h2>
+        <p className="text-sm text-gray-500 mb-1">You do not have permission to view this page.</p>
+        <p className="text-xs text-gray-400 mb-6">
+          Required: {requiredRoles.join(", ")}
         </p>
-        <button onClick={() => navigate("/dashboard")} style={{
-          display:"inline-flex", alignItems:"center", gap:8,
-          padding:"10px 20px", background:"#2563eb", color:"#fff",
-          fontSize:13, fontWeight:600, borderRadius:8, border:"none", cursor:"pointer",
-        }}>
-          <ChevronRight style={{ width:14, height:14 }}/>Go to Dashboard
+        <button onClick={() => navigate("/dashboard")}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+          <ChevronRight className="w-4 h-4"/>Go to Dashboard
         </button>
       </div>
     </div>
@@ -64,9 +48,9 @@ export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
 }
 
 // HOC that wraps page content with role check
-export default function RoleGuard({ allowed, children, fallback, adminBypass = true }: RoleGuardProps) {
+export default function RoleGuard({ allowed, children, fallback }: RoleGuardProps) {
   const { roles } = useAuth();
-  const hasAccess = (adminBypass && roles.includes("admin")) || allowed.some(r => roles.includes(r));
+  const hasAccess = allowed.some(r => roles.includes(r));
   if (!hasAccess) {
     return fallback ? <>{fallback}</> : <AccessDenied requiredRoles={allowed}/>;
   }
