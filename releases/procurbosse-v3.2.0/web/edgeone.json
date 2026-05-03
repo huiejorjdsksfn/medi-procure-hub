@@ -1,7 +1,7 @@
 {
   "build": {
-    "command": "npm ci --ignore-scripts && npx vite build",
-    "directory": "dist",
+    "command": "npm ci --ignore-scripts && npx vite build --outDir web",
+    "directory": "web",
     "environment": {
       "NODE_VERSION": "20",
       "CI": "false",
@@ -10,15 +10,7 @@
     }
   },
   "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/icons/(.*)",  "dest": "/icons/$1" },
-    { "src": "/fonts/(.*)",  "dest": "/fonts/$1" },
-    { "src": "/(.*)\\.ico",  "dest": "/$1.ico" },
-    { "src": "/(.*)\\.png",  "dest": "/$1.png" },
-    { "src": "/(.*)\\.svg",  "dest": "/$1.svg" },
-    { "src": "/(.*)\\.jpg",  "dest": "/$1.jpg" },
-    { "src": "/(.*)\\.json", "dest": "/$1.json" },
-    { "src": "/(.*)\\.txt",  "dest": "/$1.txt" },
-    { "src": "/(.*)",        "dest": "/index.html", "status": 200 }
+    { "src": "/(.*\\.(js|css|ico|png|svg|jpg|jpeg|gif|woff2?|ttf|otf|map|json|txt|webmanifest))", "dest": "/$1" },
+    { "src": "/(.*)", "dest": "/index.html", "status": 200 }
   ]
 }
