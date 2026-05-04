@@ -105,7 +105,30 @@ export default function VouchersPage() {
   };
 
   return (
-    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* KPI TILES */}
+      {(()=>{
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        const totalVal=rows.reduce((s:number,r:any)=>s+Number(r.total_value||0),0);
+        const pending=rows.filter(r=>r.status==="pending").length;
+        const approved=rows.filter(r=>r.status==="approved").length;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
+            {[
+              {label:"Total Value",val:fmtK(totalVal),bg:"#c0392b"},
+              {label:"Total Vouchers",val:rows.length,bg:"#7d6608"},
+              {label:"Pending",val:pending,bg:"#6c3483"},
+              {label:"Approved",val:approved,bg:"#0e6655"},
+              {label:"Showing",val:filtered.length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#5C2D91,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -139,7 +162,7 @@ export default function VouchersPage() {
 
       <div style={{position:"relative",marginBottom:14}}>
         <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search voucher number, purpose, department…"
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search voucher number, purpose, department..."
           style={{width:"100%",padding:"10px 12px 10px 34px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:9,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
       </div>
 
@@ -154,7 +177,7 @@ export default function VouchersPage() {
           </thead>
           <tbody>
             {loading?[1,2,3].map(i=>(
-              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}</tr>
+              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4,animation:"pulse 1.5s infinite"}}/></td>)}</tr>
             )):filtered.length===0?(
               <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
                 <FileText style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
@@ -205,7 +228,7 @@ export default function VouchersPage() {
                 <div><LBL>Date</LBL>{INP(form.date,v=>setForm(p=>({...p,date:v})),"","date")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Department</LBL>
                   <select value={form.department_id} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))} style={{width:"100%",padding:"8px 11px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:7,outline:"none"}}>
-                    <option value="">Select department…</option>
+                    <option value="">Select department...</option>
                     {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
@@ -228,7 +251,7 @@ export default function VouchersPage() {
                       {form.items.map((it,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
                           <td style={{padding:"4px 6px"}}><input value={it.code_no} onChange={e=>updItem(i,"code_no",e.target.value)} style={{width:70,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
-                          <td style={{padding:"4px 6px"}}><input value={it.item_description} onChange={e=>updItem(i,"item_description",e.target.value)} placeholder="Item name…" style={{width:180,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"4px 6px"}}><input value={it.item_description} onChange={e=>updItem(i,"item_description",e.target.value)} placeholder="Item name..." style={{width:180,padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
                           <td style={{padding:"4px 6px"}}>
                             <select value={it.unit_of_issue} onChange={e=>updItem(i,"unit_of_issue",e.target.value)} style={{padding:"5px 7px",fontSize:12,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}>
                               {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
@@ -255,7 +278,7 @@ export default function VouchersPage() {
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>setShowNew(false)} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":"Submit Voucher"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving...":"Submit Voucher"}
                 </button>
               </div>
             </div>

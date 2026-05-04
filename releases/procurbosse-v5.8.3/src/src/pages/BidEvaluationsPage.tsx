@@ -22,7 +22,7 @@ const INP = (v:any,cb:any,p="",t="text",min?:any,max?:any) => (
     onFocus={e=>(e.target as HTMLInputElement).style.borderColor="#1a3a6b"}
     onBlur={e=>(e.target as HTMLInputElement).style.borderColor="#e5e7eb"}/>
 );
-const SEL = (v:any,cb:any,opts:{value:string;label:string}[],p="Select…") => (
+const SEL = (v:any,cb:any,opts:{value:string;label:string}[],p="Select...") => (
   <select value={v} onChange={e=>cb(e.target.value)}
     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",background:"#fff"}}>
     <option value="">{p}</option>
@@ -107,7 +107,22 @@ export default function BidEvaluationsPage() {
   const highest = rows.length ? Math.max(...rows.map(r=>Number(r.total_score||0))).toFixed(1) : "—";
 
   return (
-    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* KPI TILES */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
+        {[
+          {label:"Total Evaluations",val:rows.length,bg:"#c0392b"},
+          {label:"Recommended",val:recommended,bg:"#0e6655"},
+          {label:"Avg Score",val:avg,bg:"#7d6608"},
+          {label:"Highest Score",val:highest,bg:"#6c3483"},
+          {label:"Showing",val:filtered.length,bg:"#1a252f"},
+        ].map(k=>(
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+            <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+            <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
@@ -123,7 +138,7 @@ export default function BidEvaluationsPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
-            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/> Refresh
+            <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canEvaluate&&<button onClick={()=>openNew()} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(192,24,90,0.3)"}}>
             <Plus style={{width:14,height:14}}/> Evaluate Bid
@@ -131,24 +146,11 @@ export default function BidEvaluationsPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:14,marginBottom:20}}>
-        {[{label:"Total Evaluations",value:rows.length,icon:Scale,color:"#c0185a"},{label:"Recommended",value:recommended,icon:Trophy,color:"#15803d"},{label:"Average Score",value:avg,icon:TrendingUp,color:"#1d4ed8"},{label:"Highest Score",value:highest,icon:Award,color:"#92400e"}].map(s=>(
-          <div key={s.label} style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"16px",boxShadow:"0 2px 6px rgba(0,0,0,0.04)"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <div style={{width:32,height:32,borderRadius:8,background:`${s.color}14`,display:"flex",alignItems:"center",justifyContent:"center"}}><s.icon style={{width:15,height:15,color:s.color}}/></div>
-              <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{s.label}</span>
-            </div>
-            <div style={{fontSize:28,fontWeight:900,color:"#111827"}}>{s.value}</div>
-          </div>
-        ))}
-      </div>
-
       {/* Filters */}
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{position:"relative",flex:1,minWidth:200}}>
           <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search supplier, tender…"
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search supplier, tender..."
             style={{width:"100%",padding:"8px 10px 8px 30px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}/>
         </div>
         <select value={tFilter} onChange={e=>setTFilter(e.target.value)} style={{padding:"8px 12px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",minWidth:200}}>
@@ -169,7 +171,7 @@ export default function BidEvaluationsPage() {
           <tbody>
             {loading?[1,2,3].map(i=>(
               <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                {[1,2,3,4,5,6,7,8].map(j=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}
+                {[1,2,3,4,5,6,7,8].map(j=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4,animation:"pulse 1.5s infinite"}}/></td>)}
               </tr>
             )):filtered.length===0?(
               <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
@@ -234,8 +236,8 @@ export default function BidEvaluationsPage() {
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column" as const,gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-                <div style={{gridColumn:"span 2"}}><LBL>Tender *</LBL>{SEL(form.tender_id,v=>setForm(p=>({...p,tender_id:v})),tOpts,"Select tender…")}</div>
-                <div style={{gridColumn:"span 2"}}><LBL>Supplier *</LBL>{SEL(form.supplier_id,v=>setForm(p=>({...p,supplier_id:v})),sOpts,"Select supplier…")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Tender *</LBL>{SEL(form.tender_id,v=>setForm(p=>({...p,tender_id:v})),tOpts,"Select tender...")}</div>
+                <div style={{gridColumn:"span 2"}}><LBL>Supplier *</LBL>{SEL(form.supplier_id,v=>setForm(p=>({...p,supplier_id:v})),sOpts,"Select supplier...")}</div>
                 <div><LBL>Bid Amount (KES)</LBL>{INP(form.bid_amount,v=>setForm(p=>({...p,bid_amount:v})),"0","number",0)}</div>
                 <div/>
                 <div>
@@ -256,18 +258,18 @@ export default function BidEvaluationsPage() {
                   </div>
                 )}
                 <div style={{gridColumn:"span 2"}}><LBL>Recommendation</LBL>
-                  <textarea value={form.recommendation} onChange={e=>setForm(p=>({...p,recommendation:e.target.value}))} rows={2} placeholder="Evaluator's recommendation…"
+                  <textarea value={form.recommendation} onChange={e=>setForm(p=>({...p,recommendation:e.target.value}))} rows={2} placeholder="Evaluator's recommendation..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit"}}/>
                 </div>
                 <div style={{gridColumn:"span 2"}}><LBL>Notes</LBL>
-                  <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} placeholder="Additional notes…"
+                  <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} placeholder="Additional notes..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit"}}/>
                 </div>
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:6,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>{setShowModal(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 20px",background:"linear-gradient(135deg,#c0185a,#e91e8c)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Submit"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving...":editing?"Update":"Submit"}
                 </button>
               </div>
             </div>

@@ -95,7 +95,30 @@ export default function ContractsPage() {
   };
 
   return (
-    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      {/* KPI TILES */}
+      {(()=>{
+        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
+        const totalVal=rows.reduce((s:number,r:any)=>s+Number(r.contract_value||0),0);
+        const activeC=rows.filter(r=>r.status==="active").length;
+        const expiredC=rows.filter(r=>r.status==="expired").length;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
+            {[
+              {label:"Total Contract Value",val:fmtK(totalVal),bg:"#c0392b"},
+              {label:"Total Contracts",val:rows.length,bg:"#7d6608"},
+              {label:"Active",val:activeC,bg:"#0e6655"},
+              {label:"Expired",val:expiredC,bg:"#6c3483"},
+              {label:"Showing",val:filtered.length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -112,7 +135,7 @@ export default function ContractsPage() {
             <Download style={{width:13,height:13}}/> Export
           </button>
           <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
-            <RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/> Refresh
+            <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canManage&&<button onClick={()=>openNew()} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#0369a1,#0284c7)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(3,105,161,0.3)"}}>
             <Plus style={{width:14,height:14}}/> New Contract
@@ -132,7 +155,7 @@ export default function ContractsPage() {
       {/* Search */}
       <div style={{position:"relative",marginBottom:14}}>
         <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search contract number, title, supplier…"
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search contract number, title, supplier..."
           style={{width:"100%",padding:"10px 12px 10px 34px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:9,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
       </div>
 
@@ -148,7 +171,7 @@ export default function ContractsPage() {
           </thead>
           <tbody>
             {loading?[1,2,3].map(i=>(
-              <tr key={i}>{[...Array(9)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}</tr>
+              <tr key={i}>{[...Array(9)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4,animation:"pulse 1.5s infinite"}}/></td>)}</tr>
             )):filtered.length===0?(
               <tr><td colSpan={9} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
                 <FileText style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
@@ -206,7 +229,7 @@ export default function ContractsPage() {
                 <div style={{gridColumn:"span 2"}}><LBL>Title *</LBL>{INP(form.title,v=>setForm(p=>({...p,title:v})),"Contract title / scope")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Supplier</LBL>
                   <select value={form.supplier_id} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
-                    <option value="">Select supplier…</option>
+                    <option value="">Select supplier...</option>
                     {supOpts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
@@ -217,14 +240,14 @@ export default function ContractsPage() {
                 <div style={{gridColumn:"span 2"}}><LBL>Payment Terms</LBL>{INP(form.payment_terms,v=>setForm(p=>({...p,payment_terms:v})),"e.g. Net 30 days")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Delivery Terms</LBL>{INP(form.delivery_terms,v=>setForm(p=>({...p,delivery_terms:v})),"e.g. DDP to Embu Level 5 Hospital stores")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Description</LBL>
-                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3} placeholder="Scope of contract…"
+                  <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3} placeholder="Scope of contract..."
                     style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit",boxSizing:"border-box" as const}}/>
                 </div>
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#0369a1,#0284c7)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":editing?"Update":"Create Contract"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving...":editing?"Update":"Create Contract"}
                 </button>
               </div>
             </div>

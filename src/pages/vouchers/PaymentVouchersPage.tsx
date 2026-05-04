@@ -107,9 +107,33 @@ export default function PaymentVouchersPage() {
   const filtered=rows.filter(r=>(stFilter==="all"||r.status===stFilter)&&(!search||[r.voucher_number,r.payee_name,r.payment_method,r.reference].some(v=>(v||"").toLowerCase().includes(search.toLowerCase()))));
 
   return (
-    <div style={{padding:"20px 24px",maxWidth:1400,margin:"0 auto"}}>
+      <div style={{padding:"16px 20px",maxWidth:1400,margin:"0 auto",fontFamily:"'Segoe UI',system-ui"}}>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      {/* KPI TILES */}
+      {(()=>{
+        const totalAmt = rows.reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const paidAmt  = rows.filter(r=>r.status==="paid").reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const pendAmt  = rows.filter(r=>r.status==="pending").reduce((s,r)=>s+Number(r.total_amount||0),0);
+        const fmtKES=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(2)}K`:`KES ${n.toFixed(0)}`;
+        return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
+            {[
+              {label:"Total Value",val:fmtKES(totalAmt),bg:"#c0392b"},
+              {label:"Paid Amount",val:fmtKES(paidAmt),bg:"#0e6655"},
+              {label:"Pending Amount",val:fmtKES(pendAmt),bg:"#7d6608"},
+              {label:"Record Count",val:rows.length,bg:"#6c3483"},
+              {label:"Pending Approval",val:rows.filter(r=>r.status==="pending").length,bg:"#1a252f"},
+            ].map(k=>(
+              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+                <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
+                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:44,height:44,borderRadius:10,background:"linear-gradient(135deg,#0f766e,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <DollarSign style={{width:21,height:21,color:"#fff"}}/>
@@ -121,7 +145,7 @@ export default function PaymentVouchersPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}><Download style={{width:13,height:13}}/> Export</button>
-          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}><RefreshCw style={{width:13,height:13}} className={loading?"animate-spin":""}/> Refresh</button>
+          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}><RefreshCw style={{width:13,height:13}}/> Refresh</button>
           <button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#0f766e,#0d9488)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(15,118,110,0.3)"}}>
             <Plus style={{width:14,height:14}}/> New Voucher
           </button>
@@ -140,7 +164,7 @@ export default function PaymentVouchersPage() {
       {/* Search */}
       <div style={{position:"relative",marginBottom:14}}>
         <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search voucher number, payee, reference…"
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search voucher number, payee, reference..."
           style={{width:"100%",padding:"10px 12px 10px 34px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:9,outline:"none",background:"#fff",boxSizing:"border-box" as const}}/>
       </div>
 
@@ -156,7 +180,7 @@ export default function PaymentVouchersPage() {
           </thead>
           <tbody>
             {loading?[1,2,3].map(i=>(
-              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4}} className="animate-pulse"/></td>)}</tr>
+              <tr key={i}>{[...Array(8)].map((_,j)=><td key={j} style={{padding:"14px"}}><div style={{height:12,background:"#f3f4f6",borderRadius:4,animation:"pulse 1.5s infinite"}}/></td>)}</tr>
             )):filtered.length===0?(
               <tr><td colSpan={8} style={{padding:"60px",textAlign:"center" as const,color:"#9ca3af",fontSize:14}}>
                 <DollarSign style={{width:40,height:40,color:"#e5e7eb",margin:"0 auto 12px"}}/>
@@ -215,7 +239,7 @@ export default function PaymentVouchersPage() {
                   {form.payee_type==="supplier"?(
                     <div style={{gridColumn:"span 2"}}><LBL>Select Supplier</LBL>
                       <select value={form.supplier_id} onChange={e=>{const s=suppliers.find(x=>x.id===e.target.value);setForm(p=>({...p,supplier_id:e.target.value,payee_name:s?.name||"",bank_name:s?.bank_name||"",account_number:s?.account_number||""}));}} style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none"}}>
-                        <option value="">Select supplier…</option>
+                        <option value="">Select supplier...</option>
                         {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
@@ -237,7 +261,7 @@ export default function PaymentVouchersPage() {
                     </select>
                   </div>
                   <div style={{gridColumn:"span 3"}}><LBL>Description / Purpose</LBL>
-                    <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} placeholder="Payment description and purpose…"
+                    <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} placeholder="Payment description and purpose..."
                       style={{width:"100%",padding:"9px 12px",fontSize:14,border:"1.5px solid #e5e7eb",borderRadius:8,outline:"none",resize:"vertical" as const,fontFamily:"inherit",boxSizing:"border-box" as const}}/>
                   </div>
                 </div>
@@ -256,13 +280,13 @@ export default function PaymentVouchersPage() {
                     <tbody>
                       {form.line_items.map((l,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                          <td style={{padding:"5px 6px"}}><input value={l.description} onChange={e=>updLine(i,"description",e.target.value)} placeholder="Item description…" style={{width:220,padding:"6px 8px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
+                          <td style={{padding:"5px 6px"}}><input value={l.description} onChange={e=>updLine(i,"description",e.target.value)} placeholder="Item description..." style={{width:220,padding:"6px 8px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
                           <td style={{padding:"5px 6px"}}><input type="number" value={l.qty} onChange={e=>updLine(i,"qty",e.target.value)} min={0} style={{width:60,padding:"6px 8px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
                           <td style={{padding:"5px 6px"}}><input type="number" value={l.unit_price} onChange={e=>updLine(i,"unit_price",e.target.value)} min={0} placeholder="0.00" style={{width:110,padding:"6px 8px",fontSize:13,border:"1px solid #e5e7eb",borderRadius:5,outline:"none"}}/></td>
                           <td style={{padding:"5px 6px",fontWeight:700,color:"#111827",fontSize:13,minWidth:100}}>{(Number(l.qty||1)*Number(l.unit_price||0)).toLocaleString("en-KE",{minimumFractionDigits:2})}</td>
                           <td style={{padding:"5px 6px"}}>
                             <select value={l.account} onChange={e=>updLine(i,"account",e.target.value)} style={{padding:"6px 8px",fontSize:11,border:"1px solid #e5e7eb",borderRadius:5,outline:"none",maxWidth:180}}>
-                              <option value="">Select…</option>
+                              <option value="">Select...</option>
                               {EXPENSE_ACCOUNTS.map(a=><option key={a} value={a}>{a}</option>)}
                             </select>
                           </td>
@@ -286,7 +310,7 @@ export default function PaymentVouchersPage() {
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #f3f4f6"}}>
                 <button onClick={()=>setShowNew(false)} style={{padding:"9px 18px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 22px",background:"linear-gradient(135deg,#0f766e,#0d9488)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800}}>
-                  {saving?<RefreshCw style={{width:12,height:12}} className="animate-spin"/>:<Save style={{width:12,height:12}}/>} {saving?"Saving…":"Submit Voucher"}
+                  {saving?<RefreshCw style={{width:12,height:12,animation:"spin 1s linear infinite"}}/>:<Save style={{width:12,height:12}}/>} {saving?"Saving...":"Submit Voucher"}
                 </button>
               </div>
             </div>
