@@ -70,53 +70,74 @@ export default function ChartOfAccountsPage() {
 
   const TYPES = ["all","Asset","Liability","Equity","Revenue","Expense"];
   const totalBalance = filtered.reduce((s,r)=>s+Number(r.balance||0),0);
+  const totalAssets  = rows.filter(r=>r.account_type==="Asset").reduce((s,r)=>s+Number(r.balance||0),0);
+  const totalRevenue = rows.filter(r=>r.account_type==="Revenue").reduce((s,r)=>s+Number(r.balance||0),0);
+  const totalExpense = rows.filter(r=>r.account_type==="Expense").reduce((s,r)=>s+Number(r.balance||0),0);
+  const activeAccounts = rows.filter(r=>r.is_active!==false).length;
 
   return (
-    <div className="p-4 space-y-4" style={{fontFamily:"'Segoe UI',system-ui"}}>
-      <div className="rounded-2xl px-5 py-3 flex items-center justify-between" style={{background:"linear-gradient(90deg,#0f172a,#1e3a5f)"}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
+      {/* KPI TILES */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+        {[
+          {label:"Total Balance",val:fmtKES(totalBalance),bg:"#c0392b"},
+          {label:"Total Assets",val:fmtKES(totalAssets),bg:"#0e6655"},
+          {label:"Total Revenue",val:fmtKES(totalRevenue),bg:"#7d6608"},
+          {label:"Total Expenses",val:fmtKES(totalExpense),bg:"#6c3483"},
+          {label:"Active Accounts",val:activeAccounts,bg:"#1a252f"},
+        ].map(k=>(
+          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
+            <div style={{fontSize:18,fontWeight:900,lineHeight:1}}>{k.val}</div>
+            <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+      {/* HEADER BAR */}
+      <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#0f172a,#1e3a5f)"}}>
         <div>
-          <h1 className="text-base font-black text-white">Chart of Accounts</h1>
-          <p className="text-[10px] text-white/50">{rows.length} accounts · Balance: {fmtKES(totalBalance)}</p>
+          <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Chart of Accounts</h1>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} accounts · {filtered.length} shown</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold" style={{background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download className="w-3.5 h-3.5"/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold" style={{background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus className="w-3.5 h-3.5"/>New Account</button>}
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({account_code:"",account_name:"",account_type:"Asset",category:"",parent_code:"",balance:"0",description:"",is_active:true});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#1e3a5f"}}><Plus style={{width:14,height:14}}/>New Account</button>}
         </div>
       </div>
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search code or name…" className="pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none w-52"/></div>
-        <div className="flex gap-1">
+      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{position:"relative"}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search code or name..." style={{paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",width:208}}/></div>
+        <div style={{display:"flex",gap:4}}>
           {TYPES.map(t=>(
             <button key={t} onClick={()=>setTypeFilter(t)}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all"
-              style={{background:typeFilter===t?(TYPE_COLORS[t]||"#1a3a6b"):"#f3f4f6",color:typeFilter===t?"#fff":"#6b7280"}}>
+              style={{padding:"6px 10px",borderRadius:10,fontSize:12,fontWeight:600,textTransform:"capitalize",border:"none",cursor:"pointer",background:typeFilter===t?(TYPE_COLORS[t]||"#1a3a6b"):"#f3f4f6",color:typeFilter===t?"#fff":"#6b7280"}}>
               {t}
             </button>
           ))}
         </div>
       </div>
-      <div className="rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-xs">
+      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#0f172a"}}>
             {["Code","Account Name","Type","Category","Parent","Balance","Active","Actions"].map(h=>(
-              <th key={h} className="px-4 py-3 text-left font-bold text-white/70 text-[10px] uppercase">{h}</th>))}
+              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
           </tr></thead>
           <tbody>
-            {loading?<tr><td colSpan={8} className="py-8 text-center"><RefreshCw className="w-4 h-4 animate-spin text-gray-300 mx-auto"/></td></tr>:
-            filtered.length===0?<tr><td colSpan={8} className="py-8 text-center text-gray-400 text-xs">No accounts found</td></tr>:
+            {loading?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
+            filtered.length===0?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No accounts found</td></tr>:
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                <td className="px-4 py-2.5 font-mono font-bold" style={{color:"#1e3a5f"}}>{r.account_code}</td>
-                <td className="px-4 py-2.5 font-semibold text-gray-800">{r.account_name}</td>
-                <td className="px-4 py-2.5"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold" style={{background:`${TYPE_COLORS[r.account_type]||"#6b7280"}18`,color:TYPE_COLORS[r.account_type]||"#6b7280"}}>{r.account_type}</span></td>
-                <td className="px-4 py-2.5 text-gray-500">{r.category||"—"}</td>
-                <td className="px-4 py-2.5 text-gray-400 font-mono text-[10px]">{r.parent_code||"—"}</td>
-                <td className="px-4 py-2.5 font-bold" style={{color:Number(r.balance||0)<0?"#dc2626":"#15803d"}}>{fmtKES(r.balance||0)}</td>
-                <td className="px-4 py-2.5"><span className="text-[10px] font-bold" style={{color:r.is_active!==false?"#15803d":"#9ca3af"}}>{r.is_active!==false?"Active":"Inactive"}</span></td>
-                <td className="px-4 py-2.5"><div className="flex gap-1.5">
-                  {canManage&&<button onClick={()=>openEdit(r)} className="p-1.5 rounded-lg bg-blue-50"><Edit className="w-3 h-3 text-blue-600"/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} className="p-1.5 rounded-lg bg-red-50"><Trash2 className="w-3 h-3 text-red-500"/></button>}
+                <td style={{padding:"10px 16px",fontFamily:"monospace",fontWeight:700,color:"#1e3a5f"}}>{r.account_code}</td>
+                <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937"}}>{r.account_name}</td>
+                <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${TYPE_COLORS[r.account_type]||"#6b7280"}18`,color:TYPE_COLORS[r.account_type]||"#6b7280"}}>{r.account_type}</span></td>
+                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.category||"—"}</td>
+                <td style={{padding:"10px 16px",color:"#9ca3af",fontFamily:"monospace",fontSize:10}}>{r.parent_code||"—"}</td>
+                <td style={{padding:"10px 16px",fontWeight:700,color:Number(r.balance||0)<0?"#dc2626":"#15803d"}}>{fmtKES(r.balance||0)}</td>
+                <td style={{padding:"10px 16px"}}><span style={{fontSize:10,fontWeight:700,color:r.is_active!==false?"#15803d":"#9ca3af"}}>{r.is_active!==false?"Active":"Inactive"}</span></td>
+                <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
+                  {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
+                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                 </div></td>
               </tr>
             ))}
@@ -124,42 +145,43 @@ export default function ChartOfAccountsPage() {
         </table>
       </div>
       {showNew&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={()=>{setShowNew(false);setEditing(null);}}/>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-gray-800">{editing?"Edit Account":"New Account"}</h3>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}}><X className="w-5 h-5 text-gray-400"/></button>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
+          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
+              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Account":"New Account"}</h3>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[["Account Code *","account_code","",1],["Account Name *","account_name","",2],["Category","category","",1],["Parent Code","parent_code","",1],["Opening Balance","balance","number",1]].map(([l,k,t,span])=>(
-                <div key={k} className={`col-span-${span}`}>
-                  <label className="block mb-1 text-xs font-semibold text-gray-500">{l}</label>
-                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"/>
+                <div key={k} style={{gridColumn:`span ${span}`}}>
+                  <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
+                  <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                 </div>
               ))}
-              <div><label className="block mb-1 text-xs font-semibold text-gray-500">Account Type</label>
+              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Account Type</label>
                 <select value={form.account_type} onChange={e=>setForm(p=>({...p,account_type:e.target.value}))}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none">
+                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
                   {["Asset","Liability","Equity","Revenue","Expense"].map(t=><option key={t}>{t}</option>)}
                 </select></div>
-              <div className="flex items-center gap-2 pt-4">
+              <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:16}}>
                 <input type="checkbox" id="isActive" checked={form.is_active} onChange={e=>setForm(p=>({...p,is_active:e.target.checked}))} style={{accentColor:"#0369a1",width:16,height:16}}/>
-                <label htmlFor="isActive" className="text-sm font-semibold text-gray-700 cursor-pointer">Active</label>
+                <label htmlFor="isActive" style={{fontSize:14,fontWeight:600,color:"#374151",cursor:"pointer"}}>Active</label>
               </div>
-              <div className="col-span-2"><label className="block mb-1 text-xs font-semibold text-gray-500">Description</label>
-                <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none resize-none"/></div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} className="px-4 py-2 rounded-xl border text-sm">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold" style={{background:"#1e3a5f"}}>
-                {saving?<RefreshCw className="w-3.5 h-3.5 animate-spin"/>:<Save className="w-3.5 h-3.5"/>}
-                {saving?"Saving…":editing?"Update":"Create"}
+              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
+                <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
+            </div></div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
+              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#1e3a5f"}}>
+                {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
+                {saving?"Saving...":editing?"Update":"Create"}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
+  </div>
   );
 }

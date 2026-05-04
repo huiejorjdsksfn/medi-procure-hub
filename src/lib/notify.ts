@@ -3,115 +3,32 @@ import { supabase } from "@/integrations/supabase/client";
 export type NotifType = "info"|"success"|"warning"|"error"|"email"|"procurement"|"voucher"|"grn"|"tender"|"quality"|"inventory"|"system";
 
 export interface NotifyPayload {
-  userId?: string;
+  userId?: string;        // target user (null = all admins)
   title: string;
   message: string;
   type?: NotifType;
   module?: string;
   actionUrl?: string;
   senderId?: string;
-  alsoInbox?: boolean;
-  subject?: string;
-  sendEmail?: boolean;   // also send real email via edge function
-  toEmail?: string;      // external email to deliver to
 }
 
-/** Resolve email address from user profile */
-async function getUserEmail(userId: string): Promise<string|null> {
-  try {
-    const {data} = await (supabase as any).from("profiles").select("email").eq("id",userId).maybeSingle();
-    return data?.email || null;
-  } catch { return null; }
-}
-
-/** Send email via Edge Function */
-async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
-  try {
-    const smtpCfg = await (supabase as any).from("smtp_configs").select("*").eq("is_default",true).eq("is_active",true).maybeSingle();
-    const smtp = smtpCfg?.data;
-    const { error, data } = await supabase.functions.invoke("send-email", {
-      body: {
-        to, subject, body,
-        from: smtp?.from_email,
-        from_name: smtp?.from_name || "EL5 MediProcure",
-        smtp: smtp ? {
-          host: smtp.host, port: smtp.port,
-          username: smtp.username, password: smtp.password,
-          from_email: smtp.from_email, from_name: smtp.from_name,
-          encryption: smtp.encryption,
-        } : undefined,
-      }
-    });
-    // Log to email_logs
-    await (supabase as any).from("email_logs").insert({
-      to_email: to, subject,
-      body, from_name: smtp?.from_name || "EL5 MediProcure",
-      from_email: smtp?.from_email || "",
-      status: !error && data?.success ? "sent" : "failed",
-      module: "notify",
-      sent_at: new Date().toISOString(),
-      error_message: error?.message || data?.results?.[0]?.error || null,
-    }).catch(()=>{});
-    return !error && (data?.success !== false);
-  } catch(e) { console.error("sendEmail error:", e); return false; }
-}
-
-/** Check if email notifications are enabled in settings */
-async function emailEnabled(): Promise<boolean> {
-  try {
-    const {data} = await (supabase as any).from("system_settings").select("value").eq("key","email_notifications_enabled").maybeSingle();
-    return data?.value === "true";
-  } catch { return false; }
-}
-
-/** Insert a notification + optionally an inbox_item + optional real email */
+/** Insert a notification record into the notifications table */
 export async function sendNotification(payload: NotifyPayload): Promise<void> {
   try {
-    const notifRow: any = {
+    const row: any = {
       title: payload.title,
       message: payload.message,
       type: payload.type || "info",
       module: payload.module || "system",
       action_url: payload.actionUrl || null,
       is_read: false,
-      status: "delivered",
       sender_id: payload.senderId || null,
-      subject: payload.subject || payload.title,
+      status: "delivered",
     };
-    if (payload.userId) notifRow.user_id = payload.userId;
+    if (payload.userId) row.user_id = payload.userId;
 
-    const { data: notif, error } = await (supabase as any)
-      .from("notifications").insert(notifRow).select("id").single();
-    if (error) console.error("Notification insert:", error.message);
-
-    // Inbox item
-    if (payload.alsoInbox && payload.userId) {
-      await (supabase as any).from("inbox_items").insert({
-        type: payload.type || "info",
-        subject: payload.subject || payload.title,
-        body: payload.message,
-        from_user_id: payload.senderId || null,
-        to_user_id: payload.userId,
-        priority: "normal",
-        status: "unread",
-        notification_id: notif?.id || null,
-        module: payload.module || "system",
-        record_type: payload.module || "system",
-      });
-    }
-
-    // Real email delivery
-    const shouldEmail = payload.sendEmail || payload.toEmail;
-    if (shouldEmail) {
-      const emailOk = await emailEnabled();
-      if (emailOk) {
-        const toEmail = payload.toEmail || (payload.userId ? await getUserEmail(payload.userId) : null);
-        if (toEmail) {
-          const body = `${payload.message}\n\n—\nEL5 MediProcure · Embu Level 5 Hospital\n${payload.actionUrl ? `View: ${window.location.origin}${payload.actionUrl}` : ""}`;
-          await sendEmail(toEmail, payload.subject || payload.title, body);
-        }
-      }
-    }
+    const { error } = await (supabase as any).from("notifications").insert(row);
+    if (error) console.error("Notification insert failed:", error.message);
   } catch (e) {
     console.error("sendNotification error:", e);
   }
@@ -124,7 +41,9 @@ export async function notifyAdmins(payload: Omit<NotifyPayload,"userId">): Promi
       .from("user_roles").select("user_id").eq("role","admin").limit(20);
     if (!admins?.length) return;
     await Promise.all(admins.map((a: any) => sendNotification({ ...payload, userId: a.user_id })));
-  } catch (e) { console.error("notifyAdmins error:", e); }
+  } catch (e) {
+    console.error("notifyAdmins error:", e);
+  }
 }
 
 /** Send notification to procurement managers + admins */
@@ -136,20 +55,7 @@ export async function notifyProcurement(payload: Omit<NotifyPayload,"userId">): 
     if (!roles?.length) return;
     const unique = [...new Set(roles.map((r: any) => r.user_id))] as string[];
     await Promise.all(unique.map(uid => sendNotification({ ...payload, userId: uid })));
-  } catch (e) { console.error("notifyProcurement error:", e); }
-}
-
-/** Send email notification to a specific external email + log it */
-export async function sendExternalEmail(
-  toEmail: string,
-  subject: string,
-  body: string,
-  options?: { module?: string; senderId?: string }
-): Promise<boolean> {
-  const ok = await emailEnabled();
-  if (!ok) {
-    console.warn("Email notifications disabled in settings");
-    return false;
+  } catch (e) {
+    console.error("notifyProcurement error:", e);
   }
-  return sendEmail(toEmail, subject, body);
 }

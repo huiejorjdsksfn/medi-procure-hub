@@ -1,5 +1,5 @@
 /**
- * ProcurBosse - SQL Server / ODBC Migration Engine
+ * ProcurBosse — SQL Server / ODBC Migration Engine
  * Safely migrates Supabase data to SQL Server via ODBC connection string.
  * Generates DDL + INSERT scripts compatible with SQL Server 2008+.
  */
@@ -149,7 +149,7 @@ export function buildFullMigrationScript(
   const db = config.database || "MediProcureEL5";
   const lines: string[] = [
     `-- ============================================================`,
-    `-- ProcurBosse - EL5 MediProcure SQL Server Migration Script`,
+    `-- ProcurBosse — EL5 MediProcure SQL Server Migration Script`,
     `-- Generated: ${new Date().toISOString()}`,
     `-- Source: Supabase (yvjfehnzbzjliizjvuhq)`,
     `-- Target: ${db} on ${config.serverHost||"localhost"}`,
@@ -163,7 +163,7 @@ export function buildFullMigrationScript(
     `    EXEC('CREATE SCHEMA [${targetSchema}]');`,
     `GO`,
     ``,
-    `-- - DDL: Create Tables -`,
+    `-- ── DDL: Create Tables ──────────────────────────────────────────`,
     ``,
   ];
 
@@ -175,7 +175,7 @@ export function buildFullMigrationScript(
   }
 
   // Data second
-  lines.push(`-- - DML: Insert Data -`);
+  lines.push(`-- ── DML: Insert Data ────────────────────────────────────────────`);
   lines.push("");
   for (const schema of schemas) {
     const data = dataMap[schema.tableName] || [];

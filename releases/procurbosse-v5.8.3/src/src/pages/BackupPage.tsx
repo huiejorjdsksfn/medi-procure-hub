@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import RoleGuard from "@/components/RoleGuard";
 import { toast } from "@/hooks/use-toast";
 import { Archive, RefreshCw, Download, CheckCircle, Clock, AlertTriangle, Database, FileSpreadsheet, Play, Trash2, Shield, Zap, Settings, Calendar } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { logAudit } from "@/lib/audit";
 import * as XLSX from "xlsx";
 
 const BACKUP_TABLES = [
@@ -18,23 +20,22 @@ const BACKUP_TABLES = [
 
 function BackupInner() {
   const { user, profile } = useAuth();
+  const { get: getSetting } = useSystemSettings();
+  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
+  const sysName = getSetting("system_name","EL5 MediProcure");
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTable, setCurrentTable] = useState("");
-  const [sysName, setSysName] = useState("EL5 MediProcure");
-  const [hospitalName, setHospitalName] = useState("Embu Level 5 Hospital");
+  // sysName now from useSystemSettings
+  // hospitalName now from useSystemSettings
+  const [backupFmt, setBackupFmt] = useState("Excel (XLSX)");
+  const [backupSch, setBackupSch] = useState("Weekly (Sunday)");
+  const [backupScope, setBackupScope] = useState<string[]>(["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"]);
 
   useEffect(()=>{
-    (supabase as any).from("system_settings").select("key,value").in("key",["system_name","hospital_name"])
-      .then(({data}:any)=>{
-        if(!data) return;
-        const m:Record<string,string>={};
-        data.forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
-        if(m.system_name) setSysName(m.system_name);
-        if(m.hospital_name) setHospitalName(m.hospital_name);
-      });
+    /* settings via useSystemSettings hook */
     loadJobs();
   },[]);
 
@@ -122,89 +123,100 @@ function BackupInner() {
     loadJobs();
   };
 
+
+  const handleRestore = async () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json,.sql,.gz,.zip,.backup";
+    fileInput.onchange = async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      if (!confirm(`Restore from "${file.name}"? This will overwrite current data.`)) return;
+      toast({ title: "Restore initiated", description: `Processing ${file.name} — manual DB restore required via Supabase dashboard.` });
+      logAudit(user?.id, profile?.full_name, "restore", "backup", undefined, { file: file.name });
+    };
+    fileInput.click();
+  };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6" style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"calc(100vh-100px)" }}>
+      <div style={{padding:24,maxWidth:896,margin:"0 auto",display:"flex",flexDirection:"column",gap:24, fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"100%" }}>
       {/* Header card */}
-      <div className="rounded-2xl border border-gray-200 p-6 shadow-sm">
-        <div className="flex items-start justify-between">
+      <div style={{borderRadius:16}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
           <div>
-            <h1 className="text-lg font-black text-gray-800 flex items-center gap-2">
-              <Archive className="w-5 h-5" style={{ color:"#1a3a6b" }} /> Backup & Recovery
+            <h1 style={{fontSize:18,fontWeight:900,color:"#1f2937",display:"flex",alignItems:"center",gap:8}}>
+              <Archive style={{width:20,height:20, color:"#1a3a6b" }} /> Backup & Recovery
             </h1>
-            <p className="text-xs text-gray-500 mt-1">Full database backup to Excel — {BACKUP_TABLES.length} tables, all records</p>
+            <p style={{fontSize:12,color:"#6b7280",marginTop:4}}>Full database backup to Excel — {BACKUP_TABLES.length} tables, all records</p>
           </div>
           <button onClick={runBackup} disabled={running}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95"
-            style={{ background:running?"#9ca3af":"linear-gradient(135deg,#1a3a6b,#1d4a87)" }}>
+            style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",borderRadius:10,fontSize:14,fontWeight:700,color:"#fff",border:"none",cursor:"pointer", background:running?"#9ca3af":"linear-gradient(135deg,#1a3a6b,#1d4a87)" }}>
             {running ? (
-              <><RefreshCw className="w-4 h-4 animate-spin" /> Running Backup...</>
+              <><RefreshCw style={{animation:"spin 1s linear infinite"}} /> Running Backup...</>
             ) : (
-              <><Download className="w-4 h-4" /> Run Full Backup</>
+              <><Download style={{width:16,height:16}} /> Run Full Backup</>
             )}
           </button>
         </div>
 
         {running && (
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-500">
+          <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,color:"#6b7280"}}>
               <span>Processing: <strong>{currentTable}</strong></span>
               <span>{progress}%</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-300" style={{ width:`${progress}%`, background:"linear-gradient(90deg,#1a3a6b,#1d4a87)" }} />
+            <div style={{width:"100%",height:8,borderRadius:4,background:"#f3f4f6",overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:4,transition:"width 0.3s", width:`${progress}%`, background:"linear-gradient(90deg,#1a3a6b,#1d4a87)" }} />
             </div>
           </div>
         )}
       </div>
 
       {/* Table list */}
-      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-5 py-3.5 border-b border-gray-100">
-          <h2 className="text-xs font-black uppercase tracking-widest text-gray-600">Tables to Backup ({BACKUP_TABLES.length})</h2>
+      <div style={{borderRadius:16}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6"}}>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563"}}>Tables to Backup ({BACKUP_TABLES.length})</h2>
         </div>
-        <div className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div style={{padding:16,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
           {BACKUP_TABLES.map(t => (
-            <div key={t} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
-              style={{ background:"#f8fafc", border:"1px solid #e5e7eb" }}>
-              <Database className="w-3 h-3 shrink-0" style={{ color:"#1a3a6b" }} />
-              <span className="truncate text-gray-600">{t}</span>
+            <div key={t} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:8,fontSize:12, background:"#f8fafc", border:"1px solid #e5e7eb" }}>
+              <Database style={{width:12,height:12,flexShrink:0, color:"#1a3a6b" }} />
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#4b5563"}}>{t}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Backup history */}
-      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-xs font-black uppercase tracking-widest text-gray-600">Backup History</h2>
-          <button onClick={loadJobs} className="p-1.5 rounded-lg hover:bg-gray-100 transition-all">
-            <RefreshCw className={`w-3.5 h-3.5 text-gray-400 ${loading?"animate-spin":""}`} />
+      <div style={{borderRadius:16}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563"}}>Backup History</h2>
+          <button onClick={loadJobs} style={{padding:5,borderRadius:6,background:"transparent",border:"none",cursor:"pointer"}}>
+            <RefreshCw style={{animation:loading?"spin 1s linear infinite":"none",width:14,height:14}} />
           </button>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div style={{}}>
           {loading ? (
-            <div className="px-5 py-6 text-center text-xs text-gray-400"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading...</div>
+            <div style={{padding:"24px 20px",textAlign:"center",fontSize:12,color:"#9ca3af"}}><RefreshCw style={{animation:"spin 1s linear infinite"}} />Loading...</div>
           ) : jobs.length === 0 ? (
-            <div className="px-5 py-6 text-center text-xs text-gray-400">No backup history yet. Run your first backup above.</div>
+            <div style={{padding:"24px 20px",textAlign:"center",fontSize:12,color:"#9ca3af"}}>No backup history yet. Run your first backup above.</div>
           ) : jobs.map(j => (
-            <div key={j.id} className="flex items-center gap-4 px-5 py-3.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7" }}>
-                {j.status==="completed" ? <CheckCircle className="w-4 h-4 text-green-600" /> :
-                 j.status==="failed" ? <AlertTriangle className="w-4 h-4 text-red-500" /> :
-                 <RefreshCw className="w-4 h-4 text-amber-500 animate-spin" />}
+            <div key={j.id} style={{display:"flex",alignItems:"center",gap:16,padding:"14px 20px"}}>
+              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0, background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7" }}>
+                {j.status==="completed" ? <CheckCircle style={{width:16,height:16,color:"#16a34a"}} /> :
+                 j.status==="failed" ? <AlertTriangle style={{width:16,height:16,color:"#ef4444"}} /> :
+                 <RefreshCw style={{animation:"spin 1s linear infinite"}} />}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-gray-800 truncate">{j.label}</div>
-                <div className="text-[10px] text-gray-400 flex items-center gap-2 mt-0.5">
-                  <Clock className="w-3 h-3" />
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#1f2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.label}</div>
+                <div style={{fontSize:10,color:"#9ca3af",display:"flex",alignItems:"center",gap:8,marginTop:2}}>
+                  <Clock style={{width:12,height:12}} />
                   {new Date(j.started_at).toLocaleString("en-KE",{dateStyle:"medium",timeStyle:"short"})}
                   {j.completed_at && <span>→ {new Date(j.completed_at).toLocaleTimeString("en-KE",{timeStyle:"short"})}</span>}
                   {j.row_counts && <span>• {Object.values(j.row_counts as Record<string,number>).reduce((a,b)=>a+b,0).toLocaleString()} records</span>}
                 </div>
               </div>
-              <span className="text-[9px] px-2 py-0.5 rounded-full font-bold capitalize"
-                style={{ background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7", color:j.status==="completed"?"#065f46":j.status==="failed"?"#991b1b":"#92400e" }}>
+              <span style={{fontSize:9,padding:"2px 8px",borderRadius:20,fontWeight:700,textTransform:"capitalize", background:j.status==="completed"?"#d1fae5":j.status==="failed"?"#fee2e2":"#fef3c7", color:j.status==="completed"?"#065f46":j.status==="failed"?"#991b1b":"#92400e" }}>
                 {j.status}
               </span>
             </div>
@@ -213,48 +225,48 @@ function BackupInner() {
       </div>
 
       {/* Backup Options */}
-      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-5 py-3.5 border-b border-gray-100">
-          <h2 className="text-xs font-black uppercase tracking-widest text-gray-600">Backup Options & Schedule</h2>
+      <div style={{borderRadius:16}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6"}}>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563"}}>Backup Options & Schedule</h2>
         </div>
-        <div className="p-5 grid grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <h3 className="text-xs font-black text-gray-700">Backup Format</h3>
+        <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <h3 style={{fontSize:12,fontWeight:900,color:"#374151"}}>Backup Format</h3>
             {["Excel (XLSX)","CSV (per table)","JSON dump","SQL Script"].map(fmt=>(
-              <label key={fmt} className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="backup_fmt" defaultChecked={fmt==="Excel (XLSX)"} className="accent-blue-600"/>
-                <span className="text-xs text-gray-600">{fmt}</span>
+              <label key={fmt} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                <input type="radio" name="backup_fmt" checked={backupFmt===fmt} onChange={()=>setBackupFmt(fmt)} style={{accentColor:"#2563eb"}}/>
+                <span style={{fontSize:12,color:"#4b5563"}}>{fmt}</span>
               </label>
             ))}
           </div>
-          <div className="space-y-3">
-            <h3 className="text-xs font-black text-gray-700">Auto-Schedule</h3>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <h3 style={{fontSize:12,fontWeight:900,color:"#374151"}}>Auto-Schedule</h3>
             {["Daily at midnight","Weekly (Sunday)","Monthly (1st)","Manual only"].map(sch=>(
-              <label key={sch} className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="backup_sch" defaultChecked={sch==="Weekly (Sunday)"} className="accent-blue-600"/>
-                <span className="text-xs text-gray-600">{sch}</span>
+              <label key={sch} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                <input type="radio" name="backup_sch" checked={backupSch===sch} onChange={()=>setBackupSch(sch)} style={{accentColor:"#2563eb"}}/>
+                <span style={{fontSize:12,color:"#4b5563"}}>{sch}</span>
               </label>
             ))}
           </div>
-          <div className="col-span-2 pt-3 border-t border-gray-100 space-y-2">
-            <h3 className="text-xs font-black text-gray-700 mb-2">Backup Scope</h3>
-            <div className="flex flex-wrap gap-2">
+          <div style={{gridColumn:"1/-1",paddingTop:12,borderTop:"1px solid #f3f4f6",display:"flex",flexDirection:"column",gap:8}}>
+            <h3 style={{fontSize:12,fontWeight:900,color:"#374151",marginBottom:8}}>Backup Scope</h3>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
               {["All Tables","Procurement Only","Finance Only","Users & Roles","System Settings","Audit Logs","Quality"].map(scope=>(
-                <label key={scope} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer" style={{background:"#f0f9ff",border:"1px solid #bae6fd"}}>
-                  <input type="checkbox" defaultChecked className="accent-blue-600 w-3 h-3"/>
-                  <span className="text-xs text-blue-700 font-semibold">{scope}</span>
+                <label key={scope} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,cursor:"pointer",background:backupScope.includes(scope)?"#f0f9ff":"#f9fafb",border:`1px solid ${backupScope.includes(scope)?"#bae6fd":"#e5e7eb"}`}}>
+                  <input type="checkbox" checked={backupScope.includes(scope)} onChange={e=>setBackupScope(p=>e.target.checked?[...p,scope]:p.filter(s=>s!==scope))} style={{accentColor:"#2563eb",width:12,height:12}}/>
+                  <span style={{fontSize:12,color:backupScope.includes(scope)?"#1d4ed8":"#6b7280",fontWeight:600}}>{scope}</span>
                 </label>
               ))}
             </div>
-            <div className="mt-4 flex gap-3">
-              <button onClick={runBackup} disabled={running} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
-                <Download className="w-3.5 h-3.5"/> Full Backup Now
+            <div style={{marginTop:16,display:"flex",gap:12}}>
+              <button onClick={runBackup} disabled={running} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,color:"#fff",border:"none",cursor:"pointer",background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
+                <Download style={{width:14,height:14}}/> Full Backup Now
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold" style={{background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
-                <Shield className="w-3.5 h-3.5"/> Verify Last Backup
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
+                <Shield style={{width:14,height:14}}/> Verify Last Backup
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold" style={{background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
-                <Settings className="w-3.5 h-3.5"/> Save Schedule
+              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
+                <Settings style={{width:14,height:14}}/> Save Schedule
               </button>
             </div>
           </div>
@@ -262,24 +274,24 @@ function BackupInner() {
       </div>
 
       {/* Restore section */}
-      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-5 py-3.5 border-b border-gray-100">
-          <h2 className="text-xs font-black uppercase tracking-widest text-gray-600 flex items-center gap-2">
-            <Zap className="w-3.5 h-3.5 text-orange-500"/> Restore from Backup
+      <div style={{borderRadius:16}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6"}}>
+          <h2 style={{fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.1em",color:"#4b5563",display:"flex",alignItems:"center",gap:8}}>
+            <Zap style={{width:14,height:14,color:"#f97316"}}/> Restore from Backup
           </h2>
         </div>
-        <div className="p-5">
-          <div className="p-4 rounded-xl mb-4" style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)"}}>
-            <p className="text-xs text-red-600 font-semibold">⚠️ Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
+        <div style={{padding:20}}>
+          <div style={{padding:16,borderRadius:12,marginBottom:16,background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)"}}>
+            <p style={{fontSize:12,color:"#dc2626",fontWeight:600}}>⚠️ Restoring overwrites current data. Ensure you have a current backup before proceeding.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer" style={{background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
-              <FileSpreadsheet className="w-4 h-4"/>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0f9ff",border:"1px solid #bae6fd",color:"#0369a1"}}>
+              <FileSpreadsheet style={{width:16,height:16}}/>
               Upload Backup File (.xlsx)
-              <input type="file" accept=".xlsx,.csv,.json" className="hidden" onChange={()=>{}}/>
+              <input type="file" accept=".xlsx,.csv,.json" style={{display:"none"}} onChange={()=>{}}/>
             </label>
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold" style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={()=>alert("Select a backup file first")}>
-              <Play className="w-3.5 h-3.5"/> Restore
+            <button style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fef2f2",color:"#ef4444",border:"1px solid #fca5a5"}} onClick={handleRestore}>
+              <Play style={{width:14,height:14}}/> Restore
             </button>
           </div>
         </div>
