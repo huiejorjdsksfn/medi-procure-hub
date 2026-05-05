@@ -18,9 +18,15 @@ import {
 } from "lucide-react";
 
 const ROLE_LABELS: Record<string,string> = {
-  admin:"Administrator", procurement_manager:"Proc. Manager",
-  procurement_officer:"Proc. Officer", inventory_manager:"Inventory Mgr",
-  warehouse_officer:"Warehouse", requisitioner:"Requisitioner",
+  admin:"Administrator",
+  database_admin:"Database Admin",
+  procurement_manager:"Proc. Manager",
+  procurement_officer:"Proc. Officer",
+  inventory_manager:"Inventory Mgr",
+  warehouse_officer:"Warehouse Officer",
+  requisitioner:"Requisitioner",
+  accountant:"Accountant",
+  reception:"Receptionist",
 };
 
 const MODULES = [
@@ -77,19 +83,19 @@ const MODULES = [
       {label:"Documents",   path:"/documents",  icon:FileText,  roles:[]},
     ]},
   { id:"admin", label:"Administration", icon:Settings, color:"#fbbf24", path:"/admin/panel",
-    roles:["admin"],
+    roles:["admin","database_admin"],
     sub:[
       {label:"Admin Panel",  path:"/admin/panel",    icon:Sliders,  roles:["admin"]},
       {label:"Users",        path:"/users",          icon:Users,    roles:["admin"]},
-      {label:"Database",     path:"/admin/database", icon:Database, roles:["admin"]},
+      {label:"Database",     path:"/admin/database", icon:Database, roles:["admin","database_admin"]},
       {label:"Settings",     path:"/settings",       icon:Settings, roles:["admin"]},
-      {label:"Backup",       path:"/backup",         icon:Archive,  roles:["admin"]},
+      {label:"Backup",       path:"/backup",         icon:Archive,  roles:["admin","database_admin"]},
       {label:"Webmaster",    path:"/webmaster",      icon:Globe,    roles:["admin"]},
-      {label:"ODBC",         path:"/odbc",           icon:Cpu,      roles:["admin"]},
+      {label:"ODBC",         path:"/odbc",           icon:Cpu,      roles:["admin","database_admin"]},
       {label:"Facilities",   path:"/facilities",     icon:Building2,roles:["admin"]},
       {label:"IP Access",    path:"/ip-access",      icon:Shield,   roles:["admin"]},
       {label:"GUI Editor",   path:"/gui-editor",     icon:Sliders,  roles:["admin"]},
-      {label:"DB Test",      path:"/db-test",        icon:Database, roles:["admin"]},
+      {label:"DB Test",      path:"/db-test",        icon:Database, roles:["admin","database_admin"]},
       {label:"Print Engine", path:"/print-engine",   icon:FileText, roles:["admin"]},
       {label:"Changelog",    path:"/changelog",      icon:Activity, roles:["admin"]},
     ]},

@@ -167,9 +167,34 @@ export const RELEASES: Release[] = [
     modules:["All 54 Pages","All 9 Roles","Procurement","Finance","Vouchers","Quality","Inventory","Communications","Administration","Accountant Workspace"],
     dbMigrations:2, engines:["AuthEngine","RoleEngine","ReleaseEngine"], pagesAdded:0, bugsFixed:8,
   },
+  {
+    version: "6.0.0", date:"2026-05-05", codename:"ProElite",
+    status:"stable", highlights:[
+      "NEW: ERP Command Wheel v4 — 12 outer segments + 8 inner spokes, all modules",
+      "NEW: Dashboard v4 Pro — live stats, activity feed, inline ERP wheel toggle",
+      "NEW: Print button on dashboard (window.print with print-safe CSS)",
+      "NEW: Offline DB status panel with ODBC Setup + Backup quick links",
+      "NEW: All 9 roles fully activated with QUICK action maps per role",
+      "NEW: database_admin role: Database, Backup, ODBC, DB Test, Audit Log access",
+      "NEW: accountant role: full voucher + finance workspace access",
+      "NEW: reception role: Reception Desk, Notifications, Email, Documents",
+      "NEW: Role chip panel on dashboard (admin only) — see all roles at a glance",
+      "NEW: Grid/List view toggle for quick actions",
+      "NEW: Refresh button with live stats re-fetch from Supabase",
+      "NEW: Spin animation on ERP Hub click — smooth 700ms rotate",
+      "NEW: Role-locked inner nodes on ERP Wheel show 🔒 for restricted access",
+      "NEW: 12-segment outer ring with emoji icons (Print Engine, Backup, Finance…)",
+      "IMPROVED: ROLE_LABELS now includes all 9 roles in sidebar user display",
+      "IMPROVED: Admin module in sidebar — database_admin gets DB, Backup, ODBC, DB Test",
+      "IMPROVED: Version bumped to 6.0.0 in package.json",
+      "IMPROVED: Version badge in ERP wheel header: Pro v4.0",
+    ],
+    modules:["All 54 Pages","All 9 Roles","ERP Wheel v4","Dashboard v4 Pro","Print Engine","Offline DB","Activity Feed"],
+    dbMigrations:0, engines:["ERPWheelEngine","DashboardEngine","PrintEngine","OfflineDBEngine"], pagesAdded:0, bugsFixed:2,
+  },
 ];
 
-export const CURRENT_VERSION = "5.8.3";
+export const CURRENT_VERSION = "6.0.0";
 export const CURRENT_RELEASE = RELEASES.find(r => r.version === CURRENT_VERSION)!;
 
 export function getReleaseByVersion(v: string): Release|undefined {
