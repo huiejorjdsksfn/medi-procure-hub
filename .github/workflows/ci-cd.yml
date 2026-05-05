@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  EL5 MediProcure — ProcurBosse CI/CD Pipeline                   ║
-# ║  v5.8.3 · Embu Level 5 Hospital · Embu County Government, Kenya ║
+# ║  v6.0.0 · Embu Level 5 Hospital · Embu County Government, Kenya ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
 # TRIGGERS:  Every push to main · Manual workflow_dispatch
@@ -20,7 +20,7 @@ on:
       version:
         description: "Release version override (default: 5.8.3)"
         required: false
-        default: "5.8.3"
+        default: "6.0.0"
       create_release:
         description: "Create GitHub Release"
         required: false
@@ -39,7 +39,7 @@ permissions:
 
 env:
   NODE_VERSION: "20"
-  APP_VERSION: "5.8.3"
+  APP_VERSION: "6.0.0"
   CI: "false"
   NODE_OPTIONS: "--max-old-space-size=4096"
   VITE_SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
