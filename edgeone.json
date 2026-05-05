@@ -1,6 +1,6 @@
 {
   "build": {
-    "command": "npm ci --ignore-scripts && npx vite build --outDir web",
+    "command": "npm ci --ignore-scripts && npm run build:all && cp -r web-admin web/admin && cp -r web-kiosk web/kiosk && cp -r web-user web/user",
     "directory": "web",
     "environment": {
       "NODE_VERSION": "20",
@@ -11,6 +11,9 @@
   },
   "routes": [
     { "src": "/(.*\\.(js|css|ico|png|svg|jpg|jpeg|gif|woff2?|ttf|otf|map|json|txt|webmanifest))", "dest": "/$1" },
+    { "src": "/admin/(.*)", "dest": "/admin/index.html", "status": 200 },
+    { "src": "/kiosk/(.*)", "dest": "/kiosk/index.html", "status": 200 },
+    { "src": "/app/(.*)", "dest": "/user/index.html", "status": 200 },
     { "src": "/(.*)", "dest": "/index.html", "status": 200 }
   ]
 }
