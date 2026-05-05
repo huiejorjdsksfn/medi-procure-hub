@@ -1,7 +1,7 @@
 {
   "name": "procurbosse",
   "private": true,
-  "version": "6.0.0",
+  "version": "6.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -30,9 +30,13 @@
     "build:web": "vite build",
     "build:electron": "electron-builder --win --x64 --config electron-builder.yml",
     "test:js": "node scripts/test-all-roles.mjs",
-    "build:all": "bash scripts/build-all-releases.sh",
+    "build:all": "npm run build:main && npm run build:admin && npm run build:kiosk && npm run build:user",
     "build:exe": "electron-builder --win --x64 --config electron-builder.yml",
-    "lint:roles": "node --input-type=module scripts/test-all-roles.mjs"
+    "lint:roles": "node --input-type=module scripts/test-all-roles.mjs",
+    "build:main": "vite build --outDir web",
+    "build:admin": "vite build --config vite.config.admin.ts",
+    "build:kiosk": "vite build --config vite.config.kiosk.ts",
+    "build:user": "vite build --config vite.config.user.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
@@ -127,7 +131,7 @@
     "workbox-window": "^7.4.0"
   },
   "productName": "ProcurBosse - EL5 MediProcure",
-  "description": "EL5 MediProcure Pro v6.0 \u2014 Full ERP with all roles, offline DB, print engine, activity feed",
+  "description": "EL5 MediProcure Pro v6.0 — Full ERP with all roles, offline DB, print engine, activity feed",
   "author": {
     "name": "Embu County Government",
     "email": "it@embu.health.go.ke"
