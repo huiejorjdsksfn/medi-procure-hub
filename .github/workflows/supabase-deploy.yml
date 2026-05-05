@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  EL5 MediProcure — Supabase DB & Edge Function Deploy           ║
-# ║  v5.8.3 · Embu Level 5 Hospital · Embu County Government, Kenya ║
+# ║  v6.0.0 · Embu Level 5 Hospital · Embu County Government, Kenya ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
 # TRIGGERS:
@@ -43,7 +43,7 @@ permissions:
 
 env:
   SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
-  APP_VERSION: "5.8.3"
+  APP_VERSION: "6.0.0"
 
 jobs:
 
