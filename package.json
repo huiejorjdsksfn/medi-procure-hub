@@ -1,7 +1,7 @@
 {
-  "name": "procurbosse",
+  "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "6.1.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,33 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:8080 && cross-env ELECTRON_DEV=1 electron electron/main.js\"",
-    "electron:build": "npm run build && electron-builder --config electron-builder.yml",
-    "electron:win": "npm run build && electron-builder --win --config electron-builder.yml",
-    "electron:win:x64": "npm run build && electron-builder --win --x64 --config electron-builder.yml",
-    "electron:win:ia32": "npm run build && electron-builder --win --ia32 --config electron-builder.yml",
-    "release:v1": "cross-env APP_VERSION=1.0.0 npm run electron:win",
-    "release:v2": "cross-env APP_VERSION=2.0.0 npm run electron:win",
-    "build:prod": "vite build --mode production",
-    "electron:build:x64": "npm run build && electron-builder --win --x64 --config electron-builder.yml",
-    "electron:build:ia32": "npm run build && electron-builder --win --ia32 --config electron-builder.yml",
-    "electron:build:both": "npm run build && electron-builder --win --x64 --ia32 --config electron-builder.yml",
-    "release:patch": "npm version patch && git push && git push --tags",
-    "release:minor": "npm version minor && git push && git push --tags",
-    "typecheck": "tsc --noEmit",
-    "test:roles": "node scripts/test-all-roles.mjs",
-    "build:release": "bash scripts/build-releases.sh",
-    "build:web": "vite build",
-    "build:electron": "electron-builder --win --x64 --config electron-builder.yml",
-    "test:js": "node scripts/test-all-roles.mjs",
-    "build:all": "npm run build:main && npm run build:admin && npm run build:kiosk && npm run build:user",
-    "build:exe": "electron-builder --win --x64 --config electron-builder.yml",
-    "lint:roles": "node --input-type=module scripts/test-all-roles.mjs",
-    "build:main": "vite build --outDir web",
-    "build:admin": "vite build --config vite.config.admin.ts",
-    "build:kiosk": "vite build --config vite.config.kiosk.ts",
-    "build:user": "vite build --config vite.config.user.ts"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
@@ -82,10 +56,7 @@
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.462.0",
-    "mammoth": "^1.8.0",
     "next-themes": "^0.3.0",
-    "papaparse": "^5.4.1",
-    "pdfjs-dist": "^3.11.174",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -110,10 +81,6 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "electron": "^41.0.3",
-    "electron-builder": "^26.8.1",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -125,17 +92,6 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
-    "vitest": "^3.2.4",
-    "wait-on": "^9.0.4",
-    "workbox-build": "^7.4.0",
-    "workbox-window": "^7.4.0"
-  },
-  "productName": "ProcurBosse - EL5 MediProcure",
-  "description": "EL5 MediProcure Pro v6.0 — Full ERP with all roles, offline DB, print engine, activity feed",
-  "author": {
-    "name": "Embu County Government",
-    "email": "it@embu.health.go.ke"
-  },
-  "main": "electron/main.js",
-  "homepage": "https://github.com/huiejorjdsksfn/medi-procure-hub"
+    "vitest": "^3.2.4"
+  }
 }

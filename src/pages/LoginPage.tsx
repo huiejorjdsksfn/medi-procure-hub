@@ -1,453 +1,141 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, WifiOff, Wifi } from "lucide-react";
-import procurementBg from "@/assets/procurement-bg.jpg";
-import embuLogo from "@/assets/embu-county-logo.jpg";
+import logo from "@/assets/logo.png";
 
-export default function LoginPage() {
-  const [email,    setEmail]    = useState("");
+const LoginPage = () => {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [showPass, setShowPass] = useState(false);
-  const [mounted,  setMounted]  = useState(false);
-  const [forgotMode, setForgotMode] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
-  const navigate  = useNavigate();
-  const { signIn, online } = useAuth();
-
-  useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
+  const [fullName, setFullName] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      toast({ title: "Please fill in all fields", variant: "destructive" });
-      return;
-    }
     setLoading(true);
+
     try {
-      const result = await signIn(email.trim(), password);
-      if (result.error) {
-        toast({ title: "Sign in failed", description: result.error, variant: "destructive" });
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+        toast({
+          title: "Account created",
+          description: "Check your email to confirm your account.",
+        });
       } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
         navigate("/dashboard");
       }
-    } catch (err: any) {
-      toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      toast({ title: "Enter your email address first", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin + "/dashboard",
-    });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
-    } else {
-      setForgotSent(true);
-    }
-  };
-
-  const DEMO_ACCOUNTS = [
-    { role: "Admin",          email: "samwise@gmail.com",        password: "samwise@gmail.com",       color: "#dc2626" },
-    { role: "Proc. Manager",  email: "manager@el5.co.ke",           password: "Manager@1234",     color: "#c45911" },
-    { role: "Accountant",     email: "accountant@el5.co.ke",        password: "Account@1234",     color: "#0369a1" },
-    { role: "Proc. Officer",  email: "officer@el5.co.ke",           password: "Officer@1234",     color: "#16a34a" },
-    { role: "Requisitioner",  email: "requisitioner@el5.co.ke",     password: "Req@12345",        color: "#7c3aed" },
-    { role: "Warehouse",      email: "warehouse@el5.co.ke",         password: "Warehouse@1234",   color: "#0e7490" },
-  ];
-
-  const fillDemo = (acct: typeof DEMO_ACCOUNTS[0]) => {
-    setEmail(acct.email);
-    setPassword(acct.password);
-  };
-
-  const TEAL   = "#0e7490";
-  const TEAL_D = "#0c6380";
-
   return (
-    <div style={{
-      position: "fixed", inset: 0,
-      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
-      overflow: "hidden",
-    }}>
-      {/* ── Full-screen background photo ── */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: `url(${procurementBg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center 40%",
-        filter: "brightness(0.88) saturate(1.1)",
-      }}/>
-
-      {/* Subtle dark gradient overlay — lighter than before */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.55) 100%)",
-      }}/>
-
-      {/* ── Centered card ── */}
-      <div style={{
-        position: "absolute", inset: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px",
-      }}>
-        <div style={{
-          background: "rgba(255,255,255,0.97)",
-          borderRadius: 4,
-          width: "100%", maxWidth: 380,
-          padding: "40px 36px 32px",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.12)",
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? "translateY(0) scale(1)" : "translateY(12px) scale(0.98)",
-          transition: "opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)",
-        }}>
-
-          {/* ── Logo area ── */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 10, marginBottom: 6,
-          }}>
-            <img
-              src={embuLogo}
-              alt="EL5H"
-              style={{
-                height: 36, width: 36, borderRadius: 6,
-                objectFit: "contain",
-                background: "#f0f9ff",
-                border: "1.5px solid #e0f2fe",
-                padding: 3,
-              }}
-              onError={e => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-            <div>
-              <div style={{
-                fontSize: 20, fontWeight: 900, color: "#0e2a4a",
-                letterSpacing: "-0.03em", lineHeight: 1,
-              }}>
-                EL5 MediProcure
-              </div>
-              <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
-                Embu Level 5 Hospital
-              </div>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md animate-fade-in">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <img src={logo} alt="MediProcure" className="w-12 h-12" />
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">
+              MediProcure
+            </h1>
           </div>
+          <p className="text-muted-foreground text-sm">
+            Level 5 Hospital Procurement Management System
+          </p>
+        </div>
 
-          {/* ── Offline status banner ── */}
-          {!online && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
-              background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8,
-              marginBottom: 14, fontSize: 11, color: "#92400e", fontWeight: 600,
-            }}>
-              <WifiOff style={{ width: 14, height: 14, flexShrink: 0 }} />
-              Offline mode — using cached credentials
-            </div>
-          )}
-          {online && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "5px 10px",
-              background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6,
-              marginBottom: 10, fontSize: 10, color: "#065f46", fontWeight: 600,
-            }}>
-              <Wifi style={{ width: 12, height: 12 }} />
-              Connected
-            </div>
-          )}
-
-          {/* ── SIGN IN heading ── */}
-          <div style={{
-            textAlign: "center" as const,
-            fontSize: 13, fontWeight: 700,
-            color: TEAL,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase" as const,
-            marginBottom: 26, marginTop: 12,
-          }}>
-            {forgotMode ? "RESET PASSWORD" : "SIGN IN"}
-          </div>
-
-          {/* ── Form ── */}
-          {forgotSent ? (
-            <div style={{ textAlign: "center" as const, padding: "16px 0" }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>✉️</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#0e2a4a", marginBottom: 6 }}>
-                Check your email
-              </div>
-              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>
-                A password reset link has been sent to<br/>
-                <strong style={{ color: "#374151" }}>{email}</strong>
-              </div>
-              <button
-                onClick={() => { setForgotMode(false); setForgotSent(false); }}
-                style={{
-                  marginTop: 18, fontSize: 12, fontWeight: 700,
-                  color: TEAL, background: "none", border: "none",
-                  cursor: "pointer", textDecoration: "underline",
-                }}
-              >
-                Back to Sign In
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={forgotMode ? handleForgot : handleSubmit}
-              style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
-
-              {/* Email / Username field */}
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="USERNAME"
-                required
-                autoFocus
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  letterSpacing: "0.04em",
-                  border: "1px solid #d1d5db",
-                  borderBottom: "none",
-                  borderRadius: "3px 3px 0 0",
-                  outline: "none",
-                  background: "#fff",
-                  color: "#374151",
-                  transition: "border-color 0.15s",
-                  boxSizing: "border-box" as const,
-                }}
-                onFocus={e => {
-                  e.target.style.borderColor = TEAL;
-                  e.target.style.borderBottomColor = "#d1d5db";
-                  e.target.style.background = "#f0fdff";
-                }}
-                onBlur={e => {
-                  e.target.style.borderColor = "#d1d5db";
-                  e.target.style.borderBottomColor = "none";
-                  e.target.style.background = "#fff";
-                }}
-              />
-
-              {/* Password field (hidden in forgot mode) */}
-              {!forgotMode && (
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="PASSWORD"
-                    required={!forgotMode}
-                    style={{
-                      width: "100%",
-                      padding: "10px 36px 10px 12px",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      letterSpacing: showPass ? "0.04em" : "0.16em",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "0 0 3px 3px",
-                      outline: "none",
-                      background: "#fff",
-                      color: "#374151",
-                      transition: "border-color 0.15s, background 0.15s",
-                      boxSizing: "border-box" as const,
-                    }}
-                    onFocus={e => {
-                      e.target.style.borderColor = TEAL;
-                      e.target.style.background = "#f0fdff";
-                    }}
-                    onBlur={e => {
-                      e.target.style.borderColor = "#d1d5db";
-                      e.target.style.background = "#fff";
-                    }}
+        <Card className="border-border shadow-lg">
+          <CardHeader className="pb-4">
+            <h2 className="text-xl font-semibold text-center text-foreground">
+              {isSignUp ? "Create Account" : "Sign In"}
+            </h2>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(v => !v)}
-                    style={{
-                      position: "absolute", right: 10, top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "transparent", border: "none",
-                      cursor: "pointer", color: "#9ca3af", lineHeight: 0,
-                      padding: 2,
-                    }}
-                  >
-                    {showPass
-                      ? <EyeOff style={{ width: 13, height: 13 }} />
-                      : <Eye    style={{ width: 13, height: 13 }} />
-                    }
-                  </button>
                 </div>
               )}
-
-              {/* Forgot password + Submit row */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 12,
-              }}>
-                {!forgotMode ? (
-                  <button
-                    type="button"
-                    onClick={() => setForgotMode(true)}
-                    style={{
-                      fontSize: 11, fontWeight: 600, color: TEAL,
-                      background: "none", border: "none", cursor: "pointer",
-                      padding: 0, letterSpacing: "0.01em",
-                    }}
-                  >
-                    Forgot password
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setForgotMode(false)}
-                    style={{
-                      fontSize: 11, fontWeight: 600, color: "#9ca3af",
-                      background: "none", border: "none", cursor: "pointer",
-                      padding: 0,
-                    }}
-                  >
-                    ← Back
-                  </button>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    fontSize: 12, fontWeight: 800,
-                    color: loading ? "#9ca3af" : TEAL,
-                    background: "none", border: "none",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase" as const,
-                    padding: 0,
-                    display: "flex", alignItems: "center", gap: 6,
-                    transition: "color 0.15s",
-                  }}
-                  onMouseEnter={e => { if(!loading) (e.currentTarget as HTMLElement).style.color = TEAL_D; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = loading ? "#9ca3af" : TEAL; }}
-                >
-                  {loading && <RefreshCw style={{ width: 12, height: 12 }} className="animate-spin" />}
-                  {loading
-                    ? (forgotMode ? "Sending…" : "Signing in…")
-                    : (forgotMode ? "SEND RESET" : "SUBMIT")
-                  }
-                </button>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@hospital.org"
+                  required
+                />
               </div>
-            </form>
-          )}
-
-          {/* Divider */}
-          <div style={{ borderTop: "1px solid #f3f4f6", marginTop: 24, paddingTop: 14 }}>
-            <div style={{ fontSize: 10, color: "#c4c9d4", textAlign: "center" as const, lineHeight: 1.6 }}>
-              For account creation or access issues,<br/>
-              contact ICT — Embu Level 5 Hospital
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Demo accounts quick-fill panel ── */}
-      {!forgotMode && (
-        <div style={{
-          position: "absolute", bottom: 52, left: "50%", transform: "translateX(-50%)",
-          background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)",
-          borderRadius: 10, padding: "10px 14px", maxWidth: 460, width: "calc(100% - 40px)",
-          opacity: mounted ? 1 : 0, transition: "opacity 0.8s 0.4s",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}>
-          <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.45)", textAlign: "center", margin: "0 0 7px", letterSpacing: "0.08em", fontWeight: 600 }}>
-            SAMPLE ACCOUNTS — CLICK TO AUTO-FILL
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
-            {DEMO_ACCOUNTS.map(acct => (
-              <button key={acct.role} onClick={() => fillDemo(acct)} style={{
-                background: acct.color + "22", border: `1px solid ${acct.color}44`,
-                borderRadius: 6, padding: "4px 10px", cursor: "pointer",
-                color: "#fff", fontSize: 10, fontWeight: 600,
-                transition: "background 0.2s",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = acct.color + "55")}
-              onMouseLeave={e => (e.currentTarget.style.background = acct.color + "22")}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
               >
-                {acct.role}
+                {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+              </Button>
+            </form>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-primary hover:underline"
+              >
+                {isSignUp
+                  ? "Already have an account? Sign in"
+                  : "Don't have an account? Sign up"}
               </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Bottom footer bar (like BackOffice bar in template) ── */}
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
-        background: "rgba(10,20,40,0.82)",
-        backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 10, padding: "10px 20px",
-        opacity: mounted ? 1 : 0,
-        transition: "opacity 0.8s 0.3s",
-      }}>
-        <img
-          src={embuLogo}
-          alt="Embu"
-          style={{
-            height: 22, width: 22, borderRadius: 3,
-            objectFit: "contain", opacity: 0.85,
-          }}
-          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-        />
-        <span style={{
-          fontSize: 11, fontWeight: 700,
-          color: "rgba(255,255,255,0.75)",
-          letterSpacing: "0.04em",
-        }}>
-          Embu County Government
-        </span>
-        <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>·</span>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.03em" }}>
-          Health Procurement Division · v5.8.3
-        </span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* ── Subtle UI corner decorations (like the template's faint grid marks) ── */}
-      {[
-        { top: 18, left: 18 }, { top: 18, right: 18 },
-        { bottom: 52, left: 18 }, { bottom: 52, right: 18 },
-      ].map((pos, i) => (
-        <div key={i} style={{
-          position: "absolute", ...pos,
-          width: 18, height: 18,
-          border: "1.5px solid rgba(255,255,255,0.22)",
-          borderRadius: 2,
-          opacity: mounted ? 0.7 : 0,
-          transition: "opacity 1s 0.5s",
-          pointerEvents: "none",
-        }}/>
-      ))}
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        input::placeholder { color: #aab0bb; font-weight: 600; letter-spacing: 0.08em; font-size: 11px; }
-        input:focus::placeholder { color: #b0c8d4; }
-        @media (max-width: 480px) {
-          div[style*="max-width: 380px"] { padding: 28px 20px 24px !important; }
-        }
-      `}</style>
     </div>
   );
-}
+};
+
+export default LoginPage;
