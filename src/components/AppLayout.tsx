@@ -22,6 +22,7 @@ import {
   Database,
   Globe,
   GitMerge,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
@@ -40,6 +41,7 @@ const navItems = [
   { path: "/scanner", label: "Barcode Scanner", icon: ScanBarcode },
   { path: "/reports", label: "Reports", icon: BarChart3 },
   { path: "/system-report", label: "System Utilization", icon: BarChart3 },
+  { path: "/communications", label: "Communications", icon: MessageSquare },
 ];
 
 const adminItems = [

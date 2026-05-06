@@ -24,6 +24,7 @@ import EnterpriseDashboardPage from "@/pages/EnterpriseDashboardPage";
 import WebmasterPage from "@/pages/WebmasterPage";
 import SystemReportPage from "@/pages/SystemReportPage";
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
+import CommunicationsPage from "@/pages/CommunicationsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/webmaster" element={<ProtectedPage><WebmasterPage /></ProtectedPage>} />
             <Route path="/system-report" element={<ProtectedPage><SystemReportPage /></ProtectedPage>} />
             <Route path="/tracking" element={<ProtectedPage><TrackingApprovalPage /></ProtectedPage>} />
+            <Route path="/communications" element={<ProtectedPage><CommunicationsPage /></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
