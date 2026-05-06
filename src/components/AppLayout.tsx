@@ -18,12 +18,18 @@ import {
   Building2,
   ScanBarcode,
   Menu,
+  Activity,
+  Database,
+  Globe,
+  GitMerge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/enterprise", label: "Enterprise Cockpit", icon: Activity },
+  { path: "/tracking", label: "Tracking & Approvals", icon: GitMerge },
   { path: "/items", label: "Items & Inventory", icon: Package },
   { path: "/categories", label: "Categories", icon: Layers },
   { path: "/requisitions", label: "Requisitions", icon: FileText },
@@ -33,10 +39,13 @@ const navItems = [
   { path: "/departments", label: "Departments", icon: Building2 },
   { path: "/scanner", label: "Barcode Scanner", icon: ScanBarcode },
   { path: "/reports", label: "Reports", icon: BarChart3 },
+  { path: "/system-report", label: "System Utilization", icon: BarChart3 },
 ];
 
 const adminItems = [
   { path: "/users", label: "User Management", icon: Users },
+  { path: "/database-admin", label: "Database Admin", icon: Database },
+  { path: "/webmaster", label: "Webmaster", icon: Globe },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 

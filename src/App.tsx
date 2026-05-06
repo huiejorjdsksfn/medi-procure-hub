@@ -19,6 +19,11 @@ import ScannerPage from "@/pages/ScannerPage";
 import ReportsPage from "@/pages/ReportsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import DatabaseAdminPage from "@/pages/DatabaseAdminPage";
+import EnterpriseDashboardPage from "@/pages/EnterpriseDashboardPage";
+import WebmasterPage from "@/pages/WebmasterPage";
+import SystemReportPage from "@/pages/SystemReportPage";
+import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +56,11 @@ const App = () => (
             <Route path="/reports" element={<ProtectedPage><ReportsPage /></ProtectedPage>} />
             <Route path="/users" element={<ProtectedPage><UsersPage /></ProtectedPage>} />
             <Route path="/settings" element={<ProtectedPage><SettingsPage /></ProtectedPage>} />
+            <Route path="/database-admin" element={<ProtectedPage><DatabaseAdminPage /></ProtectedPage>} />
+            <Route path="/enterprise" element={<ProtectedPage><EnterpriseDashboardPage /></ProtectedPage>} />
+            <Route path="/webmaster" element={<ProtectedPage><WebmasterPage /></ProtectedPage>} />
+            <Route path="/system-report" element={<ProtectedPage><SystemReportPage /></ProtectedPage>} />
+            <Route path="/tracking" element={<ProtectedPage><TrackingApprovalPage /></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
