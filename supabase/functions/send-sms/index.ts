@@ -66,10 +66,11 @@ Deno.serve(async (req) => {
 
     // Log attempt
     const { data: logRow } = await supabase.from("sms_log").insert({
-      recipient: recipient ?? "unknown",
+      to_number: recipient ?? "unknown",
       message: smsBody,
       status: "queued",
-      event_type: event ?? "custom",
+      module: event ?? "custom",
+      provider: "twilio",
     }).select().maybeSingle();
 
     // Twilio via Lovable Connector Gateway
