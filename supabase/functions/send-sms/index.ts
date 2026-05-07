@@ -72,14 +72,14 @@ Deno.serve(async (req) => {
       event_type: event ?? "custom",
     }).select().maybeSingle();
 
-    // Twilio credentials
-    const SID   = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const FROM  = Deno.env.get("TWILIO_FROM_NUMBER");
+    // Twilio via Lovable Connector Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+    const FROM = Deno.env.get("TWILIO_FROM_NUMBER");
 
-    if (!SID || !TOKEN || !FROM) {
+    if (!LOVABLE_API_KEY || !TWILIO_API_KEY || !FROM) {
       return new Response(
-        JSON.stringify({ ok: true, sent: false, reason: "Twilio not configured — SMS logged only." }),
+        JSON.stringify({ ok: true, sent: false, reason: "Twilio gateway not configured — SMS logged only." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -91,13 +91,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Send via Twilio REST API
+    // Send via Twilio Connector Gateway
     const twilioRes = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`,
+      `https://connector-gateway.lovable.dev/twilio/Messages.json`,
       {
         method: "POST",
         headers: {
-          Authorization: "Basic " + btoa(`${SID}:${TOKEN}`),
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": TWILIO_API_KEY,
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({ To: recipient, From: FROM, Body: smsBody }),
