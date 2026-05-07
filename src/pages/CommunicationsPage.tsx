@@ -301,7 +301,7 @@ const CommunicationsPage = () => {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-sm font-mono text-foreground truncate">{log.recipient}</span>
+                          <span className="text-sm font-mono text-foreground truncate">{log.to_number}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {statusBadge(log.status)}
