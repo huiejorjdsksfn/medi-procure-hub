@@ -1,104 +1,137 @@
 /**
- * ProcurBosse — make-call Edge Function v1.0
- * Outbound voice calls via Twilio · TwiML generation
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure — make-call Edge Function v10.0 NUCLEAR FIX
+ * Auth: Account SID + Auth Token (DIRECT)
+ * FROM: +16812972643 (hardcoded — verified on account AC9ce73d...)
+ * Actions: call, end_call, verify_number, status
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const cors = {
+const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
-const ACCT     = Deno.env.get("TWILIO_ACCOUNT_SID")    || "SET_IN_SUPABASE_SECRETS";
-const API_SK   = Deno.env.get("TWILIO_API_KEY_SID")    || "SET_IN_SUPABASE_SECRETS";
-const API_ST   = Deno.env.get("TWILIO_API_KEY_SECRET") || "SET_IN_SUPABASE_SECRETS";
-const AUTH     = API_SK.startsWith("SK") ? API_ST : (Deno.env.get("TWILIO_AUTH_TOKEN") || "SET_IN_SUPABASE_SECRETS");
-const AUTH_USR = API_SK.startsWith("SK") ? API_SK : ACCT;
-const FROM     = Deno.env.get("TWILIO_PHONE_NUMBER")  || "+16812972643";
-const APP_URL  = Deno.env.get("PROCURBOSSE_URL")      || "https://procurbosse.edgeone.app";
+const VERIFIED_FROM = "+16812972643";
+const HOSPITAL = "EL5 MediProcure — Embu Level 5 Hospital";
 
 function e164(raw: string): string {
-  const n = String(raw).replace(/[\s\-\(\)\.]/g, "");
+  const n = String(raw).replace(/[\s\-\(\)\.]/g, "").trim();
+  if (!n) return n;
+  if (n.startsWith("+")) return n;
   if (n.startsWith("07") || n.startsWith("01")) return "+254" + n.slice(1);
-  if (n.startsWith("254") && !n.startsWith("+")) return "+" + n;
-  if (!n.startsWith("+")) return "+254" + n;
+  if (n.startsWith("254")) return "+" + n;
+  if (n.length === 9 && /^\d+$/.test(n)) return "+254" + n;
   return n;
 }
+function escXml(s: string): string {
+  return String(s).replace(/[<>&"\']/g, (c:string) =>
+    ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':'&quot;',"\'":`&apos;`}[c]!));
+}
 
-serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const respond = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
   try {
-    const body = await req.json();
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const { data: rows } = await sb.from("system_settings").select("key,value")
+      .in("key", ["twilio_account_sid", "twilio_auth_token"]);
+    const cfg: Record<string,string> = {};
+    for (const r of rows ?? []) cfg[r.key] = r.value;
+
+    const ACCT  = Deno.env.get("TWILIO_ACCOUNT_SID") || cfg["twilio_account_sid"] || "";
+    const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN")  || cfg["twilio_auth_token"]  || "";
+    const auth  = "Basic " + btoa(`${ACCT}:${TOKEN}`);
+
+    const body = await req.json().catch(() => ({}));
     const { action = "call" } = body;
+    console.log(`[CALL v10] action=${action} ACCT=${ACCT.slice(0,12)}... TOKEN=${!!TOKEN}`);
 
-    // ── Status check ──────────────────────────────────────────────
+    // STATUS ─────────────────────────────────────────────────────────────────
     if (action === "status") {
-      return new Response(JSON.stringify({
-        ok: true, from: FROM, account: ACCT.slice(0,10)+"...",
-        auth_set: !!AUTH, capabilities: ["voice","sms","whatsapp"],
-      }), { headers: { ...cors, "Content-Type": "application/json" } });
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${ACCT}.json`,
+        { headers: { Authorization: auth }, signal: AbortSignal.timeout(8000) });
+      const d = await r.json();
+      const nr = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${ACCT}/IncomingPhoneNumbers.json?PageSize=20`,
+        { headers: { Authorization: auth }, signal: AbortSignal.timeout(8000) });
+      const nd = await nr.json();
+      const phones = (nd.incoming_phone_numbers ?? []).map((p: any) => p.phone_number);
+      return respond({ ok: r.ok && d.status==="active", account_status:d.status,
+        friendly_name:d.friendly_name, from:VERIFIED_FROM,
+        acct:ACCT.slice(0,12)+"...", token_set:!!TOKEN,
+        phone_numbers_on_account: phones });
     }
 
-    // ── Outbound voice call ────────────────────────────────────────
+    // VERIFY NUMBER ──────────────────────────────────────────────────────────
+    if (action === "verify_number") {
+      const num = e164(String(body.number||""));
+      if (!num) return respond({ ok:false, error:"number required" }, 400);
+      const r = await fetch(
+        `https://lookups.twilio.com/v1/PhoneNumbers/${encodeURIComponent(num)}?Type=carrier`,
+        { headers: { Authorization: auth }, signal: AbortSignal.timeout(10000) });
+      const d = await r.json();
+      return respond({ ok:r.ok, number:num, valid:r.ok, country_code:d.country_code??null,
+        national_format:d.national_format??null, carrier:d.carrier??null,
+        phone_type:d.carrier?.type??null, error:r.ok?undefined:d.message });
+    }
+
+    // END CALL ───────────────────────────────────────────────────────────────
+    if (action === "end_call") {
+      const { call_sid } = body;
+      if (!call_sid) return respond({ ok:false, error:"call_sid required" }, 400);
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${ACCT}/Calls/${call_sid}.json`, {
+        method:"POST",
+        headers:{ Authorization:auth, "Content-Type":"application/x-www-form-urlencoded" },
+        body:new URLSearchParams({ Status:"completed" }),
+        signal:AbortSignal.timeout(10000),
+      });
+      const d = await r.json();
+      return respond({ ok:r.ok, status:d.status, call_sid, error:d.message });
+    }
+
+    // OUTBOUND CALL ──────────────────────────────────────────────────────────
     if (action === "call") {
-      const { to, message = "Hello from EL5 MediProcure", caller_name = "EL5 Hospital" } = body;
-      if (!to) return new Response(JSON.stringify({ ok: false, error: "to is required" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      const { to, auto_end = false,
+        message = `Hello. This is an automated notification from MediProcure at Embu Level 5 Hospital. Please check the procurement system for details. Thank you.` } = body;
+      if (!to) return respond({ ok:false, error:"to is required" }, 400);
 
-      const number = e164(to);
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice" language="en-GB">${message.replace(/[<>&"]/g, c => ({ "<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;" }[c] || c))}</Say>
-  <Pause length="1"/>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-</Response>`;
+      const number = e164(String(to));
+      if (!ACCT||!TOKEN) return respond({ ok:false, error:"Credentials not configured" });
 
-      const params = new URLSearchParams({
-        To: number, From: FROM,
-        Twiml: twiml,
-        StatusCallback: `${APP_URL}/api/call-status`,
+      const twiml = auto_end
+        ? `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice" language="en-GB">${escXml(message)}</Say><Hangup/></Response>`
+        : `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice" language="en-GB">${escXml(message)}</Say><Pause length="1"/><Say voice="alice" language="en-GB">Thank you. Goodbye from Embu Level Five Hospital.</Say></Response>`;
+
+      console.log(`[CALL v10] calling ${number} from ${VERIFIED_FROM} auto_end=${auto_end}`);
+
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${ACCT}/Calls.json`, {
+        method:"POST",
+        headers:{ Authorization:auth, "Content-Type":"application/x-www-form-urlencoded" },
+        body:new URLSearchParams({ To:number, From:VERIFIED_FROM, Twiml:twiml }),
+        signal:AbortSignal.timeout(15000),
       });
+      const d = await r.json();
+      console.log(`[CALL v10] ok=${r.ok} sid=${d.sid} status=${d.status} code=${d.code} err=${d.message}`);
 
-      const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${ACCT}/Calls.json`, {
-        method: "POST",
-        headers: {
-          "Authorization": "Basic " + btoa(`${AUTH_USR}:${AUTH}`),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: params.toString(),
-      });
-
-      const data = await res.json();
-      if (!res.ok) return new Response(JSON.stringify({ ok: false, error: `${data.code}: ${data.message}` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-
-      // Log to reception_calls
-      await sb.from("reception_calls").insert({
-        caller_phone: number, direction: "outbound",
-        status: "initiated", twilio_call_sid: data.sid,
-        called_at: new Date().toISOString(), notes: message,
-      }).catch(() => {});
-
-      return new Response(JSON.stringify({ ok: true, sid: data.sid, status: data.status, to: number }), { headers: { ...cors, "Content-Type": "application/json" } });
+      if (r.ok && d.sid) {
+        await sb.from("sms_log").insert({
+          to_number:number, from_number:VERIFIED_FROM,
+          message:message.slice(0,200), status:d.status||"queued",
+          twilio_sid:d.sid, provider:"twilio_voice",
+          module:body.module||"voice_call", sent_at:new Date().toISOString(),
+        }).catch(()=>{});
+      }
+      return respond({ ok:r.ok, sid:d.sid, status:d.status,
+        to:number, from:VERIFIED_FROM, auto_end, code:d.code, error:d.message });
     }
 
-    // ── IVR / TwiML webhook ────────────────────────────────────────
-    if (action === "twiml") {
-      const { script = "welcome" } = body;
-      const scripts: Record<string,string> = {
-        welcome: `<Response><Say voice="alice" language="en-GB">Welcome to Embu Level 5 Hospital. Press 1 for Procurement, 2 for Finance, 3 for Reception, 0 to speak to an operator.</Say><Gather numDigits="1" action="${APP_URL}/api/ivr-route" method="POST"><Say voice="alice">Please make your selection now.</Say></Gather></Response>`,
-        procurement: `<Response><Say voice="alice">You have reached the Procurement Department. Please leave your message after the tone.</Say><Record maxLength="30" playBeep="true"/></Response>`,
-      };
-      return new Response(`<?xml version="1.0" encoding="UTF-8"?>${scripts[script] || scripts.welcome}`, { headers: { ...cors, "Content-Type": "text/xml" } });
-    }
-
-    return new Response(JSON.stringify({ ok: false, error: "Unknown action" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-
-  } catch (e: any) {
-    return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    return respond({ ok:false, error:`Unknown action: ${action}` }, 400);
+  } catch(e:any) {
+    console.error("[CALL v10] Fatal:", e.message);
+    return respond({ ok:false, error:e.message }, 500);
   }
 });
