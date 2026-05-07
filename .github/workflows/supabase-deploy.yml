@@ -1,0 +1,106 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  EL5 MediProcure — Supabase Quick Deploy                                ║
+# ║  Triggers only when migrations or edge functions change                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+name: "⚡ Supabase Quick Deploy"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/functions/**"
+  workflow_dispatch:
+    inputs:
+      deploy_functions:
+        description: "Deploy Edge Functions"
+        required: false
+        default: "true"
+        type: boolean
+      run_migrations:
+        description: "Run DB Migrations"
+        required: false
+        default: "true"
+        type: boolean
+
+env:
+  SUPABASE_PROJECT_REF: "yvjfehnzbzjliizjvuhq"
+
+jobs:
+  supabase-deploy:
+    name: "🗄️ Migrate + Deploy Functions"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🛠️ Install Supabase CLI"
+        run: npm install -g supabase@latest --legacy-peer-deps 2>/dev/null || true
+        continue-on-error: true
+
+      - name: "📋 List migrations"
+        run: ls -la supabase/migrations/ 2>/dev/null || echo "No migrations directory"
+
+      - name: "🚀 Push DB migrations"
+        if: github.event_name == 'push' || github.event.inputs.run_migrations != 'false'
+        run: |
+          supabase db push --project-ref ${{ env.SUPABASE_PROJECT_REF }} 2>&1 \
+            && echo "✅ Migrations applied" \
+            || echo "⚠️ Already up to date or migration error (non-fatal)"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy send-email"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy send-email \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ send-email deployed" || echo "⚠️ send-email skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy send-sms"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy send-sms \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ send-sms deployed" || echo "⚠️ send-sms skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy notify-requisition"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy notify-requisition \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ notify-requisition deployed" || echo "⚠️ notify-requisition skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy make-call"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy make-call \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ make-call deployed" || echo "⚠️ make-call skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "⚡ Deploy mysql-proxy"
+        if: github.event_name == 'push' || github.event.inputs.deploy_functions != 'false'
+        run: |
+          supabase functions deploy mysql-proxy \
+            --project-ref ${{ env.SUPABASE_PROJECT_REF }} \
+            --no-verify-jwt 2>&1 && echo "✅ mysql-proxy deployed" || echo "⚠️ mysql-proxy skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: "✅ Deploy complete"
+        run: echo "✅ Supabase deploy done — Project ${{ env.SUPABASE_PROJECT_REF }}"

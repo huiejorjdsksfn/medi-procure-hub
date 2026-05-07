@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EL5 MediProcure — Redirecting...</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a1628;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;
+      display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px}
+    .logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#0d3b7a,#1a5ca8);
+      display:flex;align-items:center;justify-content:center;animation:pulse 1.4s ease-in-out infinite}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+    .title{font-size:14px;font-weight:700;letter-spacing:.1em;opacity:.9}
+    .sub{font-size:10px;opacity:.4;letter-spacing:.06em}
+    .bar{width:140px;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+    .fill{height:100%;background:linear-gradient(90deg,#0078d4,#1a5ca8);animation:fill 1.8s ease-in-out forwards}
+    @keyframes fill{0%{width:0}100%{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
+      <path d="M8 16h16M16 8v16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="title">EL5 MEDIPROCURE</div>
+  <div class="sub">Loading your page...</div>
+  <div class="bar"><div class="fill"></div></div>
+  <script>
+    // Save path so the SPA can restore it after loading
+    var p=window.location.pathname,s=window.location.search,h=window.location.hash;
+    var full=p+s+h;
+    if(p!=='/'&&p!=='/login'&&p!=='/404.html'){
+      try{sessionStorage.setItem('el5_spa_route',full);}catch(e){}
+    }
+    // Redirect to SPA root immediately
+    window.location.replace('/');
+  </script>
+</body>
+</html>

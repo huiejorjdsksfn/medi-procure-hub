@@ -506,53 +506,8 @@ export type Database = {
         }
         Relationships: []
       }
-      contract_milestones: {
-        Row: {
-          amount: number | null
-          completed_at: string | null
-          contract_id: string
-          created_at: string | null
-          description: string | null
-          due_date: string | null
-          id: string
-          status: string | null
-          title: string
-        }
-        Insert: {
-          amount?: number | null
-          completed_at?: string | null
-          contract_id: string
-          created_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          status?: string | null
-          title: string
-        }
-        Update: {
-          amount?: number | null
-          completed_at?: string | null
-          contract_id?: string
-          created_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          status?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contract_milestones_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contracts: {
         Row: {
-          amendments: Json | null
           auto_renew: boolean | null
           contact_email: string | null
           contact_person: string | null
@@ -564,7 +519,6 @@ export type Database = {
           currency: string | null
           delivery_terms: string | null
           description: string | null
-          documents: Json | null
           end_date: string
           facility_id: string | null
           governing_law: string | null
@@ -572,15 +526,11 @@ export type Database = {
           milestones: Json | null
           notes: string | null
           payment_terms: string | null
-          performance_bond: boolean | null
-          performance_bond_amount: number | null
           performance_score: number | null
           rejection_reason: string | null
           renewal_count: number | null
-          renewal_options: string | null
           renewal_terms: string | null
           signed_by: string | null
-          signed_by_name: string | null
           signed_date: string | null
           start_date: string
           status: string | null
@@ -593,7 +543,6 @@ export type Database = {
           vat_applicable: boolean | null
         }
         Insert: {
-          amendments?: Json | null
           auto_renew?: boolean | null
           contact_email?: string | null
           contact_person?: string | null
@@ -605,7 +554,6 @@ export type Database = {
           currency?: string | null
           delivery_terms?: string | null
           description?: string | null
-          documents?: Json | null
           end_date: string
           facility_id?: string | null
           governing_law?: string | null
@@ -613,15 +561,11 @@ export type Database = {
           milestones?: Json | null
           notes?: string | null
           payment_terms?: string | null
-          performance_bond?: boolean | null
-          performance_bond_amount?: number | null
           performance_score?: number | null
           rejection_reason?: string | null
           renewal_count?: number | null
-          renewal_options?: string | null
           renewal_terms?: string | null
           signed_by?: string | null
-          signed_by_name?: string | null
           signed_date?: string | null
           start_date: string
           status?: string | null
@@ -634,7 +578,6 @@ export type Database = {
           vat_applicable?: boolean | null
         }
         Update: {
-          amendments?: Json | null
           auto_renew?: boolean | null
           contact_email?: string | null
           contact_person?: string | null
@@ -646,7 +589,6 @@ export type Database = {
           currency?: string | null
           delivery_terms?: string | null
           description?: string | null
-          documents?: Json | null
           end_date?: string
           facility_id?: string | null
           governing_law?: string | null
@@ -654,15 +596,11 @@ export type Database = {
           milestones?: Json | null
           notes?: string | null
           payment_terms?: string | null
-          performance_bond?: boolean | null
-          performance_bond_amount?: number | null
           performance_score?: number | null
           rejection_reason?: string | null
           renewal_count?: number | null
-          renewal_options?: string | null
           renewal_terms?: string | null
           signed_by?: string | null
-          signed_by_name?: string | null
           signed_date?: string | null
           start_date?: string
           status?: string | null
@@ -827,42 +765,6 @@ export type Database = {
         }
         Relationships: []
       }
-      document_attachments: {
-        Row: {
-          file_name: string
-          file_size: number | null
-          file_type: string | null
-          file_url: string
-          id: string
-          record_id: string
-          table_name: string
-          uploaded_at: string | null
-          uploaded_by: string | null
-        }
-        Insert: {
-          file_name: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url: string
-          id?: string
-          record_id: string
-          table_name: string
-          uploaded_at?: string | null
-          uploaded_by?: string | null
-        }
-        Update: {
-          file_name?: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string
-          id?: string
-          record_id?: string
-          table_name?: string
-          uploaded_at?: string | null
-          uploaded_by?: string | null
-        }
-        Relationships: []
-      }
       documents: {
         Row: {
           category: string
@@ -967,21 +869,6 @@ export type Database = {
           request_body?: Json | null
           response_body?: Json | null
           status?: string | null
-        }
-        Relationships: []
-      }
-      el5_sequences: {
-        Row: {
-          last_val: number
-          seq_key: string
-        }
-        Insert: {
-          last_val?: number
-          seq_key: string
-        }
-        Update: {
-          last_val?: number
-          seq_key?: string
         }
         Relationships: []
       }
@@ -1839,7 +1726,6 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
-          currency: string | null
           delivery_note: string | null
           delivery_note_no: string | null
           delivery_note_number: string | null
@@ -1848,14 +1734,10 @@ export type Database = {
           grn_date: string | null
           grn_number: string
           id: string
-          inspected_at: string | null
-          inspected_by: string | null
-          inspected_by_name: string | null
           inspection_notes: string | null
           inspection_status: string | null
           invoice_number: string | null
           items_received: Json | null
-          line_items: Json | null
           lpo_reference: string | null
           notes: string | null
           po_id: string | null
@@ -1870,7 +1752,6 @@ export type Database = {
           received_date: string | null
           remarks: string | null
           status: string | null
-          storage_location: string | null
           store_location: string | null
           supplier_id: string | null
           supplier_name: string | null
@@ -1884,7 +1765,6 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
-          currency?: string | null
           delivery_note?: string | null
           delivery_note_no?: string | null
           delivery_note_number?: string | null
@@ -1893,14 +1773,10 @@ export type Database = {
           grn_date?: string | null
           grn_number?: string
           id?: string
-          inspected_at?: string | null
-          inspected_by?: string | null
-          inspected_by_name?: string | null
           inspection_notes?: string | null
           inspection_status?: string | null
           invoice_number?: string | null
           items_received?: Json | null
-          line_items?: Json | null
           lpo_reference?: string | null
           notes?: string | null
           po_id?: string | null
@@ -1915,7 +1791,6 @@ export type Database = {
           received_date?: string | null
           remarks?: string | null
           status?: string | null
-          storage_location?: string | null
           store_location?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
@@ -1929,7 +1804,6 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
-          currency?: string | null
           delivery_note?: string | null
           delivery_note_no?: string | null
           delivery_note_number?: string | null
@@ -1938,14 +1812,10 @@ export type Database = {
           grn_date?: string | null
           grn_number?: string
           id?: string
-          inspected_at?: string | null
-          inspected_by?: string | null
-          inspected_by_name?: string | null
           inspection_notes?: string | null
           inspection_status?: string | null
           invoice_number?: string | null
           items_received?: Json | null
-          line_items?: Json | null
           lpo_reference?: string | null
           notes?: string | null
           po_id?: string | null
@@ -1960,7 +1830,6 @@ export type Database = {
           received_date?: string | null
           remarks?: string | null
           status?: string | null
-          storage_location?: string | null
           store_location?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
@@ -2692,7 +2561,6 @@ export type Database = {
           cost_price: number | null
           created_at: string | null
           created_by: string | null
-          current_quantity: number | null
           department_id: string | null
           department_name: string | null
           description: string | null
@@ -2714,7 +2582,6 @@ export type Database = {
           status: string | null
           supplier_id: string | null
           supplier_name: string | null
-          unit: string | null
           unit_of_measure: string | null
           unit_price: number | null
           updated_at: string | null
@@ -2730,7 +2597,6 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           created_by?: string | null
-          current_quantity?: number | null
           department_id?: string | null
           department_name?: string | null
           description?: string | null
@@ -2752,7 +2618,6 @@ export type Database = {
           status?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
-          unit?: string | null
           unit_of_measure?: string | null
           unit_price?: number | null
           updated_at?: string | null
@@ -2768,7 +2633,6 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           created_by?: string | null
-          current_quantity?: number | null
           department_id?: string | null
           department_name?: string | null
           description?: string | null
@@ -2790,7 +2654,6 @@ export type Database = {
           status?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
-          unit?: string | null
           unit_of_measure?: string | null
           unit_price?: number | null
           updated_at?: string | null
@@ -3073,124 +2936,6 @@ export type Database = {
           {
             foreignKeyName: "non_conformance_supplier_id_fkey"
             columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      non_conformances: {
-        Row: {
-          attachments: Json | null
-          category: string | null
-          corrective_action: string | null
-          created_at: string | null
-          department: string | null
-          department_id: string | null
-          description: string | null
-          detected_at: string | null
-          detected_by: string | null
-          detected_by_name: string | null
-          due_date: string | null
-          facility_id: string | null
-          id: string
-          nc_number: string
-          notes: string | null
-          preventive_action: string | null
-          related_item_id: string | null
-          related_item_name: string | null
-          related_supplier_id: string | null
-          related_supplier_name: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          resolved_by_name: string | null
-          root_cause: string | null
-          severity: string | null
-          source: string | null
-          status: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          attachments?: Json | null
-          category?: string | null
-          corrective_action?: string | null
-          created_at?: string | null
-          department?: string | null
-          department_id?: string | null
-          description?: string | null
-          detected_at?: string | null
-          detected_by?: string | null
-          detected_by_name?: string | null
-          due_date?: string | null
-          facility_id?: string | null
-          id?: string
-          nc_number: string
-          notes?: string | null
-          preventive_action?: string | null
-          related_item_id?: string | null
-          related_item_name?: string | null
-          related_supplier_id?: string | null
-          related_supplier_name?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          resolved_by_name?: string | null
-          root_cause?: string | null
-          severity?: string | null
-          source?: string | null
-          status?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          attachments?: Json | null
-          category?: string | null
-          corrective_action?: string | null
-          created_at?: string | null
-          department?: string | null
-          department_id?: string | null
-          description?: string | null
-          detected_at?: string | null
-          detected_by?: string | null
-          detected_by_name?: string | null
-          due_date?: string | null
-          facility_id?: string | null
-          id?: string
-          nc_number?: string
-          notes?: string | null
-          preventive_action?: string | null
-          related_item_id?: string | null
-          related_item_name?: string | null
-          related_supplier_id?: string | null
-          related_supplier_name?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          resolved_by_name?: string | null
-          root_cause?: string | null
-          severity?: string | null
-          source?: string | null
-          status?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "non_conformances_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "non_conformances_related_item_id_fkey"
-            columns: ["related_item_id"]
-            isOneToOne: false
-            referencedRelation: "items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "non_conformances_related_supplier_id_fkey"
-            columns: ["related_supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
@@ -3733,57 +3478,6 @@ export type Database = {
           },
         ]
       }
-      print_jobs: {
-        Row: {
-          copies: number | null
-          created_at: string | null
-          facility_id: string | null
-          id: string
-          job_type: string
-          metadata: Json | null
-          paper_size: string | null
-          printed_at: string | null
-          printed_by: string | null
-          printed_by_name: string | null
-          reference_id: string | null
-          reference_number: string | null
-          status: string | null
-          template: string | null
-        }
-        Insert: {
-          copies?: number | null
-          created_at?: string | null
-          facility_id?: string | null
-          id?: string
-          job_type: string
-          metadata?: Json | null
-          paper_size?: string | null
-          printed_at?: string | null
-          printed_by?: string | null
-          printed_by_name?: string | null
-          reference_id?: string | null
-          reference_number?: string | null
-          status?: string | null
-          template?: string | null
-        }
-        Update: {
-          copies?: number | null
-          created_at?: string | null
-          facility_id?: string | null
-          id?: string
-          job_type?: string
-          metadata?: Json | null
-          paper_size?: string | null
-          printed_at?: string | null
-          printed_by?: string | null
-          printed_by_name?: string | null
-          reference_id?: string | null
-          reference_number?: string | null
-          status?: string | null
-          template?: string | null
-        }
-        Relationships: []
-      }
       procurement_plans: {
         Row: {
           approved_at: string | null
@@ -4039,12 +3733,10 @@ export type Database = {
           approved_by: string | null
           approved_by_name: string | null
           approved_date: string | null
-          budget_id: string | null
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
           currency: string | null
-          delivery_address: string | null
           delivery_date: string | null
           delivery_terms: string | null
           department: string | null
@@ -4083,12 +3775,10 @@ export type Database = {
           approved_by?: string | null
           approved_by_name?: string | null
           approved_date?: string | null
-          budget_id?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
           currency?: string | null
-          delivery_address?: string | null
           delivery_date?: string | null
           delivery_terms?: string | null
           department?: string | null
@@ -4127,12 +3817,10 @@ export type Database = {
           approved_by?: string | null
           approved_by_name?: string | null
           approved_date?: string | null
-          budget_id?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
           currency?: string | null
-          delivery_address?: string | null
           delivery_date?: string | null
           delivery_terms?: string | null
           department?: string | null
@@ -4167,13 +3855,6 @@ export type Database = {
           warranty_period?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "purchase_orders_budget_id_fkey"
-            columns: ["budget_id"]
-            isOneToOne: false
-            referencedRelation: "budgets"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "purchase_orders_facility_id_fkey"
             columns: ["facility_id"]
@@ -4677,39 +4358,6 @@ export type Database = {
         }
         Relationships: []
       }
-      record_comments: {
-        Row: {
-          author_id: string | null
-          author_name: string | null
-          comment: string
-          created_at: string | null
-          id: string
-          is_internal: boolean | null
-          record_id: string
-          table_name: string
-        }
-        Insert: {
-          author_id?: string | null
-          author_name?: string | null
-          comment: string
-          created_at?: string | null
-          id?: string
-          is_internal?: boolean | null
-          record_id: string
-          table_name: string
-        }
-        Update: {
-          author_id?: string | null
-          author_name?: string | null
-          comment?: string
-          created_at?: string | null
-          id?: string
-          is_internal?: boolean | null
-          record_id?: string
-          table_name?: string
-        }
-        Relationships: []
-      }
       reports: {
         Row: {
           columns: Json | null
@@ -4831,7 +4479,6 @@ export type Database = {
           cost_centre: string | null
           created_at: string | null
           created_by: string | null
-          currency: string | null
           delivery_date: string | null
           delivery_location: string | null
           department: string | null
@@ -4854,9 +4501,6 @@ export type Database = {
           priority: string | null
           purpose: string | null
           reference_number: string | null
-          rejected_at: string | null
-          rejected_by: string | null
-          rejected_by_name: string | null
           rejected_reason: string | null
           rejection_reason: string | null
           requested_by: string | null
@@ -4880,7 +4524,6 @@ export type Database = {
           cost_centre?: string | null
           created_at?: string | null
           created_by?: string | null
-          currency?: string | null
           delivery_date?: string | null
           delivery_location?: string | null
           department?: string | null
@@ -4903,9 +4546,6 @@ export type Database = {
           priority?: string | null
           purpose?: string | null
           reference_number?: string | null
-          rejected_at?: string | null
-          rejected_by?: string | null
-          rejected_by_name?: string | null
           rejected_reason?: string | null
           rejection_reason?: string | null
           requested_by?: string | null
@@ -4929,7 +4569,6 @@ export type Database = {
           cost_centre?: string | null
           created_at?: string | null
           created_by?: string | null
-          currency?: string | null
           delivery_date?: string | null
           delivery_location?: string | null
           department?: string | null
@@ -4952,9 +4591,6 @@ export type Database = {
           priority?: string | null
           purpose?: string | null
           reference_number?: string | null
-          rejected_at?: string | null
-          rejected_by?: string | null
-          rejected_by_name?: string | null
           rejected_reason?: string | null
           rejection_reason?: string | null
           requested_by?: string | null
@@ -5128,33 +4764,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      schema_cache_log: {
-        Row: {
-          details: string | null
-          id: number
-          operation: string
-          performed_at: string | null
-          performed_by: string | null
-          table_name: string
-        }
-        Insert: {
-          details?: string | null
-          id?: number
-          operation: string
-          performed_at?: string | null
-          performed_by?: string | null
-          table_name: string
-        }
-        Update: {
-          details?: string | null
-          id?: number
-          operation?: string
-          performed_at?: string | null
-          performed_by?: string | null
-          table_name?: string
-        }
-        Relationships: []
       }
       sms_log: {
         Row: {
@@ -5573,7 +5182,6 @@ export type Database = {
           awarded_at: string | null
           awarded_to: string | null
           awarded_to_name: string | null
-          awarding_criteria: string | null
           bid_bond_amount: number | null
           bid_bond_required: boolean | null
           category: string | null
@@ -5581,30 +5189,18 @@ export type Database = {
           contact_email: string | null
           contact_person: string | null
           contact_phone: string | null
-          contract_duration: string | null
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
-          currency: string | null
           description: string | null
-          documents_required: string | null
           estimated_value: number | null
           evaluation_criteria: string | null
           facility_id: string | null
           id: string
           opening_date: string | null
           performance_bond: boolean | null
-          pre_bid_date: string | null
-          pre_bid_meeting: boolean | null
-          pre_bid_venue: string | null
-          procurement_method: string | null
-          published_at: string | null
-          reference_number: string | null
           rejection_reason: string | null
-          remarks: string | null
           status: string | null
-          submission_requirements: string | null
-          tender_fee: number | null
           tender_number: string
           tender_type: string | null
           title: string
@@ -5618,7 +5214,6 @@ export type Database = {
           awarded_at?: string | null
           awarded_to?: string | null
           awarded_to_name?: string | null
-          awarding_criteria?: string | null
           bid_bond_amount?: number | null
           bid_bond_required?: boolean | null
           category?: string | null
@@ -5626,30 +5221,18 @@ export type Database = {
           contact_email?: string | null
           contact_person?: string | null
           contact_phone?: string | null
-          contract_duration?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
-          currency?: string | null
           description?: string | null
-          documents_required?: string | null
           estimated_value?: number | null
           evaluation_criteria?: string | null
           facility_id?: string | null
           id?: string
           opening_date?: string | null
           performance_bond?: boolean | null
-          pre_bid_date?: string | null
-          pre_bid_meeting?: boolean | null
-          pre_bid_venue?: string | null
-          procurement_method?: string | null
-          published_at?: string | null
-          reference_number?: string | null
           rejection_reason?: string | null
-          remarks?: string | null
           status?: string | null
-          submission_requirements?: string | null
-          tender_fee?: number | null
           tender_number?: string
           tender_type?: string | null
           title: string
@@ -5663,7 +5246,6 @@ export type Database = {
           awarded_at?: string | null
           awarded_to?: string | null
           awarded_to_name?: string | null
-          awarding_criteria?: string | null
           bid_bond_amount?: number | null
           bid_bond_required?: boolean | null
           category?: string | null
@@ -5671,30 +5253,18 @@ export type Database = {
           contact_email?: string | null
           contact_person?: string | null
           contact_phone?: string | null
-          contract_duration?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
-          currency?: string | null
           description?: string | null
-          documents_required?: string | null
           estimated_value?: number | null
           evaluation_criteria?: string | null
           facility_id?: string | null
           id?: string
           opening_date?: string | null
           performance_bond?: boolean | null
-          pre_bid_date?: string | null
-          pre_bid_meeting?: boolean | null
-          pre_bid_venue?: string | null
-          procurement_method?: string | null
-          published_at?: string | null
-          reference_number?: string | null
           rejection_reason?: string | null
-          remarks?: string | null
           status?: string | null
-          submission_requirements?: string | null
-          tender_fee?: number | null
           tender_number?: string
           tender_type?: string | null
           title?: string
@@ -5854,10 +5424,6 @@ export type Database = {
         Returns: Record<string, unknown>[]
       }
       dblink_is_busy: { Args: { "": string }; Returns: number }
-      el5_next_number: {
-        Args: { prefix: string; seq_table?: string; year_prefix?: boolean }
-        Returns: string
-      }
       exec_sql: { Args: { query: string }; Returns: Json }
       has_any_role: { Args: { required_roles: string[] }; Returns: boolean }
       has_role:
