@@ -67,10 +67,10 @@ const SMS_TEMPLATES = [
 
 interface SmsLog {
   id: string;
-  recipient: string;
+  to_number: string;
   message: string;
   status: string;
-  event_type: string;
+  module: string;
   created_at: string;
   twilio_sid?: string;
 }
