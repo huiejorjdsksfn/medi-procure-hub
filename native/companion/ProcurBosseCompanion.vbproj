@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>ProcurBosseCompanion</RootNamespace>
+    <AssemblyName>ProcurBosseCompanion</AssemblyName>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>4.9.0</Version>
+    <AssemblyVersion>4.9.0.0</AssemblyVersion>
+    <FileVersion>4.9.0.0</FileVersion>
+    <Product>ProcurBosse Companion</Product>
+    <Company>Embu Level 5 Hospital - Embu County Government</Company>
+    <Description>EL5 MediProcure Native Companion - IT Administration Tool</Description>
+    <Copyright>Embu County Government, Kenya 2026</Copyright>
+    <!-- Single-file publish for easy distribution -->
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Windows 10+ (for modern controls) -->
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- Optimize for release -->
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="MainForm.vb" />
+  </ItemGroup>
+
+  <!-- No extra package dependencies - uses only .NET 8 BCL -->
+
+</Project>
