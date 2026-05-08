@@ -4,7 +4,7 @@
  * Real SQL editor, live realtime, all tables, triggers, edge functions
  * EL5 MediProcure - Embu Level 5 Hospital
  */
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

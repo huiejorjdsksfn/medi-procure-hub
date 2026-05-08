@@ -17,7 +17,7 @@ import {
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
   Lock, Unlock, Key, Wifi, WifiOff, Server, Radio, Bell,
   TrendingUp, AlertTriangle, MapPin, Clock, Package, ShoppingCart,
-  UserCheck, Zap, ChevronRight, Monitor
+  UserCheck, Zap, ChevronRight, Monitor, MessageSquare
 } from "lucide-react";
 
 const db = supabase as any;
@@ -157,7 +157,7 @@ export default function AdminPanelPage() {
     const s=await checkTwilioStatus();
     setTwilioStatus(s);
     setTwilioLoading(false);
-    toast({title:s.ok?"- Twilio Connected":"- Twilio Error",description:s.ok?`SMS: ${s.sms_from} | WA: ${s.wa_from}`:(s.error||"Connection failed"),variant:s.ok?"default":"destructive"});
+    toast({title:s.ok?"- Twilio Connected":"- Twilio Error",description:s.ok?`From: ${s.from||"-"}`:(s.error||"Connection failed"),variant:s.ok?"default":"destructive"});
   };
 
   /* Send test SMS */
