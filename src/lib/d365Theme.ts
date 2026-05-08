@@ -3,18 +3,31 @@
  */
 import { T } from "@/lib/theme";
 export { T };
-export const D = T;  // alias
 
-// Input style
-export const dInp = (extra?: Partial<React.CSSProperties>): React.CSSProperties => ({
+// Extended alias with extra UI tokens used by some pages (UsersPage etc.)
+export const D = {
+  ...T,
+  body:     T.bg,
+  font:     "'Segoe UI','Inter',system-ui,sans-serif",
+  fontMono: "'Cascadia Mono','SF Mono','Menlo',monospace",
+  ribbon:   T.primary,
+  ribbonDk: T.primaryDark,
+} as const;
+
+// Input style — usable as a value OR called with overrides
+const _baseInp: React.CSSProperties = {
   width:"100%", border:`1px solid ${T.border}`, borderRadius:T.r,
   padding:"7px 11px", fontSize:13, outline:"none",
   background:"#fff", color:T.fg, boxSizing:"border-box",
-  ...extra,
-});
+};
+export const dInp: React.CSSProperties & ((extra?: Partial<React.CSSProperties>) => React.CSSProperties) =
+  Object.assign(
+    (extra?: Partial<React.CSSProperties>) => ({ ..._baseInp, ...extra }),
+    _baseInp,
+  ) as any;
 
-// Button style
-export const dBtn = (variant:"primary"|"secondary"|"danger"|"ghost"="primary"): React.CSSProperties => {
+// Button style — callable as `dBtn("primary")` OR as `dBtn.primary()`
+function _btn(variant:"primary"|"secondary"|"danger"|"ghost"="primary"): React.CSSProperties {
   const v = {
     primary:   {bg:T.primary,     fg:"#fff",     bd:T.primary},
     secondary: {bg:"#fff",        fg:T.primary,  bd:T.border},
@@ -24,6 +37,17 @@ export const dBtn = (variant:"primary"|"secondary"|"danger"|"ghost"="primary"): 
   return { display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px",
     background:v.bg, color:v.fg, border:`1px solid ${v.bd}`,
     borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer", transition:"all .12s" };
+}
+export const dBtn = Object.assign(_btn, {
+  primary:   () => _btn("primary"),
+  secondary: () => _btn("secondary"),
+  danger:    () => _btn("danger"),
+  ghost:     () => _btn("ghost"),
+}) as ((variant?:"primary"|"secondary"|"danger"|"ghost") => React.CSSProperties) & {
+  primary:   () => React.CSSProperties;
+  secondary: () => React.CSSProperties;
+  danger:    () => React.CSSProperties;
+  ghost:     () => React.CSSProperties;
 };
 
 // Table header cell
