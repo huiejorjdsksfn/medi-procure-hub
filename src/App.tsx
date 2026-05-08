@@ -124,15 +124,18 @@ function SPARouteRestorer() {
 }
 
 const App = () => (
+  <ErrorBoundary pageName="Application Root">
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ErrorBoundary pageName="Auth">
         <AuthProvider>
           <NetworkGuard>
             <SPARouteRestorer />
             <PWAInstallPrompt />
+            <ErrorBoundary pageName="Routing">
             <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -212,11 +215,14 @@ const App = () => (
             <Route path="/notifications" element={<P><NotificationsPage /></P>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
+            </ErrorBoundary>
           </NetworkGuard>
         </AuthProvider>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
