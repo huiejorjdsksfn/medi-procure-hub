@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 const HOSPITAL_HEADER = {
   name: "EMBU LEVEL 5 HOSPITAL",

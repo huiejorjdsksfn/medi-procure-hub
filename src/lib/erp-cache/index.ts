@@ -74,11 +74,11 @@ export const ERPCache = {
     try{Object.keys(localStorage).filter(k=>k.startsWith("el5c:")).forEach(k=>localStorage.removeItem(k));}catch{}
   },
 
-  async getOrFetch<T>(key:string,fetchFn:()=>Promise<T>,ttlMs=5*60_000,tag?:string):Promise<{data:T|null;fromCache:boolean;error?:any}>{
-    const cached=await this.get<T>(key);
+  async getOrFetch<T = any>(key:string,fetchFn:()=>Promise<T>,ttlMs=5*60_000,tag?:string):Promise<{data:T|null;fromCache:boolean;error?:any}>{
+    const cached=await (this as any).get(key) as T | null;
     if(cached!==null)return{data:cached,fromCache:true};
     try{const data=await fetchFn();if(data!=null)await this.set(key,data,ttlMs,tag);return{data,fromCache:false};}
-    catch(error){const stale=await this.getStale<T>(key);return{data:stale,fromCache:true,error};}
+    catch(error){const stale=await (this as any).getStale(key) as T | null;return{data:stale,fromCache:true,error};}
   },
 
   async getStale<T=any>(key:string):Promise<T|null>{
