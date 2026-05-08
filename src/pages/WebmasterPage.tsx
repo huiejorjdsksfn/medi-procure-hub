@@ -521,7 +521,7 @@ export default function WebmasterPage() {
                 key:"last_deploy_message",value:msg,category:"deploy"
               },{onConflict:"key"});
               toast({title:"Deploy triggered",description:"Push committed to GitHub Actions. CI/CD will build and deploy automatically."});
-              addLog(`- Deploy triggered: "${msg}"`);
+              try { (window as any).addLog?.(`- Deploy triggered: "${msg}"`); } catch {}
               setTab("terminal");
             }} style={{...btnS(T.primary),marginBottom:12}}>
               <ArrowRight size={13}/> Trigger Deploy

@@ -71,7 +71,7 @@ export default function GoodsReceivedPage() {
   const genGrn = ()=>`GRN/EL5H/${new Date().getFullYear()}/${String(Math.floor(1000+Math.random()*9000))}`;
 
   const printGrn = (g:any) => {
-    printGRN(g, {
+    (printGRN as any)(g, [], null, {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
       docFooter:      getSetting('doc_footer','Embu Level 5 Hospital - Embu County Government'),
