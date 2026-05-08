@@ -91,7 +91,7 @@ export default function SalesVouchersPage() {
   };
 
   const printVoucher = (v:any) => {
-    printGenericVoucher(v, "Sales Voucher", {
+    (printGenericVoucher as any)(v, "Sales Voucher", {
       hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
       sysName:        getSetting('system_name','EL5 MediProcure'),
       docFooter:      getSetting('doc_footer','Embu Level 5 Hospital - Embu County Government'),

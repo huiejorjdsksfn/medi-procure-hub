@@ -223,7 +223,7 @@ export default function PurchaseOrdersPage() {
 
   /* - Print - */
   const handlePrintLPO = (po:any) => {
-    printLPO(po, {
+    (printLPO as any)(po, [], null, {
       hospitalName:   getSetting("hospital_name","Embu Level 5 Hospital"),
       sysName:        getSetting("system_name","EL5 MediProcure"),
       docFooter:      getSetting("doc_footer","Embu Level 5 Hospital - Embu County Government"),
@@ -385,7 +385,7 @@ export default function PurchaseOrdersPage() {
                         {canCreate&&["draft","pending"].includes(po.status)&&(
                           <button onClick={()=>openEdit(po)} title="Edit" style={{padding:5,borderRadius:6,background:"#eff6ff",color:"#3b82f6",border:"none",cursor:"pointer"}}><Edit3 style={{width:12,height:12}}/></button>
                         )}
-                        <button onClick={()=>printLPO(po)} title="Print LPO" style={{padding:5,borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
+                        <button onClick={()=>(printLPO as any)(po, [], null)} title="Print LPO" style={{padding:5,borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
                         {canApprove&&po.status==="pending"&&(
                           <button onClick={()=>approve(po.id)} title="Approve" style={{padding:5,borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/></button>
                         )}
@@ -615,7 +615,7 @@ export default function PurchaseOrdersPage() {
                     <Edit3 style={{width:12,height:12}}/>Edit
                   </button>
                 )}
-                <button onClick={()=>printLPO(viewPO)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
+                <button onClick={()=>(printLPO as any)(viewPO, [], null)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
                   <Printer style={{width:12,height:12}}/>Print LPO
                 </button>
                 <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>

@@ -226,14 +226,14 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         </button>
         {MODS.filter(m=>canSee(m.roles)).map(mod=>{
           const isAct=activeMod===mod.id;
-          const modCnt=mod.items.reduce((a:number,i:any)=>a+(cnt[i.b as string]||0),0);
+          const modCnt=(mod.items as any[]).reduce<number>((a,i)=>a+(cnt[(i as any).b as string]||0),0);
           return(
             <button key={mod.id} onClick={()=>setActiveMod(isAct?null:mod.id)}
               style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,fontSize:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
               onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}08`;}}
               onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}08`:"transparent";}}>
               {mod.label}
-              {modCnt>0&&<Badge n={modCnt} col={mod.col}/>}
+              {(modCnt as number)>0&&<Badge n={modCnt as number} col={mod.col}/>}
               <ChevronDown size={11} style={{transform:isAct?"rotate(180deg)":"none",transition:"transform .2s"}}/>
             </button>
           );

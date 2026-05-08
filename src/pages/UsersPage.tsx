@@ -470,7 +470,7 @@ export default function UsersPage() {
               </div>
               <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:18,paddingTop:14,borderTop:`1px solid ${D.border}`}}>
                 <button onClick={()=>setModal(null)} style={dBtn.secondary()}>Cancel</button>
-                <button onClick={save} disabled={saving} style={dBtn.primary(saving)}>
+                <button onClick={save} disabled={saving} style={dBtn.primary()}>
                   {saving?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Check size={13}/>}
                   {saving?"Saving...":modal==="create"?"Create User":"Save Changes"}
                 </button>
@@ -506,7 +506,7 @@ export default function UsersPage() {
               </div>
               <div style={{display:"flex",justifyContent:"flex-end",gap:8,paddingTop:12,borderTop:`1px solid ${D.border}`}}>
                 <button onClick={()=>setModal(null)} style={dBtn.secondary()}>Cancel</button>
-                <button onClick={()=>resetPassword(selected.id,form.newPw||"")} disabled={saving} style={dBtn.primary(saving)}>
+                <button onClick={()=>resetPassword(selected.id,form.newPw||"")} disabled={saving} style={dBtn.primary()}>
                   {saving?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Key size={13}/>}
                   {saving?"Resetting...":"Reset Password"}
                 </button>
@@ -525,7 +525,7 @@ export default function UsersPage() {
             </div>
             <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
               <button onClick={()=>setModal(null)} style={dBtn.secondary()}>Cancel</button>
-              <button onClick={deleteUser} disabled={saving} style={{...dBtn.primary(saving),background:saving?"#c8d0da":D.error,boxShadow:"none"}}><Trash2 size={13}/>{saving?"Deleting...":"Delete"}</button>
+              <button onClick={deleteUser} disabled={saving} style={{...dBtn.primary(),background:saving?"#c8d0da":D.error,boxShadow:"none"}}><Trash2 size={13}/>{saving?"Deleting...":"Delete"}</button>
             </div>
           </div>
         </div>
