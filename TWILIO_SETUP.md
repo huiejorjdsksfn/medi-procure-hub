@@ -4,7 +4,7 @@
 
 | Key | Value |
 |-----|-------|
-| **API Key SID** | `SKOecb017c1d53fe437d443ae66f8e4a9c` |
+| **API Key SID** | `SET_IN_SUPABASE_SECRETS` |
 | **Auth Secret** | Set as Supabase secret (see below) |
 
 ## Step-by-Step Configuration
@@ -22,12 +22,12 @@ In your Supabase project dashboard:
 
 ```
 TWILIO_ACCOUNT_SID   = AC...your-account-sid...
-TWILIO_AUTH_TOKEN    = oq62ba4PVytf31QNP01SHPwi8Jx9MP8i
+TWILIO_AUTH_TOKEN    = SET_IN_SUPABASE_SECRETS
 TWILIO_FROM_NUMBER   = +12345678900
 ```
 
-> ⚠️ The API Key SID `SKOecb017c1d53fe437d443ae66f8e4a9c` is used for identification.
-> The Auth Secret `oq62ba4PVytf31QNP01SHPwi8Jx9MP8i` is used as your TWILIO_AUTH_TOKEN.
+> ⚠️ The API Key SID `SET_IN_SUPABASE_SECRETS` is used for identification.
+> The Auth Secret `SET_IN_SUPABASE_SECRETS` is used as your TWILIO_AUTH_TOKEN.
 
 ### 3. Deploy the Edge Function
 ```bash
