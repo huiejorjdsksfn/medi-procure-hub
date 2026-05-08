@@ -42,8 +42,8 @@ const GROUPS = ["Procurement","Inventory","Finance","Quality","System"];
 export default function ReportsPage() {
   const {profile} = useAuth();
   const settings = useSystemSettings();
-  const hospitalName = settings.hospital_name || "Embu Level 5 Hospital";
-  const sysName = settings.system_name || "EL5 MediProcure";
+  const hospitalName = settings.get("hospital_name", "Embu Level 5 Hospital");
+  const sysName     = settings.get("system_name",   "EL5 MediProcure");
 
   const [activeRpt, setActiveRpt] = useState(REPORT_TYPES[0]);
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10));
