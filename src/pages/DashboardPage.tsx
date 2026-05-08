@@ -210,7 +210,9 @@ export default function DashboardPage() {
     {id:"admin",      label:"Administration",             color:T.system,            ids:["users","settings","adminpanel","database","dbmonitor","backup","facilities","webmaster"]},
   ];
 
-  const sysName=settings.system_name||"EL5 MediProcure";
+  const sysName = (settings as any)?.get
+    ? (settings as any).get("system_name","EL5 MediProcure")
+    : ((settings as any)?.settings?.system_name || "EL5 MediProcure");
 
   return(
     <div style={{background:T.bg,minHeight:"100%",fontFamily:"'Segoe UI','Inter',system-ui,sans-serif"}}>

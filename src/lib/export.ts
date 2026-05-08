@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 const HOSPITAL_HEADER = {
   name: "EMBU LEVEL 5 HOSPITAL",
@@ -308,4 +309,14 @@ export const generateGRN_PDF = async (grn: any, po: any, supplier: any) => {
   doc.text("DISTRIBUTION: ORIGINAL - Finance (WHITE)  |  PROCUREMENT (YELLOW)  |  STORES (GREEN)  |  SUPPLIER (BLUE)", 14, 285);
   addFooter(doc);
   doc.save(`GRN-${grn.grn_number}.pdf`);
+};
+
+/** Export rows to .xlsx file */
+export const exportToExcel = (data: any[], title: string, columns?: string[]) => {
+  const cols = columns && columns.length ? columns : Object.keys(data[0] || {});
+  const rows = data.map(d => cols.reduce((a:any,c)=>{ a[c]=d?.[c] ?? ""; return a; }, {}));
+  const ws = XLSX.utils.json_to_sheet(rows, { header: cols });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, title.slice(0,28) || "Sheet1");
+  XLSX.writeFile(wb, title.toLowerCase().replace(/\s+/g,"-") + ".xlsx");
 };

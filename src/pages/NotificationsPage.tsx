@@ -61,7 +61,7 @@ export default function NotificationsPage() {
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
     try {
-    const { data } = await supabase.from("notifications").select("*")
+    const { data, error } = await supabase.from("notifications").select("*")
       .is("dismissed_at", null).order("created_at", { ascending: false }).limit(300);
     if (error) throw error;
     const rows=(data||[]) as Notification[]; setNotifs(rows);

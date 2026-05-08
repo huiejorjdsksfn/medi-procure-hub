@@ -19,7 +19,7 @@ import {
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt, BookMarked, Calendar,
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, Bell, Globe, Wrench, Home, Server,
-  BarChart2, Code2, Radio, Archive, Users, RefreshCw
+  BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch
 } from "lucide-react";
 
 const db = supabase as any;
@@ -144,8 +144,8 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
 
   const isAdmin   = roles?.some(r=>["admin","superadmin","webmaster"].includes(r));
   const isDbAdmin = roles?.some(r=>["database_admin"].includes(r)) || isAdmin;
-  const sysName   = s.system_name   || "EL5 MediProcure";
-  const hospName  = s.hospital_name || "Embu Level 5 Hospital";
+  const sysName   = s.get("system_name",   "EL5 MediProcure");
+  const hospName  = s.get("hospital_name", "Embu Level 5 Hospital");
 
   const canSee = useCallback((modRoles:string[])=>{
     if(!modRoles.length) return true;
@@ -219,21 +219,21 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* - D365 RIBBON (module tabs) - */}
       <div style={{background:"#fff",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"stretch",padding:"0 8px",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflowX:"auto"}}>
         <button onClick={()=>{setActiveMod(null);nav("/dashboard");}}
-          style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",background:"transparent",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
+          style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",background:"transparent",borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
           onMouseEnter={e=>{(e.currentTarget as any).style.color=T.primary}}
           onMouseLeave={e=>{(e.currentTarget as any).style.color=loc.pathname==="/dashboard"?T.primary:T.fgMuted}}>
           <Home size={13}/>Home
         </button>
         {MODS.filter(m=>canSee(m.roles)).map(mod=>{
           const isAct=activeMod===mod.id;
-          const modCnt=mod.items.reduce((a,i)=>a+(cnt[(i as any).b as string]||0),0);
+          const modCnt=(mod.items as any[]).reduce<number>((a,i)=>a+(cnt[(i as any).b as string]||0),0);
           return(
             <button key={mod.id} onClick={()=>setActiveMod(isAct?null:mod.id)}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,fontSize:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,fontSize:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,whiteSpace:"nowrap",transition:"all .15s"}}
               onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}08`;}}
               onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}08`:"transparent";}}>
               {mod.label}
-              {modCnt>0&&<Badge n={modCnt} col={mod.col}/>}
+              {(modCnt as number)>0&&<Badge n={modCnt as number} col={mod.col}/>}
               <ChevronDown size={11} style={{transform:isAct?"rotate(180deg)":"none",transition:"transform .2s"}}/>
             </button>
           );

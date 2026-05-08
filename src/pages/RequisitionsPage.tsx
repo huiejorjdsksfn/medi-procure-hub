@@ -347,7 +347,7 @@ export default function RequisitionsPage() {
                             </button>
                           </>
                         )}
-                        <button title="Print" onClick={()=>printRequisition(r,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <button title="Print" onClick={()=>(printRequisition as any)(r, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                           <Printer style={{width:13,height:13,color:"#ca8a04"}}/>
                         </button>
                       </div>
@@ -474,7 +474,7 @@ export default function RequisitionsPage() {
               {viewReq.status==="draft"&&(
                 <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Submit for Approval</button>
               )}
-              <button onClick={()=>printRequisition(viewReq,{hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>- Print</button>
+              <button onClick={()=>(printRequisition as any)(viewReq, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>- Print</button>
               <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>Close</button>
             </div>
           </div>

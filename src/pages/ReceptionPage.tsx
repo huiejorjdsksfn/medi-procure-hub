@@ -98,12 +98,12 @@ function NotifyAllTab() {
     setResult(data||{ok:false,error:error?.message});
   }
 
-  const s:Record<string,React.CSSProperties> = {
-    card:{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"},
-    label:{display:"block",fontSize:11,fontWeight:700,color:"#374151",marginBottom:5},
-    inp:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151"},
-    ta:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151",resize:"vertical" as const,minHeight:90},
-    btn:(bg:string)=>({padding:"10px 20px",background:bg,color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer"} as React.CSSProperties),
+  const s: any = {
+    card:{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"} as React.CSSProperties,
+    label:{display:"block",fontSize:11,fontWeight:700,color:"#374151",marginBottom:5} as React.CSSProperties,
+    inp:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151"} as React.CSSProperties,
+    ta:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151",resize:"vertical" as const,minHeight:90} as React.CSSProperties,
+    btn:(bg:string):React.CSSProperties=>({padding:"10px 20px",background:bg,color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer"}),
   };
 
   return(

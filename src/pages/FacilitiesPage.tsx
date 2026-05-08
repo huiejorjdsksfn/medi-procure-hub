@@ -36,7 +36,7 @@ export default function FacilitiesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
       .from("facilities").select("*").order("is_main", { ascending:false }).order("name");
       if(error) throw error;
     const rows=data||[]; setFacilities(rows); pageCache.set("facilities",rows);
