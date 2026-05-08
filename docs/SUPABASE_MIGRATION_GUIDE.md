@@ -329,7 +329,7 @@ supabase functions deploy send-sms --project-ref yvjfehnzbzjliizjvuhq --no-verif
 ```bash
 supabase secrets set \
   TWILIO_ACCOUNT_SID=ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a \
-  TWILIO_AUTH_TOKEN=d73601fbefe26e01b06e22c53a798ea6 \
+  TWILIO_AUTH_TOKEN=SET_IN_SUPABASE_SECRETS \
   TWILIO_PHONE_NUMBER=+16812972643 \
   TWILIO_WA_NUMBER=+14155238886 \
   TWILIO_MESSAGING_SERVICE_SID=MGd547d8e3273fda2d21afdd6856acb245 \
