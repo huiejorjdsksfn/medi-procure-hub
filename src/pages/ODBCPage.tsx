@@ -17,6 +17,7 @@ import {
   Wifi, WifiOff, Settings, Shield, Zap, Activity, Clock,
   ChevronDown, ChevronRight, FileText, Code2, Globe, Lock
 } from "lucide-react";
+import SqlServerWizard from "@/components/SqlServerWizard";
 
 const db = supabase as any;
 
@@ -66,6 +67,7 @@ export default function ODBCPage() {
   const [testing, setTesting]   = useState<string|null>(null);
   const [testResult, setTestResult] = useState<Record<string,any>>({});
   const [showPass, setShowPass] = useState<Record<string,boolean>>({});
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   /* Schema */
   const [schemaConn, setSchemaConn]       = useState("");
@@ -318,9 +320,14 @@ export default function ODBCPage() {
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={load} style={btnS(T.bg2,T.border)}><RefreshCw size={13}/> Refresh</button>
+          {isAdmin&&<button onClick={()=>setWizardOpen(true)} style={btnS("#0e7490")}><Server size={13}/> SQL Server Wizard</button>}
           {isAdmin&&<button onClick={openCreate} style={btnS(T.primary)}><Plus size={13}/> New Connection</button>}
         </div>
       </div>
+
+      {wizardOpen && (
+        <SqlServerWizard onClose={()=>setWizardOpen(false)} onSaved={load} />
+      )}
 
       {/* DB Architecture banner */}
       <div style={{...card,marginBottom:16,padding:"12px 16px",background:`${T.primary}12`,border:`1px solid ${T.primary}44`}}>
