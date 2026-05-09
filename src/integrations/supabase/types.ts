@@ -4370,12 +4370,19 @@ export type Database = {
       quotations: {
         Row: {
           approved_by: string | null
+          attachment_url: string | null
           created_at: string | null
           created_by: string | null
           currency: string | null
+          delivery_terms: string | null
+          evaluated_score: number | null
+          facility_id: string | null
           id: string
           notes: string | null
+          payment_terms: string | null
           quotation_number: string
+          received_date: string | null
+          rejected_reason: string | null
           requisition_id: string | null
           status: string | null
           supplier_id: string | null
@@ -4385,12 +4392,19 @@ export type Database = {
         }
         Insert: {
           approved_by?: string | null
+          attachment_url?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          delivery_terms?: string | null
+          evaluated_score?: number | null
+          facility_id?: string | null
           id?: string
           notes?: string | null
+          payment_terms?: string | null
           quotation_number?: string
+          received_date?: string | null
+          rejected_reason?: string | null
           requisition_id?: string | null
           status?: string | null
           supplier_id?: string | null
@@ -4400,12 +4414,19 @@ export type Database = {
         }
         Update: {
           approved_by?: string | null
+          attachment_url?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          delivery_terms?: string | null
+          evaluated_score?: number | null
+          facility_id?: string | null
           id?: string
           notes?: string | null
+          payment_terms?: string | null
           quotation_number?: string
+          received_date?: string | null
+          rejected_reason?: string | null
           requisition_id?: string | null
           status?: string | null
           supplier_id?: string | null

@@ -12,8 +12,6 @@ export default function LoginPage() {
   const [loading,    setLoading]    = useState(false);
   const [showPass,   setShowPass]   = useState(false);
   const [mounted,    setMounted]    = useState(false);
-  const [forgotMode, setForgotMode] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => { setTimeout(() => setMounted(true), 50); }, []);
@@ -43,24 +41,6 @@ export default function LoginPage() {
       toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleForgot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      toast({ title: "Enter your email first", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
-    } else {
-      setForgotSent(true);
     }
   };
 
@@ -184,60 +164,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* - Badge - */}
-          <div style={{ textAlign: "center", marginTop: 8 }}>
-            <span style={s.badge}>v5.8 - Health Procurement ERP</span>
-          </div>
-
           {/* - Mode heading - */}
-          <div style={s.heading}>
-            {forgotMode ? "RESET PASSWORD" : "SIGN IN"}
-          </div>
+          <div style={s.heading}>SIGN IN</div>
 
-          {/* - Forgot sent confirmation - */}
-          {forgotSent ? (
-            <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>-</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: BLUE, marginBottom: 6 }}>
-                Check your inbox
-              </div>
-              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.75 }}>
-                A reset link was sent to<br />
-                <strong style={{ color: "#374151" }}>{email}</strong>
-              </div>
-              <div style={{ marginTop: 12, padding: "10px 14px", background: "#f0fdf4", borderRadius: 7, border: "1px solid #bbf7d0", fontSize: 11, color: "#166534" }}>
-                Click the link to set a new password. Expires in 1 hour.
-              </div>
-              <button onClick={() => { setForgotMode(false); setForgotSent(false); }} style={s.forgotLink}>
-                - Back to Sign In
-              </button>
-            </div>
-
-          ) : forgotMode ? (
-            /* - Forgot form - */
-            <form onSubmit={handleForgot} autoComplete="off">
-              <div style={s.inputWrap}>
-                <label style={s.label}>Email Address</label>
-                <div style={s.inputIcon}><Mail size={15} /></div>
-                <input
-                  type="email" value={email} autoFocus
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@embu.go.ke"
-                  style={s.input}
-                  onFocus={e => (e.target.style.borderColor = TEAL)}
-                  onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
-                />
-              </div>
-              <button type="submit" disabled={loading} style={{ ...s.btn, opacity: loading ? 0.75 : 1 }}>
-                {loading ? <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
-                {loading ? "Sending-" : "Send Reset Link"}
-              </button>
-              <button type="button" onClick={() => setForgotMode(false)} style={s.forgotLink}>
-                - Back to Sign In
-              </button>
-            </form>
-
-          ) : (
+          {(
             /* - Sign in form - */
             <form onSubmit={handleSignIn} autoComplete="on">
               {/* Email */}
@@ -282,10 +212,6 @@ export default function LoginPage() {
                 {loading && <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} />}
                 {loading ? "Signing in-" : "Sign In"}
               </button>
-
-              <button type="button" onClick={() => setForgotMode(true)} style={s.forgotLink}>
-                Forgot password?
-              </button>
             </form>
           )}
         </div>
@@ -295,8 +221,6 @@ export default function LoginPage() {
       <div style={s.footerBar}>
         <div style={s.footerDot} />
         <span style={s.footerText}>Embu Level 5 Hospital - Embu County Government</span>
-        <div style={s.footerDot} />
-        <span style={{ ...s.footerText, color: "rgba(255,255,255,0.45)" }}>ERP v5.8</span>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
