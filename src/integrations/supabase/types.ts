@@ -458,6 +458,50 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chart_of_accounts: {
         Row: {
           account_code: string
@@ -1117,6 +1161,63 @@ export type Database = {
           subject?: string
           to_address?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      email_messages: {
+        Row: {
+          attachments: Json | null
+          bcc: string | null
+          body: string | null
+          body_html: string | null
+          cc: string | null
+          created_at: string
+          direction: string
+          error: string | null
+          from_addr: string | null
+          id: string
+          module: string | null
+          related_id: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          to_addr: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          bcc?: string | null
+          body?: string | null
+          body_html?: string | null
+          cc?: string | null
+          created_at?: string
+          direction?: string
+          error?: string | null
+          from_addr?: string | null
+          id?: string
+          module?: string | null
+          related_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          to_addr?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          bcc?: string | null
+          body?: string | null
+          body_html?: string | null
+          cc?: string | null
+          created_at?: string
+          direction?: string
+          error?: string | null
+          from_addr?: string | null
+          id?: string
+          module?: string | null
+          related_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          to_addr?: string | null
         }
         Relationships: []
       }
@@ -2214,6 +2315,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inspection_items: {
+        Row: {
+          created_at: string
+          defect_notes: string | null
+          description: string | null
+          id: string
+          inspection_id: string | null
+          item_id: string | null
+          quantity_accepted: number | null
+          quantity_inspected: number | null
+          quantity_rejected: number | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          defect_notes?: string | null
+          description?: string | null
+          id?: string
+          inspection_id?: string | null
+          item_id?: string | null
+          quantity_accepted?: number | null
+          quantity_inspected?: number | null
+          quantity_rejected?: number | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          defect_notes?: string | null
+          description?: string | null
+          id?: string
+          inspection_id?: string | null
+          item_id?: string | null
+          quantity_accepted?: number | null
+          quantity_inspected?: number | null
+          quantity_rejected?: number | null
+          status?: string | null
+        }
+        Relationships: []
       }
       inspections: {
         Row: {
@@ -3784,6 +3924,54 @@ export type Database = {
         }
         Relationships: []
       }
+      procurement_plan_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_total: number | null
+          estimated_unit_price: number | null
+          funding_source: string | null
+          id: string
+          item_id: string | null
+          notes: string | null
+          plan_id: string | null
+          quantity: number | null
+          quarter: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_total?: number | null
+          estimated_unit_price?: number | null
+          funding_source?: string | null
+          id?: string
+          item_id?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          quantity?: number | null
+          quarter?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_total?: number | null
+          estimated_unit_price?: number | null
+          funding_source?: string | null
+          id?: string
+          item_id?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          quantity?: number | null
+          quarter?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       procurement_plans: {
         Row: {
           approved_at: string | null
@@ -4533,6 +4721,57 @@ export type Database = {
           },
         ]
       }
+      reception_appointments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_min: number | null
+          host_id: string | null
+          host_name: string | null
+          id: string
+          notes: string | null
+          purpose: string | null
+          scheduled_for: string
+          status: string | null
+          updated_at: string
+          visitor_email: string | null
+          visitor_name: string
+          visitor_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number | null
+          host_id?: string | null
+          host_name?: string | null
+          id?: string
+          notes?: string | null
+          purpose?: string | null
+          scheduled_for: string
+          status?: string | null
+          updated_at?: string
+          visitor_email?: string | null
+          visitor_name: string
+          visitor_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number | null
+          host_id?: string | null
+          host_name?: string | null
+          id?: string
+          notes?: string | null
+          purpose?: string | null
+          scheduled_for?: string
+          status?: string | null
+          updated_at?: string
+          visitor_email?: string | null
+          visitor_name?: string
+          visitor_phone?: string | null
+        }
+        Relationships: []
+      }
       reception_calls: {
         Row: {
           call_status: string | null
@@ -4728,6 +4967,51 @@ export type Database = {
           is_internal?: boolean | null
           record_id?: string
           table_name?: string
+        }
+        Relationships: []
+      }
+      report_schedules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cron: string | null
+          enabled: boolean | null
+          format: string | null
+          id: string
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          recipients: string[] | null
+          report_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cron?: string | null
+          enabled?: boolean | null
+          format?: string | null
+          id?: string
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          recipients?: string[] | null
+          report_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cron?: string | null
+          enabled?: boolean | null
+          format?: string | null
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          recipients?: string[] | null
+          report_type?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -5150,6 +5434,39 @@ export type Database = {
           },
         ]
       }
+      scan_log: {
+        Row: {
+          details: Json | null
+          id: string
+          result: string | null
+          scan_type: string
+          scanned_at: string
+          scanned_by: string | null
+          severity: string | null
+          target: string | null
+        }
+        Insert: {
+          details?: Json | null
+          id?: string
+          result?: string | null
+          scan_type: string
+          scanned_at?: string
+          scanned_by?: string | null
+          severity?: string | null
+          target?: string | null
+        }
+        Update: {
+          details?: Json | null
+          id?: string
+          result?: string | null
+          scan_type?: string
+          scanned_at?: string
+          scanned_by?: string | null
+          severity?: string | null
+          target?: string | null
+        }
+        Relationships: []
+      }
       schema_cache_log: {
         Row: {
           details: string | null
@@ -5308,6 +5625,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      supplier_scorecards: {
+        Row: {
+          created_at: string
+          delivery_score: number | null
+          id: string
+          notes: string | null
+          overall_score: number | null
+          period: string | null
+          price_score: number | null
+          quality_score: number | null
+          service_score: number | null
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_score?: number | null
+          id?: string
+          notes?: string | null
+          overall_score?: number | null
+          period?: string | null
+          price_score?: number | null
+          quality_score?: number | null
+          service_score?: number | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_score?: number | null
+          id?: string
+          notes?: string | null
+          overall_score?: number | null
+          period?: string | null
+          price_score?: number | null
+          quality_score?: number | null
+          service_score?: number | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       suppliers: {
         Row: {
@@ -5543,6 +5902,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_metrics: {
+        Row: {
+          id: string
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number | null
+          recorded_at: string
+          tags: Json | null
+        }
+        Insert: {
+          id?: string
+          metric_name: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          recorded_at?: string
+          tags?: Json | null
+        }
+        Update: {
+          id?: string
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          recorded_at?: string
+          tags?: Json | null
+        }
+        Relationships: []
       }
       system_settings: {
         Row: {
