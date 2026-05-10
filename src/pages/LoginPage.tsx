@@ -167,50 +167,8 @@ export default function LoginPage() {
           {/* - Mode heading - */}
           <div style={s.heading}>SIGN IN</div>
 
-          {/* - Forgot sent confirmation - */}
-          {forgotSent ? (
-            <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>-</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: BLUE, marginBottom: 6 }}>
-                Check your inbox
-              </div>
-              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.75 }}>
-                A reset link was sent to<br />
-                <strong style={{ color: "#374151" }}>{email}</strong>
-              </div>
-              <div style={{ marginTop: 12, padding: "10px 14px", background: "#f0fdf4", borderRadius: 7, border: "1px solid #bbf7d0", fontSize: 11, color: "#166534" }}>
-                Click the link to set a new password. Expires in 1 hour.
-              </div>
-              <button onClick={() => { setForgotMode(false); setForgotSent(false); }} style={s.forgotLink}>
-                - Back to Sign In
-              </button>
-            </div>
-
-          ) : forgotMode ? (
-            /* - Forgot form - */
-            <form onSubmit={handleForgot} autoComplete="off">
-              <div style={s.inputWrap}>
-                <label style={s.label}>Email Address</label>
-                <div style={s.inputIcon}><Mail size={15} /></div>
-                <input
-                  type="email" value={email} autoFocus
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Email address"
-                  style={s.input}
-                  onFocus={e => (e.target.style.borderColor = TEAL)}
-                  onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
-                />
-              </div>
-              <button type="submit" disabled={loading} style={{ ...s.btn, opacity: loading ? 0.75 : 1 }}>
-                {loading ? <RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
-                {loading ? "Sending-" : "Send Reset Link"}
-              </button>
-              <button type="button" onClick={() => setForgotMode(false)} style={s.forgotLink}>
-                - Back to Sign In
-              </button>
-            </form>
-
-          ) : (
+          {(() => null)()}
+          {(
             /* - Sign in form - */
             <form onSubmit={handleSignIn} autoComplete="on">
               {/* Email */}
