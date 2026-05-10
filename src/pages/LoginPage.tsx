@@ -222,8 +222,6 @@ export default function LoginPage() {
       <div style={s.footerBar}>
         <div style={s.footerDot} />
         <span style={s.footerText}>EL5 MediProcure · Health Procurement System</span>
-        <div style={s.footerDot} />
-        <span style={{ ...s.footerText, color: "rgba(255,255,255,0.45)" }}>ERP v5.8</span>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
