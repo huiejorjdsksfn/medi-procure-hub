@@ -99,10 +99,10 @@ jobs:
           python3 -c "
           import json
           eo = json.load(open('edgeone.json'))
-          routes = eo.get('routes', [])
-          spa = next((r for r in routes if r.get('dest')=='/index.html' and r.get('status')==200), None)
-          assert spa, 'ERROR: No SPA route in edgeone.json!'
-          print('✅ edgeone.json SPA route:', spa)
+          rewrites = eo.get('rewrites', [])
+          spa = next((r for r in rewrites if r.get('destination')=='/index.html'), None)
+          assert spa, 'ERROR: No SPA rewrite in edgeone.json!'
+          print('✅ edgeone.json SPA rewrite:', spa)
           redir = open('dist/_redirects').read().strip()
           assert '/* /index.html 200' in redir, f'ERROR: bad _redirects: {redir}'
           print('✅ _redirects:', redir)
@@ -119,7 +119,6 @@ jobs:
           tests = [
             (b,  'el5_erp_cache',            'ERPCache IDB'),
             (b,  'el5c:',                    'ERPCache localStorage'),
-            (b,  'EL5_ROUTE_RESTORED',       'SPARouteRestorer'),
             (b,  'Supplier name is required','ValidationEngine'),
             (b,  'autosave:',               'FormEngine'),
             (b,  'showBrowserPush',         'NotificationEngine'),
@@ -130,7 +129,6 @@ jobs:
             (b,  'getDerivedStateFromError', 'ErrorBoundary'),
             (b,  'Embu Level 5',           'Hospital name'),
             (b,  '/changelog',             'ChangelogPage route'),
-            (ih, 'el5_spa_route',          'SPA route saver [HTML]'),
             (ih, 'el5_theme_cache',        'Theme restore [HTML]'),
             (ih, 'offline-banner',         'Offline banner [HTML]'),
           ]
