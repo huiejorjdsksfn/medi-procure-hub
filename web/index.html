@@ -68,14 +68,8 @@
     *,*::before,*::after{font-family:var(--font-family)}
     @media print{*,*::before,*::after{font-family:var(--print-font)!important;font-size:var(--print-font-size)!important}}
   </style>
-  <!-- SPA Route Preserver: saves URL before any redirect, restored after app loads -->
   <script>
     (function(){
-      var p=window.location.pathname,s=window.location.search,h=window.location.hash;
-      // Save intended route for post-init navigation
-      if(p!=='/'&&p!=='/login'&&p!=='/index.html'&&!p.startsWith('/assets')){
-        try{sessionStorage.setItem('el5_spa_route',p+s+h);}catch(e){}
-      }
       // Restore cached CSS vars from localStorage (instant, before React loads)
       try{
         var settings=JSON.parse(localStorage.getItem('el5_theme_cache')||'{}');
@@ -158,15 +152,6 @@
       },4000);
     });
 
-    // ── SPA route restore after load ──────────────────────────────────────────
-    // Exposes the saved route for React Router to pick up
-    window.__EL5_INITIAL_ROUTE = (function(){
-      try{
-        var r=sessionStorage.getItem('el5_spa_route');
-        if(r){sessionStorage.removeItem('el5_spa_route');return r;}
-      }catch(e){}
-      return null;
-    })();
   </script>
 </body>
 </html>
