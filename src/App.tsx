@@ -109,6 +109,7 @@ const App = () => (
             <Route path="/purchase-orders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant"]}><PurchaseOrdersPage /></RoleGuard></P>} />
             <Route path="/goods-received" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager","accountant"]}><GoodsReceivedPage /></RoleGuard></P>} />
             <Route path="/suppliers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><SuppliersPage /></RoleGuard></P>} />
+            <Route path="/crm" element={<Navigate to="/suppliers" replace />} />
             <Route path="/tenders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><TendersPage /></RoleGuard></P>} />
             <Route path="/bid-evaluations" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><BidEvaluationsPage /></RoleGuard></P>} />
             <Route path="/contracts" element={<P><RoleGuard allowed={["admin","procurement_manager"]}><ContractsPage /></RoleGuard></P>} />
@@ -116,7 +117,10 @@ const App = () => (
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
+            <Route path="/bi" element={<Navigate to="/reports" replace />} />
+            <Route path="/fabric" element={<Navigate to="/reports" replace />} />
             <Route path="/documents" element={<P><DocumentsPage /></P>} />
+            <Route path="/sharepoint" element={<Navigate to="/documents" replace />} />
             <Route path="/documents/editor" element={<P><DocumentEditorPage /></P>} />
             <Route path="/documents/editor/:id" element={<P><DocumentEditorPage /></P>} />
 
@@ -157,6 +161,7 @@ const App = () => (
             {/* Admin - role-gated */}
             <Route path="/users" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><UsersPage /></RoleGuard></P>} />
             <Route path="/settings" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><SettingsPage /></RoleGuard></P>} />
+            <Route path="/audit" element={<Navigate to="/audit-log" replace />} />
             <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><AuditLogPage /></RoleGuard></P>} />
               <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
