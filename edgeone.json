@@ -9,11 +9,5 @@
   },
   "rewrites": [
     { "source": "/((?!assets/|icons/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html", "status": 200 }
-  ],
-  "errorPage": {
-    "404": "/index.html"
-  }
+  ]
 }
