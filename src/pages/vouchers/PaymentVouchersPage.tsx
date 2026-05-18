@@ -36,7 +36,7 @@ function fmtDate(s: string) { return s ? new Date(s).toLocaleDateString("en-KE",
 
 function statusBadge(status: string) {
   const color = STATUS_COLORS[status] || "#6b7280";
-  return <span style={{padding:"2px 10px",borderRadius:12,fontSize:11,fontWeight:700,background:`${color}18`,color,border:`1px solid ${color}33`,textTransform:"uppercase",letterSpacing:"0.04em"}}>{status}</span>;
+  return <span className="status-chip" style={{padding:"2px 10px",borderRadius:12,fontSize:11,fontWeight:700,background:`${color}18`,color,border:`1px solid ${color}33`,textTransform:"uppercase",letterSpacing:"0.04em"}}>{status}</span>;
 }
 
 const METHODS = ["bank_transfer","cheque","cash","mpesa","rtgs","swift"];

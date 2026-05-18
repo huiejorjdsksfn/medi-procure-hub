@@ -175,7 +175,7 @@ export default function RequisitionsPage() {
     <div style={{minHeight:"100vh",background:"#0d1b35",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
 
       {/* - KPI TILES - */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+      <div className="kpi-tiles-row" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
         {[
           {label:"Total Value",     val:fmtKES(totalValue),    bg:"#dc2626",  icon:"-"},
           {label:"Approved Value",  val:fmtKES(approvedValue), bg:"#059669",  icon:"-"},
@@ -317,7 +317,7 @@ export default function RequisitionsPage() {
                       {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"-"}
                     </td>
                     <td style={{padding:"10px 14px"}}>
-                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
+                      <span className="status-chip" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
                         <span style={{width:5,height:5,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>
                         {cfg.label}
                       </span>
@@ -433,7 +433,7 @@ export default function RequisitionsPage() {
                 <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>{viewReq.requisition_number}</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>{viewReq.title}</div>
               </div>
-              <span style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
+              <span className="status-chip" style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
                 {STATUS_CFG[viewReq.status]?.label||viewReq.status}
               </span>
               <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>

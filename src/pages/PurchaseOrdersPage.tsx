@@ -285,7 +285,7 @@ export default function PurchaseOrdersPage() {
         const totalVal = orders.reduce((s,r)=>s+Number(r.total_amount||0),0);
         const recVal   = orders.filter(r=>r.status==="received").reduce((s,r)=>s+Number(r.total_amount||0),0);
         return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+          <div className="kpi-tiles-row" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
             {[
               {label:"Total Value",    val:fmtK(totalVal),bg:"#c0392b",path:null},
               {label:"Received Amt.",  val:fmtK(recVal),  bg:"#7d6608",path:null},
@@ -375,7 +375,7 @@ export default function PurchaseOrdersPage() {
                     <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937"}}>{po.suppliers?.name||po.supplier_name||"-"}</td>
                     <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11}}>{po.department||"-"}</td>
                     <td style={{padding:"10px 12px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label||po.status}</span>
+                      <span className="status-chip" style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label||po.status}</span>
                     </td>
                     <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap"}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
                     <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{po.delivery_date||"-"}</td>

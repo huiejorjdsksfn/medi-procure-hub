@@ -1,57 +1,76 @@
 /**
- * ProcurBosse - D365/Power BI Design System v6.0
- * Microsoft Dynamics 365 ERP aesthetic - white cards, blue ribbon, Segoe UI
+ * ProcurBosse - D365/Power BI Design System v6.1 — Live CSS-variable edition
+ * All colour values read from CSS custom properties so the GUI Editor takes
+ * effect instantly across every page without a reload.
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 
+/** Read a CSS variable from :root; fall back to `fallback` if not set. */
+function cssVar(name: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
+/**
+ * T — live theme object.
+ * Every colour property is a getter so it re-reads the CSS variable on
+ * every access, meaning any change applyThemeToDOM() makes is instantly
+ * visible on the next render cycle.
+ */
 export const T = {
-  // - Surfaces (light base, D365 style) -
-  bg:        "#f3f5f8",   // page background (very light grey)
+  // - Surfaces -
+  get bg()        { return cssVar("--color-page-bg",  "#f3f5f8"); },
   bg1:       "#eef1f5",
   bg2:       "#e8ecf1",
-  card:      "#ffffff",   // white cards
+  get card()      { return cssVar("--color-card-bg",  "#ffffff"); },
   cardHov:   "#f8f9fb",
-  border:    "#dde1e7",
+  get border()    { return cssVar("--color-border",   "#dde1e7"); },
   borderHov: "#c5cad3",
 
   // - Text -
-  fg:        "#1a1a2e",   // near-black
-  fgMuted:   "#5a6475",
+  get fg()        { return cssVar("--color-text",      "#1a1a2e"); },
+  get fgMuted()   { return cssVar("--color-text-muted","#5a6475"); },
   fgDim:     "#8d96a3",
 
-  // - D365 Brand blue -
-  primary:    "#0078d4",  // Microsoft blue
-  primaryHov: "#106ebe",
-  primaryDark:"#005a9e",
-  primaryBg:  "#e8f4fd",
+  // - Primary brand -
+  get primary()    { return cssVar("--color-primary",  "#0078d4"); },
+  get primaryHov() { return cssVar("--color-primary",  "#106ebe"); },
+  primaryDark: "#005a9e",
+  get primaryBg()  {
+    const c = cssVar("--color-primary","#0078d4");
+    return c + "18";  // 10% opacity tint
+  },
 
-  // - Accent / orange -
-  accent:     "#d83b01",  // D365 orange-red
+  // - Accent -
+  get accent()    { return cssVar("--color-accent",   "#d83b01"); },
   accentHov:  "#b83200",
-  accentBg:   "#fdf1ed",
+  get accentBg()  {
+    const c = cssVar("--color-accent","#d83b01");
+    return c + "18";
+  },
 
   // - Status -
-  success:    "#107c10",
+  get success()   { return cssVar("--color-success",  "#107c10"); },
   successBg:  "#dff6dd",
-  warning:    "#d39a04",
+  get warning()   { return cssVar("--color-warning",  "#d39a04"); },
   warningBg:  "#fff4ce",
-  error:      "#a4262c",
+  get error()     { return cssVar("--color-danger",   "#a4262c"); },
   errorBg:    "#fde7e9",
-  info:       "#0078d4",
-  infoBg:     "#e8f4fd",
+  get info()      { return cssVar("--color-primary",  "#0078d4"); },
+  get infoBg()    { return cssVar("--color-primary",  "#0078d4") + "18"; },
 
-  // - Module ribbon colors (D365 palette) -
-  procurement:"#0078d4",   // blue
-  finance:    "#7719aa",   // purple
-  inventory:  "#038387",   // teal
-  quality:    "#498205",   // green
-  system:     "#00188f",   // dark blue
-  comms:      "#0072c6",   // lighter blue
-  vouchers:   "#d83b01",   // orange
-  hr:         "#b4009e",   // magenta
-  reports:    "#5c2d91",   // deep purple
+  // - Module ribbon colors (keep as fixed palette; not user-configurable) -
+  procurement:"#0078d4",
+  finance:    "#7719aa",
+  inventory:  "#038387",
+  quality:    "#498205",
+  system:     "#00188f",
+  comms:      "#0072c6",
+  vouchers:   "#d83b01",
+  hr:         "#b4009e",
+  reports:    "#5c2d91",
 
-  // - Radius -
+  // - Radius (fixed) -
   r:    4,
   rMd:  6,
   rLg:  8,
@@ -61,9 +80,15 @@ export const T = {
   shadow:    "0 2px 8px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)",
   shadowMd:  "0 4px 16px rgba(0,0,0,0.12), 0 0 1px rgba(0,0,0,0.08)",
   shadowLg:  "0 8px 32px rgba(0,0,0,0.16)",
-} as const;
+};
 
 // - Component helpers -
+
+/**
+ * statusBadge — returns inline style for a coloured status chip.
+ * Uses live CSS-variable getters from T so GUI Editor colour changes
+ * are reflected on the next render without a page reload.
+ */
 export const statusBadge = (status: string): React.CSSProperties => {
   const map: Record<string,[string,string]> = {
     active:    [T.success, T.successBg],
@@ -86,6 +111,19 @@ export const statusBadge = (status: string): React.CSSProperties => {
   return { display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px",
     borderRadius:T.r, fontSize:11, fontWeight:600, color, background:bg };
 };
+
+/**
+ * StatusChip — a React element wrapper for statusBadge that automatically
+ * carries the "status-chip" CSS class, allowing the GUI Editor's
+ * "Coloured Status Badges" toggle to hide/neutralise chips app-wide.
+ */
+export function StatusChip({ status, label }: { status: string; label?: string }): JSX.Element {
+  return (
+    <span className="status-chip" style={statusBadge(status)}>
+      {label ?? status}
+    </span>
+  );
+}
 
 // D365-style card
 export const d365Card = (extra = ""): React.CSSProperties => ({
@@ -113,4 +151,4 @@ export const d365Btn = (variant: "primary"|"secondary"|"danger"|"ghost" = "prima
   };
 };
 
-import type React from "react";
+import React from "react";

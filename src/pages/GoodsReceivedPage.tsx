@@ -208,7 +208,7 @@ export default function GoodsReceivedPage() {
                 <td style={{padding:"10px 14px",fontWeight:600,color:"#1f2937",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.supplier_name||"-"}</td>
                 <td style={{padding:"10px 14px",color:"#6b7280",cursor:"pointer"}} onClick={()=>setViewGrn(g)}>{g.received_date?new Date(g.received_date).toLocaleDateString("en-KE"):g.created_at?new Date(g.created_at).toLocaleDateString("en-KE"):"-"}</td>
                 <td style={{padding:"10px 14px",textAlign:"center",color:ic>0?"#065f46":"#9ca3af",fontWeight:ic>0?700:400}}>{ic>0?ic:"-"}</td>
-                <td style={{padding:"10px 14px",cursor:"pointer"}} onClick={()=>setViewGrn(g)}><span style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label}</span></td>
+                <td style={{padding:"10px 14px",cursor:"pointer"}} onClick={()=>setViewGrn(g)}><span className="status-chip" style={{padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color}}>{s.label}</span></td>
                 <td style={{padding:"10px 14px"}}><div style={{display:"flex",gap:4}}>
                   <button onClick={()=>setViewGrn(g)} title="View" style={{padding:"4px 8px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#15803d"}}/></button>
                   <button onClick={()=>printGrn(g)} title="Print GRN" style={{padding:"4px 8px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:6,cursor:"pointer",lineHeight:0}}><Printer style={{width:12,height:12,color:"#0369a1"}}/></button>
