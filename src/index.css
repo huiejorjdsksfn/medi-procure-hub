@@ -67,8 +67,8 @@ input, textarea, select, button { -webkit-app-region: no-drag; }
 /* Root defaults matching GuiEditor defaults */
 :root {
   --font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
-  --font-size-base: 13px;
-  --font-size-sm: 11px;
+  --font-size-base: 15px;
+  --font-size-sm: 14px;
   --font-size-lg: 15px;
   --border-radius: 8px;
   --content-padding: 16px;
@@ -120,5 +120,35 @@ input, select, textarea, button {
 body.compact-tables table th,
 body.compact-tables table td {
   padding: 4px 8px !important;
-  font-size: var(--font-size-sm, 11px) !important;
+  font-size: var(--font-size-sm, 14px) !important;
+}
+
+/* ================================================
+   GUI Editor UI Toggle Classes
+   Applied by applyThemeToDOM when settings change
+   ================================================ */
+
+/* Hide logo in top nav bar */
+body.hide-logo-nav .topbar-logo {
+  display: none !important;
+}
+
+/* Hide search bar in top nav bar */
+body.hide-search-bar .topbar-search {
+  display: none !important;
+}
+
+/* Hide KPI summary tiles on all pages */
+body.hide-kpi-tiles .kpi-tiles-row {
+  display: none !important;
+}
+
+/* Hide coloured status badge chips — show plain text instead */
+body.hide-status-chips .status-chip {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-weight: 600;
+  color: var(--color-text-muted) !important;
 }

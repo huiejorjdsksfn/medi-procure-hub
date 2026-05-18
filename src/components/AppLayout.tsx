@@ -169,7 +169,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
 
       {/* - TOP BAR (D365 blue header) - */}
       <div style={{height:44,background:T.primary,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.25)"}}>
-        <img src={logoImg} alt="" style={{width:24,height:24,borderRadius:3,objectFit:"contain",background:"rgba(255,255,255,.12)",padding:2,flexShrink:0}}/>
+        <img src={logoImg} alt="" className="topbar-logo" style={{width:24,height:24,borderRadius:3,objectFit:"contain",background:"rgba(255,255,255,.12)",padding:2,flexShrink:0}}/>
         <div style={{lineHeight:1}}>
           <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{sysName}</div>
           <div style={{fontSize:8,color:"rgba(255,255,255,.6)",letterSpacing:".05em"}}>{hospName}</div>
