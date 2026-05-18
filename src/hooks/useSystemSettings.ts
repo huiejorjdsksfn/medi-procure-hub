@@ -32,8 +32,16 @@ const DEFAULTS: SystemSettings = {
   show_watermark:      "false",
   show_stamp:          "true",
   print_font:          "Times New Roman",
-  print_font_size:     "11",
+  print_font_size:     "9",
   paper_size:          "A4",
+  font_size_base:      "15px",
+  font_size_sm:        "14px",
+  font_size_lg:        "15px",
+  show_logo_nav:       "true",
+  show_kpi_tiles:      "true",
+  compact_tables:      "false",
+  show_status_chips:   "true",
+  show_search_bar:     "true",
 };
 
 let _cache: SystemSettings | null = null;
@@ -169,5 +177,33 @@ export function applyThemeToDOM(settings: SystemSettings): void {
     document.body.classList.add("compact-tables");
   } else {
     document.body.classList.remove("compact-tables");
+  }
+
+  // Show / hide logo in top bar
+  if (settings["show_logo_nav"] === "false") {
+    document.body.classList.add("hide-logo-nav");
+  } else {
+    document.body.classList.remove("hide-logo-nav");
+  }
+
+  // Show / hide search bar in top bar
+  if (settings["show_search_bar"] === "false") {
+    document.body.classList.add("hide-search-bar");
+  } else {
+    document.body.classList.remove("hide-search-bar");
+  }
+
+  // Show / hide KPI tiles on pages
+  if (settings["show_kpi_tiles"] === "false") {
+    document.body.classList.add("hide-kpi-tiles");
+  } else {
+    document.body.classList.remove("hide-kpi-tiles");
+  }
+
+  // Show / hide coloured status badges
+  if (settings["show_status_chips"] === "false") {
+    document.body.classList.add("hide-status-chips");
+  } else {
+    document.body.classList.remove("hide-status-chips");
   }
 }

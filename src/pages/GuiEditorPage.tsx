@@ -25,7 +25,7 @@ const PRESETS = [
 ];
 
 const FONTS   = ["Segoe UI","Inter","Roboto","Open Sans","Lato","Poppins","Arial","Calibri","Georgia","Verdana"];
-const SIZES   = ["10px","11px","12px","13px","14px","15px","16px"];
+const SIZES   = ["10px","11px","12px","13px","14px","15px","16px","17px","18px","20px","22px","24px"];
 const RADII   = ["0px","2px","4px","6px","8px","10px","12px","16px","24px"];
 const PADS    = ["8px","10px","12px","14px","16px","20px","24px","28px","32px"];
 const HEIGHTS = ["32px","36px","40px","44px","48px","52px","56px"];
@@ -53,15 +53,15 @@ const DEFAULTS = {
   text_primary:"#1e293b",   text_secondary:"#64748b",
   border_color:"#e2e8f0",   success_color:"#166534",
   warning_color:"#92400e",  danger_color:"#dc2626",
-  font_family:"Segoe UI",   font_size_base:"13px",
-  font_size_sm:"11px",      font_size_lg:"15px",
+  font_family:"Segoe UI",   font_size_base:"15px",
+  font_size_sm:"14px",      font_size_lg:"15px",
   border_radius:"8px",      content_padding:"16px",
   topbar_height:"40px",     nav_height:"44px",
   show_logo_nav:"true",     show_kpi_tiles:"true",
   compact_tables:"false",   show_status_chips:"true",
   show_search_bar:"true",
   print_font:"Times New Roman",
-  print_font_size:"11",
+  print_font_size:"9",
   paper_size:"A4",
 };
 
@@ -98,7 +98,7 @@ export default function GuiEditorPage() {
     show_status_chips:get("show_status_chips",DEFAULTS.show_status_chips),
     show_search_bar:  get("show_search_bar", DEFAULTS.show_search_bar),
     print_font:       get("print_font",       "Times New Roman"),
-    print_font_size:  get("print_font_size",  "11"),
+    print_font_size:  get("print_font_size",  "9"),
     paper_size:       get("paper_size",       "A4"),
   }));
 

@@ -114,7 +114,7 @@ function ERPWheel({ userRoles, isAdmin, onNav }: { userRoles: string[]; isAdmin:
   const doSpin = () => { setSpin(true); setRot(r=>r+360); setTimeout(()=>setSpin(false),700); };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,width:"100%"}}>
       <div style={{position:"relative",width:SIZE+80,height:SIZE+80}}>
         {/* glow */}
         <div style={{position:"absolute",inset:20,borderRadius:"50%",
@@ -418,9 +418,9 @@ export default function DashboardPage() {
 
         {/* ERP Wheel panel */}
         {showWheel&&(
-          <div style={{background:"linear-gradient(135deg,#0a1628 0%,#0f172a 40%,#1a1040 100%)",borderRadius:16,padding:"24px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:16,boxShadow:"0 4px 32px rgba(0,0,0,0.3)",position:"relative",overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#0a1628 0%,#0f172a 40%,#1a1040 100%)",borderRadius:16,padding:"28px 24px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,boxShadow:"0 4px 32px rgba(0,0,0,0.3)",position:"relative",overflow:"hidden",width:"100%",boxSizing:"border-box"}}>
             <div style={{position:"absolute",inset:0,backgroundImage:"radial-gradient(circle at 15% 50%,rgba(14,116,144,0.1) 0%,transparent 55%),radial-gradient(circle at 85% 50%,rgba(124,58,237,0.1) 0%,transparent 55%)",pointerEvents:"none"}}/>
-            <div style={{textAlign:"center",position:"relative"}}>
+            <div style={{textAlign:"center",position:"relative",zIndex:1}}>
               <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.4)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:3}}>
                 Enterprise Resource Planning
               </div>
@@ -432,10 +432,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <ERPWheel userRoles={roles||[]} isAdmin={isAdmin} onNav={nav}/>
+            {/* Wheel centred in a full-width flex row */}
+            <div style={{display:"flex",justifyContent:"center",alignItems:"center",width:"100%",position:"relative",zIndex:1}}>
+              <ERPWheel userRoles={roles||[]} isAdmin={isAdmin} onNav={nav}/>
+            </div>
 
             {/* Quick action buttons */}
-            <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",position:"relative"}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",position:"relative",zIndex:1}}>
               {QUICK.filter(a=>canSee(ALL_TILES.find(t=>t.path===a.path)||{roles:[],...a} as any)).map(a=>(
                 <button key={a.path} onClick={()=>nav(a.path)}
                   style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:24,background:a.color+"22",border:`1px solid ${a.color}44`,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}
