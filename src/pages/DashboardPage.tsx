@@ -405,7 +405,7 @@ export default function DashboardPage() {
       <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:16}}>
 
         {/* KPI Bar */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+        <div className="kpi-tiles-row" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
           <KPICard label="Pending Reqs"  value={kpi.reqs}      color={T.warning}           icon={Clock}         onClick={()=>nav("/requisitions")}/>
           <KPICard label="Open POs"      value={kpi.pos}       color={T.primary}            icon={ShoppingCart}  onClick={()=>nav("/purchase-orders")}/>
           <KPICard label="Vouchers Due"  value={kpi.pvs}       color={T.finance}            icon={DollarSign}    onClick={()=>nav("/vouchers/payment")}/>

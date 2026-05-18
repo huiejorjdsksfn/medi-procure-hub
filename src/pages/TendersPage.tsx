@@ -266,7 +266,7 @@ export default function TendersPage() {
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:"#374151"}} onClick={()=>setDetail(r)}>{r.estimated_value?fmtKES(r.estimated_value):"-"}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{fmtDate(r.opening_date)}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:expired?"#dc2626":"#374151",fontWeight:expired?700:400}} onClick={()=>setDetail(r)}>{fmtDate(r.closing_date)}</td>
-                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
+                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span className="status-chip" style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
                       <button onClick={()=>setDetail(r)} style={{padding:"4px 9px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}><Eye style={{width:10,height:10,display:"inline"}}/></button>
@@ -340,7 +340,7 @@ export default function TendersPage() {
             </div>
             <div style={{padding:18,display:"flex",flexDirection:"column",gap:14}}>
               <div><div style={{fontSize:18,fontWeight:800,color:"#111827",lineHeight:1.3}}>{detail.title}</div>
-                <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,marginTop:6,display:"inline-block"}}>{sc(detail.status).label}</span>
+                <span className="status-chip" style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,marginTop:6,display:"inline-block"}}>{sc(detail.status).label}</span>
               </div>
               {[["Category",detail.category||"-"],["Type",detail.tender_type||"-"],["Estimated Value",detail.estimated_value?fmtKES(detail.estimated_value):"-"],["Opening Date",fmtDate(detail.opening_date)],["Closing Date",fmtDate(detail.closing_date)],["Contact",detail.contact_person||"-"],["Created By",detail.created_by_name||"-"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f9fafb"}}>
