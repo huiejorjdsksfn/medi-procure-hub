@@ -54,7 +54,7 @@
     /* CSS custom properties — overridden by GUI Editor */
     :root{
       --font-family:'Segoe UI','Inter',system-ui,sans-serif;
-      --font-size-base:13px;--font-size-sm:11px;--font-size-lg:15px;
+      --font-size-base:15px;--font-size-sm:14px;--font-size-lg:15px;
       --border-radius:8px;--content-padding:16px;
       --color-primary:#0078d4;--color-accent:#C45911;
       --color-nav-bg:#ffffff;--color-nav-text:#1e293b;
@@ -70,7 +70,16 @@
   </style>
   <script>
     (function(){
-      // Restore cached CSS vars from localStorage (instant, before React loads)
+      // -- 1. Restore SPA route saved by 404.html (fixes page-refresh 404) --
+      try{
+        var saved=sessionStorage.getItem('el5_spa_route');
+        if(saved&&saved!=='/'&&saved!=='/login'){
+          sessionStorage.removeItem('el5_spa_route');
+          window.history.replaceState(null,'',saved);
+        }
+      }catch(e){}
+
+      // -- 2. Restore cached CSS vars from localStorage (instant, before React loads) --
       try{
         var settings=JSON.parse(localStorage.getItem('el5_theme_cache')||'{}');
         var root=document.documentElement;
@@ -90,7 +99,12 @@
         Object.keys(map).forEach(function(k){
           if(settings[k])root.style.setProperty(map[k],settings[k]);
         });
+        // Restore body classes for all GUI Editor UI toggles
         if(settings.compact_tables==='true')document.body.classList.add('compact-tables');
+        if(settings.show_logo_nav==='false')document.body.classList.add('hide-logo-nav');
+        if(settings.show_search_bar==='false')document.body.classList.add('hide-search-bar');
+        if(settings.show_kpi_tiles==='false')document.body.classList.add('hide-kpi-tiles');
+        if(settings.show_status_chips==='false')document.body.classList.add('hide-status-chips');
       }catch(e){}
     })();
   </script>
