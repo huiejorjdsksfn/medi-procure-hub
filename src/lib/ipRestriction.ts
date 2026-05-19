@@ -143,6 +143,6 @@ export async function revokeSession(reason = "IP address not in whitelist"): Pro
   console.warn(`[IP Restriction] Session revoked: ${reason}`);
   await supabase.auth.signOut();
   if (typeof window !== "undefined") {
-    window.location.href = `/login?reason=${encodeURIComponent(reason)}`;
+    window.location.href = `/#/login?reason=${encodeURIComponent(reason)}`;
   }
 }

@@ -187,7 +187,7 @@ export default function NetworkGuard({ children }: { children: React.ReactNode }
   async function handleLogout() {
     setDenied(null);
     await supabase.auth.signOut();
-    window.location.href = "/login?reason=ip_denied";
+    window.location.href = "/#/login?reason=ip_denied";
   }
 
   return (
