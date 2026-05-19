@@ -55,7 +55,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
     if (error) { setErrMsg(error.message); return; }
     setStage("done");
-    setTimeout(() => { window.location.href = "/login"; }, 3500);
+    setTimeout(() => { window.location.href = "/#/login"; }, 3500);
   }
 
   const strengthColors = ["#ef4444","#f97316","#eab308","#22c55e"];
