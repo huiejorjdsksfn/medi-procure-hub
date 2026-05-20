@@ -1,16 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <script>
-    /* Hash-redirect: convert /some/path → /#/some/path on load so
-       BrowserRouter sees the hash and EdgeOne only ever serves / */
+    /* ── Hash SPA fix v4: any non-root path → /#/path ──
+       Runs BEFORE React so no flash. Works on EdgeOne, Netlify, Vercel.
+       /requisitions       → /#/requisitions
+       /requisitions?x=1  → /#/requisitions?x=1
+       /#/anything         → no-op (already correct)
+    */
     (function(){
       var loc = window.location;
       var path = loc.pathname;
-      if(path && path !== '/' && !loc.hash) {
-        var target = loc.origin + '/#' + path + loc.search;
-        window.location.replace(target);
-      }
+      var hash = loc.hash;
+      // Already on hash route or root - no action needed
+      if (!path || path === '/' || (hash && hash.length > 1)) return;
+      // Redirect to hash-based URL
+      var qs = loc.search || '';
+      window.location.replace(loc.origin + '/#' + path + qs);
     })();
   </script>
 
