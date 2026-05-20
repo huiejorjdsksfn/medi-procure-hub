@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EL5 MediProcure — Authenticating...</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a1628;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;
+      display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px}
+    .spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#0078d4;
+      border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+  <script>
+    /**
+     * Supabase Auth Callback Handler
+     * Supabase redirects here after email confirmation / password reset
+     * with tokens as URL fragment: /auth-callback#access_token=...&type=recovery
+     * We preserve all tokens and route to the correct hash page.
+     */
+    (function(){
+      var hash   = window.location.hash.slice(1); // remove leading #
+      var search = window.location.search.slice(1); // remove leading ?
+      var params = hash || search || '';
+      
+      var type = '';
+      var pairs = params.split('&');
+      for(var i=0;i<pairs.length;i++){
+        var kv = pairs[i].split('=');
+        if(kv[0]==='type') type = decodeURIComponent(kv[1]||'');
+      }
+      
+      var dest;
+      if(type === 'recovery' || params.includes('access_token')){
+        // Password reset flow - go to reset-password page with tokens as search params
+        dest = window.location.origin + '/#/reset-password?' + params;
+      } else if(type === 'signup' || type === 'email_confirmation'){
+        // Email confirmation - go to login with success message
+        dest = window.location.origin + '/#/login?confirmed=true';
+      } else if(type === 'invite'){
+        // User invite - go to reset-password to set initial password
+        dest = window.location.origin + '/#/reset-password?' + params;
+      } else if(params){
+        // Unknown type but has params - pass to app
+        dest = window.location.origin + '/#/login?' + params;
+      } else {
+        // No params - just go home
+        dest = window.location.origin + '/#/dashboard';
+      }
+      
+      window.location.replace(dest);
+    })();
+  </script>
+</head>
+<body>
+  <div class="spin"></div>
+  <div style="font-size:13px;opacity:.6">Completing authentication...</div>
+</body>
+</html>

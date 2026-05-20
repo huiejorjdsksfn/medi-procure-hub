@@ -10,6 +10,27 @@ export default {
     const path = url.pathname;
 
     // Static assets - serve directly
+    // Explicit HTML pages that must be served directly (not rewritten to index.html)
+    const isDirectPage = (
+      path === '/auth-callback' ||
+      path === '/auth-callback.html' ||
+      path === '/404.html'
+    );
+
+    if (isDirectPage) {
+      const pagePath = path.endsWith('.html') ? path : path + '.html';
+      try {
+        const resp = await env.ASSETS.fetch(new Request(new URL(pagePath, url.origin), request));
+        return new Response(resp.body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+          },
+        });
+      } catch {}
+    }
+
     const isAsset = (
       path.startsWith('/assets/') ||
       path.startsWith('/icons/') ||

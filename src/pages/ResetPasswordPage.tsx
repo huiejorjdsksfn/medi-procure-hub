@@ -19,8 +19,29 @@ export default function ResetPasswordPage() {
   useEffect(() => { setTimeout(() => setMounted(true), 80); }, []);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery") || hash.includes("access_token")) {
+    // auth-callback.html preserves Supabase tokens as search params: ?access_token=...&type=recovery
+    // Also handle direct hash tokens for backwards compatibility
+    const search     = window.location.search;  // "?access_token=...&type=recovery"
+    const fullHash   = window.location.hash;    // "#/reset-password" or legacy "#access_token=..."
+    
+    const hasTokens =
+      search.includes("type=recovery")    ||
+      search.includes("access_token")     ||
+      fullHash.includes("type=recovery")  ||
+      fullHash.includes("access_token");
+
+    if (hasTokens) {
+      // If tokens are in search params, Supabase needs them as hash fragment
+      // Move ?access_token=...&type=recovery → set as hash so supabase.auth.getSession() picks them up
+      if (search.includes("access_token") || search.includes("type=recovery")) {
+        const tokens = search.slice(1); // strip leading ?
+        try {
+          // Supabase detectSessionFromUrl reads from window.location.hash
+          window.history.replaceState(null, "", window.location.pathname + "#" + tokens);
+          // Re-run Supabase session detection
+          (window as any).__supabase_auth_token = tokens;
+        } catch {}
+      }
       setStage("update");
     }
   }, []);
@@ -39,7 +60,7 @@ export default function ResetPasswordPage() {
     if (!email.trim()) { setErrMsg("Please enter your email address."); return; }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/auth-callback`,
     });
     setLoading(false);
     if (error) { setErrMsg(error.message); return; }
@@ -155,7 +176,7 @@ export default function ResetPasswordPage() {
               {loading ? "Sending Reset Link-" : "Send Reset Link -"}
             </button>
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <a href="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>- Back to Login</a>
+              <a href="/#/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>- Back to Login</a>
             </div>
           </>
         )}
@@ -176,7 +197,7 @@ export default function ResetPasswordPage() {
               Didn't receive it? Check spam, or{" "}
               <span style={{ color: "#60a5fa", cursor: "pointer", textDecoration: "underline" }} onClick={() => setStage("request")}>try again</span>.
             </div>
-            <a href="/login" style={{ display: "block", width: "100%", padding: "13px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.35)" }}>
+            <a href="/#/login" style={{ display: "block", width: "100%", padding: "13px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.35)" }}>
               Back to Login
             </a>
           </>
@@ -266,7 +287,7 @@ export default function ResetPasswordPage() {
                 Redirecting you to login in a moment-
               </div>
             </div>
-            <a href="/login" style={{ display: "block", width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
+            <a href="/#/login" style={{ display: "block", width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
               Go to Login Now
             </a>
           </>
