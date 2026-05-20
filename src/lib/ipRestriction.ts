@@ -1,8 +1,8 @@
 /**
- * ProcurBosse - IP Restriction Engine
- * Reads network_whitelist table + system_settings to enforce IP access.
- * Logs every check to ip_access_log table.
- * Called from NetworkGuard component on every app load.
+ * ProcurBosse - IP Restriction Engine v4.0
+ * - Real-time logging with geo, device, browser, OS, path, session
+ * - Updates profiles.last_ip, last_seen, last_login on every auth'd access
+ * - Enriches ip_access_log with city, country, user_agent detail
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,22 +12,41 @@ export interface IpCheckResult {
   network: "private" | "public" | "localhost" | "unknown";
   reason: string;
   matchedCidr?: string;
+  geo?: { city?: string; country?: string; org?: string; lat?: number; lon?: number };
 }
 
-/** Fetch the client's public IP */
+/* ── IP helpers ── */
 export async function getClientIp(): Promise<string> {
-  try {
-    const r = await fetch("https://api.ipify.org?format=json", { signal: AbortSignal.timeout(3000) });
-    if (r.ok) { const d = await r.json(); return d.ip || "unknown"; }
-  } catch { /* ignore */ }
-  try {
-    const r = await fetch("https://checkip.amazonaws.com", { signal: AbortSignal.timeout(3000) });
-    if (r.ok) return (await r.text()).trim();
-  } catch { /* ignore */ }
+  const SERVICES = [
+    "https://api.ipify.org?format=json",
+    "https://api64.ipify.org?format=json",
+  ];
+  for (const url of SERVICES) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(3500) });
+      if (r.ok) { const d = await r.json(); if (d.ip) return d.ip; }
+    } catch { /* next */ }
+  }
   return "unknown";
 }
 
-/** Convert CIDR to IP range for basic matching */
+export async function getIpGeo(ip: string): Promise<{ city?: string; country?: string; org?: string; lat?: number; lon?: number } | null> {
+  if (!ip || ip === "unknown" || /^(127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|::1)/.test(ip)) return null;
+  try {
+    const r = await fetch(`https://ipapi.co/${ip}/json/`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d.error) return null;
+    return {
+      city: d.city || undefined,
+      country: d.country_name || d.country || undefined,
+      org: d.org || d.isp || undefined,
+      lat: d.latitude || undefined,
+      lon: d.longitude || undefined,
+    };
+  } catch { return null; }
+}
+
 function ipToNum(ip: string): number {
   const parts = ip.split(".").map(Number);
   if (parts.length !== 4 || parts.some(isNaN)) return 0;
@@ -37,36 +56,52 @@ function ipToNum(ip: string): number {
 function ipInCidr(ip: string, cidr: string): boolean {
   try {
     if (ip === "unknown") return false;
-    // Handle IPv6 localhost
     if (ip === "::1" && cidr.startsWith("127.")) return true;
     const [network, bits] = cidr.split("/");
     const prefixLen = parseInt(bits);
     if (isNaN(prefixLen)) return ip === network;
-    const ipNum = ipToNum(ip);
-    const netNum = ipToNum(network);
     const mask = prefixLen === 0 ? 0 : (~0 << (32 - prefixLen)) >>> 0;
-    return (ipNum & mask) === (netNum & mask);
+    return (ipToNum(ip) & mask) === (ipToNum(network) & mask);
   } catch { return false; }
 }
 
-function detectNetworkType(ip: string): "private" | "public" | "localhost" | "unknown" {
-  if (ip === "unknown" || ip === "") return "unknown";
+export function detectNetworkType(ip: string): "private" | "public" | "localhost" | "unknown" {
+  if (!ip || ip === "unknown") return "unknown";
   if (ip === "::1" || ip.startsWith("127.")) return "localhost";
-  if (
-    ipInCidr(ip, "10.0.0.0/8") ||
-    ipInCidr(ip, "172.16.0.0/12") ||
-    ipInCidr(ip, "192.168.0.0/16") ||
-    ipInCidr(ip, "169.254.0.0/16")
-  ) return "private";
+  if (ipInCidr(ip,"10.0.0.0/8") || ipInCidr(ip,"172.16.0.0/12") || ipInCidr(ip,"192.168.0.0/16") || ipInCidr(ip,"169.254.0.0/16")) return "private";
   return "public";
 }
 
-/** Main IP check function */
-export async function checkIpAccess(userId?: string, userEmail?: string): Promise<IpCheckResult> {
-  const ip = await getClientIp();
-  const network = detectNetworkType(ip);
+/* ── Device / browser fingerprint ── */
+export function parseUserAgent(ua: string): { browser: string; os: string; device: string } {
+  if (!ua) return { browser: "Unknown", os: "Unknown", device: "Desktop" };
+  const browser =
+    /Edg\//.test(ua) ? "Edge" :
+    /OPR\/|Opera/.test(ua) ? "Opera" :
+    /Chrome\//.test(ua) ? "Chrome" :
+    /Firefox\//.test(ua) ? "Firefox" :
+    /Safari\//.test(ua) && !/Chrome/.test(ua) ? "Safari" :
+    /MSIE|Trident/.test(ua) ? "IE" : "Other";
+  const os =
+    /Windows NT 10/.test(ua) ? "Windows 10/11" :
+    /Windows NT 6\.1/.test(ua) ? "Windows 7" :
+    /Windows/.test(ua) ? "Windows" :
+    /Mac OS X/.test(ua) ? "macOS" :
+    /Android/.test(ua) ? "Android" :
+    /iPhone|iPad|iPod/.test(ua) ? "iOS" :
+    /Linux/.test(ua) ? "Linux" : "Unknown";
+  const device =
+    /Mobi|Android|iPhone|iPad|iPod/.test(ua) ? "Mobile" :
+    /Tablet|iPad/.test(ua) ? "Tablet" : "Desktop";
+  return { browser, os, device };
+}
 
-  // Fetch settings
+/* ── Core check ── */
+export async function checkIpAccess(userId?: string, userEmail?: string): Promise<IpCheckResult> {
+  const ip      = await getClientIp();
+  const network = detectNetworkType(ip);
+  const geo     = await getIpGeo(ip);
+
   const { data: settings } = await (supabase as any)
     .from("system_settings")
     .select("key,value")
@@ -76,69 +111,92 @@ export async function checkIpAccess(userId?: string, userEmail?: string): Promis
   (settings || []).forEach((r: any) => { cfg[r.key] = r.value; });
 
   const enabled = cfg["ip_restriction_enabled"] === "true";
-  const logAll = cfg["log_all_ips"] !== "false";
+  const logAll  = cfg["log_all_ips"] !== "false";
 
-  // If restriction not enabled, allow all
   if (!enabled) {
-    if (logAll) await logAccess(ip, network, true, "IP restriction disabled", userId, userEmail);
-    return { allowed: true, ip, network, reason: "IP restriction is disabled" };
+    if (logAll) await logAccess(ip, network, true, "IP restriction disabled", userId, userEmail, geo);
+    return { allowed: true, ip, network, reason: "IP restriction is disabled", geo: geo || undefined };
   }
 
-  // Localhost always allowed
   if (network === "localhost") {
-    if (logAll) await logAccess(ip, network, true, "Localhost", userId, userEmail);
-    return { allowed: true, ip, network, reason: "Localhost access", matchedCidr: "127.0.0.0/8" };
+    if (logAll) await logAccess(ip, network, true, "Localhost", userId, userEmail, geo);
+    return { allowed: true, ip, network, reason: "Localhost access", matchedCidr: "127.0.0.0/8", geo: geo || undefined };
   }
 
-  // Allow all private?
   if (cfg["allow_all_private"] === "true" && network === "private") {
-    if (logAll) await logAccess(ip, network, true, "Private network allowed", userId, userEmail);
-    return { allowed: true, ip, network, reason: "Private network (allowed)", matchedCidr: "private" };
+    if (logAll) await logAccess(ip, network, true, "Private network allowed", userId, userEmail, geo);
+    return { allowed: true, ip, network, reason: "Private network (allowed)", matchedCidr: "private", geo: geo || undefined };
   }
 
-  // Fetch whitelist
   const { data: whitelist } = await (supabase as any)
     .from("network_whitelist")
     .select("cidr,type,label,active")
     .eq("active", true);
 
-  const entries = whitelist || [];
-  for (const entry of entries) {
+  for (const entry of (whitelist || [])) {
     if (ipInCidr(ip, entry.cidr)) {
-      await logAccess(ip, network, true, `Matched whitelist: ${entry.label} (${entry.cidr})`, userId, userEmail);
-      return { allowed: true, ip, network, reason: `Allowed by rule: ${entry.label}`, matchedCidr: entry.cidr };
+      await logAccess(ip, network, true, `Matched: ${entry.label} (${entry.cidr})`, userId, userEmail, geo);
+      return { allowed: true, ip, network, reason: `Allowed by rule: ${entry.label}`, matchedCidr: entry.cidr, geo: geo || undefined };
     }
   }
 
-  // Denied
-  const reason = `IP ${ip} not in whitelist (${entries.length} active rules checked)`;
-  await logAccess(ip, network, false, reason, userId, userEmail);
-  return { allowed: false, ip, network, reason };
+  const reason = `IP ${ip} not in whitelist (${(whitelist||[]).length} rules checked)`;
+  await logAccess(ip, network, false, reason, userId, userEmail, geo);
+  return { allowed: false, ip, network, reason, geo: geo || undefined };
 }
 
-/** Log access attempt to ip_access_log table */
-async function logAccess(
-  ip: string, network: string, allowed: boolean,
-  reason: string, userId?: string, userEmail?: string
+/* ── Logger — writes ip_access_log AND updates profiles ── */
+export async function logAccess(
+  ip: string, network: string, allowed: boolean, reason: string,
+  userId?: string, userEmail?: string,
+  geo?: { city?: string; country?: string; org?: string; lat?: number; lon?: number } | null
 ): Promise<void> {
   try {
+    const ua      = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const path    = typeof window   !== "undefined" ? window.location.hash.replace(/^#/,"") || "/" : "/";
+    const session = (await (supabase as any).auth.getSession())?.data?.session?.access_token?.slice(-12) || null;
+
     await (supabase as any).from("ip_access_log").insert({
-      ip_address: ip,
+      ip_address:  ip,
       network,
       allowed,
       reason,
-      user_id: userId || null,
-      user_email: userEmail || null,
-      user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 200) : null,
-      path: typeof window !== "undefined" ? window.location.pathname : null,
-      created_at: new Date().toISOString(),
+      user_id:     userId     || null,
+      user_email:  userEmail  || null,
+      user_agent:  ua.slice(0, 300),
+      path,
+      city:        geo?.city    || null,
+      country:     geo?.country || null,
+      session_id:  session,
+      created_at:  new Date().toISOString(),
     });
+
+    // Update profile with last IP and last_seen timestamp
+    if (userId) {
+      await (supabase as any).from("profiles").update({
+        last_ip:   ip,
+        last_seen: new Date().toISOString(),
+      }).eq("id", userId);
+    }
   } catch (e) {
     console.warn("IP log failed:", e);
   }
 }
 
-/** Revoke a user session by logging them out */
+/* ── Update last_login on successful auth ── */
+export async function recordLogin(userId: string, ip?: string): Promise<void> {
+  try {
+    const resolvedIp = ip || await getClientIp();
+    await (supabase as any).from("profiles").update({
+      last_login: new Date().toISOString(),
+      last_ip:    resolvedIp,
+      last_seen:  new Date().toISOString(),
+    }).eq("id", userId);
+  } catch (e) {
+    console.warn("recordLogin failed:", e);
+  }
+}
+
 export async function revokeSession(reason = "IP address not in whitelist"): Promise<void> {
   console.warn(`[IP Restriction] Session revoked: ${reason}`);
   await supabase.auth.signOut();
