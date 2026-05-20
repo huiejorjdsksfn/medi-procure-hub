@@ -1,5 +1,11 @@
-# ProcurBosse EdgeOne Headers — v22.5
-# index.html must NEVER be cached (always serve fresh)
+# ProcurBosse EdgeOne/Netlify Headers v6.0
+# SPA - index.html must NEVER be cached
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
 /
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
@@ -10,12 +16,16 @@
   Pragma: no-cache
   Expires: 0
 
-# Service worker must never be cached
+/404.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
-  Pragma: no-cache
 
-# Assets are content-hashed — cache forever
+/manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Type: application/manifest+json
+
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -23,12 +33,7 @@
   Cache-Control: public, max-age=86400
 
 /*.js
-  Content-Type: application/javascript
+  Content-Type: application/javascript; charset=utf-8
 
 /*.css
-  Content-Type: text/css
-
-/*
-  X-Frame-Options: SAMEORIGIN
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Type: text/css; charset=utf-8
