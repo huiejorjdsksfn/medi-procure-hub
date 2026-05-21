@@ -53,8 +53,8 @@ const DEFAULTS = {
   text_primary:"#1e293b",   text_secondary:"#64748b",
   border_color:"#e2e8f0",   success_color:"#166534",
   warning_color:"#92400e",  danger_color:"#dc2626",
-  font_family:"Segoe UI",   font_size_base:"15px",
-  font_size_sm:"14px",      font_size_lg:"15px",
+  font_family:"Segoe UI",   font_size_base:"24px",
+  font_size_sm:"18px",      font_size_lg:"24px",
   border_radius:"8px",      content_padding:"16px",
   topbar_height:"40px",     nav_height:"44px",
   show_logo_nav:"true",     show_kpi_tiles:"true",
@@ -66,53 +66,59 @@ const DEFAULTS = {
 };
 
 export default function GuiEditorPage() {
-  const { get } = useSystemSettings();
+  const { get, settings } = useSystemSettings();
   const [saving, setSaving] = useState(false);
   const [tab, setTab]       = useState<Tab>("colors");
   const [device, setDevice] = useState<Device>("desktop");
 
-  const [cfg, setCfg] = useState(() => ({
-    primary_color:    get("primary_color",   DEFAULTS.primary_color),
-    accent_color:     get("accent_color",    DEFAULTS.accent_color),
-    nav_bg_color:     get("nav_bg_color",    DEFAULTS.nav_bg_color),
-    nav_text_color:   get("nav_text_color",  DEFAULTS.nav_text_color),
-    page_bg_color:    get("page_bg_color",   DEFAULTS.page_bg_color),
-    card_bg:          get("card_bg",         DEFAULTS.card_bg),
-    text_primary:     get("text_primary",    DEFAULTS.text_primary),
-    text_secondary:   get("text_secondary",  DEFAULTS.text_secondary),
-    border_color:     get("border_color",    DEFAULTS.border_color),
-    success_color:    get("success_color",   DEFAULTS.success_color),
-    warning_color:    get("warning_color",   DEFAULTS.warning_color),
-    danger_color:     get("danger_color",    DEFAULTS.danger_color),
-    font_family:      get("font_family",     DEFAULTS.font_family),
-    font_size_base:   get("font_size_base",  DEFAULTS.font_size_base),
-    font_size_sm:     get("font_size_sm",    DEFAULTS.font_size_sm),
-    font_size_lg:     get("font_size_lg",    DEFAULTS.font_size_lg),
-    border_radius:    get("border_radius",   DEFAULTS.border_radius),
-    content_padding:  get("content_padding", DEFAULTS.content_padding),
-    topbar_height:    get("topbar_height",   DEFAULTS.topbar_height),
-    nav_height:       get("nav_height",      DEFAULTS.nav_height),
-    show_logo_nav:    get("show_logo_nav",   DEFAULTS.show_logo_nav),
-    show_kpi_tiles:   get("show_kpi_tiles",  DEFAULTS.show_kpi_tiles),
-    compact_tables:   get("compact_tables",  DEFAULTS.compact_tables),
+  const buildCfg = useCallback(() => ({
+    primary_color:    get("primary_color",    DEFAULTS.primary_color),
+    accent_color:     get("accent_color",     DEFAULTS.accent_color),
+    nav_bg_color:     get("nav_bg_color",     DEFAULTS.nav_bg_color),
+    nav_text_color:   get("nav_text_color",   DEFAULTS.nav_text_color),
+    page_bg_color:    get("page_bg_color",    DEFAULTS.page_bg_color),
+    card_bg:          get("card_bg",          DEFAULTS.card_bg),
+    text_primary:     get("text_primary",     DEFAULTS.text_primary),
+    text_secondary:   get("text_secondary",   DEFAULTS.text_secondary),
+    border_color:     get("border_color",     DEFAULTS.border_color),
+    success_color:    get("success_color",    DEFAULTS.success_color),
+    warning_color:    get("warning_color",    DEFAULTS.warning_color),
+    danger_color:     get("danger_color",     DEFAULTS.danger_color),
+    font_family:      get("font_family",      DEFAULTS.font_family),
+    font_size_base:   get("font_size_base",   DEFAULTS.font_size_base),
+    font_size_sm:     get("font_size_sm",     DEFAULTS.font_size_sm),
+    font_size_lg:     get("font_size_lg",     DEFAULTS.font_size_lg),
+    border_radius:    get("border_radius",    DEFAULTS.border_radius),
+    content_padding:  get("content_padding",  DEFAULTS.content_padding),
+    topbar_height:    get("topbar_height",    DEFAULTS.topbar_height),
+    nav_height:       get("nav_height",       DEFAULTS.nav_height),
+    show_logo_nav:    get("show_logo_nav",    DEFAULTS.show_logo_nav),
+    show_kpi_tiles:   get("show_kpi_tiles",   DEFAULTS.show_kpi_tiles),
+    compact_tables:   get("compact_tables",   DEFAULTS.compact_tables),
     show_status_chips:get("show_status_chips",DEFAULTS.show_status_chips),
-    show_search_bar:  get("show_search_bar", DEFAULTS.show_search_bar),
+    show_search_bar:  get("show_search_bar",  DEFAULTS.show_search_bar),
     print_font:       get("print_font",       "Times New Roman"),
     print_font_size:  get("print_font_size",  "9"),
     paper_size:       get("paper_size",       "A4"),
-  }));
+  }), [get]);
 
+  const [cfg, setCfg] = useState<Record<string,string>>(buildCfg);
   const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV);
   const ipInfo = useRealIP();
 
-  // - LIVE APPLICATION: apply to DOM immediately on every change -
+  // Reinitialize cfg whenever Supabase settings load/change
+  useEffect(() => {
+    setCfg(buildCfg());
+  }, [settings, buildCfg]);
+
+  // Apply every change to the live app DOM instantly
   useEffect(() => {
     applyThemeToDOM(cfg as any);
   }, [cfg]);
 
   const setVal = useCallback((k: string, v: string) => setCfg(p => ({ ...p, [k]: v })), []);
-  const toggle = useCallback((k: string) => setVal(k, cfg[k as keyof typeof cfg] === "true" ? "false" : "true"), [cfg, setVal]);
-  const on = (k: string) => cfg[k as keyof typeof cfg] === "true";
+  const toggle = useCallback((k: string) => setCfg(p => ({ ...p, [k]: p[k] === "true" ? "false" : "true" })), []);
+  const on = (k: string) => cfg[k] === "true";
 
   const applyPreset = (p: typeof PRESETS[0]) => {
     setCfg(prev => ({
@@ -182,10 +188,10 @@ export default function GuiEditorPage() {
       <label style={lbl}>{label}</label>
       <div style={{ display:"flex", gap:6, alignItems:"center" }}>
         <input type="color"
-          value={cfg[k as keyof typeof cfg] || "#000000"}
+          value={cfg[k] || "#000000"}
           onChange={e => setVal(k, e.target.value)}
           style={{ width:36, height:32, borderRadius:6, border:"1.5px solid #e2e8f0", cursor:"pointer", padding:2, flexShrink:0 }}/>
-        <input value={cfg[k as keyof typeof cfg] || ""}
+        <input value={cfg[k] || ""}
           onChange={e => setVal(k, e.target.value)}
           style={{ ...inp, fontFamily:"monospace", fontSize:12, flex:1 }}
           placeholder="#000000"/>
@@ -196,7 +202,7 @@ export default function GuiEditorPage() {
   const SelectRow = ({ k, label, opts }: { k: string; label: string; opts: string[] }) => (
     <div style={{ marginBottom:10 }}>
       <label style={lbl}>{label}</label>
-      <select value={cfg[k as keyof typeof cfg]} onChange={e => setVal(k, e.target.value)} style={inp}>
+      <select value={cfg[k]} onChange={e => setVal(k, e.target.value)} style={inp}>
         {opts.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>

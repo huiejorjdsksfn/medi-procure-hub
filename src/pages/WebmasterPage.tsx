@@ -389,7 +389,7 @@ export default function WebmasterPage() {
                 { key:"allow_all_private",     label:"Allow All Private IPs", desc:"Auto-allow 192.168.x, 10.x" },
                 { key:"log_all_ips",           label:"Log All IPs",           desc:"Record every access to ip_access_log" },
               ].map(({ key, label, desc }) => {
-                const enabled = settings[key] !== "false" && settings[key] !== undefined ? settings[key] === "true" : false;
+                const enabled = settings[key] === "true";
                 return (
                   <div key={key} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${T.border}22` }}>
                     <div style={{ flex:1 }}>

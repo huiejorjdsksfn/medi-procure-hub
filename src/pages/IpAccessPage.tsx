@@ -188,8 +188,13 @@ export default function IpAccessPage() {
   const deleteRule = async (id: string) => { await db.from("network_whitelist").delete().eq("id", id); toast({ title: "Removed" }); load(); };
   const toggleRule = async (id: string, active: boolean) => { await db.from("network_whitelist").update({ active: !active }).eq("id", id); load(); };
   const blockIP    = async (ip: string) => {
-    await db.from("network_whitelist").insert({ cidr: ip, label: `Block ${ip}`, type: "blocked", active: true, notes: `Blocked ${new Date().toLocaleString("en-KE")}`, created_at: new Date().toISOString(), created_by: user?.id });
-    toast({ title: `Blocked ${ip}`, variant: "destructive" }); load();
+    await db.from("network_whitelist").insert({
+      cidr: ip, label: `Block ${ip}`, type: "blocked", active: true,
+      notes: `Blocked by ${user?.email||"admin"} at ${new Date().toLocaleString("en-KE")}`,
+      created_at: new Date().toISOString(), created_by: user?.id
+    });
+    toast({ title: `🚫 Blocked ${ip}`, variant: "destructive" });
+    load();
   };
   const allowIP    = async (ip: string) => {
     await db.from("network_whitelist").insert({ cidr: ip, label: `Allow ${ip}`, type: "public", active: true, notes: `Allowed ${new Date().toLocaleString("en-KE")}`, created_at: new Date().toISOString(), created_by: user?.id });
@@ -616,7 +621,7 @@ export default function IpAccessPage() {
               { key: "log_all_ips",             label: "Log All Access",              desc: "Record every access attempt" },
               { key: "revoke_on_ip_change",     label: "Revoke Session on IP Change", desc: "Force re-auth if IP changes mid-session" },
             ].map(({ key, label, desc }) => {
-              const enabled = get(key, "false") !== "false";
+              const enabled = get(key, "false") === "true";
               return (
                 <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: `1px solid ${T.border}22` }}>
                   <div style={{ flex: 1 }}>
