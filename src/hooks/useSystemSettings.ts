@@ -47,9 +47,9 @@ export const DEFAULTS: SystemSettings = {
   warning_color:        "#92400e",
   danger_color:         "#dc2626",
   font_family:          "Segoe UI",
-  font_size_base:       "15px",
-  font_size_sm:         "14px",
-  font_size_lg:         "15px",
+  font_size_base:       "24px",
+  font_size_sm:         "18px",
+  font_size_lg:         "24px",
   border_radius:        "8px",
   content_padding:      "16px",
   topbar_height:        "40px",
@@ -173,9 +173,9 @@ export function applyThemeToDOM(settings: SystemSettings): void {
   css("--color-warning",    "warning_color",   "#92400e");
   css("--color-danger",     "danger_color",    "#dc2626");
   css("--font-family",      "font_family",     "Segoe UI");
-  css("--font-size-base",   "font_size_base",  "15px");
-  css("--font-size-sm",     "font_size_sm",    "14px");
-  css("--font-size-lg",     "font_size_lg",    "15px");
+  css("--font-size-base",   "font_size_base",  "24px");
+  css("--font-size-sm",     "font_size_sm",    "18px");
+  css("--font-size-lg",     "font_size_lg",    "24px");
   css("--border-radius",    "border_radius",   "8px");
   css("--content-padding",  "content_padding", "16px");
   css("--topbar-height",    "topbar_height",   "40px");

@@ -1,16 +1,16 @@
-/* EL5 MediProcure v5.8 — Global Styles · ProcurBosse */
+/* EL5 MediProcure v6.0 — Global Styles · ProcurBosse */
 @import url('https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-family, 'Segoe UI', 'Inter', system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-body { margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
+body { margin: 0; padding: 0; }
 #root { height: 100vh; display: flex; flex-direction: column; }
 
 /* Scrollbar */
@@ -19,114 +19,111 @@ body { margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Selection */
 ::selection { background: rgba(14,116,144,0.2); color: inherit; }
-
-/* Focus ring */
-:focus-visible { outline: 2px solid #0e7490; outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--color-primary,#0078d4); outline-offset: 2px; }
 
 /* Animations */
-@keyframes fadeIn    { from { opacity:0; }               to { opacity:1; } }
-@keyframes slideUp   { from { transform:translateY(8px);opacity:0; } to { transform:translateY(0);opacity:1; } }
-@keyframes slideDown { from { transform:translateY(-8px);opacity:0;} to { transform:translateY(0);opacity:1; } }
+@keyframes fadeIn    { from{opacity:0}              to{opacity:1} }
+@keyframes slideUp   { from{transform:translateY(8px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes slideDown { from{transform:translateY(-8px);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes pulse     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
 @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes ping      { 0%{transform:scale(1);opacity:.6} 75%,100%{transform:scale(2.2);opacity:0} }
 @keyframes bellShake { 0%,100%{transform:rotate(0)} 15%{transform:rotate(10deg)} 30%{transform:rotate(-10deg)} 45%{transform:rotate(6deg)} 60%{transform:rotate(-6deg)} 75%{transform:rotate(3deg)} }
 @keyframes pulseBadge{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+@keyframes slideIn   { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
 
-/* Cross-platform: ensure consistent input styling */
 input, select, textarea, button {
-  font-family: inherit;
+  font-family: var(--font-family, 'Segoe UI', inherit) !important;
   font-size: inherit;
 }
-
-/* Remove iOS input shadows */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="tel"] {
-  -webkit-appearance: none;
-  appearance: none;
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="tel"] {
+  -webkit-appearance: none; appearance: none;
 }
-
-/* Electron: disable window dragging on inputs */
 input, textarea, select, button { -webkit-app-region: no-drag; }
+@media (max-width:768px) { table { font-size: 14px; } }
 
-/* Responsive tables */
-@media (max-width: 768px) {
-  table { font-size: 12px; }
-}
-
-/* ================================================
-   GUI Editor CSS Variable Integration - v9.0
-   Font, color, and spacing from GuiEditor apply
-   to ALL elements via CSS custom properties
-   ================================================ */
-
-/* Root defaults matching GuiEditor defaults */
+/* ================================================================
+   GUI EDITOR CSS VARIABLE SYSTEM v10.0
+   SINGLE SOURCE OF TRUTH - All values driven by :root custom props
+   Main font: 24px   Sub font: 18px   (matches GUI editor settings)
+   ================================================================ */
 :root {
-  --font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
-  --font-size-base: 15px;
-  --font-size-sm: 14px;
-  --font-size-lg: 15px;
-  --border-radius: 8px;
+  /* Typography */
+  --font-family:    'Segoe UI', 'Inter', system-ui, sans-serif;
+  --font-size-base: 24px;
+  --font-size-sm:   18px;
+  --font-size-lg:   24px;
+
+  /* Layout */
+  --border-radius:   8px;
   --content-padding: 16px;
-  --color-primary: #0078d4;
-  --color-accent: #C45911;
-  --color-nav-bg: #ffffff;
-  --color-nav-text: #1e293b;
-  --color-page-bg: #f3f5f8;
-  --color-card-bg: #ffffff;
-  --color-text: #1a1a2e;
+  --topbar-height:   40px;
+  --nav-height:      44px;
+
+  /* Brand */
+  --color-primary:    #0a2558;
+  --color-accent:     #C45911;
+
+  /* Navigation */
+  --color-nav-bg:     #ffffff;
+  --color-nav-text:   #1e293b;
+
+  /* Surfaces */
+  --color-page-bg:    #f8fafc;
+  --color-card-bg:    #ffffff;
+
+  /* Text */
+  --color-text:       #1e293b;
   --color-text-muted: #64748b;
-  --color-border: #dde1e7;
-  --color-success: #107c10;
-  --color-warning: #d39a04;
-  --color-danger: #a4262c;
+
+  /* Borders */
+  --color-border:     #e2e8f0;
+
+  /* Semantic */
+  --color-success:    #166534;
+  --color-warning:    #92400e;
+  --color-danger:     #dc2626;
+
+  /* Print */
+  --print-font:      'Times New Roman', serif;
+  --print-font-size:  9pt;
 }
 
-/* Apply font to all elements globally */
-*, *::before, *::after {
-  font-family: var(--font-family, 'Segoe UI', 'Inter', system-ui, sans-serif);
+/* Apply globally — every element inherits from CSS vars */
+html, body {
+  font-family: var(--font-family);
+  font-size:   var(--font-size-base);
+  background:  var(--color-page-bg);
+  color:       var(--color-text);
 }
 
-body {
-  font-size: var(--font-size-base, 13px);
-  background: var(--color-page-bg, #f3f5f8);
-  color: var(--color-text, #1a1a2e);
-}
-
-/* Tables respect font size setting */
+/* Tables inherit base font */
 table, th, td {
-  font-family: var(--font-family, 'Segoe UI', 'Inter', system-ui, sans-serif);
-  font-size: var(--font-size-base, 13px);
+  font-family: var(--font-family);
+  font-size:   var(--font-size-base);
 }
 
-/* Inputs, selects, textareas */
-input, select, textarea, button {
-  font-family: var(--font-family, 'Segoe UI', 'Inter', system-ui, sans-serif) !important;
-}
-
-/* Print styles - use print font from settings */
+/* Print */
 @media print {
   *, *::before, *::after {
-    font-family: var(--print-font, 'Times New Roman', serif) !important;
-    font-size: var(--print-font-size, 11pt) !important;
+    font-family: var(--print-font) !important;
+    font-size:   var(--print-font-size) !important;
   }
 }
 
-/* Compact tables mode */
+/* ================================================================
+   GUI EDITOR UI TOGGLE CLASSES
+   body class set by applyThemeToDOM() in useSystemSettings.ts
+   ================================================================ */
+
+/* Compact table rows */
 body.compact-tables table th,
 body.compact-tables table td {
   padding: 4px 8px !important;
-  font-size: var(--font-size-sm, 14px) !important;
+  font-size: var(--font-size-sm) !important;
 }
-
-/* ================================================
-   GUI Editor UI Toggle Classes
-   Applied by applyThemeToDOM when settings change
-   ================================================ */
 
 /* Hide logo in top nav bar */
 body.hide-logo-nav .topbar-logo {
@@ -143,7 +140,7 @@ body.hide-kpi-tiles .kpi-tiles-row {
   display: none !important;
 }
 
-/* Hide coloured status badge chips — show plain text instead */
+/* Hide coloured status badge chips */
 body.hide-status-chips .status-chip {
   background: transparent !important;
   border: none !important;
@@ -151,4 +148,9 @@ body.hide-status-chips .status-chip {
   border-radius: 0 !important;
   font-weight: 600;
   color: var(--color-text-muted) !important;
+}
+
+/* Hide search bar */
+body.hide-search-bar .topbar-search {
+  display: none !important;
 }
