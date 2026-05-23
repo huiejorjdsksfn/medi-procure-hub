@@ -2,17 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>EL5 MediProcure</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EL5 MediProcure — Loading...</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a1628;font-family:'Segoe UI',system-ui,sans-serif;
+      display:flex;align-items:center;justify-content:center;height:100vh;
+      flex-direction:column;gap:14px;color:#fff}
+    .logo{width:56px;height:56px;border-radius:14px;
+      background:linear-gradient(135deg,#0d3b7a,#1a5ca8);
+      display:flex;align-items:center;justify-content:center}
+    .bar{width:160px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-top:4px}
+    .fill{height:100%;background:linear-gradient(90deg,#0078d4,#38bdf8);
+      animation:fill .6s ease-in-out forwards}
+    @keyframes fill{0%{width:0}100%{width:100%}}
+    p{font-size:12px;opacity:.4;letter-spacing:.06em}
+  </style>
   <script>
-    /* Fallback: if EdgeOne serves this 404.html, redirect to hash URL */
-    (function(){
-      var path = window.location.pathname;
-      var search = window.location.search;
-      window.location.replace(
-        window.location.origin + '/#' + (path === '/' ? '/' : path) + search
-      );
-    })();
+    /**
+     * ProcurBosse SPA Fallback v5 — EdgeOne 404 Handler
+     *
+     * EdgeOne shows THIS page when a path doesn't exist as a static file.
+     * We immediately redirect to the correct hash URL so React Router
+     * can handle the route.
+     *
+     * Examples:
+     *   /admin/panel     → /#/admin/panel
+     *   /requisitions    → /#/requisitions
+     *   /users           → /#/users
+     *   /                → /#/dashboard (handled by index.html)
+     */
+    (function () {
+      var loc    = window.location;
+      var path   = loc.pathname;   // e.g. "/admin/panel"
+      var search = loc.search;     // e.g. "?foo=bar"
+      var hash   = loc.hash;       // e.g. "#section"
+
+      // Already on a hash route — do nothing (shouldn't happen here but safety net)
+      if (hash && hash.length > 2 && hash.charAt(1) === '/') {
+        window.location.replace(loc.origin + '/#/dashboard');
+        return;
+      }
+
+      // Build the correct hash URL
+      // /admin/panel → /#/admin/panel
+      var target = loc.origin + '/#' + (path === '/' ? '/dashboard' : path) + search;
+      window.location.replace(target);
+    }());
   </script>
 </head>
-<body></body>
+<body>
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="6" fill="rgba(255,255,255,.12)"/>
+      <path d="M6 14h16M14 6v16" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <p>EL5 MEDIPROCURE</p>
+  <div class="bar"><div class="fill"></div></div>
+  <p style="font-size:10px;margin-top:4px">Redirecting...</p>
+</body>
 </html>

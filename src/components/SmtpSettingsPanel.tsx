@@ -116,16 +116,34 @@ export default function SmtpSettingsPanel() {
   async function testSms() {
     setSmsTest(true);
     try {
-      const { error } = await (supabase as any).functions.invoke("send-sms", {
+      // Step 1: Check account status
+      const { data: statusData, error: statusErr } = await (supabase as any).functions.invoke("send-sms", {
+        body: { action: "status" }
+      });
+      if (statusErr) throw new Error(statusErr.message);
+      if (!statusData?.ok) {
+        showToast(`✗ Twilio account error: ${statusData?.account_status || "not active"} — SID: ${statusData?.acct || "not set"}`, false);
+        setSmsTest(false);
+        return;
+      }
+      // Step 2: Send test SMS to the configured number
+      const testTo = config.twilio_phone_number || "+254700000000";
+      const { data, error } = await (supabase as any).functions.invoke("send-sms", {
         body: {
-          to: config.twilio_phone_number,
-          message: `- EL5 MediProcure v5.8 SMS test from ProcurBosse. Twilio SID: ${config.twilio_messaging_service_sid}. Hospital: Embu Level 5.`,
-          hospitalName: "EL5 MediProcure",
+          to: testTo,
+          message: `✓ EL5 MediProcure SMS test. Account: ${statusData.friendly_name}. From: ${statusData.from_sms}. Time: ${new Date().toLocaleString("en-KE")}`,
+          channel: "sms",
         },
       });
-      showToast(error ? `- SMS test failed: ${error.message}` : "- SMS test sent!", !error);
+      if (error) throw new Error(error.message);
+      const result = data?.results?.[0];
+      if (data?.ok) {
+        showToast(`✓ SMS sent! SID: ${result?.sid?.slice(0,20)}... to ${testTo}`, true);
+      } else {
+        showToast(`✗ SMS failed: ${result?.error || "Unknown error"}`, false);
+      }
     } catch (e: any) {
-      showToast(`- ${e.message}`, false);
+      showToast(`✗ ${e.message}`, false);
     }
     setSmsTest(false);
   }
@@ -308,10 +326,26 @@ export default function SmtpSettingsPanel() {
 
           <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
             <button onClick={save} disabled={saving} style={BTN("linear-gradient(135deg,#0369a1,#0284c7)", saving)}>
-              {saving ? "Saving-" : "- Save Twilio Config"}
+              {saving ? "Saving..." : "💾 Save Twilio Config"}
+            </button>
+            <button onClick={async () => {
+              setSmsTest(true);
+              try {
+                const { data, error } = await (supabase as any).functions.invoke("send-sms", { body: { action: "status" } });
+                if (error) throw new Error(error.message);
+                showToast(
+                  data?.ok
+                    ? `✓ Account: ${data.friendly_name} | SID: ${data.acct} | Numbers: ${(data.phone_numbers_on_account||[]).join(", ")}`
+                    : `✗ Account status: ${data?.account_status || "unknown"} | SID: ${data?.acct || "not set"}`,
+                  data?.ok
+                );
+              } catch(e: any) { showToast(`✗ ${e.message}`, false); }
+              setSmsTest(false);
+            }} disabled={smsTest} style={BTN("linear-gradient(135deg,#059669,#047857)", smsTest)}>
+              {smsTest ? "Checking..." : "📊 Check Account"}
             </button>
             <button onClick={testSms} disabled={smsTest} style={BTN("linear-gradient(135deg,#7c3aed,#6d28d9)", smsTest)}>
-              {smsTest ? "Sending-" : "- Test SMS"}
+              {smsTest ? "Sending..." : "📱 Test SMS"}
             </button>
           </div>
         </div>

@@ -7,6 +7,10 @@
       "CI": "false"
     }
   },
+  "notFoundPage": "/404.html",
+  "pages": {
+    "notFoundPage": "/404.html"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
@@ -51,6 +55,15 @@
     },
     {
       "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/404.html",
       "headers": [
         {
           "key": "Cache-Control",

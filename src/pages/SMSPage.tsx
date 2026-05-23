@@ -91,12 +91,21 @@ export default function SMSPage() {
   useEffect(()=>{conEndRef.current?.scrollIntoView({behavior:"smooth"});},[conMessages]);
 
   async function sendSMS(){
-    if(!to.trim()||!body.trim()){showToast("- Enter recipient and message");return;}
+    if(!to.trim()||!body.trim()){showToast("⚠ Enter recipient and message");return;}
     setSending(true);
-    const {ok,error}=await SMSAPI.send(to,body,{name,dept,type:msgType});
-    setSending(false);
-    if(ok){showToast("- Message sent!");setTo("");setBody("");setName("");loadAll();}
-    else showToast(`- Failed: ${error}`);
+    try {
+      const {ok,error}=await SMSAPI.send(to,body,{name,dept,type:msgType});
+      setSending(false);
+      if(ok){
+        showToast(`✓ ${msgType==="whatsapp"?"WhatsApp":"SMS"} sent to ${to}`);
+        setTo("");setBody("");setName("");loadAll();
+      } else {
+        showToast(`✗ Failed: ${error||"Check Twilio credentials in Settings → SMTP/SMS"}`);
+      }
+    } catch(e:any) {
+      setSending(false);
+      showToast(`✗ Error: ${e.message}`);
+    }
   }
 
   async function sendBulk(){
@@ -233,7 +242,7 @@ export default function SMSPage() {
             </div>
             {msgType==="whatsapp"&&<div style={{background:"#fff9ed",border:"1px solid #fde68a",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#92400e"}}>- Recipient must first send <strong>join bad-machine</strong> to +14155238886 to activate WhatsApp sandbox.</div>}
             <button onClick={sendSMS} disabled={sending||!to||!body} style={{...btn(sending||!to||!body?"#9ca3af":msgType==="whatsapp"?"#25D366":"#7c3aed"),width:"100%",fontSize:14,padding:"12px"}}>
-              {sending?"Sending-":`${msgType==="whatsapp"?"-":"-"} Send ${msgType==="sms"?"SMS":"WhatsApp"}`}
+              {sending?"⏳ Sending...":`${msgType==="whatsapp"?"💬":"📱"} Send ${msgType==="sms"?"SMS":"WhatsApp"}`}
             </button>
           </div>
           {/* Quick templates sidebar */}
