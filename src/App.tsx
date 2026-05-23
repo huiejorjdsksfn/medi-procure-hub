@@ -9,6 +9,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
+import RouterGuard from "@/components/RouterGuard";
+import HMISSyncPage from "@/pages/HMISSyncPage";
 
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
@@ -92,6 +94,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <HashRouter>
+        <RouterGuard />
         <ErrorBoundary pageName="Auth">
         <AuthProvider>
           <NetworkGuard>
@@ -171,6 +174,9 @@ const App = () => (
             <Route path="/backup" element={<P><RoleGuard allowed={["admin","superadmin","database_admin"]}><BackupPage /></RoleGuard></P>} />
             <Route path="/odbc" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><ODBCPage /></RoleGuard></P>} />
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
+            <Route path="/ip-access" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><IpAccessPage /></RoleGuard></P>} />
+            <Route path="/hmis" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin","procurement_manager"]}><HMISSyncPage /></RoleGuard></P>} />
+            <Route path="/hmis/sync" element={<Navigate to="/hmis" replace />} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><GuiEditorPage /></RoleGuard></P>} />
             <Route path="/facilities" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><FacilitiesPage /></RoleGuard></P>} />
