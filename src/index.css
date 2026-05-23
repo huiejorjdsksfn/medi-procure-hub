@@ -52,7 +52,7 @@ input, textarea, select, button { -webkit-app-region: no-drag; }
 :root {
   /* Typography */
   --font-family:    'Segoe UI', 'Inter', system-ui, sans-serif;
-  --font-size-base: 24px;
+  --font-size-base: 22px;
   --font-size-sm:   18px;
   --font-size-lg:   24px;
 
