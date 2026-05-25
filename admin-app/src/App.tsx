@@ -1,7 +1,7 @@
 /**
  * ProcurBosse IT Admin — Full Control Dashboard
  * React + TypeScript desktop app (Electron shell)
- * Live stats: Supabase · Tencent EdgeOne · GitHub · System
+ * Live stats: Supabase · EdgeOne CDN · GitHub · System
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,7 +14,7 @@ const sb = createClient(SB_URL, SB_KEY);
 
 const GH_REPO  = 'huiejorjdsksfn/medi-procure-hub';
 const WEB_URL  = 'https://procurbosse.edgeone.app';
-const TENCENT_DOMAIN = 'procurbosse.edgeone.app';
+const EDGEONE_DOMAIN = 'procurbosse.edgeone.app';
 
 // ── Types ───────────────────────────────────────────────────────────
 interface Stats {
@@ -419,7 +419,7 @@ export default function App() {
                     { label: '🗄️ Supabase',       url: 'https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq' },
                     { label: '⚙️ GitHub Actions', url: `https://github.com/${GH_REPO}/actions` },
                     { label: '📦 Releases',        url: `https://github.com/${GH_REPO}/releases` },
-                    { label: '🌩️ Tencent EdgeOne', url: 'https://console.tencentcloud.com/edgeone' },
+                    { label: '🌩️ EdgeOne CDN', url: 'https://console.edgeone.app' },
                     { label: '📊 DB Monitor',      url: `${WEB_URL}/admin/db-test` },
                     { label: '👥 Users',           url: `${WEB_URL}/users` },
                     { label: '🔒 IP Access',       url: `${WEB_URL}/admin/ip-access` },
@@ -583,7 +583,7 @@ export default function App() {
                 { label: 'Supabase URL',         value: SB_URL },
                 { label: 'GitHub Repo',          value: GH_REPO },
                 { label: 'Live Site URL',        value: WEB_URL },
-                { label: 'EdgeOne Domain',       value: TENCENT_DOMAIN },
+                { label: 'EdgeOne Domain',       value: EDGEONE_DOMAIN },
                 { label: 'Auto-start at login',  value: 'Enabled' },
                 { label: 'Refresh interval',     value: '30 seconds' },
               ].map(s => (
@@ -603,7 +603,7 @@ export default function App() {
                 { label: '🗄️ Supabase Dashboard', url: 'https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq', status: 'active' },
                 { label: '🐙 GitHub Repository',   url: `https://github.com/${GH_REPO}`, status: 'active' },
                 { label: '⚙️ GitHub Actions',       url: `https://github.com/${GH_REPO}/actions`, status: 'active' },
-                { label: '🌩️ Tencent EdgeOne',      url: 'https://console.tencentcloud.com/edgeone', status: 'active' },
+                { label: '🌩️ EdgeOne CDN',           url: 'https://console.edgeone.app', status: 'active' },
                 { label: '📦 GitHub Releases',      url: `https://github.com/${GH_REPO}/releases`, status: 'active' },
                 { label: '📱 Twilio Console',       url: 'https://console.twilio.com', status: 'active' },
               ].map(s => (

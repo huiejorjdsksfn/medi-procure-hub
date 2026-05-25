@@ -1,7 +1,7 @@
 /**
  * ProcurBosse IT Admin Application — Electron Main v1.0
  * Starts at system login (auto-start), shows live stats
- * Full control: Supabase, Tencent EdgeOne, GitHub, Frontend
+ * Full control: Supabase, EdgeOne CDN, GitHub, Frontend
  * EL5 MediProcure · Embu Level 5 Hospital · Kenya
  */
 'use strict';

@@ -2,7 +2,7 @@
  * ProcurBosse - EdgeOne Edge Worker v3
  * Handles SPA routing at CDN edge level
  * All non-asset requests → /index.html (200, not redirect)
- * This is the most reliable fix for Tencent EdgeOne 404 on refresh
+ * This is the most reliable fix for EdgeOne 404 on refresh
  */
 export default {
   async fetch(request, env) {

@@ -1,6 +1,6 @@
 /**
- * ProcurBosse - Admin Panel v6.0 (D365 Style)
- * Live IP stats - User password view/reset - Twilio test - D365 layout
+ * ProcurBosse - Admin Panel v7.0 (D365 Style)
+ * Live IP stats · User management · Twilio · Full Module Control · Kiosk Mode
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
@@ -17,7 +17,7 @@ import {
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
   Lock, Unlock, Key, Wifi, WifiOff, Server, Radio, Bell,
   TrendingUp, AlertTriangle, MapPin, Clock, Package, ShoppingCart,
-  UserCheck, Zap, ChevronRight, Monitor, MessageSquare
+  UserCheck, Zap, ChevronRight, Monitor, MessageSquare, Tv, Power, ToggleLeft
 } from "lucide-react";
 
 const db = supabase as any;
@@ -43,6 +43,7 @@ const NAVS = [
   {id:"twilio",    label:"SMS / Twilio",   icon:Phone,           col:"#059669"},
   {id:"roles",     label:"Roles & Access", icon:Shield,          col:"#dc2626"},
   {id:"modules",   label:"Module Toggles", icon:Settings,        col:"#d39a04"},
+  {id:"kiosk",     label:"Kiosk Mode",     icon:Tv,              col:"#0f172a"},
   {id:"broadcast", label:"Broadcast",      icon:Radio,           col:"#0369a1"},
   {id:"system",    label:"System Info",    icon:Server,          col:"#374151"},
 ];
@@ -612,27 +613,156 @@ export default function AdminPanelPage() {
             </div>
           )}
 
-          {/* - MODULE TOGGLES - */}
+          {/* - FULL MODULE TOGGLES - */}
           {sec==="modules"&&(
-            <div style={S.card}>
-              <div style={S.cardHd(T.warning)}><Settings size={14} color={T.warning}/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Module Controls</span></div>
-              <div style={{padding:"8px 0"}}>
-                {[
-                  "enable_procurement","enable_financials","enable_vouchers","enable_quality",
-                  "enable_scanner","enable_tenders","enable_contracts_module","enable_documents",
-                  "realtime_notifications","maintenance_mode",
-                ].map(key=>{
-                  const on = moduleCfg[key]!=="false";
-                  return(
-                    <div key={key} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",borderBottom:`1px solid ${T.border}14`}}>
-                      <div style={{flex:1,fontSize:13,color:T.fg,textTransform:"capitalize"}}>{key.replace("enable_","").replace(/_/g," ")}</div>
-                      <span style={{fontSize:11,color:on?T.success:T.error,fontWeight:600}}>{on?"Enabled":"Disabled"}</span>
-                      <button onClick={()=>toggleModule(key)} style={{display:"inline-flex",width:44,height:24,borderRadius:12,background:on?T.success:T.border,alignItems:"center",padding:2,border:"none",cursor:"pointer",transition:"background .2s"}}>
-                        <span style={{width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform .2s",transform:on?"translateX(20px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-                      </button>
+            <div>
+              <div style={{...S.card,marginBottom:16}}>
+                <div style={S.cardHd(T.warning)}>
+                  <Settings size={14} color={T.warning}/>
+                  <span style={{fontWeight:700,color:T.fg,fontSize:13}}>Full Module Control</span>
+                  <span style={{marginLeft:"auto",fontSize:11,color:T.fgMuted}}>Toggle activates immediately · Changes persist to DB</span>
+                </div>
+                <div style={{padding:"8px 0"}}>
+                  {([
+                    {key:"enable_procurement",     label:"Procurement",          desc:"Requisitions · Purchase Orders · GRNs",          col:"#4f46e5"},
+                    {key:"enable_financials",       label:"Financials",           desc:"Accountant Workspace · GL · Budget Control",      col:"#059669"},
+                    {key:"enable_vouchers",         label:"Vouchers",             desc:"Payment · Receipt · Journal vouchers",            col:"#7719aa"},
+                    {key:"enable_quality",          label:"Quality Assurance",    desc:"Inspections · NCRs · QA Reports",                col:"#d39a04"},
+                    {key:"enable_scanner",          label:"Barcode / QR Scanner", desc:"GRN scanning · Inventory scanning",              col:"#0369a1"},
+                    {key:"enable_tenders",          label:"Tender Management",    desc:"Bid evaluations · Tender listings",              col:"#dc2626"},
+                    {key:"enable_contracts_module", label:"Contracts",            desc:"Contract lifecycle · Renewals · SLAs",           col:"#6366f1"},
+                    {key:"enable_documents",        label:"Document Management",  desc:"Upload · Parse · Auto-classify",                 col:"#ec4899"},
+                    {key:"enable_reports",          label:"Reports & Analytics",  desc:"KPI dashboards · Exports · System reports",      col:"#f97316"},
+                    {key:"enable_hmis_sync",        label:"HMIS Sync",            desc:"Kenya HMIS integration · MOH data exchange",     col:"#0891b2"},
+                    {key:"enable_email",            label:"Email Module",         desc:"Internal email · Notifications · SMTP relay",    col:"#3b82f6"},
+                    {key:"enable_telephony",        label:"Telephony / VoIP",     desc:"Twilio voice · WhatsApp · SMS gateway",          col:"#10b981"},
+                    {key:"enable_backup",           label:"Backup & Recovery",    desc:"DB snapshots · Data exports · Archives",         col:"#6b7280"},
+                    {key:"enable_audit_log",        label:"Audit Log",            desc:"Full activity trail · Change history",           col:"#374151"},
+                    {key:"realtime_notifications",  label:"Realtime Notifications","desc":"Supabase push · Browser alerts",              col:"#ef4444"},
+                    {key:"maintenance_mode",        label:"⚠️ Maintenance Mode",  desc:"Locks out all non-admin users immediately",      col:"#dc2626"},
+                  ] as const).map(({key,label,desc,col})=>{
+                    const on = moduleCfg[key]!=="false";
+                    return(
+                      <div key={key}
+                        style={{display:"flex",alignItems:"center",gap:14,padding:"11px 16px",borderBottom:`1px solid ${T.border}18`,cursor:"default",transition:"background .1s"}}
+                        onMouseEnter={e=>(e.currentTarget.style.background="#f8fafc")}
+                        onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:on?col:"#d1d5db",flexShrink:0,transition:"background .2s"}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{label}</div>
+                          <div style={{fontSize:11,color:T.fgMuted,marginTop:1}}>{desc}</div>
+                        </div>
+                        <span style={{fontSize:10,fontWeight:700,color:on?col:"#9ca3af",minWidth:52,textAlign:"right",letterSpacing:"0.04em"}}>{on?"ACTIVE":"OFF"}</span>
+                        <button onClick={()=>toggleModule(key)}
+                          style={{display:"inline-flex",width:48,height:26,borderRadius:13,background:on?col:"#d1d5db",alignItems:"center",padding:3,border:"none",cursor:"pointer",transition:"background .2s",flexShrink:0}}>
+                          <span style={{width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform .2s",transform:on?"translateX(22px)":"translateX(0)",boxShadow:"0 1px 4px rgba(0,0,0,.25)"}}/>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{padding:"12px 16px",background:"#f8fafc",borderTop:`1px solid ${T.border}`,display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>{["enable_procurement","enable_financials","enable_vouchers","enable_quality","enable_scanner","enable_tenders","enable_contracts_module","enable_documents","enable_reports","enable_hmis_sync","enable_email","enable_telephony","enable_backup","enable_audit_log","realtime_notifications"].forEach(k=>{if(moduleCfg[k]==="false")toggleModule(k);});}} style={{...S.btn("#059669"),fontSize:12}}><Power size={12}/> Enable All Modules</button>
+                  <button onClick={()=>toggleModule("maintenance_mode")} style={{...S.btn(moduleCfg["maintenance_mode"]!=="false"?"#059669":"#dc2626"),fontSize:12}}><AlertTriangle size={12}/>{moduleCfg["maintenance_mode"]!=="false"?" Disable Maintenance":" Enable Maintenance"}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* - KIOSK MODE - */}
+          {sec==="kiosk"&&(
+            <div style={{maxWidth:720}}>
+              <div style={{...S.card,marginBottom:16}}>
+                <div style={S.cardHd("#0f172a")}>
+                  <Tv size={14} color="#6366f1"/>
+                  <span style={{fontWeight:700,color:T.fg,fontSize:13}}>Kiosk Mode Control</span>
+                  <span style={{marginLeft:"auto",padding:"2px 10px",borderRadius:T.r,background:moduleCfg["kiosk_mode"]==="true"?"#ef444418":"#05966918",color:moduleCfg["kiosk_mode"]==="true"?"#ef4444":"#059669",fontSize:10,fontWeight:700,letterSpacing:"0.06em"}}>
+                    {moduleCfg["kiosk_mode"]==="true"?"● KIOSK ACTIVE":"○ INACTIVE"}
+                  </span>
+                </div>
+                <div style={{padding:16}}>
+                  <p style={{margin:"0 0 16px",fontSize:13,color:T.fgMuted,lineHeight:1.65}}>
+                    Kiosk mode locks the app to full-screen, disabling navigation, keyboard shortcuts, and context menus.
+                    Ideal for reception desks, ward kiosks, or waiting area displays on dedicated hardware.
+                  </p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                    {([
+                      {key:"kiosk_mode",              label:"Enable Kiosk Mode",           desc:"Lock UI to full-screen, hide chrome",     col:"#6366f1"},
+                      {key:"kiosk_hide_nav",           label:"Hide Sidebar & Nav",          desc:"Remove all navigation links",             col:"#0f172a"},
+                      {key:"kiosk_disable_rightclick", label:"Disable Right-Click",         desc:"Block browser context menus",             col:"#374151"},
+                      {key:"kiosk_disable_keyboard",   label:"Block Dev Shortcuts",         desc:"Block F5, Ctrl+R, F12, etc.",             col:"#4f46e5"},
+                      {key:"kiosk_auto_logout",        label:"Auto Logout (5 min idle)",    desc:"Auto-logout on inactivity",               col:"#f97316"},
+                      {key:"kiosk_show_clock",         label:"Show Full-Screen Clock",      desc:"Display time & date prominently",         col:"#059669"},
+                    ] as const).map(({key,label,desc,col})=>{
+                      const on = moduleCfg[key]==="true";
+                      return(
+                        <div key={key} style={{border:`1.5px solid ${on?col+"50":T.border}`,borderRadius:T.rLg,padding:"14px 16px",background:on?`${col}08`:"#fafafa",transition:"all .15s"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                            <div style={{flex:1,paddingRight:8}}>
+                              <div style={{fontSize:13,fontWeight:600,color:on?col:T.fg}}>{label}</div>
+                              <div style={{fontSize:11,color:T.fgMuted,marginTop:3}}>{desc}</div>
+                            </div>
+                            <button onClick={()=>toggleModule(key)}
+                              style={{display:"inline-flex",width:44,height:24,borderRadius:12,background:on?col:"#d1d5db",alignItems:"center",padding:2,border:"none",cursor:"pointer",transition:"background .2s",flexShrink:0}}>
+                              <span style={{width:20,height:20,borderRadius:"50%",background:"#fff",transition:"transform .2s",transform:on?"translateX(20px)":"translateX(0)",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"14px 16px",background:"#f8fafc",marginBottom:14}}>
+                    <div style={{fontSize:12,fontWeight:700,color:T.fg,marginBottom:8}}>📍 Kiosk Target Page</div>
+                    <select
+                      value={moduleCfg["kiosk_target_route"]||"/dashboard"}
+                      onChange={async e=>{
+                        const v=e.target.value;
+                        await (supabase as any).from("system_settings").upsert({key:"kiosk_target_route",value:v,category:"kiosk"},{onConflict:"key"});
+                        setModuleCfg((p:any)=>({...p,kiosk_target_route:v}));
+                        toast({title:"Kiosk route updated to: "+v});
+                      }}
+                      style={{...S.inp,width:320,marginBottom:6}}>
+                      <option value="/dashboard">Dashboard</option>
+                      <option value="/requisitions">Requisitions</option>
+                      <option value="/purchase-orders">Purchase Orders</option>
+                      <option value="/goods-received">Goods Received Note</option>
+                      <option value="/suppliers">Suppliers Directory</option>
+                      <option value="/items">Items Catalogue</option>
+                      <option value="/reception">Reception / Tracking</option>
+                      <option value="/scanner">Barcode / QR Scanner</option>
+                      <option value="/reports">Reports & Analytics</option>
+                    </select>
+                    <div style={{fontSize:11,color:T.fgMuted}}>Page shown when kiosk mode is active and user navigates to root</div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={()=>toggleModule("kiosk_mode")} style={{...S.btn(moduleCfg["kiosk_mode"]==="true"?"#059669":"#6366f1"),fontSize:12}}>
+                      <Tv size={12}/> {moduleCfg["kiosk_mode"]==="true"?"Exit Kiosk Mode":"Activate Kiosk Mode"}
+                    </button>
+                    <button onClick={()=>{(["kiosk_mode","kiosk_hide_nav","kiosk_disable_rightclick","kiosk_disable_keyboard","kiosk_auto_logout"] as const).forEach(k=>{ if(moduleCfg[k]!=="true") toggleModule(k); }); }} style={{...S.btn("#0f172a"),fontSize:12}}>
+                      <Lock size={12}/> Full Lock (All Options)
+                    </button>
+                    <button onClick={()=>{(["kiosk_mode","kiosk_hide_nav","kiosk_disable_rightclick","kiosk_disable_keyboard","kiosk_auto_logout"] as const).forEach(k=>{ if(moduleCfg[k]==="true") toggleModule(k); }); }} style={{...S.btn("#6b7280"),fontSize:12}}>
+                      <Unlock size={12}/> Release All
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div style={S.card}>
+                <div style={S.cardHd("#6366f1")}><Monitor size={14} color="#6366f1"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Hardware Deployment Notes</span></div>
+                <div style={{padding:"12px 16px"}}>
+                  {[
+                    ["Electron Desktop","Enable kiosk via --kiosk flag in electron/main.js — prevents Alt+F4, Task Manager, window drag"],
+                    ["Chrome Web Kiosk","chrome --kiosk --incognito https://procurbosse.edgeone.app (run as limited OS user)"],
+                    ["Touch Screens","All buttons are ≥44px tap targets. Use hardware-appropriate screen resolution."],
+                    ["Auto-Logout","Enforced at app level via 5-minute idle timer. Pairs with Supabase session expiry."],
+                    ["Security","Combine kiosk mode with IP whitelist (/admin/ip-access) for maximum security."],
+                  ].map(([title,note],i)=>(
+                    <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<4?`1px solid ${T.border}14`:"none",fontSize:12}}>
+                      <span style={{color:"#6366f1",fontWeight:700,minWidth:130,flexShrink:0}}>{title}</span>
+                      <span style={{color:T.fgMuted,lineHeight:1.5}}>{note}</span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
           )}
