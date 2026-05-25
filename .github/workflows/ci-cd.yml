@@ -1,8 +1,8 @@
 # ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  EL5 MediProcure — ProcurBosse CI/CD MASTER PIPELINE v9.6               ║
+# ║  EL5 MediProcure — ProcurBosse CI/CD MASTER PIPELINE v9.7               ║
 # ║  Embu Level 5 Hospital · Embu County Government · Kenya                 ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
-name: "🏥 ProcurBosse — CI/CD Master v9.6"
+name: "🏥 ProcurBosse — CI/CD Master v9.7"
 
 on:
   push:
@@ -26,7 +26,7 @@ permissions:
   actions: write
 
 env:
-  APP_VERSION: "9.6.0"
+  APP_VERSION: "9.7.0"
   NODE_VERSION: "20"
   CI: "false"
   NODE_OPTIONS: "--max-old-space-size=4096"
@@ -69,7 +69,7 @@ jobs:
           VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_ANON_KEY }}
           VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
-          VITE_APP_VERSION=9.6.0
+          VITE_APP_VERSION=9.7.0
           VITE_HOSPITAL_NAME=Embu Level 5 Hospital
           VITE_SYSTEM_NAME=EL5 MediProcure
           VITE_TWILIO_PHONE=+16812972643
@@ -261,8 +261,8 @@ jobs:
             allowToChangeInstallationDirectory: true
             createDesktopShortcut: always
             createStartMenuShortcut: true
-            shortcutName: "ProcurBosse v9.6"
-            artifactName: "ProcurBosse-v9.6.0-x64-Setup.exe"
+            shortcutName: "ProcurBosse v9.7"
+            artifactName: "ProcurBosse-v9.7.0-x64-Setup.exe"
             deleteAppDataOnUninstall: false
           asar: true
           compression: maximum
@@ -347,8 +347,8 @@ jobs:
             allowToChangeInstallationDirectory: true
             createDesktopShortcut: always
             createStartMenuShortcut: true
-            shortcutName: "ProcurBosse v9.6"
-            artifactName: "ProcurBosse-v9.6.0-ia32-Setup.exe"
+            shortcutName: "ProcurBosse v9.7"
+            artifactName: "ProcurBosse-v9.7.0-ia32-Setup.exe"
           asar: true
           compression: maximum
           EBEOF
@@ -435,43 +435,47 @@ jobs:
             **Embu Level 5 Hospital · Embu County Government · Kenya**
             **Build:** `${{ needs.web-build.outputs.build-id }}`
 
-            ## ✨ v9.6.0 — FullRelease Highlights
+            ## ✨ v9.7.0 — Production Highlights
 
-            ### 🔧 ERP Engines (6 new)
-            - **NotificationEngine** — realtime push + browser notifications
-            - **SyncEngine** — background 5-min sync of all reference data
-            - **ValidationEngine** — form validation for all 8 ERP entity types
-            - **PrintEngine** — unified print for all document types
-            - **WorkflowEngine** — approval state machine (submit→approve/reject)
-            - **FormEngine** — reusable state + validation + autosave
+            ### 🚫 Tencent Removed
+            - All Tencent/TencentCloud branding stripped from codebase, electron, and worker
+            - References replaced with neutral EdgeOne CDN branding
 
-            ### 💾 Cache Layer (3 tiers)
-            - ERPCache: Memory → IndexedDB → localStorage (with TTL)
-            - OfflineEngine: mutation queue, replays when back online
-            - 30+ cached ERP API functions with appropriate TTLs
+            ### 🔤 Font Sizes
+            - Base: **22px** (`--font-size-base`) · Sub: **18px** (`--font-size-sm`)
+            - Applied globally via `:root` CSS variables
 
-            ### 🗄️ Database
-            - Auto-numbers: RQN/LPO/GRN/TDR/PV/RV/JV/PUV/SV/BDG/FA/NC
-            - Audit triggers on 15 tables
-            - GRN→inventory, low-stock alert, workflow notification triggers
-            - Seeds: 35 Chart of Accounts, 19 departments, 15 item categories
-            - Form tables: requisition_items, purchase_order_items, goods_received_items
+            ### 📊 Accountant Workspace v9.7 (Full Rewrite)
+            - **9 tabs**: Workspace · Invoice Match · Payments · Budget · ERP Sync · Journal · Quotations · Reports · SMS Alerts
+            - Real Supabase data: live invoice 3-way match, payment voucher approval, GL journal
+            - Budget utilisation bars per department with % consumed and CFO override
+            - Quotation creation workflow with send-to-supplier and ERP sync logging
+            - CSV export for all 5 report types with live row counts
+            - Realtime subscriptions: invoices, payments, budget, quotations, ERP sync queue
 
-            ### 🌐 SPA/404 Fix (Permanent)
-            - EdgeOne 404 eliminated: bare catch-all in edgeone.json
-            - 404.html captures escape, saves path, redirects to /
-            - SPARouteRestorer uses useNavigate (proper React Router hook)
+            ### 📱 Twilio SMS from Finance Module
+            - SMS/WhatsApp compose panel in Accountant Workspace
+            - Pre-built templates: Payment Approved, Invoice Matched, Budget Alert, ERP Sync, PO Approved
+            - Sends via `send-sms` edge function → Twilio (+16812972643 / whatsapp:+14155238886)
+            - Full outbound SMS log with status, direction, and timestamps
+
+            ### 🖥️ Admin Panel v7.0 — Full Module Control + Kiosk Mode
+            - **16 module toggles** with descriptions and live status indicators
+            - Bulk actions: Enable All, Maintenance Mode on/off
+            - **Kiosk Mode**: 6 lock options (hide nav, disable right-click, block shortcuts, auto-logout, clock)
+            - Kiosk target route picker (9 routes), Full Lock / Release All buttons
+            - Hardware notes: Electron kiosk, Chrome kiosk, touch screen guidance
 
             ### 📋 Changelog
-            - Full release history v1.0.0 → v9.6.0 visible at `/changelog`
+            - Full release history v1.0.0 → v9.7.0 visible at `/changelog`
 
             ## 📦 Downloads
 
             | File | Platform | Description |
             |------|----------|-------------|
-            | `ProcurBosse-v9.6.0-x64-Setup.exe` | Windows 10/11 | 64-bit installer |
-            | `ProcurBosse-v9.6.0-ia32-Setup.exe` | Windows 7/8/10 | 32-bit installer |
-            | `ProcurBosse-v9.6.0-Web-*.zip` | Any | Web deployment ZIP |
+            | `ProcurBosse-v9.7.0-x64-Setup.exe` | Windows 10/11 | 64-bit installer |
+            | `ProcurBosse-v9.7.0-ia32-Setup.exe` | Windows 7/8/10 | 32-bit installer |
+            | `ProcurBosse-v9.7.0-Web-*.zip` | Any | Web deployment ZIP |
 
             ## 🏥 Supported Facilities
             EL5 Hospital Main · Runyenjes · Ishiara · Mitheru · Kagaari · Chogoria · Kiritiri · Embu Annex
