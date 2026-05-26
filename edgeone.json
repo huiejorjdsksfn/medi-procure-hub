@@ -7,16 +7,6 @@
       "CI": "false"
     }
   },
-  "notFoundPage": "/404.html",
-  "pages": {
-    "notFoundPage": "/404.html"
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "routes": [
     {
       "src": "/auth-callback",
@@ -40,7 +30,8 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/index.html",
+      "status": 200
     }
   ],
   "headers": [
@@ -63,7 +54,7 @@
       ]
     },
     {
-      "source": "/404.html",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

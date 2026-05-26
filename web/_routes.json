@@ -1,19 +1,18 @@
 {
   "version": 1,
-  "include": [
-    "/*"
-  ],
+  "include": ["/*"],
   "exclude": [
     "/assets/*",
     "/icons/*",
-    "/*.ico",
-    "/*.png",
-    "/*.svg",
-    "/*.json",
-    "/*.txt",
-    "/*.xml",
-    "/*.js",
-    "/*.css",
-    "/*.jpg"
+    "/favicon.ico",
+    "/favicon.png",
+    "/icon.png",
+    "/logo.png",
+    "/manifest.json",
+    "/robots.txt",
+    "/sw.js",
+    "/placeholder.svg",
+    "/auth-callback.html",
+    "/404.html"
   ]
 }
