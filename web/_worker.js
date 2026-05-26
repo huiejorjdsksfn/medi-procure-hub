@@ -1,26 +1,17 @@
 /**
- * ProcurBosse - EdgeOne Edge Worker v3
- * Handles SPA routing at CDN edge level
- * All non-asset requests → /index.html (200, not redirect)
- * This is the most reliable fix for EdgeOne 404 on refresh
+ * ProcurBosse - EdgeOne Edge Worker v4
+ * CRITICAL FIX: Always serve index.html for non-asset routes
+ * Hash router app: /dashboard → serve index.html → JS redirects to /#/dashboard
  */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Static assets - serve directly
-    // Explicit HTML pages that must be served directly (not rewritten to index.html)
-    const isDirectPage = (
-      path === '/auth-callback' ||
-      path === '/auth-callback.html' ||
-      path === '/404.html'
-    );
-
-    if (isDirectPage) {
-      const pagePath = path.endsWith('.html') ? path : path + '.html';
+    // Serve auth-callback.html directly
+    if (path === '/auth-callback' || path === '/auth-callback.html') {
       try {
-        const resp = await env.ASSETS.fetch(new Request(new URL(pagePath, url.origin), request));
+        const resp = await env.ASSETS.fetch(new Request(new URL('/auth-callback.html', url.origin), request));
         return new Response(resp.body, {
           status: 200,
           headers: {
@@ -31,6 +22,7 @@ export default {
       } catch {}
     }
 
+    // Static assets — serve directly with cache headers
     const isAsset = (
       path.startsWith('/assets/') ||
       path.startsWith('/icons/') ||
@@ -42,22 +34,26 @@ export default {
       path === '/robots.txt' ||
       path === '/sw.js' ||
       path === '/placeholder.svg' ||
-      /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json|txt|xml|webp)$/.test(path)
+      /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|webp)$/.test(path)
     );
 
     if (isAsset) {
-      // Serve the asset as-is
       try {
         return await env.ASSETS.fetch(request);
       } catch {
-        return new Response('Not found', { status: 404 });
+        return new Response('Asset not found', { status: 404 });
       }
     }
 
-    // All other requests (SPA routes) → serve index.html with 200
-    const indexRequest = new Request(new URL('/index.html', url.origin), request);
+    // ALL other requests (SPA routes like /dashboard, /procurement, etc.)
+    // → serve index.html with status 200 (NOT a redirect)
+    // The hash-redirect script inside index.html will convert /dashboard → /#/dashboard
     try {
-      const response = await env.ASSETS.fetch(indexRequest);
+      const indexReq = new Request(new URL('/index.html', url.origin), {
+        method: 'GET',
+        headers: request.headers,
+      });
+      const response = await env.ASSETS.fetch(indexReq);
       return new Response(response.body, {
         status: 200,
         headers: {
@@ -65,11 +61,15 @@ export default {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'X-Frame-Options': 'SAMEORIGIN',
           'X-Content-Type-Options': 'nosniff',
+          'X-Served-By': 'ProcurBosse-Worker-v4',
         },
       });
-    } catch {
-      // Final fallback - try to serve whatever is at root
-      return env.ASSETS.fetch(new Request(new URL('/', url.origin), request));
+    } catch (e) {
+      // Absolute last resort
+      return new Response(`<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.href='/';<\/script></head><body></body></html>`, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
     }
   },
 };
