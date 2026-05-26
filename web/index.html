@@ -5,24 +5,28 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    /* ProcurBosse SPA Hash Fix v5 — runs before React mounts
-       Converts any bare pathname to hash form:
+    /* ProcurBosse SPA Hash Fix v6 — runs before React mounts
+       Worker serves index.html for ALL SPA routes (status 200).
+       This script converts bare pathnames to hash routes:
+         /dashboard       → /#/dashboard  (then React HashRouter handles it)
          /admin/panel     → /#/admin/panel
-         /requisitions    → /#/requisitions
-         /#/anything      → no-op (already correct)
+         /                → no-op (React root handles)
+         /#/anything      → no-op (already correct hash route)
     */
     (function(){
-      var loc  = window.location;
-      var path = loc.pathname;
-      var hash = loc.hash;
-      // Already on hash route - no action needed
-      if(hash && hash.length > 2 && hash.charAt(1)==='/') return;
-      // Root with no route - let React handle it
-      if(path === '/' && !hash) return;
-      // Any real path - redirect to hash form
-      if(path !== '/') {
+      try {
+        var loc  = window.location;
+        var path = loc.pathname;
+        var hash = loc.hash;
+        // Already on a valid hash route — do nothing
+        if(hash && hash.length > 2 && hash.charAt(1)==='/') return;
+        // Root path with no hash — React will redirect to /dashboard via Navigate
+        if(path === '/' || path === '') return;
+        // index.html itself served directly — do nothing
+        if(path === '/index.html') { history.replaceState(null,'','/'); return; }
+        // Any real SPA path — convert to hash form without adding to history
         window.location.replace(loc.origin + '/#' + path + loc.search);
-      }
+      } catch(e) {}
     })();
   </script>
 
