@@ -45,11 +45,14 @@ export interface CallResult {
 export const TWILIO = {
   SMS_NUMBER:   "+16812972643",
   WA_NUMBER:    "+14155238886",
+  WA_FROM:      "whatsapp:+14155238886",
   JOIN_CODE:    "join bad-machine",
   MSG_SVC_SID:  "REDACTED_TWILIO_MESSAGING_SID",
-  ACCT_SID:     "SUPABASE_SECRET",
+  API_SID:      "SK930f4a…",  // stored in Supabase secrets
+  ACCT_SID:     "AC9ce73d9…(stored in Supabase secrets)",  // never expose in client code
+  REGION:       "us1",
   SERVICE_NAME: "EL5H",
-  WA_LINK:      "https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine",
+  WA_LINK:      "https://wa.me/14155238886?text=join%20bad-machine",
 };
 
 /** Send SMS or WhatsApp */
