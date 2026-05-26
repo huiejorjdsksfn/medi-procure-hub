@@ -26,7 +26,7 @@ permissions:
   actions: write
 
 env:
-  APP_VERSION: "9.7.0"
+  APP_VERSION: "9.7.1"
   NODE_VERSION: "20"
   CI: "false"
   NODE_OPTIONS: "--max-old-space-size=4096"
@@ -69,7 +69,7 @@ jobs:
           VITE_SUPABASE_URL=https://yvjfehnzbzjliizjvuhq.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_ANON_KEY }}
           VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
-          VITE_APP_VERSION=9.7.0
+          VITE_APP_VERSION=9.7.1
           VITE_HOSPITAL_NAME=Embu Level 5 Hospital
           VITE_SYSTEM_NAME=EL5 MediProcure
           VITE_TWILIO_PHONE=+16812972643
@@ -262,7 +262,7 @@ jobs:
             createDesktopShortcut: always
             createStartMenuShortcut: true
             shortcutName: "ProcurBosse v9.7"
-            artifactName: "ProcurBosse-v9.7.0-x64-Setup.exe"
+            artifactName: "ProcurBosse-v9.7.1-x64-Setup.exe"
             deleteAppDataOnUninstall: false
           asar: true
           compression: maximum
@@ -348,7 +348,7 @@ jobs:
             createDesktopShortcut: always
             createStartMenuShortcut: true
             shortcutName: "ProcurBosse v9.7"
-            artifactName: "ProcurBosse-v9.7.0-ia32-Setup.exe"
+            artifactName: "ProcurBosse-v9.7.1-ia32-Setup.exe"
           asar: true
           compression: maximum
           EBEOF
@@ -435,7 +435,7 @@ jobs:
             **Embu Level 5 Hospital · Embu County Government · Kenya**
             **Build:** `${{ needs.web-build.outputs.build-id }}`
 
-            ## ✨ v9.7.0 — Production Highlights
+            ## ✨ v9.7.1 — Production Highlights
 
             ### 🚫 Tencent Removed
             - All Tencent/TencentCloud branding stripped from codebase, electron, and worker
@@ -467,15 +467,15 @@ jobs:
             - Hardware notes: Electron kiosk, Chrome kiosk, touch screen guidance
 
             ### 📋 Changelog
-            - Full release history v1.0.0 → v9.7.0 visible at `/changelog`
+            - Full release history v1.0.0 → v9.7.1 visible at `/changelog`
 
             ## 📦 Downloads
 
             | File | Platform | Description |
             |------|----------|-------------|
-            | `ProcurBosse-v9.7.0-x64-Setup.exe` | Windows 10/11 | 64-bit installer |
-            | `ProcurBosse-v9.7.0-ia32-Setup.exe` | Windows 7/8/10 | 32-bit installer |
-            | `ProcurBosse-v9.7.0-Web-*.zip` | Any | Web deployment ZIP |
+            | `ProcurBosse-v9.7.1-x64-Setup.exe` | Windows 10/11 | 64-bit installer |
+            | `ProcurBosse-v9.7.1-ia32-Setup.exe` | Windows 7/8/10 | 32-bit installer |
+            | `ProcurBosse-v9.7.1-Web-*.zip` | Any | Web deployment ZIP |
 
             ## 🏥 Supported Facilities
             EL5 Hospital Main · Runyenjes · Ishiara · Mitheru · Kagaari · Chogoria · Kiritiri · Embu Annex
