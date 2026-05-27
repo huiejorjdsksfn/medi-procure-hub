@@ -1,19 +1,5 @@
-# ProcurBosse SPA Redirects v6 — EdgeOne Pages
-# Assets served directly. All app routes redirect to hash form.
+# ProcurBosse SPA Redirects v7
+# Worker (_worker.js) is the primary handler.
+# This file is a Netlify-compatible fallback only.
 
-# Auth callback — serve directly
-/auth-callback       /auth-callback.html    200
-
-# Static assets — serve directly (200 rewrite)
-/assets/*            /assets/:splat         200
-/icons/*             /icons/:splat          200
-/favicon.ico         /favicon.ico           200
-/favicon.png         /favicon.png           200
-/icon.png            /icon.png              200
-/logo.png            /logo.png              200
-/manifest.json       /manifest.json         200
-/robots.txt          /robots.txt            200
-/sw.js               /sw.js                 200
-
-# SPA catch-all — serve index.html (200 rewrite for Netlify-compatible hosts)
-/*                   /index.html            200
+/*  /index.html  200

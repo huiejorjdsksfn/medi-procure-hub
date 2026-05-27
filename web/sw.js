@@ -1,12 +1,21 @@
-/* EL5 MediProcure Service Worker v2.0
-   Enables offline capability + install prompt
+/* EL5 MediProcure Service Worker v3.0
+   FIXED: Never cache navigation/HTML — only assets
+   Root cause of 404-on-refresh: old SW cached /dashboard which returned 404
 */
-const CACHE_V  = "mediprocure-v2";
-const STATIC   = ["/", "/dashboard", "/manifest.json", "/favicon.png", "/logo.png", "/icon.png"];
+const CACHE_V = "mediprocure-v3";
+// Only pre-cache actual static assets, NEVER html pages or SPA routes
+const PRECACHE = [
+  "/manifest.json",
+  "/favicon.png",
+  "/logo.png",
+  "/icon.png"
+];
 
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open(CACHE_V).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
+    caches.open(CACHE_V)
+      .then(c => c.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -19,22 +28,39 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  // Only cache GET requests; never cache Supabase API calls
   if (e.request.method !== "GET") return;
+
   const url = new URL(e.request.url);
+
+  // Never intercept Supabase, external APIs
   if (url.hostname.includes("supabase") || url.hostname.includes("ipify")) return;
 
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        if (res.ok && res.type === "basic") {
-          const clone = res.clone();
-          caches.open(CACHE_V).then(c => c.put(e.request, clone));
-        }
-        return res;
+  // CRITICAL: Never cache or intercept navigation requests (HTML page loads)
+  // Let the browser/EdgeOne handle these directly so SPA routing works
+  if (e.request.mode === "navigate") return;
+
+  // For assets: cache-first strategy
+  if (
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|webp)$/)
+  ) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_V).then(c => c.put(e.request, clone));
+          }
+          return res;
+        });
       })
-      .catch(() => caches.match(e.request).then(r => r || caches.match("/")))
-  );
+    );
+    return;
+  }
+
+  // All other requests: network only, no caching
 });
 
 self.addEventListener("message", e => {

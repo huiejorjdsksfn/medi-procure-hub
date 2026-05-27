@@ -1,43 +1,51 @@
 /**
- * ProcurBosse - EdgeOne Edge Worker v4
- * CRITICAL FIX: Always serve index.html for non-asset routes
- * Hash router app: /dashboard → serve index.html → JS redirects to /#/dashboard
+ * ProcurBosse EdgeOne Worker v5 — DEFINITIVE SPA FIX
+ *
+ * Strategy:
+ *   - Static assets (/assets/*, /icons/*, known extensions) → serve directly
+ *   - Known static files (favicon, manifest, etc.) → serve directly  
+ *   - auth-callback.html → serve directly
+ *   - EVERYTHING ELSE → serve /index.html with status 200
+ *
+ * The app uses HashRouter: /dashboard → index.html loads → JS converts to /#/dashboard
  */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Serve auth-callback.html directly
-    if (path === '/auth-callback' || path === '/auth-callback.html') {
+    // 1. Known static files — serve directly, no rewrite
+    const staticFiles = new Set([
+      '/favicon.ico', '/favicon.png', '/icon.png', '/logo.png',
+      '/manifest.json', '/robots.txt', '/sw.js', '/placeholder.svg',
+      '/auth-callback.html', '/404.html'
+    ]);
+
+    if (staticFiles.has(path)) {
       try {
-        const resp = await env.ASSETS.fetch(new Request(new URL('/auth-callback.html', url.origin), request));
-        return new Response(resp.body, {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-          },
-        });
-      } catch {}
+        return await env.ASSETS.fetch(request);
+      } catch {
+        return new Response('Not found', { status: 404 });
+      }
     }
 
-    // Static assets — serve directly with cache headers
-    const isAsset = (
+    // 2. Auth-callback without .html extension
+    if (path === '/auth-callback') {
+      try {
+        return await env.ASSETS.fetch(
+          new Request(new URL('/auth-callback.html', url.origin), request)
+        );
+      } catch {
+        return new Response('Not found', { status: 404 });
+      }
+    }
+
+    // 3. Static asset directories and file extensions → direct serve
+    if (
       path.startsWith('/assets/') ||
       path.startsWith('/icons/') ||
-      path === '/favicon.ico' ||
-      path === '/favicon.png' ||
-      path === '/icon.png' ||
-      path === '/logo.png' ||
-      path === '/manifest.json' ||
-      path === '/robots.txt' ||
-      path === '/sw.js' ||
-      path === '/placeholder.svg' ||
-      /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|webp)$/.test(path)
-    );
-
-    if (isAsset) {
+      /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|webp|json|txt|xml|pdf)$/.test(path)
+    ) {
       try {
         return await env.ASSETS.fetch(request);
       } catch {
@@ -45,31 +53,37 @@ export default {
       }
     }
 
-    // ALL other requests (SPA routes like /dashboard, /procurement, etc.)
-    // → serve index.html with status 200 (NOT a redirect)
-    // The hash-redirect script inside index.html will convert /dashboard → /#/dashboard
+    // 4. EVERYTHING ELSE = SPA route → serve index.html, status 200
+    //    This handles: /dashboard, /login, /requisitions, /admin/panel, etc.
     try {
-      const indexReq = new Request(new URL('/index.html', url.origin), {
-        method: 'GET',
-        headers: request.headers,
-      });
-      const response = await env.ASSETS.fetch(indexReq);
-      return new Response(response.body, {
+      const indexResponse = await env.ASSETS.fetch(
+        new Request(new URL('/index.html', url.origin), {
+          method: 'GET',
+          headers: { 'Accept': 'text/html' }
+        })
+      );
+      return new Response(indexResponse.body, {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'X-Frame-Options': 'SAMEORIGIN',
           'X-Content-Type-Options': 'nosniff',
-          'X-Served-By': 'ProcurBosse-Worker-v4',
-        },
+          'X-Worker-Version': 'v5',
+          'X-Routed-Path': path,
+        }
       });
-    } catch (e) {
-      // Absolute last resort
-      return new Response(`<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.href='/';<\/script></head><body></body></html>`, {
-        status: 200,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      });
+    } catch (err) {
+      // Absolute fallback: inline redirect to root
+      return new Response(
+        `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
+        `<script>window.location.replace('/');<\/script>` +
+        `</head><body>Loading...</body></html>`,
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        }
+      );
     }
-  },
+  }
 };
