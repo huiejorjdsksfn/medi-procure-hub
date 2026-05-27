@@ -1,4 +1,6 @@
 {
   "spa": true,
-  "fallback": "/index.html"
+  "fallback": "/index.html",
+  "version": "v3-refresh-fix",
+  "deployed": "2026-05-27T00:00:00Z"
 }
