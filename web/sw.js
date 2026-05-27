@@ -1,6 +1,6 @@
 /* EL5 MediProcure Service Worker v3.0
    FIXED: Never cache navigation/HTML — only assets
-   Root cause of 404-on-refresh: old SW cached /dashboard which returned 404
+   Root cause of 404-on-refresh: old SW cached SPA routes which returned 404
 */
 const CACHE_V = "mediprocure-v3";
 // Only pre-cache actual static assets, NEVER html pages or SPA routes
