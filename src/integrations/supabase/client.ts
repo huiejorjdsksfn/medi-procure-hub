@@ -1,91 +1,73 @@
 /**
- * Supabase Client - EL5 MediProcure v5.8
- * Optimised: fast auth, persistent role cache, minimal round-trips
+ * EL5 MediProcure v10.0 — Supabase Client
+ * Optimised: persistent session, parallel fetching, role cache, 15s timeouts
  */
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-  || "https://yvjfehnzbzjliizjvuhq.supabase.co";
+const URL  = import.meta.env.VITE_SUPABASE_URL  || "https://yvjfehnzbzjliizjvuhq.supabase.co";
+const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc";
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc";
+// Custom fetch with 15s timeout
+const timedFetch: typeof fetch = (url, options) => {
+  const ctrl = new AbortController();
+  const id   = setTimeout(() => ctrl.abort(), 15000);
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id));
+};
 
-const SITE_URL = import.meta.env.VITE_SITE_URL || "https://procurbosse.edgeone.app";
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient<Database>(URL, ANON, {
   auth: {
     storage: typeof window !== "undefined" ? localStorage : undefined,
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession:    true,
+    autoRefreshToken:  true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
+    flowType: "pkce",
   },
   global: {
-    headers: { 'x-client': 'procurbosse-v5.8' },
-    // Increase fetch timeout for slow connections
-    fetch: (url, options) => {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 15000); // 15s timeout
-      return fetch(url, { ...options, signal: controller.signal })
-        .finally(() => clearTimeout(id));
-    },
+    headers: { "x-client": "procurbosse-v10" },
+    fetch:   timedFetch,
   },
-  realtime: {
-    params: { eventsPerSecond: 8 },
-  },
-  db: { schema: 'public' },
+  realtime: { params: { eventsPerSecond: 8 } },
+  db: { schema: "public" },
 });
 
-// Untyped client for tables not yet in generated types
+// Untyped alias for tables not yet in generated types
 export const db = supabase as ReturnType<typeof createClient>;
 
-// - Role cache -
-const ROLE_CACHE_KEY = 'el5_auth_v3';
-const ROLE_CACHE_TTL = 20 * 60 * 1000;
+// ── Auth cache (20-min TTL) ───────────────────────────────────────
+const CACHE_KEY = "el5_auth_v10";
+const CACHE_TTL = 20 * 60 * 1000;
 
-interface AuthCache { userId: string; roles: string[]; profile: any; ts: number; }
+export interface AuthCache { userId: string; profile: any; roles: string[]; ts: number; }
 
-export const roleCache = {
-  get(userId: string): string[] | null {
+export const authCache = {
+  get(uid: string): AuthCache | null {
     try {
-      const raw = localStorage.getItem(ROLE_CACHE_KEY);
+      const raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
       const c: AuthCache = JSON.parse(raw);
-      if (c.userId !== userId) return null;
-      if (Date.now() - c.ts > ROLE_CACHE_TTL) { localStorage.removeItem(ROLE_CACHE_KEY); return null; }
-      return c.roles;
+      if (c.userId !== uid || Date.now() - c.ts > CACHE_TTL) {
+        localStorage.removeItem(CACHE_KEY); return null;
+      }
+      return c;
     } catch { return null; }
   },
-  set(userId: string, roles: string[]) {
-    try {
-      const raw = localStorage.getItem(ROLE_CACHE_KEY);
-      const existing = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({
-        ...existing, userId, roles, ts: Date.now()
-      }));
-    } catch { }
+  set(uid: string, profile: any, roles: string[]) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ userId: uid, profile, roles, ts: Date.now() })); }
+    catch { /* quota */ }
   },
-  clear() { localStorage.removeItem(ROLE_CACHE_KEY); },
+  clear() { localStorage.removeItem(CACHE_KEY); },
 };
 
-// - Parallel fetch: profile + roles -
-export async function fetchUserData(userId: string): Promise<{ profile: any; roles: string[] }> {
+// ── Parallel profile + roles fetch ───────────────────────────────
+export async function fetchUserData(uid: string): Promise<{ profile: any; roles: string[] }> {
   const [pRes, rRes] = await Promise.allSettled([
-    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-    supabase.from('user_roles').select('role').eq('user_id', userId),
+    supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", uid),
   ]);
-  const profile = pRes.status === 'fulfilled' ? pRes.value.data : null;
-  const roles   = rRes.status === 'fulfilled'
-    ? (rRes.value.data as any[] || []).map((r: any) => r.role)
-    : [];
-  return { profile, roles };
+  return {
+    profile: pRes.status === "fulfilled" ? pRes.value.data : null,
+    roles:   rRes.status === "fulfilled" ? (rRes.value.data as any[] || []).map(r => r.role) : [],
+  };
 }
-
-// - QueryClient default options -
-export const QUERY_DEFAULTS = {
-  staleTime: 30_000,   // 30s - data considered fresh
-  gcTime: 5 * 60_000,  // 5min - keep in memory
-  retry: 1,
-  refetchOnWindowFocus: false,
-};
