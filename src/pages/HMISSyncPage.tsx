@@ -118,7 +118,8 @@ export default function HMISSyncPage() {
       const result = await client.ping();
       setTestResults(p => ({ ...p, [cfg.id]: result }));
       if (result.ok) {
-        toast({ title: `✓ ${cfg.name} connected`, description: result.version ? `Version: ${result.version}` : "Connected successfully" });
+        const ver = (result as any).version;
+        toast({ title: `✓ ${cfg.name} connected`, description: ver ? `Version: ${ver}` : "Connected successfully" });
         // Update status in DB
         const updated = { ...cfg, last_sync: new Date().toISOString() };
         await db.from("system_settings").upsert({ key: `hmis_config_${cfg.id}`, value: JSON.stringify(updated), category: "hmis" }, { onConflict: "key" });
