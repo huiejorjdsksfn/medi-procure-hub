@@ -151,5 +151,3 @@ export const d365Btn = (variant: "primary"|"secondary"|"danger"|"ghost" = "prima
     transition: "all .12s",
   };
 };
-
-import React from "react";
