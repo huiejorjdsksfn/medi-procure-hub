@@ -3,9 +3,12 @@
  * Full D365-style error page with quick navigation
  * EL5 MediProcure, Embu Level 5 Hospital
  */
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, ArrowLeft, Search, AlertCircle, LayoutDashboard,
   ShoppingCart, Package, DollarSign, FileText, Users } from "lucide-react";
+import { logNotFound } from "@/lib/track404";
+import { useAuth } from "@/contexts/AuthContext";
 
 const QUICK_LINKS = [
   { label:"Dashboard",     path:"/dashboard",      icon:LayoutDashboard, color:"#0078d4" },
@@ -19,6 +22,15 @@ const QUICK_LINKS = [
 export default function NotFound() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, primaryRole } = useAuth();
+
+  useEffect(() => {
+    logNotFound({
+      path: location.pathname + location.search,
+      user_id: user?.id || null,
+      user_role: primaryRole || null,
+    });
+  }, [location.pathname, location.search, user?.id, primaryRole]);
 
   return (
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
