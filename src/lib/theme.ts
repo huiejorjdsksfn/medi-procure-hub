@@ -4,6 +4,7 @@
  * effect instantly across every page without a reload.
  * EL5 MediProcure - Embu Level 5 Hospital
  */
+import React from "react";
 
 /** Read a CSS variable from :root; fall back to `fallback` if not set. */
 function cssVar(name: string, fallback: string): string {
@@ -117,11 +118,11 @@ export const statusBadge = (status: string): React.CSSProperties => {
  * carries the "status-chip" CSS class, allowing the GUI Editor's
  * "Coloured Status Badges" toggle to hide/neutralise chips app-wide.
  */
-export function StatusChip({ status, label }: { status: string; label?: string }): JSX.Element {
-  return (
-    <span className="status-chip" style={statusBadge(status)}>
-      {label ?? status}
-    </span>
+export function StatusChip({ status, label }: { status: string; label?: string }) {
+  return React.createElement(
+    "span",
+    { className: "status-chip", style: statusBadge(status) },
+    label ?? status
   );
 }
 
@@ -150,5 +151,3 @@ export const d365Btn = (variant: "primary"|"secondary"|"danger"|"ghost" = "prima
     transition: "all .12s",
   };
 };
-
-import React from "react";
