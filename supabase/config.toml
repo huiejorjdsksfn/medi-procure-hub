@@ -64,3 +64,6 @@ verify_jwt = false
 
 [functions.mssql-test]
 verify_jwt = false
+
+[functions.track-404]
+verify_jwt = false
