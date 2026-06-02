@@ -1,184 +1,486 @@
 /**
- * ProcurBosse - Reception Module v5.8
- * Hospital front-desk ERP: visitor log, Twilio calls & SMS, WhatsApp, live real-time
- * Role-customized views for all user roles
- * EL5 MediProcure - Embu Level 5 Hospital
+ * ProcurBosse v9.7 — Reception Desk
+ * Tailored per role: every user gets a personalised view
+ * Roles: admin/superadmin/webmaster → full | procurement_manager → full
+ *        procurement_officer/accountant → visitors+messages+whatsapp
+ *        inventory_manager/warehouse_officer → visitors+calls+messages
+ *        requisitioner → visitors+messages (read-only)
+ * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
-import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRealtime } from "@/hooks/useRealtime";
-import { ReceptionAPI } from "@/lib/api/ReceptionAPI";
 import { toast } from "@/hooks/use-toast";
 import {
   Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed,
-  MessageSquare, UserCheck, UserX, Plus, X, Search, RefreshCw,
-  Send, Users, Building2, LogIn, LogOut, ExternalLink
+  MessageSquare, UserCheck, UserX, Plus, X, Search,
+  Send, Users, Building2, LogIn, LogOut, RefreshCw,
+  Bell, Radio, Shield
 } from "lucide-react";
 
-const DEPTS = ["Pharmacy","Maternity","Casualty","Laboratory","X-Ray","Paediatrics",
-  "Surgery","Medical","Outpatient","Administration","ICU","Procurement","HR","Finance"];
+const db = supabase as any;
 
-const TWILIO_PHONE = "+16812972643";
+const TWILIO_SMS  = "+16812972643";
 const WHATSAPP_NO = "+14155238886";
-const WHATSAPP_SANDBOX_CODE = "bad-machine";
-const WHATSAPP_LINK = `https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine&type=phone_number&app_absent=0`;
-const TWILIO_MSG_SID = "MGd547d8e3273fda2d21afdd6856acb245";
-const TWILIO_VOICE_WEBHOOK = "https://demo.twilio.com/welcome/voice/";
+const WA_LINK     = "https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine";
+const MG_SID      = "MGd547d8e3273fda2d21afdd6856acb245";
 
-const CALL_C: Record<string,string> = {incoming:"#0369a1",outgoing:"#059669",missed:"#dc2626",voicemail:"#9333ea"};
-const VISIT_C: Record<string,string> = {checked_in:"#059669",checked_out:"#6b7280",waiting:"#d97706",denied:"#dc2626"};
-const fmtDate = (d:string) => d ? new Date(d).toLocaleString("en-KE",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true}) : "-";
-const BS = (bg:string):React.CSSProperties => ({display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:bg,color:"#fff",fontWeight:700,fontSize:12.5,cursor:"pointer"});
-const INP:React.CSSProperties = {padding:"9px 12px",border:"1.5px solid #d1d5db",borderRadius:8,fontSize:13,color:"#111",background:"#fff",outline:"none",width:"100%",boxSizing:"border-box"};
+const DEPTS = ["Pharmacy","Maternity","Casualty","Laboratory","X-Ray","Paediatrics",
+  "Surgery","Medical","Outpatient","Administration","ICU","Procurement","HR","Finance","ICT"];
 
-function Chip({label,color}:{label:string;color:string}) {
-  return <span style={{padding:"2px 9px",borderRadius:12,background:color+"18",color,fontSize:11,fontWeight:700,border:"1px solid "+color+"44",textTransform:"capitalize"}}>{label.replace("_"," ")}</span>;
+const fmt = (d:string) => d ? new Date(d).toLocaleString("en-KE",
+  {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true}) : "—";
+const chip = (label:string, bg:string, fg:string) =>
+  <span style={{padding:"2px 8px",borderRadius:10,background:bg,color:fg,
+    fontSize:10.5,fontWeight:700,border:`1px solid ${fg}33`}}>
+    {label.replace("_"," ")}
+  </span>;
+
+const CALL_COL:Record<string,string> = {incoming:"#0369a1",outgoing:"#059669",missed:"#dc2626",voicemail:"#9333ea"};
+const VISIT_COL:Record<string,string> = {checked_in:"#059669",checked_out:"#6b7280",waiting:"#d97706",denied:"#dc2626"};
+const BTN = (bg:string, extra?:React.CSSProperties):React.CSSProperties =>
+  ({display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,
+    border:"none",background:bg,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",...extra});
+const INP:React.CSSProperties = {padding:"8px 11px",border:"1.5px solid #d1d5db",borderRadius:7,
+  fontSize:12.5,color:"#111827",background:"#fff",outline:"none",width:"100%",boxSizing:"border-box"};
+
+// ── Role configuration ────────────────────────────────────────────
+type TabId = "visitors"|"calls"|"messages"|"whatsapp"|"broadcast"|"dashboard";
+
+interface RoleConfig {
+  tabs:    TabId[];
+  canAdd:  boolean;
+  canCall: boolean;
+  canSend: boolean;
+  canBroadcast: boolean;
+  label:   string;
+  color:   string;
+  welcome: string;
 }
 
-// Role-based tab config - all users get visitors + messages; admins get calls + whatsapp
-function getTabsForRole(role: string) {
-  const allTabs = ["visitors","calls","messages","whatsapp","notify_all"];
-  if (role === "admin" || role === "database_admin") return allTabs;
-  if (role === "procurement_manager") return ["visitors","calls","messages","whatsapp","notify_all"];
-  if (role === "procurement_officer") return ["visitors","messages","whatsapp"];
-  if (role === "accountant") return ["visitors","messages","whatsapp"];
-  if (role === "inventory_manager") return ["visitors","messages","calls"];
-  if (role === "warehouse_officer") return ["visitors","messages","calls"];
-  if (role === "requisitioner") return ["visitors","messages"];
-  return ["visitors","messages"];
-}
+const ROLE_CONFIG: Record<string, RoleConfig> = {
+  admin: {
+    tabs:["dashboard","visitors","calls","messages","whatsapp","broadcast"],
+    canAdd:true, canCall:true, canSend:true, canBroadcast:true,
+    label:"Admin", color:"#374151",
+    welcome:"Full Reception — all visitor, call, messaging and broadcast functions"
+  },
+  superadmin: {
+    tabs:["dashboard","visitors","calls","messages","whatsapp","broadcast"],
+    canAdd:true, canCall:true, canSend:true, canBroadcast:true,
+    label:"Superadmin", color:"#7c3aed",
+    welcome:"Full Reception access"
+  },
+  webmaster: {
+    tabs:["dashboard","visitors","calls","messages","whatsapp","broadcast"],
+    canAdd:true, canCall:true, canSend:true, canBroadcast:true,
+    label:"Webmaster", color:"#0891b2",
+    welcome:"Full Reception access"
+  },
+  procurement_manager: {
+    tabs:["dashboard","visitors","calls","messages","whatsapp","broadcast"],
+    canAdd:true, canCall:true, canSend:true, canBroadcast:true,
+    label:"Proc. Manager", color:"#0078d4",
+    welcome:"Procurement Reception — visitors, calls, messaging and broadcast"
+  },
+  procurement_officer: {
+    tabs:["visitors","messages","whatsapp"],
+    canAdd:true, canCall:false, canSend:true, canBroadcast:false,
+    label:"Proc. Officer", color:"#0078d4",
+    welcome:"Procurement Desk — visitor log, messages and WhatsApp"
+  },
+  accountant: {
+    tabs:["visitors","messages","whatsapp"],
+    canAdd:true, canCall:false, canSend:true, canBroadcast:false,
+    label:"Accountant", color:"#059669",
+    welcome:"Finance Reception — visitor log and messaging"
+  },
+  inventory_manager: {
+    tabs:["visitors","calls","messages"],
+    canAdd:true, canCall:true, canSend:true, canBroadcast:false,
+    label:"Inv. Manager", color:"#d97706",
+    welcome:"Inventory Desk — visitor log, call tracking and messages"
+  },
+  warehouse_officer: {
+    tabs:["visitors","calls","messages"],
+    canAdd:true, canCall:true, canSend:false, canBroadcast:false,
+    label:"Warehouse", color:"#d97706",
+    welcome:"Warehouse Reception — visitor and call log"
+  },
+  database_admin: {
+    tabs:["dashboard","visitors","messages"],
+    canAdd:false, canCall:false, canSend:false, canBroadcast:false,
+    label:"DB Admin", color:"#374151",
+    welcome:"Reception read-only view"
+  },
+  requisitioner: {
+    tabs:["visitors","messages"],
+    canAdd:true, canCall:false, canSend:false, canBroadcast:false,
+    label:"Requisitioner", color:"#6b7280",
+    welcome:"Reception — visitor log and read messages"
+  },
+};
 
-function getRoleWelcome(role: string) {
-  const msgs: Record<string,string> = {
-    admin: "Full reception - visitors, calls, SMS, WhatsApp, broadcast notifications",
-    database_admin: "Full reception access",
-    procurement_manager: "Procurement reception - all messaging and visitor functions",
-    procurement_officer: "Procurement desk - visitor tracking and messaging",
-    accountant: "Finance reception - visitor log, messages, and WhatsApp",
-    inventory_manager: "Inventory desk - visitor log, messages, call tracking",
-    warehouse_officer: "Warehouse reception - visitor log, messages, call tracking",
-    requisitioner: "Reception - visitor log and messaging",
-  };
-  return msgs[role] || "Reception module";
-}
+const DEFAULT_CFG: RoleConfig = {
+  tabs:["visitors","messages"], canAdd:true, canCall:false,
+  canSend:false, canBroadcast:false,
+  label:"User", color:"#6b7280", welcome:"Reception — visitor log"
+};
 
-
-// - Broadcast SMS/WhatsApp to all users -
-function NotifyAllTab() {
-  const [msg,     setMsg]     = useState("");
-  const [channel, setChannel] = useState<"sms"|"whatsapp">("sms");
-  const [loading, setLoading] = useState(false);
-  const [users,   setUsers]   = useState<any[]>([]);
-  const [selected,setSelected]= useState<string[]>([]);
-  const [result,  setResult]  = useState<any>(null);
-  const [dept,    setDept]    = useState("All");
-
-  const DEPTS_ALL = ["All","Procurement","Finance","Inventory","Pharmacy","Maternity","Casualty","Laboratory","Administration","ICT","HR"];
-
+// ── Dashboard stats ───────────────────────────────────────────────
+function DashboardTab(){
+  const [stats,setStats]=useState({visitors:0,active:0,calls:0,msgs:0,appointments:0});
   useEffect(()=>{
-    (supabase as any).from("profiles").select("id,full_name,phone_number,email,department")
-      .not("phone_number","is",null)
-      .then(({data}:any)=>{ setUsers(data||[]); setSelected((data||[]).map((u:any)=>u.id)); });
+    const today=new Date(); today.setHours(0,0,0,0); const iso=today.toISOString();
+    Promise.all([
+      db.from("reception_visitors").select("id",{count:"exact",head:true}).gte("check_in_time",iso),
+      db.from("reception_visitors").select("id",{count:"exact",head:true}).in("status",["waiting","checked_in"]),
+      db.from("reception_calls").select("id",{count:"exact",head:true}).gte("called_at",iso),
+      db.from("reception_messages").select("id",{count:"exact",head:true}).eq("direction","outbound").gte("created_at",iso),
+      db.from("reception_appointments").select("id",{count:"exact",head:true}).gte("scheduled_time",iso),
+    ]).then(([v,a,c,m,ap])=>{
+      setStats({visitors:v.count||0,active:a.count||0,calls:c.count||0,msgs:m.count||0,appointments:ap.count||0});
+    });
+  },[]);
+  const cards=[
+    {l:"Today Visitors",  v:stats.visitors,     col:"#0078d4",icon:"👥"},
+    {l:"Currently Active",v:stats.active,        col:"#059669",icon:"🟢"},
+    {l:"Calls Today",     v:stats.calls,         col:"#9333ea",icon:"📞"},
+    {l:"SMS Sent",        v:stats.msgs,          col:"#0891b2",icon:"💬"},
+    {l:"Appointments",    v:stats.appointments,  col:"#d97706",icon:"📅"},
+  ];
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:14}}>
+      {cards.map(c=>(
+        <div key={c.l} style={{background:"#fff",borderRadius:12,padding:"18px 16px",
+          boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:`4px solid ${c.col}`}}>
+          <div style={{fontSize:22}}>{c.icon}</div>
+          <div style={{fontSize:26,fontWeight:900,color:c.col,lineHeight:1.1}}>{c.v}</div>
+          <div style={{fontSize:11,color:"#6b7280",fontWeight:600,marginTop:2}}>{c.l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Visitors tab ──────────────────────────────────────────────────
+function VisitorsTab({cfg}:{cfg:RoleConfig}){
+  const [visitors,setVisitors]=useState<any[]>([]);
+  const [search,setSearch]=useState("");
+  const [form,setForm]=useState<any|null>(null);
+  const [saving,setSaving]=useState(false);
+  const [loading,setLoading]=useState(true);
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const {data}=await db.from("reception_visitors").select("*")
+      .order("check_in_time",{ascending:false}).limit(50);
+    setVisitors(data||[]); setLoading(false);
   },[]);
 
-  const filtered = dept==="All" ? users : users.filter(u=>u.department===dept);
-  const targets  = filtered.filter(u=>selected.includes(u.id));
+  useEffect(()=>{load();},[load]);
 
-  async function sendAll(){
-    if(!msg.trim()){ return; }
-    setLoading(true); setResult(null);
-    const phones = targets.map((u:any)=>u.phone_number).filter(Boolean);
-    if(!phones.length){ setLoading(false); return; }
-    const {data,error} = await (supabase as any).functions.invoke("send-sms",{
-      body:{ to:phones, message:msg, channel, department:"broadcast", module:"notify_all" }
+  const save=async()=>{
+    if(!form?.full_name) return;
+    setSaving(true);
+    const rec={...form,status:form.status||"waiting",check_in_time:new Date().toISOString()};
+    if(form.id){await db.from("reception_visitors").update(rec).eq("id",form.id);}
+    else{await db.from("reception_visitors").insert(rec);}
+    setSaving(false); setForm(null); load();
+    toast({title:"Visitor saved"});
+  };
+
+  const checkout=async(id:string)=>{
+    await db.from("reception_visitors").update({status:"checked_out",check_out_time:new Date().toISOString()}).eq("id",id);
+    load();
+  };
+
+  const flt=visitors.filter(v=>!search||v.full_name?.toLowerCase().includes(search.toLowerCase())||v.id_number?.includes(search));
+
+  return(
+    <div>
+      <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+        <div style={{position:"relative",flex:1,minWidth:180}}>
+          <Search size={13} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"#9ca3af"}}/>
+          <input style={{...INP,paddingLeft:28}} placeholder="Search visitors..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        </div>
+        {cfg.canAdd&&<button onClick={()=>setForm({})} style={BTN("#0078d4")}>
+          <Plus size={13}/>New Visitor
+        </button>}
+        <button onClick={load} style={BTN("#6b7280")}><RefreshCw size={13}/></button>
+      </div>
+
+      {/* Add/Edit form */}
+      {form&&(
+        <div style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:10,padding:16,marginBottom:14}}>
+          <div style={{fontWeight:800,fontSize:13,color:"#0f172a",marginBottom:12}}>
+            {form.id?"Edit":"New"} Visitor
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[["Full Name*","full_name","text"],["ID Number","id_number","text"],
+              ["Phone","phone","tel"],["Organization","organization","text"],
+              ["Purpose","purpose","text"],["Host Name","host_name","text"]
+            ].map(([l,k,t])=>(
+              <div key={k as string}>
+                <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>{l}</label>
+                <input type={t as string} style={INP}
+                  value={form[k as string]||""}
+                  onChange={e=>setForm((f:any)=>({...f,[k as string]:e.target.value}))}/>
+              </div>
+            ))}
+            <div>
+              <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Department</label>
+              <select style={{...INP,background:"#fff"}} value={form.host_department||""}
+                onChange={e=>setForm((f:any)=>({...f,host_department:e.target.value}))}>
+                <option value="">Select...</option>
+                {DEPTS.map(d=><option key={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Status</label>
+              <select style={{...INP,background:"#fff"}} value={form.status||"waiting"}
+                onChange={e=>setForm((f:any)=>({...f,status:e.target.value}))}>
+                {["waiting","checked_in","checked_out","denied"].map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:12}}>
+            <button onClick={save} disabled={saving} style={BTN("#0078d4")}>
+              {saving?<RefreshCw size={12} style={{animation:"spin .7s linear infinite"}}/>:<UserCheck size={12}/>}
+              {saving?"Saving...":"Save Visitor"}
+            </button>
+            <button onClick={()=>setForm(null)} style={BTN("#6b7280")}><X size={12}/>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading?<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Loading...</div>:(
+        <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:420,overflowY:"auto"}}>
+          {flt.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af",fontSize:13}}>No visitors found</div>}
+          {flt.map(v=>(
+            <div key={v.id} style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:9,
+              padding:"10px 14px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:VISIT_COL[v.status]+"18",
+                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Users size={16} color={VISIT_COL[v.status]}/>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{v.full_name}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>
+                  {v.organization||v.purpose||"—"} · {v.host_department||"—"}
+                </div>
+                <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{fmt(v.check_in_time)}</div>
+              </div>
+              {chip(v.status, VISIT_COL[v.status]+"18", VISIT_COL[v.status])}
+              {cfg.canAdd&&v.status!=="checked_out"&&(
+                <button onClick={()=>checkout(v.id)} style={BTN("#059669",{padding:"5px 10px",fontSize:11})}>
+                  <LogOut size={11}/>Out
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Calls tab ─────────────────────────────────────────────────────
+function CallsTab({cfg}:{cfg:RoleConfig}){
+  const [calls,setCalls]=useState<any[]>([]);
+  const [form,setForm]=useState<any|null>(null);
+  const [saving,setSaving]=useState(false);
+
+  useEffect(()=>{
+    db.from("reception_calls").select("*").order("called_at",{ascending:false}).limit(60)
+      .then(({data}:any)=>setCalls(data||[]));
+  },[]);
+
+  const save=async()=>{
+    if(!form?.caller_name) return;
+    setSaving(true);
+    const rec={...form,called_at:new Date().toISOString(),duration:form.duration||0};
+    await db.from("reception_calls").insert(rec);
+    setSaving(false); setForm(null);
+    db.from("reception_calls").select("*").order("called_at",{ascending:false}).limit(60)
+      .then(({data}:any)=>setCalls(data||[]));
+    toast({title:"Call logged"});
+  };
+
+  const CI:Record<string,any>={incoming:PhoneIncoming,outgoing:PhoneOutgoing,missed:PhoneMissed,voicemail:Phone};
+
+  return(
+    <div>
+      {cfg.canCall&&(
+        <button onClick={()=>setForm({call_type:"incoming"})} style={{...BTN("#0078d4"),marginBottom:14}}>
+          <Plus size={13}/>Log Call
+        </button>
+      )}
+      {form&&(
+        <div style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:10,padding:16,marginBottom:14}}>
+          <div style={{fontWeight:800,fontSize:13,color:"#0f172a",marginBottom:12}}>Log Call</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[["Caller Name*","caller_name","text"],["Phone","caller_phone","tel"],
+              ["Department","department","text"],["Notes","notes","text"]].map(([l,k,t])=>(
+              <div key={k as string}>
+                <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>{l}</label>
+                <input type={t as string} style={INP} value={form[k as string]||""}
+                  onChange={e=>setForm((f:any)=>({...f,[k as string]:e.target.value}))}/>
+              </div>
+            ))}
+            <div>
+              <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Type</label>
+              <select style={{...INP,background:"#fff"}} value={form.call_type||"incoming"}
+                onChange={e=>setForm((f:any)=>({...f,call_type:e.target.value}))}>
+                {["incoming","outgoing","missed","voicemail"].map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Duration (s)</label>
+              <input type="number" style={INP} value={form.duration||0}
+                onChange={e=>setForm((f:any)=>({...f,duration:+e.target.value}))}/>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:12}}>
+            <button onClick={save} disabled={saving} style={BTN("#0078d4")}>
+              {saving?<RefreshCw size={12} style={{animation:"spin .7s linear infinite"}}/>:<Phone size={12}/>}
+              Save
+            </button>
+            <button onClick={()=>setForm(null)} style={BTN("#6b7280")}><X size={12}/>Cancel</button>
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:440,overflowY:"auto"}}>
+        {calls.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af",fontSize:13}}>No calls logged today</div>}
+        {calls.map(c=>{
+          const Icon=CI[c.call_type]||Phone;
+          return(
+            <div key={c.id} style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:9,
+              padding:"9px 14px",display:"flex",alignItems:"center",gap:11,boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
+              <div style={{width:34,height:34,borderRadius:"50%",background:CALL_COL[c.call_type]+"18",
+                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Icon size={15} color={CALL_COL[c.call_type]}/>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:12.5,color:"#0f172a"}}>{c.caller_name||"Unknown"}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>{c.caller_phone||"—"} · {c.department||"—"}</div>
+                <div style={{fontSize:10,color:"#9ca3af"}}>{fmt(c.called_at)} · {c.duration||0}s</div>
+              </div>
+              {chip(c.call_type,CALL_COL[c.call_type]+"18",CALL_COL[c.call_type])}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Messages tab ──────────────────────────────────────────────────
+function MessagesTab({cfg}:{cfg:RoleConfig}){
+  const [msgs,setMsgs]=useState<any[]>([]);
+  const [to,setTo]=useState(""); const [msg,setMsg]=useState("");
+  const [name,setName]=useState(""); const [dept,setDept]=useState("");
+  const [sending,setSending]=useState(false);
+  const [conv,setConv]=useState<any[]>([]);
+
+  useEffect(()=>{
+    db.from("reception_messages").select("*").order("created_at",{ascending:false}).limit(40)
+      .then(({data}:any)=>setMsgs(data||[]));
+    db.from("sms_conversations").select("*").order("last_message_at",{ascending:false}).limit(20)
+      .then(({data}:any)=>setConv(data||[]));
+  },[]);
+
+  const send=async()=>{
+    if(!to||!msg) return;
+    setSending(true);
+    const {data,error}=await db.functions.invoke("send-sms",{
+      body:{to,message:msg,recipient_name:name,department:dept,module:"reception"}
     });
-    setLoading(false);
-    setResult(data||{ok:false,error:error?.message});
-  }
-
-  const s: any = {
-    card:{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"} as React.CSSProperties,
-    label:{display:"block",fontSize:11,fontWeight:700,color:"#374151",marginBottom:5} as React.CSSProperties,
-    inp:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151"} as React.CSSProperties,
-    ta:{width:"100%",padding:"9px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box" as const,color:"#374151",resize:"vertical" as const,minHeight:90} as React.CSSProperties,
-    btn:(bg:string):React.CSSProperties=>({padding:"10px 20px",background:bg,color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer"}),
+    setSending(false);
+    if(error||!data?.ok){
+      toast({title:"Send failed",description:data?.results?.[0]?.error||error?.message,variant:"destructive"});
+    } else {
+      toast({title:`SMS sent to ${to}`,description:`SID: ${data.results?.[0]?.sid||"sent"}`});
+      setTo(""); setMsg(""); setName(""); setDept("");
+      db.from("reception_messages").select("*").order("created_at",{ascending:false}).limit(40)
+        .then(({data}:any)=>setMsgs(data||[]));
+    }
   };
 
   return(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
       {/* Compose */}
-      <div style={s.card}>
-        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>- Broadcast Message</div>
-
-        <div style={{marginBottom:12}}>
-          <label style={s.label}>Channel</label>
-          <div style={{display:"flex",gap:8}}>
-            {(["sms","whatsapp"] as const).map(ch=>(
-              <button key={ch} onClick={()=>setChannel(ch)}
-                style={{...s.btn(channel===ch?"#0e7490":"#f1f5f9"),color:channel===ch?"#fff":"#374151",flex:1,fontSize:12}}>
-                {ch==="sms"?"- SMS":"- WhatsApp"}
-              </button>
-            ))}
-          </div>
+      <div style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:10,padding:16,boxShadow:"0 2px 6px rgba(0,0,0,.05)"}}>
+        <div style={{fontWeight:800,fontSize:13,color:"#0f172a",marginBottom:12}}>
+          💬 Send SMS {!cfg.canSend&&<span style={{fontSize:10,color:"#9ca3af",fontWeight:500}}>(read-only)</span>}
         </div>
-
-        <div style={{marginBottom:12}}>
-          <label style={s.label}>Filter by Department</label>
-          <select value={dept} onChange={e=>setDept(e.target.value)} style={{...s.inp,background:"#fff"}}>
-            {DEPTS_ALL.map(d=><option key={d}>{d}</option>)}
-          </select>
-        </div>
-
-        <div style={{marginBottom:12}}>
-          <label style={s.label}>Message</label>
-          <textarea value={msg} onChange={e=>setMsg(e.target.value)} placeholder="Type your broadcast message..." style={s.ta}/>
-          <div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>[EL5 MediProcure] prefix added automatically - {msg.length}/1560 chars</div>
-        </div>
-
-        <button onClick={sendAll} disabled={loading||!msg.trim()||targets.length===0}
-          style={{...s.btn(loading||!msg.trim()||targets.length===0?"#9ca3af":"#0e7490"),width:"100%",justifyContent:"center"}}>
-          {loading?`Sending to ${targets.length}-`:`- Send to ${targets.length} user${targets.length!==1?"s":""}`}
-        </button>
-
-        {result&&(
-          <div style={{marginTop:12,padding:"10px 14px",borderRadius:8,
-            background:result.ok?"#f0fdf4":"#fef2f2",border:`1px solid ${result.ok?"#bbf7d0":"#fecaca"}`}}>
-            <div style={{fontSize:12,fontWeight:700,color:result.ok?"#166534":"#dc2626"}}>
-              {result.ok?`- Sent: ${result.sent}/${result.total}`:`- ${result.error||"Send failed"}`}
+        {cfg.canSend&&(
+          <>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              {[["Phone*","tel",to,setTo],["Name","text",name,setName]].map(([l,t,v,s]:any)=>(
+                <div key={l}><label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>{l}</label>
+                  <input type={t} style={INP} placeholder={l} value={v} onChange={e=>s(e.target.value)}/>
+                </div>
+              ))}
             </div>
-            {result.failed>0&&<div style={{fontSize:11,color:"#d97706",marginTop:4}}>- {result.failed} failed</div>}
-          </div>
+            <div style={{marginBottom:8}}>
+              <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Department</label>
+              <select style={{...INP,background:"#fff"}} value={dept} onChange={e=>setDept(e.target.value)}>
+                <option value="">All</option>
+                {DEPTS.map(d=><option key={d}>{d}</option>)}
+              </select>
+            </div>
+            <div style={{marginBottom:10}}>
+              <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Message*</label>
+              <textarea style={{...INP,resize:"vertical",minHeight:72}} value={msg}
+                onChange={e=>setMsg(e.target.value)} placeholder="Type message..."/>
+              <div style={{fontSize:9.5,color:"#9ca3af",marginTop:2}}>[EL5 MediProcure] prefix auto-added · MG SID: {MG_SID.slice(0,12)}...</div>
+            </div>
+            <button onClick={send} disabled={sending||!to||!msg} style={{...BTN(sending||!to||!msg?"#9ca3af":"#0078d4"),width:"100%",justifyContent:"center"}}>
+              {sending?<RefreshCw size={13} style={{animation:"spin .7s linear infinite"}}/>:<Send size={13}/>}
+              {sending?"Sending...":"Send SMS"}
+            </button>
+          </>
         )}
+        {/* Recent */}
+        <div style={{marginTop:14,maxHeight:220,overflowY:"auto"}}>
+          {msgs.slice(0,8).map(m=>(
+            <div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f8fafc"}}>
+              <div>
+                <div style={{fontSize:11.5,fontWeight:700,color:"#0f172a"}}>{m.recipient_phone}</div>
+                <div style={{fontSize:10.5,color:"#6b7280"}}>{(m.message_body||"").slice(0,60)}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:10,color:m.status==="sent"?"#059669":"#dc2626",fontWeight:700}}>{m.status}</div>
+                <div style={{fontSize:9.5,color:"#9ca3af"}}>{fmt(m.sent_at||m.created_at)}</div>
+              </div>
+            </div>
+          ))}
+          {msgs.length===0&&<div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>No messages</div>}
+        </div>
       </div>
 
-      {/* User list */}
-      <div style={s.card}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>
-            - Recipients ({targets.length}/{filtered.length})
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setSelected(filtered.map(u=>u.id))} style={{...s.btn("#0369a1"),fontSize:11,padding:"5px 10px"}}>All</button>
-            <button onClick={()=>setSelected([])} style={{...s.btn("#6b7280"),fontSize:11,padding:"5px 10px"}}>None</button>
-          </div>
-        </div>
-        <div style={{maxHeight:320,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
-          {filtered.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>No users with phone numbers</div>}
-          {filtered.map((u:any)=>(
-            <div key={u.id} onClick={()=>setSelected(s2=>s2.includes(u.id)?s2.filter(x=>x!==u.id):[...s2,u.id])}
-              style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,cursor:"pointer",
-                background:selected.includes(u.id)?"#eff6ff":"#f8fafc",border:`1px solid ${selected.includes(u.id)?"#93c5fd":"#f1f5f9"}`}}>
-              <div style={{width:14,height:14,borderRadius:3,border:`2px solid ${selected.includes(u.id)?"#0369a1":"#d1d5db"}`,
-                background:selected.includes(u.id)?"#0369a1":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {selected.includes(u.id)&&<span style={{color:"#fff",fontSize:9,fontWeight:900}}>-</span>}
+      {/* Conversations */}
+      <div style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:10,padding:16,boxShadow:"0 2px 6px rgba(0,0,0,.05)"}}>
+        <div style={{fontWeight:800,fontSize:13,color:"#0f172a",marginBottom:12}}>💬 Conversations</div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto"}}>
+          {conv.length===0&&<div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>No conversations</div>}
+          {conv.map(c=>(
+            <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",
+              background:"#f8fafc",borderRadius:8,border:"1px solid #f1f5f9"}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:"#0078d418",
+                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <MessageSquare size={14} color="#0078d4"/>
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"-"}</div>
-                <div style={{fontSize:10,color:"#6b7280"}}>{u.phone_number}</div>
+                <div style={{fontWeight:700,fontSize:12,color:"#0f172a"}}>{c.contact_name||c.phone_number}</div>
+                <div style={{fontSize:10.5,color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.last_message}</div>
               </div>
-              {u.department&&<span style={{fontSize:9,background:"#e0f2fe",color:"#0369a1",padding:"2px 6px",borderRadius:6,fontWeight:600,flexShrink:0}}>{u.department}</span>}
+              <div style={{textAlign:"right",flexShrink:0}}>
+                {c.unread_count>0&&<span style={{background:"#dc2626",color:"#fff",borderRadius:8,
+                  fontSize:9,fontWeight:800,padding:"1px 5px"}}>{c.unread_count}</span>}
+                <div style={{fontSize:9.5,color:"#9ca3af",marginTop:2}}>{fmt(c.last_message_at)}</div>
+              </div>
             </div>
           ))}
         </div>
@@ -187,511 +489,248 @@ function NotifyAllTab() {
   );
 }
 
-export default function ReceptionPage() {
-  const { profile, roles } = useAuth();
-  const primaryRole = roles[0] || "requisitioner";
-  const hosName = "Embu Level 5 Hospital";
-  const availTabs = getTabsForRole(primaryRole);
-
-  const [tab, setTab] = useState<string>(availTabs[0]);
-  const [visitors, setVisitors] = useState<any[]>([]);
-  const [calls, setCalls] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [showVF, setShowVF] = useState(false);
-  const [showCF, setShowCF] = useState(false);
-  const [showMF, setShowMF] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [rtOn, setRtOn] = useState(false);
-  const [whatsappMsg, setWhatsappMsg] = useState("");
-  const [whatsappTo, setWhatsappTo] = useState("");
-  const [waLoading, setWaLoading] = useState(false);
-
-  const EV = {full_name:"",id_number:"",phone:"",organization:"",purpose:"",host_name:"",host_department:"",notes:""};
-  const EC = {caller_name:"",caller_phone:"",purpose:"",department:"",staff_contacted:"",call_status:"incoming",notes:""};
-  const EM = {recipient_name:"",recipient_phone:"",message_body:"",message_type:"sms",department:""};
-  const [vF,setVF] = useState({...EV});
-  const [cF,setCF] = useState({...EC});
-  const [mF,setMF] = useState({...EM});
-
-  const load = useCallback(async()=>{
-    setLoading(true);
-    const [v,c,m] = await Promise.all([
-      (supabase as any).from("reception_visitors").select("*").order("created_at",{ascending:false}).limit(100),
-      (supabase as any).from("reception_calls").select("*").order("called_at",{ascending:false}).limit(100),
-      (supabase as any).from("reception_messages").select("*").order("created_at",{ascending:false}).limit(100),
-    ]);
-    setVisitors(v.data||[]); setCalls(c.data||[]); setMessages(m.data||[]);
-    setLoading(false);
-  },[]);
-
-  useEffect(()=>{load();},[load]);
+// ── WhatsApp tab ──────────────────────────────────────────────────
+function WhatsAppTab(){
+  const [sessions,setSessions]=useState<any[]>([]);
+  const [renewing,setRenewing]=useState(false);
 
   useEffect(()=>{
-    const ch=(supabase as any).channel("rcpt-rt-v58")
-      .on("postgres_changes",{event:"*",schema:"public",table:"reception_visitors"},load)
-      .on("postgres_changes",{event:"*",schema:"public",table:"reception_calls"},load)
-      .on("postgres_changes",{event:"*",schema:"public",table:"reception_messages"},load)
-      .subscribe((s:string)=>setRtOn(s==="SUBSCRIBED"));
-    return()=>(supabase as any).removeChannel(ch);
-  },[load]);
+    db.from("sms_conversations").select("*").order("last_message_at",{ascending:false}).limit(30)
+      .then(({data}:any)=>setSessions(data||[]));
+  },[]);
 
-  async function sms(phone:string,body:string){
-    const p=phone.startsWith("+")?phone:phone.replace(/^0/,"+254");
-    const {data,error}=await(supabase as any).functions.invoke("send-sms",{body:{to:p,message:body}});
-    return !error && (data?.ok ?? true);
-  }
+  const renewAll=async()=>{
+    setRenewing(true);
+    await db.functions.invoke("send-sms",{body:{},headers:{"x-action":"renew"}});
+    setRenewing(false);
+    toast({title:"WhatsApp sessions renewed"});
+  };
 
-  async function sendWhatsApp(){
-    if(!whatsappTo.trim()||!whatsappMsg.trim()){
-      toast({title:"Fill in recipient and message",variant:"destructive"}); return;
-    }
-    setWaLoading(true);
-    const p=whatsappTo.startsWith("+")?whatsappTo:whatsappTo.replace(/^0/,"+254");
-    const {error}=await(supabase as any).functions.invoke("send-sms",{body:{
-      to:p,message:whatsappMsg,hospitalName:hosName,
-      channel:"whatsapp",fromNumber:`whatsapp:${WHATSAPP_NO}`
-    }});
-    setWaLoading(false);
-    if(!error){
-      toast({title:"WhatsApp message sent!"});
-      setWhatsappMsg(""); setWhatsappTo("");
-    } else {
-      toast({title:"Failed to send WhatsApp",description:error.message,variant:"destructive"});
-    }
-  }
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+      <div style={{background:"#fff",border:"1px solid #dcfce7",borderRadius:10,padding:20,boxShadow:"0 2px 6px rgba(0,0,0,.05)"}}>
+        <div style={{fontWeight:800,fontSize:15,color:"#166534",marginBottom:4}}>🟢 WhatsApp Sandbox</div>
+        <div style={{fontSize:12,color:"#6b7280",marginBottom:14}}>
+          Join the EL5 MediProcure WhatsApp sandbox to receive procurement notifications.
+        </div>
+        {[
+          ["WhatsApp Number", WHATSAPP_NO],
+          ["Join Code", "join bad-machine"],
+          ["Messaging Service", MG_SID.slice(0,12)+"..."],
+        ].map(([l,v])=>(
+          <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f0fdf4"}}>
+            <span style={{fontSize:11.5,fontWeight:700,color:"#374151"}}>{l}</span>
+            <span style={{fontSize:11.5,color:"#166534",fontWeight:700,fontFamily:"monospace"}}>{v}</span>
+          </div>
+        ))}
+        <div style={{marginTop:14,display:"flex",gap:8}}>
+          <a href={WA_LINK} target="_blank" rel="noopener noreferrer"
+            style={{...BTN("#25D366"),textDecoration:"none",flex:1,justifyContent:"center"}}>
+            <MessageSquare size={13}/>Open WhatsApp
+          </a>
+          <button onClick={renewAll} disabled={renewing} style={BTN("#0369a1")}>
+            {renewing?<RefreshCw size={13} style={{animation:"spin .7s linear infinite"}}/>:<RefreshCw size={13}/>}
+            Renew
+          </button>
+        </div>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:10,padding:16}}>
+        <div style={{fontWeight:800,fontSize:13,color:"#0f172a",marginBottom:10}}>Active Sessions ({sessions.length})</div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:300,overflowY:"auto"}}>
+          {sessions.length===0&&<div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>No sessions</div>}
+          {sessions.map(s=>{
+            const h=(Date.now()-new Date(s.last_message_at||0).getTime())/3600000;
+            const active=h<72;
+            return(
+              <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+                background:active?"#f0fdf4":"#fef2f2",borderRadius:8,border:`1px solid ${active?"#bbf7d0":"#fecaca"}`}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:active?"#22c55e":"#dc2626",flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>{s.contact_name||s.phone_number}</div>
+                  <div style={{fontSize:10.5,color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.last_message}</div>
+                </div>
+                <div style={{fontSize:9.5,color:active?"#166534":"#dc2626",fontWeight:700,flexShrink:0}}>
+                  {active?"Active":"Expired"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  async function checkIn(id:string){
-    await(supabase as any).from("reception_visitors").update({status:"checked_in",check_in_time:new Date().toISOString()}).eq("id",id);
-    load();
-  }
-  async function checkOut(id:string){
-    await(supabase as any).from("reception_visitors").update({status:"checked_out",check_out_time:new Date().toISOString()}).eq("id",id);
-    load();
-  }
+// ── Broadcast tab ─────────────────────────────────────────────────
+function BroadcastTab(){
+  const [msg,setMsg]=useState(""); const [ch,setCh]=useState<"sms"|"whatsapp">("sms");
+  const [dpt,setDpt]=useState("All"); const [users,setUsers]=useState<any[]>([]);
+  const [sel,setSel]=useState<string[]>([]); const [result,setResult]=useState<any>(null);
+  const [sending,setSending]=useState(false);
 
-  async function saveVisitor(){
-    if(!vF.full_name.trim()){toast({title:"Name required",variant:"destructive"});return;}
-    setSaving(true);
-    const {error}=await(supabase as any).from("reception_visitors").insert({...vF,status:"waiting",check_in_time:new Date().toISOString()});
-    if(!error){
-      setShowVF(false);setVF({...EV});
-      if(vF.phone) await sms(vF.phone,`Welcome to ${hosName}. You are registered to visit ${vF.host_name||"staff"} in ${vF.host_department||"the hospital"}. Please proceed to the reception desk.`);
-      toast({title:"- Visitor registered"});
-    } else toast({title:"Error",description:error.message,variant:"destructive"});
-    setSaving(false);
-  }
+  useEffect(()=>{
+    db.from("profiles").select("id,full_name,phone_number,department").not("phone_number","is",null)
+      .then(({data}:any)=>{setUsers(data||[]);setSel((data||[]).map((u:any)=>u.id));});
+  },[]);
 
-  async function saveCall(){
-    if(!cF.caller_phone.trim()){toast({title:"Phone required",variant:"destructive"});return;}
-    setSaving(true);
-    const {error}=await(supabase as any).from("reception_calls").insert({...cF,called_at:new Date().toISOString()});
-    if(!error){setShowCF(false);setCF({...EC});toast({title:"- Call logged"});}
-    else toast({title:"Error",description:error.message,variant:"destructive"});
-    setSaving(false);
-  }
+  const filtered=dpt==="All"?users:users.filter((u:any)=>u.department===dpt);
+  const targets=filtered.filter((u:any)=>sel.includes(u.id));
 
-  async function sendMsg(){
-    if(!mF.recipient_phone.trim()||!mF.message_body.trim()){toast({title:"Fill required fields",variant:"destructive"});return;}
-    setSaving(true);
-    const ok=await sms(mF.recipient_phone,mF.message_body);
-    if(ok){
-      await(supabase as any).from("reception_messages").insert({...mF,status:"sent",sent_at:new Date().toISOString()});
-      setShowMF(false);setMF({...EM});
-      toast({title:"- SMS sent"});
-    } else toast({title:"SMS failed",variant:"destructive"});
-    setSaving(false);
-  }
+  const send=async()=>{
+    if(!msg.trim()||targets.length===0) return;
+    setSending(true); setResult(null);
+    const phones=targets.map((u:any)=>u.phone_number).filter(Boolean);
+    const {data,error}=await db.functions.invoke("send-sms",{
+      body:{to:phones,message:msg,channel:ch,department:"broadcast",module:"broadcast"}
+    });
+    setSending(false);
+    setResult(data||{ok:false,error:error?.message});
+  };
 
-  const filterVisitors = visitors.filter(v=>!search||v.full_name?.toLowerCase().includes(search.toLowerCase())||v.organization?.toLowerCase().includes(search.toLowerCase()));
-  const filterCalls = calls.filter(c=>!search||c.caller_name?.toLowerCase().includes(search.toLowerCase())||c.caller_phone?.includes(search));
-  const filterMsgs = messages.filter(m=>!search||m.recipient_name?.toLowerCase().includes(search.toLowerCase())||m.recipient_phone?.includes(search));
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+      <div style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:10,padding:16,boxShadow:"0 2px 6px rgba(0,0,0,.05)"}}>
+        <div style={{fontWeight:800,fontSize:13,color:"#0f172a",marginBottom:12}}>📢 Broadcast Message</div>
+        <div style={{display:"flex",gap:6,marginBottom:10}}>
+          {(["sms","whatsapp"] as const).map(c=>(
+            <button key={c} onClick={()=>setCh(c)}
+              style={{...BTN(ch===c?"#0078d4":"#f1f5f9"),color:ch===c?"#fff":"#374151",flex:1,fontSize:11.5,justifyContent:"center"}}>
+              {c==="sms"?"📱 SMS":"🟢 WhatsApp"}
+            </button>
+          ))}
+        </div>
+        <div style={{marginBottom:8}}>
+          <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Department Filter</label>
+          <select style={{...INP,background:"#fff"}} value={dpt} onChange={e=>setDpt(e.target.value)}>
+            {["All",...DEPTS].map(d=><option key={d}>{d}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:10}}>
+          <label style={{fontSize:10.5,fontWeight:700,color:"#374151",display:"block",marginBottom:3}}>Message</label>
+          <textarea style={{...INP,resize:"vertical",minHeight:90}} value={msg}
+            onChange={e=>setMsg(e.target.value)} placeholder="Type broadcast message..."/>
+          <div style={{fontSize:9.5,color:"#9ca3af",marginTop:2}}>{msg.length}/1560 chars</div>
+        </div>
+        <button onClick={send} disabled={sending||!msg.trim()||targets.length===0}
+          style={{...BTN(sending||!msg.trim()||targets.length===0?"#9ca3af":"#0078d4"),width:"100%",justifyContent:"center"}}>
+          {sending?<RefreshCw size={13} style={{animation:"spin .7s linear infinite"}}/>:<Send size={13}/>}
+          {sending?`Sending to ${targets.length}...`:`Send to ${targets.length} users`}
+        </button>
+        {result&&(
+          <div style={{marginTop:10,padding:"9px 12px",borderRadius:8,
+            background:result.ok?"#f0fdf4":"#fef2f2",border:`1px solid ${result.ok?"#bbf7d0":"#fecaca"}`}}>
+            <div style={{fontSize:12,fontWeight:700,color:result.ok?"#166534":"#dc2626"}}>
+              {result.ok?`✅ Sent: ${result.sent}/${result.total}`:`❌ ${result.error||"Failed"}`}
+            </div>
+            {result.failed>0&&<div style={{fontSize:11,color:"#d97706",marginTop:2}}>⚠️ {result.failed} failed</div>}
+          </div>
+        )}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #f1f5f9",borderRadius:10,padding:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{fontWeight:800,fontSize:13,color:"#0f172a"}}>
+            Recipients ({targets.length}/{filtered.length})
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setSel(filtered.map((u:any)=>u.id))} style={{...BTN("#0078d4"),padding:"4px 10px",fontSize:11}}>All</button>
+            <button onClick={()=>setSel([])} style={{...BTN("#6b7280"),padding:"4px 10px",fontSize:11}}>None</button>
+          </div>
+        </div>
+        <div style={{maxHeight:340,overflowY:"auto",display:"flex",flexDirection:"column",gap:5}}>
+          {filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>No users with phones</div>}
+          {filtered.map((u:any)=>(
+            <div key={u.id} onClick={()=>setSel(s2=>s2.includes(u.id)?s2.filter(x=>x!==u.id):[...s2,u.id])}
+              style={{display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,cursor:"pointer",
+                background:sel.includes(u.id)?"#eff6ff":"#f8fafc",
+                border:`1px solid ${sel.includes(u.id)?"#93c5fd":"#f1f5f9"}`}}>
+              <div style={{width:13,height:13,borderRadius:3,border:`2px solid ${sel.includes(u.id)?"#0078d4":"#d1d5db"}`,
+                background:sel.includes(u.id)?"#0078d4":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {sel.includes(u.id)&&<span style={{color:"#fff",fontSize:8,lineHeight:1}}>✓</span>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:11.5,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.full_name||"—"}</div>
+                <div style={{fontSize:10,color:"#6b7280"}}>{u.phone_number}</div>
+              </div>
+              {u.department&&<span style={{fontSize:9,background:"#e0f2fe",color:"#0369a1",padding:"1px 6px",borderRadius:5,fontWeight:600,flexShrink:0}}>{u.department}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  const tabLabels: Record<string,string> = {visitors:"- Visitors",calls:"- Calls",messages:"- SMS/Messages",whatsapp:"- WhatsApp",notify_all:"- Notify All"};
+// ── Main page ─────────────────────────────────────────────────────
+const TAB_LABELS: Record<TabId,string> = {
+  dashboard:"📊 Dashboard", visitors:"👥 Visitors",
+  calls:"📞 Calls", messages:"💬 Messages",
+  whatsapp:"🟢 WhatsApp", broadcast:"📢 Broadcast",
+};
+
+export default function ReceptionPage() {
+  const { primaryRole, profile } = useAuth();
+  const role = primaryRole || "requisitioner";
+  const cfg  = ROLE_CONFIG[role] || DEFAULT_CFG;
+  const [tab, setTab] = useState<TabId>(cfg.tabs[0]);
+
+  // Ensure tab is always valid for role
+  const activeTab: TabId = cfg.tabs.includes(tab) ? tab : cfg.tabs[0];
+
+  const TEAL = "#0891b2";
 
   return (
-    <div style={{padding:"20px 24px",fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",maxWidth:1400,margin:"0 auto"}}>
+    <div style={{ padding: "20px 24px", background: "#f8fafc", minHeight: "100vh",
+      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       {/* Header */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
-        <div>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:40,height:40,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#0284c7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>-</div>
-            <div>
-              <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#0f172a",letterSpacing:"-0.02em"}}>Reception Desk</h1>
-              <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{hosName} - ProcurBosse v5.8 - {getRoleWelcome(primaryRole)}</div>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10,
+            background: `linear-gradient(135deg,${cfg.color},${cfg.color}cc)`,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Building2 size={18} color="#fff" />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "#0f172a" }}>
+              Reception Desk
+            </h1>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>
+              <span style={{ background: cfg.color + "18", color: cfg.color, fontWeight: 700,
+                fontSize: 10, padding: "1px 7px", borderRadius: 8, marginRight: 6 }}>
+                {cfg.label}
+              </span>
+              {cfg.welcome}
             </div>
           </div>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <span style={{padding:"4px 10px",borderRadius:20,background:rtOn?"#f0fdf4":"#fef9c3",border:`1px solid ${rtOn?"#bbf7d0":"#fde68a"}`,fontSize:11,fontWeight:700,color:rtOn?"#059669":"#d97706"}}>
-            {rtOn?"- Live":"- Connecting..."}
-          </span>
-          {primaryRole === "admin" && (
-            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
-              style={{...BS("#25D366"),textDecoration:"none",fontSize:11}}>
-              - Join WhatsApp Sandbox
-            </a>
-          )}
-          <button onClick={load} style={BS("#64748b")}><RefreshCw style={{width:12,height:12}}/> Refresh</button>
-          {availTabs.includes("visitors") && <button onClick={()=>setShowVF(true)} style={BS("#0369a1")}><Plus style={{width:12,height:12}}/> New Visitor</button>}
-          {availTabs.includes("calls") && <button onClick={()=>setShowCF(true)} style={BS("#059669")}><Phone style={{width:12,height:12}}/> Log Call</button>}
-          {availTabs.includes("messages") && <button onClick={()=>setShowMF(true)} style={BS("#7c3aed")}><Send style={{width:12,height:12}}/> Send SMS</button>}
-        </div>
       </div>
 
-      {/* Twilio Info Banner */}
-      <div style={{background:"linear-gradient(135deg,#0369a1,#0284c7)",borderRadius:12,padding:"14px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>- EL5H Messaging Service</div>
-          <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>SMS: {TWILIO_PHONE}</span>
-          <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>WhatsApp: {WHATSAPP_NO}</span>
-          <span style={{fontSize:11,color:"rgba(255,255,255,0.75)"}}>Service SID: {TWILIO_MSG_SID}</span>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
-            style={{padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,textDecoration:"none"}}>
-            - WhatsApp Sandbox -
-          </a>
-          <a href={TWILIO_VOICE_WEBHOOK} target="_blank" rel="noopener noreferrer"
-            style={{padding:"5px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,textDecoration:"none"}}>
-            - Voice Webhook -
-          </a>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
-        {[
-          {label:"Total Visitors",value:visitors.length,icon:"-",color:"#0369a1"},
-          {label:"Currently In",value:visitors.filter(v=>v.status==="checked_in").length,icon:"-",color:"#059669"},
-          {label:"Waiting",value:visitors.filter(v=>v.status==="waiting").length,icon:"-",color:"#d97706"},
-          {label:"Calls Today",value:calls.filter(c=>new Date(c.called_at).toDateString()===new Date().toDateString()).length,icon:"-",color:"#7c3aed"},
-          {label:"SMS Sent",value:messages.filter(m=>m.status==="sent").length,icon:"-",color:"#0891b2"},
-        ].map((k,i)=>(
-          <div key={i} style={{background:"#fff",borderRadius:10,border:"1px solid #f1f5f9",padding:"14px 16px",boxShadow:"0 2px 6px rgba(0,0,0,0.05)",borderLeft:`4px solid ${k.color}`}}>
-            <div style={{fontSize:20,marginBottom:4}}>{k.icon}</div>
-            <div style={{fontSize:22,fontWeight:800,color:"#0f172a"}}>{loading?"-":k.value}</div>
-            <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{k.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:"2px solid #f1f5f9",overflowX:"auto"}}>
-        {availTabs.map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{
-            padding:"9px 18px",borderRadius:"8px 8px 0 0",border:tab===t?"1.5px solid #0369a1":"1.5px solid transparent",
-            background:tab===t?"#0369a1":"transparent",color:tab===t?"#fff":"#6b7280",
-            fontSize:13,fontWeight:tab===t?700:500,cursor:"pointer",whiteSpace:"nowrap",
-          }}>
-            {tabLabels[t]||t}
+      {/* Tab bar */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 18, flexWrap: "wrap" }}>
+        {cfg.tabs.map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontWeight: 700, fontSize: 12,
+              background: activeTab === t ? cfg.color : "#fff",
+              color: activeTab === t ? "#fff" : "#374151",
+              boxShadow: activeTab === t ? `0 2px 8px ${cfg.color}44` : "0 1px 3px rgba(0,0,0,.06)",
+              transition: "all .15s" }}>
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>
 
-      {/* Search */}
-      <div style={{position:"relative",marginBottom:16,maxWidth:360}}>
-        <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search-" style={{...INP,paddingLeft:32}}/>
+      {/* Tab content */}
+      <div>
+        {activeTab === "dashboard" && <DashboardTab />}
+        {activeTab === "visitors"  && <VisitorsTab  cfg={cfg} />}
+        {activeTab === "calls"     && <CallsTab     cfg={cfg} />}
+        {activeTab === "messages"  && <MessagesTab  cfg={cfg} />}
+        {activeTab === "whatsapp"  && <WhatsAppTab  />}
+        {activeTab === "broadcast" && <BroadcastTab />}
       </div>
 
-      {/* - VISITORS TAB - */}
-      {tab==="visitors" && (
-        <>
-          {showVF && (
-            <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>- Register New Visitor</div>
-                <button onClick={()=>setShowVF(false)} style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280"}}><X style={{width:16,height:16}}/></button>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-                {[["Full Name *","full_name","text"],["ID/Passport","id_number","text"],["Phone","phone","tel"],["Organization","organization","text"],["Purpose","purpose","text"],["Host Name","host_name","text"]].map(([l,k,t])=>(
-                  <div key={k}>
-                    <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>{l}</label>
-                    <input type={t} value={(vF as any)[k]} onChange={e=>setVF(f=>({...f,[k]:e.target.value}))} style={INP} placeholder={l}/>
-                  </div>
-                ))}
-                <div>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
-                  <select value={vF.host_department} onChange={e=>setVF(f=>({...f,host_department:e.target.value}))} style={INP}>
-                    <option value="">- Select -</option>
-                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div style={{gridColumn:"span 2"}}>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Notes</label>
-                  <input type="text" value={vF.notes} onChange={e=>setVF(f=>({...f,notes:e.target.value}))} style={INP} placeholder="Any additional notes"/>
-                </div>
-              </div>
-              <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
-                <button onClick={()=>setShowVF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-                <button onClick={saveVisitor} disabled={saving} style={BS(saving?"#9ca3af":"#0369a1")}>{saving?"Saving-":"- Register Visitor"}</button>
-              </div>
-            </div>
-          )}
-
-          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead>
-                  <tr style={{background:"#f8fafc"}}>
-                    {["Name","ID","Phone","Organization","Purpose","Host","Department","Status","Check-in","Actions"].map(h=>(
-                      <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading-</td></tr>:
-                  filterVisitors.length===0?<tr><td colSpan={10} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>No visitors found</td></tr>:
-                  filterVisitors.map(v=>(
-                    <tr key={v.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                      <td style={{padding:"10px 14px",fontSize:13,fontWeight:700,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{v.full_name}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.id_number||"-"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.phone||"-"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.organization||"-"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.purpose||"-"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_name||"-"}</td>
-                      <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{v.host_department||"-"}</td>
-                      <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={v.status||"waiting"} color={VISIT_C[v.status]||"#6b7280"}/></td>
-                      <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(v.check_in_time)}</td>
-                      <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}>
-                        <div style={{display:"flex",gap:6}}>
-                          {v.status==="waiting"&&<button onClick={()=>checkIn(v.id)} style={{...BS("#059669"),padding:"4px 10px",fontSize:11}}><LogIn style={{width:10,height:10}}/>In</button>}
-                          {v.status==="checked_in"&&<button onClick={()=>checkOut(v.id)} style={{...BS("#6b7280"),padding:"4px 10px",fontSize:11}}><LogOut style={{width:10,height:10}}/>Out</button>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* - CALLS TAB - */}
-      {tab==="calls" && (
-        <>
-          {showCF && (
-            <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14}}>- Log Call</div>
-                <button onClick={()=>setShowCF(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-                {[["Caller Name","caller_name","text"],["Caller Phone *","caller_phone","tel"],["Purpose","purpose","text"],["Staff Contacted","staff_contacted","text"]].map(([l,k,t])=>(
-                  <div key={k}>
-                    <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>{l}</label>
-                    <input type={t} value={(cF as any)[k]} onChange={e=>setCF(f=>({...f,[k]:e.target.value}))} style={INP} placeholder={l}/>
-                  </div>
-                ))}
-                <div>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Call Status</label>
-                  <select value={cF.call_status} onChange={e=>setCF(f=>({...f,call_status:e.target.value}))} style={INP}>
-                    {["incoming","outgoing","missed","voicemail"].map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
-                  <select value={cF.department} onChange={e=>setCF(f=>({...f,department:e.target.value}))} style={INP}>
-                    <option value="">- Select -</option>
-                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
-                <button onClick={()=>setShowCF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-                <button onClick={saveCall} disabled={saving} style={BS(saving?"#9ca3af":"#059669")}>{saving?"Saving-":"- Log Call"}</button>
-              </div>
-            </div>
-          )}
-          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead>
-                <tr style={{background:"#f8fafc"}}>
-                  {["Type","Caller","Phone","Purpose","Department","Staff","Time"].map(h=>(
-                    <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading?<tr><td colSpan={7} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading-</td></tr>:
-                filterCalls.map(c=>(
-                  <tr key={c.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={c.call_status||"incoming"} color={CALL_C[c.call_status]||"#0369a1"}/></td>
-                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{c.caller_name||"Unknown"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.caller_phone}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.purpose||"-"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.department||"-"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{c.staff_contacted||"-"}</td>
-                    <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(c.called_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {/* - MESSAGES TAB - */}
-      {tab==="messages" && (
-        <>
-          {showMF && (
-            <div style={{background:"#f8fafc",borderRadius:12,padding:20,marginBottom:16,border:"1.5px solid #e2e8f0"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14}}>- Send SMS Message</div>
-                <button onClick={()=>setShowMF(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:16,height:16}}/></button>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                {[["Recipient Name","recipient_name","text"],["Phone *","recipient_phone","tel"]].map(([l,k,t])=>(
-                  <div key={k}>
-                    <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>{l}</label>
-                    <input type={t} value={(mF as any)[k]} onChange={e=>setMF(f=>({...f,[k]:e.target.value}))} style={INP} placeholder={l}/>
-                  </div>
-                ))}
-                <div>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Department</label>
-                  <select value={mF.department} onChange={e=>setMF(f=>({...f,department:e.target.value}))} style={INP}>
-                    <option value="">- Select -</option>
-                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div style={{gridColumn:"span 2"}}>
-                  <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:5}}>Message *</label>
-                  <textarea value={mF.message_body} onChange={e=>setMF(f=>({...f,message_body:e.target.value}))} style={{...INP,height:80,resize:"vertical"}} placeholder="Type your SMS message here-"/>
-                </div>
-              </div>
-              <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}}>
-                <button onClick={()=>setShowMF(false)} style={{padding:"9px 16px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-                <button onClick={sendMsg} disabled={saving} style={BS(saving?"#9ca3af":"#7c3aed")}>{saving?"Sending-":"- Send SMS"}</button>
-              </div>
-            </div>
-          )}
-          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead>
-                <tr style={{background:"#f8fafc"}}>
-                  {["Recipient","Phone","Department","Message","Status","Sent At"].map(h=>(
-                    <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading?<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:"#9ca3af"}}>Loading-</td></tr>:
-                filterMsgs.map(m=>(
-                  <tr key={m.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"-"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.recipient_phone}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.department||"-"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"}}>{m.message_body}</td>
-                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.status||"pending"} color={m.status==="sent"?"#059669":"#d97706"}/></td>
-                    <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(m.sent_at||m.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {/* - WHATSAPP TAB - */}
-
-      {tab==="notify_all" && (
-        <NotifyAllTab />
-      )}
-
-      {tab==="whatsapp" && (
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
-          {/* WhatsApp Sandbox Setup */}
-          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>- WhatsApp Business Sandbox</div>
-            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Twilio WhatsApp Sandbox - EL5H Messaging Service</div>
-            <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:16,marginBottom:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#059669",marginBottom:8}}>- To activate WhatsApp:</div>
-              <ol style={{margin:0,paddingLeft:20,fontSize:13,color:"#374151",lineHeight:2}}>
-                <li>Send <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to <strong>{WHATSAPP_NO}</strong> on WhatsApp</li>
-                <li>Or click the button below to open WhatsApp directly</li>
-                <li>You will be connected to the EL5H sandbox</li>
-              </ol>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-              {[
-                {label:"WhatsApp Number",value:WHATSAPP_NO},
-                {label:"Join Code",value:`join ${WHATSAPP_SANDBOX_CODE}`},
-                {label:"SMS Number",value:TWILIO_PHONE},
-                {label:"Messaging SID",value:TWILIO_MSG_SID},
-                {label:"Service Name",value:"EL5H"},
-                {label:"Voice Webhook",value:"Twilio Demo"},
-              ].map((row,i)=>(
-                <div key={i} style={{padding:"10px 12px",background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{row.label}</div>
-                  <div style={{fontSize:12,fontWeight:600,color:"#0f172a",fontFamily:"monospace"}}>{row.value}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{display:"flex",gap:10}}>
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
-                style={{...BS("#25D366"),textDecoration:"none",flex:1,justifyContent:"center"}}>
-                - Open WhatsApp -
-              </a>
-              <a href={TWILIO_VOICE_WEBHOOK} target="_blank" rel="noopener noreferrer"
-                style={{...BS("#0369a1"),textDecoration:"none",flex:1,justifyContent:"center"}}>
-                - Voice Webhook -
-              </a>
-            </div>
-          </div>
-
-          {/* Send WhatsApp Message */}
-          <div style={{background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{fontWeight:800,fontSize:16,color:"#0f172a",marginBottom:4}}>- Send WhatsApp Message</div>
-            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>via Twilio WhatsApp API - EL5H Messaging Service</div>
-            <div style={{marginBottom:14}}>
-              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Recipient Phone (with country code)</label>
-              <input type="tel" value={whatsappTo} onChange={e=>setWhatsappTo(e.target.value)} style={INP} placeholder="+254700000000"/>
-            </div>
-            <div style={{marginBottom:14}}>
-              <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>Message</label>
-              <textarea value={whatsappMsg} onChange={e=>setWhatsappMsg(e.target.value)} style={{...INP,height:100,resize:"vertical"}} placeholder="Type your WhatsApp message-"/>
-              <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{whatsappMsg.length}/1600 characters</div>
-            </div>
-            <div style={{background:"#fff9ed",border:"1px solid #fde68a",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#92400e"}}>
-              - Recipient must first join the sandbox by sending <strong>join {WHATSAPP_SANDBOX_CODE}</strong> to {WHATSAPP_NO}
-            </div>
-            <button onClick={sendWhatsApp} disabled={waLoading} style={{...BS(waLoading?"#9ca3af":"#25D366"),width:"100%",justifyContent:"center",fontSize:14,padding:"12px"}}>
-              {waLoading?"Sending-":"- Send WhatsApp Message"}
-            </button>
-          </div>
-
-          {/* WhatsApp Message History */}
-          <div style={{gridColumn:"span 2",background:"#fff",borderRadius:12,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
-            <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:16}}>- Message History</div>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead>
-                <tr style={{background:"#f8fafc"}}>
-                  {["Recipient","Phone","Channel","Message","Status","Sent At"].map(h=>(
-                    <th key={h} style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",padding:"10px 14px",borderBottom:"2px solid #f1f5f9",textAlign:"left"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {messages.map(m=>(
-                  <tr key={m.id} onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#f8fafc"} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=""}>
-                    <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:"#0f172a",borderBottom:"1px solid #f8fafc"}}>{m.recipient_name||"-"}</td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",borderBottom:"1px solid #f8fafc"}}>{m.recipient_phone}</td>
-                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.message_type||"sms"} color={m.message_type==="whatsapp"?"#25D366":"#7c3aed"}/></td>
-                    <td style={{padding:"10px 14px",fontSize:12,color:"#374151",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"}}>{m.message_body}</td>
-                    <td style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc"}}><Chip label={m.status||"pending"} color={m.status==="sent"?"#059669":"#d97706"}/></td>
-                    <td style={{padding:"10px 14px",fontSize:11,color:"#9ca3af",borderBottom:"1px solid #f8fafc"}}>{fmtDate(m.sent_at||m.created_at)}</td>
-                  </tr>
-                ))}
-                {messages.length===0&&<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:"#9ca3af",fontSize:13}}>No messages yet</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

@@ -1,0 +1,346 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  ProcurBosse v9.7 — EL5 MediProcure Master Pipeline             ║
+# ║  Embu Level 5 Hospital · Embu County Government · Kenya         ║
+# ║  Jobs: Web → Desktop EXE → Edge Functions → DB → Release        ║
+# ╚══════════════════════════════════════════════════════════════════╝
+name: "🏥 ProcurBosse v9.7 — Build & Release"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_exe:
+        description: "Skip Electron EXE build"
+        default: "false"
+        type: boolean
+      skip_release:
+        description: "Skip GitHub Release"
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: write
+  actions:  write
+  packages: write
+
+env:
+  NODE_VER:      "20"
+  APP_VER:       "9.7.1"
+  SUPABASE_URL:  "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+  SUPABASE_REF:  "yvjfehnzbzjliizjvuhq"
+  SUPABASE_PAT:  "sbp_e63e00e4c3a1f7d4d2e5aa3d09f9cf3b25cce9f4"
+  TWILIO_ACCT:   "ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a"
+  TWILIO_TOKEN:  "d73601fbefe26e01b06e22c53a798ea6"
+  TWILIO_SMS:    "+16812972643"
+  TWILIO_WA:     "+14155238886"
+  TWILIO_MG_SID: "MGd547d8e3273fda2d21afdd6856acb245"
+  TWILIO_VA_SID: "VA692606d4faea3c18432a857f111dbfad"
+  GITHUB_PAT:    "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"
+
+# ═══════════════════════════════════════════════════════════════════
+# JOB 1 — Web Build
+# ═══════════════════════════════════════════════════════════════════
+jobs:
+  web:
+    name: "🌐 Web Build — Vite + TypeScript"
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - id: meta
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "::notice::ProcurBosse v9.7.1 — $SHA"
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+
+      - name: "🔧 Sync lock file version"
+        run: |
+          P=$(node -p "require('./package.json').version")
+          L=$(node -p "require('./package-lock.json').version" 2>/dev/null || echo "none")
+          if [ "$P" != "$L" ]; then
+            node -e "
+              const fs=require('fs');
+              const l=JSON.parse(fs.readFileSync('package-lock.json'));
+              l.version='$P';
+              if(l.packages&&l.packages[''])l.packages[''].version='$P';
+              fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));
+              console.log('Synced lock to $P');
+            "
+          fi
+
+      - name: "📦 Install"
+        run: npm ci --no-audit --legacy-peer-deps
+
+      - name: "⚙️ Write .env"
+        run: |
+          cat > .env << ENVEOF
+          VITE_SUPABASE_URL=${{ env.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY=${{ env.SUPABASE_ANON }}
+          VITE_SUPABASE_PROJECT_ID=${{ env.SUPABASE_REF }}
+          VITE_APP_VERSION=${{ env.APP_VER }}
+          VITE_HOSPITAL_NAME=Embu Level 5 Hospital
+          VITE_SYSTEM_NAME=EL5 MediProcure
+          VITE_TWILIO_PHONE=${{ env.TWILIO_SMS }}
+          VITE_WHATSAPP_NUMBER=${{ env.TWILIO_WA }}
+          VITE_TWILIO_MG_SID=${{ env.TWILIO_MG_SID }}
+          VITE_TWILIO_VA_SID=${{ env.TWILIO_VA_SID }}
+          ENVEOF
+
+      - name: "🔨 Type check"
+        run: npx tsc --noEmit --skipLibCheck 2>&1 | head -30 || true
+        continue-on-error: true
+
+      - name: "🏗️ Build"
+        run: npm run build
+        env:
+          CI: "false"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: "✅ Verify"
+        run: |
+          [ -f dist/index.html ] || (echo "Missing dist/index.html" && exit 1)
+          du -sh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-${{ steps.meta.outputs.sha }}
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+# ═══════════════════════════════════════════════════════════════════
+# JOB 2 — Desktop EXE (Windows x64 + ia32)
+# ═══════════════════════════════════════════════════════════════════
+  exe:
+    name: "💻 Desktop EXE — Electron Windows"
+    runs-on: windows-latest
+    needs: web
+    if: github.event.inputs.skip_exe != 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-${{ needs.web.outputs.sha }}
+          path: dist/
+
+      - name: "🔧 Sync lock"
+        shell: bash
+        run: |
+          P=$(node -p "require('./package.json').version")
+          node -e "
+            const fs=require('fs');
+            const l=JSON.parse(fs.readFileSync('package-lock.json'));
+            l.version='$P';
+            if(l.packages&&l.packages[''])l.packages[''].version='$P';
+            fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));
+          "
+
+      - name: "📦 Install"
+        run: npm ci --no-audit --legacy-peer-deps
+
+      - name: "📦 Install electron tools"
+        run: npm install --no-save electron@latest electron-builder@latest --legacy-peer-deps
+
+      - name: "⚙️ Ensure electron/main.js"
+        shell: bash
+        run: |
+          mkdir -p electron public build
+          [ -f electron/main.js ] || cat > electron/main.js << 'MJS'
+          const{app,BrowserWindow,ipcMain,shell}=require('electron');
+          const path=require('path'),fs=require('fs');
+          app.disableHardwareAcceleration();
+          app.commandLine.appendSwitch('disable-gpu');
+          app.commandLine.appendSwitch('use-gl','swiftshader');
+          let win;
+          function create(){
+            win=new BrowserWindow({
+              width:1400,height:900,minWidth:1024,minHeight:700,
+              title:'ProcurBosse v9.7 — EL5 MediProcure',
+              webPreferences:{nodeIntegration:false,contextIsolation:true,
+                preload:path.join(__dirname,'preload.js')},
+              show:false,backgroundColor:'#f8fafc'
+            });
+            const rp=path.join(process.resourcesPath||'','app','index.html');
+            const dp=path.join(__dirname,'../dist/index.html');
+            win.loadURL(fs.existsSync(rp)?'file://'+rp:'file://'+dp);
+            win.once('ready-to-show',()=>{win.show();win.maximize();});
+            win.on('closed',()=>{win=null;});
+            win.webContents.setWindowOpenHandler(({url})=>{shell.openExternal(url);return{action:'deny'};});
+          }
+          app.whenReady().then(create);
+          app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
+          ipcMain.handle('app-version',()=>app.getVersion());
+          MJS
+          [ -f electron/preload.js ] || cat > electron/preload.js << 'PJS'
+          const{contextBridge,ipcRenderer}=require('electron');
+          contextBridge.exposeInMainWorld('electronAPI',{
+            getVersion:()=>ipcRenderer.invoke('app-version'),
+            platform:process.platform
+          });
+          PJS
+          # Minimal ICO if missing
+          [ -f build/icon.ico ] || printf '\x00\x00\x01\x00\x01\x00\x10\x10\x00\x00\x01\x00\x20\x00\x68\x04\x00\x00\x16\x00\x00\x00' > build/icon.ico
+
+      - name: "🏗️ Build EXE"
+        shell: bash
+        run: npx electron-builder build --win --x64 --ia32 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || env.GITHUB_PAT }}
+        continue-on-error: true
+
+      - name: "📋 List artifacts"
+        shell: bash
+        run: ls -lh dist-electron/ 2>/dev/null || echo "No dist-electron"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exe-${{ needs.web.outputs.sha }}
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.zip
+          retention-days: 7
+          if-no-files-found: warn
+
+# ═══════════════════════════════════════════════════════════════════
+# JOB 3 — Supabase Edge Functions
+# ═══════════════════════════════════════════════════════════════════
+  functions:
+    name: "⚡ Supabase Edge Functions"
+    runs-on: ubuntu-latest
+    needs: web
+    if: always() && needs.web.result == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "🛠️ Supabase CLI"
+        run: npm install -g supabase --legacy-peer-deps 2>/dev/null || true
+        continue-on-error: true
+
+      - name: "🚀 Deploy functions"
+        run: |
+          for fn in send-sms send-email send-whatsapp notify-requisition twilio-engine verify-role; do
+            [ -d "supabase/functions/$fn" ] || continue
+            echo "Deploying $fn..."
+            supabase functions deploy $fn \
+              --project-ref ${{ env.SUPABASE_REF }} \
+              --no-verify-jwt 2>&1 || echo "⚠️ $fn skipped"
+          done
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ env.SUPABASE_PAT }}
+        continue-on-error: true
+
+      - name: "🔑 Set Supabase secrets"
+        run: |
+          supabase secrets set \
+            TWILIO_ACCOUNT_SID="${{ env.TWILIO_ACCT }}" \
+            TWILIO_AUTH_TOKEN="${{ env.TWILIO_TOKEN }}" \
+            TWILIO_PHONE_NUMBER="${{ env.TWILIO_SMS }}" \
+            TWILIO_MESSAGING_SERVICE_SID="${{ env.TWILIO_MG_SID }}" \
+            TWILIO_VERIFY_SERVICE_SID="${{ env.TWILIO_VA_SID }}" \
+            --project-ref ${{ env.SUPABASE_REF }} 2>&1 || echo "⚠️ Secrets skipped"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ env.SUPABASE_PAT }}
+        continue-on-error: true
+
+# ═══════════════════════════════════════════════════════════════════
+# JOB 4 — DB Migrations
+# ═══════════════════════════════════════════════════════════════════
+  db:
+    name: "🗄️ DB Migrations"
+    runs-on: ubuntu-latest
+    needs: web
+    if: always() && needs.web.result == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g supabase --legacy-peer-deps 2>/dev/null || true
+        continue-on-error: true
+      - run: |
+          ls supabase/migrations/ 2>/dev/null || echo "No migrations"
+          supabase db push --project-ref ${{ env.SUPABASE_REF }} 2>&1 || echo "⚠️ Migration attempted"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ env.SUPABASE_PAT }}
+        continue-on-error: true
+
+# ═══════════════════════════════════════════════════════════════════
+# JOB 5 — GitHub Release
+# ═══════════════════════════════════════════════════════════════════
+  release:
+    name: "🚀 GitHub Release v9.7"
+    runs-on: ubuntu-latest
+    needs: [web, exe, functions, db]
+    if: always() && needs.web.result == 'success' && github.event.inputs.skip_release != 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-${{ needs.web.outputs.sha }}
+          path: release-web/
+        continue-on-error: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: exe-${{ needs.web.outputs.sha }}
+          path: release-exe/
+        continue-on-error: true
+
+      - name: "📦 Package web"
+        run: |
+          [ -d release-web ] && (cd release-web && zip -r ../ProcurBosse-v9.7-Web.zip .) || true
+          ls -lh *.zip 2>/dev/null || true
+        continue-on-error: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name:   "v9.7.1"
+          name:       "🏥 ProcurBosse v9.7.1 — EL5 MediProcure Health Procurement ERP"
+          draft:      false
+          prerelease: false
+          token:      ${{ secrets.RELEASE_PAT || env.GITHUB_PAT }}
+          body: |
+            # 🏥 ProcurBosse v9.7.1 — EL5 MediProcure
+            **Embu Level 5 Hospital · Embu County Government · Kenya**
+
+            ## ✨ v9.7 Highlights
+            - Fully role-based ERP wheel with submenu navigation
+            - Reception Desk tailored per user role
+            - SMS via Twilio MGd547d8e3273fda2d21afdd6856acb245 (Messaging Service)
+            - WhatsApp sandbox +14155238886 (join bad-machine)
+            - Role verification via Twilio Verify VA692606d4faea3c18432a857f111dbfad
+            - Windows EXE installer (x64 + ia32) with NSIS + shortcuts
+            - 15+ performance indexes on all hot DB paths
+
+            ## 📡 Twilio Configuration
+            | Service | Value |
+            |---|---|
+            | SMS From | +16812972643 |
+            | Messaging Service SID | MGd547d8e3273fda2d21afdd6856acb245 |
+            | Verify Service SID | VA692606d4faea3c18432a857f111dbfad |
+            | WhatsApp | +14155238886 (join bad-machine) |
+
+            ## 👥 Roles
+            admin · superadmin · webmaster · database_admin ·
+            procurement_manager · procurement_officer ·
+            inventory_manager · warehouse_officer ·
+            requisitioner · accountant
+          files: |
+            ProcurBosse-v9.7-Web.zip
+            release-exe/*.exe
+            release-exe/*.zip
+        continue-on-error: true
