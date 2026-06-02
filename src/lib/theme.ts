@@ -4,6 +4,7 @@
  * effect instantly across every page without a reload.
  * EL5 MediProcure - Embu Level 5 Hospital
  */
+import React from "react";
 
 /** Read a CSS variable from :root; fall back to `fallback` if not set. */
 function cssVar(name: string, fallback: string): string {
