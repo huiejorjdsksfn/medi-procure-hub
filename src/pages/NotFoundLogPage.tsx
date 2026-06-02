@@ -2,7 +2,7 @@
  * Admin dashboard for recent 404 events.
  * Visible to admin / database_admin / webmaster (enforced by RoleGuard + RLS).
  */
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, RefreshCw, AlertCircle } from "lucide-react";
