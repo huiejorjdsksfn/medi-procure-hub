@@ -1,73 +1,49 @@
 /**
- * ProcurBosse - sms.ts v5.0 (SMS + Voice Calls)
- * Client-side: calls send-sms and make-call edge functions
- * Twilio primary - Africa's Talking fallback
- * EL5 MediProcure - Embu Level 5 Hospital
+ * EL5 MediProcure v10.0 — SMS client
+ * MGd547d8e3273fda2d21afdd6856acb245 = Messaging Service (SMS)
+ * VA692606d4faea3c18432a857f111dbfad = Verify Service (OTP only)
  */
 import { supabase } from "@/integrations/supabase/client";
+import { TWILIO_SMS, TWILIO_WA, TWILIO_MG, WA_CODE } from "@/lib/version";
 
-export interface SmsOptions {
-  to:             string | string[];
-  message:        string;
-  channel?:       "sms" | "whatsapp";
-  module?:        string;
-  recordId?:      string;
-  sentBy?:        string;
-  sentByName?:    string;
-  recipientName?: string;
-  department?:    string;
-}
+export const TWILIO = {
+  SMS_NUMBER:  TWILIO_SMS,
+  WA_NUMBER:   TWILIO_WA,
+  MG_SID:      TWILIO_MG,
+  WA_CODE,
+  WA_LINK:     `https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine`,
+};
 
-export interface CallOptions {
-  to:           string;
-  message?:     string;
-  callerName?:  string;
-  module?:      string;
+export interface SmsOpts {
+  to:            string | string[];
+  message:       string;
+  channel?:      "sms" | "whatsapp";
+  module?:       string;
+  recipientName?:string;
+  department?:   string;
+  sentBy?:       string;
 }
 
 export interface SmsResult {
-  ok:      boolean;
-  sent:    number;
-  failed:  number;
-  total:   number;
-  results: Array<{to:string; ok:boolean; provider:string; sid?:string; error?:string}>;
-  error?:  string;
-}
-
-export interface CallResult {
   ok:     boolean;
-  sid?:   string;
-  status?:string;
-  to?:    string;
+  sent:   number;
+  failed: number;
+  total:  number;
+  results:Array<{to:string;ok:boolean;provider:string;sid?:string;error?:string}>;
   error?: string;
 }
 
-export const TWILIO = {
-  SMS_NUMBER:   "+16812972643",
-  WA_NUMBER:    "+14155238886",
-  WA_FROM:      "whatsapp:+14155238886",
-  JOIN_CODE:    "join bad-machine",
-  MSG_SVC_SID:  "MGd547d8e3273fda2d21afdd6856acb245",
-  API_SID:      "SK930f4a…",  // stored in Supabase secrets
-  ACCT_SID:     "AC9ce73d9…(stored in Supabase secrets)",  // never expose in client code
-  REGION:       "us1",
-  SERVICE_NAME: "EL5H",
-  WA_LINK:      "https://wa.me/14155238886?text=join%20bad-machine",
-};
-
-/** Send SMS or WhatsApp */
-export async function sendSms(opts: SmsOptions): Promise<SmsResult> {
+export async function sendSms(opts: SmsOpts): Promise<SmsResult> {
   try {
-    const { data, error } = await supabase.functions.invoke("send-sms", {
+    const { data, error } = await (supabase as any).functions.invoke("send-sms", {
       body: {
         to:             opts.to,
         message:        opts.message,
         channel:        opts.channel || "sms",
         module:         opts.module,
-        record_id:      opts.recordId,
-        sent_by:        opts.sentBy,
         recipient_name: opts.recipientName,
         department:     opts.department,
+        sent_by:        opts.sentBy,
       },
     });
     if (error) throw error;
@@ -77,64 +53,25 @@ export async function sendSms(opts: SmsOptions): Promise<SmsResult> {
   }
 }
 
-/** Send WhatsApp message */
-export async function sendWhatsApp(opts: Omit<SmsOptions,"channel">): Promise<SmsResult> {
-  return sendSms({ ...opts, channel:"whatsapp" });
-}
-
-/** Make an outbound voice call */
-export async function makeCall(opts: CallOptions): Promise<CallResult> {
+export async function sendOTP(phone: string, channel: "sms"|"whatsapp" = "sms"): Promise<{ok:boolean;error?:string}> {
   try {
-    const { data, error } = await supabase.functions.invoke("make-call", {
-      body: {
-        action:      "call",
-        to:          opts.to,
-        message:     opts.message || "Hello from EL5 MediProcure Hospital.",
-        caller_name: opts.callerName || "EL5 Hospital",
-      },
+    const { data, error } = await (supabase as any).functions.invoke("verify-role", {
+      body: { action:"send", phone, channel },
     });
     if (error) throw error;
-    return data as CallResult;
-  } catch (e: any) {
-    return { ok:false, error:e.message };
-  }
+    return { ok: data?.ok ?? false, error: data?.error };
+  } catch (e:any) { return { ok:false, error:e.message }; }
 }
 
-/** Check Twilio status */
-export async function checkTwilioStatus(): Promise<{ ok:boolean; from?:string; error?:string }> {
+export async function checkOTP(phone: string, code: string, userId?: string, role?: string): Promise<{ok:boolean;valid:boolean;error?:string}> {
   try {
-    const { data, error } = await supabase.functions.invoke("send-sms", {
-      body: { action: "status" },
+    const { data, error } = await (supabase as any).functions.invoke("verify-role", {
+      body: { action:"check", phone, code, user_id:userId, role },
     });
     if (error) throw error;
-    return data as any;
-  } catch (e: any) {
-    return { ok:false, error:e.message };
-  }
+    return { ok: data?.ok??false, valid: data?.valid??false, error: data?.error };
+  } catch (e:any) { return { ok:false, valid:false, error:e.message }; }
 }
 
-/** Convenience: send quick SMS */
-export async function quickSms(to: string, message: string, module?: string): Promise<boolean> {
-  const r = await sendSms({ to, message, module });
-  return r.ok;
-}
-
-/** Send WhatsApp join instructions via SMS */
-export async function sendWhatsAppJoinInstructions(to: string, recipientName?: string): Promise<boolean> {
-  const msg = `EL5 MediProcure WhatsApp:\n1. Open WhatsApp\n2. Message: ${TWILIO.WA_NUMBER}\n3. Send: "${TWILIO.JOIN_CODE}"\nOr visit: ${TWILIO.WA_LINK}`;
-  const r = await sendSms({ to, message:msg, recipientName, module:"whatsapp_setup" });
-  return r.ok;
-}
-
-/** Trigger WhatsApp session renewal */
-export async function renewWhatsAppSessions(): Promise<{renewed:number;checked:number}> {
-  try {
-    const { data, error } = await supabase.functions.invoke("send-sms", {
-      body: { action: "renew_sessions" },
-    });
-    if (error) throw error;
-    return data || { renewed:0, checked:0 };
-  } catch {
-    return { renewed:0, checked:0 };
-  }
-}
+export const quickSms = async (to:string, msg:string, module?:string) =>
+  (await sendSms({to,message:msg,module})).ok;
