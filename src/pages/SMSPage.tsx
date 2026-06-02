@@ -16,7 +16,7 @@ type Tab = "compose"|"templates"|"history"|"conversations"|"bulk"|"numbers"|"voi
 
 /* ─── Twilio config (matches edge function) ─── */
 const TWILIO = {
-  ACCT:    Deno?.env?.get?.("TWILIO_ACCOUNT_SID") || "",  // env var
+  ACCT:    "",  // resolved server-side in edge function
   SMS:     "+16812972643",
   WA:      "+14155238886",
   WA_FROM: "whatsapp:+14155238886",
@@ -681,7 +681,7 @@ export default function SMSPage() {
                 <div style={{fontWeight:700,fontSize:13,color:twilioStatus.ok?"#059669":"#ef4444",marginBottom:8}}>
                   {twilioStatus.ok?"✅ Twilio Account Verified":"❌ Twilio Account Error"}
                 </div>
-                {[["Friendly Name",twilioStatus.friendly_name||"—"],["Status",twilioStatus.account_status||"—"],["SMS From",twilioStatus.sms_number||SMS_FROM],["WA From",twilioStatus.wa_number||TWILIO.WA],["Templates",String(twilioStatus.templates_available||19)+" available"],["Region",twilioStatus.region||"us1"]].map(([k,v])=>(
+                {[["Friendly Name",twilioStatus.friendly_name||"—"],["Status",twilioStatus.account_status||"—"],["SMS From",twilioStatus.sms_number||TWILIO.SMS],["WA From",twilioStatus.wa_number||TWILIO.WA],["Templates",String(twilioStatus.templates_available||19)+" available"],["Region",twilioStatus.region||"us1"]].map(([k,v])=>(
                   <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:12}}>
                     <span style={{color:"#6b7280"}}>{k}</span>
                     <span style={{fontWeight:600,color:"#374151"}}>{v}</span>
