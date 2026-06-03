@@ -18,6 +18,7 @@ interface AuthCtx {
   profile:     any | null;
   roles:       string[];
   loading:     boolean;
+  initialized: boolean;
   signOut:     () => Promise<void>;
   hasRole:     (r: ProcurementRole | ProcurementRole[]) => boolean;
   primaryRole: ProcurementRole;
@@ -25,7 +26,7 @@ interface AuthCtx {
 }
 
 const Ctx = createContext<AuthCtx>({
-  session: null, user: null, profile: null, roles: [], loading: true,
+  session: null, user: null, profile: null, roles: [], loading: true, initialized: false,
   signOut: async () => {}, hasRole: () => false,
   primaryRole: "requisitioner", refreshRoles: async () => {},
 });
