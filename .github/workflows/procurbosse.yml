@@ -29,27 +29,36 @@ env:
   GITHUB_PAT:   "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"
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────
   web:
     name: "🌐 Web Build — Vite"
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.meta.outputs.sha }}
+      ver: ${{ steps.meta.outputs.ver }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+
       - id: meta
         run: |
           SHA=$(git rev-parse --short HEAD)
+          VER=$(node -p "require('./package.json').version")
           echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "::notice::ProcurBosse v10.0.0 — $SHA"
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "::notice::ProcurBosse v$VER — $SHA"
+
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: npm }
+
       - name: "🔧 Sync lock version"
         run: |
           P=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs');const l=JSON.parse(fs.readFileSync('package-lock.json'));l.version='$P';if(l.packages&&l.packages[''])l.packages[''].version='$P';fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));"
+
       - name: "📦 Install"
         run: npm ci --no-audit --legacy-peer-deps
+
       - name: "⚙️ Write .env"
         run: |
           cat > .env << ENVEOF
@@ -63,12 +72,21 @@ jobs:
           VITE_WHATSAPP_NUMBER=${{ env.TWILIO_WA }}
           VITE_TWILIO_MG_SID=${{ env.TWILIO_MG }}
           ENVEOF
+
       - run: npx tsc --noEmit --skipLibCheck 2>&1 | head -30 || true
         continue-on-error: true
-      - name: "🏗️ Build"
+
+      - name: "🏗️ Build web"
         run: npm run build
         env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
-      - run: "[ -f dist/index.html ] || (echo 'Missing index.html' && exit 1)"
+
+      - run: "[ -f dist/index.html ] || (echo 'FATAL: Missing dist/index.html' && exit 1)"
+
+      - name: "🏗️ Build web → /web (EdgeOne)"
+        run: npx vite build --outDir web
+        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
+        continue-on-error: true
+
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist-${{ steps.meta.outputs.sha }}
@@ -76,70 +94,214 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # ─────────────────────────────────────────────────────────────────
   exe:
-    name: "💻 Windows EXE — Electron"
+    name: "💻 Windows EXE — Electron (x64 + ia32)"
     runs-on: windows-latest
     needs: web
     if: github.event.inputs.skip_exe != 'true'
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: npm }
+
       - uses: actions/download-artifact@v4
         with:
           name: web-dist-${{ needs.web.outputs.sha }}
           path: dist/
-      - shell: bash
+
+      - name: "🔧 Sync lock version"
+        shell: bash
         run: |
           P=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs');const l=JSON.parse(fs.readFileSync('package-lock.json'));l.version='$P';if(l.packages&&l.packages[''])l.packages[''].version='$P';fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));"
-      - run: npm ci --no-audit --legacy-peer-deps
-      - run: npm install --no-save electron@latest electron-builder@latest --legacy-peer-deps
-      - shell: bash
+
+      - name: "📦 Install all deps"
+        run: npm ci --no-audit --legacy-peer-deps
+
+      - name: "📦 Install electron + builder fresh"
+        run: npm install --no-save electron@latest electron-builder@latest --legacy-peer-deps
+
+      - name: "🔧 Ensure electron assets exist"
+        shell: bash
         run: |
-          mkdir -p electron build
-          [ -f electron/main.js ] || cat > electron/main.js << 'MJS'
-          const{app,BrowserWindow,ipcMain,shell}=require('electron');
-          const path=require('path'),fs=require('fs');
+          mkdir -p electron build public
+          # Ensure main.js has correct version reference
+          if [ -f electron/main.js ]; then
+            sed -i "s/ProcurBosse v[0-9.]*/ProcurBosse v11.0.0/g" electron/main.js || true
+          else
+            cat > electron/main.js << 'MJS'
+          const{app,BrowserWindow,ipcMain,shell,Menu}=require('electron');
+          const path=require('path'),fs=require('fs'),os=require('os');
           app.disableHardwareAcceleration();
           app.commandLine.appendSwitch('disable-gpu');
           app.commandLine.appendSwitch('use-gl','swiftshader');
           let win;
           function create(){
             win=new BrowserWindow({width:1440,height:900,minWidth:1024,minHeight:700,
-              title:'ProcurBosse v10 — EL5 MediProcure',
-              webPreferences:{nodeIntegration:false,contextIsolation:true,preload:path.join(__dirname,'preload.js')},
+              title:'ProcurBosse v11.0.0 — EL5 MediProcure',
+              webPreferences:{nodeIntegration:false,contextIsolation:true,
+                preload:path.join(__dirname,'preload.js')},
               show:false,backgroundColor:'#f8fafc'});
-            const rp=path.join(process.resourcesPath||'','app','index.html');
-            const dp=path.join(__dirname,'../dist/index.html');
-            win.loadURL(fs.existsSync(rp)?'file://'+rp:'file://'+dp);
+            const distPath=path.join(__dirname,'../dist/index.html');
+            const resPath=path.join(process.resourcesPath||'','app','index.html');
+            const loadFile=fs.existsSync(resPath)?resPath:distPath;
+            win.loadFile(loadFile).catch(()=>{
+              win.loadURL('https://procurbosse.edgeone.app');
+            });
             win.once('ready-to-show',()=>{win.show();win.maximize();});
             win.on('closed',()=>{win=null;});
             win.webContents.setWindowOpenHandler(({url})=>{shell.openExternal(url);return{action:'deny'};});
+            win.webContents.on('did-fail-load',(_,code,desc,url)=>{
+              if(code===-6||url.startsWith('file:')){
+                win.loadURL('https://procurbosse.edgeone.app');
+              }
+            });
           }
           app.whenReady().then(create);
           app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
+          app.on('activate',()=>{if(!win)create();});
           ipcMain.handle('app-version',()=>app.getVersion());
+          ipcMain.handle('get-system-info',()=>({platform:process.platform,arch:process.arch,node:process.versions.node,os:os.release(),mem:os.totalmem(),hostname:os.hostname()}));
           MJS
-          [ -f electron/preload.js ] || cat > electron/preload.js << 'PJS'
+          fi
+          # Ensure preload.js exists
+          if [ ! -f electron/preload.js ]; then
+            cat > electron/preload.js << 'PJS'
           const{contextBridge,ipcRenderer}=require('electron');
-          contextBridge.exposeInMainWorld('electronAPI',{getVersion:()=>ipcRenderer.invoke('app-version'),platform:process.platform});
+          contextBridge.exposeInMainWorld('electronAPI',{
+            getVersion:()=>ipcRenderer.invoke('app-version'),
+            getSystemInfo:()=>ipcRenderer.invoke('get-system-info'),
+            platform:process.platform
+          });
           PJS
-          [ -f build/icon.ico ] || printf '\x00\x00\x01\x00\x01\x00\x10\x10' > build/icon.ico
-      - shell: bash
+          fi
+          # Ensure icon exists (minimal valid ICO if missing)
+          if [ ! -f build/icon.ico ]; then
+            # Copy from public if available, else create minimal
+            [ -f public/favicon.ico ] && cp public/favicon.ico build/icon.ico || \
+            printf '\x00\x00\x01\x00\x01\x00\x10\x10\x00\x00\x01\x00\x18\x00\x68\x03\x00\x00\x16\x00\x00\x00' > build/icon.ico
+          fi
+          # Ensure installer.nsh exists
+          if [ ! -f build/installer.nsh ]; then
+            cat > build/installer.nsh << 'NSH'
+          !macro customHeader
+            RequestExecutionLevel user
+          !macroend
+          !macro customInit
+          !macroend
+          !macro customInstall
+          !macroend
+          !macro customUnInstall
+          !macroend
+          NSH
+          fi
+
+      - name: "🏗️ Build Windows EXE (x64 + ia32)"
+        shell: bash
         run: npx electron-builder build --win --x64 --ia32 --publish never
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT || env.GITHUB_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         continue-on-error: true
+
+      - name: "🏗️ Build portable EXE (fallback)"
+        shell: bash
+        run: npx electron-builder build --win portable --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        continue-on-error: true
+
+      - name: "📝 Create launcher .bat files"
+        shell: pwsh
+        run: |
+          $outDir = "dist-electron"
+          if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
+
+          # launch.bat — runs the installer
+          @"
+          @echo off
+          title EL5 MediProcure v11.0.0 - ProcurBosse Launcher
+          echo.
+          echo  ============================================================
+          echo   EL5 MediProcure v11.0.0 - ProcurBosse
+          echo   Embu Level 5 Hospital Procurement System
+          echo  ============================================================
+          echo.
+          echo  Choose an option:
+          echo  [1] Install ProcurBosse (x64)
+          echo  [2] Install ProcurBosse (ia32 - older PCs)
+          echo  [3] Open Web App in Browser
+          echo  [4] Exit
+          echo.
+          set /p choice="Enter choice (1-4): "
+          if "%choice%"=="1" (
+            for %%f in ("%~dp0*x64*.exe") do start "" "%%f"
+          ) else if "%choice%"=="2" (
+            for %%f in ("%~dp0*ia32*.exe") do start "" "%%f"
+          ) else if "%choice%"=="3" (
+            start "" "https://procurbosse.edgeone.app"
+          )
+          "@ | Out-File -Encoding ascii "$outDir\launch.bat"
+
+          # open-web.bat — direct web shortcut
+          @"
+          @echo off
+          title EL5 MediProcure - Opening Web App
+          start "" "https://procurbosse.edgeone.app"
+          "@ | Out-File -Encoding ascii "$outDir\open-web.bat"
+
+          # install-x64.bat
+          @"
+          @echo off
+          title EL5 MediProcure - Install x64
+          for %%f in ("%~dp0*Setup*x64*.exe") do start "" "%%f"
+          for %%f in ("%~dp0*x64*Setup*.exe") do start "" "%%f"
+          "@ | Out-File -Encoding ascii "$outDir\install-x64.bat"
+
+          # install-ia32.bat
+          @"
+          @echo off
+          title EL5 MediProcure - Install ia32
+          for %%f in ("%~dp0*Setup*ia32*.exe") do start "" "%%f"
+          for %%f in ("%~dp0*ia32*Setup*.exe") do start "" "%%f"
+          "@ | Out-File -Encoding ascii "$outDir\install-ia32.bat"
+
+          Write-Host "Created launcher bat files in $outDir"
+          Get-ChildItem $outDir
+
+      - name: "🔢 Compute SHA256 checksums"
+        shell: pwsh
+        run: |
+          $outDir = "dist-electron"
+          if (Test-Path $outDir) {
+            $files = Get-ChildItem $outDir -Filter "*.exe"
+            if ($files) {
+              $files | ForEach-Object {
+                $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+                "$hash  $($_.Name)" | Out-File -Append -Encoding ascii "$outDir\SHA256SUMS.txt"
+              }
+              Write-Host "Checksums computed:"
+              Get-Content "$outDir\SHA256SUMS.txt"
+            } else {
+              "No EXE files found" | Out-File -Encoding ascii "$outDir\SHA256SUMS.txt"
+            }
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: exe-${{ needs.web.outputs.sha }}
           path: |
             dist-electron/*.exe
+            dist-electron/*.bat
+            dist-electron/*.txt
             dist-electron/*.zip
           retention-days: 7
           if-no-files-found: warn
 
+  # ─────────────────────────────────────────────────────────────────
   functions:
     name: "⚡ Edge Functions + Secrets"
     runs-on: ubuntu-latest
@@ -147,9 +309,14 @@ jobs:
     if: always() && needs.web.result == 'success'
     steps:
       - uses: actions/checkout@v4
+
       - name: "🛠️ Install Supabase CLI"
-        run: npm install -g supabase --legacy-peer-deps 2>/dev/null || true
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin supabase 2>/dev/null || \
+          npm install -g supabase --legacy-peer-deps 2>/dev/null || true
         continue-on-error: true
+
       - name: "🔑 Set ALL Secrets"
         run: |
           supabase secrets set \
@@ -162,26 +329,29 @@ jobs:
             --project-ref ${{ env.SUPA_REF }} 2>&1 || echo "⚠️ Secrets step attempted"
         env: { SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}" }
         continue-on-error: true
-      - name: "🚀 Deploy All Functions"
+
+      - name: "🚀 Deploy All Edge Functions"
         run: |
           for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook verify-role notify-requisition make-call twilio-engine notify-api; do
             [ -d "supabase/functions/$fn" ] || continue
-            echo "Deploying $fn..."
+            echo "→ Deploying $fn..."
             supabase functions deploy $fn \
               --project-ref ${{ env.SUPA_REF }} \
               --no-verify-jwt 2>&1 || echo "⚠️ $fn deploy attempted"
           done
         env: { SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}" }
         continue-on-error: true
-      - name: "📱 Test SMS to +254116647894"
+
+      - name: "📱 Smoke test — SMS"
         run: |
           curl -s -X POST \
             -H "Authorization: Bearer ${{ env.SUPA_ANON }}" \
             -H "Content-Type: application/json" \
-            -d '{"to":"+254116647894","message":"ProcurBosse v10.0 deployed successfully. EL5 MediProcure is live. Twilio SMS working via MGd547 messaging service. WhatsApp AI bot active.","module":"ci_test"}' \
+            -d "{\"to\":\"+254116647894\",\"message\":\"ProcurBosse v11.0.0 deployed. WhatsApp Hub live. EL5 MediProcure operational.\",\"module\":\"ci_deploy\"}" \
             "${{ env.SUPA_URL }}/functions/v1/send-sms" | python3 -m json.tool || echo "SMS test attempted"
         continue-on-error: true
 
+  # ─────────────────────────────────────────────────────────────────
   db:
     name: "🗄️ DB Migrations"
     runs-on: ubuntu-latest
@@ -189,66 +359,122 @@ jobs:
     if: always() && needs.web.result == 'success'
     steps:
       - uses: actions/checkout@v4
-      - run: npm install -g supabase --legacy-peer-deps 2>/dev/null || true
+      - run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin supabase 2>/dev/null || \
+          npm install -g supabase --legacy-peer-deps 2>/dev/null || true
         continue-on-error: true
       - run: |
-          ls supabase/migrations/ | tail -5
+          echo "=== Migrations ===" && ls supabase/migrations/ | tail -10
           supabase db push --project-ref ${{ env.SUPA_REF }} 2>&1 || echo "⚠️ Migration attempted"
         env: { SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}" }
         continue-on-error: true
 
+  # ─────────────────────────────────────────────────────────────────
   release:
-    name: "🚀 Release v10.0.0"
+    name: "🚀 Release v11.0.0"
     runs-on: ubuntu-latest
     needs: [web, exe, functions, db]
     if: always() && needs.web.result == 'success' && github.event.inputs.skip_release != 'true'
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
-        with: { name: "web-dist-${{ needs.web.outputs.sha }}", path: release-web/ }
+        with:
+          name: "web-dist-${{ needs.web.outputs.sha }}"
+          path: release-web/
         continue-on-error: true
+
       - uses: actions/download-artifact@v4
-        with: { name: "exe-${{ needs.web.outputs.sha }}", path: release-exe/ }
+        with:
+          name: "exe-${{ needs.web.outputs.sha }}"
+          path: release-exe/
         continue-on-error: true
-      - run: "[ -d release-web ] && (cd release-web && zip -r ../ProcurBosse-v10-Web.zip .) || true"
+
+      - name: "📦 Package web zip"
+        run: |
+          if [ -d release-web ]; then
+            cd release-web && zip -r ../ProcurBosse-v11.0.0-Web.zip . && cd ..
+            echo "✓ Web zip created"
+          fi
         continue-on-error: true
+
+      - name: "📋 List release artifacts"
+        run: |
+          echo "=== Web ==="
+          ls -lh release-web/ 2>/dev/null || echo "(none)"
+          echo "=== EXE ==="
+          ls -lh release-exe/ 2>/dev/null || echo "(none)"
+        continue-on-error: true
+
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v10.0.0"
-          name: "🏥 ProcurBosse v10.0.0 — EL5 MediProcure Health Procurement ERP"
+          tag_name: "v11.0.0"
+          name: "🏥 ProcurBosse v11.0.0 — WhatsApp Pro"
           draft: false
           prerelease: false
-          token: ${{ secrets.RELEASE_PAT || env.GITHUB_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # 🏥 ProcurBosse v10.0.0 — EL5 MediProcure
+            # 🏥 ProcurBosse v11.0.0 — WhatsApp Pro
             **Embu Level 5 Hospital · Embu County Government · Kenya**
 
-            ## ✨ v10.0 Highlights
-            - **SMS FIXED**: REDACTED_TWILIO_MESSAGING_SID (Messaging Service) for all SMS
-            - **Email FIXED**: Resend API primary + SMTP fallback — external email delivery
-            - **WhatsApp AI Bot**: Natural language queries (stock, requisitions, POs, suppliers)
-            - **OTP Verification**: REDACTED_TWILIO_VERIFY_SID (Verify Service) — correct usage
-            - Role-based ERP wheel with submenu navigation ring
-            - Reception Desk tailored per user role with broadcast capability
-            - Live KPI dashboard with quick actions
-            - Windows EXE installer (x64 + ia32) with NSIS + shortcuts
+            ---
+
+            ## 💬 WhatsApp Business Workflow Hub (NEW)
+            Full 8-tab WhatsApp integration across the entire procure-to-pay cycle:
+
+            | Tab | Feature |
+            |---|---|
+            | Sessions | Live 72h session tracking, QR sandbox join, re-invite expired users |
+            | Compose | Template-driven single message with live WhatsApp preview |
+            | Broadcast | Bulk send to comma/newline/semicolon-separated list |
+            | Templates | 16 procurement templates (PO, GRN, Payment, Alert, etc.) |
+            | Approvals | WhatsApp reply-based approval queue |
+            | Workflows | 7 toggle-able automation rules (procure-to-pay) |
+            | History | Full outbound WA log with status badges |
+            | Settings | Webhook config, QR code, test connection, delivery stats |
+
+            ## 🤖 WhatsApp Reply Approvals
+            Approvers text **APPROVE** or **REJECT reason** — system auto-updates DB status, logs to audit trail, notifies requestor.
+
+            **Webhook URL:**
+            ```
+            https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/whatsapp-webhook
+            ```
 
             ## 📡 Communications
             | Channel | Details |
             |---|---|
+            | WhatsApp | +14155238886 · Join: send `join bad-machine` |
             | SMS | +16812972643 via MGd547 Messaging Service |
-            | WhatsApp | +14155238886 (send `join bad-machine`) |
-            | AI Bot | Natural language: stock, requisitions, POs, suppliers |
-            | Email | Resend API (set RESEND_API_KEY in Supabase secrets) |
+            | Email | Resend API + SMTP fallback |
+            | Voice/IVR | Twilio Voice from +16812972643 |
             | OTP | Twilio Verify VA692606 |
-            | Calls | Twilio Voice from +16812972643 |
 
-            ## 📦 Downloads
-            - **Web App** — `ProcurBosse-v10-Web.zip`
-            - **Windows x64** — full installer with NSIS
-            - **Windows ia32** — compatible with Windows 7/8/10/11
+            ## 📥 Downloads
+            | File | Description |
+            |---|---|
+            | `ProcurBosse-v11.0.0-Web.zip` | Web build (deploy anywhere) |
+            | `*x64*Setup*.exe` | Windows 64-bit installer (recommended) |
+            | `*ia32*Setup*.exe` | Windows 32-bit installer |
+            | `*Portable*.exe` | No-install portable version |
+            | `launch.bat` | Interactive launcher menu |
+            | `open-web.bat` | Opens https://procurbosse.edgeone.app |
+            | `install-x64.bat` | Silent x64 installer launcher |
+            | `install-ia32.bat` | Silent ia32 installer launcher |
+            | `SHA256SUMS.txt` | File integrity checksums |
+
+            ## 🔑 Default Login
+            - **URL:** https://procurbosse.edgeone.app
+            - **Email:** `samwise@gmail.com`
+            - **Password:** `samwise@gmail.com`
+            - **Role:** Admin (full access)
+
+            ## 🏗️ Stack
+            React 18 + TypeScript + Vite 5 + Supabase + Tailwind CSS + Electron
           files: |
-            ProcurBosse-v10-Web.zip
+            ProcurBosse-v11.0.0-Web.zip
             release-exe/*.exe
-            release-exe/*.zip
+            release-exe/*.bat
+            release-exe/*.txt
         continue-on-error: true
