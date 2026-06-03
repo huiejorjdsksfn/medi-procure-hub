@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>EL5 MediProcure — Redirecting...</title>
+  <title>EL5 MediProcure — Loading...</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:#0a1628;font-family:'Segoe UI',system-ui,sans-serif;
@@ -23,36 +22,34 @@
   </style>
   <script>
     /**
-     * ProcurBosse 404 Fallback v6
-     * EdgeOne shows this page when worker doesn't intercept.
-     * Immediately redirect to correct hash URL.
+     * ProcurBosse SPA Fallback v5 — EdgeOne 404 Handler
      *
-     * /dashboard        → /#/dashboard
-     * /requisitions     → /#/requisitions
-     * /admin/panel      → /#/admin/panel
-     * / or empty        → /#/dashboard
+     * EdgeOne shows THIS page when a path doesn't exist as a static file.
+     * We immediately redirect to the correct hash URL so React Router
+     * can handle the route.
+     *
+     * Examples:
+     *   /admin/panel     → /#/admin/panel
+     *   /requisitions    → /#/requisitions
+     *   /users           → /#/users
+     *   /                → /#/dashboard (handled by index.html)
      */
     (function () {
-      try {
-        var loc    = window.location;
-        var path   = loc.pathname;
-        var search = loc.search;
+      var loc    = window.location;
+      var path   = loc.pathname;   // e.g. "/admin/panel"
+      var search = loc.search;     // e.g. "?foo=bar"
+      var hash   = loc.hash;       // e.g. "#section"
 
-        // Already a hash route somehow — go to dashboard
-        if (loc.hash && loc.hash.charAt(1) === '/') {
-          window.location.replace(loc.origin + '/');
-          return;
-        }
-
-        // Build target: strip trailing slash, default to /dashboard
-        var route = (path && path !== '/' && path !== '/index.html')
-          ? path.replace(/\/$/, '')
-          : '/dashboard';
-
-        window.location.replace(loc.origin + '/#' + route + search);
-      } catch(e) {
-        window.location.replace('/');
+      // Already on a hash route — do nothing (shouldn't happen here but safety net)
+      if (hash && hash.length > 2 && hash.charAt(1) === '/') {
+        window.location.replace(loc.origin + '/#/dashboard');
+        return;
       }
+
+      // Build the correct hash URL
+      // /admin/panel → /#/admin/panel
+      var target = loc.origin + '/#' + (path === '/' ? '/dashboard' : path) + search;
+      window.location.replace(target);
     }());
   </script>
 </head>

@@ -5,89 +5,24 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    /* ProcurBosse SPA Hash Fix v6 — runs before React mounts
-       Worker serves index.html for ALL SPA routes (status 200).
-       This script converts bare pathnames to hash routes:
-         /dashboard       → /#/dashboard  (then React HashRouter handles it)
+    /* ProcurBosse SPA Hash Fix v5 — runs before React mounts
+       Converts any bare pathname to hash form:
          /admin/panel     → /#/admin/panel
-         /                → no-op (React root handles)
-         /#/anything      → no-op (already correct hash route)
+         /requisitions    → /#/requisitions
+         /#/anything      → no-op (already correct)
     */
     (function(){
-      try {
-        var loc  = window.location;
-        var path = loc.pathname;
-        var hash = loc.hash;
-        // Already on a valid hash route — do nothing
-        if(hash && hash.length > 2 && hash.charAt(1)==='/') return;
-        // Root path with no hash — React will redirect to /dashboard via Navigate
-        if(path === '/' || path === '') return;
-        // index.html itself served directly — do nothing
-        if(path === '/index.html') { history.replaceState(null,'','/'); return; }
-        // Any real SPA path — convert to hash form without adding to history
+      var loc  = window.location;
+      var path = loc.pathname;
+      var hash = loc.hash;
+      // Already on hash route - no action needed
+      if(hash && hash.length > 2 && hash.charAt(1)==='/') return;
+      // Root with no route - let React handle it
+      if(path === '/' && !hash) return;
+      // Any real path - redirect to hash form
+      if(path !== '/') {
         window.location.replace(loc.origin + '/#' + path + loc.search);
-      } catch(e) {}
-    })();
-  </script>
-
-  <script>
-    /* ProcurBosse SW Auto-Upgrade v1
-       Automatically unregisters stale service workers and registers fresh v3.
-       Users NEVER need to manually unregister — this runs on every page load.
-       Logic:
-         1. Find any registered SW
-         2. If it's not /sw.js OR its state is 'redundant' → unregister it
-         3. Register /sw.js fresh — skipWaiting ensures immediate takeover
-    */
-    (function() {
-      if (!('serviceWorker' in navigator)) return;
-
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        var hasCorrectSW = false;
-
-        registrations.forEach(function(reg) {
-          var scriptURL = (reg.installing || reg.waiting || reg.active || {}).scriptURL || '';
-          var isCorrectSW = scriptURL.includes('/sw.js');
-          var isRedundant = reg.active && reg.active.state === 'redundant';
-
-          if (!isCorrectSW || isRedundant) {
-            console.log('[PWA] Unregistering stale SW:', scriptURL);
-            reg.unregister();
-          } else {
-            hasCorrectSW = true;
-            // Force skip waiting if there's an update pending
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-          }
-        });
-
-        // Always re-register to ensure latest sw.js is active
-        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-          .then(function(reg) {
-            console.log('[PWA] SW v3 registered:', reg.scope);
-            // If new SW is waiting, activate it immediately
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-            reg.addEventListener('updatefound', function() {
-              var newSW = reg.installing;
-              if (newSW) {
-                newSW.addEventListener('statechange', function() {
-                  if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                    newSW.postMessage({ type: 'SKIP_WAITING' });
-                  }
-                });
-              }
-            });
-          })
-          .catch(function(err) {
-            console.warn('[PWA] SW registration failed:', err);
-          });
-      }).catch(function() {
-        // Fallback: just register directly
-        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-      });
+      }
     })();
   </script>
 
@@ -188,14 +123,15 @@
       }catch(e){}
     })();
   </script>
-  <script type="module" crossorigin src="/assets/index-95iYs7qo.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/react-vendor-D0kNNEwc.js">
-  <link rel="modulepreload" crossorigin href="/assets/ui-vendor-BzD1pwrj.js">
-  <link rel="modulepreload" crossorigin href="/assets/chart-vendor-DkUidBCU.js">
+  <script type="module" crossorigin src="/assets/index-Ci8rCsRu.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/react-vendor-IiBq9t1R.js">
+  <link rel="modulepreload" crossorigin href="/assets/ui-vendor-Mrv9oquF.js">
+  <link rel="modulepreload" crossorigin href="/assets/chart-vendor-BydBYW0T.js">
+  <link rel="modulepreload" crossorigin href="/assets/query-vendor-o1SOdQXA.js">
   <link rel="modulepreload" crossorigin href="/assets/supabase-vendor-GwuzJsDi.js">
   <link rel="modulepreload" crossorigin href="/assets/xlsx-vendor-DNf0Zvun.js">
-  <link rel="modulepreload" crossorigin href="/assets/pdf-vendor-wI0aWcLZ.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-83_A5iiV.css">
+  <link rel="modulepreload" crossorigin href="/assets/pdf-vendor-DehofSUS.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-CS_E_Hnl.css">
 </head>
 <body>
   <!-- Offline banner -->

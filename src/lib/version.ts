@@ -1,4 +1,5 @@
-export const APP_VERSION  = "10.0.0";
+// updated
+export const APP_VERSION = "11.0.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -27,6 +28,9 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.0.0", date: "2026-06-03",  status: "stable", codename: "WhatsApp Pro",
+    highlights: ["Full WhatsApp Business Workflow Hub", "8-tab WA page: Sessions, Compose, Broadcast, Templates, Approvals, Workflows, History, Settings", "Reply-based approval automation (APPROVE/REJECT via WhatsApp)", "Twilio webhook edge function (whatsapp-webhook)", "16 WA message templates across all procurement modules", "Procure-to-pay workflow automation", "Broadcast to multiple recipients", "QR sandbox join code + live preview", "WhatsApp added to ERP wheel + dashboard quick actions + nav"],
+    dbMigrations: 0, bugsFixed: 3, engines: ["WhatsAppEngine","TwilioWebhook"], modules: ["WhatsApp","Communications","Approvals","Workflows"] },
   { version: "10.0.0", date: BUILD_DATE,    status: "stable", codename: "Twilio & Docs",
     highlights: ["Twilio templates v2", "WhatsApp bot menu + AI fallback", "Document Editor print templates", "Hardened edge functions"],
     dbMigrations: 2, bugsFixed: 12, engines: ["PrintEngine","WhatsAppEngine","NotificationEngine"], modules: ["Inventory","Suppliers","Documents","SMS"] },
