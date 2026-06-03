@@ -9,11 +9,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type","Access-Control-Allow-Methods":"POST,GET,OPTIONS"};
 const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const ACCT =Deno.env.get("TWILIO_ACCOUNT_SID")||"ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a";
-const AUTH =Deno.env.get("TWILIO_AUTH_TOKEN") ||"d73601fbefe26e01b06e22c53a798ea6";
-const MSID =Deno.env.get("TWILIO_MESSAGING_SERVICE_SID")||"MGd547d8e3273fda2d21afdd6856acb245";
-const CLAUDE=Deno.env.get("ANTHROPIC_API_KEY")||"";
-const FROM_WA="whatsapp:+14155238886";
+const ACCT =Deno.env.get("TWILIO_ACCOUNT_SID")||"";
+const AUTH =Deno.env.get("TWILIO_AUTH_TOKEN") ||"";
+const MSID =Deno.env.get("TWILIO_MESSAGING_SERVICE_SID")||"";
+const LOVABLE_AI = Deno.env.get("LOVABLE_API_KEY") || "";
+const FROM_WA = Deno.env.get("TWILIO_WHATSAPP_FROM") || "whatsapp:+14155238886";
 const HOSP="EL5 MediProcure";
 
 function e164(r:string):string{
@@ -73,24 +73,24 @@ async function queryProcurement(intent:string,entities:Record<string,string>):Pr
   return"";
 }
 
-// ── AI response via Claude ────────────────────────────────────────
-async function claudeReply(history:Array<{role:string;content:string}>,dbContext:string):Promise<string>{
-  if(!CLAUDE)return"";
+// ── AI response via Lovable AI Gateway ────────────────────────────
+async function aiReply(history:Array<{role:string;content:string}>,dbContext:string):Promise<string>{
+  if(!LOVABLE_AI)return"";
   try{
     const system=`You are the EL5 MediProcure AI Assistant for Embu Level 5 Hospital, Kenya.
 You help hospital staff with procurement queries, stock levels, requisitions, and general ERP questions.
 Always be professional, concise (max 3 sentences for WhatsApp), and helpful.
 Current DB context: ${dbContext||"No specific data found."}
-Always end procurement-specific answers with the relevant data from context if available.
-For greetings say: "Hello! I'm EL5 MediProcure AI. How can I help you today? (Type HELP for commands)"`;
-    const r=await fetch("https://api.anthropic.com/v1/messages",{
+If unsure, ask the user to type HELP to see the numbered menu.`;
+    const r=await fetch("https://ai.gateway.lovable.dev/v1/chat/completions",{
       method:"POST",
-      headers:{"x-api-key":CLAUDE,"anthropic-version":"2023-06-01","content-type":"application/json"},
-      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:200,system,messages:history})
+      headers:{"Lovable-API-Key":LOVABLE_AI,"Content-Type":"application/json"},
+      body:JSON.stringify({model:"google/gemini-3-flash-preview",max_tokens:200,
+        messages:[{role:"system",content:system},...history]})
     });
     const d=await r.json();
-    return d.content?.[0]?.text||"";
-  }catch(e:any){console.warn("Claude error:",e.message);return"";}
+    return d.choices?.[0]?.message?.content||"";
+  }catch(e:any){console.warn("AI error:",e.message);return"";}
 }
 
 // ── Extract intent + entities ─────────────────────────────────────
@@ -116,8 +116,19 @@ async function handleMessage(from:string,body:string,waFrom:string):Promise<stri
   ]);
 
   // Hard keyword commands
-  if(lower==="help"||lower==="menu")
-    return`🏥 *EL5 MediProcure AI*\n\n*Commands:*\n• STATUS REQ-123 — requisition\n• STOCK [item] — stock level\n• LOW STOCK — low items\n• PO [number] — purchase order\n• SUPPLIERS — active suppliers\n• STOP — unsubscribe\n\nOr just ask me anything in plain language!`;
+  if(lower==="help"||lower==="menu"||lower==="hi"||lower==="hello")
+    return`🏥 *EL5 MediProcure*\n\nReply with a number:\n*1* Requisition status\n*2* Purchase Order status\n*3* Low stock alerts\n*4* Talk to a human\n\nOr ask anything in plain language.\nType STOP to unsubscribe.`;
+  if(lower==="1")return"Reply with the REQ number, e.g. *REQ-1024* or *STATUS REQ-1024*.";
+  if(lower==="2")return"Reply with the LPO number, e.g. *LPO-2025-007* or *PO 2025-007*.";
+  if(lower==="3"){
+    const{data}=await sb.from("items").select("name,quantity_in_stock,unit").lt("quantity_in_stock",10).limit(8);
+    if(!data?.length)return"✅ No low stock alerts.";
+    return"⚠️ *Low Stock:*\n"+data.map((i:any)=>`• ${i.name}: ${i.quantity_in_stock} ${i.unit||""}`).join("\n");
+  }
+  if(lower==="4"){
+    await sb.from("sms_conversations").update({status:"assigned",department:"reception"}).eq("phone_number",phone);
+    return"📞 Connecting you to a hospital agent. Reception will reply shortly. Mon–Fri 8am–5pm EAT.";
+  }
   if(lower==="stop"){
     await sb.from("sms_conversations").update({status:"closed"}).eq("phone_number",phone);
     return"You've been unsubscribed from EL5 alerts. Reply START to re-subscribe.";
@@ -140,9 +151,9 @@ async function handleMessage(from:string,body:string,waFrom:string):Promise<stri
   // Add current message
   history.push({role:"user",content:body});
 
-  // Try Claude AI
-  const aiReply=await claudeReply(history,dbCtx);
-  if(aiReply)return aiReply;
+  // Try Lovable AI Gateway
+  const ai=await aiReply(history,dbCtx);
+  if(ai)return ai;
 
   // Fallback: rule-based with DB context
   if(dbCtx)return dbCtx;
