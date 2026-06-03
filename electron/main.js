@@ -1,5 +1,5 @@
 /**
- * ProcurBosse — Electron Main Process v9.6.0
+ * ProcurBosse — Electron Main Process v11.0.0
  * EL5 MediProcure Hospital ERP — Embu Level 5 Hospital
  * Compatible: Windows 7 SP1+ → Windows 11 (x64 + ia32)
  *
