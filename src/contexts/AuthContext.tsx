@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const primaryRole = (PRIORITY.find(r => roles.includes(r)) || "requisitioner") as ProcurementRole;
 
   return (
-    <Ctx.Provider value={{ session, user, profile, roles, loading, signOut, hasRole, primaryRole, refreshRoles }}>
+    <Ctx.Provider value={{ session, user, profile, roles, loading, initialized: !loading, signOut, hasRole, primaryRole, refreshRoles }}>
       {children}
     </Ctx.Provider>
   );
