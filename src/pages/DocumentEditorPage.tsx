@@ -189,6 +189,126 @@ The [Title]<br/>
     category: "General",
     body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.8;padding:20px;min-height:600px"><p>&nbsp;</p></div>`
   },
+  {
+    name: "Local Purchase Order (LPO)",
+    category: "LPO",
+    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:10px;margin-bottom:16px">
+<strong style="font-size:14pt;color:#1a3a6b">LOCAL PURCHASE ORDER</strong><br/>
+<span>Embu Level 5 Hospital · Embu County Government</span><br/>
+<span>LPO No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</span>
+</div>
+<table style="width:100%;margin-bottom:12px">
+<tr><td style="width:50%"><strong>Supplier:</strong> _______________________</td><td><strong>Delivery to:</strong> Stores, EL5H</td></tr>
+<tr><td><strong>KRA PIN:</strong> _______________________</td><td><strong>Delivery date:</strong> ____________</td></tr>
+<tr><td><strong>Quotation Ref:</strong> _______________________</td><td><strong>Payment terms:</strong> Net 30 days</td></tr>
+</table>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+<tr style="background:#1a3a6b;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Description</th><th style="border:1px solid #ccc;padding:6px">UoM</th><th style="border:1px solid #ccc;padding:6px">Qty</th><th style="border:1px solid #ccc;padding:6px">Unit Price (KES)</th><th style="border:1px solid #ccc;padding:6px">Amount (KES)</th></tr>
+<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+<tr><td style="border:1px solid #ccc;padding:6px" colspan="5"><strong>Sub-total</strong></td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+<tr><td style="border:1px solid #ccc;padding:6px" colspan="5"><strong>VAT 16%</strong></td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+<tr style="background:#f1f5f9"><td style="border:1px solid #ccc;padding:6px" colspan="5"><strong>TOTAL</strong></td><td style="border:1px solid #ccc;padding:6px"><strong>&nbsp;</strong></td></tr>
+</table>
+<div style="display:flex;justify-content:space-between;margin-top:30px">
+<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Procurement Officer</div></div>
+<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">CEO / Authorised Officer</div></div>
+</div></div>`
+  },
+  {
+    name: "Goods Received Note (GRN)",
+    category: "GRN",
+    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
+<div style="text-align:center;border-bottom:2px solid #0e6655;padding-bottom:10px;margin-bottom:16px">
+<strong style="font-size:14pt;color:#0e6655">GOODS RECEIVED NOTE</strong><br/>
+<span>Embu Level 5 Hospital · Stores Department</span><br/>
+<span>GRN No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</span>
+</div>
+<table style="width:100%;margin-bottom:12px">
+<tr><td><strong>LPO Ref:</strong> ____________</td><td><strong>Supplier:</strong> ____________</td></tr>
+<tr><td><strong>Delivery Note:</strong> ____________</td><td><strong>Invoice No:</strong> ____________</td></tr>
+</table>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+<tr style="background:#0e6655;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Item</th><th style="border:1px solid #ccc;padding:6px">UoM</th><th style="border:1px solid #ccc;padding:6px">Qty Ordered</th><th style="border:1px solid #ccc;padding:6px">Qty Received</th><th style="border:1px solid #ccc;padding:6px">Condition</th></tr>
+<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+</table>
+<div style="margin-bottom:8px"><strong>Inspection notes:</strong> _________________________________</div>
+<div style="display:flex;justify-content:space-between;margin-top:30px">
+<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Storekeeper</div></div>
+<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Inspection &amp; Acceptance Cmt.</div></div>
+</div></div>`
+  },
+  {
+    name: "Issue Voucher (Form S 11)",
+    category: "Voucher",
+    body: `<div style="font-family:Times New Roman;font-size:11pt;line-height:1.4;padding:20px">
+<div style="text-align:center;border-bottom:2px solid #6c3483;padding-bottom:8px;margin-bottom:14px">
+<strong style="font-size:13pt">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU</strong><br/>
+<strong style="font-size:13pt;color:#6c3483">STORES ISSUE / RECEIPT VOUCHER · Form S 11</strong><br/>
+<span>Embu Level 5 Hospital · Voucher No: ____________ · Date: ${new Date().toLocaleDateString("en-KE")}</span>
+</div>
+<table style="width:100%;margin-bottom:10px">
+<tr><td><strong>Issuing Store:</strong> Main Pharmacy / General Stores</td><td><strong>Receiving Dept / Officer:</strong> ____________</td></tr>
+<tr><td><strong>Vote / Account:</strong> ____________</td><td><strong>Requisition Ref:</strong> ____________</td></tr>
+</table>
+<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+<tr style="background:#6c3483;color:white"><th style="border:1px solid #ccc;padding:5px">#</th><th style="border:1px solid #ccc;padding:5px">Item Description</th><th style="border:1px solid #ccc;padding:5px">UoM</th><th style="border:1px solid #ccc;padding:5px">Qty Demanded</th><th style="border:1px solid #ccc;padding:5px">Qty Issued</th><th style="border:1px solid #ccc;padding:5px">Unit Cost (KES)</th><th style="border:1px solid #ccc;padding:5px">Total (KES)</th></tr>
+<tr><td style="border:1px solid #ccc;padding:5px">1</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td></tr>
+</table>
+<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px">
+<div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Issued by</strong><br/>Name / Sign / Date</div></div>
+<div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Received by</strong><br/>Name / Sign / Date</div></div>
+<div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Authorised by</strong><br/>Name / Sign / Date</div></div>
+</div></div>`
+  },
+  {
+    name: "Inspection & Acceptance Report",
+    category: "Inspection",
+    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
+<div style="text-align:center;border-bottom:2px solid #c0392b;padding-bottom:10px;margin-bottom:16px">
+<strong style="font-size:14pt;color:#c0392b">INSPECTION &amp; ACCEPTANCE REPORT</strong><br/>
+<span>Embu Level 5 Hospital</span><br/>
+<span>Report No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE")}</span>
+</div>
+<table style="width:100%;margin-bottom:10px">
+<tr><td><strong>LPO Ref:</strong> ____________</td><td><strong>GRN Ref:</strong> ____________</td></tr>
+<tr><td><strong>Supplier:</strong> ____________</td><td><strong>Delivery Date:</strong> ____________</td></tr>
+</table>
+<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+<tr style="background:#c0392b;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Item</th><th style="border:1px solid #ccc;padding:6px">Spec Met</th><th style="border:1px solid #ccc;padding:6px">Qty Accepted</th><th style="border:1px solid #ccc;padding:6px">Qty Rejected</th><th style="border:1px solid #ccc;padding:6px">Remarks</th></tr>
+<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">Yes / No</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+</table>
+<div><strong>Overall recommendation:</strong> ACCEPT / PARTIAL ACCEPT / REJECT</div>
+<div style="display:flex;justify-content:space-between;margin-top:30px">
+<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Chair, I&amp;A Committee</div></div>
+<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Member</div></div>
+<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Member</div></div>
+</div></div>`
+  },
+  {
+    name: "Stores Requisition",
+    category: "Requisition",
+    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
+<div style="text-align:center;border-bottom:2px solid #7d6608;padding-bottom:10px;margin-bottom:16px">
+<strong style="font-size:14pt;color:#7d6608">STORES REQUISITION</strong><br/>
+<span>Embu Level 5 Hospital</span><br/>
+<span>REQ No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE")}</span>
+</div>
+<table style="width:100%;margin-bottom:10px">
+<tr><td><strong>Department:</strong> ____________</td><td><strong>Priority:</strong> Normal / Urgent / Emergency</td></tr>
+<tr><td><strong>Cost Centre / Vote:</strong> ____________</td><td><strong>Required By:</strong> ____________</td></tr>
+</table>
+<div style="margin-bottom:8px"><strong>Justification:</strong> _________________________________________________</div>
+<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+<tr style="background:#7d6608;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Item</th><th style="border:1px solid #ccc;padding:6px">UoM</th><th style="border:1px solid #ccc;padding:6px">Qty Required</th><th style="border:1px solid #ccc;padding:6px">Est. Unit Price (KES)</th><th style="border:1px solid #ccc;padding:6px">Est. Total (KES)</th></tr>
+<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+</table>
+<div style="display:flex;justify-content:space-between;margin-top:30px">
+<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Requested by (HOD)</div></div>
+<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Stores Officer</div></div>
+<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Procurement Manager</div></div>
+</div></div>`
+  },
 ];
 
 const FONT_SIZES = ["8","9","10","11","12","14","16","18","20","22","24","28","32","36","48","72"];
