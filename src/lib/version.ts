@@ -19,20 +19,42 @@ export interface ReleaseEntry {
   date: string;
   status: "stable" | "lts" | "beta" | "deprecated";
   highlights: string[];
+  codename?: string;
+  dbMigrations: number;
+  bugsFixed: number;
+  engines: string[];
+  modules: string[];
 }
 
 export const RELEASES: ReleaseEntry[] = [
-  { version: "10.0.0", date: BUILD_DATE,    status: "stable", highlights: ["Twilio templates v2", "WhatsApp bot with menu + AI fallback", "Document Editor print templates", "Hardened edge functions"] },
-  { version: "9.6.0",  date: "2026-05-20", status: "lts",    highlights: ["404 tracker", "Playwright e2e", "Release workflow"] },
-  { version: "9.5.0",  date: "2026-05-10", status: "lts",    highlights: ["HashRouter refresh fix", "Cache busting"] },
-  { version: "5.8.0",  date: "2025-12-01", status: "deprecated", highlights: ["Legacy installer baseline"] },
+  { version: "10.0.0", date: BUILD_DATE,    status: "stable", codename: "Twilio & Docs",
+    highlights: ["Twilio templates v2", "WhatsApp bot menu + AI fallback", "Document Editor print templates", "Hardened edge functions"],
+    dbMigrations: 2, bugsFixed: 12, engines: ["PrintEngine","WhatsAppEngine","NotificationEngine"], modules: ["Inventory","Suppliers","Documents","SMS"] },
+  { version: "9.6.0",  date: "2026-05-20", status: "lts",    codename: "Resilience",
+    highlights: ["404 tracker", "Playwright e2e", "Release workflow"],
+    dbMigrations: 1, bugsFixed: 6, engines: ["AuditEngine"], modules: ["Admin","CI/CD"] },
+  { version: "9.5.0",  date: "2026-05-10", status: "lts",    codename: "Refresh-Safe",
+    highlights: ["HashRouter refresh fix", "Cache busting"],
+    dbMigrations: 0, bugsFixed: 4, engines: [], modules: ["Routing"] },
+  { version: "5.8.0",  date: "2025-12-01", status: "deprecated", codename: "Legacy",
+    highlights: ["Legacy installer baseline"],
+    dbMigrations: 0, bugsFixed: 0, engines: [], modules: ["All existing modules"] },
 ];
 
 export function getTotalStats() {
+  const totalMigrations = RELEASES.reduce((s,r)=>s+(r.dbMigrations||0),0);
+  const totalBugsFixed  = RELEASES.reduce((s,r)=>s+(r.bugsFixed||0),0);
+  const allEngines      = Array.from(new Set(RELEASES.flatMap(r=>r.engines||[])));
+  const totalPages      = 54;
   return {
-    releases: RELEASES.length,
-    stable:   RELEASES.filter(r => r.status === "stable").length,
-    lts:      RELEASES.filter(r => r.status === "lts").length,
-    latest:   RELEASES[0]?.version || APP_VERSION,
+    totalReleases:   RELEASES.length,
+    totalMigrations,
+    totalBugsFixed,
+    allEngines,
+    totalPages,
+    releases:        RELEASES.length,
+    stable:          RELEASES.filter(r => r.status === "stable").length,
+    lts:             RELEASES.filter(r => r.status === "lts").length,
+    latest:          RELEASES[0]?.version || APP_VERSION,
   };
 }
