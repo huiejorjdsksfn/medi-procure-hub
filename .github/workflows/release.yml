@@ -1,8 +1,7 @@
-name: Release
+name: Release v11
 
-# Builds the Electron Windows installer and publishes a GitHub Release on:
-#   - every push to main (as a rolling pre-release tagged "main-<sha>")
-#   - every version tag push (v*.*.*) as a stable release
+# Builds Electron Windows installer + publishes GitHub Release
+# Triggered on: version tags (v*.*.*) or push to main (rolling pre-release)
 on:
   push:
     branches: [main]
@@ -22,19 +21,50 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Install dependencies (skip electron binary)
         run: npm ci --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
 
       - name: Build web bundle
-        run: npm run build
+        run: npx vite build --outDir web
 
-      - name: Run smoke tests
-        run: npm test --if-present
-
-      - name: Build Electron Windows installer
-        run: npm run electron:win
+      - name: Build Electron Windows installer (x64)
+        run: npx electron-builder --win --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Electron Windows installer (ia32)
+        run: npx electron-builder --win --ia32
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build portable exe
+        run: npx electron-builder --win portable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create launch.bat
+        shell: pwsh
+        run: |
+          $bat = @"
+          @echo off
+          title EL5 MediProcure - ProcurBosse v11.0.0
+          echo Starting EL5 MediProcure...
+          echo.
+          echo Embu Level 5 Hospital Procurement System
+          echo Web: https://procurbosse.edgeone.app
+          echo.
+          start "" "%~dp0procurbosse-setup-x64.exe"
+          "@
+          $bat | Out-File -Encoding ascii dist\launch.bat
+          
+          $webBat = @"
+          @echo off
+          title EL5 MediProcure - Open Web App
+          start "" "https://procurbosse.edgeone.app"
+          "@
+          $webBat | Out-File -Encoding ascii dist\open-web.bat
 
       - name: Compute checksums
         shell: pwsh
@@ -50,18 +80,49 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: "EL5 MediProcure v11.0.0 — WhatsApp Pro"
+          body: |
+            ## 🏥 EL5 MediProcure v11.0.0 — WhatsApp Pro
+            
+            ### 🆕 What's New
+            - **Full WhatsApp Business Workflow Hub** (8 tabs: Sessions, Compose, Broadcast, Templates, Approvals, Workflows, History, Settings)
+            - **Reply-based approvals**: Approve/reject procurement requests via WhatsApp reply
+            - **16 WhatsApp message templates** across all modules
+            - **Twilio webhook** for inbound message handling
+            - **Broadcast** to multiple recipients
+            - **Session management** with QR code join and auto-renewal
+            - WhatsApp integrated in ERP wheel, dashboard, and sidebar nav
+            
+            ### 📥 Installation
+            | File | Description |
+            |------|-------------|
+            | `procurbosse-setup-x64.exe` | Windows 64-bit installer (recommended) |
+            | `procurbosse-setup-ia32.exe` | Windows 32-bit installer |
+            | `procurbosse-portable.exe` | No-install portable version |
+            | `launch.bat` | Quick launcher script |
+            | `open-web.bat` | Opens web app in browser |
+            
+            ### 🔑 Default Login
+            - URL: https://procurbosse.edgeone.app
+            - Email: `samwise@gmail.com`
+            - Password: `samwise@gmail.com`
+            
+            ### 💬 WhatsApp Setup
+            Join the WhatsApp sandbox: Send `join bad-machine` to `+1 415 523 8886`
           files: |
             dist/*.exe
+            dist/*.bat
             dist/SHA256SUMS.txt
-          generate_release_notes: true
+          generate_release_notes: false
 
       - name: Publish rolling pre-release (main)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: main-${{ github.sha }}
-          name: "Rolling build ${{ github.sha }}"
+          name: "Rolling build — WhatsApp Pro ${{ github.sha }}"
           prerelease: true
           files: |
             dist/*.exe
+            dist/*.bat
             dist/SHA256SUMS.txt

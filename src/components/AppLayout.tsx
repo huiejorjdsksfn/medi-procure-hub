@@ -18,7 +18,7 @@ import {
   ChevronDown, Building2, Shield, FileCheck, Database, Gavel, DollarSign,
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt, BookMarked, Calendar,
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
-  Phone, MessageSquare, Bell, Globe, Wrench, Home, Server,
+  Phone, MessageSquare, MessageCircle, Bell, Globe, Wrench, Home, Server,
   BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch
 } from "lucide-react";
 
@@ -111,6 +111,7 @@ const MODS = [
    items:[
      {l:"Email",     p:"/email",     I:Mail},
      {l:"SMS",       p:"/sms",       I:MessageSquare},
+     {l:"WhatsApp",  p:"/whatsapp",   I:MessageCircle},
      {l:"Telephony", p:"/telephony", I:Phone},
      {l:"Reception", p:"/reception", I:Users},
    ]},

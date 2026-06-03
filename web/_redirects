@@ -1,5 +1,1 @@
-# ProcurBosse SPA Redirects v7
-# Worker (_worker.js) is the primary handler.
-# This file is a Netlify-compatible fallback only.
-
-/*  /index.html  200
+/* /index.html 200

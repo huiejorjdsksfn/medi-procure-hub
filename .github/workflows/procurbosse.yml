@@ -1,4 +1,4 @@
-name: "🏥 ProcurBosse v10.0 — Build & Release"
+name: "🏥 ProcurBosse v11.0 — Build & Release"
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 
 env:
   NODE_VER:     "20"
-  APP_VER:      "10.0.0"
+  APP_VER:      "11.0.0"
   SUPA_URL:     "https://yvjfehnzbzjliizjvuhq.supabase.co"
   SUPA_ANON:    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
   SUPA_REF:     "yvjfehnzbzjliizjvuhq"
@@ -164,7 +164,7 @@ jobs:
         continue-on-error: true
       - name: "🚀 Deploy All Functions"
         run: |
-          for fn in send-sms send-email send-whatsapp whatsapp-bot verify-role notify-requisition make-call twilio-engine notify-api; do
+          for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook verify-role notify-requisition make-call twilio-engine notify-api; do
             [ -d "supabase/functions/$fn" ] || continue
             echo "Deploying $fn..."
             supabase functions deploy $fn \

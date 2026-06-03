@@ -10,7 +10,7 @@ import ERPWheelButton from "@/components/ERPWheelButton";
 import {
   ShoppingCart, Package, FileText, DollarSign, BarChart2,
   Users, Building2, TrendingUp, TrendingDown, AlertTriangle,
-  CheckCircle, Clock, RefreshCw, Bell, Activity,
+  CheckCircle, Clock, RefreshCw, Bell, Activity, MessageSquare,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -254,6 +254,7 @@ export default function DashboardPage() {
               {l:"Stock Check",          p:"/items",             col:TEAL,   icon:Package,      roles:[]},
               {l:"View Reports",         p:"/reports",           col:PURPLE, icon:BarChart2,    roles:[]},
               {l:"Manage Users",         p:"/users",             col:"#374151",icon:Users,      roles:["admin","superadmin","webmaster"]},
+              {l:"WhatsApp Hub",          p:"/whatsapp",          col:"#25D366",icon:MessageSquare, roles:[]},
             ].filter(a=>!a.roles.length||a.roles.some(r=>roles.includes(r))).map(a=>{
               const Ic=a.icon;
               return(
