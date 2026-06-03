@@ -188,7 +188,7 @@ export default function DashboardPage() {
             <span>EL5 MediProcure · Embu Level 5 Hospital</span>
           </div>
         </div>
-        <div style={{display:"flex",gap:8"}}>
+        <div style={{display:"flex",gap:8}}>
           <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",
             background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:8,cursor:"pointer",
             fontSize:12,fontWeight:700,color:"#374151",boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>

@@ -176,9 +176,9 @@ export default function LoginPage() {
                   {show?<EyeOff size={15}/>:<Eye size={15}/>}
                 </button>
               </div>
-              <button type="submit" disabled={loading} style={{...s.btn,opacity:loading?.75:1}}
+              <button type="submit" disabled={loading} style={{...s.btn,opacity:loading?0.75:1}}
                 onMouseEnter={e=>{if(!loading)(e.currentTarget.style.opacity=".88")}}
-                onMouseLeave={e=>{e.currentTarget.style.opacity=loading?.75:1+""}}>
+                onMouseLeave={e=>{e.currentTarget.style.opacity=loading?"0.75":"1"}}>
                 {loading&&<RefreshCw size={15} style={{animation:"spin .8s linear infinite"}}/>}
                 {loading?"Signing in…":"Sign In"}
               </button>
