@@ -11,6 +11,7 @@ export const TWILIO = {
   WA_NUMBER:   TWILIO_WA,
   MG_SID:      TWILIO_MG,
   WA_CODE,
+  JOIN_CODE:   WA_CODE,
   WA_LINK:     `https://api.whatsapp.com/send/?phone=%2B14155238886&text=join+bad-machine`,
 };
 
@@ -75,3 +76,23 @@ export async function checkOTP(phone: string, code: string, userId?: string, rol
 
 export const quickSms = async (to:string, msg:string, module?:string) =>
   (await sendSms({to,message:msg,module})).ok;
+
+export const sendWhatsApp = (to: string, message: string, opts: Omit<SmsOpts,"to"|"message"|"channel"> = {}) =>
+  sendSms({ ...opts, to, message, channel: "whatsapp" });
+
+export async function checkTwilioStatus(): Promise<{ok:boolean; version?:string; sms_from?:string; wa_from?:string; error?:string}> {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms?action=status`;
+    const r = await fetch(url, { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "" } });
+    const d = await r.json();
+    return { ok: !!d?.ok, version: d?.version, sms_from: d?.sms_from, wa_from: d?.wa_from };
+  } catch (e: any) { return { ok:false, error:e.message }; }
+}
+
+export async function makeCall(to: string, message: string): Promise<{ok:boolean; sid?:string; error?:string}> {
+  try {
+    const { data, error } = await (supabase as any).functions.invoke("make-call", { body: { to, message } });
+    if (error) throw error;
+    return { ok: !!data?.ok, sid: data?.sid };
+  } catch (e:any) { return { ok:false, error:e.message }; }
+}
