@@ -15,13 +15,31 @@ const CORS = {
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-const ACCT  = Deno.env.get("TWILIO_ACCOUNT_SID") || "ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a";
-const AUTH  = Deno.env.get("TWILIO_AUTH_TOKEN")  || "d73601fbefe26e01b06e22c53a798ea6";
-const FROM  = Deno.env.get("TWILIO_PHONE_NUMBER")|| "+16812972643";
-const MSID  = Deno.env.get("TWILIO_MESSAGING_SERVICE_SID") || "MGd547d8e3273fda2d21afdd6856acb245";
-const FROM_WA = "whatsapp:+14155238886";
+const ACCT  = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
+const AUTH  = Deno.env.get("TWILIO_AUTH_TOKEN")  || "";
+const FROM  = Deno.env.get("TWILIO_FROM_NUMBER") || Deno.env.get("TWILIO_PHONE_NUMBER") || "";
+const MSID  = Deno.env.get("TWILIO_MESSAGING_SERVICE_SID") || "";
+const FROM_WA = Deno.env.get("TWILIO_WHATSAPP_FROM") || "whatsapp:+14155238886";
 const WA_CODE = "join bad-machine";
 const HOSP  = "EL5 MediProcure";
+
+// ── Template library (event-driven) ──────────────────────────────
+const TEMPLATES: Record<string,(d:Record<string,any>)=>string> = {
+  requisition_submitted: d => `REQ ${d.number||""} submitted by ${d.user||"staff"}. Awaiting approval.`,
+  requisition_approved:  d => `REQ ${d.number||""} APPROVED. Proceed to LPO.`,
+  requisition_rejected:  d => `REQ ${d.number||""} REJECTED. Reason: ${d.reason||"see system"}.`,
+  requisition_pending:   d => `Reminder: REQ ${d.number||""} awaits your approval.`,
+  po_raised:             d => `LPO ${d.number||""} raised for ${d.supplier||""}. Total KES ${d.total||"0"}.`,
+  po_sent:               d => `LPO ${d.number||""} dispatched to ${d.supplier||""}. ETA ${d.eta||"TBD"}.`,
+  goods_received:        d => `GRN ${d.number||""} recorded for LPO ${d.po||""}. Inspect within 24h.`,
+  inspection_passed:     d => `Inspection PASSED for ${d.item||""}. Stock updated.`,
+  inspection_failed:     d => `Inspection FAILED for ${d.item||""}. Action required: ${d.action||"contact supplier"}.`,
+  low_stock_alert:       d => `LOW STOCK: ${d.item||""} at ${d.qty||"0"} ${d.unit||"units"}. Reorder now.`,
+  payment_voucher:       d => `Payment Voucher ${d.number||""} for KES ${d.amount||""} ready for authorisation.`,
+  contract_expiring:     d => `Contract ${d.number||""} with ${d.supplier||""} expires ${d.date||""}.`,
+  system_alert:          d => `SYSTEM: ${d.message||"alert"}`,
+  custom:                d => String(d.message||""),
+};
 
 function e164(r:string):string{
   const n=String(r||"").replace(/[\s\-\(\)\.]/g,"");
