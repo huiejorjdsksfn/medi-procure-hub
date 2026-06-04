@@ -37,14 +37,43 @@ const IS_WIN7 = process.platform === 'win32' && (() => {
 // ── Paths ──────────────────────────────────────────────────────────────────
 // Use __dirname relative path — works correctly both packaged (asar) and dev
 const ELECTRON_DIR = __dirname;
-const DIST_PATH    = IS_DEV
-  ? path.resolve(ELECTRON_DIR, '..', 'dist')
-  : path.resolve(ELECTRON_DIR, '..', 'dist');
-const INDEX_HTML   = path.join(DIST_PATH, 'index.html');
-const ICON_PATH    = path.join(
-  IS_DEV ? path.resolve(ELECTRON_DIR, '..', 'public') : process.resourcesPath,
-  'icon.png'
-);
+
+// Resolve dist path correctly for all packaging scenarios:
+// - Dev: ../dist/ (relative to electron/)
+// - electron-packager (asar):  resources/app.asar/dist/
+// - electron-packager (no-asar): resources/app/dist/
+// - electron-builder:           resources/app.asar/dist/
+function resolveDistPath() {
+  const candidates = [
+    path.resolve(ELECTRON_DIR, '..', 'dist'),                              // dev / packager default
+    path.join(process.resourcesPath || '', 'app.asar', 'dist'),            // asar packaged
+    path.join(process.resourcesPath || '', 'app', 'dist'),                 // non-asar packaged
+    path.join(app.getAppPath(), 'dist'),                                   // getAppPath() fallback
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(path.join(p, 'index.html'))) return p;
+    } catch {}
+  }
+  return candidates[0]; // fallback — will trigger did-fail-load handler
+}
+
+const DIST_PATH  = resolveDistPath();
+const INDEX_HTML = path.join(DIST_PATH, 'index.html');
+
+// Icon: try resources first (packaged), then public/ (dev)
+const ICON_PATH = (() => {
+  const candidates = [
+    path.join(process.resourcesPath || '', 'icon.png'),
+    path.join(process.resourcesPath || '', 'app', 'public', 'icon.png'),
+    path.resolve(ELECTRON_DIR, '..', 'public', 'icon.png'),
+    path.resolve(ELECTRON_DIR, '..', 'build', 'icon.png'),
+  ];
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return p; } catch {}
+  }
+  return '';
+})();
 
 // ── Crash logging ──────────────────────────────────────────────────────────
 function crashLog(msg) {
@@ -324,7 +353,7 @@ async function checkForUpdates(manual = false) {
     });
 
     const latest = (data.tag_name || '').replace(/^v/, '');
-    const dlUrl  = data.assets?.find(a => a.name.includes('Setup.exe'))?.browser_download_url;
+    const dlUrl  = data.assets?.find(a => (a.name.includes('Setup.exe') || a.name.includes('-win-x64')) && !a.name.includes('.txt'))?.browser_download_url || data.html_url;
     if (!latest || !dlUrl) { if (manual) dialog.showMessageBox(win,{type:'info',message:'No update available.',buttons:['OK']}); return; }
 
     const isNewer = latest.localeCompare(APP_VERSION, undefined, { numeric:true }) > 0;

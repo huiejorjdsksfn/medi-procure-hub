@@ -22,8 +22,8 @@ export function lazyWithRetry<T extends ComponentType<any>>(
 
 // - Platform detection -
 export const Platform = {
-  isElectron: () => !!(window as any).electronAPI,
-  isWeb:      () => !(window as any).electronAPI,
+  isElectron: () => !!(window as any).procurBosse || !!(window as any).electronAPI,
+  isWeb:      () => !(window as any).procurBosse && !(window as any).electronAPI,
   isMobile:   () => /Mobi|Android|iPhone/i.test(navigator.userAgent),
   isPWA:      () => window.matchMedia("(display-mode: standalone)").matches,
   isOnline:   () => navigator.onLine,
@@ -33,7 +33,9 @@ export const Platform = {
 // - Open URL -
 export async function openURL(url: string): Promise<void> {
   if (Platform.isElectron()) {
-    await (window as any).electronAPI?.openExternal(url);
+    const api = (window as any).procurBosse || (window as any).electronAPI;
+    if (api?.openExternal) await api.openExternal(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
   } else {
     window.open(url, "_blank", "noopener,noreferrer");
   }
