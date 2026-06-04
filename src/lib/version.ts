@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.0.0";
+export const APP_VERSION = "11.1.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";

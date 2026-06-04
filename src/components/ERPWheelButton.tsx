@@ -81,6 +81,7 @@ const WHEEL = [
       {l:"SMS",       p:"/sms",       roles:[]},
       {l:"Telephony", p:"/telephony", roles:[]},
       {l:"WhatsApp",  p:"/whatsapp",  roles:[]},
+      {l:"AI Agent",  p:"/ai-agent",  roles:[]},
     ],
   },
   {

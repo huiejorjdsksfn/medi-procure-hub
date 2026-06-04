@@ -59,6 +59,7 @@ import ReceptionPage from "@/pages/ReceptionPage";
 import TelephonyPage from "@/pages/TelephonyPage";
 import SMSPage from "@/pages/SMSPage";
 import WhatsAppPage from "@/pages/WhatsAppPage";
+import AIAgentPage   from "@/pages/AIAgentPage";
 import WebmasterPage from "@/pages/WebmasterPage";
 import ChangelogPage from "@/pages/ChangelogPage";
 import InboxPage from "@/pages/InboxPage";
@@ -163,6 +164,7 @@ const App = () => (
             <Route path="/telephony" element={<P><TelephonyPage /></P>} />
             <Route path="/sms" element={<P><SMSPage /></P>} />
             <Route path="/whatsapp" element={<P><WhatsAppPage /></P>} />
+            <Route path="/ai-agent"  element={<P><AIAgentPage /></P>} />
 
             {/* Admin - role-gated */}
             <Route path="/users" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><UsersPage /></RoleGuard></P>} />
