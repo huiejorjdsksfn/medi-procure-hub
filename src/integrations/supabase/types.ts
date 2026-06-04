@@ -131,6 +131,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string
+          details: string | null
+          id: string
+          record_id: string | null
+          table_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       backup_jobs: {
         Row: {
           completed_at: string | null
@@ -832,6 +865,39 @@ export type Database = {
           },
         ]
       }
+      db_heartbeat: {
+        Row: {
+          active_conns: number | null
+          db_version: string | null
+          id: number
+          latency_ms: number | null
+          pinged_at: string
+          source: string
+          status: string
+          table_counts: Json | null
+        }
+        Insert: {
+          active_conns?: number | null
+          db_version?: string | null
+          id?: number
+          latency_ms?: number | null
+          pinged_at?: string
+          source?: string
+          status?: string
+          table_counts?: Json | null
+        }
+        Update: {
+          active_conns?: number | null
+          db_version?: string | null
+          id?: number
+          latency_ms?: number | null
+          pinged_at?: string
+          source?: string
+          status?: string
+          table_counts?: Json | null
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           budget: number | null
@@ -907,63 +973,170 @@ export type Database = {
         }
         Relationships: []
       }
+      document_imports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          document_id: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          import_type: string | null
+          imported_by: string | null
+          mapped_to: string | null
+          original_file: string | null
+          parsed_tables: Json | null
+          parsed_text: string | null
+          status: string | null
+          storage_path: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          document_id?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          import_type?: string | null
+          imported_by?: string | null
+          mapped_to?: string | null
+          original_file?: string | null
+          parsed_tables?: Json | null
+          parsed_text?: string | null
+          status?: string | null
+          storage_path?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          document_id?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          import_type?: string | null
+          imported_by?: string | null
+          mapped_to?: string | null
+          original_file?: string | null
+          parsed_tables?: Json | null
+          parsed_text?: string | null
+          status?: string | null
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_imports_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string
+          checksum: string | null
           created_at: string | null
           description: string | null
+          download_count: number | null
+          file_extension: string | null
           file_name: string | null
           file_size: number | null
+          file_type: string | null
           file_url: string | null
           id: string
+          import_status: string | null
+          indexed_text: string | null
           is_locked: boolean | null
+          is_parseable: boolean | null
           is_template: boolean | null
+          last_accessed_at: string | null
+          metadata: Json | null
           mime_type: string | null
           name: string
+          original_filename: string | null
+          parse_error: string | null
+          parsed_content: string | null
+          print_count: number | null
           record_id: string | null
           record_type: string | null
+          source: string | null
+          storage_path: string | null
           tags: string[] | null
           template_html: string | null
+          type_category: string | null
           updated_at: string | null
           uploaded_by: string | null
           version: string | null
         }
         Insert: {
           category?: string
+          checksum?: string | null
           created_at?: string | null
           description?: string | null
+          download_count?: number | null
+          file_extension?: string | null
           file_name?: string | null
           file_size?: number | null
+          file_type?: string | null
           file_url?: string | null
           id?: string
+          import_status?: string | null
+          indexed_text?: string | null
           is_locked?: boolean | null
+          is_parseable?: boolean | null
           is_template?: boolean | null
+          last_accessed_at?: string | null
+          metadata?: Json | null
           mime_type?: string | null
           name: string
+          original_filename?: string | null
+          parse_error?: string | null
+          parsed_content?: string | null
+          print_count?: number | null
           record_id?: string | null
           record_type?: string | null
+          source?: string | null
+          storage_path?: string | null
           tags?: string[] | null
           template_html?: string | null
+          type_category?: string | null
           updated_at?: string | null
           uploaded_by?: string | null
           version?: string | null
         }
         Update: {
           category?: string
+          checksum?: string | null
           created_at?: string | null
           description?: string | null
+          download_count?: number | null
+          file_extension?: string | null
           file_name?: string | null
           file_size?: number | null
+          file_type?: string | null
           file_url?: string | null
           id?: string
+          import_status?: string | null
+          indexed_text?: string | null
           is_locked?: boolean | null
+          is_parseable?: boolean | null
           is_template?: boolean | null
+          last_accessed_at?: string | null
+          metadata?: Json | null
           mime_type?: string | null
           name?: string
+          original_filename?: string | null
+          parse_error?: string | null
+          parsed_content?: string | null
+          print_count?: number | null
           record_id?: string | null
           record_type?: string | null
+          source?: string | null
+          storage_path?: string | null
           tags?: string[] | null
           template_html?: string | null
+          type_category?: string | null
           updated_at?: string | null
           uploaded_by?: string | null
           version?: string | null
@@ -3446,6 +3619,7 @@ export type Database = {
           metadata: Json | null
           module: string
           priority: string | null
+          recipient_id: string | null
           record_id: string | null
           record_number: string | null
           record_type: string | null
@@ -3478,6 +3652,7 @@ export type Database = {
           metadata?: Json | null
           module?: string
           priority?: string | null
+          recipient_id?: string | null
           record_id?: string | null
           record_number?: string | null
           record_type?: string | null
@@ -3510,6 +3685,7 @@ export type Database = {
           metadata?: Json | null
           module?: string
           priority?: string | null
+          recipient_id?: string | null
           record_id?: string | null
           record_number?: string | null
           record_type?: string | null
@@ -4866,9 +5042,12 @@ export type Database = {
         Row: {
           created_at: string | null
           department: string | null
+          direction: string | null
+          error_code: string | null
           id: string
           message_body: string
           message_type: string | null
+          metadata: Json | null
           recipient_name: string
           recipient_phone: string
           sender_name: string | null
@@ -4881,9 +5060,12 @@ export type Database = {
         Insert: {
           created_at?: string | null
           department?: string | null
+          direction?: string | null
+          error_code?: string | null
           id?: string
           message_body: string
           message_type?: string | null
+          metadata?: Json | null
           recipient_name: string
           recipient_phone: string
           sender_name?: string | null
@@ -4896,9 +5078,12 @@ export type Database = {
         Update: {
           created_at?: string | null
           department?: string | null
+          direction?: string | null
+          error_code?: string | null
           id?: string
           message_body?: string
           message_type?: string | null
+          metadata?: Json | null
           recipient_name?: string
           recipient_phone?: string
           sender_name?: string | null
@@ -5527,6 +5712,42 @@ export type Database = {
           performed_at?: string | null
           performed_by?: string | null
           table_name?: string
+        }
+        Relationships: []
+      }
+      sms_conversations: {
+        Row: {
+          contact_name: string | null
+          created_at: string
+          department: string | null
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          phone_number: string
+          status: string | null
+          unread_count: number | null
+        }
+        Insert: {
+          contact_name?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          phone_number: string
+          status?: string | null
+          unread_count?: number | null
+        }
+        Update: {
+          contact_name?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          phone_number?: string
+          status?: string | null
+          unread_count?: number | null
         }
         Relationships: []
       }
@@ -6302,6 +6523,7 @@ export type Database = {
         Returns: string
       }
       exec_sql: { Args: { query: string }; Returns: Json }
+      get_db_health_stats: { Args: never; Returns: Json }
       has_any_role: { Args: { required_roles: string[] }; Returns: boolean }
       has_role:
         | {
@@ -6607,6 +6829,7 @@ export type Database = {
       ssl_issuer_dn: { Args: never; Returns: string }
       ssl_issuer_field: { Args: { "": string }; Returns: string }
       ssl_version: { Args: never; Returns: string }
+      trim_heartbeat: { Args: { keep?: number }; Returns: number }
     }
     Enums: {
       app_role:
