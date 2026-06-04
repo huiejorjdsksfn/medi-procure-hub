@@ -173,42 +173,24 @@ jobs:
           PREJS
           node -e "const b=Buffer.alloc(1406);b.writeUInt16LE(0,0);b.writeUInt16LE(1,2);b.writeUInt16LE(1,4);require('fs').writeFileSync('build/icon.ico',b);"
 
-      - name: Package x64
+      - name: Package x64 + ia32
         shell: bash
         run: |
           VER=$(node -p "require('./package.json').version")
-          npx electron-packager . ProcurBosse \
-            --platform=win32 --arch=x64 \
-            --out=dist-electron \
-            --app-version="$VER" \
-            --overwrite --prune --asar \
-            --ignore=".github" \
-            --ignore="supabase" \
-            --ignore="^/src" \
-            --ignore="^/web" \
-            --ignore="kiosk-app" \
-            --ignore="admin-app" 2>&1 | tail -15
+          COMMON="--platform=win32 --out=dist-electron --app-version=$VER --overwrite --prune --no-asar"
+          IGNORE='--ignore=\.github --ignore=supabase --ignore=^/src --ignore=^/web --ignore=kiosk-app --ignore=admin-app --ignore=test --ignore=e2e --ignore=docs'
+          
+          echo "=== Building x64 ==="
+          npx electron-packager . "ProcurBosse" $COMMON --arch=x64 $IGNORE 2>&1 | tail -20
           echo "x64 exit: $?"
-          ls dist-electron/ 2>/dev/null || echo "no dist-electron"
-        continue-on-error: true
-
-      - name: Package ia32
-        shell: bash
-        run: |
-          VER=$(node -p "require('./package.json').version")
-          npx electron-packager . ProcurBosse \
-            --platform=win32 --arch=ia32 \
-            --out=dist-electron \
-            --app-version="$VER" \
-            --overwrite --prune --asar \
-            --ignore=".github" \
-            --ignore="supabase" \
-            --ignore="^/src" \
-            --ignore="^/web" \
-            --ignore="kiosk-app" \
-            --ignore="admin-app" 2>&1 | tail -15
+          
+          echo "=== Building ia32 ==="
+          npx electron-packager . "ProcurBosse" $COMMON --arch=ia32 $IGNORE 2>&1 | tail -20
           echo "ia32 exit: $?"
-          ls dist-electron/ 2>/dev/null || echo "no dist-electron"
+          
+          echo "=== dist-electron contents ==="
+          ls -la dist-electron/ 2>/dev/null || echo "MISSING dist-electron"
+          find dist-electron -name "ProcurBosse.exe" 2>/dev/null | head -5
         continue-on-error: true
 
       - name: Zip portable archives

@@ -32,6 +32,7 @@ export const APP_ROUTES = [
   "/profile", "/gui-editor", "/facilities", "/admin/db-test",
   "/accountant", "/accountant-workspace", "/notifications",
   "/hmis", "/hmis/sync", "/hmis/mapping", "/hmis/logs",
+  "/whatsapp",
 ];
 
 /**
@@ -65,6 +66,19 @@ export function toHashUrl(path: string): string {
 export default function RouterGuard() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // ── Electron menu navigation listener ──────────────────────────────────
+  useEffect(() => {
+    const handleElectronNav = (e: Event) => {
+      const route = (e as CustomEvent).detail;
+      if (route && typeof route === 'string') {
+        const clean = route.startsWith('/') ? route : '/' + route;
+        navigate(clean);
+      }
+    };
+    window.addEventListener('electron-navigate', handleElectronNav);
+    return () => window.removeEventListener('electron-navigate', handleElectronNav);
+  }, [navigate]);
 
   useEffect(() => {
     // 1. Intercept bare pathname navigations

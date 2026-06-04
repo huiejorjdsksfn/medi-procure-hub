@@ -10,7 +10,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('procurBosse', {
   // Identity
   appName:    'ProcurBosse',
-  version:    '9.6.0',
+  version:    '11.0.0',
   isElectron: true,
   isDesktop:  true,
 
@@ -52,3 +52,23 @@ contextBridge.exposeInMainWorld('procurBosse', {
   onNavigateTo:      (cb) => ipcRenderer.on('navigate-to', (_, route) => cb(route)),
   removeListener:    (ch) => ipcRenderer.removeAllListeners(ch),
 });
+
+// Also expose as window.electronAPI for backward-compat with any code using that name
+try {
+  const { contextBridge: cb, ipcRenderer: ipc } = require('electron');
+  cb.exposeInMainWorld('electronAPI', {
+    isElectron: true,
+    getVersion:  () => ipc.invoke('get-app-version'),
+    getPlatform: () => ipc.invoke('get-platform'),
+    navigate:    (r) => ipc.invoke('navigate', r),
+    openExternal:(url) => { const { shell } = require('electron'); shell.openExternal(url); },
+    getSystemInfo:() => ipc.invoke('get-system-info'),
+    clearCache:  () => ipc.invoke('clear-cache'),
+    printDocument:(o) => ipc.invoke('print-document', o),
+    showNotification:(t,b) => ipc.invoke('show-notification',{title:t,body:b}),
+    showSaveDialog:(o) => ipc.invoke('show-save-dialog', o),
+    showOpenDialog:(o) => ipc.invoke('show-open-dialog', o),
+    writeFile:   (a) => ipc.invoke('write-file', a),
+    readFile:    (a) => ipc.invoke('read-file', a),
+  });
+} catch(e) { /* already exposed */ }

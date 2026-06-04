@@ -126,7 +126,7 @@ export default function WhatsAppPage() {
         const hrs = (Date.now() - new Date(c.last_message_at||0).getTime()) / 3_600_000;
         return { ...c, active: hrs < 72, joinRequired: hrs >= 72 };
       });
-      setSessions(rows);
+      setSessions(Array.isArray(rows)?rows:[]);
       setStats(s => ({ ...s, sessions: rows.filter((r:any) => r.active).length }));
     } catch {}
     setLoading(false);
@@ -140,7 +140,7 @@ export default function WhatsAppPage() {
         .order("sent_at",{ ascending:false })
         .limit(100);
       const rows = data||[];
-      setHistory(rows);
+      setHistory(Array.isArray(rows)?rows:[]);
       setStats(s => ({
         ...s,
         sent24h:    rows.filter((r:any)=>{ const h=(Date.now()-new Date(r.sent_at||0).getTime())/3_600_000; return h<24; }).length,
@@ -158,7 +158,7 @@ export default function WhatsAppPage() {
         .not("metadata->approval_ref","is",null)
         .order("sent_at",{ ascending:false })
         .limit(30);
-      setApprovals((data||[]).map((r:any) => ({
+      setApprovals(Array.isArray(data) ? data.map((r:any) => ({
         id:          r.id,
         ref:         r.metadata?.approval_ref || "—",
         type:        r.metadata?.approval_type || "Unknown",
@@ -167,7 +167,7 @@ export default function WhatsAppPage() {
         notifiedTo:  r.to_number,
         status:      r.metadata?.approval_status || r.status,
         sentAt:      r.sent_at,
-      })));
+      })) : []);
     } catch {}
   },[]);
 
@@ -349,7 +349,7 @@ export default function WhatsAppPage() {
                 </div>
               ) : (
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:12}}>
-                  {sessions.map((s:any)=>(
+                  {(Array.isArray(sessions)?sessions:[]).map((s:any)=>(
                     <div key={s.id} style={card({borderLeft:`4px solid ${s.active?GREEN:"#e0e0e0"}`})}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div>
@@ -532,7 +532,7 @@ export default function WhatsAppPage() {
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:14}}>
-              {WA_TEMPLATES.filter(t=>tplCat==="All"||t.category===tplCat).map(t=>(
+              {(Array.isArray(WA_TEMPLATES)?WA_TEMPLATES:[]).filter(t=>tplCat==="All"||t.category===tplCat).map(t=>(
                 <div key={t.key} style={card({borderTop:`3px solid ${GREEN}`})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div>
@@ -581,7 +581,7 @@ export default function WhatsAppPage() {
               </div>
             ) : (
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(360px,1fr))",gap:12}}>
-                {approvals.map(a=>(
+                {(Array.isArray(approvals)?approvals:[]).map(a=>(
                   <div key={a.id} style={card({borderLeft:`4px solid ${a.status==="pending"?"#f97316":a.status==="approved"?GREEN:"#ef4444"}`})}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                       <div>
@@ -613,7 +613,7 @@ export default function WhatsAppPage() {
               <div style={{fontSize:12,color:"#888"}}>{workflows.filter(w=>w.enabled).length} active workflows</div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(380px,1fr))",gap:14}}>
-              {workflows.map(w=>(
+              {(Array.isArray(workflows)?workflows:[]).map(w=>(
                 <div key={w.id} style={card({borderTop:`3px solid ${w.enabled?GREEN:"#e0e0e0"}`,opacity:w.enabled?1:0.75})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                     <div>
