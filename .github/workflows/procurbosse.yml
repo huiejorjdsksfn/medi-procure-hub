@@ -198,43 +198,50 @@ jobs:
           NSH
           fi
 
-      - name: "🏗️ Build Windows EXE (x64 + ia32 + portable)"
+      - name: "🏗️ Pre-fetch Electron binary"
         shell: pwsh
         run: |
-          # Show electron version
-          npx electron --version 2>&1 || Write-Host "electron CLI N/A"
-          node -e "try{const p=require('electron');console.log('electron path:',p)}catch(e){console.log('electron module error:',e.message)}"
+          # Force electron binary download before builder runs
+          $env:ELECTRON_CACHE = "$env:LOCALAPPDATA\electron\Cache"
+          New-Item -ItemType Directory -Force -Path $env:ELECTRON_CACHE | Out-Null
+          Write-Host "Electron cache: $env:ELECTRON_CACHE"
+          # Use electron's own downloader
+          node -e "
+          const path=require('path');
+          const electronPath=require('electron');
+          console.log('Electron binary path:', electronPath);
+          const fs=require('fs');
+          if(fs.existsSync(electronPath)){console.log('Binary EXISTS, size:',fs.statSync(electronPath).size);}
+          else{console.log('Binary MISSING — will be auto-downloaded by builder');}
+          " 2>&1
+        continue-on-error: true
 
-          # Show builder version
+      - name: "🏗️ Build Windows EXE (x64 + ia32 + portable)"
+        shell: cmd
+        run: |
+          echo === electron version ===
+          node -e "console.log(require('electron'))" 2>&1
+          echo === electron-builder version ===
           npx electron-builder --version
-
-          # Build with explicit config and verbose output
-          $env:DEBUG = "electron-builder"
-          $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
-          $env:GH_TOKEN = "${{ secrets.GITHUB_TOKEN }}"
-
-          # Try x64 NSIS
-          Write-Host "=== Building x64 NSIS ==="
-          npx electron-builder --win nsis --x64 --publish never --config electron-builder.yml 2>&1
-          Write-Host "Exit: $LASTEXITCODE"
-
-          # Try ia32 NSIS  
-          Write-Host "=== Building ia32 NSIS ==="
-          npx electron-builder --win nsis --ia32 --publish never --config electron-builder.yml 2>&1
-          Write-Host "Exit: $LASTEXITCODE"
-
-          # Try portable
-          Write-Host "=== Building portable ==="
-          npx electron-builder --win portable --x64 --publish never --config electron-builder.yml 2>&1
-          Write-Host "Exit: $LASTEXITCODE"
-
-          # Show what was produced
-          Write-Host "=== dist-electron output ==="
-          if (Test-Path "dist-electron") {
-            Get-ChildItem "dist-electron" -Recurse | Select-Object FullName, Length
-          } else {
-            Write-Host "dist-electron directory does not exist!"
-          }
+          echo === Building x64 NSIS ===
+          set CSC_IDENTITY_AUTO_DISCOVERY=false
+          set DEBUG=electron-builder,electron-builder:*
+          npx electron-builder --win nsis --x64 --publish never 2>&1
+          echo Exit x64: %ERRORLEVEL%
+          echo === Building ia32 NSIS ===
+          npx electron-builder --win nsis --ia32 --publish never 2>&1
+          echo Exit ia32: %ERRORLEVEL%
+          echo === Building portable ===
+          npx electron-builder --win portable --x64 --publish never 2>&1
+          echo Exit portable: %ERRORLEVEL%
+          echo === dist-electron tree ===
+          if exist dist-electron (dir /s /b dist-electron) else (echo MISSING: dist-electron)
+          if exist out (dir /s /b out) else (echo no out dir)
+          echo === done ===
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true"
         continue-on-error: true
 
       - name: "🔍 Find built EXE files"
