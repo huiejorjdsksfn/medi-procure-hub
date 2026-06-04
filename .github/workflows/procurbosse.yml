@@ -1,12 +1,18 @@
-name: "🏥 ProcurBosse v11.0 — Build & Release"
+name: "ProcurBosse v11.0 — Build & Release"
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
-      skip_exe: { description: "Skip EXE build", default: "false", type: boolean }
-      skip_release: { description: "Skip release", default: "false", type: boolean }
+      skip_exe:
+        description: "Skip EXE build"
+        default: "false"
+        type: boolean
+      skip_release:
+        description: "Skip release"
+        default: "false"
+        type: boolean
 
 permissions:
   contents: write
@@ -29,16 +35,17 @@ env:
   GITHUB_PAT:   "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"
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────
+
   web:
-    name: "🌐 Web Build — Vite"
+    name: "Web Build — Vite"
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.meta.outputs.sha }}
       ver: ${{ steps.meta.outputs.ver }}
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - id: meta
         run: |
@@ -46,20 +53,21 @@ jobs:
           VER=$(node -p "require('./package.json').version")
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "ver=$VER" >> $GITHUB_OUTPUT
-          echo "::notice::ProcurBosse v$VER — $SHA"
 
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with:
+          node-version: "20"
+          cache: npm
 
-      - name: "🔧 Sync lock version"
+      - name: Sync lock version
         run: |
           P=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs');const l=JSON.parse(fs.readFileSync('package-lock.json'));l.version='$P';if(l.packages&&l.packages[''])l.packages[''].version='$P';fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));"
 
-      - name: "📦 Install"
+      - name: Install
         run: npm ci --no-audit --legacy-peer-deps
 
-      - name: "⚙️ Write .env"
+      - name: Write .env
         run: |
           cat > .env << ENVEOF
           VITE_SUPABASE_URL=${{ env.SUPA_URL }}
@@ -76,15 +84,19 @@ jobs:
       - run: npx tsc --noEmit --skipLibCheck 2>&1 | head -30 || true
         continue-on-error: true
 
-      - name: "🏗️ Build web"
+      - name: Build web (dist)
         run: npm run build
-        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
+        env:
+          CI: "false"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - run: "[ -f dist/index.html ] || (echo 'FATAL: Missing dist/index.html' && exit 1)"
 
-      - name: "🏗️ Build web → /web (EdgeOne)"
+      - name: Build web (EdgeOne /web dir)
         run: npx vite build --outDir web
-        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
+        env:
+          CI: "false"
+          NODE_OPTIONS: "--max-old-space-size=4096"
         continue-on-error: true
 
       - uses: actions/upload-artifact@v4
@@ -94,10 +106,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-
-  # ─────────────────────────────────────────────────────────────────
   exe:
-    name: "💻 Windows EXE — Electron (x64 + ia32)"
+    name: "Windows EXE — Electron"
     runs-on: windows-latest
     needs: web
     if: github.event.inputs.skip_exe != 'true'
@@ -105,140 +115,178 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: npm }
+        with:
+          node-version: "20"
+          cache: npm
 
       - uses: actions/download-artifact@v4
         with:
           name: web-dist-${{ needs.web.outputs.sha }}
           path: dist/
 
-      - name: "🔧 Sync lock version"
+      - name: Sync lock version
         shell: bash
         run: |
           P=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs');const l=JSON.parse(fs.readFileSync('package-lock.json'));l.version='$P';if(l.packages&&l.packages[''])l.packages[''].version='$P';fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));"
 
-      - name: "📦 Install deps + electron-packager"
-        shell: bash
-        run: |
-          npm ci --no-audit --legacy-peer-deps
-          npm install --no-save @electron/packager --legacy-peer-deps
-          echo "packager: $(npx electron-packager --version 2>&1 | head -1)"
+      - name: Install deps
+        run: npm ci --no-audit --legacy-peer-deps
 
-      - name: "🔧 Prepare electron assets"
+      - name: Install electron + packager
+        shell: bash
+        run: npm install --no-save @electron/packager --legacy-peer-deps
+
+      - name: Prepare electron assets
         shell: bash
         run: |
           mkdir -p electron build dist-electron
-          if [ ! -s electron/main.js ]; then
-            cat > electron/main.js << 'MJS'
+          cat > electron/main.js << 'MAINJS'
           const{app,BrowserWindow,ipcMain,shell}=require("electron");
           const path=require("path");
           app.disableHardwareAcceleration();
           let win;
           function create(){
-            win=new BrowserWindow({width:1440,height:900,minWidth:1024,minHeight:700,
-              title:"ProcurBosse v11.0.0 - EL5 MediProcure",backgroundColor:"#f8fafc",show:false,
-              webPreferences:{nodeIntegration:false,contextIsolation:true,preload:path.join(__dirname,"preload.js")}});
+            win=new BrowserWindow({
+              width:1440,height:900,minWidth:1024,minHeight:700,
+              title:"ProcurBosse v11.0.0 - EL5 MediProcure",
+              backgroundColor:"#f8fafc",show:false,
+              webPreferences:{nodeIntegration:false,contextIsolation:true,
+                preload:path.join(__dirname,"preload.js")}});
             win.loadFile(path.join(__dirname,"..","dist","index.html"))
               .catch(()=>win.loadURL("https://procurbosse.edgeone.app"));
             win.once("ready-to-show",()=>{win.show();win.maximize();});
             win.on("closed",()=>{win=null;});
-            win.webContents.setWindowOpenHandler(({url})=>{shell.openExternal(url);return{action:"deny"};});
+            win.webContents.setWindowOpenHandler(({url})=>{
+              shell.openExternal(url);return{action:"deny"};});
           }
           app.whenReady().then(create);
           app.on("window-all-closed",()=>{if(process.platform!=="darwin")app.quit();});
           ipcMain.handle("app-version",()=>app.getVersion());
-          MJS
-          fi
-          if [ ! -s electron/preload.js ]; then
-            cat > electron/preload.js << 'PJS'
+          MAINJS
+          cat > electron/preload.js << 'PREJS'
           const{contextBridge,ipcRenderer}=require("electron");
-          contextBridge.exposeInMainWorld("electronAPI",{getVersion:()=>ipcRenderer.invoke("app-version"),platform:process.platform});
-          PJS
-          fi
-          node -e "const b=Buffer.alloc(1406);b.writeUInt16LE(0,0);b.writeUInt16LE(1,2);b.writeUInt16LE(1,4);require('fs').writeFileSync('build/icon.ico',b);" 2>/dev/null || true
+          contextBridge.exposeInMainWorld("electronAPI",{
+            getVersion:()=>ipcRenderer.invoke("app-version"),
+            platform:process.platform
+          });
+          PREJS
+          node -e "const b=Buffer.alloc(1406);b.writeUInt16LE(0,0);b.writeUInt16LE(1,2);b.writeUInt16LE(1,4);require('fs').writeFileSync('build/icon.ico',b);"
 
-      - name: "🏗️ Package x64"
+      - name: Package x64
         shell: bash
         run: |
           VER=$(node -p "require('./package.json').version")
-          npx electron-packager . ProcurBosse             --platform=win32 --arch=x64             --out=dist-electron             --app-version="$VER"             --overwrite --prune --asar             --ignore="\.github"             --ignore="supabase"             --ignore="^/src"             --ignore="^/web"             --ignore="kiosk-app"             --ignore="admin-app" 2>&1 | tail -10
-          ls dist-electron/ 2>/dev/null
+          npx electron-packager . ProcurBosse \
+            --platform=win32 --arch=x64 \
+            --out=dist-electron \
+            --app-version="$VER" \
+            --overwrite --prune --asar \
+            --ignore=".github" \
+            --ignore="supabase" \
+            --ignore="^/src" \
+            --ignore="^/web" \
+            --ignore="kiosk-app" \
+            --ignore="admin-app" 2>&1 | tail -15
+          echo "x64 exit: $?"
+          ls dist-electron/ 2>/dev/null || echo "no dist-electron"
         continue-on-error: true
 
-      - name: "🏗️ Package ia32"
+      - name: Package ia32
         shell: bash
         run: |
           VER=$(node -p "require('./package.json').version")
-          npx electron-packager . ProcurBosse             --platform=win32 --arch=ia32             --out=dist-electron             --app-version="$VER"             --overwrite --prune --asar             --ignore="\.github"             --ignore="supabase"             --ignore="^/src"             --ignore="^/web"             --ignore="kiosk-app"             --ignore="admin-app" 2>&1 | tail -10
-          ls dist-electron/ 2>/dev/null
+          npx electron-packager . ProcurBosse \
+            --platform=win32 --arch=ia32 \
+            --out=dist-electron \
+            --app-version="$VER" \
+            --overwrite --prune --asar \
+            --ignore=".github" \
+            --ignore="supabase" \
+            --ignore="^/src" \
+            --ignore="^/web" \
+            --ignore="kiosk-app" \
+            --ignore="admin-app" 2>&1 | tail -15
+          echo "ia32 exit: $?"
+          ls dist-electron/ 2>/dev/null || echo "no dist-electron"
         continue-on-error: true
 
-      - name: "📦 Zip packaged folders into portable archives"
+      - name: Zip portable archives
         shell: pwsh
         run: |
           $VER = (node -p "require('./package.json').version")
-          $outDir = "dist-electron"
-          Write-Host "=== dist-electron before zip ==="
-          Get-ChildItem $outDir -Recurse -Depth 2 | Select-Object FullName, Length | Format-Table
-          foreach ($dir in Get-ChildItem $outDir -Directory) {
+          $out = "dist-electron"
+          New-Item -Force -ItemType Directory -Path $out | Out-Null
+          Write-Host "=== dist-electron dirs ==="
+          Get-ChildItem $out -Directory | ForEach-Object { Write-Host $_.FullName }
+          foreach ($dir in (Get-ChildItem $out -Directory)) {
             $arch = if ($dir.Name -match "ia32") { "ia32" } else { "x64" }
-            $zipPath = "$outDir\ProcurBosse-v$VER-win32-$arch-Portable.zip"
-            Write-Host "Zipping $($dir.FullName) -> $zipPath"
-            Compress-Archive -Path "$($dir.FullName)\*" -DestinationPath $zipPath -Force
-            $mb = [math]::Round((Get-Item $zipPath).Length/1MB,1)
-            Write-Host "Created $zipPath ($mb MB)"
+            $zip  = Join-Path $out "ProcurBosse-v$VER-win-$arch.zip"
+            Compress-Archive -Path (Join-Path $dir.FullName "*") -DestinationPath $zip -Force
+            $mb = [math]::Round((Get-Item $zip).Length / 1MB, 1)
+            Write-Host "Created: $zip ($mb MB)"
           }
         continue-on-error: true
 
-      - name: "📝 Create launcher .bat files"
+      - name: Create .bat launchers
         shell: pwsh
         run: |
-          $outDir = "dist-electron"
-          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-          @"
+          $out = "dist-electron"
+          New-Item -Force -ItemType Directory -Path $out | Out-Null
+
+          Set-Content -Path "$out\launch.bat" -Encoding ASCII -Value (@'
           @echo off
           title EL5 MediProcure v11.0.0 - ProcurBosse
           echo.
-          echo  ================================================
           echo   ProcurBosse v11.0.0 - EL5 MediProcure
           echo   Embu Level 5 Hospital
-          echo  ================================================
           echo.
-          echo  [1] Run x64 (64-bit Windows)
-          echo  [2] Run ia32 (32-bit Windows)
-          echo  [3] Open Web App
-          echo  [4] Exit
+          echo   [1] Run x64 (64-bit)
+          echo   [2] Run ia32 (32-bit)
+          echo   [3] Open Web App
+          echo   [4] Exit
           echo.
-          set /p c="Choice: "
-          if "%c%"=="1" for /r "%~dp0" %%f in ("ProcurBosse-win32-x64\ProcurBosse.exe") do start "" "%%f"
-          if "%c%"=="2" for /r "%~dp0" %%f in ("ProcurBosse-win32-ia32\ProcurBosse.exe") do start "" "%%f"
+          set /p c="Choice (1-4): "
+          if "%c%"=="1" for /r "%~dp0" %%e in (ProcurBosse-win32-x64\ProcurBosse.exe) do start "" "%%e"
+          if "%c%"=="2" for /r "%~dp0" %%e in (ProcurBosse-win32-ia32\ProcurBosse.exe) do start "" "%%e"
           if "%c%"=="3" start "" "https://procurbosse.edgeone.app"
-          "@ | Out-File -Encoding ascii "$outDir\launch.bat"
-          @"
+          '@)
+
+          Set-Content -Path "$out\open-web.bat" -Encoding ASCII -Value (@'
           @echo off
           start "" "https://procurbosse.edgeone.app"
-          "@ | Out-File -Encoding ascii "$outDir\open-web.bat"
-          @"
-          @echo off
-          for /r "%~dp0" %%f in ("ProcurBosse-win32-x64\ProcurBosse.exe") do start "" "%%f"
-          "@ | Out-File -Encoding ascii "$outDir
-un-x64.bat"
-          @"
-          @echo off
-          for /r "%~dp0" %%f in ("ProcurBosse-win32-ia32\ProcurBosse.exe") do start "" "%%f"
-          "@ | Out-File -Encoding ascii "$outDir
-un-ia32.bat"
+          '@)
 
-      - name: "🔢 Checksums"
+          Set-Content -Path "$out\run-x64.bat" -Encoding ASCII -Value (@'
+          @echo off
+          for /r "%~dp0" %%e in (ProcurBosse-win32-x64\ProcurBosse.exe) do start "" "%%e"
+          '@)
+
+          Set-Content -Path "$out\run-ia32.bat" -Encoding ASCII -Value (@'
+          @echo off
+          for /r "%~dp0" %%e in (ProcurBosse-win32-ia32\ProcurBosse.exe) do start "" "%%e"
+          '@)
+
+          Write-Host "=== Bat files created ==="
+          Get-ChildItem $out -Filter "*.bat"
+
+      - name: Checksums
         shell: pwsh
         run: |
-          $outDir = "dist-electron"
-          Get-ChildItem $outDir -Recurse -Include "*.exe","*.zip" |
-            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash)  $($_.Name)" } |
-            Out-File -Encoding ascii "$outDir\SHA256SUMS.txt"
-          Write-Host "=== SHA256SUMS ===" ; Get-Content "$outDir\SHA256SUMS.txt"
-          Write-Host "=== Final artifacts ===" ; Get-ChildItem $outDir | Select-Object Name,@{N="MB";E={[math]::Round($_.Length/1MB,2)}} | Format-Table
+          $out = "dist-electron"
+          $sums = @()
+          Get-ChildItem $out -Recurse -Include "*.exe","*.zip" | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            $sums += "$h  $($_.Name)"
+          }
+          if ($sums.Count -gt 0) {
+            $sums | Out-File -Encoding ASCII "$out\SHA256SUMS.txt"
+          } else {
+            "No binaries produced" | Out-File -Encoding ASCII "$out\SHA256SUMS.txt"
+          }
+          Get-Content "$out\SHA256SUMS.txt"
+          Write-Host "=== Final dist-electron ==="
+          Get-ChildItem $out | Select-Object Name, @{N="Size";E={[math]::Round($_.Length/1KB)+"KB"}} | Format-Table
 
       - uses: actions/upload-artifact@v4
         with:
@@ -250,23 +298,22 @@ un-ia32.bat"
           retention-days: 7
           if-no-files-found: warn
 
-  # ─────────────────────────────────────────────────────────────────
   functions:
-    name: "⚡ Edge Functions + Secrets"
+    name: "Edge Functions + Secrets"
     runs-on: ubuntu-latest
     needs: web
     if: always() && needs.web.result == 'success'
     steps:
       - uses: actions/checkout@v4
 
-      - name: "🛠️ Install Supabase CLI"
+      - name: Install Supabase CLI
         run: |
           curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
             | tar -xz -C /usr/local/bin supabase 2>/dev/null || \
           npm install -g supabase --legacy-peer-deps 2>/dev/null || true
         continue-on-error: true
 
-      - name: "🔑 Set ALL Secrets"
+      - name: Set secrets
         run: |
           supabase secrets set \
             TWILIO_ACCOUNT_SID="${{ env.TWILIO_ACCT }}" \
@@ -275,34 +322,35 @@ un-ia32.bat"
             TWILIO_MESSAGING_SERVICE_SID="${{ env.TWILIO_MG }}" \
             TWILIO_VERIFY_SERVICE_SID="${{ env.TWILIO_VA }}" \
             TWILIO_WA_NUMBER="${{ env.TWILIO_WA }}" \
-            --project-ref ${{ env.SUPA_REF }} 2>&1 || echo "⚠️ Secrets step attempted"
-        env: { SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}" }
+            --project-ref ${{ env.SUPA_REF }} 2>&1 || true
+        env:
+          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
         continue-on-error: true
 
-      - name: "🚀 Deploy All Edge Functions"
+      - name: Deploy edge functions
         run: |
           for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook verify-role notify-requisition make-call twilio-engine notify-api; do
             [ -d "supabase/functions/$fn" ] || continue
-            echo "→ Deploying $fn..."
+            echo "Deploying $fn..."
             supabase functions deploy $fn \
               --project-ref ${{ env.SUPA_REF }} \
-              --no-verify-jwt 2>&1 || echo "⚠️ $fn deploy attempted"
+              --no-verify-jwt 2>&1 || echo "warn: $fn deploy attempted"
           done
-        env: { SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}" }
+        env:
+          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
         continue-on-error: true
 
-      - name: "📱 Smoke test — SMS"
+      - name: Smoke test SMS
         run: |
           curl -s -X POST \
             -H "Authorization: Bearer ${{ env.SUPA_ANON }}" \
             -H "Content-Type: application/json" \
-            -d "{\"to\":\"+254116647894\",\"message\":\"ProcurBosse v11.0.0 deployed. WhatsApp Hub live. EL5 MediProcure operational.\",\"module\":\"ci_deploy\"}" \
-            "${{ env.SUPA_URL }}/functions/v1/send-sms" | python3 -m json.tool || echo "SMS test attempted"
+            -d '{"to":"+254116647894","message":"ProcurBosse v11.0.0 deployed. WhatsApp Hub live.","module":"ci_deploy"}' \
+            "${{ env.SUPA_URL }}/functions/v1/send-sms" | python3 -m json.tool || true
         continue-on-error: true
 
-  # ─────────────────────────────────────────────────────────────────
   db:
-    name: "🗄️ DB Migrations"
+    name: "DB Migrations"
     runs-on: ubuntu-latest
     needs: web
     if: always() && needs.web.result == 'success'
@@ -314,14 +362,14 @@ un-ia32.bat"
           npm install -g supabase --legacy-peer-deps 2>/dev/null || true
         continue-on-error: true
       - run: |
-          echo "=== Migrations ===" && ls supabase/migrations/ | tail -10
-          supabase db push --project-ref ${{ env.SUPA_REF }} 2>&1 || echo "⚠️ Migration attempted"
-        env: { SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}" }
+          echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -10
+          supabase db push --project-ref ${{ env.SUPA_REF }} 2>&1 || true
+        env:
+          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
         continue-on-error: true
 
-  # ─────────────────────────────────────────────────────────────────
   release:
-    name: "🚀 Release v11.0.0"
+    name: "Release v11.0.0"
     runs-on: ubuntu-latest
     needs: [web, exe, functions, db]
     if: always() && needs.web.result == 'success' && github.event.inputs.skip_release != 'true'
@@ -340,87 +388,53 @@ un-ia32.bat"
           path: release-exe/
         continue-on-error: true
 
-      - name: "📦 Package web zip"
+      - name: Package web zip
         run: |
           if [ -d release-web ]; then
             cd release-web && zip -r ../ProcurBosse-v11.0.0-Web.zip . && cd ..
-            echo "✓ Web zip created"
           fi
         continue-on-error: true
 
-      - name: "📋 List release artifacts"
+      - name: List release artifacts
         run: |
-          echo "=== Web ==="
-          ls -lh release-web/ 2>/dev/null || echo "(none)"
-          echo "=== EXE ==="
-          ls -lh release-exe/ 2>/dev/null || echo "(none)"
+          echo "=== Web ===" && ls -lh release-web/ 2>/dev/null || echo "(none)"
+          echo "=== EXE ===" && ls -lh release-exe/ 2>/dev/null || echo "(none)"
         continue-on-error: true
 
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: "v11.0.0"
-          name: "🏥 ProcurBosse v11.0.0 — WhatsApp Pro"
+          name: "ProcurBosse v11.0.0 — WhatsApp Pro"
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # 🏥 ProcurBosse v11.0.0 — WhatsApp Pro
+            # ProcurBosse v11.0.0 — WhatsApp Pro
             **Embu Level 5 Hospital · Embu County Government · Kenya**
 
-            ---
+            ## WhatsApp Business Workflow Hub (NEW)
+            8-tab full integration: Sessions · Compose · Broadcast · Templates · Approvals · Workflows · History · Settings
 
-            ## 💬 WhatsApp Business Workflow Hub (NEW)
-            Full 8-tab WhatsApp integration across the entire procure-to-pay cycle:
+            Reply-based approvals: text **APPROVE** or **REJECT reason** on WhatsApp to update ERP status automatically.
 
-            | Tab | Feature |
-            |---|---|
-            | Sessions | Live 72h session tracking, QR sandbox join, re-invite expired users |
-            | Compose | Template-driven single message with live WhatsApp preview |
-            | Broadcast | Bulk send to comma/newline/semicolon-separated list |
-            | Templates | 16 procurement templates (PO, GRN, Payment, Alert, etc.) |
-            | Approvals | WhatsApp reply-based approval queue |
-            | Workflows | 7 toggle-able automation rules (procure-to-pay) |
-            | History | Full outbound WA log with status badges |
-            | Settings | Webhook config, QR code, test connection, delivery stats |
+            Webhook: `https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/whatsapp-webhook`
+            Join sandbox: send `join bad-machine` to `+1 415 523 8886`
 
-            ## 🤖 WhatsApp Reply Approvals
-            Approvers text **APPROVE** or **REJECT reason** — system auto-updates DB status, logs to audit trail, notifies requestor.
-
-            **Webhook URL:**
-            ```
-            https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/whatsapp-webhook
-            ```
-
-            ## 📡 Communications
-            | Channel | Details |
-            |---|---|
-            | WhatsApp | +14155238886 · Join: send `join bad-machine` |
-            | SMS | +16812972643 via MGd547 Messaging Service |
-            | Email | Resend API + SMTP fallback |
-            | Voice/IVR | Twilio Voice from +16812972643 |
-            | OTP | Twilio Verify VA692606 |
-
-            ## 📥 Downloads
+            ## Downloads
             | File | Description |
             |---|---|
-            | `ProcurBosse-v11.0.0-Web.zip` | Web build (deploy anywhere) |
-            | `*x64*Setup*.exe` | Windows 64-bit installer (recommended) |
-            | `*ia32*Setup*.exe` | Windows 32-bit installer |
-            | `*Portable*.exe` | No-install portable version |
+            | `ProcurBosse-v11.0.0-Web.zip` | Web build |
+            | `ProcurBosse-v11.0.0-win-x64.zip` | Windows 64-bit portable |
+            | `ProcurBosse-v11.0.0-win-ia32.zip` | Windows 32-bit portable |
             | `launch.bat` | Interactive launcher menu |
-            | `open-web.bat` | Opens https://procurbosse.edgeone.app |
-            | `install-x64.bat` | Silent x64 installer launcher |
-            | `install-ia32.bat` | Silent ia32 installer launcher |
-            | `SHA256SUMS.txt` | File integrity checksums |
+            | `run-x64.bat` | Run x64 directly |
+            | `run-ia32.bat` | Run ia32 directly |
+            | `open-web.bat` | Open web app |
+            | `SHA256SUMS.txt` | Integrity checksums |
 
-            ## 🔑 Default Login
-            - **URL:** https://procurbosse.edgeone.app
-            - **Email:** `samwise@gmail.com`
-            - **Password:** `samwise@gmail.com`
-            - **Role:** Admin (full access)
-
-            ## 🏗️ Stack
-            React 18 + TypeScript + Vite 5 + Supabase + Tailwind CSS + Electron
+            ## Login
+            URL: https://procurbosse.edgeone.app  
+            Email: `samwise@gmail.com` · Password: `samwise@gmail.com`
           files: |
             ProcurBosse-v11.0.0-Web.zip
             release-exe/*.zip
