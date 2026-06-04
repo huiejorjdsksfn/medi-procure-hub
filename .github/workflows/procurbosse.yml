@@ -214,6 +214,34 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         continue-on-error: true
 
+      - name: "🔍 Find built EXE files"
+        shell: bash
+        run: |
+          echo "=== dist-electron contents ==="
+          ls -lh dist-electron/ 2>/dev/null || echo "(empty or missing)"
+          echo "=== Searching all .exe files ==="
+          find . -name "*.exe" -not -path "./node_modules/*" 2>/dev/null | head -20
+          echo "=== electron-builder output dir ==="
+          ls -lh out/ 2>/dev/null || echo "(no out/ dir)"
+          ls -lh release/ 2>/dev/null || echo "(no release/ dir)"
+        continue-on-error: true
+
+      - name: "📦 Collect EXEs into dist-electron"
+        shell: bash
+        run: |
+          mkdir -p dist-electron
+          # electron-builder may output to several dirs — collect them all
+          for dir in dist-electron out release "dist-electron/win-unpacked" "dist-electron/win-ia32-unpacked"; do
+            [ -d "$dir" ] || continue
+            find "$dir" -maxdepth 2 -name "*.exe" | while read f; do
+              fname=$(basename "$f")
+              [ -f "dist-electron/$fname" ] || cp "$f" "dist-electron/" && echo "Collected: $fname"
+            done
+          done
+          echo "=== Final dist-electron ==="
+          ls -lh dist-electron/
+        continue-on-error: true
+
       - name: "📝 Create launcher .bat files"
         shell: pwsh
         run: |
@@ -276,18 +304,18 @@ jobs:
         shell: pwsh
         run: |
           $outDir = "dist-electron"
-          if (Test-Path $outDir) {
-            $files = Get-ChildItem $outDir -Filter "*.exe"
-            if ($files) {
-              $files | ForEach-Object {
-                $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-                "$hash  $($_.Name)" | Out-File -Append -Encoding ascii "$outDir\SHA256SUMS.txt"
-              }
-              Write-Host "Checksums computed:"
-              Get-Content "$outDir\SHA256SUMS.txt"
-            } else {
-              "No EXE files found" | Out-File -Encoding ascii "$outDir\SHA256SUMS.txt"
+          if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
+          $files = Get-ChildItem $outDir -Filter "*.exe" -Recurse
+          if ($files) {
+            $files | ForEach-Object {
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+              "$hash  $($_.Name)" | Out-File -Append -Encoding ascii "$outDir\SHA256SUMS.txt"
             }
+            Write-Host "Checksums computed:"
+            Get-Content "$outDir\SHA256SUMS.txt"
+          } else {
+            "No EXE files found in dist-electron" | Out-File -Encoding ascii "$outDir\SHA256SUMS.txt"
+            Write-Host "WARNING: No EXE files found"
           }
 
       - uses: actions/upload-artifact@v4
@@ -295,6 +323,7 @@ jobs:
           name: exe-${{ needs.web.outputs.sha }}
           path: |
             dist-electron/*.exe
+            dist-electron/**/*.exe
             dist-electron/*.bat
             dist-electron/*.txt
             dist-electron/*.zip
@@ -475,6 +504,7 @@ jobs:
           files: |
             ProcurBosse-v11.0.0-Web.zip
             release-exe/*.exe
+            release-exe/**/*.exe
             release-exe/*.bat
             release-exe/*.txt
         continue-on-error: true
