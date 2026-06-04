@@ -10,8 +10,10 @@ export const TWILIO_WA    = "+14155238886";
 export const TWILIO_MG    = "REDACTED_TWILIO_MESSAGING_SID";
 export const TWILIO_VA    = "REDACTED_TWILIO_VERIFY_SID";
 export const WA_CODE      = "join bad-machine";
-export const TWILIO_ACCT  = "REDACTED_TWILIO_ACCOUNT_SID";
-export const TWILIO_AUTH  = "REDACTED_TWILIO_AUTH_TOKEN";
+/** @deprecated Credentials live in Supabase secrets only; never hardcode. */
+export const TWILIO_ACCT  = "";
+/** @deprecated Credentials live in Supabase secrets only; never hardcode. */
+export const TWILIO_AUTH  = "";
 
 export const CURRENT_VERSION = APP_VERSION;
 
