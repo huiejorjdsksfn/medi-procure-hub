@@ -198,20 +198,43 @@ jobs:
           NSH
           fi
 
-      - name: "🏗️ Build Windows EXE (x64 + ia32)"
-        shell: bash
-        run: npx electron-builder build --win --x64 --ia32 --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        continue-on-error: true
+      - name: "🏗️ Build Windows EXE (x64 + ia32 + portable)"
+        shell: pwsh
+        run: |
+          # Show electron version
+          npx electron --version 2>&1 || Write-Host "electron CLI N/A"
+          node -e "try{const p=require('electron');console.log('electron path:',p)}catch(e){console.log('electron module error:',e.message)}"
 
-      - name: "🏗️ Build portable EXE (fallback)"
-        shell: bash
-        run: npx electron-builder build --win portable --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # Show builder version
+          npx electron-builder --version
+
+          # Build with explicit config and verbose output
+          $env:DEBUG = "electron-builder"
+          $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+          $env:GH_TOKEN = "${{ secrets.GITHUB_TOKEN }}"
+
+          # Try x64 NSIS
+          Write-Host "=== Building x64 NSIS ==="
+          npx electron-builder --win nsis --x64 --publish never --config electron-builder.yml 2>&1
+          Write-Host "Exit: $LASTEXITCODE"
+
+          # Try ia32 NSIS  
+          Write-Host "=== Building ia32 NSIS ==="
+          npx electron-builder --win nsis --ia32 --publish never --config electron-builder.yml 2>&1
+          Write-Host "Exit: $LASTEXITCODE"
+
+          # Try portable
+          Write-Host "=== Building portable ==="
+          npx electron-builder --win portable --x64 --publish never --config electron-builder.yml 2>&1
+          Write-Host "Exit: $LASTEXITCODE"
+
+          # Show what was produced
+          Write-Host "=== dist-electron output ==="
+          if (Test-Path "dist-electron") {
+            Get-ChildItem "dist-electron" -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Host "dist-electron directory does not exist!"
+          }
         continue-on-error: true
 
       - name: "🔍 Find built EXE files"
