@@ -182,7 +182,6 @@ export default function LoginPage() {
                 {loading&&<RefreshCw size={15} style={{animation:"spin .8s linear infinite"}}/>}
                 {loading?"Signing in…":"Sign In"}
               </button>
-              <button type="button" onClick={()=>setForgot(true)} style={s.link}>Forgot password?</button>
             </form>
           )}
 
@@ -191,7 +190,7 @@ export default function LoginPage() {
             padding:"6px 10px",background:"#f0f9ff",borderRadius:7,border:`1px solid ${TEAL}18`}}>
             <Shield size={11} color={TEAL}/>
             <span style={{fontSize:9.5,color:TEAL,fontWeight:600}}>
-              Secured · Supabase Auth · Embu County Government
+              Secured Access · Embu Level 5 Hospital
             </span>
           </div>
         </div>
