@@ -10,6 +10,7 @@ import { logAudit } from "@/lib/audit";
 import { Plus, Edit, Search, X, RefreshCw, Download, Printer, FileSpreadsheet, Star, Truck, CheckCircle, XCircle, Eye, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { TablePager, ColSearchRow } from "@/components/TablePager";
 
 const SS: Record<string,{bg:string;color:string}> = {
   active:   {bg:"#dcfce7",color:"#15803d"},
@@ -36,6 +37,9 @@ export default function SuppliersPage() {
   const [editing,      setEditing]      = useState<any>(null);
   const [viewSupplier, setViewSupplier] = useState<any>(null);
   const [saving,       setSaving]       = useState(false);
+  const [colSearch,    setColSearch]    = useState<Record<string,string>>({});
+  const [page,         setPage]         = useState(1);
+  const [perPage,      setPerPage]      = useState(25);
   // hospitalName now from useSystemSettings
   // sysName now from useSystemSettings
   const [form, setForm] = useState({
@@ -115,7 +119,18 @@ export default function SuppliersPage() {
     if(catFilter!=="all"&&s.category!==catFilter) return false;
     if(search){const q=search.toLowerCase();return (s.name||"").toLowerCase().includes(q)||(s.contact_person||"").toLowerCase().includes(q)||(s.email||"").toLowerCase().includes(q)||(s.kra_pin||"").toLowerCase().includes(q);}
     return true;
+  }).filter(s=>{
+    const f = (k:string, val:any) => {
+      const q = (colSearch[k] || "").toLowerCase().trim();
+      if (!q) return true;
+      return String(val ?? "").toLowerCase().includes(q);
+    };
+    return f("name",s.name) && f("contact",s.contact_person) && f("email",s.email)
+      && f("phone",s.phone) && f("category",s.category) && f("status",s.status);
   });
+  const pageStart = (page - 1) * perPage;
+  const pageRows  = filtered.slice(pageStart, pageStart + perPage);
+  useEffect(()=>{ setPage(1); },[search,statusFilter,catFilter,colSearch]);
 
   const exportExcel=()=>{
     const wb=XLSX.utils.book_new();
@@ -251,6 +266,22 @@ export default function SuppliersPage() {
                   <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
+              <ColSearchRow
+                headerBg="#264f8a"
+                values={colSearch}
+                onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
+                cols={[
+                  {key:"_n",type:"none"},
+                  {key:"name",placeholder:"name"},
+                  {key:"contact",placeholder:"contact"},
+                  {key:"email",placeholder:"email"},
+                  {key:"phone",placeholder:"phone"},
+                  {key:"category",placeholder:"category"},
+                  {key:"status",placeholder:"status"},
+                  {key:"_r",type:"none"},
+                  {key:"_a",type:"none"},
+                ]}
+              />
             </thead>
             <tbody>
               {loading?(
@@ -260,7 +291,8 @@ export default function SuppliersPage() {
                 </td></tr>
               ):filtered.length===0?(
                 <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
-              ):filtered.map((s,i)=>{
+              ):pageRows.map((s,idx)=>{
+                const i = pageStart + idx;
                 const st=SS[s.status]||{bg:"#f3f4f6",color:"#6b7280"};
                 return (
                   <tr key={s.id} >
@@ -289,7 +321,8 @@ export default function SuppliersPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",fontSize:11,color:"#6b7280"}}>{filtered.length} suppliers</div>
+        <TablePager total={filtered.length} page={page} perPage={perPage}
+          onPage={setPage} onPerPage={setPerPage} color="#1a3a6b"/>
       </div>
 
       {/* View Modal */}
