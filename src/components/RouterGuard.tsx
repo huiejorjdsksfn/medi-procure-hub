@@ -33,6 +33,7 @@ export const APP_ROUTES = [
   "/accountant", "/accountant-workspace", "/notifications",
   "/hmis", "/hmis/sync", "/hmis/mapping", "/hmis/logs",
   "/whatsapp",
+  "/ai-agent",
 ];
 
 /**

@@ -255,6 +255,7 @@ export default function DashboardPage() {
               {l:"View Reports",         p:"/reports",           col:PURPLE, icon:BarChart2,    roles:[]},
               {l:"Manage Users",         p:"/users",             col:"#374151",icon:Users,      roles:["admin","superadmin","webmaster"]},
               {l:"WhatsApp Hub",          p:"/whatsapp",          col:"#25D366",icon:MessageSquare, roles:[]},
+              {l:"AI Agent Hub",          p:"/ai-agent",          col:"#7c3aed",icon:MessageSquare, roles:[]},
             ].filter(a=>!a.roles.length||a.roles.some(r=>roles.includes(r))).map(a=>{
               const Ic=a.icon;
               return(
