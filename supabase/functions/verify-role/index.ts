@@ -18,9 +18,9 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-const ACCT    = Deno.env.get("TWILIO_ACCOUNT_SID")         || "ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a";
-const AUTH    = Deno.env.get("TWILIO_AUTH_TOKEN")          || "d73601fbefe26e01b06e22c53a798ea6";
-const VA_SID  = Deno.env.get("TWILIO_VERIFY_SERVICE_SID")  || "VA692606d4faea3c18432a857f111dbfad"; // Verify Service
+const ACCT    = Deno.env.get("TWILIO_ACCOUNT_SID")         || "";
+const AUTH    = Deno.env.get("TWILIO_AUTH_TOKEN")          || "";
+const VA_SID  = Deno.env.get("TWILIO_VERIFY_SERVICE_SID")  || "";
 
 function e164(raw: string): string {
   const n = String(raw || "").replace(/[\s\-\(\)\.]/g, "");

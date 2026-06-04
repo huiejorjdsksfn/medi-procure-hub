@@ -10,8 +10,10 @@ export const TWILIO_WA    = "+14155238886";
 export const TWILIO_MG    = "MGd547d8e3273fda2d21afdd6856acb245";
 export const TWILIO_VA    = "VA692606d4faea3c18432a857f111dbfad";
 export const WA_CODE      = "join bad-machine";
-export const TWILIO_ACCT  = "ACe96c6e0e5edd4de5f5a4c6d9cc7b7c5a";
-export const TWILIO_AUTH  = "d73601fbefe26e01b06e22c53a798ea6";
+/** @deprecated Credentials live in Supabase secrets only; never hardcode. */
+export const TWILIO_ACCT  = "";
+/** @deprecated Credentials live in Supabase secrets only; never hardcode. */
+export const TWILIO_AUTH  = "";
 
 export const CURRENT_VERSION = APP_VERSION;
 

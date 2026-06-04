@@ -229,7 +229,7 @@ export default function WhatsAppPage() {
     for (const m of matches) vars[m[1]] = "";
     setTplVars(vars);
     let body = tpl.content;
-    for (const [k,v] of Object.entries(vars)) body = body.replaceAll(`{{${k}}}`, v || `[${k}]`);
+    for (const [k,v] of Object.entries(vars)) body = body.split(`{{${k}}}`).join(v || `[${k}]`);
     setMsgBody(body);
   };
 
@@ -238,7 +238,7 @@ export default function WhatsAppPage() {
     setTplVars(nv);
     if (!selTpl) return;
     let body = selTpl.content;
-    for (const [key,val] of Object.entries(nv)) body = body.replaceAll(`{{${key}}}`, val||`[${key}]`);
+    for (const [key,val] of Object.entries(nv)) body = body.split(`{{${key}}}`).join(val || `[${key}]`);
     setMsgBody(body);
   };
 
