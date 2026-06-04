@@ -1,5 +1,4 @@
 # ProcurBosse v11.0.0 electron-builder config
-# Windows 7 SP1 → Windows 11 | x64 + ia32 + portable
 appId: ke.go.embu.mediprocure.procurbosse
 productName: ProcurBosse
 copyright: "© 2026 Embu County Government — All Rights Reserved"
@@ -9,9 +8,9 @@ directories:
   output: dist-electron
 
 files:
-  - dist/**/*
-  - electron/**/*
-  - package.json
+  - "dist/**/*"
+  - "electron/**/*"
+  - "package.json"
   - "!node_modules/**/*"
   - "!src/**/*"
   - "!.github/**/*"
@@ -21,12 +20,10 @@ files:
   - "!admin-app/**/*"
 
 extraResources:
-  - from: public/icon.png
-    to: icon.png
-    filter: ["**/*"]
-  - from: public/logo.png
-    to: logo.png
-    filter: ["**/*"]
+  - from: "public/icon.png"
+    to: "icon.png"
+  - from: "public/logo.png"
+    to: "logo.png"
 
 win:
   icon: build/icon.ico
@@ -46,13 +43,10 @@ nsis:
   perMachine: false
   allowElevation: true
   allowToChangeInstallationDirectory: true
-  installerIcon: build/icon.ico
-  uninstallerIcon: build/icon.ico
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: "ProcurBosse EL5"
   artifactName: "ProcurBosse-v${version}-Setup-${arch}.exe"
-  deleteAppDataOnUninstall: false
   unicode: true
 
 portable:
