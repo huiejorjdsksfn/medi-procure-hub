@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { Package, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye, Plus, Edit, AlertTriangle, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { TablePager, ColSearchRow } from "@/components/TablePager";
 
 const TYPES = ["pharmaceutical","medical_equipment","consumable","reagent","laboratory","surgical","general","other"];
 
@@ -40,6 +41,9 @@ export default function ItemsPage() {
   const [editing,     setEditing]     = useState<any>(null);
   const [viewItem,    setViewItem]    = useState<any>(null);
   const [saving,      setSaving]      = useState(false);
+  const [colSearch,   setColSearch]   = useState<Record<string,string>>({});
+  const [page,        setPage]        = useState(1);
+  const [perPage,     setPerPage]     = useState(25);
   // hospitalName now from useSystemSettings
   // sysName now from useSystemSettings
 
@@ -141,7 +145,20 @@ export default function ItemsPage() {
     if(lowOnly&&Number(it.quantity_in_stock)>Number(it.reorder_level||10)) return false;
     if(search){const q=search.toLowerCase();return (it.name||"").toLowerCase().includes(q)||(it.sku||"").toLowerCase().includes(q);}
     return true;
+  }).filter(it=>{
+    const f = (k:string, val:any) => {
+      const q = (colSearch[k] || "").toLowerCase().trim();
+      if (!q) return true;
+      return String(val ?? "").toLowerCase().includes(q);
+    };
+    return f("name", it.name) && f("sku", it.sku) && f("type", it.item_type)
+      && f("category", it.item_categories?.name) && f("uom", it.unit_of_measure)
+      && f("status", it.status);
   });
+
+  const pageStart = (page - 1) * perPage;
+  const pageRows  = filtered.slice(pageStart, pageStart + perPage);
+  useEffect(()=>{ setPage(1); },[search, typeFilter, statusFilter, lowOnly, colSearch]);
 
   const totalValue=filtered.reduce((s,it)=>s+Number(it.unit_price||0)*Number(it.quantity_in_stock||0),0);
   const lowStockCount=items.filter(it=>Number(it.quantity_in_stock)<=Number(it.reorder_level||10)).length;
@@ -241,6 +258,25 @@ export default function ItemsPage() {
                   <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
+              <ColSearchRow
+                headerBg="#264d1e"
+                values={colSearch}
+                onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
+                cols={[
+                  {key:"_n",type:"none"},
+                  {key:"name",placeholder:"name"},
+                  {key:"sku",placeholder:"sku"},
+                  {key:"type",placeholder:"type"},
+                  {key:"category",placeholder:"category"},
+                  {key:"uom",placeholder:"uom"},
+                  {key:"_p",type:"none"},
+                  {key:"_q",type:"none"},
+                  {key:"_r",type:"none"},
+                  {key:"status",placeholder:"status"},
+                  {key:"_v",type:"none"},
+                  {key:"_a",type:"none"},
+                ]}
+              />
             </thead>
             <tbody>
               {loading ? (
@@ -250,7 +286,8 @@ export default function ItemsPage() {
                 </td></tr>
               ) : filtered.length===0 ? (
                 <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No items found</td></tr>
-              ) : filtered.map((it,i)=>{
+              ) : pageRows.map((it,idx)=>{
+                const i = pageStart + idx;
                 const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
                 const s=SC[it.status]||{bg:"#f3f4f6",color:"#6b7280"};
                 return (
@@ -290,8 +327,9 @@ export default function ItemsPage() {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"8px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap" as const}}>
-          <span>{filtered.length} items</span>
+        <TablePager total={filtered.length} page={page} perPage={perPage}
+          onPage={setPage} onPerPage={setPerPage} color="#1a3d12"/>
+        <div style={{padding:"6px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap" as const}}>
           <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
           {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>- {lowStockCount} low stock</span>}
         </div>
