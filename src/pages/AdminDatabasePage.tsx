@@ -9,11 +9,12 @@ import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { safeFetch } from "@/lib/safeFetch";
 import {
   Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
   ChevronRight, ChevronDown, Filter, Copy, AlertTriangle,
-  CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye,
+  CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings
 } from "lucide-react";
 import * as XLSX from "xlsx";
