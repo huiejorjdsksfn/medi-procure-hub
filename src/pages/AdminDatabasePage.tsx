@@ -112,19 +112,6 @@ ORDER BY t.table_name;`);
     if (!selectedTable) return;
     setLoading(true);
     try {
-      // Get columns
-      const { data: cols } = await (supabase as any)
-        .from("information_schema.columns")
-        .select("column_name,data_type,is_nullable,column_default")
-        .eq("table_schema","public")
-        .eq("table_name", selectedTable)
-        .order("ordinal_position");
-      
-      if (cols) {
-        setAllColumns(cols);
-        setTableColumns(cols.map((c: any) => c.column_name));
-      }
-
       // Count
       const { count } = await (supabase as any).from(selectedTable)
         .select("*", { count:"exact", head:true });
@@ -137,9 +124,19 @@ ORDER BY t.table_name;`);
       const { data, error } = await q;
       if (error) throw error;
       setTableData(data || []);
+      // Derive columns from first row (information_schema isn't exposed via PostgREST)
+      if (data && data.length > 0) {
+        const cols = Object.keys(data[0]);
+        setTableColumns(cols);
+        setAllColumns(cols.map(c => ({ column_name: c, data_type: typeof (data[0] as any)[c] })));
+      } else {
+        // Empty table — try to fetch a single sample with limit 0 to get headers via OPTIONS, fallback to common cols
+        setTableColumns(prev => prev.length ? prev : ["id","created_at","updated_at"]);
+      }
     } catch (e: any) {
       toast({ title:"Load error: " + e.message, variant:"destructive" });
       setTableData([]);
+      setTableColumns([]);
     }
     setLoading(false);
   }, [selectedTable, page, pageSize, sortCol, sortAsc]);

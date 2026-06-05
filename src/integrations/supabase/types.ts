@@ -83,6 +83,57 @@ export type Database = {
           },
         ]
       }
+      ai_agent_events: {
+        Row: {
+          ai_model: string | null
+          amount: number | null
+          channel: string | null
+          created_at: string | null
+          department: string | null
+          error: string | null
+          id: string
+          message: string | null
+          recipient: string | null
+          ref: string | null
+          rule_id: string
+          sent_at: string | null
+          status: string | null
+          trigger: string
+        }
+        Insert: {
+          ai_model?: string | null
+          amount?: number | null
+          channel?: string | null
+          created_at?: string | null
+          department?: string | null
+          error?: string | null
+          id?: string
+          message?: string | null
+          recipient?: string | null
+          ref?: string | null
+          rule_id: string
+          sent_at?: string | null
+          status?: string | null
+          trigger: string
+        }
+        Update: {
+          ai_model?: string | null
+          amount?: number | null
+          channel?: string | null
+          created_at?: string | null
+          department?: string | null
+          error?: string | null
+          id?: string
+          message?: string | null
+          recipient?: string | null
+          ref?: string | null
+          rule_id?: string
+          sent_at?: string | null
+          status?: string | null
+          trigger?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -134,32 +185,47 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          amount: number | null
           changes: Json | null
           created_at: string
           details: string | null
           id: string
+          ip_address: string | null
+          module: string | null
           record_id: string | null
+          ref: string | null
           table_name: string | null
+          user_email: string | null
           user_id: string | null
         }
         Insert: {
           action: string
+          amount?: number | null
           changes?: Json | null
           created_at?: string
           details?: string | null
           id?: string
+          ip_address?: string | null
+          module?: string | null
           record_id?: string | null
+          ref?: string | null
           table_name?: string | null
+          user_email?: string | null
           user_id?: string | null
         }
         Update: {
           action?: string
+          amount?: number | null
           changes?: Json | null
           created_at?: string
           details?: string | null
           id?: string
+          ip_address?: string | null
+          module?: string | null
           record_id?: string | null
+          ref?: string | null
           table_name?: string | null
+          user_email?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -6547,6 +6613,20 @@ export type Database = {
       jsonschema_validation_errors: {
         Args: { instance: Json; schema: Json }
         Returns: string[]
+      }
+      log_ai_agent_action: {
+        Args: {
+          p_amount?: number
+          p_channel?: string
+          p_message?: string
+          p_model?: string
+          p_recipient?: string
+          p_ref?: string
+          p_rule_id: string
+          p_status?: string
+          p_trigger: string
+        }
+        Returns: string
       }
       pgroonga_database_remove: { Args: never; Returns: boolean }
       plpgsql_check_function:
