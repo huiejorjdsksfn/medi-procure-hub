@@ -115,22 +115,34 @@ export default function UsersPage() {
   /* ── Load all users ── */
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data:profiles }, { data:roleRows }, { data:ipRows }, { data:pwRows }] = await Promise.all([
-      db.from("profiles").select("id,full_name,email,phone_number,department,avatar_url,is_active,is_locked,failed_logins,employee_id,created_at,last_login,last_seen,last_ip").order("full_name"),
-      db.from("user_roles").select("user_id,role"),
-      db.from("ip_access_log").select("user_id,ip_address,city,country,created_at").order("created_at",{ascending:false}).limit(500),
-      db.from("system_settings").select("key,value").ilike("key","temp_pw_%"),
-    ]);
-    const roleMap: Record<string,string[]> = {};
-    (roleRows||[]).forEach((r:any) => { if (!roleMap[r.user_id]) roleMap[r.user_id]=[]; roleMap[r.user_id].push(r.role); });
-    const ipMap: Record<string,any> = {};
-    (ipRows||[]).forEach((l:any) => { if (!ipMap[l.user_id]) ipMap[l.user_id]=l; });
-    const pwMap: Record<string,string> = {};
-    (pwRows||[]).forEach((r:any) => { const uid=r.key.replace("temp_pw_",""); pwMap[uid]=r.value; });
-    setStoredPws(pwMap);
-    setIpLogs(ipRows||[]);
-    setUsers((profiles||[]).map((p:any) => ({ ...p, roles:roleMap[p.id]||[], lastIP:ipMap[p.id]?.ip_address||null, lastGeo:ipMap[p.id]?[ipMap[p.id].city,ipMap[p.id].country].filter(Boolean).join(", "):null })));
-    setLoading(false);
+    try {
+      const safe = async <T,>(p: Promise<T>): Promise<T | { data: any[] }> => {
+        try { return await p; } catch { return { data: [] } as any; }
+      };
+      const [profilesRes, rolesRes, ipRes, pwRes] = await Promise.all([
+        safe(db.from("profiles").select("id,full_name,email,phone_number,department,avatar_url,is_active,is_locked,failed_logins,employee_id,created_at,last_login,last_seen,last_ip").order("full_name")),
+        safe(db.from("user_roles").select("user_id,role")),
+        safe(db.from("ip_access_log").select("user_id,ip_address,city,country,created_at").order("created_at",{ascending:false}).limit(500)),
+        safe(db.from("system_settings").select("key,value").ilike("key","temp_pw_%")),
+      ]);
+      const profiles = (profilesRes as any).data || [];
+      const roleRows = (rolesRes as any).data || [];
+      const ipRows = (ipRes as any).data || [];
+      const pwRows = (pwRes as any).data || [];
+      const roleMap: Record<string,string[]> = {};
+      roleRows.forEach((r:any) => { if (!roleMap[r.user_id]) roleMap[r.user_id]=[]; roleMap[r.user_id].push(r.role); });
+      const ipMap: Record<string,any> = {};
+      ipRows.forEach((l:any) => { if (!ipMap[l.user_id]) ipMap[l.user_id]=l; });
+      const pwMap: Record<string,string> = {};
+      pwRows.forEach((r:any) => { const uid=r.key.replace("temp_pw_",""); pwMap[uid]=r.value; });
+      setStoredPws(pwMap);
+      setIpLogs(ipRows);
+      setUsers(profiles.map((p:any) => ({ ...p, roles:roleMap[p.id]||[], lastIP:ipMap[p.id]?.ip_address||null, lastGeo:ipMap[p.id]?[ipMap[p.id].city,ipMap[p.id].country].filter(Boolean).join(", "):null })));
+    } catch (e:any) {
+      toast({ title:"Load error", description: e?.message || String(e), variant:"destructive" });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
