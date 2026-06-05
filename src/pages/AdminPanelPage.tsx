@@ -65,6 +65,45 @@ function classIP(ip:string):"public"|"private"|"loopback" {
   return "public";
 }
 
+function AuditLogFeed() {
+  const db = supabase as any;
+  const [rows, setRows] = useState<any[]>([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await db.from("audit_logs")
+        .select("id,action,details,created_at,user_id")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setRows(Array.isArray(data) ? data : []);
+    })();
+  }, []);
+  const actionColor: Record<string, string> = {
+    INSERT: "#10b981", UPDATE: "#3b82f6", DELETE: "#ef4444",
+    login: "#6366f1", ai_agent_approval_sent: "#7c3aed",
+    ai_agent_form_created: "#7c3aed", whatsapp_approval: "#25D366",
+    whatsapp_rejection: "#ef4444",
+  };
+  const getColor = (action: string) =>
+    Object.entries(actionColor).find(([k]) => action?.toLowerCase().includes(k.toLowerCase()))?.[1] ?? "#64748b";
+  if (rows.length === 0) return <div style={{padding:"16px",fontSize:12,color:"#94a3b8",textAlign:"center"}}>No audit entries yet</div>;
+  return (
+    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+      <thead><tr style={{background:"#f8fafc"}}>{["Action","Details","Time"].map(h=><th key={h} style={{padding:"6px 14px",textAlign:"left",fontSize:11,color:"#9ca3af",fontWeight:500,borderBottom:"1px solid #f0f0f0"}}>{h}</th>)}</tr></thead>
+      <tbody>
+        {rows.map((r: any) => (
+          <tr key={r.id} style={{borderBottom:"1px solid #f5f5f5"}}>
+            <td style={{padding:"7px 14px"}}>
+              <span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:`${getColor(r.action)}18`,color:getColor(r.action),fontWeight:600,whiteSpace:"nowrap"}}>{r.action?.replace(/_/g," ")?.slice(0,22)}</span>
+            </td>
+            <td style={{padding:"7px 14px",color:"#374151",fontSize:11,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.details||"—"}</td>
+            <td style={{padding:"7px 14px",color:"#9ca3af",fontSize:11,whiteSpace:"nowrap"}}>{r.created_at ? new Date(r.created_at).toLocaleString("en-KE",{dateStyle:"short",timeStyle:"short"}) : "—"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function AdminPanelPage() {
   const nav = useNavigate();
   const {user,roles} = useAuth();
@@ -263,6 +302,7 @@ export default function AdminPanelPage() {
                   {label:"Suppliers",val:kpi.suppliers, col:T.inventory,icon:TrendingUp,  path:"/suppliers"},
                   {label:"Items",    val:kpi.items,    col:T.quality,  icon:Package,     path:"/items"},
                   {label:"Notifs",   val:kpi.unread,   col:T.error,    icon:Bell,        path:"/notifications"},
+                  {label:"AI Sent",  val:0,             col:"#7c3aed",  icon:Activity,    path:"/ai-agent"},
                 ].map(k=>(
                   <div key={k.label} onClick={()=>nav(k.path)} style={{...S.card,padding:"14px 16px",cursor:"pointer"}}
                     onMouseEnter={e=>{(e.currentTarget as any).style.transform="translateY(-1px)";(e.currentTarget as any).style.boxShadow="0 4px 12px rgba(0,0,0,.1)";}}
@@ -285,7 +325,9 @@ export default function AdminPanelPage() {
                     {l:"Live IP Stats",     p:"",                  col:"#7719aa",  cb:()=>setSec("iplive")},
                     {l:"Test Twilio SMS",   p:"",                  col:T.inventory,cb:()=>setSec("twilio")},
                     {l:"System Broadcast",  p:"",                  col:T.warning,  cb:()=>setSec("broadcast")},
+                    {l:"AI Agent Hub",      p:"/ai-agent",         col:"#7c3aed"},
                     {l:"DB Monitor",        p:"/admin/db-test",    col:T.quality},
+                    {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
                     {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
                     {l:"IP Access Control", p:"/admin/ip-access",  col:T.error},
                     {l:"ODBC / MySQL",      p:"/odbc",             col:"#00188f"},
@@ -328,6 +370,14 @@ export default function AdminPanelPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Audit log live feed */}
+              <div style={{...S.card,marginTop:16}}>
+                <div style={S.cardHd("#374151")}><Activity size={14} color="#374151"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Live Audit Log</span><span style={{marginLeft:"auto",fontSize:11,color:T.fgMuted}}>All user actions</span><button onClick={()=>nav("/audit-log")} style={{...S.btn(T.bg2,T.fgMuted),fontSize:10,padding:"2px 8px",marginLeft:8}}>View All →</button></div>
+                <div style={{padding:"4px 0",maxHeight:200,overflowY:"auto"}}>
+                  <AuditLogFeed />
                 </div>
               </div>
             </div>

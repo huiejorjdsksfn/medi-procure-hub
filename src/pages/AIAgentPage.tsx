@@ -154,6 +154,44 @@ export default function AIAgentPage() {
 
   useEffect(() => { loadHistory(); },[loadHistory]);
 
+  // ── Realtime: auto-fire notifications on DB events ──────────────
+  useEffect(() => {
+    const activeRules = rules.filter(r => r.active);
+
+    const reqChannel = (db as any).channel('ai-agent-requisitions')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'requisitions' }, async (payload: any) => {
+        const rec = payload.new;
+        if (!activeRules.find(r => r.id === 'req_submit')) return;
+        addLog('info', 'Auto Agent', 'trigger', `New requisition detected: ${rec.id}`, rec.id);
+        const msg = await callAIAgent('Generate a brief SMS notification that a new requisition was submitted', {
+          ref: rec.id, amount: rec.total_amount || 0, department: rec.department || 'Unknown', channel: 'sms'
+        });
+        addLog('success', 'Auto Agent', 'auto-notify', `Notification queued for ${rec.id}`, rec.id);
+        setEvents(prev => [{
+          id: Date.now().toString(), rule: 'req_submit', ref: rec.id || 'REQ-NEW',
+          amount: rec.total_amount || 0, recipient: 'procurement_manager',
+          channel: 'sms', status: 'pending', ts: new Date().toISOString(), aiMsg: msg,
+        }, ...prev]);
+      })
+      .subscribe();
+
+    const poChannel = (db as any).channel('ai-agent-purchase-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'purchase_orders' }, async (payload: any) => {
+        const rec = payload.new;
+        const amt = rec.total_amount || 0;
+        const rule = activeRules.find(r => r.id === (amt >= 500000 ? 'po_above' : 'po_raised'));
+        if (!rule) return;
+        addLog('info', 'Auto Agent', 'trigger', `New PO detected: ${rec.id} — KES ${amt.toLocaleString()}`, rec.id);
+      })
+      .subscribe();
+
+    return () => {
+      (db as any).removeChannel(reqChannel);
+      (db as any).removeChannel(poChannel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rules]);
+
   // ── AI compose approval message ──────────────────────────────────
   const aiCompose = async () => {
     setAiComposing(true);
