@@ -307,10 +307,10 @@ ORDER BY t.table_name;`);
       </div>
 
       {/* - Tab bar - */}
-      <div style={{ display:"flex",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+      <div style={{ display:"flex",borderBottom:`1px solid ${S.border}`,background:"#f1f5f9",flexShrink:0 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid #3b82f6`:"3px solid transparent",background:activeTab===t.id?"#1e3a6b":"rgba(255,255,255,0.05)",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:400,color:activeTab===t.id?"#ffffff":"rgba(255,255,255,0.6)" }}>
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid ${S.blue}`:"3px solid transparent",background:activeTab===t.id?"#ffffff":"transparent",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:500,color:activeTab===t.id?"#0f172a":"#475569" }}>
             <t.icon style={{ width:13,height:13 }} />
             {t.label}
           </button>
@@ -322,7 +322,7 @@ ORDER BY t.table_name;`);
 
         {/* Left sidebar - table tree */}
         {activeTab === "tables" && (
-          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"rgba(0,0,0,0.3)",flexShrink:0 }}>
+          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"#ffffff",flexShrink:0 }}>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
                 style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
@@ -361,9 +361,9 @@ ORDER BY t.table_name;`);
         {activeTab === "tables" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
             {/* Toolbar */}
-            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}` }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
-              <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
+              <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
                 <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font }}>
                   {[25,50,100,200,500].map(n=><option key={n}>{n}</option>)}
@@ -416,9 +416,9 @@ ORDER BY t.table_name;`);
                   </thead>
                   <tbody>
                     {tableData.map((row, ri) => (
-                      <tr key={row.id||ri} style={{ background:ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)" }}
-                        onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
-                        onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)")}>
+                      <tr key={row.id||ri} style={{ background:ri%2===0?"#ffffff":"#f8fafc" }}
+                        onMouseEnter={e=>(e.currentTarget.style.background="#e0e7ff")}
+                        onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#ffffff":"#f8fafc")}>
                         <td style={{ ...CELL,width:60,textAlign:"center" }}>
                           <div style={{ display:"flex",gap:3,justifyContent:"center" }}>
                             <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
@@ -457,7 +457,7 @@ ORDER BY t.table_name;`);
             </div>
 
             {/* Pagination */}
-            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)",fontFamily:S.font,fontSize:11 }}>
+            <div style={{ padding:"6px 12px",borderTop:`1px solid ${S.border}`,display:"flex",alignItems:"center",gap:10,background:"#f8fafc",flexShrink:0,fontFamily:S.font,fontSize:11,color:"#0f172a" }}>
               <span>Page {page+1} of {Math.ceil(totalRows/pageSize)} ({totalRows.toLocaleString()} rows)</span>
               <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
                 <button disabled={page===0} onClick={()=>setPage(0)} style={{ border:`1px solid ${S.border}`,padding:"2px 8px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>-</button>
@@ -512,9 +512,9 @@ ORDER BY t.table_name;`);
         {/* - SQL EDITOR tab - */}
         {activeTab === "sql" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.3)",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}` }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real SQL Editor - PostgreSQL</span>
-              {sqlMs !== null && <span style={{ fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
+              {sqlMs !== null && <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
                 <button onClick={()=>setSql("SELECT * FROM " + selectedTable + " LIMIT 50;")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   Select *
@@ -524,6 +524,27 @@ ORDER BY t.table_name;`);
                 </button>
                 <button onClick={()=>setSql(`SELECT table_name, column_count, policy_count, trigger_count FROM db_stats ORDER BY table_name;`)} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   DB Stats
+                </button>
+                <button onClick={()=>{
+                  if(!sqlResult.length){ toast({title:"Run a query first"}); return; }
+                  const cols=Object.keys(sqlResult[0]||{});
+                  const w=window.open("","_blank"); if(!w) return;
+                  w.document.write(`<html><head><title>SQL Result</title><style>
+                    body{font-family:'Segoe UI',sans-serif;margin:20px;color:#000}
+                    h1{font-size:16px}pre{background:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;color:#0f172a;white-space:pre-wrap}
+                    table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px}
+                    th{background:#003087;color:#fff;padding:6px 8px;text-align:left}
+                    td{border:1px solid #ddd;padding:5px 8px;color:#0f172a}
+                    tr:nth-child(even) td{background:#f8fafc}</style></head><body>
+                    <h1>Embu Level 5 Hospital — SQL Query Result</h1>
+                    <pre>${sql.replace(/</g,"&lt;")}</pre>
+                    <div style="font-size:11px;color:#666">Rows: ${sqlResult.length} · Executed in ${sqlMs}ms</div>
+                    <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead>
+                    <tbody>${sqlResult.map(r=>`<tr>${cols.map(c=>`<td>${r[c]==null?"":String(r[c]).replace(/</g,"&lt;")}</td>`).join("")}</tr>`).join("")}</tbody></table>
+                    </body></html>`);
+                  w.document.close(); setTimeout(()=>w.print(),300);
+                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <Printer style={{width:11,height:11}}/> Print
                 </button>
                 <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
                   <Play style={{ width:12,height:12 }} />{sqlRunning?"Running-":"Run -"}
