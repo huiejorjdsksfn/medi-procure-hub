@@ -69,6 +69,7 @@ import DocumentEditorPage from "@/pages/DocumentEditorPage";
 import BackupPage from "@/pages/BackupPage";
 import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
+import AdminActivityPage from "@/pages/AdminActivityPage";
 import IpAccessPage from "@/pages/IpAccessPage";
 import ProfilePage from "@/pages/ProfilePage";
 import GuiEditorPage from "@/pages/GuiEditorPage";
@@ -173,6 +174,7 @@ const App = () => (
             <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant"]}><AuditLogPage /></RoleGuard></P>} />
               <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
+            <Route path="/admin/activity" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><AdminActivityPage /></RoleGuard></P>} />
             <Route path="/superadmin" element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/changelog" element={<P><ChangelogPage /></P>} />
