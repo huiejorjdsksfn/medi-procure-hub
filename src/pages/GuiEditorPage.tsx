@@ -108,15 +108,48 @@ export default function GuiEditorPage() {
 
   // Conflict-safe reconciliation: keep locally-edited (dirty) keys, merge the rest from realtime/Supabase
   const dirtyKeys = useRef<Set<string>>(new Set());
+  const [conflict, setConflict] = useState<{ remote: Record<string,string>; keys: string[] } | null>(null);
   useEffect(() => {
     const fresh = buildCfg();
     setCfg(prev => {
+      // Detect collisions: keys the user has edited locally that arrived with a *different* remote value
+      const collisions: string[] = [];
+      dirtyKeys.current.forEach(k => {
+        if (k in fresh && k in prev && String(fresh[k]) !== String(prev[k])) collisions.push(k);
+      });
+      if (collisions.length) {
+        setConflict({ remote: fresh, keys: collisions });
+        // Keep current local edits — user must resolve via the banner
+        const merged: Record<string,string> = { ...fresh };
+        dirtyKeys.current.forEach(k => { if (k in prev) merged[k] = prev[k]; });
+        return merged;
+      }
+      // No conflict: just preserve dirty fields, take fresh for the rest
       const merged: Record<string,string> = { ...fresh };
-      // Preserve any keys the user has edited locally but not yet saved
       dirtyKeys.current.forEach(k => { if (k in prev) merged[k] = prev[k]; });
       return merged;
     });
   }, [settings, buildCfg]);
+
+  const resolveConflict = (mode: "keep" | "remote" | "merge") => {
+    if (!conflict) return;
+    if (mode === "remote") {
+      // Discard local edits for the conflicting keys
+      setCfg(prev => {
+        const next = { ...prev };
+        conflict.keys.forEach(k => { next[k] = conflict.remote[k]; });
+        return next;
+      });
+      conflict.keys.forEach(k => dirtyKeys.current.delete(k));
+      toast({ title: "Remote changes applied", description: `${conflict.keys.length} field(s) overwritten with remote values.` });
+    } else if (mode === "merge") {
+      // Prefer remote for non-dirty keys (already done) and keep local for dirty (already done)
+      toast({ title: "Merged", description: "Your edits preserved; remote updates kept where you hadn't edited." });
+    } else {
+      toast({ title: "Local edits kept", description: "Save to push your version." });
+    }
+    setConflict(null);
+  };
 
   // Apply every change to the live app DOM instantly
   useEffect(() => {
