@@ -14,12 +14,13 @@ const genNo = () => `PV-EL5H-${new Date().getFullYear()}-${String(Math.floor(100
 const SC: Record<string,string> = {pending:"#d97706",approved:"#15803d",rejected:"#dc2626",paid:"#0369a1"};
 
 export default function PurchaseVouchersPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
   const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
   const sysName = getSetting("system_name","EL5 MediProcure");
-  const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
-  const canApprove = hasRole("admin")||hasRole("procurement_manager");
+  const canCreate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer");
+  const canApprove = isAdminRole||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +175,7 @@ export default function PurchaseVouchersPage() {
                   <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
                   <button onClick={()=>printVoucher(r)} style={{padding:5,borderRadius:6,background:"#dcfce7",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12,color:"#16a34a"}}/></button>
                   {canApprove&&r.status==="pending"&&<button onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,background:"#d1fae5",border:"none",cursor:"pointer"}} title="Approve"><CheckCircle style={{width:12,height:12,color:"#059669"}}/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                  {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                 </div></td>
               </tr>
             ))}

@@ -23,7 +23,8 @@ const ACTION_STYLE: Record<string,{bg:string;color:string}> = {
 const spin: React.CSSProperties = {animation:"spin 1s linear infinite",display:"inline-block"};
 
 export default function AuditLogPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
   const [logs, setLogs]           = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -46,9 +47,9 @@ export default function AuditLogPage() {
     setLoading(false);
   },[dateFrom,dateTo]);
 
-  useEffect(()=>{ if(hasRole("admin")) fetchLogs(); },[fetchLogs]);
+  useEffect(()=>{ if(isAdminRole) fetchLogs(); },[fetchLogs]);
 
-  if(!hasRole("admin")) return (
+  if(!isAdminRole) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200}}>
       <p style={{color:"#9ca3af",fontSize:14}}>Administrator access required to view audit trail.</p>
     </div>

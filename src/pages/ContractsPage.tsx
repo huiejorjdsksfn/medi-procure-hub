@@ -32,9 +32,10 @@ const INP = (v:any,cb:any,p="",t="text") => (
 );
 
 export default function ContractsPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
+  const canManage = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer");
 
   const [rows,     setRows]     = useState<any[]>([]);
   const [suppliers,setSuppliers]= useState<any[]>([]);

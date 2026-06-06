@@ -10,9 +10,10 @@ import * as XLSX from "xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function DepartmentsPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin");
+  const canManage = isAdminRole;
   const [rows, setRows]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState("");
@@ -115,7 +116,7 @@ export default function DepartmentsPage() {
                       style={{padding:"4px 8px",background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:6,cursor:"pointer",lineHeight:0}}>
                       <Edit style={{width:12,height:12,color:"#4338ca"}}/>
                     </button>}
-                    {hasRole("admin")&&<button onClick={()=>del(r.id)}
+                    {isAdminRole&&<button onClick={()=>del(r.id)}
                       style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}>
                       <Trash2 style={{width:12,height:12,color:"#dc2626"}}/>
                     </button>}

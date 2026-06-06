@@ -35,9 +35,10 @@ const INP = (v:any,cb:any,p="",t="text") => (
 );
 
 export default function VouchersPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const navigate = useNavigate();
-  const canApprove = hasRole("admin")||hasRole("procurement_manager");
+  const canApprove = isAdminRole||hasRole("procurement_manager");
 
   const [rows,    setRows]    = useState<any[]>([]);
   const [depts,   setDepts]   = useState<any[]>([]);

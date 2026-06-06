@@ -35,9 +35,10 @@ const SEL = (v:any,cb:any,opts:{value:string;label:string}[],p="Select...") => (
 const LBL = ({children}:{children:any}) => <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.05em"}}>{children}</div>;
 
 export default function BidEvaluationsPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canEvaluate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
+  const canEvaluate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer");
 
   const [rows,      setRows]      = useState<any[]>([]);
   const [tenders,   setTenders]   = useState<any[]>([]);

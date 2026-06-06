@@ -14,9 +14,10 @@ const genCode = () => `BDG-${new Date().getFullYear()}-${String(Math.floor(100+M
 const SC: Record<string,string> = {active:"#15803d",draft:"#6b7280",closed:"#dc2626",exceeded:"#d97706"};
 
 export default function BudgetsPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin")||hasRole("procurement_manager");
+  const canManage = isAdminRole||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +157,7 @@ export default function BudgetsPage() {
                   <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
                   <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
                     {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                    {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                    {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                   </div></td>
                 </tr>
               );

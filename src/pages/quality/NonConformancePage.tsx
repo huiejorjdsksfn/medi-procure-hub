@@ -20,8 +20,9 @@ const SC: Record<string,{bg:string;color:string}> = {
 const SEV: Record<string,string> = {critical:"#dc2626",major:"#d97706",minor:"#6b7280"};
 
 export default function NonConformancePage() {
-  const { user, profile, hasRole } = useAuth();
-  const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
+  const canCreate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
   const [rows, setRows]         = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
@@ -127,8 +128,8 @@ export default function NonConformancePage() {
                 <td style={{padding:"9px 12px"}}>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={()=>setDetail(r)} style={{padding:"4px 8px",background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#c2410c"}}/></button>
-                    {r.status!=="closed"&&hasRole("admin")&&<button onClick={()=>updateStatus(r.id,"closed")} style={{padding:"3px 8px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",fontSize:9,fontWeight:700,color:"#15803d"}}>Close</button>}
-                    {hasRole("admin")&&<button onClick={()=>del(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
+                    {r.status!=="closed"&&isAdminRole&&<button onClick={()=>updateStatus(r.id,"closed")} style={{padding:"3px 8px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",fontSize:9,fontWeight:700,color:"#15803d"}}>Close</button>}
+                    {isAdminRole&&<button onClick={()=>del(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
                   </div>
                 </td>
               </tr>);
@@ -156,7 +157,7 @@ export default function NonConformancePage() {
               {detail.root_cause&&<div style={{padding:10,background:"#fef3c7",borderRadius:8,fontSize:12,color:"#92400e"}}><b>Root Cause:</b> {detail.root_cause}</div>}
               {detail.corrective_action&&<div style={{padding:10,background:"#f0fdf4",borderRadius:8,fontSize:12,color:"#15803d"}}><b>Corrective Action:</b> {detail.corrective_action}</div>}
               {detail.preventive_action&&<div style={{padding:10,background:"#eff6ff",borderRadius:8,fontSize:12,color:"#1d4ed8"}}><b>Preventive Action:</b> {detail.preventive_action}</div>}
-              {detail.status!=="closed"&&hasRole("admin")&&<button onClick={()=>{updateStatus(detail.id,"closed");setDetail(null);}} style={{padding:"9px",background:"#dcfce7",color:"#15803d",border:"1.5px solid #bbf7d0",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700}}>Mark as Closed</button>}
+              {detail.status!=="closed"&&isAdminRole&&<button onClick={()=>{updateStatus(detail.id,"closed");setDetail(null);}} style={{padding:"9px",background:"#dcfce7",color:"#15803d",border:"1.5px solid #bbf7d0",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700}}>Mark as Closed</button>}
             </div>
           </div>
         </div>

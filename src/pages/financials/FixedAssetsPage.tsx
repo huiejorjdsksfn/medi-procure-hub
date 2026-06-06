@@ -15,9 +15,10 @@ const SC: Record<string,string> = {active:"#15803d",disposed:"#dc2626",under_mai
 const CATS = ["Medical Equipment","ICT Equipment","Furniture & Fittings","Motor Vehicles","Buildings","Land","Office Equipment","Laboratory Equipment","Theatre Equipment","Radiology Equipment"];
 
 export default function FixedAssetsPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin")||hasRole("procurement_manager");
+  const canManage = isAdminRole||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [depts, setDepts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,7 +180,7 @@ export default function FixedAssetsPage() {
                 <td style={{padding:"9px 12px"}} onClick={e=>e.stopPropagation()}>
                   <div style={{display:"flex",gap:4}}>
                     {canManage&&<button onClick={()=>openEdit(r)} style={{padding:"4px 8px",background:"#dbeafe",border:"none",borderRadius:6,cursor:"pointer",lineHeight:0}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                    {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"none",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
+                    {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"none",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
                   </div>
                 </td>
               </tr>
