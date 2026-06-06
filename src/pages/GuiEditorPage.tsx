@@ -275,6 +275,27 @@ export default function GuiEditorPage() {
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
 
+      {/* Conflict resolution banner — appears when realtime brings remote edits to fields the user has changed locally */}
+      {conflict && (
+        <div style={{
+          position:"fixed", top:12, left:"50%", transform:"translateX(-50%)", zIndex:9999,
+          background:"#fffbeb", border:"1px solid #f59e0b", borderRadius:8,
+          padding:"10px 14px", boxShadow:"0 6px 24px rgba(0,0,0,0.15)",
+          display:"flex", alignItems:"center", gap:12, maxWidth:720, fontSize:12.5, color:"#78350f",
+        }}>
+          <Shield style={{ width:18, height:18, color:"#b45309" }}/>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700 }}>Concurrent edit detected</div>
+            <div style={{ color:"#92400e" }}>
+              {conflict.keys.length} field(s) changed remotely while you were editing: <code style={{ background:"#fde68a", padding:"1px 5px", borderRadius:3 }}>{conflict.keys.slice(0,4).join(", ")}{conflict.keys.length>4?"…":""}</code>
+            </div>
+          </div>
+          <button onClick={()=>resolveConflict("keep")}   style={{ padding:"6px 10px", border:"1px solid #b45309", background:"#fff", color:"#78350f", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Keep mine</button>
+          <button onClick={()=>resolveConflict("merge")}  style={{ padding:"6px 10px", border:"1px solid #b45309", background:"#fff", color:"#78350f", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Merge</button>
+          <button onClick={()=>resolveConflict("remote")} style={{ padding:"6px 10px", border:"none", background:"#b45309", color:"#fff", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Use remote</button>
+        </div>
+      )}
+
       {/* - LEFT PANEL - Controls - */}
       <div style={{ width:296, flexShrink:0, background:"#fff", borderRight:"1px solid #e2e8f0",
         display:"flex", flexDirection:"column", overflow:"hidden",
