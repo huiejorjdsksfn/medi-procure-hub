@@ -1,14 +1,23 @@
 /**
- * EL5 MediProcure v10.1 — AuthContext
- * Hardened role loading:
- *   1. Cache-first → instant role render on refresh (no flicker to "no roles")
- *   2. Always background-refresh from DB after cache hit
- *   3. Admin roles (superadmin/admin/webmaster) never downgraded by partial load
- *   4. Realtime role-change listener forces re-auth if roles mutate
+ * EL5 MediProcure v11.3 — AuthContext
+ * Hardened role loading with session token support:
+ *   1. Token-first → instant roles on refresh from localStorage token
+ *   2. Cache-second → authCache localStorage fallback
+ *   3. DB-always → background Supabase refresh for freshness
+ *   4. Admin roles never blank during refresh gaps
+ *   5. Session token issued on every successful sign-in
+ *   6. Token revoked on sign-out
  */
-import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
+import {
+  createContext, useContext, useEffect, useState,
+  useCallback, useRef, ReactNode,
+} from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase, authCache, fetchUserData } from "@/integrations/supabase/client";
+import {
+  getLocalToken, issueToken, refreshToken,
+  revokeToken, startTokenRefresh, stopTokenRefresh,
+} from "@/lib/sessionToken";
 
 export type ProcurementRole =
   | "superadmin" | "admin" | "webmaster" | "database_admin"
@@ -16,7 +25,6 @@ export type ProcurementRole =
   | "inventory_manager" | "warehouse_officer"
   | "requisitioner" | "accountant";
 
-/** Admin-tier roles: bypass all guards */
 export const ADMIN_TIER: ProcurementRole[] = ["superadmin", "admin", "webmaster"];
 
 interface AuthCtx {
@@ -53,38 +61,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile,  setProfile]  = useState<any>(null);
   const [roles,    setRoles]    = useState<string[]>([]);
   const [loading,  setLoading]  = useState(true);
-  // Track whether we've done the initial cold load
   const initialized = useRef(false);
 
   /**
-   * Apply fetched profile + roles.
-   * HARDENING: Never downgrade from an admin-tier role to [] during a background
-   * refresh gap. If we already have admin-tier roles and the new fetch returns [],
-   * skip the update and retry from DB directly.
+   * Apply profile + roles — never blank out admin roles during a refresh gap.
    */
-  const apply = useCallback((d: { profile: any; roles: string[] }, source: "cache" | "db") => {
-    setProfile(d.profile);
-
-    // Never blank-out admin roles from a cache read if DB will follow
+  const apply = useCallback((
+    d: { profile: any; roles: string[] },
+    source: "token" | "cache" | "db"
+  ) => {
+    setProfile(d.profile || null);
     const incoming = d.roles ?? [];
     setRoles(prev => {
-      // If incoming is empty and prev has admin-tier, keep prev (cache may be stale-empty)
-      if (incoming.length === 0 && source === "cache" && prev.some(r => ADMIN_TIER.includes(r as ProcurementRole))) {
-        return prev;
-      }
+      // Guard: don't erase admin roles during background refresh (token/cache sources)
+      if (
+        incoming.length === 0 &&
+        source !== "db" &&
+        prev.some(r => ADMIN_TIER.includes(r as ProcurementRole))
+      ) return prev;
       return incoming;
     });
   }, []);
 
-  /** Hard DB refresh, bypasses cache */
+  /** Hard DB refresh — bypasses both token and cache */
   const refreshRoles = useCallback(async () => {
     const s = (await supabase.auth.getSession()).data.session;
     if (!s?.user) return;
     authCache.clear();
-    apply(await fetchUserData(s.user.id), "db");
+    const fresh = await fetchUserData(s.user.id);
+    apply(fresh, "db");
+    // Also refresh the session token with new roles
+    refreshToken().catch(() => {});
   }, [apply]);
 
-  // ── Primary boot sequence ─────────────────────────────────────────
+  // ── Primary boot ──────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
     const safety = setTimeout(() => { if (mounted) setLoading(false); }, 5000);
@@ -96,21 +106,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (session?.user) {
         const uid = session.user.id;
-        const cached = authCache.get(uid);
 
-        if (cached) {
-          // 1. Serve cache immediately → no role flash on refresh
-          apply({ profile: cached.profile, roles: cached.roles }, "cache");
+        // ── Priority 1: Local session token (fastest, no network) ──
+        const localToken = getLocalToken();
+        if (localToken && localToken.user_id === uid && localToken.roles.length > 0) {
+          apply({ profile: localToken.profile, roles: localToken.roles }, "token");
           clearTimeout(safety);
           if (mounted) setLoading(false);
-          // 2. Always background-refresh from DB to pick up any role changes
+          // Background: DB refresh + token refresh
           fetchUserData(uid).then(fresh => { if (mounted) apply(fresh, "db"); });
-        } else {
-          // Cold start — must wait for DB
-          const fresh = await fetchUserData(uid);
-          if (mounted) apply(fresh, "db");
-          clearTimeout(safety);
-          if (mounted) setLoading(false);
+          refreshToken().catch(() => {});
+        }
+        // ── Priority 2: authCache ──────────────────────────────────
+        else {
+          const cached = authCache.get(uid);
+          if (cached && cached.roles.length > 0) {
+            apply({ profile: cached.profile, roles: cached.roles }, "cache");
+            clearTimeout(safety);
+            if (mounted) setLoading(false);
+            // Background DB refresh
+            fetchUserData(uid).then(fresh => {
+              if (mounted) apply(fresh, "db");
+            });
+          }
+          // ── Priority 3: Cold DB load ──────────────────────────────
+          else {
+            const fresh = await fetchUserData(uid);
+            if (mounted) {
+              apply(fresh, "db");
+              clearTimeout(safety);
+              setLoading(false);
+            }
+            // Issue a fresh session token after cold load
+            issueToken().catch(() => {});
+          }
         }
       } else {
         clearTimeout(safety);
@@ -125,34 +154,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
-      if (session?.user) {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (!session?.user) return;
         const uid = session.user.id;
-        const cached = authCache.get(uid);
+        const localToken = getLocalToken();
 
-        if (cached && initialized.current) {
-          // Already initialized — serve cache, refresh in background
-          apply({ profile: cached.profile, roles: cached.roles }, "cache");
+        if (localToken && localToken.user_id === uid && localToken.roles.length > 0 && initialized.current) {
+          apply({ profile: localToken.profile, roles: localToken.roles }, "token");
           setLoading(false);
           fetchUserData(uid).then(fresh => { if (mounted) apply(fresh, "db"); });
         } else {
-          // First load or no cache — wait for DB
-          const fresh = await fetchUserData(uid);
-          if (mounted) { apply(fresh, "db"); setLoading(false); }
+          const cached = authCache.get(uid);
+          if (cached && initialized.current) {
+            apply({ profile: cached.profile, roles: cached.roles }, "cache");
+            setLoading(false);
+            fetchUserData(uid).then(fresh => { if (mounted) apply(fresh, "db"); });
+          } else {
+            const fresh = await fetchUserData(uid);
+            if (mounted) { apply(fresh, "db"); setLoading(false); }
+          }
+
+          // Issue fresh token on sign-in
+          if (event === "SIGNED_IN") {
+            issueToken().catch(() => {});
+            startTokenRefresh();
+          }
         }
-      } else {
-        // Sign-out
+      } else if (event === "SIGNED_OUT") {
         setProfile(null);
         setRoles([]);
         authCache.clear();
+        stopTokenRefresh();
         if (mounted) setLoading(false);
       }
     });
 
-    return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
+    // Start background token refresh if token exists
+    if (getLocalToken()) startTokenRefresh();
+
+    return () => {
+      mounted = false;
+      clearTimeout(safety);
+      subscription.unsubscribe();
+    };
   }, [apply]);
 
-  // ── Realtime role-change watcher ─────────────────────────────────
-  // If an admin changes this user's roles in the DB, force re-auth immediately.
+  // ── Realtime role-change watcher ──────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
 
@@ -169,19 +216,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const newSet = new Set(fresh.roles || []);
             const changed =
               oldSet.size !== newSet.size ||
-              [...oldSet].some(r => !newSet.has(r)) ||
-              [...newSet].some(r => !oldSet.has(r));
+              [...oldSet].some(r => !newSet.has(r));
 
             if (changed) {
-              // Role mutation detected — force sign-out so a fresh JWT is issued
+              // Roles changed → revoke token and force re-login for fresh JWT
+              await revokeToken();
               try { await supabase.auth.signOut(); } catch {}
               setSession(null); setUser(null); setProfile(null); setRoles([]);
               if (typeof window !== "undefined") {
                 window.location.assign("/#/login?reason=role_changed");
               }
             } else {
-              setRoles(fresh.roles || []);
-              setProfile(fresh.profile || null);
+              apply(fresh, "db");
             }
           } catch {}
         },
@@ -189,10 +235,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id, roles]);
+  }, [user?.id, roles, apply]);
 
-  // ── Derived state ─────────────────────────────────────────────────
+  // ── Derived state ─────────────────────────────────────────────
   const signOut = async () => {
+    stopTokenRefresh();
+    await revokeToken();
     authCache.clear();
     await supabase.auth.signOut();
     setSession(null); setUser(null); setProfile(null); setRoles([]);

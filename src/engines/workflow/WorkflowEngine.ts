@@ -11,7 +11,7 @@ type WorkflowAction = "submit"|"approve"|"reject"|"return"|"complete";
 type WorkflowTable = "requisitions"|"purchase_orders"|"payment_vouchers"|"tenders"|"contracts";
 
 async function getApprovers(role:string): Promise<string[]> {
-  const { data } = await db.from("user_roles").select("user_id").in("role",[role,"admin","superadmin"]);
+  const { data } = await db.from("user_roles").select("user_id").in("role",[role,"admin","superadmin","webmaster"]);
   return (data||[]).map((r:any)=>r.user_id);
 }
 
@@ -59,7 +59,7 @@ export const WorkflowEngine = {
 
   /** Check if user can approve */
   canApprove(userRoles:string[]): boolean {
-    return userRoles.some(r=>["admin","superadmin","procurement_manager"].includes(r));
+    return userRoles.some(r=>["admin","superadmin","webmaster","procurement_manager"].includes(r));
   },
 };
 export default WorkflowEngine;

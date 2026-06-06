@@ -61,6 +61,8 @@ async function getSettingBool(key: string, defaultVal = false): Promise<boolean>
 
 async function callSendEmail(to: string, subject: string, body: string, actionUrl?: string): Promise<boolean> {
   try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000); // 8s timeout
     const { data, error } = await supabase.functions.invoke("send-email", {
       body: {
         to, subject, body,
@@ -69,6 +71,7 @@ async function callSendEmail(to: string, subject: string, body: string, actionUr
           : undefined,
       },
     });
+    clearTimeout(timeout);
     if (error) { console.warn("[notify] send-email error:", error.message); return false; }
     return data?.ok === true;
   } catch (e: any) { console.warn("[notify] send-email exception:", e.message); return false; }
@@ -76,9 +79,12 @@ async function callSendEmail(to: string, subject: string, body: string, actionUr
 
 async function callSendSms(to: string, message: string, module = "system"): Promise<boolean> {
   try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
     const { data, error } = await supabase.functions.invoke("send-sms", {
       body: { to, message, module },
     });
+    clearTimeout(timeout);
     if (error) { console.warn("[notify] send-sms error:", error.message); return false; }
     return data?.ok === true;
   } catch (e: any) { console.warn("[notify] send-sms exception:", e.message); return false; }
@@ -165,7 +171,8 @@ export async function sendNotification(payload: NotifyPayload): Promise<void> {
 export async function notifyAdmins(payload: Omit<NotifyPayload, "userId">): Promise<void> {
   try {
     const { data } = await (supabase as any)
-      .from("user_roles").select("user_id").eq("role", "admin").limit(20);
+      .from("user_roles").select("user_id")
+      .in("role", ["admin","superadmin","webmaster"]).limit(20);
     if (!data?.length) return;
     await Promise.all(data.map((a: any) => sendNotification({ ...payload, userId: a.user_id })));
   } catch (e: any) { console.warn("[notify] notifyAdmins:", e.message); }
