@@ -6589,7 +6589,9 @@ export type Database = {
         Returns: string
       }
       exec_sql: { Args: { query: string }; Returns: Json }
+      exec_sql_admin: { Args: { sql: string }; Returns: Json }
       get_db_health_stats: { Args: never; Returns: Json }
+      get_full_schema: { Args: never; Returns: Json }
       has_any_role: { Args: { required_roles: string[] }; Returns: boolean }
       has_role:
         | {
@@ -6899,6 +6901,7 @@ export type Database = {
               type: string
             }[]
           }
+      query_sql_admin: { Args: { sql: string }; Returns: Json }
       ssl_cipher: { Args: never; Returns: string }
       ssl_client_cert_present: { Args: never; Returns: boolean }
       ssl_client_dn: { Args: never; Returns: string }
