@@ -224,7 +224,7 @@ export default function AccountantWorkspacePage() {
     const { error } = await db.from("quotations").insert({
       quotation_number:qNum,
       supplier_id:newQuote.supplier_id||null,
-      supplier_name:supplierList.find(s=>s.id===newQuote.supplier_id)?.name||"",
+      supplier_name:supplierList.find((s:any)=>s.id===newQuote.supplier_id)?.name||null,
       notes:newQuote.notes,
       valid_until:newQuote.valid_until||null,
       total_amount:parseFloat(newQuote.total_amount)||0,
