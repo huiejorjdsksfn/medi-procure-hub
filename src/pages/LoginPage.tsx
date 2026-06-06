@@ -118,11 +118,7 @@ export default function LoginPage() {
             </div>}
             <div>
               <div style={s.name}>EL5 MediProcure</div>
-              <div style={s.sub}>ProcurBosse · Embu Level 5</div>
             </div>
-          </div>
-          <div style={{textAlign:"center"}}>
-            <span style={s.badge}>v10.0 · Health Procurement ERP</span>
           </div>
           <div style={s.hd}>{forgot?"Reset Password":"Sign In"}</div>
 
@@ -194,14 +190,6 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div style={s.footer}>
-        <div style={s.fdot}/>
-        <span style={s.ftxt}>Embu Level 5 Hospital · Embu County Government</span>
-        <div style={s.fdot}/>
-        <span style={{...s.ftxt,color:"rgba(255,255,255,.4)"}}>ERP v10.0</span>
       </div>
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
