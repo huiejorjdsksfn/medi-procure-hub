@@ -25,11 +25,12 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 async function ping(): Promise<{ latency_ms: number; status: string; db_version: string; active_conns: number; table_counts: Record<string, number> }> {
   const t0 = Date.now();
   try {
-    // Core ping — SELECT 1
-    const { error: pingErr } = await db.rpc("pg_sleep", { seconds: 0 }).maybeSingle().catch(() => ({ error: null }));
-
-    // Gather health stats in one query
-    const { data, error } = await db.rpc("get_db_health_stats").maybeSingle();
+    // Gather health stats in one query (await PostgrestBuilder properly — no .catch on builder)
+    let data: any = null, error: any = null;
+    try {
+      const res = await db.rpc("get_db_health_stats").maybeSingle();
+      data = res.data; error = res.error;
+    } catch (e: any) { error = e; }
     const latency_ms = Date.now() - t0;
 
     if (error) {
@@ -75,13 +76,17 @@ async function insertHeartbeat(stats: Awaited<ReturnType<typeof ping>>) {
 }
 
 async function trim() {
-  // Delete oldest rows beyond MAX_ROWS
-  await db.rpc("trim_heartbeat", { keep: MAX_ROWS }).catch(() => {
-    // Fallback if RPC not available
-    return db.from("db_heartbeat")
-      .delete()
-      .lt("id", db.from("db_heartbeat").select("id").order("id", { ascending: false }).range(MAX_ROWS, MAX_ROWS));
-  });
+  try {
+    await db.rpc("trim_heartbeat", { keep: MAX_ROWS });
+  } catch {
+    // Fallback: best-effort delete of oldest rows
+    try {
+      const { data } = await db.from("db_heartbeat")
+        .select("id").order("id", { ascending: false }).range(MAX_ROWS, MAX_ROWS);
+      const cutoff = (data as any)?.[0]?.id;
+      if (cutoff) await db.from("db_heartbeat").delete().lt("id", cutoff);
+    } catch {}
+  }
 }
 
 Deno.serve(async (req) => {

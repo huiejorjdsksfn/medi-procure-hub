@@ -106,9 +106,16 @@ export default function GuiEditorPage() {
   const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV);
   const ipInfo = useRealIP();
 
-  // Reinitialize cfg whenever Supabase settings load/change
+  // Conflict-safe reconciliation: keep locally-edited (dirty) keys, merge the rest from realtime/Supabase
+  const dirtyKeys = useRef<Set<string>>(new Set());
   useEffect(() => {
-    setCfg(buildCfg());
+    const fresh = buildCfg();
+    setCfg(prev => {
+      const merged: Record<string,string> = { ...fresh };
+      // Preserve any keys the user has edited locally but not yet saved
+      dirtyKeys.current.forEach(k => { if (k in prev) merged[k] = prev[k]; });
+      return merged;
+    });
   }, [settings, buildCfg]);
 
   // Apply every change to the live app DOM instantly
@@ -116,8 +123,8 @@ export default function GuiEditorPage() {
     applyThemeToDOM(cfg as any);
   }, [cfg]);
 
-  const setVal = useCallback((k: string, v: string) => setCfg(p => ({ ...p, [k]: v })), []);
-  const toggle = useCallback((k: string) => setCfg(p => ({ ...p, [k]: p[k] === "true" ? "false" : "true" })), []);
+  const setVal = useCallback((k: string, v: string) => { dirtyKeys.current.add(k); setCfg(p => ({ ...p, [k]: v })); }, []);
+  const toggle = useCallback((k: string) => { dirtyKeys.current.add(k); setCfg(p => ({ ...p, [k]: p[k] === "true" ? "false" : "true" })); }, []);
   const on = (k: string) => cfg[k] === "true";
 
   const applyPreset = (p: typeof PRESETS[0]) => {
@@ -160,7 +167,7 @@ export default function GuiEditorPage() {
     });
     const res = await saveSettings({ ...cfg, ...navKV }, "theme");
     setSaving(false);
-    if (res.ok) toast({ title: "Theme saved & applied -", description: "All users will see changes on next page load" });
+    if (res.ok) { dirtyKeys.current.clear(); toast({ title: "Theme saved & applied -", description: "All users will see changes on next page load" }); }
     else        toast({ title: "Save failed", description: res.error, variant: "destructive" });
   };
 

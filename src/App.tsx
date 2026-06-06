@@ -163,7 +163,7 @@ const App = () => (
             <Route path="/email" element={<P><EmailPage /></P>} />
             <Route path="/reception" element={<P><ReceptionPage /></P>} />
             <Route path="/telephony" element={<P><TelephonyPage /></P>} />
-            <Route path="/sms" element={<P><SMSPage /></P>} />
+            <Route path="/sms" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","procurement_manager"]}><SMSPage /></RoleGuard></P>} />
             <Route path="/whatsapp" element={<P><WhatsAppPage /></P>} />
             <Route path="/ai-agent"  element={<P><AIAgentPage /></P>} />
 
