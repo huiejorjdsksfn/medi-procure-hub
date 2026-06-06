@@ -1,21 +1,20 @@
 /**
- * ProcurBosse - RoleGuard v3.0
- * Superadmin / webmaster bypass - No access-denied flash on refresh
- * Graceful degradation while session loads
+ * ProcurBosse - RoleGuard v4.0
+ * Hardened: superadmin/admin/webmaster bypass all guards
+ * Uses isAdminTier from AuthContext — reliable even during background DB refresh
+ * No access-denied flash on page refresh for admin users
  */
-import { useAuth, ProcurementRole } from "@/contexts/AuthContext";
+import { useAuth, ProcurementRole, ADMIN_TIER } from "@/contexts/AuthContext";
 import { Shield, Lock, ChevronRight, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { T } from "@/lib/theme";
+import type React from "react";
 
 interface RoleGuardProps {
   allowed: (ProcurementRole | string)[];
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
-
-/* Roles that bypass all guards */
-const SUPERROLES = ["superadmin","webmaster","admin"] as const;
 
 export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
   const navigate = useNavigate();
@@ -45,7 +44,7 @@ export function AccessDenied({ requiredRoles }: { requiredRoles: string[] }) {
             style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"9px 18px",
               background:T.bg2, border:`1px solid ${T.border}`, borderRadius:T.r,
               cursor:"pointer", fontSize:13, fontWeight:600, color:T.fgMuted }}>
-            - Back
+            ← Back
           </button>
           <button onClick={() => navigate("/dashboard")}
             style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"9px 18px",
@@ -75,9 +74,9 @@ export function RoleBanner({ message, type="info" }: { message:string; type?:"in
 }
 
 export default function RoleGuard({ allowed, children, fallback }: RoleGuardProps) {
-  const { roles, loading, initialized } = useAuth();
+  const { roles, loading, initialized, isAdminTier } = useAuth();
 
-  /* While auth is loading - show spinner, never show access denied */
+  // While auth is loading on first cold load — show spinner, never flash access denied
   if (loading && !initialized) {
     return (
       <div style={{ minHeight:200, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -87,14 +86,12 @@ export default function RoleGuard({ allowed, children, fallback }: RoleGuardProp
     );
   }
 
-  /* Superadmin / webmaster / admin bypass */
-  if (SUPERROLES.some(r => roles.includes(r))) return <>{children}</>;
+  // Admin-tier (superadmin / admin / webmaster) bypasses all role guards
+  if (isAdminTier || ADMIN_TIER.some(r => roles.includes(r))) return <>{children}</>;
 
-  /* Normal role check */
+  // Normal role check
   const hasAccess = allowed.some(r => roles.includes(r as ProcurementRole));
   if (hasAccess) return <>{children}</>;
 
   return fallback ? <>{fallback}</> : <AccessDenied requiredRoles={allowed as string[]}/>;
 }
-
-import type React from "react";

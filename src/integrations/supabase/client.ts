@@ -37,7 +37,7 @@ export const db = supabase as ReturnType<typeof createClient>;
 
 // ── Auth cache (20-min TTL) ───────────────────────────────────────
 const CACHE_KEY = "el5_auth_v10";
-const CACHE_TTL = 20 * 60 * 1000;
+const CACHE_TTL = 10 * 60 * 1000; // 10 min — shorter window so role changes propagate faster
 
 export interface AuthCache { userId: string; profile: any; roles: string[]; ts: number; }
 
@@ -66,8 +66,9 @@ export async function fetchUserData(uid: string): Promise<{ profile: any; roles:
     supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", uid),
   ]);
-  return {
-    profile: pRes.status === "fulfilled" ? pRes.value.data : null,
-    roles:   rRes.status === "fulfilled" ? (rRes.value.data as any[] || []).map(r => r.role) : [],
-  };
+  const profile = pRes.status === "fulfilled" ? pRes.value.data : null;
+  const roles   = rRes.status === "fulfilled" ? (rRes.value.data as any[] || []).map((r: any) => r.role) : [];
+  // Always write to cache so page refreshes restore roles instantly from localStorage
+  authCache.set(uid, profile, roles);
+  return { profile, roles };
 }
