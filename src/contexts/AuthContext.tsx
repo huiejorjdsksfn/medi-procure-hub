@@ -94,6 +94,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
   }, [apply]);
 
+  // Session hardening: watch the current user's role rows in realtime.
+  // If roles are added or removed for THIS user, force a re-auth so the JWT
+  // and client cache reflect the new permissions immediately.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`role-watch-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${user.id}` },
+        async () => {
+          try {
+            authCache.clear();
+            const fresh = await fetchUserData(user.id);
+            const oldSet = new Set(roles);
+            const newSet = new Set(fresh.roles || []);
+            const changed =
+              oldSet.size !== newSet.size ||
+              [...oldSet].some(r => !newSet.has(r)) ||
+              [...newSet].some(r => !oldSet.has(r));
+            if (changed) {
+              // Force re-auth so a fresh JWT with updated claims is issued
+              try { await supabase.auth.signOut(); } catch {}
+              setSession(null); setUser(null); setProfile(null); setRoles([]);
+              if (typeof window !== "undefined") {
+                window.location.assign("/login?reason=role_changed");
+              }
+            } else {
+              setRoles(fresh.roles || []);
+              setProfile(fresh.profile || null);
+            }
+          } catch {}
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, roles]);
+
   const signOut = async () => {
     authCache.clear();
     await supabase.auth.signOut();

@@ -108,15 +108,48 @@ export default function GuiEditorPage() {
 
   // Conflict-safe reconciliation: keep locally-edited (dirty) keys, merge the rest from realtime/Supabase
   const dirtyKeys = useRef<Set<string>>(new Set());
+  const [conflict, setConflict] = useState<{ remote: Record<string,string>; keys: string[] } | null>(null);
   useEffect(() => {
     const fresh = buildCfg();
     setCfg(prev => {
+      // Detect collisions: keys the user has edited locally that arrived with a *different* remote value
+      const collisions: string[] = [];
+      dirtyKeys.current.forEach(k => {
+        if (k in fresh && k in prev && String(fresh[k]) !== String(prev[k])) collisions.push(k);
+      });
+      if (collisions.length) {
+        setConflict({ remote: fresh, keys: collisions });
+        // Keep current local edits — user must resolve via the banner
+        const merged: Record<string,string> = { ...fresh };
+        dirtyKeys.current.forEach(k => { if (k in prev) merged[k] = prev[k]; });
+        return merged;
+      }
+      // No conflict: just preserve dirty fields, take fresh for the rest
       const merged: Record<string,string> = { ...fresh };
-      // Preserve any keys the user has edited locally but not yet saved
       dirtyKeys.current.forEach(k => { if (k in prev) merged[k] = prev[k]; });
       return merged;
     });
   }, [settings, buildCfg]);
+
+  const resolveConflict = (mode: "keep" | "remote" | "merge") => {
+    if (!conflict) return;
+    if (mode === "remote") {
+      // Discard local edits for the conflicting keys
+      setCfg(prev => {
+        const next = { ...prev };
+        conflict.keys.forEach(k => { next[k] = conflict.remote[k]; });
+        return next;
+      });
+      conflict.keys.forEach(k => dirtyKeys.current.delete(k));
+      toast({ title: "Remote changes applied", description: `${conflict.keys.length} field(s) overwritten with remote values.` });
+    } else if (mode === "merge") {
+      // Prefer remote for non-dirty keys (already done) and keep local for dirty (already done)
+      toast({ title: "Merged", description: "Your edits preserved; remote updates kept where you hadn't edited." });
+    } else {
+      toast({ title: "Local edits kept", description: "Save to push your version." });
+    }
+    setConflict(null);
+  };
 
   // Apply every change to the live app DOM instantly
   useEffect(() => {
@@ -241,6 +274,27 @@ export default function GuiEditorPage() {
 
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
+
+      {/* Conflict resolution banner — appears when realtime brings remote edits to fields the user has changed locally */}
+      {conflict && (
+        <div style={{
+          position:"fixed", top:12, left:"50%", transform:"translateX(-50%)", zIndex:9999,
+          background:"#fffbeb", border:"1px solid #f59e0b", borderRadius:8,
+          padding:"10px 14px", boxShadow:"0 6px 24px rgba(0,0,0,0.15)",
+          display:"flex", alignItems:"center", gap:12, maxWidth:720, fontSize:12.5, color:"#78350f",
+        }}>
+          <Shield style={{ width:18, height:18, color:"#b45309" }}/>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700 }}>Concurrent edit detected</div>
+            <div style={{ color:"#92400e" }}>
+              {conflict.keys.length} field(s) changed remotely while you were editing: <code style={{ background:"#fde68a", padding:"1px 5px", borderRadius:3 }}>{conflict.keys.slice(0,4).join(", ")}{conflict.keys.length>4?"…":""}</code>
+            </div>
+          </div>
+          <button onClick={()=>resolveConflict("keep")}   style={{ padding:"6px 10px", border:"1px solid #b45309", background:"#fff", color:"#78350f", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Keep mine</button>
+          <button onClick={()=>resolveConflict("merge")}  style={{ padding:"6px 10px", border:"1px solid #b45309", background:"#fff", color:"#78350f", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Merge</button>
+          <button onClick={()=>resolveConflict("remote")} style={{ padding:"6px 10px", border:"none", background:"#b45309", color:"#fff", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Use remote</button>
+        </div>
+      )}
 
       {/* - LEFT PANEL - Controls - */}
       <div style={{ width:296, flexShrink:0, background:"#fff", borderRight:"1px solid #e2e8f0",
