@@ -9,9 +9,10 @@ import { Plus, Search, RefreshCw, X, Save, Trash2, Edit } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function CategoriesPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("inventory_manager");
+  const canManage = isAdminRole||hasRole("procurement_manager")||hasRole("inventory_manager");
   const [rows, setRows]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState("");
@@ -99,7 +100,7 @@ export default function CategoriesPage() {
                       style={{padding:"4px 8px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,cursor:"pointer",lineHeight:0}}>
                       <Edit style={{width:12,height:12,color:"#2563eb"}}/>
                     </button>}
-                    {hasRole("admin")&&<button onClick={()=>del(r.id)}
+                    {isAdminRole&&<button onClick={()=>del(r.id)}
                       style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}>
                       <Trash2 style={{width:12,height:12,color:"#dc2626"}}/>
                     </button>}

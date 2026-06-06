@@ -12,9 +12,10 @@ const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimum
 const TYPE_COLORS: Record<string,string> = {Asset:"#0369a1",Liability:"#dc2626",Equity:"#7c3aed",Revenue:"#15803d",Expense:"#d97706"};
 
 export default function ChartOfAccountsPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin")||hasRole("procurement_manager");
+  const canManage = isAdminRole||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -148,7 +149,7 @@ export default function ChartOfAccountsPage() {
                 <td style={{padding:"10px 16px"}}><span style={{fontSize:10,fontWeight:700,color:r.is_active!==false?"#15803d":"#9ca3af"}}>{r.is_active!==false?"Active":"Inactive"}</span></td>
                 <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
                   {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                  {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                 </div></td>
               </tr>
             ))}

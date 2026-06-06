@@ -15,8 +15,9 @@ const genNo = () => `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(100
 const SC: Record<string,string> = {draft:"#6b7280",approved:"#15803d",posted:"#0369a1",rejected:"#dc2626"};
 
 export default function JournalVouchersPage() {
-  const { user, profile, hasRole } = useAuth();
-  const canApprove = hasRole("admin")||hasRole("procurement_manager");
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
+  const canApprove = isAdminRole||hasRole("procurement_manager");
   const [rows, setRows] = useState<any[]>([]);
   const [coa, setCoa] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,7 +179,7 @@ export default function JournalVouchersPage() {
                   <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
                   <button onClick={()=>printVoucher(r)} style={{padding:5,borderRadius:6,background:"#dcfce7",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12,color:"#16a34a"}}/></button>
                   {canApprove&&r.status==="draft"&&<button onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,background:"#d1fae5",border:"none",cursor:"pointer"}} title="Approve"><CheckCircle style={{width:12,height:12,color:"#059669"}}/></button>}
-                  {hasRole("admin")&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
+                  {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
                 </div></td>
               </tr>
             ))}

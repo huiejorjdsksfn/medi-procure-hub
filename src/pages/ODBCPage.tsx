@@ -55,7 +55,7 @@ const btnS=(bg:string,border?:string):React.CSSProperties=>({display:"inline-fle
 /* - */
 export default function ODBCPage() {
   const { roles } = useAuth();
-  const isAdmin = roles.includes("admin") || roles.includes("database_admin");
+  const isAdmin = roles.some(r => ["superadmin","admin","webmaster","database_admin"].includes(r));
 
   const [tab, setTab]           = useState<Tab>("connections");
   const [conns, setConns]       = useState<any[]>([]);

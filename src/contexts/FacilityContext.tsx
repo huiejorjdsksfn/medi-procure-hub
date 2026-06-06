@@ -71,7 +71,8 @@ export function FacilityProvider({ children }: { children: ReactNode }) {
       let accessible = facilities;
 
       // If not admin, filter to user's assigned facilities
-      if (user && !roles.includes("admin")) {
+      const isAdminInCtx = roles.some(r => ["superadmin","admin","webmaster"].includes(r));
+      if (user && !isAdminInCtx) {
         const { data: uf } = await (supabase as any)
           .from("user_facilities").select("facility_id").eq("user_id", user.id);
         const ids = new Set((uf || []).map((r: any) => r.facility_id));

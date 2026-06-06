@@ -25,7 +25,7 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string }> = 
 
 const GROUPS = [
   { label: "All Users",       roles: null,      desc: "Everyone in the system" },
-  { label: "Admins",          roles: ["admin"],                                    desc: "System administrators only" },
+  { label: "Admins",          roles: ["superadmin","admin","webmaster"],            desc: "System administrators only" },
   { label: "Procurement",     roles: ["procurement_manager","procurement_officer"], desc: "Procurement managers & officers" },
   { label: "Managers",        roles: ["admin","procurement_manager","inventory_manager"], desc: "All management roles" },
   { label: "Non-Admins",      roles: ["procurement_manager","procurement_officer","inventory_manager","warehouse_officer","requisitioner"], desc: "All staff except admins" },
@@ -114,8 +114,8 @@ export default function ForwardEmailDialog({
   const visibleUsers = allUsers
     .filter(u => !recipients.some(r => r.id === u.id))
     .filter(u => {
-      if (tab === "admins")    return u.roles.includes("admin");
-      if (tab === "nonAdmins") return !u.roles.includes("admin");
+      if (tab === "admins")    return u.roles.some((r:string) => ["superadmin","admin","webmaster"].includes(r));
+      if (tab === "nonAdmins") return !u.roles.some((r:string) => ["superadmin","admin","webmaster"].includes(r));
       return true;
     })
     .filter(u => {

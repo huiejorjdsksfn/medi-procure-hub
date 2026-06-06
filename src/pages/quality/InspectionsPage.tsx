@@ -15,8 +15,9 @@ const RC: Record<string,{bg:string;color:string}> = {
 };
 
 export default function InspectionsPage() {
-  const { user, profile, hasRole } = useAuth();
-  const canCreate = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
+  const canCreate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
   const [rows, setRows]         = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -132,7 +133,7 @@ export default function InspectionsPage() {
                 <td style={{padding:"9px 12px"}}>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={()=>setDetail(r)} style={{padding:"4px 8px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#15803d"}}/></button>
-                    {hasRole("admin")&&<button onClick={()=>del(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
+                    {isAdminRole&&<button onClick={()=>del(r.id)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",lineHeight:0}}><Trash2 style={{width:12,height:12,color:"#dc2626"}}/></button>}
                   </div>
                 </td>
               </tr>);

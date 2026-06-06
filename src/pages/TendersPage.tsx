@@ -36,9 +36,10 @@ const INP = (v:any,cb:any,p="",t="text") => (
 const LBL = ({c,children}:{c?:string;children:any}) => <div style={{fontSize:12,fontWeight:700,color:c||"#374151",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.05em"}}>{children}</div>;
 
 export default function TendersPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminTier} = useAuth();
+  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const { get: getSetting } = useSystemSettings();
-  const canManage = hasRole("admin")||hasRole("procurement_manager")||hasRole("procurement_officer");
+  const canManage = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer");
 
   const [rows,     setRows]     = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
