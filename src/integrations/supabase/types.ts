@@ -232,6 +232,7 @@ export type Database = {
       }
       backup_jobs: {
         Row: {
+          backup_type: string | null
           completed_at: string | null
           error_msg: string | null
           file_size: number | null
@@ -240,11 +241,13 @@ export type Database = {
           initiated_by: string | null
           label: string
           row_counts: Json | null
+          size_bytes: number | null
           started_at: string | null
           status: string | null
           tables_json: Json | null
         }
         Insert: {
+          backup_type?: string | null
           completed_at?: string | null
           error_msg?: string | null
           file_size?: number | null
@@ -253,11 +256,13 @@ export type Database = {
           initiated_by?: string | null
           label: string
           row_counts?: Json | null
+          size_bytes?: number | null
           started_at?: string | null
           status?: string | null
           tables_json?: Json | null
         }
         Update: {
+          backup_type?: string | null
           completed_at?: string | null
           error_msg?: string | null
           file_size?: number | null
@@ -266,6 +271,7 @@ export type Database = {
           initiated_by?: string | null
           label?: string
           row_counts?: Json | null
+          size_bytes?: number | null
           started_at?: string | null
           status?: string | null
           tables_json?: Json | null
@@ -2597,6 +2603,7 @@ export type Database = {
       inspections: {
         Row: {
           batch_number: string | null
+          closed_at: string | null
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
@@ -2606,11 +2613,13 @@ export type Database = {
           id: string
           inspection_date: string | null
           inspection_number: string
+          inspection_type: string | null
           inspector_id: string | null
           inspector_name: string | null
           item_id: string | null
           item_name: string | null
           notes: string | null
+          overall_result: string | null
           po_id: string | null
           po_reference: string | null
           quantity_accepted: number | null
@@ -2625,6 +2634,7 @@ export type Database = {
         }
         Insert: {
           batch_number?: string | null
+          closed_at?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
@@ -2634,11 +2644,13 @@ export type Database = {
           id?: string
           inspection_date?: string | null
           inspection_number?: string
+          inspection_type?: string | null
           inspector_id?: string | null
           inspector_name?: string | null
           item_id?: string | null
           item_name?: string | null
           notes?: string | null
+          overall_result?: string | null
           po_id?: string | null
           po_reference?: string | null
           quantity_accepted?: number | null
@@ -2653,6 +2665,7 @@ export type Database = {
         }
         Update: {
           batch_number?: string | null
+          closed_at?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
@@ -2662,11 +2675,13 @@ export type Database = {
           id?: string
           inspection_date?: string | null
           inspection_number?: string
+          inspection_type?: string | null
           inspector_id?: string | null
           inspector_name?: string | null
           item_id?: string | null
           item_name?: string | null
           notes?: string | null
+          overall_result?: string | null
           po_id?: string | null
           po_reference?: string | null
           quantity_accepted?: number | null
@@ -3081,6 +3096,7 @@ export type Database = {
           is_active: boolean | null
           item_code: string | null
           item_type: string | null
+          last_adjusted_at: string | null
           location: string | null
           manufacturer: string | null
           minimum_stock: number | null
@@ -3119,6 +3135,7 @@ export type Database = {
           is_active?: boolean | null
           item_code?: string | null
           item_type?: string | null
+          last_adjusted_at?: string | null
           location?: string | null
           manufacturer?: string | null
           minimum_stock?: number | null
@@ -3157,6 +3174,7 @@ export type Database = {
           is_active?: boolean | null
           item_code?: string | null
           item_type?: string | null
+          last_adjusted_at?: string | null
           location?: string | null
           manufacturer?: string | null
           minimum_stock?: number | null
@@ -3195,6 +3213,47 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_voucher_lines: {
+        Row: {
+          account_code: string | null
+          cost_center: string | null
+          created_at: string | null
+          credit_amount: number | null
+          debit_amount: number | null
+          description: string | null
+          id: string
+          journal_id: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string | null
+          id?: string
+          journal_id?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string | null
+          id?: string
+          journal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_voucher_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal_vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -3345,6 +3404,7 @@ export type Database = {
       }
       non_conformance: {
         Row: {
+          closed_at: string | null
           corrective_action: string | null
           cost_impact: number | null
           created_at: string | null
@@ -3362,6 +3422,7 @@ export type Database = {
           preventive_action: string | null
           raised_by: string | null
           raised_by_name: string | null
+          resolution: string | null
           resolved_at: string | null
           resolved_by: string | null
           resolved_by_name: string | null
@@ -3375,6 +3436,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          closed_at?: string | null
           corrective_action?: string | null
           cost_impact?: number | null
           created_at?: string | null
@@ -3392,6 +3454,7 @@ export type Database = {
           preventive_action?: string | null
           raised_by?: string | null
           raised_by_name?: string | null
+          resolution?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           resolved_by_name?: string | null
@@ -3405,6 +3468,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          closed_at?: string | null
           corrective_action?: string | null
           cost_impact?: number | null
           created_at?: string | null
@@ -3422,6 +3486,7 @@ export type Database = {
           preventive_action?: string | null
           raised_by?: string | null
           raised_by_name?: string | null
+          resolution?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           resolved_by_name?: string | null
@@ -4659,6 +4724,57 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_voucher_lines: {
+        Row: {
+          account_code: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          item_id: string | null
+          quantity: number | null
+          total_price: number | null
+          unit_price: number | null
+          voucher_id: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_id?: string | null
+          quantity?: number | null
+          total_price?: number | null
+          unit_price?: number | null
+          voucher_id?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_id?: string | null
+          quantity?: number | null
+          total_price?: number | null
+          unit_price?: number | null
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_voucher_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_voucher_lines_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -6009,15 +6125,18 @@ export type Database = {
           kra_pin: string | null
           name: string
           notes: string | null
+          on_time_delivery_rate: number | null
           payment_terms: string | null
           phone: string | null
           pin_number: string | null
           postal_address: string | null
+          quality_score: number | null
           rating: number | null
           registration_number: string | null
           status: string | null
           supplier_code: string | null
           tax_id: string | null
+          total_orders: number | null
           updated_at: string | null
           website: string | null
         }
@@ -6038,15 +6157,18 @@ export type Database = {
           kra_pin?: string | null
           name: string
           notes?: string | null
+          on_time_delivery_rate?: number | null
           payment_terms?: string | null
           phone?: string | null
           pin_number?: string | null
           postal_address?: string | null
+          quality_score?: number | null
           rating?: number | null
           registration_number?: string | null
           status?: string | null
           supplier_code?: string | null
           tax_id?: string | null
+          total_orders?: number | null
           updated_at?: string | null
           website?: string | null
         }
@@ -6067,15 +6189,18 @@ export type Database = {
           kra_pin?: string | null
           name?: string
           notes?: string | null
+          on_time_delivery_rate?: number | null
           payment_terms?: string | null
           phone?: string | null
           pin_number?: string | null
           postal_address?: string | null
+          quality_score?: number | null
           rating?: number | null
           registration_number?: string | null
           status?: string | null
           supplier_code?: string | null
           tax_id?: string | null
+          total_orders?: number | null
           updated_at?: string | null
           website?: string | null
         }
