@@ -122,6 +122,7 @@ const MODS = [
      {l:"Admin Panel",  p:"/admin/panel",    I:Settings},
      {l:"Users",        p:"/users",          I:Users},
       {l:"Activity Stats",p:"/admin/activity",I:Activity},
+      {l:"Users & IP Audit",p:"/admin/users-ip-audit",I:Users},
      {l:"Facilities",   p:"/facilities",     I:Building2},
      {l:"IP Access",    p:"/admin/ip-access",I:Lock},
      {l:"Database",     p:"/admin/database", I:Database},
