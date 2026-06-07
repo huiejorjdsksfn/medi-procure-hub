@@ -121,6 +121,7 @@ const MODS = [
    items:[
      {l:"Admin Panel",  p:"/admin/panel",    I:Settings},
      {l:"Users",        p:"/users",          I:Users},
+      {l:"Create User",  p:"/admin/create-user",I:Users},
       {l:"Activity Stats",p:"/admin/activity",I:Activity},
       {l:"Users & IP Audit",p:"/admin/users-ip-audit",I:Users},
      {l:"Facilities",   p:"/facilities",     I:Building2},
