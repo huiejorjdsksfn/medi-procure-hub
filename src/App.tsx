@@ -76,6 +76,7 @@ import GuiEditorPage from "@/pages/GuiEditorPage";
 import FacilitiesPage from "@/pages/FacilitiesPage";
 import DbTestPage from "@/pages/DbTestPage";
 import NotFoundLogPage from "@/pages/NotFoundLogPage";
+import UsersIpAuditPage from "@/pages/UsersIpAuditPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000, gcTime: 300000, refetchOnWindowFocus: false, refetchOnReconnect: "always" } }
@@ -189,6 +190,7 @@ const App = () => (
             <Route path="/facilities" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><FacilitiesPage /></RoleGuard></P>} />
             <Route path="/admin/db-test" element={<P><RoleGuard allowed={["admin","database_admin"]}><DbTestPage /></RoleGuard></P>} />
             <Route path="/admin/not-found-log" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
+            <Route path="/admin/users-ip-audit" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><UsersIpAuditPage /></RoleGuard></P>} />
 
             <Route path="/accountant" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
             <Route path="/accountant-workspace" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
