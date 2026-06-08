@@ -6,7 +6,7 @@
  */
 
 const PREFIX = "el5_page_cache_";
-const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_TTL = Number.MAX_SAFE_INTEGER; // keep page data visible until explicit logout/cache clear
 
 interface CacheEntry<T> {
   data: T;
@@ -29,7 +29,7 @@ export const pageCache = {
       const raw = localStorage.getItem(PREFIX + page);
       if (!raw) return null;
       const entry: CacheEntry<T> = JSON.parse(raw);
-      if (Date.now() - entry.ts > entry.ttl) {
+      if (Number.isFinite(entry.ttl) && Date.now() - entry.ts > entry.ttl) {
         localStorage.removeItem(PREFIX + page);
         return null;
       }
