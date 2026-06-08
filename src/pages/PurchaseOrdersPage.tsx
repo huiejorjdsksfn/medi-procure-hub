@@ -18,6 +18,8 @@ import { executePOAction, type POAction } from "@/lib/procurement/poWorkflow";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printLPO } from "@/lib/printDocument";
 import { useSuppliers, useDepartments } from "@/hooks/useDropdownData";
+import { useConflictResolver } from "@/hooks/useConflictResolver";
+import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:    {bg:"#f3f4f6",color:"#6b7280",  label:"Draft"},
@@ -50,8 +52,8 @@ function genPONumber() {
 export default function PurchaseOrdersPage() {
   const { user, profile, roles } = useAuth();
   const { get: getSetting } = useSystemSettings();
-  const { suppliers } = useSuppliers();
-  const { departments } = useDepartments();
+  const { suppliers, hasMore: suppliersHasMore, loadMore: loadMoreSuppliers } = useSuppliers();
+  const { departments, hasMore: departmentsHasMore, loadMore: loadMoreDepartments } = useDepartments();
 
   const canApprove = roles.includes("admin") || roles.includes("procurement_manager");
   const canCreate  = !roles.includes("warehouse_officer");
@@ -78,6 +80,19 @@ export default function PurchaseOrdersPage() {
     status: "draft",
   };
   const [form, setForm] = useState<any>(EMPTY_FORM);
+
+  const conflictResolver = useConflictResolver({
+    table: "purchase_orders",
+    id: showForm && editing?.id ? editing.id : null,
+    local: form,
+    setLocal: setForm,
+    onResolved: choice => toast({ title: choice === "remote" ? "Remote purchase order applied" : choice === "merge" ? "Purchase order changes merged" : "Keeping your purchase order edits" }),
+  });
+
+  const updateFormField = useCallback((key: string, value: any) => {
+    conflictResolver.markDirty(key);
+    setForm((p: any) => ({ ...p, [key]: value }));
+  }, [conflictResolver]);
 
   const computedTotal = form.items.reduce(
     (s: number, it: any) => s + (Number(it.quantity)||0) * (Number(it.unit_price)||0), 0
@@ -130,7 +145,7 @@ export default function PurchaseOrdersPage() {
   };
 
   /* - Save - */
-  const save = async () => {
+  const save = async (statusOverride?: string) => {
     if (!validate()) {
       toast({title:"Please fix validation errors",variant:"destructive"});
       return;
@@ -148,7 +163,7 @@ export default function PurchaseOrdersPage() {
         department:    form.department,
         notes:         form.notes,
         total_amount:  computedTotal,
-        status:        form.status,
+        status:        statusOverride || form.status,
         line_items:    validItems,
         created_by:    user?.id,
       };
@@ -159,6 +174,8 @@ export default function PurchaseOrdersPage() {
           .update({...payload, updated_at: new Date().toISOString()})
           .eq("id", editing.id);
         if (error) throw error;
+        conflictResolver.clearDirty();
+        conflictResolver.setBaseline({ ...form, ...payload });
         toast({title:"Purchase Order updated -"});
         logAudit(user?.id,profile?.full_name,"update","purchase_orders",editing.id,{po_number:payload.po_number});
       } else {
@@ -167,6 +184,8 @@ export default function PurchaseOrdersPage() {
         if (error) throw error;
         savedId = data?.id;
         toast({title:"Purchase Order created -",description:`PO ${payload.po_number} saved as ${payload.status}`});
+        conflictResolver.clearDirty();
+        conflictResolver.setBaseline({ ...form, ...payload, id: savedId });
         logAudit(user?.id,profile?.full_name,"create","purchase_orders",savedId,{po_number:payload.po_number});
         await notifyProcurement({
           title:"New PO Created",
@@ -185,12 +204,13 @@ export default function PurchaseOrdersPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({...EMPTY_FORM, po_number: genPONumber()});
+    conflictResolver.clearDirty();
     setErrors({});
     setShowForm(true);
   };
   const openEdit = (po: any) => {
     setEditing(po);
-    setForm({
+    const nextForm = {
       po_number:    po.po_number || "",
       supplier_id:  po.supplier_id || "",
       supplier_name:po.supplier_name || "",
@@ -200,11 +220,14 @@ export default function PurchaseOrdersPage() {
       notes:        po.notes || "",
       items:        po.line_items?.length ? po.line_items : [{ ...EMPTY_ITEM }],
       status:       po.status || "draft",
-    });
+    };
+    setForm(nextForm);
+    conflictResolver.clearDirty();
+    conflictResolver.setBaseline(nextForm);
     setErrors({});
     setShowForm(true);
   };
-  const closeForm = () => { setShowForm(false); setEditing(null); setErrors({}); };
+  const closeForm = () => { setShowForm(false); setEditing(null); setErrors({}); conflictResolver.clearDirty(); };
 
   /* - Approve / Cancel - */
   const handlePOAction = async (id: string, action: POAction) => {
@@ -267,10 +290,12 @@ export default function PurchaseOrdersPage() {
 
   const fmtK = (n:number) => n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
 
-  const setItem = (i:number, key:string, val:any) =>
+  const setItem = (i:number, key:string, val:any) => {
+    conflictResolver.markDirty("items");
     setForm((p:any)=>({...p,items:p.items.map((it:any,idx:number)=>idx===i?{...it,[key]:val}:it)}));
-  const addItem = () => setForm((p:any)=>({...p,items:[...p.items,{...EMPTY_ITEM}]}));
-  const removeItem = (i:number) => setForm((p:any)=>({...p,items:p.items.filter((_:any,idx:number)=>idx!==i)}));
+  };
+  const addItem = () => { conflictResolver.markDirty("items"); setForm((p:any)=>({...p,items:[...p.items,{...EMPTY_ITEM}]})); };
+  const removeItem = (i:number) => { conflictResolver.markDirty("items"); setForm((p:any)=>({...p,items:p.items.filter((_:any,idx:number)=>idx!==i)})); };
 
   const ErrMsg = ({field}:{field:string}) => errors[field]
     ? <div style={{color:"#dc2626",fontSize:10,marginTop:3}}>{errors[field]}</div>
@@ -427,6 +452,8 @@ export default function PurchaseOrdersPage() {
               </button>
             </div>
 
+            <ConflictResolutionBanner fields={conflictResolver.conflict} onResolve={conflictResolver.resolve} remoteLabel="purchase order" />
+
             {/* Form body */}
             <div style={{overflowY:"auto",flex:1,padding:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -434,14 +461,14 @@ export default function PurchaseOrdersPage() {
                 {/* PO Number */}
                 <div>
                   <label style={lbl}>PO Number *</label>
-                  <input value={form.po_number} onChange={e=>setForm((p:any)=>({...p,po_number:e.target.value}))} style={{...inp,borderColor:errors.po_number?"#dc2626":"#e5e7eb"}}/>
+                  <input value={form.po_number} onChange={e=>updateFormField("po_number", e.target.value)} style={{...inp,borderColor:errors.po_number?"#dc2626":"#e5e7eb"}}/>
                   <ErrMsg field="po_number"/>
                 </div>
 
                 {/* Status */}
                 <div>
                   <label style={lbl}>Status</label>
-                  <select value={form.status} onChange={e=>setForm((p:any)=>({...p,status:e.target.value}))} style={inp}>
+                  <select value={form.status} onChange={e=>updateFormField("status", e.target.value)} style={inp}>
                     {Object.entries(STATUS_CFG).map(([v,cfg])=><option key={v} value={v}>{cfg.label}</option>)}
                   </select>
                 </div>
@@ -450,17 +477,21 @@ export default function PurchaseOrdersPage() {
                 <div style={{gridColumn:"1/-1"}}>
                   <label style={lbl}>Supplier *</label>
                   <select value={form.supplier_name||form.supplier_id||"-"}
-                    onChange={e=>{
+                    onChange={async e=>{
+                      if (e.target.value === "__load_more_suppliers__") { await loadMoreSuppliers(); return; }
                       const s = suppliers.find(x=>x.id===e.target.value);
+                      conflictResolver.markDirty("supplier_id");
+                      conflictResolver.markDirty("supplier_name");
                       setForm((p:any)=>({...p,supplier_id:e.target.value,supplier_name:s?.name||""}));
                     }}
                     style={{...inp,borderColor:errors.supplier?"#dc2626":"#e5e7eb"}}>
                     <option value="">- Select a supplier -</option>
                     {suppliers.map(s=><option key={s.id} value={s.id}>{s.name} {s.category?`(${s.category})`:""}</option>)}
+                    {suppliersHasMore&&<option value="__load_more_suppliers__">Load more suppliers…</option>}
                   </select>
                   {!form.supplier_id&&(
                     <div style={{marginTop:6}}>
-                      <input value={form.supplier_name} onChange={e=>setForm((p:any)=>({...p,supplier_name:e.target.value}))}
+                      <input value={form.supplier_name} onChange={e=>updateFormField("supplier_name", e.target.value)}
                         placeholder="Or type supplier name manually-"
                         style={{...inp,fontSize:11,padding:"6px 10px",borderColor:errors.supplier?"#dc2626":"#e5e7eb"}}/>
                     </div>
@@ -472,7 +503,7 @@ export default function PurchaseOrdersPage() {
                 <div>
                   <label style={lbl}>Delivery Date *</label>
                   <input type="date" value={form.delivery_date}
-                    onChange={e=>setForm((p:any)=>({...p,delivery_date:e.target.value}))}
+                    onChange={e=>updateFormField("delivery_date", e.target.value)}
                     min={new Date().toISOString().slice(0,10)}
                     style={{...inp,borderColor:errors.delivery_date?"#dc2626":"#e5e7eb"}}/>
                   <ErrMsg field="delivery_date"/>
@@ -481,7 +512,7 @@ export default function PurchaseOrdersPage() {
                 {/* Payment Terms */}
                 <div>
                   <label style={lbl}>Payment Terms</label>
-                  <select value={form.payment_terms} onChange={e=>setForm((p:any)=>({...p,payment_terms:e.target.value}))} style={inp}>
+                  <select value={form.payment_terms} onChange={e=>updateFormField("payment_terms", e.target.value)} style={inp}>
                     {PAYMENT_TERMS.map(t=><option key={t}>{t}</option>)}
                   </select>
                 </div>
@@ -489,16 +520,17 @@ export default function PurchaseOrdersPage() {
                 {/* Department */}
                 <div>
                   <label style={lbl}>Requesting Department</label>
-                  <select value={form.department} onChange={e=>setForm((p:any)=>({...p,department:e.target.value}))} style={inp}>
+                  <select value={form.department} onChange={async e=>{ if (e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField("department", e.target.value); }} style={inp}>
                     <option value="">- Select department -</option>
                     {departments.map(d=><option key={d.id} value={d.name}>{d.name}</option>)}
+                    {departmentsHasMore&&<option value="__load_more_departments__">Load more departments…</option>}
                   </select>
                 </div>
 
                 {/* Notes */}
                 <div>
                   <label style={lbl}>Notes / Special Instructions</label>
-                  <textarea value={form.notes} onChange={e=>setForm((p:any)=>({...p,notes:e.target.value}))} rows={2}
+                  <textarea value={form.notes} onChange={e=>updateFormField("notes", e.target.value)} rows={2}
                     placeholder="Delivery instructions, quality requirements-"
                     style={{...inp,resize:"none"}}/>
                 </div>
@@ -582,11 +614,11 @@ export default function PurchaseOrdersPage() {
                 <button onClick={closeForm} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer",fontSize:13,color:"#374151"}}>
                   Cancel
                 </button>
-                <button onClick={()=>{setForm((p:any)=>({...p,status:"draft"}));save();}} disabled={saving}
+                <button onClick={()=>save("draft")} disabled={saving}
                   style={{display:"flex",alignItems:"center",gap:7,padding:"8px 16px",borderRadius:8,color:"#92400e",border:"1.5px solid #C45911",background:"#fff7ed",cursor:"pointer",fontSize:12,fontWeight:600,opacity:saving?0.7:1}}>
                   <Save style={{width:13,height:13}}/>Save Draft
                 </button>
-                <button onClick={()=>{setForm((p:any)=>({...p,status:"pending"}));save();}} disabled={saving}
+                <button onClick={()=>save("pending")} disabled={saving}
                   style={{display:"flex",alignItems:"center",gap:7,padding:"8px 18px",borderRadius:8,color:"#fff",border:"none",background:"linear-gradient(90deg,#92400e,#C45911)",cursor:"pointer",fontSize:12,fontWeight:700,opacity:saving?0.7:1}}>
                   {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Send style={{width:13,height:13}}/>}
                   {saving?"Saving-":"Submit for Approval"}

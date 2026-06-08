@@ -14,6 +14,7 @@ import {
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase, authCache, fetchUserData } from "@/integrations/supabase/client";
+import { pageCache } from "@/lib/pageCache";
 import {
   getLocalToken, issueToken, refreshToken,
   revokeToken, startTokenRefresh, stopTokenRefresh,
@@ -184,6 +185,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
         setRoles([]);
         authCache.clear();
+        pageCache.clearAll();
         stopTokenRefresh();
         if (mounted) setLoading(false);
       }
@@ -221,6 +223,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (changed) {
               // Roles changed → revoke token and force re-login for fresh JWT
               await revokeToken();
+              pageCache.clearAll();
               try { await supabase.auth.signOut(); } catch {}
               setSession(null); setUser(null); setProfile(null); setRoles([]);
               if (typeof window !== "undefined") {
@@ -242,6 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     stopTokenRefresh();
     await revokeToken();
     authCache.clear();
+    pageCache.clearAll();
     await supabase.auth.signOut();
     setSession(null); setUser(null); setProfile(null); setRoles([]);
   };
