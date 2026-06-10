@@ -17,7 +17,8 @@ const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
 
 // Credentials — env secrets take priority
 const RESEND_KEY  = Deno.env.get("RESEND_API_KEY") || "";
-const FROM_EMAIL  = Deno.env.get("SMTP_FROM_EMAIL") || "noreply@embu.go.ke";
+// Primary sender: hpdeskg9@gmail.com (configured in Resend as verified sender)
+const FROM_EMAIL  = Deno.env.get("SMTP_FROM_EMAIL") || "hpdeskg9@gmail.com";
 const FROM_NAME   = Deno.env.get("SMTP_FROM_NAME")  || "EL5 MediProcure";
 const BCC_EMAIL   = Deno.env.get("EMAIL_BCC")        || "";
 
@@ -41,8 +42,8 @@ function buildHtml(subject:string, body:string, actionUrl?:string, actionLabel?:
   </div>
   <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 36px;text-align:center">
     <div style="color:#9ca3af;font-size:11px">© ${new Date().getFullYear()} Embu County Government · Embu Level 5 Hospital</div>
-    <div style="color:#d1d5db;font-size:10px;margin-top:4px">EL5 MediProcure v10.0 · ProcurBosse · Health Procurement ERP · Kenya</div>
-    <div style="color:#d1d5db;font-size:9px;margin-top:4px">This is an automated message. Do not reply to this email.</div>
+    <div style="color:#d1d5db;font-size:10px;margin-top:4px">EL5 MediProcure v11.5 · ProcurBosse · Health Procurement ERP · Kenya</div>
+    <div style="color:#d1d5db;font-size:9px;margin-top:4px">Sent from: hpdeskg9@gmail.com · EL5 MediProcure automated message.</div>
   </div>
 </div></body></html>`;
 }

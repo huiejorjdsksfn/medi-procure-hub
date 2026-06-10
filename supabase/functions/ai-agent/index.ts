@@ -11,6 +11,7 @@ const SERVICE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const TWILIO_ACCT   = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
 const TWILIO_AUTH   = Deno.env.get("TWILIO_AUTH_TOKEN")  || "";
+const SENDER_EMAIL  = "hpdeskg9@gmail.com";
 const TWILIO_SMS    = Deno.env.get("TWILIO_PHONE_NUMBER") || "+16812972643";
 const TWILIO_WA     = Deno.env.get("TWILIO_WA_NUMBER")   || "+14155238886";
 

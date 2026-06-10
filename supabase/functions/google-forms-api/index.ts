@@ -1,0 +1,334 @@
+/**
+ * EL5 MediProcure — google-forms-api Edge Function v2.0
+ * Creates real Google Forms via Google Forms API (OAuth2 service account)
+ * Falls back to pre-filled Google Forms create URL if credentials unavailable
+ * Sender / editor account: hpdeskg9@gmail.com
+ * EL5 MediProcure · Embu Level 5 Hospital · Embu County Government
+ */
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const FORMS_SA_JSON = Deno.env.get("GOOGLE_FORMS_SERVICE_ACCOUNT_JSON") || "";
+const FORMS_OAUTH   = Deno.env.get("GOOGLE_FORMS_OAUTH_TOKEN") || "";
+const SENDER_EMAIL  = "hpdeskg9@gmail.com";
+const HOSPITAL      = "Embu Level 5 Hospital";
+const SYSTEM        = "EL5 MediProcure";
+const PORTAL        = "https://procurbosse.edgeone.app";
+const VERSION       = "v11.5";
+
+const db = createClient(SUPABASE_URL, SERVICE_KEY);
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
+};
+
+// ── Get Google OAuth token ──────────────────────────────────────────
+async function getGoogleToken(): Promise<string | null> {
+  // Option 1: direct OAuth token from env
+  if (FORMS_OAUTH) return FORMS_OAUTH;
+
+  // Option 2: service account JSON → JWT → access token
+  if (!FORMS_SA_JSON) return null;
+  try {
+    const sa = JSON.parse(FORMS_SA_JSON);
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: "RS256", typ: "JWT" };
+    const claim = {
+      iss: sa.client_email,
+      scope: "https://www.googleapis.com/auth/forms.body https://www.googleapis.com/auth/drive.file",
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+      sub: SENDER_EMAIL, // impersonate sender
+    };
+
+    // Encode JWT
+    const enc = (obj: object) => btoa(JSON.stringify(obj)).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+    const headerB64 = enc(header);
+    const claimB64  = enc(claim);
+    const unsigned  = `${headerB64}.${claimB64}`;
+
+    // Sign with private key
+    const keyDer = sa.private_key
+      .replace("-----BEGIN PRIVATE KEY-----","")
+      .replace("-----END PRIVATE KEY-----","")
+      .replace(/\s/g,"");
+    const keyBin = Uint8Array.from(atob(keyDer), c => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey(
+      "pkcs8", keyBin.buffer,
+      { name:"RSASSA-PKCS1-v1_5", hash:"SHA-256" },
+      false, ["sign"]
+    );
+    const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned));
+    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+    const jwt = `${unsigned}.${sigB64}`;
+
+    // Exchange JWT for access token
+    const r = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type:"urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }).toString(),
+    });
+    const d = await r.json();
+    return d.access_token || null;
+  } catch (e) {
+    console.error("Google token error:", e);
+    return null;
+  }
+}
+
+// ── Map field label → Google Forms question type ────────────────────
+function inferFieldType(label: string): { type: string; options?: string[] } {
+  const l = label.toLowerCase();
+  if (l.includes("rating") || l.includes("score") || l.includes("1–5") || l.includes("1-5") || l.includes("0–10") || l.includes("0-10")) {
+    return { type: "SCALE" };
+  }
+  if (l.includes("yes/no") || l.includes("yes or no")) {
+    return { type: "RADIO", options: ["Yes", "No"] };
+  }
+  if (l.includes("(good/damaged/partial)") || l.includes("(good / damaged / partial)")) {
+    return { type: "RADIO", options: ["Good", "Damaged", "Partial"] };
+  }
+  if (l.includes("approve") || l.includes("award/reject")) {
+    return { type: "RADIO", options: ["Approve", "Reject"] };
+  }
+  if (l.includes("date") || l.includes("time")) {
+    return { type: "DATE" };
+  }
+  if (l.includes("comments") || l.includes("suggestions") || l.includes("notes") || l.includes("issues") || l.includes("list") || l.includes("description")) {
+    return { type: "PARAGRAPH_TEXT" };
+  }
+  return { type: "SHORT_ANSWER" };
+}
+
+// ── Build Google Forms API request body ────────────────────────────
+function buildFormBody(title: string, description: string, fields: string[], formId: string) {
+  const items = fields.map((label, index) => {
+    const { type, options } = inferFieldType(label);
+    const question: Record<string, unknown> = {
+      required: true,
+    };
+
+    if (type === "SHORT_ANSWER") {
+      question.textQuestion = { paragraph: false };
+    } else if (type === "PARAGRAPH_TEXT") {
+      question.textQuestion = { paragraph: true };
+    } else if (type === "SCALE") {
+      question.scaleQuestion = { low: 1, high: 5, lowLabel: "Poor", highLabel: "Excellent" };
+    } else if (type === "RADIO" && options) {
+      question.choiceQuestion = {
+        type: "RADIO",
+        options: options.map(o => ({ value: o })),
+        shuffle: false,
+      };
+    } else if (type === "DATE") {
+      question.dateQuestion = { includeTime: false, includeYear: true };
+    } else {
+      question.textQuestion = { paragraph: false };
+    }
+
+    return {
+      title: `${index + 1}. ${label}`,
+      description: "",
+      questionItem: { question },
+    };
+  });
+
+  // Prepend a description/header item
+  return {
+    info: {
+      title: `[${formId}] ${title}`,
+      description: [
+        description,
+        "",
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `🏥 ${SYSTEM} · ${HOSPITAL}`,
+        `Embu County Government · Health Procurement ERP`,
+        `Form ID: ${formId}`,
+        `Issued by: ${SENDER_EMAIL}`,
+        `Portal: ${PORTAL}`,
+        `Version: ${VERSION}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `All responses are recorded in the ${SYSTEM} ERP system.`,
+      ].join("\n"),
+    },
+    items,
+  };
+}
+
+// ── Create form via Google Forms API ───────────────────────────────
+async function createGoogleForm(
+  title: string, description: string, fields: string[], formId: string, token: string
+): Promise<{ ok: boolean; formUrl?: string; editUrl?: string; previewUrl?: string; formApiId?: string; error?: string }> {
+  try {
+    const body = buildFormBody(title, description, fields, formId);
+
+    // Step 1: Create the form
+    const createRes = await fetch("https://forms.googleapis.com/v1/forms", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ info: body.info }),
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.text();
+      console.error("Forms API create error:", err);
+      return { ok: false, error: `Forms API: ${createRes.status} ${err.slice(0, 200)}` };
+    }
+
+    const created = await createRes.json();
+    const apiFormId = created.formId;
+
+    // Step 2: Batch-update to add questions
+    const requests = body.items.map(item => ({ createItem: { item, location: { index: 0 } } }));
+    if (requests.length > 0) {
+      await fetch(`https://forms.googleapis.com/v1/forms/${apiFormId}:batchUpdate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requests: requests.reverse() }),
+      });
+    }
+
+    // Step 3: Set form settings (collect email, limit responses)
+    await fetch(`https://forms.googleapis.com/v1/forms/${apiFormId}:batchUpdate`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requests: [{
+          updateSettings: {
+            settings: {
+              quizSettings: { isQuiz: false },
+            },
+            updateMask: "quizSettings.isQuiz",
+          },
+        }],
+      }),
+    });
+
+    const formUrl  = `https://docs.google.com/forms/d/${apiFormId}/viewform`;
+    const editUrl  = `https://docs.google.com/forms/d/${apiFormId}/edit`;
+    const previewUrl = `https://docs.google.com/forms/d/e/${apiFormId}/viewform`;
+
+    return { ok: true, formUrl, editUrl, previewUrl, formApiId: apiFormId };
+  } catch (e: any) {
+    console.error("createGoogleForm error:", e);
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── Fallback: generate Google Forms create URL ─────────────────────
+function fallbackFormUrl(title: string, formId: string): string {
+  return `https://docs.google.com/forms/create?title=${encodeURIComponent(`[${formId}] ${title} — ${HOSPITAL}`)}`;
+}
+
+// ── Main handler ───────────────────────────────────────────────────
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+
+  try {
+    const body = await req.json();
+    const { action, title, description, fields = [], formId, senderEmail } = body;
+
+    if (action === "create_form") {
+      // Log intent
+      await db.from("audit_logs").insert({
+        action: "google_form_create_attempt",
+        details: `Google Form requested: [${formId}] ${title} (${fields.length} fields) by ${senderEmail || SENDER_EMAIL}`,
+        created_at: new Date().toISOString(),
+      }).then(() => {});
+
+      // Try real Google Forms API
+      const token = await getGoogleToken();
+      if (token) {
+        const result = await createGoogleForm(title, description, fields, formId, token);
+        if (result.ok) {
+          // Log success
+          await db.from("audit_logs").insert({
+            action: "google_form_created",
+            details: `Google Form created: [${formId}] ${title} → ${result.formUrl}`,
+            created_at: new Date().toISOString(),
+          }).then(() => {});
+
+          return new Response(JSON.stringify({
+            ok: true,
+            formUrl: result.formUrl,
+            editUrl: result.editUrl,
+            previewUrl: result.previewUrl,
+            formApiId: result.formApiId,
+            formId,
+            title,
+            description,
+            fields,
+            senderEmail: SENDER_EMAIL,
+            method: "google_forms_api",
+          }), { headers: CORS });
+        }
+        console.warn("Forms API failed, using fallback:", result.error);
+      }
+
+      // Fallback URL
+      const url = fallbackFormUrl(title, formId);
+      await db.from("audit_logs").insert({
+        action: "google_form_fallback",
+        details: `Google Form fallback URL: [${formId}] ${title}`,
+        created_at: new Date().toISOString(),
+      }).then(() => {});
+
+      return new Response(JSON.stringify({
+        ok: true,
+        formUrl: url,
+        editUrl: url,
+        previewUrl: url,
+        formId,
+        title,
+        senderEmail: SENDER_EMAIL,
+        method: "fallback_create_url",
+        note: "Set GOOGLE_FORMS_SERVICE_ACCOUNT_JSON or GOOGLE_FORMS_OAUTH_TOKEN in Supabase secrets for real form creation",
+      }), { headers: CORS });
+    }
+
+    if (action === "list_forms") {
+      const { data } = await db.from("audit_logs")
+        .select("*")
+        .eq("action", "google_form_created")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return new Response(JSON.stringify({ ok: true, forms: data || [] }), { headers: CORS });
+    }
+
+    if (action === "status") {
+      const token = await getGoogleToken();
+      return new Response(JSON.stringify({
+        ok: true,
+        sender: SENDER_EMAIL,
+        has_service_account: !!FORMS_SA_JSON,
+        has_oauth_token: !!FORMS_OAUTH,
+        api_ready: !!token,
+        version: VERSION,
+      }), { headers: CORS });
+    }
+
+    return new Response(JSON.stringify({ ok: false, error: "Unknown action. Use: create_form, list_forms, status" }), {
+      status: 400, headers: CORS
+    });
+
+  } catch (e: any) {
+    console.error("google-forms-api error:", e);
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 500, headers: CORS
+    });
+  }
+});
