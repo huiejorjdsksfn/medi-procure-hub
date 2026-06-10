@@ -1,12 +1,12 @@
+import type React from "react";
 /**
- * AdminCreateUserPage — admin-only UI to invoke admin-create-user edge function.
- * Creates auth user + profile + roles in a single call.
+ * EL5 MediProcure — Create User v10
+ * Classic ERP style
  */
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { T } from "@/lib/theme";
-import { UserPlus, RefreshCw, Check } from "lucide-react";
+import { ERP, erpStyles } from "@/lib/erpTheme";
 import { invalidateDropdownCache } from "@/hooks/useCachedDropdown";
 
 const ROLES = [
@@ -15,119 +15,186 @@ const ROLES = [
   "warehouse_officer","requisitioner","accountant",
 ];
 
+const DEPARTMENTS = [
+  "Finance & Accounts","Procurement","Pharmacy","Nursing","Medical",
+  "Laboratory","Radiology","ICT","Administration","Records","Maintenance",
+];
+
 export default function AdminCreateUserPage() {
-  const [email, setEmail]     = useState("");
-  const [password, setPwd]    = useState("");
-  const [fullName, setName]   = useState("");
-  const [phone, setPhone]     = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPwd] = useState("");
+  const [fullName, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [department, setDept] = useState("");
-  const [roles, setRoles]     = useState<string[]>(["requisitioner"]);
-  const [busy, setBusy]       = useState(false);
-  const [done, setDone]       = useState<any>(null);
+  const [roles, setRoles] = useState<string[]>(["requisitioner"]);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<any>(null);
 
   const gen = () => {
     const c = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
     setPwd(Array.from({length:12},()=>c[Math.floor(Math.random()*c.length)]).join(""));
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) { toast({ title:"Email & password required", variant:"destructive" }); return; }
-    if (password.length < 8)  { toast({ title:"Password must be 8+ chars", variant:"destructive" }); return; }
+  const toggleRole = (r: string) => setRoles(rs => rs.includes(r) ? rs.filter(x=>x!==r) : [...rs,r]);
+
+  const submit = async () => {
+    if(!email||!password){ toast({title:"Email & password required",variant:"destructive"}); return; }
+    if(password.length<8){ toast({title:"Password must be 8+ chars",variant:"destructive"}); return; }
     setBusy(true);
-    const { data, error } = await (supabase as any).functions.invoke("admin-create-user", {
-      body: { email: email.trim().toLowerCase(), password, full_name: fullName, phone, department, roles },
+    const { data, error } = await (supabase as any).functions.invoke("admin-create-user",{
+      body:{ email:email.trim().toLowerCase(), password, full_name:fullName, phone, department, roles },
     });
     setBusy(false);
-    if (error || data?.error) {
-      toast({ title:"Failed", description: (error?.message || data?.error || "Unknown error"), variant:"destructive" });
-      return;
+    if(error||data?.error){
+      toast({title:"Failed",description:error?.message||data?.error||"Unknown error",variant:"destructive"}); return;
     }
     invalidateDropdownCache("profiles");
     invalidateDropdownCache("user_roles");
-    setDone({ email, password, roles });
-    toast({ title:"User created", description:`${email} with roles: ${roles.join(", ")}` });
+    setDone({email,password,roles});
+    toast({title:"✓ User created",description:`${email} · roles: ${roles.join(", ")}`});
     setEmail(""); setPwd(""); setName(""); setPhone(""); setDept(""); setRoles(["requisitioner"]);
   };
 
-  const toggleRole = (r: string) =>
-    setRoles(rs => rs.includes(r) ? rs.filter(x=>x!==r) : [...rs, r]);
-
-  const inp: React.CSSProperties = { width:"100%", padding:"9px 12px", border:`1px solid ${T.border}`, borderRadius:T.r, background:T.bg, color:"#111", fontSize:13, outline:"none", boxSizing:"border-box" };
-  const lbl: React.CSSProperties = { display:"block", fontSize:11, fontWeight:700, color:T.fgMuted, marginBottom:4, textTransform:"uppercase", letterSpacing:".05em" };
+  const inp: React.CSSProperties = { ...erpStyles.inp, width:"100%", boxSizing:"border-box" };
 
   return (
-    <div style={{ padding:24, background:T.bg, minHeight:"100vh" }}>
-      <div style={{ maxWidth:720, margin:"0 auto" }}>
-        <h1 style={{ fontSize:22, fontWeight:800, color:T.fg, margin:"0 0 4px", display:"flex", alignItems:"center", gap:10 }}>
-          <UserPlus size={22}/> Create User
-        </h1>
-        <p style={{ fontSize:12, color:T.fgMuted, margin:"0 0 18px" }}>
-          Creates an auth account, profile row, and assigns roles instantly. New user can sign in immediately.
-        </p>
+    <div style={{ background:"#f0f0f0", minHeight:"100vh", fontFamily:ERP.fontFamily, fontSize:12 }}>
+      {/* Title */}
+      <div style={{ background:ERP.titleBar, color:"#fff", padding:"5px 10px", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:`1px solid ${ERP.titleBarBorder}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:14 }}>👤</span>
+          <div>
+            <div>EL5 MediProcure — Create System User</div>
+            <div style={{ fontSize:10, fontWeight:400, opacity:.85 }}>Embu Level 5 Hospital · User Management</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:4 }}>
+          {["0","1","r"].map(c=><div key={c} style={{ width:16,height:14,background:"linear-gradient(180deg,#f0f0f0,#dcdcdc)",border:"1px solid #888",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10,color:"#333",fontWeight:700 }}>{c}</div>)}
+        </div>
+      </div>
 
-        <form onSubmit={submit} style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-            <div>
-              <label style={lbl}>Email *</label>
-              <input style={inp} type="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
-            </div>
-            <div>
-              <label style={lbl}>Full Name</label>
-              <input style={inp} value={fullName} onChange={e=>setName(e.target.value)}/>
-            </div>
-            <div>
-              <label style={lbl}>Password * (8+)</label>
-              <div style={{ display:"flex", gap:6 }}>
-                <input style={inp} value={password} onChange={e=>setPwd(e.target.value)} required minLength={8}/>
-                <button type="button" onClick={gen} style={{ padding:"0 12px", background:T.bg2, border:`1px solid ${T.border}`, borderRadius:T.r, fontSize:12, fontWeight:700, color:T.fgMuted, cursor:"pointer" }}>Gen</button>
+      {/* Menu */}
+      <div style={{ background:"#f5f5f5", borderBottom:"1px solid #ccc", padding:"2px 8px", display:"flex", gap:16, fontSize:12 }}>
+        {["File","View","Help"].map(m=>(
+          <span key={m} style={{ cursor:"pointer", padding:"2px 4px" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background="transparent")}><u>{m[0]}</u>{m.slice(1)}</span>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ ...erpStyles.toolbar, padding:"5px 10px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:28,height:28,background:"linear-gradient(135deg,#1a3580,#2a4fa3)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center" }}>
+            <span style={{ color:"#fff", fontSize:14 }}>🏥</span>
+          </div>
+          <span style={{ fontWeight:700, fontSize:11, color:"#1a3580" }}>System Administration</span>
+        </div>
+        <span style={{ marginLeft:"auto", fontSize:11, color:"#666" }}>Creates an auth account, profile row, and assigns roles instantly.</span>
+      </div>
+
+      {/* Form */}
+      <div style={{ margin:12, maxWidth:860 }}>
+        <div style={{ background:"#fff", border:"1px solid #ccc" }}>
+          <div style={{ background:ERP.sidebarHeader, color:"#fff", padding:"5px 10px", fontSize:11, fontWeight:700 }}>
+            👤 New User Registration — EL5 MediProcure System
+          </div>
+          <div style={{ padding:16 }}>
+
+            {/* Basic Info */}
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"#555", textTransform:"uppercase", letterSpacing:"0.05em", borderBottom:"1px solid #e0e0e0", paddingBottom:4, marginBottom:10 }}>Basic Information</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Email Address *</label>
+                  <input type="email" value={email} onChange={e=>setEmail(e.target.value)} style={inp} placeholder="user@el5hospital.go.ke"/>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Full Name</label>
+                  <input value={fullName} onChange={e=>setName(e.target.value)} style={inp} placeholder="e.g. John Mwangi"/>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Phone Number</label>
+                  <input value={phone} onChange={e=>setPhone(e.target.value)} style={inp} placeholder="+254 722 000 000"/>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Department</label>
+                  <select value={department} onChange={e=>setDept(e.target.value)} style={inp}>
+                    <option value="">— Select Department —</option>
+                    {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Password * (min 8 chars)</label>
+                  <div style={{ display:"flex", gap:4 }}>
+                    <input value={password} onChange={e=>setPwd(e.target.value)} style={inp} placeholder="Enter password"/>
+                    <button type="button" onClick={gen} style={{ ...erpStyles.btn(false), whiteSpace:"nowrap" }}>Generate</button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <label style={lbl}>Phone</label>
-              <input style={inp} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+254…"/>
-            </div>
-            <div style={{ gridColumn:"1 / -1" }}>
-              <label style={lbl}>Department</label>
-              <input style={inp} value={department} onChange={e=>setDept(e.target.value)}/>
-            </div>
-            <div style={{ gridColumn:"1 / -1" }}>
-              <label style={lbl}>Roles (one or more) *</label>
+
+            {/* Role Assignment */}
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"#555", textTransform:"uppercase", letterSpacing:"0.05em", borderBottom:"1px solid #e0e0e0", paddingBottom:4, marginBottom:10 }}>Role Assignment (select one or more)</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {ROLES.map(r => {
+                {ROLES.map(r=>{
                   const on = roles.includes(r);
                   return (
-                    <button type="button" key={r} onClick={()=>toggleRole(r)} style={{
-                      padding:"5px 11px", fontSize:11, fontWeight:700, borderRadius:99,
-                      border:`1px solid ${on?T.primary:T.border}`,
-                      background:on?T.primary:T.bg, color:on?"#fff":T.fgMuted, cursor:"pointer",
-                    }}>{on && <Check size={10} style={{display:"inline",marginRight:4}}/>}{r}</button>
+                    <button key={r} type="button" onClick={()=>toggleRole(r)} style={{
+                      ...erpStyles.btn(on),
+                      background: on ? ERP.tabActive : ERP.tabInactive,
+                      color: on ? "#fff" : "#333",
+                      border: `1px solid ${on ? ERP.tabActiveBorder : ERP.toolbarBorder}`,
+                      borderRadius: 2,
+                      padding: "3px 10px",
+                    }}>
+                      {on ? "✓ " : ""}{r.replace(/_/g," ")}
+                    </button>
                   );
                 })}
               </div>
             </div>
-          </div>
 
-          <div style={{ marginTop:18, display:"flex", justifyContent:"flex-end", gap:8 }}>
-            <button type="submit" disabled={busy} style={{
-              padding:"9px 20px", background:T.primary, color:"#fff", border:"none",
-              borderRadius:T.r, fontSize:13, fontWeight:700, cursor:busy?"not-allowed":"pointer",
-              opacity:busy?0.6:1, display:"inline-flex", alignItems:"center", gap:8,
-            }}>
-              {busy ? <RefreshCw size={14} style={{animation:"spin 1s linear infinite"}}/> : <UserPlus size={14}/>}
-              {busy ? "Creating…" : "Create User"}
-            </button>
-          </div>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </form>
+            {/* Actions */}
+            <div style={{ borderTop:"1px solid #e0e0e0", paddingTop:12, display:"flex", gap:8 }}>
+              <button onClick={submit} disabled={busy} style={{ ...erpStyles.btn(true), opacity:busy?0.5:1 }}>
+                {busy ? "⏳ Creating..." : "💾 Create User Account"}
+              </button>
+              <button onClick={()=>{ setEmail(""); setPwd(""); setName(""); setPhone(""); setDept(""); setRoles(["requisitioner"]); }} style={erpStyles.btn(false)}>
+                Clear Form
+              </button>
+            </div>
 
-        {done && (
-          <div style={{ marginTop:16, background:"#d1fae5", border:"1px solid #10b981", borderRadius:T.r, padding:"12px 16px", color:"#064e3b", fontSize:13 }}>
-            <b>✓ User created:</b> {done.email} — roles: {done.roles.join(", ")}.
-            They can sign in now with the password you set.
+            {done && (
+              <div style={{ marginTop:12, padding:"8px 12px", background:"#e8f5e9", border:"1px solid #4caf50", fontSize:12, color:"#1b5e20" }}>
+                ✓ User created successfully: <strong>{done.email}</strong> — Roles: {done.roles.join(", ")}. User can sign in immediately.
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Activity Stats panel */}
+        <div style={{ marginTop:8, background:"#fff", border:"1px solid #ccc" }}>
+          <div style={{ background:ERP.sidebarHeader, color:"#fff", padding:"5px 10px", fontSize:11, fontWeight:700 }}>
+            📊 User Activity Stats
+          </div>
+          <div style={{ padding:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+              {[
+                {label:"Active Sessions",val:"—",col:"#007700"},
+                {label:"Total Users",val:"—",col:"#2255cc"},
+                {label:"Admins",val:"—",col:"#cc6600"},
+                {label:"Recent Logins (24h)",val:"—",col:"#1a1a1a"},
+              ].map(s=>(
+                <div key={s.label} style={{ padding:"8px 10px", background:"#f9f9f9", border:"1px solid #e0e0e0" }}>
+                  <div style={{ fontWeight:800, fontSize:18, color:s.col }}>{s.val}</div>
+                  <div style={{ fontSize:10, color:"#666", marginTop:2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
