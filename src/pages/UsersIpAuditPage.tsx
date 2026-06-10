@@ -1,213 +1,283 @@
+import type React from "react";
 /**
- * Users & IP Audit — unified search/filter/export over audit_log + ip_access_log + profiles
- * Filters: user, IP, date range, action/module. CSV + PDF export. Human-readable names only.
+ * EL5 MediProcure — Users & IP Audit v10
+ * Classic ERP style
  */
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { safeFetch } from "@/lib/safeFetch";
-import { T } from "@/lib/theme";
-import { Search, Download, Printer, RefreshCw, Filter, Users, Globe, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ERP, erpStyles } from "@/lib/erpTheme";
 
-type Row = {
-  kind: "audit" | "ip";
-  id: string;
-  when: string;
-  user: string;
-  ip: string;
-  action: string;
-  module: string;
-  details: string;
-};
+const db = supabase as any;
 
-const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:16 };
-const inp: React.CSSProperties  = { background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"7px 10px", color:T.fg, fontSize:13, outline:"none" };
-const btn = (bg:string,fg="#fff"):React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 12px", background:bg, color:fg, border:"none", borderRadius:T.r, fontSize:12, fontWeight:700, cursor:"pointer" });
+interface AuditLog {
+  id: string; user_id?: string; user_email?: string; action: string;
+  ip_address?: string; user_agent?: string; details?: any;
+  created_at: string; resource_type?: string; resource_id?: string;
+}
+interface UserProfile {
+  id: string; email?: string; full_name?: string; department?: string;
+  is_active?: boolean; last_sign_in_at?: string; created_at?: string; roles?: string[];
+}
+
+function fmtDate(s: string) { if(!s) return "—"; return new Date(s).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+function fmtDateTime(s: string) { if(!s) return "—"; return new Date(s).toLocaleString("en-KE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+function StatusChip({ status }: { status: string }) { return <span style={erpStyles.statusChip(status)}>{status}</span>; }
+
+type AuditTab = "activity"|"users"|"ip_audit";
 
 export default function UsersIpAuditPage() {
-  const [rows, setRows]   = useState<Row[]>([]);
-  const [profiles, setProfiles] = useState<Record<string,string>>({});
+  const [tab, setTab] = useState<AuditTab>("activity");
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ]         = useState("");
-  const [userF, setUserF] = useState("");
-  const [ipF, setIpF]     = useState("");
-  const [from, setFrom]   = useState("");
-  const [to, setTo]       = useState("");
-  const [page, setPage]   = useState(1);
-  const PAGE = 50;
+  const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("ALL");
+  const [dateFrom] = useState("2025-01-01");
+  const [dateTo] = useState(new Date().toISOString().split("T")[0]);
 
-  const load = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
-    const db = supabase as any;
-    const [pRes, aRes, iRes] = await Promise.all([
-      safeFetch(() => db.from("profiles").select("id,full_name,email,username").limit(2000), { timeoutMs:7000, label:"profiles" }),
-      safeFetch(() => db.from("audit_log").select("id,user_id,user_name,action,module,details,ip_address,created_at").order("created_at",{ascending:false}).limit(1000), { timeoutMs:8000, label:"audit_log" }),
-      safeFetch(() => db.from("ip_access_log").select("id,user_id,user_email,ip_address,allowed,reason,country,city,user_agent,path,created_at").order("created_at",{ascending:false}).limit(1000), { timeoutMs:8000, label:"ip_access" }),
-    ]);
-    const pMap: Record<string,string> = {};
-    (pRes.data || []).forEach((p:any) => { pMap[p.id] = p.full_name || p.username || p.email || "Unknown User"; });
-    setProfiles(pMap);
-    const audit: Row[] = (aRes.data || []).map((r:any) => ({
-      kind:"audit", id:r.id, when:r.created_at,
-      user: r.user_name || pMap[r.user_id] || "System",
-      ip: r.ip_address || "—",
-      action: r.action || "—",
-      module: r.module || "—",
-      details: typeof r.details === "object" ? JSON.stringify(r.details).slice(0,160) : String(r.details||""),
-    }));
-    const ips: Row[] = (iRes.data || []).map((r:any) => ({
-      kind:"ip", id:r.id, when:r.created_at,
-      user: r.user_email || pMap[r.user_id] || "Anonymous",
-      ip: r.ip_address || "—",
-      action: r.allowed ? "access_allowed" : "access_blocked",
-      module: "network",
-      details: [r.country, r.city, r.path, r.reason].filter(Boolean).join(" · "),
-    }));
-    const all = [...audit, ...ips].sort((a,b) => (b.when||"").localeCompare(a.when||""));
-    setRows(all);
+    try {
+      const [logsRes, usersRes] = await Promise.allSettled([
+        db.from("audit_logs").select("*").order("created_at",{ascending:false}).limit(200),
+        db.from("profiles").select("*").order("created_at",{ascending:false}).limit(100),
+      ]);
+      setAuditLogs(logsRes.status==="fulfilled" ? (logsRes.value.data||[]) : []);
+      setUsers(usersRes.status==="fulfilled" ? (usersRes.value.data||[]) : []);
+    } catch(e){ console.error(e); }
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(()=>{ fetchAll(); },[fetchAll]);
 
-  const filtered = useMemo(() => {
-    const qq = q.trim().toLowerCase();
-    const fromT = from ? new Date(from).getTime() : 0;
-    const toT   = to   ? new Date(to).getTime() + 86399000 : Infinity;
-    return rows.filter(r => {
-      const t = new Date(r.when).getTime();
-      if (t < fromT || t > toT) return false;
-      if (userF && !r.user.toLowerCase().includes(userF.toLowerCase())) return false;
-      if (ipF && !r.ip.toLowerCase().includes(ipF.toLowerCase())) return false;
-      if (qq) {
-        const hay = `${r.user} ${r.ip} ${r.action} ${r.module} ${r.details}`.toLowerCase();
-        if (!hay.includes(qq)) return false;
-      }
-      return true;
-    });
-  }, [rows, q, userF, ipF, from, to]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE));
-  const pageRows = filtered.slice((page-1)*PAGE, page*PAGE);
-  useEffect(() => { setPage(1); }, [q, userF, ipF, from, to]);
-
-  const csv = () => {
-    const head = ["When","User","IP","Action","Module","Details"];
-    const lines = [head.join(",")].concat(filtered.map(r =>
-      [r.when, r.user, r.ip, r.action, r.module, r.details].map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")
-    ));
-    const blob = new Blob([lines.join("\n")], { type:"text/csv" });
+  function exportCSV() {
+    const rows = ["User,Action,IP Address,Resource,Date",
+      ...filteredLogs.map(l=>`${l.user_email||l.user_id||""},${l.action||""},${l.ip_address||""},${l.resource_type||""},${fmtDateTime(l.created_at)}`)
+    ];
+    const blob = new Blob([rows.join("\n")],{type:"text/csv"});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `users-ip-audit-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    const a = document.createElement("a"); a.href=url; a.download="audit_log.csv"; a.click();
     URL.revokeObjectURL(url);
-    toast({ title:"CSV exported", description:`${filtered.length} rows` });
-  };
+    toast({title:"✓ Exported"});
+  }
 
-  const printPdf = () => {
-    const w = window.open("", "_blank");
-    if (!w) return;
-    const html = `<html><head><title>Users & IP Audit</title>
-      <style>body{font-family:Inter,Arial;color:#000;padding:24px}h1{font-size:18px;margin:0 0 12px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top}th{background:#f3f4f6}</style>
-    </head><body>
-      <h1>Users & IP Audit Report</h1>
-      <div style="font-size:11px;margin-bottom:8px">Filters: user="${userF||"*"}", ip="${ipF||"*"}", date=${from||"*"}→${to||"*"}, q="${q||"*"}" — ${filtered.length} rows</div>
-      <table><thead><tr><th>When</th><th>User</th><th>IP</th><th>Action</th><th>Module</th><th>Details</th></tr></thead>
-      <tbody>${filtered.slice(0,2000).map(r=>`<tr><td>${new Date(r.when).toLocaleString()}</td><td>${r.user}</td><td>${r.ip}</td><td>${r.action}</td><td>${r.module}</td><td>${r.details}</td></tr>`).join("")}</tbody></table>
-    </body></html>`;
-    w.document.write(html); w.document.close();
-    setTimeout(()=>w.print(), 350);
-  };
+  const filteredLogs = auditLogs.filter(l => {
+    const q = search.toLowerCase();
+    const matchSearch = !search || [l.user_email,l.action,l.ip_address,l.resource_type].some(f=>f?.toLowerCase().includes(q));
+    const matchAction = actionFilter==="ALL" || l.action?.toLowerCase().includes(actionFilter.toLowerCase());
+    return matchSearch && matchAction;
+  });
 
-  const resetSession = async (email: string) => {
-    if (!email || !confirm(`Force re-login for ${email}? They will be signed out everywhere.`)) return;
-    const { error } = await (supabase as any).from("audit_log").insert({
-      action:"force_session_reset", module:"admin", user_name:email,
-      details:{ target:email, requested_at:new Date().toISOString() },
-    });
-    if (error) toast({ title:"Failed", description:error.message, variant:"destructive" });
-    else toast({ title:"Session reset requested", description:`${email} will need to re-login on next request` });
-  };
+  // Unique IPs
+  const uniqueIPs = [...new Set(auditLogs.map(l=>l.ip_address).filter(Boolean))];
+  const ipStats = uniqueIPs.map(ip => ({
+    ip,
+    count: auditLogs.filter(l=>l.ip_address===ip).length,
+    lastSeen: auditLogs.find(l=>l.ip_address===ip)?.created_at||"",
+    users: [...new Set(auditLogs.filter(l=>l.ip_address===ip).map(l=>l.user_email||l.user_id))].filter(Boolean),
+  })).sort((a,b)=>b.count-a.count);
+
+  const kpiData = [
+    {label:"AUDIT RECORDS",val:auditLogs.length},
+    {label:"UNIQUE IPs",val:uniqueIPs.length},
+    {label:"ACTIVE USERS",val:users.filter(u=>u.is_active!==false).length},
+    {label:"TOTAL USERS",val:users.length},
+    {label:"TODAY'S ACTIONS",val:auditLogs.filter(l=>new Date(l.created_at).toDateString()===new Date().toDateString()).length},
+  ];
+
+  const TABS = [
+    {id:"activity" as AuditTab,label:"📋 User Activity"},
+    {id:"users" as AuditTab,label:"👥 Users"},
+    {id:"ip_audit" as AuditTab,label:"🌐 IP Audit"},
+  ];
+
+  const inp: React.CSSProperties = { ...erpStyles.inp };
 
   return (
-    <div style={{ padding:24, background:T.bg, minHeight:"100vh" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-        <div>
-          <h1 style={{ fontSize:22, fontWeight:800, color:T.fg, margin:0 }}>Users & IP Audit</h1>
-          <p style={{ fontSize:12, color:T.fgMuted, margin:"4px 0 0" }}>Unified search across audit log and IP access log</p>
+    <div style={{ background:"#f0f0f0", minHeight:"100vh", fontFamily:ERP.fontFamily, fontSize:12 }}>
+      {/* Title */}
+      <div style={{ background:ERP.titleBar, color:"#fff", padding:"5px 10px", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:`1px solid ${ERP.titleBarBorder}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:14 }}>🔐</span>
+          <div>
+            <div>EL5 MediProcure — Users &amp; IP Audit</div>
+            <div style={{ fontSize:10, fontWeight:400, opacity:.85 }}>Embu Level 5 Hospital · Security &amp; Access Control</div>
+          </div>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <button style={btn(T.bg2, T.fgMuted)} onClick={load}><RefreshCw size={14}/> Refresh</button>
-          <button style={btn(T.primary)} onClick={csv}><Download size={14}/> CSV</button>
-          <button style={btn(T.success)} onClick={printPdf}><Printer size={14}/> Print / PDF</button>
+        <div style={{ display:"flex", gap:4 }}>
+          {["0","1","r"].map(c=><div key={c} style={{ width:16,height:14,background:"linear-gradient(180deg,#f0f0f0,#dcdcdc)",border:"1px solid #888",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10,color:"#333",fontWeight:700 }}>{c}</div>)}
         </div>
       </div>
 
-      <div style={{ ...card, marginBottom:14 }}>
-        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr", gap:10 }}>
-          <div style={{ position:"relative" }}>
-            <Search size={14} style={{ position:"absolute", left:9, top:10, color:T.fgDim }}/>
-            <input style={{ ...inp, paddingLeft:28, width:"100%" }} placeholder="Search anything…" value={q} onChange={e=>setQ(e.target.value)}/>
+      {/* Menu */}
+      <div style={{ background:"#f5f5f5", borderBottom:"1px solid #ccc", padding:"2px 8px", display:"flex", gap:16, fontSize:12 }}>
+        {["File","View","Reports","Help"].map(m=>(
+          <span key={m} style={{ cursor:"pointer", padding:"2px 4px" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background="transparent")}><u>{m[0]}</u>{m.slice(1)}</span>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ ...erpStyles.toolbar, padding:"5px 10px", gap:8 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:28,height:28,background:"linear-gradient(135deg,#1a3580,#2a4fa3)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center" }}>
+            <span style={{ color:"#fff", fontSize:14 }}>🏥</span>
           </div>
-          <input style={inp} placeholder="User contains…" value={userF} onChange={e=>setUserF(e.target.value)}/>
-          <input style={inp} placeholder="IP contains…" value={ipF} onChange={e=>setIpF(e.target.value)}/>
-          <input style={inp} type="date" value={from} onChange={e=>setFrom(e.target.value)}/>
-          <input style={inp} type="date" value={to}   onChange={e=>setTo(e.target.value)}/>
+          <span style={{ fontWeight:700, fontSize:11, color:"#1a3580" }}>Security &amp; Audit</span>
+        </div>
+        <button onClick={fetchAll} style={erpStyles.btn(false)}>↻ Refresh</button>
+        <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
+          {TABS.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{ ...erpStyles.btn(tab===t.id), background:tab===t.id?ERP.tabActive:ERP.tabInactive, color:tab===t.id?"#fff":"#333", border:`1px solid ${tab===t.id?ERP.tabActiveBorder:ERP.toolbarBorder}` }}>
+              {t.label}
+            </button>
+          ))}
+          <button onClick={exportCSV} style={erpStyles.btn(false)}>- Export</button>
         </div>
       </div>
 
-      <div style={card}>
-        {loading ? (
-          <div style={{ padding:40, textAlign:"center", color:T.fgMuted }}>
-            <RefreshCw size={20} style={{ animation:"spin 1s linear infinite" }}/>
-            <div style={{ marginTop:8, fontSize:13 }}>Loading audit data…</div>
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {/* KPI Row */}
+      <div style={{ display:"flex", borderBottom:"1px solid #aaa" }}>
+        {kpiData.map((k,i)=>(
+          <div key={i} style={{ flex:1, padding:"10px 16px", borderRight:i<kpiData.length-1?"1px solid #aaa":"none", background:"#fff" }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
+              <span style={{ color:"#c0392b", fontWeight:700, fontSize:11 }}>-</span>
+              <span style={{ fontWeight:800, fontSize:20, color:"#1a1a1a" }}>{k.val}</span>
+            </div>
+            <div style={{ fontSize:10, color:"#666", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", marginTop:2 }}>{k.label}</div>
           </div>
-        ) : (
-          <>
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, color:"#000" }}>
-                <thead>
-                  <tr style={{ background:T.bg2, color:T.fg, textAlign:"left" }}>
-                    <th style={{ padding:"8px 10px" }}>When</th>
-                    <th style={{ padding:"8px 10px" }}>User</th>
-                    <th style={{ padding:"8px 10px" }}>IP</th>
-                    <th style={{ padding:"8px 10px" }}>Action</th>
-                    <th style={{ padding:"8px 10px" }}>Module</th>
-                    <th style={{ padding:"8px 10px" }}>Details</th>
-                    <th style={{ padding:"8px 10px" }}></th>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ margin:"6px 8px" }}>
+
+        {/* Activity Tab */}
+        {tab==="activity" && (
+          <div>
+            <div style={{ background:"#f5f5f5", border:"1px solid #ccc", padding:"5px 10px", marginBottom:4, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+              <span style={{ fontWeight:700, fontSize:11, color:"#555" }}>User Activity Log — Filter & Extract</span>
+              <div style={{ display:"flex", gap:4 }}>
+                <span style={{ fontSize:11 }}>Search:</span>
+                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter by user, action, IP..." style={{ ...inp, width:220, fontSize:11 }}/>
+              </div>
+              <div style={{ display:"flex", gap:4 }}>
+                <span style={{ fontSize:11 }}>Action:</span>
+                <select value={actionFilter} onChange={e=>setActionFilter(e.target.value)} style={{ ...inp, fontSize:11 }}>
+                  {["ALL","login","logout","create","update","delete","view","approve","reject"].map(a=><option key={a}>{a}</option>)}
+                </select>
+              </div>
+              <span style={{ marginLeft:"auto", fontSize:11, color:"#888" }}>{filteredLogs.length} records</span>
+              <button onClick={exportCSV} style={erpStyles.btn(true)}>Extract →</button>
+            </div>
+
+            <div style={{ background:"#fff", border:"1px solid #ccc", maxHeight:"calc(100vh - 240px)", overflow:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                <thead style={{ position:"sticky", top:0, zIndex:10 }}>
+                  <tr>
+                    {["Date/Time","User","Action","IP Address","Resource","Details"].map(h=><th key={h} style={erpStyles.gridTh}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {pageRows.map(r => (
-                    <tr key={r.kind+r.id} style={{ borderTop:`1px solid ${T.border}` }}>
-                      <td style={{ padding:"7px 10px", color:"#111", whiteSpace:"nowrap" }}>{new Date(r.when).toLocaleString()}</td>
-                      <td style={{ padding:"7px 10px", color:"#111", fontWeight:600 }}>{r.user}</td>
-                      <td style={{ padding:"7px 10px", color:"#111", fontFamily:"monospace" }}>{r.ip}</td>
-                      <td style={{ padding:"7px 10px", color:r.action.includes("block")||r.action.includes("fail")?"#b91c1c":"#111" }}>{r.action}</td>
-                      <td style={{ padding:"7px 10px", color:"#444" }}>{r.module}</td>
-                      <td style={{ padding:"7px 10px", color:"#444", maxWidth:380, overflow:"hidden", textOverflow:"ellipsis" }}>{r.details}</td>
-                      <td style={{ padding:"7px 10px" }}>
-                        <button style={btn(T.warning)} onClick={()=>resetSession(r.user)}>Reset</button>
+                  {loading ? <tr><td colSpan={6} style={{ padding:30, textAlign:"center" }}>Loading...</td></tr> :
+                  filteredLogs.map((l,i)=>(
+                    <tr key={l.id} style={{ background:i%2===0?"#fff":"#f7f7f7" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
+                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontSize:11, color:"#555", whiteSpace:"nowrap" }}>{fmtDateTime(l.created_at)}</td>
+                      <td style={erpStyles.gridTd}>{l.user_email||l.user_id?.slice(0,12)||"system"}</td>
+                      <td style={erpStyles.gridTd}><StatusChip status={l.action}/></td>
+                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontSize:11 }}>{l.ip_address||"—"}</td>
+                      <td style={{ ...erpStyles.gridTd, fontSize:11 }}>{l.resource_type||"—"}{l.resource_id?" · "+l.resource_id.slice(-6):""}</td>
+                      <td style={{ ...erpStyles.gridTd, fontSize:11, color:"#666", maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {l.details ? JSON.stringify(l.details).slice(0,80) : "—"}
                       </td>
                     </tr>
                   ))}
-                  {!pageRows.length && (
-                    <tr><td colSpan={7} style={{ padding:40, textAlign:"center", color:T.fgMuted }}>No records match filters</td></tr>
-                  )}
+                  {!loading && filteredLogs.length===0 && <tr><td colSpan={6} style={{ padding:30, textAlign:"center", color:"#888" }}>No audit records</td></tr>}
                 </tbody>
               </table>
             </div>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:12, fontSize:12, color:T.fgMuted }}>
-              <span>{filtered.length} rows · Page {page} of {totalPages}</span>
-              <div style={{ display:"flex", gap:6 }}>
-                <button style={btn(T.bg2, T.fgMuted)} disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Prev</button>
-                <button style={btn(T.bg2, T.fgMuted)} disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
-              </div>
-            </div>
-          </>
+          </div>
         )}
+
+        {/* Users Tab */}
+        {tab==="users" && (
+          <div style={{ background:"#fff", border:"1px solid #ccc" }}>
+            <div style={{ background:ERP.sidebarHeader, color:"#fff", padding:"5px 10px", fontSize:11, fontWeight:700 }}>👥 System Users</div>
+            <table style={{ width:"100%", borderCollapse:"collapse" }}>
+              <thead><tr>
+                {["Full Name","Email","Department","Roles","Status","Last Login","Joined"].map(h=><th key={h} style={erpStyles.gridTh}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {loading ? <tr><td colSpan={7} style={{ padding:30, textAlign:"center" }}>Loading...</td></tr> :
+                users.map((u,i)=>(
+                  <tr key={u.id} style={{ background:i%2===0?"#fff":"#f7f7f7" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
+                    <td style={{ ...erpStyles.gridTd, fontWeight:600 }}>{u.full_name||"—"}</td>
+                    <td style={{ ...erpStyles.gridTd, color:"#2255cc" }}>{u.email||"—"}</td>
+                    <td style={erpStyles.gridTd}>{u.department||"—"}</td>
+                    <td style={{ ...erpStyles.gridTd, fontSize:11 }}>{(u.roles||[]).join(", ")||"—"}</td>
+                    <td style={erpStyles.gridTd}><StatusChip status={u.is_active!==false?"active":"inactive"}/></td>
+                    <td style={{ ...erpStyles.gridTd, color:"#555", fontSize:11 }}>{u.last_sign_in_at ? fmtDate(u.last_sign_in_at) : "Never"}</td>
+                    <td style={{ ...erpStyles.gridTd, color:"#555", fontSize:11 }}>{fmtDate(u.created_at||"")}</td>
+                  </tr>
+                ))}
+                {!loading && users.length===0 && <tr><td colSpan={7} style={{ padding:30, textAlign:"center", color:"#888" }}>No users found</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* IP Audit Tab */}
+        {tab==="ip_audit" && (
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            <div style={{ background:"#fff", border:"1px solid #ccc" }}>
+              <div style={{ background:ERP.sidebarHeader, color:"#fff", padding:"5px 10px", fontSize:11, fontWeight:700 }}>🌐 IP Address Activity</div>
+              <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                <thead><tr>
+                  {["IP Address","Requests","Unique Users","Last Seen"].map(h=><th key={h} style={erpStyles.gridTh}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {ipStats.map((ip,i)=>(
+                    <tr key={ip.ip} style={{ background:i%2===0?"#fff":"#f7f7f7" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
+                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontWeight:700, color:"#2255cc" }}>{ip.ip}</td>
+                      <td style={{ ...erpStyles.gridTd, fontWeight:700 }}>{ip.count}</td>
+                      <td style={erpStyles.gridTd}>{ip.users.length}</td>
+                      <td style={{ ...erpStyles.gridTd, fontSize:11, color:"#555" }}>{fmtDateTime(ip.lastSeen)}</td>
+                    </tr>
+                  ))}
+                  {ipStats.length===0 && <tr><td colSpan={4} style={{ padding:20, textAlign:"center", color:"#888" }}>No IP data recorded yet</td></tr>}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ background:"#fff", border:"1px solid #ccc", padding:12 }}>
+              <div style={{ fontWeight:700, fontSize:12, color:"#1a3580", marginBottom:10, borderBottom:"1px solid #ddd", paddingBottom:6 }}>📊 Access Statistics</div>
+              {[
+                {label:"Total Log Entries",val:auditLogs.length,col:"#1a1a1a"},
+                {label:"Unique IP Addresses",val:uniqueIPs.length,col:"#2255cc"},
+                {label:"Today's Events",val:auditLogs.filter(l=>new Date(l.created_at).toDateString()===new Date().toDateString()).length,col:"#cc6600"},
+                {label:"Login Events",val:auditLogs.filter(l=>l.action==="login"||l.action?.includes("sign_in")).length,col:"#007700"},
+                {label:"Failed Actions",val:auditLogs.filter(l=>l.action?.includes("fail")||l.action?.includes("error")).length,col:"#cc0000"},
+              ].map(r=>(
+                <div key={r.label} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid #f0f0f0", fontSize:12 }}>
+                  <span style={{ color:"#555" }}>{r.label}</span>
+                  <span style={{ fontWeight:700, color:r.col }}>{r.val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status Bar */}
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"#e0e0e0", borderTop:"1px solid #aaa", padding:"2px 10px", fontSize:11, color:"#555", display:"flex", gap:16 }}>
+        <span>Log Entries: {auditLogs.length}</span>
+        <span>|</span>
+        <span>Users: {users.length}</span>
+        <span>|</span>
+        <span>IPs: {uniqueIPs.length}</span>
+        <span style={{ marginLeft:"auto" }}>EL5 MediProcure v10 · Users &amp; IP Audit</span>
       </div>
     </div>
   );
 }
+
