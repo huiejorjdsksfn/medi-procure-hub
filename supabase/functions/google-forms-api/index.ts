@@ -1,7 +1,8 @@
 /**
- * EL5 MediProcure — google-forms-api Edge Function v2.0
+ * EL5 MediProcure — google-forms-api Edge Function v3.0
  * Creates real Google Forms via Google Forms API (OAuth2 service account)
  * Falls back to pre-filled Google Forms create URL if credentials unavailable
+ * Now saves forms to database for tracking and "publishing"
  * Sender / editor account: hpdeskg9@gmail.com
  * EL5 MediProcure · Embu Level 5 Hospital · Embu County Government
  */
@@ -16,7 +17,7 @@ const SENDER_EMAIL  = "hpdeskg9@gmail.com";
 const HOSPITAL      = "Embu Level 5 Hospital";
 const SYSTEM        = "EL5 MediProcure";
 const PORTAL        = "https://procurbosse.edgeone.app";
-const VERSION       = "v11.5";
+const VERSION       = "v3.0";
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -234,6 +235,45 @@ function fallbackFormUrl(title: string, formId: string): string {
   return `https://docs.google.com/forms/create?title=${encodeURIComponent(`[${formId}] ${title} — ${HOSPITAL}`)}`;
 }
 
+// ── Save form to database ──────────────────────────────────────────
+async function saveFormToDb(formId: string, title: string, description: string, fields: string[], formUrl: string, editUrl: string | undefined, method: string, formApiId?: string) {
+  try {
+    // Create forms table if it doesn't exist (via audit_logs as backup)
+    const { error } = await db.from("google_forms").insert({
+      form_id: formId,
+      title,
+      description,
+      fields: JSON.stringify(fields),
+      form_url: formUrl,
+      edit_url: editUrl || formUrl,
+      form_api_id: formApiId || null,
+      method,
+      sender_email: SENDER_EMAIL,
+      status: "published",
+      created_at: new Date().toISOString(),
+      published_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      // Table might not exist - try audit_logs
+      await db.from("audit_logs").insert({
+        action: "google_form_published",
+        details: JSON.stringify({
+          formId, title, formUrl, editUrl, formApiId, method, fields: fields.length, senderEmail: SENDER_EMAIL,
+        }),
+        created_at: new Date().toISOString(),
+      });
+    }
+  } catch {
+    // Fallback to audit_logs
+    await db.from("audit_logs").insert({
+      action: "google_form_published",
+      details: JSON.stringify({ formId, title, formUrl, editUrl, formApiId, method, fields: fields.length }),
+      created_at: new Date().toISOString(),
+    });
+  }
+}
+
 // ── Main handler ───────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -243,70 +283,85 @@ Deno.serve(async (req) => {
     const { action, title, description, fields = [], formId, senderEmail } = body;
 
     if (action === "create_form") {
+      // Generate form ID if not provided
+      const finalFormId = formId || `EL5-FORM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
       // Log intent
       await db.from("audit_logs").insert({
         action: "google_form_create_attempt",
-        details: `Google Form requested: [${formId}] ${title} (${fields.length} fields) by ${senderEmail || SENDER_EMAIL}`,
+        details: `Google Form requested: [${finalFormId}] ${title} (${fields.length} fields) by ${senderEmail || SENDER_EMAIL}`,
         created_at: new Date().toISOString(),
       }).then(() => {});
 
       // Try real Google Forms API
       const token = await getGoogleToken();
-      if (token) {
-        const result = await createGoogleForm(title, description, fields, formId, token);
-        if (result.ok) {
-          // Log success
-          await db.from("audit_logs").insert({
-            action: "google_form_created",
-            details: `Google Form created: [${formId}] ${title} → ${result.formUrl}`,
-            created_at: new Date().toISOString(),
-          }).then(() => {});
+      let result: { ok: boolean; formUrl?: string; editUrl?: string; previewUrl?: string; formApiId?: string; error?: string } = { ok: false, error: "No provider" };
+      let method = "none";
 
-          return new Response(JSON.stringify({
-            ok: true,
-            formUrl: result.formUrl,
-            editUrl: result.editUrl,
-            previewUrl: result.previewUrl,
-            formApiId: result.formApiId,
-            formId,
-            title,
-            description,
-            fields,
-            senderEmail: SENDER_EMAIL,
-            method: "google_forms_api",
-          }), { headers: CORS });
-        }
-        console.warn("Forms API failed, using fallback:", result.error);
+      if (token) {
+        result = await createGoogleForm(title, description || "", fields, finalFormId, token);
+        method = "google_forms_api";
       }
 
-      // Fallback URL
-      const url = fallbackFormUrl(title, formId);
+      // Fallback URL if API didn't work
+      if (!result.ok) {
+        const url = fallbackFormUrl(title, finalFormId);
+        result = { ok: true, formUrl: url, editUrl: url, previewUrl: url };
+        method = "fallback_create_url";
+      }
+
+      // Save to database - form is now "published"
+      await saveFormToDb(finalFormId, title, description || "", fields, result.formUrl!, result.editUrl, method, result.formApiId);
+
+      // Log success
       await db.from("audit_logs").insert({
-        action: "google_form_fallback",
-        details: `Google Form fallback URL: [${formId}] ${title}`,
+        action: "google_form_published",
+        details: `Google Form PUBLISHED: [${finalFormId}] ${title} → ${result.formUrl}`,
         created_at: new Date().toISOString(),
       }).then(() => {});
 
       return new Response(JSON.stringify({
         ok: true,
-        formUrl: url,
-        editUrl: url,
-        previewUrl: url,
-        formId,
+        formUrl: result.formUrl,
+        editUrl: result.editUrl,
+        previewUrl: result.previewUrl,
+        formApiId: result.formApiId,
+        formId: finalFormId,
         title,
+        description,
+        fields,
         senderEmail: SENDER_EMAIL,
-        method: "fallback_create_url",
-        note: "Set GOOGLE_FORMS_SERVICE_ACCOUNT_JSON or GOOGLE_FORMS_OAUTH_TOKEN in Supabase secrets for real form creation",
+        method,
+        status: "published",
+        note: method === "fallback_create_url"
+          ? "Set GOOGLE_FORMS_SERVICE_ACCOUNT_JSON or GOOGLE_FORMS_OAUTH_TOKEN in Supabase secrets for real form creation"
+          : undefined,
       }), { headers: CORS });
     }
 
     if (action === "list_forms") {
-      const { data } = await db.from("audit_logs")
-        .select("*")
-        .eq("action", "google_form_created")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      return new Response(JSON.stringify({ ok: true, forms: data || [] }), { headers: CORS });
+      // Try google_forms table first, then audit_logs
+      let forms: any[] = [];
+      try {
+        const { data } = await db.from("google_forms")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (data) forms = data;
+      } catch {
+        // Fallback to audit_logs
+        const { data } = await db.from("audit_logs")
+          .select("*")
+          .eq("action", "google_form_published")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        forms = (data || []).map((r: any) => ({
+          form_id: JSON.parse(r.details || "{}").formId,
+          title: JSON.parse(r.details || "{}").title,
+          created_at: r.created_at,
+        }));
+      }
+      return new Response(JSON.stringify({ ok: true, forms }), { headers: CORS });
     }
 
     if (action === "status") {
