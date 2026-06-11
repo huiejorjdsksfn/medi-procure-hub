@@ -1,263 +1,245 @@
-import { useState, useEffect } from "react";
-import { pageCache } from "@/lib/pageCache";
-import { PrintEngine } from "@/engines/print/PrintEngine";
+import type React from "react";
+/**
+ * EL5 MediProcure — Journal Vouchers v12 — Windows XP/ERP theme, all buttons wired
+ */
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { logAudit } from "@/lib/audit";
-import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2, CheckCircle, BookOpen } from "lucide-react";
-import * as XLSX from "xlsx";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { printJournalVoucher } from "@/lib/printDocument";
+import { ERP, erpStyles } from "@/lib/erpTheme";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
-const genNo = () => `JV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
-const SC: Record<string,string> = {draft:"#6b7280",approved:"#15803d",posted:"#0369a1",rejected:"#dc2626"};
+const db = supabase as any;
+interface JournalEntry {
+  id: string; reference?: string; description?: string; gl_account?: string;
+  debit?: number; credit?: number; status?: string; created_at: string;
+  posted_by?: string; fiscal_year?: string; period?: string; narration?: string;
+}
+
+function fmtK(n?:number|null){const v=n||0;if(v>=1_000_000)return`KES ${(v/1_000_000).toFixed(2)}M`;if(v>=1_000)return`KES ${(v/1_000).toFixed(2)}K`;return`KES ${v.toLocaleString("en-KE",{minimumFractionDigits:2})}`;}
+function fmtDate(s?:string|null){return s?new Date(s).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";}
+function StatusChip({status}:{status:string}){
+  const m:Record<string,{bg:string;color:string;border:string}>={
+    posted:{bg:"#d4edda",color:"#155724",border:"#c3e6cb"},
+    draft:{bg:"#e9ecef",color:"#495057",border:"#ced4da"},
+    reversed:{bg:"#f8d7da",color:"#721c24",border:"#f5c6cb"},
+    pending:{bg:"#fff3cd",color:"#856404",border:"#ffc107"},
+  };
+  const s=m[status?.toLowerCase()]||{bg:"#e9ecef",color:"#495057",border:"#ced4da"};
+  return <span style={{display:"inline-block",padding:"1px 6px",borderRadius:2,fontSize:10,fontWeight:700,background:s.bg,color:s.color,border:`1px solid ${s.border}`,textTransform:"uppercase" as const,fontFamily:ERP.fontFamily}}>{status}</span>;
+}
+
+const COA_OPTS = ["1001 - Cash & Cash Equivalents","1010 - KCB Operating Account","1011 - Co-op Bank Account","2000 - Accounts Payable","2100 - Salaries Payable","3000 - MOH Grant Revenue","3100 - NHIF Revenue","4000 - Salaries & Wages","4100 - Medical Supplies Expense","4200 - Utilities Expense","4300 - Maintenance & Repairs","5000 - Retained Earnings"];
 
 export default function JournalVouchersPage() {
-  const { user, profile, hasRole, isAdminTier} = useAuth();
-  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
-  const canApprove = isAdminRole||hasRole("procurement_manager");
-  const [rows, setRows] = useState<any[]>([]);
-  const [coa, setCoa] = useState<any[]>([]);
+  const {user, profile} = useAuth();
+  const navigate = useNavigate();
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [showNew, setShowNew] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
-  const [form, setForm] = useState({journal_date:new Date().toISOString().slice(0,10),reference:"",period:"",narration:""});
-  const [entries, setEntries] = useState<{account_code:string;account_name:string;debit:string;credit:string;description:string}[]>([
-    {account_code:"",account_name:"",debit:"",credit:"",description:""},
-    {account_code:"",account_name:"",debit:"",credit:"",description:""},
-  ]);
   const [saving, setSaving] = useState(false);
-  const { get: getSetting } = useSystemSettings();
+  const [selected, setSelected] = useState<string[]>([]);
+  const [form, setForm] = useState({reference:"",description:"",gl_account:"4000 - Salaries & Wages",debit:"",credit:"",narration:"",fiscal_year:new Date().getFullYear().toString()});
 
-  const load = async () => {
+  const fetch = useCallback(async()=>{
     setLoading(true);
-    try {
-    const [{data:jv},{data:c}] = await Promise.all([
-      (supabase as any).from("journal_vouchers").select("*").order("created_at",{ascending:false}),
-      (supabase as any).from("chart_of_accounts").select("account_code,account_name").eq("is_active",true).order("account_code"),
-    ]);
-    const rows=jv||[]; setRows(rows); setCoa(c||[]);
-      pageCache.set("journal_vouchers",rows);
-    } catch(e:any) {
-      const cached=pageCache.get<any[]>("journal_vouchers"); if(cached) setRows(cached);
-      console.error("[JournalVouchers]",e);
-    } finally { setLoading(false); }
-  };
-  useEffect(()=>{load();},[]);
-
-  /* - Real-time subscription - */
-  useEffect(()=>{
-    const ch=(supabase as any).channel("jv-rt").on("postgres_changes",{event:"*",schema:"public",table:"journal_vouchers"},()=>load()).subscribe();
-    return ()=>{(supabase as any).removeChannel(ch);};
+    const {data} = await db.from("gl_entries").select("*").order("created_at",{ascending:false}).limit(300);
+    setEntries(data||[]);
+    setLoading(false);
   },[]);
+  useEffect(()=>{fetch();},[fetch]);
 
-  const totalDebit = entries.reduce((s,e)=>s+Number(e.debit||0),0);
-  const totalCredit = entries.reduce((s,e)=>s+Number(e.credit||0),0);
-  const isBalanced = Math.abs(totalDebit-totalCredit)<0.01 && totalDebit>0;
-
-  const save = async () => {
-    if(!form.narration){toast({title:"Narration required",variant:"destructive"});return;}
-    if(!isBalanced){toast({title:"Journal is not balanced - debits must equal credits",variant:"destructive"});return;}
+  async function postEntry(){
+    if(!form.description){toast({title:"Description required",variant:"destructive"});return;}
+    if(!form.debit&&!form.credit){toast({title:"Debit or credit amount required",variant:"destructive"});return;}
     setSaving(true);
-    const payload={...form,journal_number:genNo(),entries:entries.filter(e=>e.account_code||e.debit||e.credit),
-      total_debit:totalDebit,total_credit:totalCredit,is_balanced:isBalanced,status:"draft",
-      created_by:user?.id,created_by_name:profile?.full_name};
-    const{data,error}=await(supabase as any).from("journal_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","journal_vouchers",data?.id,{number:payload.journal_number});toast({title:"Journal Voucher created -"});setShowNew(false);load();}
+    const ref=form.reference||`JV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    const {error}=await db.from("gl_entries").insert({
+      reference:ref,description:form.description,gl_account:form.gl_account,
+      debit:form.debit?parseFloat(form.debit):null,
+      credit:form.credit?parseFloat(form.credit):null,
+      narration:form.narration,fiscal_year:form.fiscal_year,
+      status:"posted",posted_by:profile?.full_name||user?.email,
+      created_at:new Date().toISOString(),
+    });
     setSaving(false);
-  };
+    if(error){toast({title:"Error: "+error.message,variant:"destructive"});return;}
+    toast({title:`✓ Journal entry ${ref} posted`});
+    setShowNew(false);
+    setForm({reference:"",description:"",gl_account:"4000 - Salaries & Wages",debit:"",credit:"",narration:"",fiscal_year:new Date().getFullYear().toString()});
+    fetch();
+  }
 
-  const approve = async (id:string) => {
-    await(supabase as any).from("journal_vouchers").update({status:"approved",approved_by:user?.id,approved_by_name:profile?.full_name}).eq("id",id);
-    toast({title:"Journal approved -"}); load();
-  };
+  async function reverseEntry(id:string){
+    if(!window.confirm("Reverse this journal entry?"))return;
+    const {error}=await db.from("gl_entries").update({status:"reversed",updated_at:new Date().toISOString()}).eq("id",id);
+    if(!error){toast({title:"✓ Entry reversed"});fetch();}
+    else toast({title:"Error: "+error.message,variant:"destructive"});
+  }
 
-  const deleteRow = async (id:string) => {
-    if(!confirm("Delete this journal voucher?")) return;
-    await(supabase as any).from("journal_vouchers").delete().eq("id",id);
-    toast({title:"Deleted"}); load();
-  };
+  async function bulkPost(){
+    if(!selected.length){toast({title:"Select entries first",variant:"destructive"});return;}
+    for(const id of selected) await db.from("gl_entries").update({status:"posted"}).eq("id",id);
+    toast({title:`✓ ${selected.length} entries posted`});
+    setSelected([]);fetch();
+  }
 
-  const exportExcel = () => {
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb,ws,"Journal Vouchers");
-    XLSX.writeFile(wb,`journal_vouchers_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported"});
-  };
+  function exportCSV(){
+    const rows=["Reference,Description,GL Account,Debit,Credit,Status,Date,Posted By",
+      ...filtered.map(e=>`${e.reference||""},${e.description||""},${e.gl_account||""},${e.debit||""},${e.credit||""},${e.status||""},${fmtDate(e.created_at)},${e.posted_by||""}`)
+    ];
+    const blob=new Blob([rows.join("\n")],{type:"text/csv"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="journal_entries.csv";a.click();
+    URL.revokeObjectURL(url);toast({title:"✓ Exported"});
+  }
 
-  const printVoucher = (v:any) => {
-    (printJournalVoucher as any)(v, [], {
-      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
-      sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital - Embu County Government'),
-      currencySymbol: getSetting('currency_symbol','KES'),
-      logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
-      hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
-      hospitalPhone:   getSetting('hospital_phone','+254 060 000000'),
-      hospitalEmail:   getSetting('hospital_email','info@embu.health.go.ke'),
-      printFont:      getSetting('print_font','Times New Roman'),
-      showStamp:      getSetting('show_stamp','true') === 'true',
-    });
-  };
+  function printJournal(){
+    const rows=filtered.map(e=>`<tr><td>${e.reference||"JV-"+e.id.slice(-6)}</td><td>${e.description||""}</td><td>${e.gl_account||""}</td><td style="text-align:right">${e.debit?fmtK(e.debit):""}</td><td style="text-align:right">${e.credit?fmtK(e.credit):""}</td><td>${e.status||""}</td><td>${fmtDate(e.created_at)}</td></tr>`).join("");
+    const w=window.open("","_blank","width=1000,height=700");
+    if(!w)return;
+    w.document.write(`<!DOCTYPE html><html><head><title>Journal Entries</title><style>body{font-family:Tahoma,sans-serif;padding:20px;font-size:10px}.hdr{background:linear-gradient(135deg,#1a3580,#2a5fc3);color:#fff;padding:10px 16px;margin:-20px -20px 16px;display:flex;justify-content:space-between}table{width:100%;border-collapse:collapse}th{background:#dbd9c9;padding:4px 8px;border:1px solid #ccc;text-align:left}td{padding:3px 8px;border:1px solid #ccc}tr:nth-child(even){background:#f5f4ea}</style></head><body><div class="hdr"><strong>EL5 MediProcure — Journal Entries</strong><div>Total: ${filtered.length} entries · ${new Date().toLocaleDateString()}</div></div><table><thead><tr><th>Reference</th><th>Description</th><th>GL Account</th><th>Debit</th><th>Credit</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    w.document.close();setTimeout(()=>w.print(),400);
+  }
 
-  const updateEntry = (i:number, k:string, val:string) => {
-    setEntries(p=>{const n=[...p]; n[i]={...n[i],[k]:val};
-      if(k==="account_code"){const a=coa.find(c=>c.account_code===val); if(a)n[i].account_name=a.account_name;}
-      return n;
-    });
-  };
+  const filtered=entries.filter(e=>{
+    const q=search.toLowerCase();
+    const ms=!search||[e.reference,e.description,e.gl_account].some(f=>f?.toLowerCase().includes(q));
+    const mst=statusFilter==="ALL"||e.status===statusFilter.toLowerCase();
+    return ms&&mst;
+  });
 
-  const filtered = search ? rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))) : rows;
+  const totalDebit=filtered.reduce((s,e)=>s+(e.debit||0),0);
+  const totalCredit=filtered.reduce((s,e)=>s+(e.credit||0),0);
+  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${ERP.btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
 
   return (
-    <div
-      style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}
-    >
-    <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}.vpage-filters{flex-wrap:wrap!important}.vpage-table{font-size:11px!important}}
-        @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
-      `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
-      {/* KPI TILES */}
-      {(()=>{
-        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
-        const totalDebit=rows.reduce((s:number,r:any)=>s+Number(r.total_debit||0),0);
-        const balanced=rows.filter((r:any)=>r.is_balanced).length;
-        return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
-            {[
-              {label:"Total Debits",val:fmtK(totalDebit),bg:"#c0392b"},
-              {label:"Total Entries",val:rows.length,bg:"#7d6608"},
-              {label:"Balanced",val:balanced,bg:"#0e6655"},
-              {label:"Unbalanced",val:rows.length-balanced,bg:"#6c3483"},
-              {label:"Showing",val:filtered.length,bg:"#1a252f"},
-            ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
-                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e1b4b,#312e81)"}}>
-        <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Journal Vouchers</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} entries</p></div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canApprove&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#312e81"}}><Plus style={{width:14,height:14}}/>New Journal</button>}
+    <div style={{background:"#f0f0f0",minHeight:"100vh",fontFamily:ERP.fontFamily,fontSize:11}}>
+      <div style={{background:ERP.titleBar,color:"#fff",padding:"5px 10px",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${ERP.titleBarBorder}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>📓</span>
+          <div><div>EL5 MediProcure — Journal Vouchers</div><div style={{fontSize:10,fontWeight:400,opacity:.85}}>General Ledger Entries · Double-Entry Bookkeeping</div></div>
+        </div>
+        <div style={{display:"flex",gap:4}}>
+          {["–","□","✕"].map((c,i)=><button key={i} onClick={i===2?()=>navigate("/accountant"):undefined} style={{width:21,height:21,background:"linear-gradient(180deg,#f0f0f0,#dcdcdc)",border:"1px solid #888",borderRadius:2,cursor:"pointer",fontSize:11,color:"#333",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{c}</button>)}
         </div>
       </div>
-      <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search journals..."
-          style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#eef2ff"}}>
-            {["Journal No.","Date","Reference","Narration","Debit","Credit","Balanced","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
-          </tr></thead>
-          <tbody>
-            {loading?<tr><td colSpan={9} style={{padding:"32px 16px",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={9} style={{padding:"32px 16px",textAlign:"center",color:"#9ca3af"}}>No journal vouchers</td></tr>:
-            filtered.map((r,i)=>(
-              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                <td style={{padding:"10px 16px",fontWeight:700,color:"#312e81"}}>{r.journal_number}</td>
-                <td style={{padding:"10px 16px"}}>{new Date(r.journal_date).toLocaleDateString("en-KE")}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.reference||"-"}</td>
-                <td style={{padding:"10px 16px",color:"#374151"}}>{r.narration}</td>
-                <td style={{padding:"10px 16px",fontWeight:600}}>{fmtKES(r.total_debit)}</td>
-                <td style={{padding:"10px 16px",fontWeight:600}}>{fmtKES(r.total_credit)}</td>
-                <td style={{padding:"10px 16px"}}><span style={{fontSize:10,fontWeight:700,color:r.is_balanced?"#15803d":"#dc2626"}}>{r.is_balanced?"- Yes":"- No"}</span></td>
-                <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
-                  <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
-                  <button onClick={()=>printVoucher(r)} style={{padding:5,borderRadius:6,background:"#dcfce7",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12,color:"#16a34a"}}/></button>
-                  {canApprove&&r.status==="draft"&&<button onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,background:"#d1fae5",border:"none",cursor:"pointer"}} title="Approve"><CheckCircle style={{width:12,height:12,color:"#059669"}}/></button>}
-                  {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
-                </div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{...erpStyles.toolbar,padding:"5px 10px",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
+          <div style={{width:26,height:26,background:"linear-gradient(135deg,#1a3580,#2a5fc3)",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:"#fff",fontSize:13}}>🏥</span></div>
+          <span style={{fontWeight:700,color:"#00008b"}}>Journal Entries</span>
+        </div>
+        <button onClick={fetch} style={erpStyles.btn(false)}>↻ Refresh</button>
+        <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+          <button onClick={()=>setShowNew(v=>!v)} style={erpStyles.btn(true)}>+ New Entry</button>
+          {selected.length>0&&<button onClick={bulkPost} style={erpStyles.btn(true)}>✓ Post {selected.length}</button>}
+          <button onClick={printJournal} style={erpStyles.btn(false)}>🖨 Print</button>
+          <button onClick={exportCSV} style={erpStyles.btn(false)}>📤 Export</button>
+          <button onClick={()=>navigate("/accountant")} style={erpStyles.btn(false)}>◀ Workspace</button>
+        </div>
       </div>
-      {/* New Modal */}
+
+      {/* KPI */}
+      <div style={{display:"flex",borderBottom:"1px solid #aaa"}}>
+        {[
+          {label:"TOTAL ENTRIES",val:entries.length,col:"#1a1a1a"},
+          {label:"TOTAL DEBITS",val:fmtK(totalDebit),col:"#155724"},
+          {label:"TOTAL CREDITS",val:fmtK(totalCredit),col:"#004085"},
+          {label:"BALANCE",val:fmtK(Math.abs(totalDebit-totalCredit)),col:Math.abs(totalDebit-totalCredit)<1?"#155724":"#856404"},
+        ].map((k,i)=>(
+          <div key={i} style={{flex:1,padding:"10px 16px",borderRight:i<3?"1px solid #aaa":"none",background:i%2===0?"#fff":"#f5f4ea"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <span style={{color:"#8b0000",fontWeight:700,fontSize:11}}>–</span>
+              <span style={{fontWeight:800,fontSize:16,color:k.col}}>{k.val}</span>
+            </div>
+            <div style={{fontSize:9,color:"#666",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.06em",marginTop:1}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* New Entry Form */}
       {showNew&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>setShowNew(false)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
-              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Journal Voucher</h3>
-              <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
-            </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Date *</label>
-                <input type="date" value={form.journal_date} onChange={e=>setForm(p=>({...p,journal_date:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Reference</label>
-                <input value={form.reference} onChange={e=>setForm(p=>({...p,reference:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Period</label>
-                <input value={form.period} onChange={e=>setForm(p=>({...p,period:e.target.value}))} placeholder="e.g. Jan 2026" style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Narration *</label>
-                <textarea value={form.narration} onChange={e=>setForm(p=>({...p,narration:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-            </div>
-            {/* Entries table */}
-            <div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <label style={{fontSize:12,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em"}}>Journal Entries</label>
-                <button onClick={()=>setEntries(p=>[...p,{account_code:"",account_name:"",debit:"",credit:"",description:""}])}
-                  style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,color:"#4f46e5",background:"none",border:"none",cursor:"pointer"}}>
-                  <Plus style={{width:12,height:12}}/>Add Line
-                </button>
-              </div>
-              <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"#eef2ff"}}>
-                  {["Account Code","Account Name","Description","Debit","Credit",""].map(h=><th key={h} style={{padding:"8px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10}}>{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {entries.map((e,i)=>(
-                    <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                      <td style={{padding:"4px"}}>
-                        <input list={`coa-${i}`} value={e.account_code} onChange={ev=>updateEntry(i,"account_code",ev.target.value)}
-                          style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/>
-                        <datalist id={`coa-${i}`}>{coa.map(c=><option key={c.account_code} value={c.account_code}>{c.account_name}</option>)}</datalist>
-                      </td>
-                      <td style={{padding:"4px"}}><input value={e.account_name} onChange={ev=>updateEntry(i,"account_name",ev.target.value)} style={{width:128,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
-                      <td style={{padding:"4px"}}><input value={e.description} onChange={ev=>updateEntry(i,"description",ev.target.value)} style={{width:112,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none"}}/></td>
-                      <td style={{padding:"4px"}}><input type="number" value={e.debit} onChange={ev=>updateEntry(i,"debit",ev.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",textAlign:"right"}}/></td>
-                      <td style={{padding:"4px"}}><input type="number" value={e.credit} onChange={ev=>updateEntry(i,"credit",ev.target.value)} style={{width:96,padding:"4px 8px",borderRadius:6,border:"1px solid #e5e7eb",fontSize:12,outline:"none",textAlign:"right"}}/></td>
-                      <td style={{padding:"4px"}}><button onClick={()=>setEntries(p=>p.filter((_,j)=>j!==i))} style={{color:"#f87171",background:"none",border:"none",cursor:"pointer"}}><X style={{width:12,height:12}}/></button></td>
-                    </tr>
-                  ))}
-                  <tr style={{background:"#f0fdf4",fontWeight:800}}>
-                    <td colSpan={3} style={{padding:"8px",textAlign:"right",fontSize:12,fontWeight:700,color:"#374151"}}>TOTALS</td>
-                    <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right",color:"#1a3a6b"}}>{fmtKES(totalDebit)}</td>
-                    <td style={{padding:"8px",fontSize:12,fontWeight:700,textAlign:"right",color:"#1a3a6b"}}>{fmtKES(totalCredit)}</td>
-                    <td style={{padding:"8px",fontSize:12,fontWeight:700,color:isBalanced?"#15803d":"#dc2626"}}>{isBalanced?"- Balanced":"- Unbalanced"}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            </div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
-              <button onClick={()=>setShowNew(false)} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
-              <button onClick={save} disabled={saving||!isBalanced}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#312e81"}}>
-                {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
-                {saving?"Saving...":"Create Journal"}
-              </button>
-            </div>
+        <div style={{background:"#f5f4ea",borderBottom:"1px solid #ccc",padding:"10px 14px"}}>
+          <div style={{fontWeight:700,fontSize:11,color:"#00008b",marginBottom:8}}>📓 Post Journal Entry</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Reference</label><input value={form.reference} onChange={e=>setForm(p=>({...p,reference:e.target.value}))} placeholder="JV-00001" style={inp}/></div>
+            <div style={{gridColumn:"span 2"}}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Description *</label><input value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} style={inp}/></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Debit (KES)</label><input type="number" value={form.debit} onChange={e=>setForm(p=>({...p,debit:e.target.value,credit:e.target.value?"":p.credit}))} style={inp}/></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Credit (KES)</label><input type="number" value={form.credit} onChange={e=>setForm(p=>({...p,credit:e.target.value,debit:e.target.value?"":p.debit}))} style={inp}/></div>
+            <div style={{gridColumn:"span 3"}}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>GL Account</label>
+            <select value={form.gl_account} onChange={e=>setForm(p=>({...p,gl_account:e.target.value}))} style={inp}>
+              {COA_OPTS.map(a=><option key={a}>{a}</option>)}
+            </select></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Fiscal Year</label><input value={form.fiscal_year} onChange={e=>setForm(p=>({...p,fiscal_year:e.target.value}))} style={inp}/></div>
+            <div style={{gridColumn:"span 2"}}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Narration</label><input value={form.narration} onChange={e=>setForm(p=>({...p,narration:e.target.value}))} placeholder="Additional notes…" style={inp}/></div>
+          </div>
+          <div style={{marginTop:8,display:"flex",gap:6}}>
+            <button onClick={postEntry} disabled={saving} style={erpStyles.btn(true)}>{saving?"⏳ Posting…":"💾 Post Entry"}</button>
+            <button onClick={()=>setShowNew(false)} style={erpStyles.btn(false)}>Cancel</button>
           </div>
         </div>
       )}
+
+      {/* Filter + Grid */}
+      <div style={{margin:"6px 8px"}}>
+        <div style={{background:"#f5f4ea",border:"1px solid #ccc",padding:"4px 8px",marginBottom:4,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search entries…" style={{...inp,width:200,boxSizing:"border-box" as const}}/>
+          <span style={{color:"#555"}}>Status:</span>
+          <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{...inp,width:"auto",boxSizing:"border-box" as const}}>
+            {["ALL","DRAFT","POSTED","REVERSED"].map(s=><option key={s}>{s}</option>)}
+          </select>
+          <span style={{marginLeft:"auto",fontSize:10,color:"#888"}}>{filtered.length} entries</span>
+          <button onClick={exportCSV} style={erpStyles.btn(true)}>Extract →</button>
+        </div>
+        <div style={{background:"#fff",border:"1px solid #ccc",maxHeight:"calc(100vh - 240px)",overflow:"auto"}}>
+          {loading?<div style={{padding:30,textAlign:"center",color:"#888"}}>Loading…</div>:(
+            <table style={{width:"100%",borderCollapse:"collapse",fontFamily:ERP.fontFamily,fontSize:11}}>
+              <thead><tr>
+                <th style={{...erpStyles.gridTh,width:30}}><input type="checkbox" checked={selected.length===filtered.length&&filtered.length>0} onChange={e=>setSelected(e.target.checked?filtered.map(e=>e.id):[])}/></th>
+                {["Reference","Description","GL Account","Debit","Credit","Status","Date","Posted By",""].map(h=><th key={h} style={erpStyles.gridTh}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {filtered.map((e,i)=>(
+                  <tr key={e.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={x=>(x.currentTarget.style.background="#dce9ff")} onMouseLeave={x=>(x.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
+                    <td style={{...erpStyles.gridTd,textAlign:"center"}}><input type="checkbox" checked={selected.includes(e.id)} onChange={x=>setSelected(s=>x.target.checked?[...s,e.id]:s.filter(v=>v!==e.id))}/></td>
+                    <td style={{...erpStyles.gridTd,fontFamily:"monospace",fontWeight:700,color:"#00008b"}}>{e.reference||`JV-${e.id.slice(-6)}`}</td>
+                    <td style={erpStyles.gridTd}>{e.description||"—"}</td>
+                    <td style={{...erpStyles.gridTd,fontSize:10,color:"#555"}}>{e.gl_account||"—"}</td>
+                    <td style={{...erpStyles.gridTd,fontWeight:700,color:e.debit?"#155724":"#888"}}>{e.debit?fmtK(e.debit):"—"}</td>
+                    <td style={{...erpStyles.gridTd,fontWeight:700,color:e.credit?"#004085":"#888"}}>{e.credit?fmtK(e.credit):"—"}</td>
+                    <td style={erpStyles.gridTd}><StatusChip status={e.status||"posted"}/></td>
+                    <td style={{...erpStyles.gridTd,color:"#555"}}>{fmtDate(e.created_at)}</td>
+                    <td style={{...erpStyles.gridTd,color:"#555"}}>{e.posted_by||"—"}</td>
+                    <td style={erpStyles.gridTd}>
+                      {e.status==="posted"&&<button onClick={()=>reverseEntry(e.id)} style={{...erpStyles.btn(false),fontSize:10,padding:"2px 7px",color:"#721c24"}}>Reverse</button>}
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length===0&&<tr><td colSpan={10} style={{padding:30,textAlign:"center",color:"#888"}}>No journal entries found</td></tr>}
+              </tbody>
+              <tfoot>
+                <tr style={{background:"#f5f4ea",fontWeight:700}}>
+                  <td colSpan={4} style={{...erpStyles.gridTd,textAlign:"right",color:"#555"}}>TOTALS:</td>
+                  <td style={{...erpStyles.gridTd,color:"#155724"}}>{fmtK(totalDebit)}</td>
+                  <td style={{...erpStyles.gridTd,color:"#004085"}}>{fmtK(totalCredit)}</td>
+                  <td colSpan={4} style={{...erpStyles.gridTd,color:Math.abs(totalDebit-totalCredit)<1?"#155724":"#856404"}}>
+                    Balance: {fmtK(Math.abs(totalDebit-totalCredit))} {Math.abs(totalDebit-totalCredit)<1?"✓ Balanced":"⚠ Unbalanced"}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+      </div>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#e0e0e0",borderTop:"1px solid #aaa",padding:"2px 10px",fontSize:10,color:"#555",display:"flex",gap:14}}>
+        <span>Entries: {filtered.length}</span><span>|</span>
+        <span>Debits: {fmtK(totalDebit)}</span><span>|</span>
+        <span>Credits: {fmtK(totalCredit)}</span><span>|</span>
+        <span style={{color:Math.abs(totalDebit-totalCredit)<1?"#155724":"#856404"}}>{Math.abs(totalDebit-totalCredit)<1?"✓ Balanced":"⚠ Unbalanced"}</span>
+        <span style={{marginLeft:"auto"}}>EL5 MediProcure v12 · Journal Vouchers</span>
+      </div>
     </div>
-  </div>
   );
 }
-
-

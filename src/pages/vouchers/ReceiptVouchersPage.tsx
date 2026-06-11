@@ -1,244 +1,270 @@
-import { useState, useEffect } from "react";
-import { pageCache } from "@/lib/pageCache";
+import type React from "react";
+/**
+ * EL5 MediProcure — Receipt Vouchers v12 — Windows XP theme, all buttons wired
+ */
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { logAudit } from "@/lib/audit";
-import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2, CheckCircle } from "lucide-react";
-import * as XLSX from "xlsx";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { printGenericVoucher } from "@/lib/printDocument";
+import { ERP, erpStyles } from "@/lib/erpTheme";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const genNo = () => `RV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
-const SC: Record<string,string> = {confirmed:"#15803d",pending:"#d97706",cancelled:"#dc2626"};
+const db = supabase as any;
+interface Receipt {
+  id: string; receipt_number?: string; received_from?: string;
+  total_amount?: number; status: string; payment_method?: string;
+  created_at: string; gl_account?: string; description?: string;
+  reference?: string; received_by?: string; bank_name?: string;
+}
+
+function fmtK(n?: number|null) {
+  const v = n||0;
+  if(v>=1_000_000) return `KES ${(v/1_000_000).toFixed(2)}M`;
+  if(v>=1_000) return `KES ${(v/1_000).toFixed(2)}K`;
+  return `KES ${v.toLocaleString("en-KE",{minimumFractionDigits:2})}`;
+}
+function fmtDate(s?: string|null) { return s ? new Date(s).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—"; }
+
+function StatusChip({status}:{status:string}) {
+  const m: Record<string,{bg:string;color:string;border:string}> = {
+    posted:{bg:"#d4edda",color:"#155724",border:"#c3e6cb"},
+    received:{bg:"#d4edda",color:"#155724",border:"#c3e6cb"},
+    draft:{bg:"#e9ecef",color:"#495057",border:"#ced4da"},
+    pending:{bg:"#fff3cd",color:"#856404",border:"#ffc107"},
+    reversed:{bg:"#f8d7da",color:"#721c24",border:"#f5c6cb"},
+  };
+  const s = m[status?.toLowerCase()]||{bg:"#e9ecef",color:"#495057",border:"#ced4da"};
+  return <span style={{display:"inline-block",padding:"1px 6px",borderRadius:2,fontSize:10,fontWeight:700,background:s.bg,color:s.color,border:`1px solid ${s.border}`,textTransform:"uppercase" as const,fontFamily:ERP.fontFamily}}>{status}</span>;
+}
 
 export default function ReceiptVouchersPage() {
-  const { user, profile, hasRole, isAdminTier} = useAuth();
-  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
-  const { get: getSetting } = useSystemSettings();
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const sysName = getSetting("system_name","EL5 MediProcure");
-  const canCreate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer");
-  const [rows, setRows] = useState<any[]>([]);
-  const [depts, setDepts] = useState<any[]>([]);
+  const {user, profile} = useAuth();
+  const navigate = useNavigate();
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [showNew, setShowNew] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
-  const [form, setForm] = useState({received_from:"",amount:"",payment_method:"Cash",receipt_date:new Date().toISOString().slice(0,10),reference:"",description:"",income_account:"",bank_name:"",bank_reference:"",department_id:"",status:"confirmed"});
   const [saving, setSaving] = useState(false);
-  // hospitalName now from useSystemSettings
+  const [selected, setSelected] = useState<string[]>([]);
+  const [form, setForm] = useState({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"3000 - MOH Grant Revenue",description:"",reference:"",bank_name:""});
 
-  const load = async () => {
+  const fetch = useCallback(async()=>{
     setLoading(true);
-    try {
-    const [{data:rv},{data:d}] = await Promise.all([
-      (supabase as any).from("receipt_vouchers").select("*").order("created_at",{ascending:false}),
-      (supabase as any).from("departments").select("id,name").order("name"),
-    ]);
-    const rows=rv||[]; setRows(rows); setDepts(d||[]);
-      pageCache.set("receipt_vouchers",rows);
-    } catch(e:any) {
-      const cached=pageCache.get<any[]>("receipt_vouchers"); if(cached) setRows(cached);
-      console.error("[ReceiptVouchers]",e);
-    } finally { setLoading(false); }
-  };
-  useEffect(()=>{load();},[]);
-
-  /* - Real-time subscription - */
-  useEffect(()=>{
-    const ch=(supabase as any).channel("rcv-rt").on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},()=>load()).subscribe();
-    return ()=>{(supabase as any).removeChannel(ch);};
+    const {data} = await db.from("receipt_vouchers").select("*").order("created_at",{ascending:false}).limit(200);
+    setReceipts(data||[]);
+    setLoading(false);
   },[]);
 
-  const save = async () => {
-    if(!form.received_from||!form.amount){toast({title:"Please fill all required fields",variant:"destructive"});return;}
+  useEffect(()=>{ fetch(); },[fetch]);
+
+  async function create() {
+    if(!form.received_from||!form.total_amount){toast({title:"Payer and amount required",variant:"destructive"});return;}
     setSaving(true);
-    const payload={...form,receipt_number:genNo(),amount:Number(form.amount),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
-    const{data,error}=await(supabase as any).from("receipt_vouchers").insert(payload).select().single();
-    if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
-    else{logAudit(user?.id,profile?.full_name,"create","receipt_vouchers",data?.id,{received_from:form.received_from});toast({title:"Receipt Voucher created -"});setShowNew(false);load();}
-    setSaving(false);
-  };
-
-  const deleteRow = async (id:string) => {
-    if(!confirm("Delete this receipt voucher?")) return;
-    await (supabase as any).from("receipt_vouchers").delete().eq("id",id);
-    toast({title:"Deleted"}); load();
-  };
-
-  const printVoucher = (v:any) => {
-    (printGenericVoucher as any)(v, "Receipt Voucher", {
-      hospitalName:   getSetting('hospital_name','Embu Level 5 Hospital'),
-      sysName:        getSetting('system_name','EL5 MediProcure'),
-      docFooter:      getSetting('doc_footer','Embu Level 5 Hospital - Embu County Government'),
-      currencySymbol: getSetting('currency_symbol','KES'),
-      logoUrl:         getSetting('logo_url') || getSetting('system_logo_url') || '',
-      hospitalAddress: getSetting('hospital_address','Embu Town, Embu County, Kenya'),
-      hospitalPhone:   getSetting('hospital_phone','+254 060 000000'),
-      hospitalEmail:   getSetting('hospital_email','info@embu.health.go.ke'),
-      printFont:      getSetting('print_font','Times New Roman'),
-      showStamp:      getSetting('show_stamp','true') === 'true',
+    const rNum=`RV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+    const {error}=await db.from("receipt_vouchers").insert({
+      receipt_number:rNum,received_from:form.received_from,total_amount:parseFloat(form.total_amount),
+      payment_method:form.payment_method,gl_account:form.gl_account,description:form.description,
+      reference:form.reference,bank_name:form.bank_name,status:"draft",
+      received_by:profile?.full_name||user?.email,
     });
-  };
+    setSaving(false);
+    if(error){toast({title:"Error: "+error.message,variant:"destructive"});return;}
+    toast({title:`✓ Receipt ${rNum} created`});
+    setShowNew(false);
+    setForm({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"3000 - MOH Grant Revenue",description:"",reference:"",bank_name:""});
+    fetch();
+  }
 
-  const exportExcel = () => {
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb,ws,"Receipt Vouchers");
-    XLSX.writeFile(wb,`receipt_vouchers_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported"});
-  };
+  async function updateStatus(id:string,status:string){
+    const {error}=await db.from("receipt_vouchers").update({status,updated_at:new Date().toISOString()}).eq("id",id);
+    if(!error){toast({title:`✓ Status → ${status}`});fetch();}
+    else toast({title:"Error: "+error.message,variant:"destructive"});
+  }
 
-  const filtered = search ? rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))) : rows;
-  const totalAmt = filtered.reduce((s,r)=>s+Number(r.amount||0),0);
+  async function bulkPost(){
+    if(!selected.length){toast({title:"Select receipts first",variant:"destructive"});return;}
+    for(const id of selected) await db.from("receipt_vouchers").update({status:"posted"}).eq("id",id);
+    toast({title:`✓ ${selected.length} receipt(s) posted`});
+    setSelected([]); fetch();
+  }
 
-  const F = ({label,k,type="text",req=false}:{label:string;k:string;type?:string;req?:boolean}) => (
-    <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{label}{req&&" *"}</label>
-    <input type={type} value={form[k as keyof typeof form]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-      style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-  );
+  function printReceipt(r:Receipt){
+    const w=window.open("","_blank","width=760,height=560");
+    if(!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${r.receipt_number}</title>
+    <style>body{font-family:Tahoma,sans-serif;padding:28px;font-size:11px}
+    .hdr{background:linear-gradient(135deg,#155724,#1e7e34);color:#fff;padding:10px 16px;margin:-28px -28px 20px;display:flex;justify-content:space-between}
+    h2{margin:0;font-size:14px}table{width:100%;border-collapse:collapse}
+    td{padding:5px 9px;border:1px solid #ccc}.lbl{background:#f5f4ea;font-weight:700;width:28%;color:#555}
+    .tot{font-size:18px;font-weight:900;color:#155724}
+    .sig{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:40px}
+    .sl{border-top:1px solid #555;padding-top:4px;font-size:9px;color:#666;margin-top:42px;text-align:center}
+    </style></head><body>
+    <div class="hdr"><div><h2>🏥 EL5 MediProcure</h2><div style="font-size:9px;opacity:.75">Embu Level 5 Hospital · Official Receipt</div></div>
+    <div style="text-align:right"><div style="font-size:9px;opacity:.8">RECEIPT VOUCHER</div><div style="font-size:15px;font-weight:900">${r.receipt_number||""}</div></div></div>
+    <table>
+      <tr><td class="lbl">Received From</td><td><strong>${r.received_from||""}</strong></td><td class="lbl">Date</td><td>${fmtDate(r.created_at)}</td></tr>
+      <tr><td class="lbl">Bank</td><td>${r.bank_name||"—"}</td><td class="lbl">Method</td><td style="text-transform:capitalize">${r.payment_method?.replace("_"," ")||""}</td></tr>
+      <tr><td class="lbl">Reference</td><td>${r.reference||"—"}</td><td class="lbl">Status</td><td><strong style="text-transform:uppercase">${r.status}</strong></td></tr>
+      <tr><td class="lbl">GL Account</td><td colspan="3">${r.gl_account||"—"}</td></tr>
+      <tr><td class="lbl">Description</td><td colspan="3">${r.description||""}</td></tr>
+      <tr><td class="lbl">AMOUNT RECEIVED</td><td colspan="3" class="tot">KES ${(r.total_amount||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</td></tr>
+    </table>
+    <div class="sig"><div><div class="sl">Received By / Date</div></div><div><div class="sl">Finance Officer / Date</div></div></div>
+    <div style="margin-top:20px;font-size:8px;color:#aaa;text-align:center">EL5 MediProcure v12 · ${new Date().toLocaleString()}</div>
+    </body></html>`);
+    w.document.close(); setTimeout(()=>w.print(),400);
+  }
+
+  function exportCSV(){
+    const rows=["Receipt No,Received From,Amount,Method,GL Account,Status,Date,Received By",
+      ...filtered.map(r=>`${r.receipt_number||""},${r.received_from||""},${r.total_amount||0},${r.payment_method||""},${r.gl_account||""},${r.status},${fmtDate(r.created_at)},${r.received_by||""}`)
+    ];
+    const blob=new Blob([rows.join("\n")],{type:"text/csv"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="receipt_vouchers.csv";a.click();
+    URL.revokeObjectURL(url);toast({title:"✓ Exported"});
+  }
+
+  const filtered = receipts.filter(r=>{
+    const q=search.toLowerCase();
+    const ms=!search||[r.receipt_number,r.received_from,r.description,r.reference].some(f=>f?.toLowerCase().includes(q));
+    const mst=statusFilter==="ALL"||r.status===statusFilter.toLowerCase();
+    return ms&&mst;
+  });
+
+  const totalPosted=receipts.filter(r=>r.status==="posted"||r.status==="received").reduce((s,r)=>s+(r.total_amount||0),0);
+
+  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${ERP.btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
 
   return (
-    <div
-      style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}
-    >
-    <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}.vpage-filters{flex-wrap:wrap!important}.vpage-table{font-size:11px!important}}
-        @media(max-width:480px){.vpage-btns{flex-wrap:wrap!important;gap:6px!important}}
-      `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,fontFamily:"'Segoe UI',system-ui"}}>
-      {/* KPI TILES */}
-      {(()=>{
-        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
-        const totalAll=rows.reduce((s:number,r:any)=>s+Number(r.amount||0),0);
-        return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
-            {[
-              {label:"Total Receipts",val:fmtK(totalAll),bg:"#c0392b"},
-              {label:"Record Count",val:rows.length,bg:"#7d6608"},
-              {label:"Showing",val:filtered.length,bg:"#0e6655"},
-              {label:"This Month",val:rows.filter(r=>r.receipt_date&&new Date(r.receipt_date).getMonth()===new Date().getMonth()).length,bg:"#6c3483"},
-              {label:"Avg Amount",val:fmtK(rows.length?totalAll/rows.length:0),bg:"#1a252f"},
-            ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
-                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
-              </div>
-            ))}
+    <div style={{background:"#f0f0f0",minHeight:"100vh",fontFamily:ERP.fontFamily,fontSize:11}}>
+      {/* Title */}
+      <div style={{background:ERP.titleBar,color:"#fff",padding:"5px 10px",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${ERP.titleBarBorder}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>🧾</span>
+          <div>
+            <div>EL5 MediProcure — Receipt Vouchers</div>
+            <div style={{fontSize:10,fontWeight:400,opacity:.85}}>Embu Level 5 Hospital · Income & Collections</div>
           </div>
-        );
-      })()}
-      {/* Header */}
-      <div style={{borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#065f46,#047857)"}}>
-        <div><h1 style={{fontSize:15,fontWeight:900,color:"#fff"}}>Receipt Vouchers</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{rows.length} records - Total: {fmtKES(totalAmt)}</p></div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canCreate&&<button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#065f46"}}><Plus style={{width:14,height:14}}/>New Receipt</button>}
+        </div>
+        <div style={{display:"flex",gap:4}}>
+          {["–","□","✕"].map((c,i)=>(
+            <button key={i} onClick={i===2?()=>navigate("/accountant"):undefined} style={{width:21,height:21,background:"linear-gradient(180deg,#f0f0f0,#dcdcdc)",border:"1px solid #888",borderRadius:2,cursor:"pointer",fontSize:11,color:"#333",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{c}</button>
+          ))}
         </div>
       </div>
-      {/* Search */}
-      <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search vouchers..."
-          style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
-      {/* Table */}
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#f0fdf4"}}>
-            {["Receipt No.","Received From","Amount","Method","Date","Status","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
-          </tr></thead>
-          <tbody>
-            {loading?<tr><td colSpan={7} style={{padding:"32px 16px",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={7} style={{padding:"32px 16px",textAlign:"center",color:"#9ca3af",fontSize:12}}>No receipt vouchers yet</td></tr>:
-            filtered.map((r,i)=>(
-              <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                <td style={{padding:"10px 16px",fontWeight:700,color:"#065f46"}}>{r.receipt_number}</td>
-                <td style={{padding:"10px 16px",fontWeight:500,color:"#1f2937"}}>{r.received_from}</td>
-                <td style={{padding:"10px 16px",fontWeight:700,color:"#1f2937"}}>{fmtKES(r.amount)}</td>
-                <td style={{padding:"10px 16px",color:"#4b5563"}}>{r.payment_method}</td>
-                <td style={{padding:"10px 16px",color:"#6b7280"}}>{new Date(r.receipt_date).toLocaleDateString("en-KE")}</td>
-                <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
-                  <button onClick={()=>setDetail(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12,color:"#2563eb"}}/></button>
-                  <button onClick={()=>printVoucher(r)} style={{padding:5,borderRadius:6,background:"#dcfce7",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12,color:"#16a34a"}}/></button>
-                  {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
-                </div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Toolbar */}
+      <div style={{...erpStyles.toolbar,padding:"5px 10px",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
+          <div style={{width:26,height:26,background:"linear-gradient(135deg,#155724,#1e7e34)",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:"#fff",fontSize:13}}>🏥</span></div>
+          <span style={{fontWeight:700,color:"#155724"}}>Receipt Vouchers</span>
+        </div>
+        <button onClick={fetch} style={erpStyles.btn(false)}>↻ Refresh</button>
+        <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+          <button onClick={()=>setShowNew(v=>!v)} style={erpStyles.btn(true)}>+ New Receipt</button>
+          {selected.length>0 && <button onClick={bulkPost} style={erpStyles.btn(true)}>✓ Post {selected.length}</button>}
+          <button onClick={exportCSV} style={erpStyles.btn(false)}>📤 Export</button>
+          <button onClick={()=>navigate("/accountant")} style={erpStyles.btn(false)}>◀ Workspace</button>
+        </div>
       </div>
-      {/* New Modal */}
-      {showNew&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>setShowNew(false)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
-              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>New Receipt Voucher</h3>
-              <button onClick={()=>setShowNew(false)} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
+
+      {/* KPI */}
+      <div style={{display:"flex",borderBottom:"1px solid #aaa"}}>
+        {[
+          {label:"TOTAL RECEIPTS",val:fmtK(totalPosted),col:"#155724"},
+          {label:"PENDING",val:receipts.filter(r=>r.status==="pending"||r.status==="draft").length,col:"#856404"},
+          {label:"POSTED",val:receipts.filter(r=>r.status==="posted"||r.status==="received").length,col:"#004085"},
+          {label:"RECORD COUNT",val:filtered.length,col:"#1a1a1a"},
+        ].map((k,i)=>(
+          <div key={i} style={{flex:1,padding:"10px 16px",borderRight:i<3?"1px solid #aaa":"none",background:i%2===0?"#fff":"#f5f4ea"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <span style={{color:"#8b0000",fontWeight:700,fontSize:11}}>–</span>
+              <span style={{fontWeight:800,fontSize:16,color:k.col}}>{k.val}</span>
             </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{gridColumn:"1/-1"}}><F label="Received From" k="received_from" req/></div>
-              <F label="Amount (KES)" k="amount" type="number" req/>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Payment Method</label>
-                <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  {["Cash","Cheque","EFT","MPESA","Bank Transfer"].map(m=><option key={m}>{m}</option>)}
-                </select></div>
-              <F label="Receipt Date" k="receipt_date" type="date" req/>
-              <F label="Reference No." k="reference"/>
-              <F label="Bank Name" k="bank_name"/>
-              <F label="Bank Reference" k="bank_reference"/>
-              <F label="Income Account" k="income_account"/>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
-                <select value={form.department_id||""} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">- Select -</option>
-                  {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
-                </select></div>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Description</label>
-                <textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-            </div></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
-              <button onClick={()=>setShowNew(false)} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#065f46"}}>
-                {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
-                {saving?"Saving...":"Create Receipt"}
-              </button>
-            </div>
+            <div style={{fontSize:9,color:"#666",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.06em",marginTop:1}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* New Form */}
+      {showNew && (
+        <div style={{background:"#f5f4ea",borderBottom:`1px solid #ccc`,padding:"10px 14px"}}>
+          <div style={{fontWeight:700,fontSize:11,color:"#155724",marginBottom:8}}>🧾 New Receipt Voucher</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+            {[{l:"Received From *",k:"received_from"},{l:"Amount (KES) *",k:"total_amount",t:"number"},{l:"Reference",k:"reference"},{l:"Bank Name",k:"bank_name"},{l:"Description",k:"description"}].map(f=>(
+              <div key={f.k}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>{f.l}</label>
+              <input type={f.t||"text"} value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} style={inp}/></div>
+            ))}
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Method</label>
+            <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))} style={inp}>
+              {["bank_transfer","cheque","cash","mpesa","nhif","moh_grant"].map(m=><option key={m} value={m}>{m.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}</option>)}
+            </select></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>GL Account</label>
+            <select value={form.gl_account} onChange={e=>setForm(p=>({...p,gl_account:e.target.value}))} style={inp}>
+              {["3000 - MOH Grant Revenue","3100 - NHIF Revenue","3200 - Patient Fee Revenue","1010 - KCB Operating Account","1011 - Co-op Bank Account"].map(a=><option key={a}>{a}</option>)}
+            </select></div>
+          </div>
+          <div style={{marginTop:8,display:"flex",gap:6}}>
+            <button onClick={create} disabled={saving} style={erpStyles.btn(true)}>{saving?"⏳ Saving…":"💾 Create Receipt"}</button>
+            <button onClick={()=>setShowNew(false)} style={erpStyles.btn(false)}>Cancel</button>
           </div>
         </div>
       )}
-      {/* Detail Modal */}
-      {detail&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)"}} onClick={()=>setDetail(null)}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid #e5e7eb"}}>
-              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>Receipt Voucher - {detail.receipt_number}</h3>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>printVoucher(detail)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:10,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"#065f46",color:"#fff"}}><Printer style={{width:12,height:12}}/>Print</button>
-                <button onClick={()=>setDetail(null)}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
-              </div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {[["Received From",detail.received_from],["Amount",fmtKES(detail.amount)],["Method",detail.payment_method],["Date",new Date(detail.receipt_date).toLocaleDateString("en-KE")],["Reference",detail.reference],["Bank",detail.bank_name],["Income Account",detail.income_account],["Description",detail.description],["Status",detail.status],["Created By",detail.created_by_name]].filter(([,v])=>v).map(([l,v])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f9fafb"}}>
-                  <span style={{fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</span>
-                  <span style={{fontSize:12,fontWeight:500,color:"#1f2937"}}>{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+
+      {/* Filter + Grid */}
+      <div style={{margin:"6px 8px"}}>
+        <div style={{background:"#f5f4ea",border:"1px solid #ccc",padding:"4px 8px",marginBottom:4,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search receipts…" style={{...inp,width:200,boxSizing:"border-box" as const}}/>
+          <span style={{color:"#555"}}>Status:</span>
+          <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{...inp,width:"auto",boxSizing:"border-box" as const}}>
+            {["ALL","DRAFT","PENDING","POSTED","RECEIVED","REVERSED"].map(s=><option key={s}>{s}</option>)}
+          </select>
+          <span style={{marginLeft:"auto",fontSize:10,color:"#888"}}>{filtered.length} records</span>
+          <button onClick={exportCSV} style={erpStyles.btn(true)}>Extract →</button>
         </div>
-      )}
-    </div>
+        <div style={{background:"#fff",border:"1px solid #ccc",maxHeight:"calc(100vh - 240px)",overflow:"auto"}}>
+          {loading ? <div style={{padding:30,textAlign:"center",color:"#888"}}>Loading…</div> : (
+            <table style={{width:"100%",borderCollapse:"collapse",fontFamily:ERP.fontFamily,fontSize:11}}>
+              <thead><tr>
+                <th style={{...erpStyles.gridTh,width:30}}><input type="checkbox" checked={selected.length===filtered.length&&filtered.length>0} onChange={e=>setSelected(e.target.checked?filtered.map(r=>r.id):[])}/></th>
+                {["Receipt No.","Received From","Method","GL Account","Status","Amount","Date","Received By",""].map(h=><th key={h} style={erpStyles.gridTh}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {filtered.map((r,i)=>(
+                  <tr key={r.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
+                    <td style={{...erpStyles.gridTd,textAlign:"center"}}><input type="checkbox" checked={selected.includes(r.id)} onChange={e=>setSelected(s=>e.target.checked?[...s,r.id]:s.filter(x=>x!==r.id))}/></td>
+                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700}}>{r.receipt_number||`RV/EL5H/${r.id.slice(-6)}`}</td>
+                    <td style={erpStyles.gridTd}>{r.received_from||"—"}</td>
+                    <td style={erpStyles.gridTd}>{r.payment_method?.replace(/_/g," ")||"—"}</td>
+                    <td style={{...erpStyles.gridTd,fontSize:10,color:"#555"}}>{r.gl_account||"—"}</td>
+                    <td style={erpStyles.gridTd}><StatusChip status={r.status}/></td>
+                    <td style={{...erpStyles.gridTd,fontWeight:700}}>{fmtK(r.total_amount)}</td>
+                    <td style={{...erpStyles.gridTd,color:"#555"}}>{fmtDate(r.created_at)}</td>
+                    <td style={{...erpStyles.gridTd,color:"#555"}}>{r.received_by||"—"}</td>
+                    <td style={erpStyles.gridTd}>
+                      <div style={{display:"flex",gap:3}}>
+                        {r.status==="draft" && <button onClick={()=>updateStatus(r.id,"pending")} style={{...erpStyles.btn(true),fontSize:10,padding:"2px 7px"}}>Submit</button>}
+                        {r.status==="pending" && <button onClick={()=>updateStatus(r.id,"posted")} style={{...erpStyles.btn(true),fontSize:10,padding:"2px 7px"}}>✓ Post</button>}
+                        <button onClick={()=>printReceipt(r)} style={{...erpStyles.btn(false),fontSize:10,padding:"2px 7px"}}>🖨</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length===0 && <tr><td colSpan={10} style={{padding:30,textAlign:"center",color:"#888"}}>No receipt vouchers found</td></tr>}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#e0e0e0",borderTop:"1px solid #aaa",padding:"2px 10px",fontSize:10,color:"#555",display:"flex",gap:14}}>
+        <span>Records: {filtered.length}</span><span>|</span>
+        <span>Posted: {receipts.filter(r=>r.status==="posted"||r.status==="received").length}</span><span>|</span>
+        <span>Total: {fmtK(filtered.reduce((s,r)=>s+(r.total_amount||0),0))}</span>
+        <span style={{marginLeft:"auto"}}>EL5 MediProcure v12 · Receipt Vouchers</span>
+      </div>
     </div>
   );
 }
-
-
