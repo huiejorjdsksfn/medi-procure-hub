@@ -1,3 +1,6 @@
+/**
+ * session-validate v3 — fixed getClaims→getUser
+ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -21,23 +24,22 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: auth } } },
   );
 
-  const token = auth.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) {
+  // FIX: use getUser() — getClaims() does not exist in supabase-js v2
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
     return new Response(JSON.stringify({ valid: false, error: "invalid_token" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const sub = data.claims.sub;
-  const exp = data.claims.exp;
-  const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", sub);
+  const { data: roles } = await supabase
+    .from("user_roles").select("role").eq("user_id", user.id);
 
   return new Response(JSON.stringify({
     valid: true,
-    user_id: sub,
-    email: data.claims.email,
-    expires_at: exp,
+    user_id: user.id,
+    email: user.email,
+    expires_at: user.confirmation_sent_at,
     roles: (roles || []).map((r: any) => r.role),
     server_time: Math.floor(Date.now() / 1000),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
