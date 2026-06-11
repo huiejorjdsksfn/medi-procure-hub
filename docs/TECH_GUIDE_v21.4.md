@@ -45,7 +45,7 @@ releases-all-versions.yml → builds all 21 version EXEs
 | `SUPABASE_ANON_KEY` | Supabase anon/public key |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI token |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key |
-| `TWILIO_ACCOUNT_SID` | `REDACTED_TWILIO_ACCOUNT_SID` |
+| `TWILIO_ACCOUNT_SID` | `<TWILIO_ACCOUNT_SID>` |
 | `TWILIO_AUTH_TOKEN` | Twilio auth token |
 | `TWILIO_PHONE_NUMBER` | `+16812972643` |
 | `TWILIO_WA_NUMBER` | `+14155238886` |
@@ -76,7 +76,7 @@ supabase functions deploy --project-ref yvjfehnzbzjliizjvuhq --no-verify-jwt
 
 # Set secrets
 supabase secrets set \
-  TWILIO_ACCOUNT_SID=REDACTED_TWILIO_ACCOUNT_SID \
+  TWILIO_ACCOUNT_SID=<TWILIO_ACCOUNT_SID> \
   TWILIO_AUTH_TOKEN=YOUR_TOKEN \
   TWILIO_PHONE_NUMBER=+16812972643 \
   --project-ref yvjfehnzbzjliizjvuhq

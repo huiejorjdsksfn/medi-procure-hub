@@ -24,3 +24,8 @@ dist-ssr
 *.sln
 *.sw?
 *.envvite.config.ts.bak
+
+# Build outputs
+*.exe
+dist-electron/
+admin-app/dist-electron/

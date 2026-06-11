@@ -328,7 +328,7 @@ supabase functions deploy send-sms --project-ref yvjfehnzbzjliizjvuhq --no-verif
 
 ```bash
 supabase secrets set \
-  TWILIO_ACCOUNT_SID=REDACTED_TWILIO_ACCOUNT_SID \
+  TWILIO_ACCOUNT_SID=<TWILIO_ACCOUNT_SID> \
   TWILIO_AUTH_TOKEN=SET_IN_SUPABASE_SECRETS \
   TWILIO_PHONE_NUMBER=+16812972643 \
   TWILIO_WA_NUMBER=+14155238886 \
