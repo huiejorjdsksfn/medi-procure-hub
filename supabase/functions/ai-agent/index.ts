@@ -68,11 +68,37 @@ function fallbackMessage(prompt: string): string {
   return `🏥 EL5 MediProcure notification. Please log in to https://procurbosse.edgeone.app`;
 }
 
+// ── Enhanced Kenyan number formatter ───────────────────────────────
+function formatKenyanPhone(raw: string): string {
+  if (!raw) return "";
+  let n = String(raw).replace(/[^\d+]/g, "").trim();
+  if (n.length < 9) return "";
+  if (n.startsWith("+")) n = n.slice(1);
+  if (n.startsWith("254")) {
+    if (n.length === 12) return "+" + n;
+    if (n.length > 12) n = n.slice(0, 12);
+    if (n.length < 12) n = "254" + n.slice(3).padStart(9, "0").slice(0, 9);
+    return "+" + n;
+  }
+  if (n.startsWith("0")) n = n.slice(1);
+  if (n.length === 9 && (n[0] === "7" || n[0] === "1" || n[0] === "0")) {
+    return "+254" + n;
+  }
+  if (n.length >= 9) return "+254" + n.slice(-9);
+  return "";
+}
+
 // ── Twilio send helper ────────────────────────────────────────────
 async function twilioSend(to: string, body: string, whatsapp = false) {
   if (!TWILIO_ACCT || !TWILIO_AUTH) return { ok: false, error: "Twilio not configured" };
+
+  // Format number for Kenya
+  const formattedNum = formatKenyanPhone(to);
+  if (!formattedNum) return { ok: false, error: `Invalid phone number: ${to}` };
+
   const from = whatsapp ? `whatsapp:${TWILIO_WA}` : TWILIO_SMS;
-  const toNum = whatsapp ? `whatsapp:${to}` : to;
+  const toNum = whatsapp ? `whatsapp:${formattedNum}` : formattedNum;
+
   try {
     const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCT}/Messages.json`, {
       method: "POST",
@@ -81,6 +107,7 @@ async function twilioSend(to: string, body: string, whatsapp = false) {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({ From: from, To: toNum, Body: body }).toString(),
+      signal: AbortSignal.timeout(15000),
     });
     const d = await r.json();
     return r.ok ? { ok: true, sid: d.sid } : { ok: false, error: d.message };
