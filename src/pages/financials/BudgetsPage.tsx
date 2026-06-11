@@ -1,217 +1,235 @@
-import { useState, useEffect } from "react";
-import { ValidationEngine } from "@/engines/validation/ValidationEngine";
-import { pageCache } from "@/lib/pageCache";
+import type React from "react";
+/**
+ * EL5 MediProcure — Budgets v12 — ERP theme, all buttons wired
+ */
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { logAudit } from "@/lib/audit";
-import { Plus, Search, RefreshCw, Download, X, Save, Trash2, Edit, BarChart3 } from "lucide-react";
-import * as XLSX from "xlsx";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { ERP, erpStyles } from "@/lib/erpTheme";
 
-const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:0})}`;
-const genCode = () => `BDG-${new Date().getFullYear()}-${String(Math.floor(100+Math.random()*900))}`;
-const SC: Record<string,string> = {active:"#15803d",draft:"#6b7280",closed:"#dc2626",exceeded:"#d97706"};
+const db = supabase as any;
+interface Budget {
+  id:string;budget_name?:string;fiscal_year?:string;total_budget?:number;
+  spent?:number;remaining?:number;department?:string;status?:string;
+  created_at:string;description?:string;vote_head?:string;
+}
+
+function fmtK(n?:number|null){const v=n||0;if(v>=1_000_000)return`KES ${(v/1_000_000).toFixed(2)}M`;if(v>=1_000)return`KES ${(v/1_000).toFixed(2)}K`;return`KES ${v.toLocaleString("en-KE",{minimumFractionDigits:2})}`;}
+function fmtDate(s?:string|null){return s?new Date(s).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";}
+
+const DEPARTMENTS=["Finance & Accounts","Procurement","Pharmacy","Nursing","Medical","Laboratory","Radiology","ICT","Administration","Maintenance"];
 
 export default function BudgetsPage() {
-  const { user, profile, hasRole, isAdminTier} = useAuth();
-  const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
-  const { get: getSetting } = useSystemSettings();
-  const canManage = isAdminRole||hasRole("procurement_manager");
-  const [rows, setRows] = useState<any[]>([]);
-  const [depts, setDepts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [showNew, setShowNew] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});
+  const navigate=useNavigate();
+  const [budgets,setBudgets]=useState<Budget[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [deptFilter,setDeptFilter]=useState("ALL");
+  const [showNew,setShowNew]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [editBudget,setEditBudget]=useState<Budget|null>(null);
+  const [form,setForm]=useState({budget_name:"",fiscal_year:new Date().getFullYear().toString(),total_budget:"",department:"Finance & Accounts",description:"",vote_head:""});
 
-  const load = async () => {
+  const fetch=useCallback(async()=>{
     setLoading(true);
-    try {
-    const [{data:b},{data:d}] = await Promise.all([
-      (supabase as any).from("budgets").select("*").order("created_at",{ascending:false}),
-      (supabase as any).from("departments").select("id,name").order("name"),
-    ]);
-    const rows=b||[]; setRows(rows); setDepts(d||[]);
-      pageCache.set("budgets",rows);
-    } catch(e:any) {
-      const cached=pageCache.get<any[]>("budgets"); if(cached) setRows(cached);
-      console.error("[Budgets]",e);
-    } finally { setLoading(false); }
-  };
-  useEffect(()=>{ load(); },[]);
-
-  /* - Real-time subscription - */
-  useEffect(()=>{
-    const ch=(supabase as any).channel("bud-rt").on("postgres_changes",{event:"*",schema:"public",table:"budgets"},()=>load()).subscribe();
-    return ()=>{(supabase as any).removeChannel(ch);};
+    const {data}=await db.from("budgets").select("*").order("created_at",{ascending:false}).limit(200);
+    setBudgets(data||[]);
+    setLoading(false);
   },[]);
+  useEffect(()=>{fetch();},[fetch]);
 
-  const openEdit = (b:any) => {
-    setEditing(b);
-    setForm({budget_name:b.budget_name,department_id:b.department_id||"",department_name:b.department_name||"",financial_year:b.financial_year,allocated_amount:String(b.allocated_amount),category:b.category||"",status:b.status,notes:b.notes||""});
-    setShowNew(true);
-  };
-
-  const save = async () => {
-    if(!form.budget_name||!form.allocated_amount){toast({title:"Budget name and amount required",variant:"destructive"});return;}
+  async function save(){
+    if(!form.budget_name||!form.total_budget){toast({title:"Name and amount required",variant:"destructive"});return;}
     setSaving(true);
-    const dept = depts.find(d=>d.id===form.department_id);
-    const payload={...form,budget_code:editing?editing.budget_code:genCode(),department_name:dept?.name||form.department_name,allocated_amount:Number(form.allocated_amount),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
-    if(editing){
-      const{error}=await(supabase as any).from("budgets").update(payload).eq("id",editing.id);
-      if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
-      else{logAudit(user?.id,profile?.full_name,"update","budgets",editing.id,{name:form.budget_name});toast({title:"Budget updated -"});}
+    const total=parseFloat(form.total_budget);
+    if(editBudget){
+      const {error}=await db.from("budgets").update({budget_name:form.budget_name,fiscal_year:form.fiscal_year,total_budget:total,department:form.department,description:form.description,vote_head:form.vote_head,remaining:total-(editBudget.spent||0),updated_at:new Date().toISOString()}).eq("id",editBudget.id);
+      setSaving(false);
+      if(error){toast({title:"Error: "+error.message,variant:"destructive"});return;}
+      toast({title:"✓ Budget updated"});
+      setEditBudget(null);setShowNew(false);
     } else {
-      const{data,error}=await(supabase as any).from("budgets").insert(payload).select().single();
-      if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
-      else{logAudit(user?.id,profile?.full_name,"create","budgets",data?.id,{name:form.budget_name});toast({title:"Budget created -"});}
+      const {error}=await db.from("budgets").insert({budget_name:form.budget_name,fiscal_year:form.fiscal_year,total_budget:total,spent:0,remaining:total,department:form.department,description:form.description,vote_head:form.vote_head,status:"active"});
+      setSaving(false);
+      if(error){toast({title:"Error: "+error.message,variant:"destructive"});return;}
+      toast({title:`✓ Budget "${form.budget_name}" created`});
+      setShowNew(false);
     }
-    setSaving(false); setShowNew(false); setEditing(null); load();
-  };
+    setForm({budget_name:"",fiscal_year:new Date().getFullYear().toString(),total_budget:"",department:"Finance & Accounts",description:"",vote_head:""});
+    fetch();
+  }
 
-  const deleteRow = async (id:string) => {
-    if(!confirm("Delete this budget?")) return;
-    await(supabase as any).from("budgets").delete().eq("id",id);
-    toast({title:"Deleted"}); load();
-  };
+  async function toggleStatus(id:string,current:string){
+    const ns=current==="active"?"frozen":"active";
+    const {error}=await db.from("budgets").update({status:ns}).eq("id",id);
+    if(!error){toast({title:`✓ Budget ${ns}`});fetch();}
+    else toast({title:"Error: "+error.message,variant:"destructive"});
+  }
 
-  const exportExcel = () => {
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb,ws,"Budgets");
-    XLSX.writeFile(wb,`budgets_${new Date().toISOString().slice(0,10)}.xlsx`);
-    toast({title:"Exported"});
-  };
+  async function deleteBudget(id:string){
+    if(!window.confirm("Delete this budget?"))return;
+    const {error}=await db.from("budgets").delete().eq("id",id);
+    if(!error){toast({title:"✓ Budget deleted"});fetch();}
+  }
 
-  const filtered = search ? rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))) : rows;
-  const totalAllocated = filtered.reduce((s,r)=>s+Number(r.allocated_amount||0),0);
-  const totalSpent = filtered.reduce((s,r)=>s+Number(r.spent_amount||0),0);
+  function exportCSV(){
+    const rows=["Name,Fiscal Year,Department,Vote Head,Total Budget,Spent,Remaining,Utilisation%,Status",
+      ...filtered.map(b=>`${b.budget_name||""},${b.fiscal_year||""},${b.department||""},${b.vote_head||""},${b.total_budget||0},${b.spent||0},${b.remaining||0},${b.total_budget?Math.round(((b.spent||0)/b.total_budget)*100):0}%,${b.status||""}`)
+    ];
+    const blob=new Blob([rows.join("\n")],{type:"text/csv"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="budgets.csv";a.click();
+    URL.revokeObjectURL(url);toast({title:"✓ Exported"});
+  }
 
-  const activeCount = filtered.filter(r=>r.status==="active").length;
-  const exceededCount = filtered.filter(r=>r.status==="exceeded"||(r.spent_amount||0)>r.allocated_amount).length;
-  const utilizationPct = totalAllocated>0?Math.round(totalSpent/totalAllocated*100):0;
+  const filtered=budgets.filter(b=>{
+    const q=search.toLowerCase();
+    const ms=!search||[b.budget_name,b.department,b.vote_head,b.fiscal_year].some(f=>f?.toLowerCase().includes(q));
+    const md=deptFilter==="ALL"||b.department===deptFilter;
+    return ms&&md;
+  });
+
+  const totalBudget=filtered.reduce((s,b)=>s+(b.total_budget||0),0);
+  const totalSpent=filtered.reduce((s,b)=>s+(b.spent||0),0);
+  const totalRemaining=filtered.reduce((s,b)=>s+(b.remaining||0),0);
+  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${ERP.btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-    <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @media(max-width:768px){.vpage-header{flex-direction:column!important;align-items:flex-start!important}}
-      `}</style>
-    <div style={{padding:16,display:"flex",flexDirection:"column",gap:12,fontFamily:"'Segoe UI',system-ui"}}>
-      {/* KPI TILES */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+    <div style={{background:"#f0f0f0",minHeight:"100vh",fontFamily:ERP.fontFamily,fontSize:11}}>
+      <div style={{background:ERP.titleBar,color:"#fff",padding:"5px 10px",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${ERP.titleBarBorder}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>💰</span>
+          <div><div>EL5 MediProcure — Budgets</div><div style={{fontSize:10,fontWeight:400,opacity:.85}}>Embu Level 5 Hospital · Budget Allocation & Control</div></div>
+        </div>
+        <div style={{display:"flex",gap:4}}>
+          {["–","□","✕"].map((c,i)=><button key={i} onClick={i===2?()=>navigate("/accountant"):undefined} style={{width:21,height:21,background:"linear-gradient(180deg,#f0f0f0,#dcdcdc)",border:"1px solid #888",borderRadius:2,cursor:"pointer",fontSize:11,color:"#333",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{c}</button>)}
+        </div>
+      </div>
+
+      <div style={{...erpStyles.toolbar,padding:"5px 10px",gap:8}}>
+        <button onClick={fetch} style={erpStyles.btn(false)}>↻ Refresh</button>
+        <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+          <button onClick={()=>{setEditBudget(null);setShowNew(v=>!v);}} style={erpStyles.btn(true)}>+ New Budget</button>
+          <button onClick={exportCSV} style={erpStyles.btn(false)}>📤 Export</button>
+          <button onClick={()=>navigate("/accountant")} style={erpStyles.btn(false)}>◀ Workspace</button>
+        </div>
+      </div>
+
+      {/* KPI */}
+      <div style={{display:"flex",borderBottom:"1px solid #aaa"}}>
         {[
-          {label:"Total Allocated",val:fmtKES(totalAllocated),bg:"#c0392b"},
-          {label:"Total Spent",val:fmtKES(totalSpent),bg:"#7d6608"},
-          {label:"Remaining Balance",val:fmtKES(Math.max(0,totalAllocated-totalSpent)),bg:"#0e6655"},
-          {label:"Utilization %",val:`${utilizationPct}%`,bg:"#6c3483"},
-          {label:"Active Budgets",val:activeCount,bg:"#1a252f"},
-        ].map(k=>(
-          <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-            <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
-            <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
+          {label:"TOTAL BUDGET",val:fmtK(totalBudget),col:"#004085"},
+          {label:"SPENT",val:fmtK(totalSpent),col:"#856404"},
+          {label:"REMAINING",val:fmtK(totalRemaining),col:"#155724"},
+          {label:"UTILISATION",val:totalBudget?`${Math.round(totalSpent/totalBudget*100)}%`:"0%",col:totalBudget&&totalSpent/totalBudget>0.9?"#721c24":totalBudget&&totalSpent/totalBudget>0.7?"#856404":"#155724"},
+          {label:"BUDGETS",val:filtered.length,col:"#1a1a1a"},
+        ].map((k,i)=>(
+          <div key={i} style={{flex:1,padding:"10px 16px",borderRight:i<4?"1px solid #aaa":"none",background:i%2===0?"#fff":"#f5f4ea"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <span style={{color:"#8b0000",fontWeight:700,fontSize:11}}>–</span>
+              <span style={{fontWeight:800,fontSize:16,color:k.col}}>{k.val}</span>
+            </div>
+            <div style={{fontSize:9,color:"#666",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.06em",marginTop:1}}>{k.label}</div>
           </div>
         ))}
       </div>
-      {/* HEADER BAR */}
-      <div style={{borderRadius:12,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(90deg,#1e1b4b,#3730a3)"}}>
-        <div>
-          <h1 style={{fontSize:15,fontWeight:900,color:"#fff",margin:0}}>Budgets</h1>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{rows.length} records - {exceededCount} exceeded</p>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:"#e2e8f0",color:"#fff"}}><Download style={{width:14,height:14}}/>Export</button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({budget_name:"",department_id:"",department_name:"",financial_year:"2025/26",allocated_amount:"",category:"",status:"active",notes:""});setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"rgba(255,255,255,0.92)",color:"#3730a3"}}><Plus style={{width:14,height:14}}/>New Budget</button>}
-        </div>
-      </div>
-      <div style={{position:"relative",maxWidth:384}}><Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"#9ca3af"}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search budgets..." style={{width:"100%",paddingLeft:34,paddingRight:16,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/></div>
-      <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#eef2ff"}}>
-            {["Code","Budget Name","Department","FY","Allocated","Spent","Committed","% Used","Status","Actions"].map(h=>(
-              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontWeight:700,color:"#4b5563",fontSize:10,textTransform:"uppercase"}}>{h}</th>))}
-          </tr></thead>
-          <tbody>
-            {loading?<tr><td colSpan={10} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
-            filtered.length===0?<tr><td colSpan={10} style={{padding:"32px 0",textAlign:"center",color:"#9ca3af",fontSize:12}}>No budgets yet. Create one to get started.</td></tr>:
-            filtered.map((r,i)=>{
-              const pct = r.allocated_amount>0?Math.round((r.spent_amount||0)/r.allocated_amount*100):0;
-              return (
-                <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                  <td style={{padding:"10px 16px",fontFamily:"monospace",fontSize:10,color:"#6b7280"}}>{r.budget_code}</td>
-                  <td style={{padding:"10px 16px",fontWeight:600,color:"#1f2937"}}>{r.budget_name}</td>
-                  <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.department_name||"-"}</td>
-                  <td style={{padding:"10px 16px",color:"#6b7280"}}>{r.financial_year}</td>
-                  <td style={{padding:"10px 16px",fontWeight:700}}>{fmtKES(r.allocated_amount)}</td>
-                  <td style={{padding:"10px 16px",color:pct>90?"#dc2626":pct>70?"#d97706":"#374151"}}>{fmtKES(r.spent_amount||0)}</td>
-                  <td style={{padding:"10px 16px",color:"#6b7280"}}>{fmtKES(r.committed_amount||0)}</td>
-                  <td style={{padding:"10px 16px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:64,height:6,borderRadius:3,background:"#e5e7eb",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:`${Math.min(100,pct)}%`,background:pct>90?"#dc2626":pct>70?"#d97706":"#15803d"}}/></div>
-                      <span style={{fontSize:10,color:pct>90?"#dc2626":pct>70?"#d97706":"#374151",fontWeight:700}}>{pct}%</span>
-                    </div>
-                  </td>
-                  <td style={{padding:"10px 16px"}}><span style={{padding:"2px 8px",borderRadius:20,fontSize:9,fontWeight:700,background:`${SC[r.status]||"#9ca3af"}20`,color:SC[r.status]||"#9ca3af"}}>{r.status}</span></td>
-                  <td style={{padding:"10px 16px"}}><div style={{display:"flex",gap:4}}>
-                    {canManage&&<button onClick={()=>openEdit(r)} style={{padding:5,borderRadius:6,background:"#dbeafe",border:"none",cursor:"pointer"}}><Edit style={{width:12,height:12,color:"#2563eb"}}/></button>}
-                    {isAdminRole&&<button onClick={()=>deleteRow(r.id)} style={{padding:5,borderRadius:6,background:"#fee2e2",border:"none",cursor:"pointer"}}><Trash2 style={{width:12,height:12,color:"#ef4444"}}/></button>}
-                  </div></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+
+      {/* New/Edit Form */}
       {showNew&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)"}} onClick={()=>{setShowNew(false);setEditing(null);}}/>
-          <div style={{position:"relative",background:"#fff",borderRadius:16,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"min(580px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
-              <h3 style={{fontWeight:900,color:"#1f2937",margin:0}}>{editing?"Edit Budget":"New Budget"}</h3>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{background:"none",border:"none",cursor:"pointer"}}><X style={{width:20,height:20,color:"#9ca3af"}}/></button>
-            </div>
-            <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[["Budget Name *","budget_name","",2],["Financial Year","financial_year","",1],["Allocated Amount (KES) *","allocated_amount","number",1]].map(([l,k,t,span])=>(
-                <div key={k} style={{gridColumn:`span ${span}`}}>
-                  <label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
-                  <input type={String(t)||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k as string]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
-                </div>
-              ))}
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Department</label>
-                <select value={form.department_name||form.department_id||""} onChange={e=>setForm(p=>({...p,department_id:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">- Select -</option>
-                  {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
-                </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Category</label>
-                <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  <option value="">- Select -</option>
-                  {["Pharmaceuticals","Medical Supplies","Equipment","Laboratory","Construction","ICT","Staff Training","Utilities","Maintenance","Other"].map(c=><option key={c}>{c}</option>)}
-                </select></div>
-              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Status</label>
-                <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}
-                  style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                  {["active","draft","closed"].map(s=><option key={s} value={s} style={{textTransform:"capitalize"}}>{s}</option>)}
-                </select></div>
-              <div style={{gridColumn:"1/-1"}}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>Notes</label>
-                <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-            </div></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",padding:"12px 20px",borderTop:"1px solid #e5e7eb",flexShrink:0}}>
-              <button onClick={()=>{setShowNew(false);setEditing(null);}} style={{padding:"8px 16px",borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",fontSize:14,cursor:"pointer"}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 20px",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",background:"#3730a3"}}>
-                {saving?<RefreshCw style={{animation:"spin 1s linear infinite"}}/>:<Save style={{width:14,height:14}}/>}
-                {saving?"Saving...":editing?"Update Budget":"Create Budget"}
-              </button>
-            </div>
+        <div style={{background:"#f5f4ea",borderBottom:"1px solid #ccc",padding:"10px 14px"}}>
+          <div style={{fontWeight:700,fontSize:11,color:"#004085",marginBottom:8}}>💰 {editBudget?"Edit":"New"} Budget</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+            <div style={{gridColumn:"span 2"}}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Budget Name *</label><input value={form.budget_name} onChange={e=>setForm(p=>({...p,budget_name:e.target.value}))} style={inp}/></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Fiscal Year</label><input value={form.fiscal_year} onChange={e=>setForm(p=>({...p,fiscal_year:e.target.value}))} style={inp}/></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Total Budget (KES) *</label><input type="number" value={form.total_budget} onChange={e=>setForm(p=>({...p,total_budget:e.target.value}))} style={inp}/></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Department</label>
+            <select value={form.department} onChange={e=>setForm(p=>({...p,department:e.target.value}))} style={inp}>
+              {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
+            </select></div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Vote Head</label><input value={form.vote_head} onChange={e=>setForm(p=>({...p,vote_head:e.target.value}))} placeholder="e.g. 2210100" style={inp}/></div>
+            <div style={{gridColumn:"span 2"}}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Description</label><input value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} style={inp}/></div>
+          </div>
+          <div style={{marginTop:8,display:"flex",gap:6}}>
+            <button onClick={save} disabled={saving} style={erpStyles.btn(true)}>{saving?"⏳ Saving…":"💾 Save Budget"}</button>
+            <button onClick={()=>{setShowNew(false);setEditBudget(null);}} style={erpStyles.btn(false)}>Cancel</button>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Filter + Grid */}
+      <div style={{margin:"6px 8px"}}>
+        <div style={{background:"#f5f4ea",border:"1px solid #ccc",padding:"4px 8px",marginBottom:4,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search budgets…" style={{...inp,width:200,boxSizing:"border-box" as const}}/>
+          <span style={{color:"#555"}}>Department:</span>
+          <select value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} style={{...inp,width:"auto",boxSizing:"border-box" as const}}>
+            <option>ALL</option>
+            {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
+          </select>
+          <span style={{marginLeft:"auto",fontSize:10,color:"#888"}}>{filtered.length} budgets</span>
+          <button onClick={exportCSV} style={erpStyles.btn(true)}>Extract →</button>
+        </div>
+        <div style={{background:"#fff",border:"1px solid #ccc",maxHeight:"calc(100vh - 240px)",overflow:"auto"}}>
+          {loading?<div style={{padding:30,textAlign:"center",color:"#888"}}>Loading…</div>:(
+            <table style={{width:"100%",borderCollapse:"collapse",fontFamily:ERP.fontFamily,fontSize:11}}>
+              <thead><tr>
+                {["Budget Name","Dept.","FY","Vote Head","Total Budget","Spent","Remaining","Utilisation","Status",""].map(h=><th key={h} style={erpStyles.gridTh}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {filtered.map((b,i)=>{
+                  const pct=b.total_budget?Math.min(100,Math.round(((b.spent||0)/b.total_budget)*100)):0;
+                  const col=pct>=90?"#dc3545":pct>=70?"#fd7e14":"#28a745";
+                  return(
+                    <tr key={b.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
+                      <td style={{...erpStyles.gridTd,fontWeight:700,color:"#00008b"}}>{b.budget_name||"—"}</td>
+                      <td style={erpStyles.gridTd}>{b.department||"—"}</td>
+                      <td style={erpStyles.gridTd}>{b.fiscal_year||"—"}</td>
+                      <td style={{...erpStyles.gridTd,fontFamily:"monospace",fontSize:10}}>{b.vote_head||"—"}</td>
+                      <td style={{...erpStyles.gridTd,fontWeight:700}}>{fmtK(b.total_budget)}</td>
+                      <td style={{...erpStyles.gridTd,color:"#856404"}}>{fmtK(b.spent)}</td>
+                      <td style={{...erpStyles.gridTd,fontWeight:700,color:"#155724"}}>{fmtK(b.remaining)}</td>
+                      <td style={erpStyles.gridTd}>
+                        <div style={{display:"flex",alignItems:"center",gap:5}}>
+                          <div style={{flex:1,height:9,background:"#e9ecef",border:"1px solid #ccc",borderRadius:2}}>
+                            <div style={{height:"100%",width:`${pct}%`,background:col,borderRadius:2}}/>
+                          </div>
+                          <span style={{fontSize:9,color:col,fontWeight:700,minWidth:28}}>{pct}%</span>
+                        </div>
+                      </td>
+                      <td style={erpStyles.gridTd}>
+                        <span style={{display:"inline-block",padding:"1px 6px",borderRadius:2,fontSize:10,fontWeight:700,background:b.status==="active"?"#d4edda":b.status==="frozen"?"#cce5ff":"#e9ecef",color:b.status==="active"?"#155724":b.status==="frozen"?"#004085":"#495057",border:`1px solid ${b.status==="active"?"#c3e6cb":b.status==="frozen"?"#b8daff":"#ced4da"}`,textTransform:"uppercase" as const}}>{b.status||"active"}</span>
+                      </td>
+                      <td style={erpStyles.gridTd}>
+                        <div style={{display:"flex",gap:3}}>
+                          <button onClick={()=>{setEditBudget(b);setForm({budget_name:b.budget_name||"",fiscal_year:b.fiscal_year||"",total_budget:String(b.total_budget||0),department:b.department||"",description:b.description||"",vote_head:b.vote_head||""});setShowNew(true);}} style={{...erpStyles.btn(false),fontSize:10,padding:"2px 7px"}}>✏️ Edit</button>
+                          <button onClick={()=>toggleStatus(b.id,b.status||"active")} style={{...erpStyles.btn(false),fontSize:10,padding:"2px 7px",color:(b.status||"active")==="active"?"#856404":"#155724"}}>{(b.status||"active")==="active"?"❄ Freeze":"▶ Activate"}</button>
+                          <button onClick={()=>deleteBudget(b.id)} style={{...erpStyles.btn(false),fontSize:10,padding:"2px 7px",color:"#721c24"}}>🗑</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length===0&&<tr><td colSpan={10} style={{padding:30,textAlign:"center",color:"#888"}}>No budget records. Click '+ New Budget' to create one.</td></tr>}
+              </tbody>
+              <tfoot>
+                <tr style={{background:"#f5f4ea",fontWeight:700}}>
+                  <td colSpan={4} style={{...erpStyles.gridTd,textAlign:"right",color:"#555",fontSize:10}}>TOTALS:</td>
+                  <td style={{...erpStyles.gridTd,fontWeight:800}}>{fmtK(totalBudget)}</td>
+                  <td style={{...erpStyles.gridTd,color:"#856404",fontWeight:800}}>{fmtK(totalSpent)}</td>
+                  <td style={{...erpStyles.gridTd,color:"#155724",fontWeight:800}}>{fmtK(totalRemaining)}</td>
+                  <td colSpan={3} style={{...erpStyles.gridTd,color:totalBudget&&totalSpent/totalBudget>0.9?"#721c24":"#1a1a1a"}}>{totalBudget?`${Math.round(totalSpent/totalBudget*100)}% utilised`:""}</td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+      </div>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#e0e0e0",borderTop:"1px solid #aaa",padding:"2px 10px",fontSize:10,color:"#555",display:"flex",gap:14}}>
+        <span>Budgets: {filtered.length}</span><span>|</span>
+        <span>Total: {fmtK(totalBudget)}</span><span>|</span>
+        <span>Remaining: {fmtK(totalRemaining)}</span>
+        <span style={{marginLeft:"auto"}}>EL5 MediProcure v12 · Budgets</span>
+      </div>
     </div>
   );
 }
-
