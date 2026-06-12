@@ -64,6 +64,12 @@ Deno.serve(async (req) => {
 
     if (!FROM) FROM = SANDBOX_FROM;
 
+    // CRITICAL: Fix for old trial number +18777804236
+    if (FROM === "+18777804236") {
+      console.warn("[send-whatsapp v11] WARNING: Detected old trial number. Using sandbox +14155238886.");
+      FROM = SANDBOX_FROM;
+    }
+
     const fromWA = FROM.startsWith("whatsapp:") ? FROM : `whatsapp:${FROM}`;
 
     // ── Parse request ──

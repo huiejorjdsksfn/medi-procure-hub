@@ -52,8 +52,15 @@ async function loadCreds() {
 
   // Default WhatsApp sandbox number if not configured
   if (!FROM_WA) FROM_WA = "whatsapp:+14155238886";
-  // Default SMS from number
+  // Default SMS from number - MUST be a verified number on this Twilio account
   if (!FROM) FROM = "+16812972643";
+
+  // CRITICAL: Verify FROM number is valid for this account
+  // The old +18777804236 does NOT belong to account AC9ce73d...
+  if (FROM === "+18777804236") {
+    console.warn("[send-sms] WARNING: Detected old trial number +18777804236. Using verified +16812972643 instead.");
+    FROM = "+16812972643";
+  }
 
   return { ACCT, AUTH, FROM, MSID, FROM_WA, AT_KEY, AT_USER };
 }

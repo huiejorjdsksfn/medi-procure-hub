@@ -29,3 +29,7 @@ dist-ssr
 *.exe
 dist-electron/
 admin-app/dist-electron/
+
+# Installer packages
+installers/ProcurBosse/
+installers/ProcurBosse-IT-Admin/
