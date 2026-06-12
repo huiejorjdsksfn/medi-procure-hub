@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { isRouteAllowed, getDefaultRoute } from "@/lib/sessionCookie";
 import { supabase } from "@/integrations/supabase/client";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { T } from "@/lib/theme";
@@ -168,6 +169,12 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
     return modRoles.some(r=>roles?.includes(r));
   },[roles,isAdmin]);
 
+  // Filter individual nav items by the role matrix
+  const filterItems = useCallback((items:{p:string;[k:string]:any}[])=>{
+    if(isAdmin) return items;
+    return items.filter(item => isRouteAllowed(primaryRole, item.p));
+  },[isAdmin,primaryRole]);
+
   // Auto-detect active module
   useEffect(()=>{
     const found = MODS.find(m=>m.items.some(i=>i.p!=="/dashboard"&&loc.pathname.startsWith(i.p)));
@@ -265,7 +272,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* - SUB-NAV COMMAND BAR -== */}
       {activeModDef&&(
         <div style={{background:"#f8f9fa",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"4px 12px",gap:2,overflowX:"auto",flexShrink:0}}>
-          {activeModDef.items.map(item=>{
+          {filterItems(activeModDef.items).map(item=>{
             const isAct=loc.pathname===item.p||(item.p!=="/dashboard"&&loc.pathname.startsWith(item.p));
             const n=cnt[(item as any).b as string]||0;
             return(
@@ -298,7 +305,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                   {mod.label}
                   <ChevronDown size={11} style={{marginLeft:"auto",transform:activeMod===mod.id?"rotate(180deg)":"none"}}/>
                 </button>
-                {activeMod === mod.id && mod.items.map(item => (
+                {activeMod === mod.id && filterItems(mod.items).map(item => (
                   <button key={item.p} onClick={() => { nav(item.p); setMobileNavOpen(false); }} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px 8px 30px",color:"rgba(255,255,255,0.85)",background:"transparent",border:"none",cursor:"pointer",width:"100%",textAlign:"left",fontSize:12,borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
                     <item.I size={11}/> {item.l}
                   </button>
