@@ -19,6 +19,9 @@ import {
   getLocalToken, issueToken, refreshToken,
   revokeToken, startTokenRefresh, stopTokenRefresh,
 } from "@/lib/sessionToken";
+import {
+  setRoleCookie, getRoleCookie, clearRoleCookie, updateCookieRoles,
+} from "@/lib/sessionCookie";
 
 export type ProcurementRole =
   | "superadmin" | "admin" | "webmaster" | "database_admin"
@@ -110,8 +113,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         const uid = session.user.id;
 
+        // ── Priority 0: Role Cookie (fastest — no network, no parse) ──
+        const roleCookie = getRoleCookie();
+        if (roleCookie && roleCookie.userId === uid && roleCookie.roles.length > 0) {
+          apply({ profile: { full_name: roleCookie.fullName, email: roleCookie.email }, roles: roleCookie.roles }, "token");
+          clearTimeout(safety);
+          if (mounted) setLoading(false);
+          // Background: DB refresh + token refresh
+          fetchUserData(uid).then(fresh => {
+            if (mounted) {
+              apply(fresh, "db");
+              // Keep cookie in sync with latest DB roles
+              updateCookieRoles(fresh.roles ?? roleCookie.roles, fresh.roles?.[0] ?? roleCookie.primaryRole);
+            }
+          });
+          refreshToken().catch(() => {});
+        }
         // ── Priority 1: Local session token (fastest, no network) ──
-        const localToken = getLocalToken();
+        else {
+          const localToken = getLocalToken();
         if (localToken && localToken.user_id === uid && localToken.roles.length > 0) {
           apply({ profile: localToken.profile, roles: localToken.roles }, "token");
           clearTimeout(safety);
@@ -144,6 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             issueToken().catch(() => {});
           }
         }
+        } // end Priority 0 else
       } else {
         clearTimeout(safety);
         if (mounted) setLoading(false);
@@ -177,10 +198,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (mounted) { apply(fresh, "db"); setLoading(false); }
           }
 
-          // Issue fresh token on sign-in
+          // Issue fresh token on sign-in + write cookie
           if (event === "SIGNED_IN") {
             issueToken().catch(() => {});
             startTokenRefresh();
+            // Write role cookie for instant boot next page load
+            fetchUserData(session.user.id).then(fresh => {
+              if (fresh.roles?.length) {
+                const pr = PRIORITY.find(r => fresh.roles.includes(r)) ?? "requisitioner";
+                setRoleCookie(session.user.id, session.user.email ?? "", fresh.profile?.full_name ?? "", fresh.roles, pr);
+              }
+            }).catch(() => {});
           }
         }
       } else if (event === "SIGNED_OUT") {
@@ -189,6 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         authCache.clear();
         pageCache.clearAll();
         stopTokenRefresh();
+        clearRoleCookie();
         if (mounted) setLoading(false);
       }
     });
