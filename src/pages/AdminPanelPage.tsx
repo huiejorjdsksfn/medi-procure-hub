@@ -45,6 +45,7 @@ const NAVS = [
   {id:"modules",   label:"Module Toggles", icon:Settings,        col:"#d39a04"},
   {id:"kiosk",     label:"Kiosk Mode",     icon:Tv,              col:"#0f172a"},
   {id:"broadcast", label:"Broadcast",      icon:Radio,           col:"#0369a1"},
+  {id:"botstats",  label:"Bot Stats",      icon:Zap,             col:"#059669"},
   {id:"system",    label:"System Info",    icon:Server,          col:"#374151"},
 ];
 
@@ -131,6 +132,10 @@ export default function AdminPanelPage() {
   const [moduleCfg, setModuleCfg] = useState<Record<string,string>>({});
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const [broadcasting, setBroadcasting] = useState(false);
+  const [botStats, setBotStats] = useState<any>(null);
+  const [botLoading, setBotLoading] = useState(false);
+  const [botRunning, setBotRunning] = useState(false);
+  const [botRuns, setBotRuns] = useState<any[]>([]);
 
   /* Load KPIs */
   const loadKpi = useCallback(async()=>{
@@ -189,7 +194,27 @@ export default function AdminPanelPage() {
     setModuleCfg(cfg);
   },[]);
 
-  useEffect(()=>{loadKpi();loadUsers();loadIPData();loadModules();detectIP();},[]);
+  /* Load bot stats */
+  const loadBotStats = useCallback(async()=>{
+    setBotLoading(true);
+    try {
+      const r=await fetch("https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot?action=status",{
+        headers:{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"}
+      });
+      const d=await r.json();
+      setBotStats(d);
+      
+      // Load recent activity logs
+      const {data:logs} = await db.from("activity_logs")
+        .select("*")
+        .order("created_at",{ascending:false})
+        .limit(20);
+      setBotRuns(Array.isArray(logs)?logs:[]);
+    } catch(e:any) { console.error("Bot stats error:",e); }
+    setBotLoading(false);
+  },[]);
+
+  useEffect(()=>{loadKpi();loadUsers();loadIPData();loadModules();detectIP();loadBotStats();},[]);
 
   /* Check Twilio */
   const checkTwilio = async()=>{
@@ -828,6 +853,199 @@ export default function AdminPanelPage() {
                     {broadcasting?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Radio size={13}/>}
                     {broadcasting?"Sending...":"Send Broadcast"}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* - BOT STATS - */}
+          {sec==="botstats"&&(
+            <div style={{maxWidth:800}}>
+              {/* Bot Control Card */}
+              <div style={S.card}>
+                <div style={S.cardHd("#059669")}><Zap size={14} color="#059669"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Keep-Alive Bot Control</span></div>
+                <div style={{padding:16}}>
+                  <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:16}}>
+                    <button 
+                      onClick={async()=>{
+                        setBotLoading(true);
+                        try {
+                          const r=await fetch("https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot?action=ping",{
+                            headers:{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"}
+                          });
+                          const d=await r.json();
+                          setBotStats(d);
+                          toast({title:"Ping Sent!",description:`Latency: ${d.latency_ms}ms, Status: ${d.status}`});
+                        } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
+                        setBotLoading(false);
+                      }}
+                      style={S.btn("#059669")}
+                      disabled={botLoading}>
+                      <Zap size={13}/> Run Single Ping
+                    </button>
+                    <button 
+                      onClick={async()=>{
+                        setBotRunning(true);
+                        toast({title:"Starting 55s Loop...",description:"Running keepalive cycle..."});
+                        try {
+                          const r=await fetch("https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot",{
+                            method:"POST",
+                            headers:{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"}
+                          });
+                          const d=await r.json();
+                          setBotStats(d);
+                          toast({title:"Loop Complete!",description:`Pings: ${d.pings}, Avg: ${d.avg_latency_ms}ms`});
+                        } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
+                        setBotRunning(false);
+                      }}
+                      style={S.btn("#4f46e5")}
+                      disabled={botRunning}>
+                      {botRunning?<RefreshCw size={13} style={{animation:"spin 1s linear infinite"}}/>:<Zap size={13}/>}
+                      {botRunning?"Running...":"Run 55s Loop"}
+                    </button>
+                    <button 
+                      onClick={async()=>{
+                        setBotLoading(true);
+                        try {
+                          const r=await fetch("https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot?action=cleanup",{
+                            headers:{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"}
+                          });
+                          const d=await r.json();
+                          toast({title:"Cleanup Done!",description:`Deleted: heartbeats=${d.deleted?.heartbeats}, tests=${d.deleted?.test_records}`});
+                          loadBotStats();
+                        } catch(e:any) { toast({title:"Error",description:e.message,variant:"destructive"}); }
+                        setBotLoading(false);
+                      }}
+                      style={S.btn("#dc2626")}
+                      disabled={botLoading}>
+                      <RefreshCw size={13}/> Cleanup
+                    </button>
+                    <button 
+                      onClick={loadBotStats}
+                      style={S.btn(T.fgMuted,T.fg)}
+                      disabled={botLoading}>
+                      <RefreshCw size={13}/> Refresh Stats
+                    </button>
+                  </div>
+                  
+                  {/* Status Display */}
+                  {botStats&&(
+                    <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:16,marginBottom:16}}>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontSize:24,fontWeight:700,color:"#059669"}}>{botStats.pings||botStats.latency_ms?"Active":"—"}</div>
+                          <div style={{fontSize:11,color:T.fgMuted}}>Status</div>
+                        </div>
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontSize:24,fontWeight:700,color:"#4f46e5"}}>{botStats.pings||"—"}</div>
+                          <div style={{fontSize:11,color:T.fgMuted}}>Pings/Loop</div>
+                        </div>
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontSize:24,fontWeight:700,color:"#0078d4"}}>{botStats.avg_latency_ms||"—"}ms</div>
+                          <div style={{fontSize:11,color:T.fgMuted}}>Avg Latency</div>
+                        </div>
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontSize:24,fontWeight:700,color:"#059669"}}>{botStats.test_inserts||"—"}</div>
+                          <div style={{fontSize:11,color:T.fgMuted}}>Test Inserts</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Projections */}
+                  <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:16}}>
+                    <div style={{fontWeight:700,fontSize:13,color:T.fg,marginBottom:12}}>📊 Operations Projections</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,fontSize:11}}>
+                      <div style={{textAlign:"center",padding:"8px 4px",background:"white",borderRadius:6}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"#059669"}}>58</div>
+                        <div style={{color:T.fgMuted}}>Per Min</div>
+                      </div>
+                      <div style={{textAlign:"center",padding:"8px 4px",background:"white",borderRadius:6}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"#4f46e5"}}>3,500</div>
+                        <div style={{color:T.fgMuted}}>Per Hour</div>
+                      </div>
+                      <div style={{textAlign:"center",padding:"8px 4px",background:"white",borderRadius:6}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"#0078d4"}}>84K</div>
+                        <div style={{color:T.fgMuted}}>Per Day</div>
+                      </div>
+                      <div style={{textAlign:"center",padding:"8px 4px",background:"white",borderRadius:6}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"#059669"}}>588K</div>
+                        <div style={{color:T.fgMuted}}>Per Week</div>
+                      </div>
+                      <div style={{textAlign:"center",padding:"8px 4px",background:"white",borderRadius:6}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"#7719aa"}}>2.5M</div>
+                        <div style={{color:T.fgMuted}}>Per Month</div>
+                      </div>
+                    </div>
+                    <div style={{marginTop:10,fontSize:11,color:"#059669",fontWeight:600}}>
+                      ✓ Exceeds target: 7,500/week (78x) | 22,500/month (112x)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Bot Runs */}
+              <div style={{...S.card,marginTop:16}}>
+                <div style={S.cardHd("#0078d4")}><Activity size={14} color="#0078d4"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Recent Bot Activity</span></div>
+                <div style={{padding:0}}>
+                  {botRuns.length===0?(
+                    <div style={{padding:24,textAlign:"center",color:T.fgMuted,fontSize:12}}>
+                      No recent runs. Click "Refresh Stats" to load activity logs.
+                    </div>
+                  ):(
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                      <thead>
+                        <tr style={{background:"#f8fafc"}}>
+                          {["Time","Action","Source","Details"].map(h=>(
+                            <th key={h} style={{padding:"8px 14px",textAlign:"left",fontSize:11,color:"#9ca3af",fontWeight:500}}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {botRuns.map((r:any,i)=>(
+                          <tr key={i} style={{borderBottom:"1px solid #f0f0f0"}}>
+                            <td style={{padding:"8px 14px",color:T.fgMuted,whiteSpace:"nowrap"}}>
+                              {r.created_at?new Date(r.created_at).toLocaleString("en-KE",{dateStyle:"short",timeStyle:"short"}):"—"}
+                            </td>
+                            <td style={{padding:"8px 14px"}}>
+                              <span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:r.action?.includes("keepalive")?"#05966918":"#6366f118",color:r.action?.includes("keepalive")?"#059669":"#6366f1",fontWeight:600}}>
+                                {r.action?.replace(/_/g," ")?.slice(0,20)||"—"}
+                              </span>
+                            </td>
+                            <td style={{padding:"8px 14px",color:T.fgMuted}}>{r.source||"—"}</td>
+                            <td style={{padding:"8px 14px",color:T.fg,fontSize:11,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis"}}>
+                              {typeof r.details==="string"?r.details:JSON.stringify(r.details||{})}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+
+              {/* Heartbeat Stats */}
+              <div style={{...S.card,marginTop:16}}>
+                <div style={S.cardHd("#4f46e5")}><Database size={14} color="#4f46e5"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Database Heartbeats</span></div>
+                <div style={{padding:16}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,fontSize:12}}>
+                    <div style={{textAlign:"center",padding:12,background:"#f8fafc",borderRadius:8}}>
+                      <div style={{fontSize:20,fontWeight:700,color:"#4f46e5"}}>{botStats?.current_records?.heartbeats||"—"}</div>
+                      <div style={{color:T.fgMuted,marginTop:4}}>Heartbeats</div>
+                    </div>
+                    <div style={{textAlign:"center",padding:12,background:"#f8fafc",borderRadius:8}}>
+                      <div style={{fontSize:20,fontWeight:700,color:"#059669"}}>{botStats?.current_records?.test_records||"—"}</div>
+                      <div style={{color:T.fgMuted,marginTop:4}}>Test Records</div>
+                    </div>
+                    <div style={{textAlign:"center",padding:12,background:"#f8fafc",borderRadius:8}}>
+                      <div style={{fontSize:20,fontWeight:700,color:"#0078d4"}}>{botStats?.current_records?.activity_logs||"—"}</div>
+                      <div style={{color:T.fgMuted,marginTop:4}}>Activity Logs</div>
+                    </div>
+                    <div style={{textAlign:"center",padding:12,background:"#f8fafc",borderRadius:8}}>
+                      <div style={{fontSize:20,fontWeight:700,color:"#059669"}}>{botStats?.mode||"—"}</div>
+                      <div style={{color:T.fgMuted,marginTop:4}}>Bot Mode</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
