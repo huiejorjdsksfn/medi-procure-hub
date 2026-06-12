@@ -73,7 +73,7 @@ const MODS = [
      {l:"Proc. Planning", p:"/procurement-planning",I:Calendar},
    ]},
   {id:"finance",label:"Finance",col:T.finance,
-   roles:["admin","superadmin","webmaster","procurement_manager","accountant"],
+   roles:["admin","superadmin","webmaster","procurement_manager","accountant","finance_officer","finance_manager"],
    items:[
      {l:"Finance Overview",   p:"/financials/dashboard",         I:TrendingUp},
      {l:"Budgets",            p:"/financials/budgets",           I:PiggyBank},
@@ -85,6 +85,7 @@ const MODS = [
      {l:"Purchase Vouchers",  p:"/vouchers/purchase",            I:FileText},
      {l:"Sales Vouchers",     p:"/vouchers/sales",               I:FileText},
      {l:"Accountant Workspace",p:"/accountant-workspace",        I:BarChart2},
+     {l:"Finance Workspace",  p:"/finance-workspace",            I:DollarSign},
    ]},
   {id:"inventory",label:"Inventory",col:T.inventory,
    roles:["admin","superadmin","webmaster","procurement_manager","procurement_officer","inventory_manager","warehouse_officer"],
@@ -146,6 +147,15 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
 
   const [activeMod, setActiveMod] = useState<string|null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 767;
+  const [deviceWidth, setDeviceWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handler = () => setDeviceWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   const isAdmin   = roles?.some(r=>["admin","superadmin","webmaster"].includes(r));
   const isDbAdmin = roles?.some(r=>["database_admin"].includes(r)) || isAdmin;
@@ -174,6 +184,13 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
 
       {/* - TOP BAR (D365 blue header) - */}
       <div style={{height:44,background:T.primary,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.25)"}}>
+        {/* Hamburger on mobile */}
+        {deviceWidth <= 767 && (
+          <button onClick={() => setMobileNavOpen(o => !o)} style={{background:"transparent",border:"none",color:"#fff",cursor:"pointer",padding:"4px",display:"flex",alignItems:"center",flexShrink:0}}>
+            <span style={{display:"block",width:18,height:2,background:"#fff",marginBottom:4,borderRadius:1}}/>
+            <span style={{display:"none"}}/>
+          </button>
+        )}
         <img src={logoImg} alt="" className="topbar-logo" style={{width:24,height:24,borderRadius:3,objectFit:"contain",background:"rgba(255,255,255,.12)",padding:2,flexShrink:0}}/>
         <div style={{lineHeight:1}}>
           <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{sysName}</div>
@@ -260,6 +277,35 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* - MOBILE NAV OVERLAY - */}
+      {mobileNavOpen && deviceWidth <= 767 && (
+        <div style={{position:"fixed",inset:0,zIndex:8999,display:"flex"}} onClick={() => setMobileNavOpen(false)}>
+          <div style={{width:"min(280px,85vw)",height:"100%",background:T.primary,overflowY:"auto",boxShadow:"4px 0 20px rgba(0,0,0,0.4)"}} onClick={e => e.stopPropagation()}>
+            <div style={{padding:"12px 14px",borderBottom:"1px solid rgba(255,255,255,0.15)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:13}}>Navigation</span>
+              <button onClick={() => setMobileNavOpen(false)} style={{background:"none",border:"none",color:"#fff",fontSize:18,cursor:"pointer",padding:0}}>✕</button>
+            </div>
+            <button onClick={() => { nav("/dashboard"); setMobileNavOpen(false); }} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",color:"#fff",background:"transparent",border:"none",cursor:"pointer",width:"100%",textAlign:"left",fontSize:13,borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
+              <Home size={14}/> Home
+            </button>
+            {MODS.filter(m => canSee(m.roles)).map(mod => (
+              <div key={mod.id}>
+                <button onClick={() => setActiveMod(a => a === mod.id ? null : mod.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",color:"#fff",background:"transparent",border:"none",cursor:"pointer",width:"100%",textAlign:"left",fontSize:13,borderBottom:"1px solid rgba(255,255,255,0.1)",fontWeight:600}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:mod.col,flexShrink:0,display:"inline-block"}}/>
+                  {mod.label}
+                  <ChevronDown size={11} style={{marginLeft:"auto",transform:activeMod===mod.id?"rotate(180deg)":"none"}}/>
+                </button>
+                {activeMod === mod.id && mod.items.map(item => (
+                  <button key={item.p} onClick={() => { nav(item.p); setMobileNavOpen(false); }} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px 8px 30px",color:"rgba(255,255,255,0.85)",background:"transparent",border:"none",cursor:"pointer",width:"100%",textAlign:"left",fontSize:12,borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                    <item.I size={11}/> {item.l}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

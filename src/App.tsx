@@ -15,9 +15,11 @@ import HMISSyncPage from "@/pages/HMISSyncPage";
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AccountantWorkspacePage from "@/pages/AccountantWorkspacePage";
+import FinanceWorkspacePage from "@/pages/FinanceWorkspacePage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
+import ResponsiveBot from "@/components/ResponsiveBot";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
 
@@ -99,6 +101,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ResponsiveBot />
       <HashRouter>
         <RouterGuard />
         <ErrorBoundary pageName="Auth">
@@ -196,6 +199,7 @@ const App = () => (
 
             <Route path="/accountant" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
             <Route path="/accountant-workspace" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
+            <Route path="/finance-workspace" element={<P><RoleGuard allowed={["admin","finance_manager","finance_officer","accountant","procurement_manager"]}><FinanceWorkspacePage /></RoleGuard></P>} />
             <Route path="/notifications" element={<P><NotificationsPage /></P>} />
             <Route path="*" element={<NotFound />} />
             </Routes>

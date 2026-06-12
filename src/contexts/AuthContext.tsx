@@ -24,7 +24,8 @@ export type ProcurementRole =
   | "superadmin" | "admin" | "webmaster" | "database_admin"
   | "procurement_manager" | "procurement_officer"
   | "inventory_manager" | "warehouse_officer"
-  | "requisitioner" | "accountant";
+  | "requisitioner" | "accountant"
+  | "finance_officer" | "finance_manager";
 
 export const ADMIN_TIER: ProcurementRole[] = ["superadmin", "admin", "webmaster"];
 
@@ -52,7 +53,8 @@ export const useAuth = () => useContext(Ctx);
 
 const PRIORITY: ProcurementRole[] = [
   "superadmin","admin","webmaster","database_admin",
-  "procurement_manager","procurement_officer","accountant",
+  "procurement_manager","finance_manager","procurement_officer",
+  "accountant","finance_officer",
   "inventory_manager","warehouse_officer","requisitioner",
 ];
 
