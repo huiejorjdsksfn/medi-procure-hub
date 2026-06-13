@@ -70,13 +70,20 @@ function AuditLogFeed() {
   const db = supabase as any;
   const [rows, setRows] = useState<any[]>([]);
   useEffect(() => {
+    let mounted = true;
     (async () => {
-      const { data } = await db.from("audit_logs")
-        .select("id,action,details,created_at,user_id")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setRows(Array.isArray(data) ? data : []);
+      try {
+        const { data } = await db.from("audit_logs")
+          .select("id,action,details,created_at,user_id")
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (mounted) setRows(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("[AuditLogFeed]", e);
+        if (mounted) setRows([]);
+      }
     })();
+    return () => { mounted = false; };
   }, []);
   const actionColor: Record<string, string> = {
     INSERT: "#10b981", UPDATE: "#3b82f6", DELETE: "#ef4444",
@@ -214,7 +221,14 @@ export default function AdminPanelPage() {
     setBotLoading(false);
   },[]);
 
-  useEffect(()=>{loadKpi();loadUsers();loadIPData();loadModules();detectIP();loadBotStats();},[]);
+  useEffect(()=>{
+    loadKpi();
+    loadUsers();
+    loadIPData();
+    loadModules();
+    detectIP();
+    loadBotStats();
+  },[loadKpi,loadUsers,loadIPData,loadModules,detectIP,loadBotStats]);
 
   /* Check Twilio */
   const checkTwilio = async()=>{
