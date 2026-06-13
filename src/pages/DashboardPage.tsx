@@ -1,284 +1,445 @@
 /**
- * EL5 MediProcure v10.0 — Dashboard
- * Live KPIs · Realtime · Role-aware · Professional D365-style tiles
+ * EL5 MediProcure — Dashboard v2.0
+ * Full Windows XP Luna Blue desktop with role-aware tiles and live data
  */
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import ERPWheelButton from "@/components/ERPWheelButton";
-import {
-  ShoppingCart, Package, FileText, DollarSign, BarChart2,
-  Users, Building2, TrendingUp, TrendingDown, AlertTriangle,
-  CheckCircle, Clock, RefreshCw, Bell, Activity, MessageSquare,
-} from "lucide-react";
+import { getDefaultRoute } from "@/lib/sessionCookie";
 
 const db = supabase as any;
 
-interface KPI { label:string; value:string|number; sub:string; icon:any; color:string; trend?:"up"|"down"; path:string; roles:string[]; }
+const XP = {
+  titleBar: "linear-gradient(180deg,#4490d9 0%,#2461bf 8%,#245ebd 92%,#1a50aa 100%)",
+  desktop:  "linear-gradient(160deg,#245ebd 0%,#1a4595 40%,#0f317a 100%)",
+  taskbar:  "linear-gradient(180deg,#3a77cc 0%,#2256b5 4%,#2357b8 96%,#1a4ea6 100%)",
+  windowBg: "#ece9d8",
+  btnBorder:"#a29d7f",
+  gridBorder:"#c0bca8",
+  font:     "'Tahoma','Segoe UI','Arial',sans-serif",
+};
+const fmtK = (n?: number|null) => {
+  const v = n||0;
+  if (v >= 1e6) return `KES ${(v/1e6).toFixed(2)}M`;
+  if (v >= 1e3) return `KES ${(v/1e3).toFixed(1)}K`;
+  return `KES ${v.toLocaleString("en-KE",{minimumFractionDigits:2})}`;
+};
 
-const TEAL   = "#0e7490";
-const BLUE   = "#0078d4";
-const GREEN  = "#059669";
-const ORANGE = "#d97706";
-const PURPLE = "#7c3aed";
-const RED    = "#dc2626";
-const DARK   = "#0f172a";
-
-let BG=""; try { BG=new URL("../assets/procurement-bg.jpg",import.meta.url).href; } catch {}
-
-function KPICard({k,onClick}:{k:KPI;onClick:()=>void}){
-  const [hov,setHov]=useState(false);
-  const Icon=k.icon;
-  return(
-    <div onClick={onClick}
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{background:"#fff",borderRadius:12,padding:"18px 20px",cursor:"pointer",
-        boxShadow:hov?"0 8px 28px rgba(0,0,0,.12)":"0 2px 8px rgba(0,0,0,.06)",
-        borderLeft:`4px solid ${k.color}`,
-        transform:hov?"translateY(-2px)":"none",
-        transition:"all .18s cubic-bezier(.4,0,.2,1)"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-        <div>
-          <div style={{fontSize:11,fontWeight:700,color:"#6b7280",letterSpacing:".06em",
-            textTransform:"uppercase",marginBottom:6}}>{k.label}</div>
-          <div style={{fontSize:28,fontWeight:900,color:DARK,lineHeight:1,marginBottom:4}}>{k.value}</div>
-          <div style={{fontSize:11,color:"#9ca3af"}}>{k.sub}</div>
-        </div>
-        <div style={{width:42,height:42,borderRadius:10,background:k.color+"15",
-          display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <Icon size={20} color={k.color}/>
-        </div>
-      </div>
-      {k.trend&&(
-        <div style={{display:"flex",alignItems:"center",gap:4,marginTop:10,paddingTop:10,
-          borderTop:"1px solid #f1f5f9"}}>
-          {k.trend==="up"
-            ?<TrendingUp size={12} color={GREEN}/>
-            :<TrendingDown size={12} color={RED}/>}
-          <span style={{fontSize:10.5,color:k.trend==="up"?GREEN:RED,fontWeight:600}}>
-            {k.trend==="up"?"Increasing":"Needs attention"}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ActivityItem({icon:Icon,color,text,time}:{icon:any;color:string;text:string;time:string}){
-  return(
-    <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 0",
-      borderBottom:"1px solid #f8fafc"}}>
-      <div style={{width:28,height:28,borderRadius:7,background:color+"18",
-        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
-        <Icon size={13} color={color}/>
-      </div>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,color:DARK,fontWeight:500,lineHeight:1.4}}>{text}</div>
-        <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{time}</div>
-      </div>
-    </div>
-  );
+interface Tile {
+  icon: string; label: string; value: string|number; sub: string;
+  color: string; path: string; roles: string[];
 }
 
 export default function DashboardPage() {
-  const { primaryRole, roles, profile } = useAuth();
-  const nav = useNavigate();
-  const [kpis, setKpis]   = useState<Record<string,number>>({});
-  const [acts, setActs]   = useState<any[]>([]);
-  const [loading, setLoad] = useState(true);
-  const [now, setNow]     = useState(new Date());
-  const [showWheel, setShowWheel] = useState(false);
+  const { user, profile, roles, primaryRole, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [time, setTime] = useState(new Date());
+  const [startOpen, setStartOpen] = useState(false);
+  const [kpi, setKpi] = useState({
+    requisitions:0, pendingPOs:0, totalPOValue:0,
+    grnCount:0, suppliers:0, vouchers:0,
+    payments:0, receipts:0, budgetTotal:0, budgetSpent:0,
+    inventory:0, contracts:0, tenders:0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [activity, setActivity] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
-    setLoad(true);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const iso = today.toISOString();
+  const isAdmin   = roles.some(r=>["superadmin","admin","webmaster"].includes(r));
+  const isFinance = roles.some(r=>["finance_manager","finance_officer","accountant"].includes(r));
+  const isProc    = roles.some(r=>["procurement_manager","procurement_officer"].includes(r));
 
-    const [rqs,pos,items,lowStk,pendApp,grns,notifs,visitors] = await Promise.allSettled([
-      db.from("requisitions").select("id",{count:"exact",head:true}).gte("created_at",iso),
-      db.from("purchase_orders").select("id",{count:"exact",head:true}).gte("created_at",iso),
-      db.from("items").select("id",{count:"exact",head:true}),
-      db.from("items").select("id",{count:"exact",head:true}).lt("quantity_in_stock",10),
-      db.from("requisitions").select("id",{count:"exact",head:true}).in("status",["pending","submitted"]),
-      db.from("goods_received").select("id",{count:"exact",head:true}).gte("created_at",iso),
-      db.from("notifications").select("id",{count:"exact",head:true}).eq("is_read",false),
-      db.from("reception_visitors").select("id",{count:"exact",head:true}).gte("check_in_time",iso),
+  useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t);},[]);
+
+  const fetchKPI = useCallback(async()=>{
+    setLoading(true);
+    const [rqR,poR,grnR,supR,pvR,rcpR,budR,invR,conR,tenR] = await Promise.allSettled([
+      db.from("requisitions").select("id",{count:"exact",head:true}),
+      db.from("purchase_orders").select("id,total_amount,status").eq("status","pending"),
+      db.from("goods_received_notes").select("id",{count:"exact",head:true}),
+      db.from("suppliers").select("id",{count:"exact",head:true}),
+      db.from("payment_vouchers").select("id,total_amount").eq("status","draft"),
+      db.from("receipt_vouchers").select("id",{count:"exact",head:true}),
+      db.from("budgets").select("total_budget,spent"),
+      db.from("inventory_items").select("id",{count:"exact",head:true}),
+      db.from("contracts").select("id",{count:"exact",head:true}),
+      db.from("tenders").select("id",{count:"exact",head:true}),
     ]);
-    setKpis({
-      reqs:     rqs.status==="fulfilled"       ? rqs.value.count||0       : 0,
-      pos:      pos.status==="fulfilled"        ? pos.value.count||0        : 0,
-      items:    items.status==="fulfilled"      ? items.value.count||0      : 0,
-      lowStk:   lowStk.status==="fulfilled"     ? lowStk.value.count||0     : 0,
-      pendApp:  pendApp.status==="fulfilled"    ? pendApp.value.count||0    : 0,
-      grns:     grns.status==="fulfilled"       ? grns.value.count||0       : 0,
-      notifs:   notifs.status==="fulfilled"     ? notifs.value.count||0     : 0,
-      visitors: visitors.status==="fulfilled"   ? visitors.value.count||0   : 0,
+    const g = (r:any,field?:string) => r.status==="fulfilled"?(field?r.value.data?.reduce((s:number,x:any)=>s+(x[field]||0),0):r.value.count||0):0;
+    setKpi({
+      requisitions: g(rqR),
+      pendingPOs:   poR.status==="fulfilled"?(poR.value.data?.length||0):0,
+      totalPOValue: g(poR,"total_amount"),
+      grnCount:     g(grnR),
+      suppliers:    g(supR),
+      vouchers:     pvR.status==="fulfilled"?(pvR.value.data?.length||0):0,
+      payments:     g(pvR,"total_amount"),
+      receipts:     g(rcpR),
+      budgetTotal:  budR.status==="fulfilled"?(budR.value.data?.reduce((s:number,b:any)=>s+(b.total_budget||0),0)||0):0,
+      budgetSpent:  budR.status==="fulfilled"?(budR.value.data?.reduce((s:number,b:any)=>s+(b.spent||0),0)||0):0,
+      inventory:    g(invR),
+      contracts:    g(conR),
+      tenders:      g(tenR),
     });
+    // Recent activity from audit_logs
+    const {data:acts} = await db.from("audit_logs").select("*").order("created_at",{ascending:false}).limit(8);
+    setActivity(acts||[]);
+    setLoading(false);
+  },[]);
 
-    // Recent activity
-    const { data: recent } = await db.from("audit_logs")
-      .select("action,table_name,created_at").order("created_at",{ascending:false}).limit(8);
-    setActs(recent||[]);
-    setLoad(false);
-  }, []);
+  useEffect(()=>{fetchKPI();},[fetchKPI]);
 
-  useEffect(() => { load(); const t=setInterval(()=>setNow(new Date()),30000); return ()=>clearInterval(t); },[load]);
+  // Redirect finance users directly to their desktop
+  useEffect(()=>{
+    if (!primaryRole) return;
+    const dest = getDefaultRoute(primaryRole);
+    if (dest !== "/dashboard") navigate(dest, {replace:true});
+  },[primaryRole, navigate]);
 
-  const ALL_KPIS: KPI[] = useMemo(() => [
-    { label:"Requisitions Today",  value:kpis.reqs||0,    sub:`${kpis.pendApp||0} pending approval`, icon:FileText,     color:BLUE,   trend:"up",  path:"/requisitions",   roles:[] },
-    { label:"Purchase Orders",     value:kpis.pos||0,     sub:"raised today",                         icon:ShoppingCart,  color:TEAL,   trend:"up",  path:"/purchase-orders",roles:["admin","procurement_manager","procurement_officer"] },
-    { label:"GRN Created",         value:kpis.grns||0,    sub:"today",                                icon:CheckCircle,   color:GREEN,               path:"/goods-received", roles:["admin","procurement_manager","procurement_officer","warehouse_officer"] },
-    { label:"Stock Items",         value:kpis.items||0,   sub:`${kpis.lowStk||0} low stock alerts`,  icon:Package,       color:ORANGE, trend:kpis.lowStk>5?"down":undefined, path:"/items", roles:[] },
-    { label:"Pending Approvals",   value:kpis.pendApp||0, sub:"awaiting action",                      icon:Clock,         color:PURPLE, trend:kpis.pendApp>10?"down":undefined, path:"/requisitions", roles:[] },
-    { label:"Notifications",       value:kpis.notifs||0,  sub:"unread",                               icon:Bell,          color:RED,    trend:kpis.notifs>5?"down":undefined, path:"/notifications", roles:[] },
-    { label:"Visitors Today",      value:kpis.visitors||0,sub:"checked in",                           icon:Users,         color:"#0891b2", path:"/reception", roles:[] },
-    { label:"Departments",         value:"Active",        sub:"Hospital departments",                  icon:Building2,     color:"#374151", path:"/departments", roles:["admin","procurement_manager","inventory_manager"] },
-  ], [kpis]);
+  const TILES: Tile[] = [
+    {icon:"📋",label:"Requisitions",value:kpi.requisitions,sub:"Total submitted",color:"#7c3aed",path:"/requisitions",roles:["admin","procurement_manager","procurement_officer","requisitioner"]},
+    {icon:"🛒",label:"Purchase Orders",value:kpi.pendingPOs,sub:`${fmtK(kpi.totalPOValue)} value`,color:"#0078d4",path:"/purchase-orders",roles:["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]},
+    {icon:"📦",label:"Goods Received",value:kpi.grnCount,sub:"GRN records",color:"#059669",path:"/goods-received",roles:["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager"]},
+    {icon:"🏢",label:"Suppliers",value:kpi.suppliers,sub:"Registered vendors",color:"#d97706",path:"/suppliers",roles:["admin","procurement_manager","procurement_officer"]},
+    {icon:"💳",label:"Payment Vouchers",value:kpi.vouchers,sub:`${fmtK(kpi.payments)} pending`,color:"#dc2626",path:"/vouchers/payment",roles:["admin","procurement_manager","accountant","finance_manager","finance_officer"]},
+    {icon:"🧾",label:"Receipt Vouchers",value:kpi.receipts,sub:"Total receipts",color:"#0e7490",path:"/vouchers/receipt",roles:["admin","procurement_manager","accountant","finance_manager","finance_officer"]},
+    {icon:"📊",label:"Budget",value:`${kpi.budgetTotal>0?((kpi.budgetSpent/kpi.budgetTotal)*100).toFixed(0):0}%`,sub:`${fmtK(kpi.budgetSpent)} of ${fmtK(kpi.budgetTotal)}`,color:"#4f46e5",path:"/financials/budgets",roles:["admin","procurement_manager","accountant","finance_manager","finance_officer"]},
+    {icon:"📦",label:"Inventory Items",value:kpi.inventory,sub:"Stock records",color:"#059669",path:"/items",roles:["admin","procurement_manager","inventory_manager","warehouse_officer"]},
+    {icon:"📄",label:"Contracts",value:kpi.contracts,sub:"Active contracts",color:"#0078d4",path:"/contracts",roles:["admin","procurement_manager"]},
+    {icon:"🏆",label:"Tenders",value:kpi.tenders,sub:"Total tenders",color:"#d97706",path:"/tenders",roles:["admin","procurement_manager","procurement_officer"]},
+    {icon:"📈",label:"Reports",value:"→",sub:"Analytics & BI",color:"#7c3aed",path:"/reports",roles:[]},
+    {icon:"📁",label:"Documents",value:"→",sub:"File manager",color:"#0e7490",path:"/documents",roles:[]},
+  ];
 
-  const visibleKpis = useMemo(() =>
-    ALL_KPIS.filter(k => !k.roles.length || k.roles.some(r => roles.includes(r)))
-  , [ALL_KPIS, roles]);
+  const visibleTiles = TILES.filter(t=>!t.roles.length||t.roles.some(r=>roles.includes(r)));
 
-  const fmt = (d:string) => {
-    const dt = new Date(d);
-    const diff = (Date.now()-dt.getTime())/60000;
-    if (diff<1)  return "Just now";
-    if (diff<60) return `${Math.round(diff)}m ago`;
-    if (diff<1440) return `${Math.round(diff/60)}h ago`;
-    return dt.toLocaleDateString("en-KE");
-  };
-
-  const actionIcon: Record<string,[any,string]> = {
-    INSERT:[Activity,GREEN], UPDATE:[RefreshCw,BLUE], DELETE:[AlertTriangle,RED],
-  };
-
-  const greet = (() => {
-    const h = now.getHours();
-    if (h<12) return "Good morning";
-    if (h<17) return "Good afternoon";
-    return "Good evening";
-  })();
-
-  const role_label: Record<string,string> = {
-    admin:"Administrator",superadmin:"Super Admin",webmaster:"Webmaster",
-    database_admin:"Database Admin",procurement_manager:"Procurement Manager",
-    procurement_officer:"Procurement Officer",inventory_manager:"Inventory Manager",
-    warehouse_officer:"Warehouse Officer",requisitioner:"Requisitioner",accountant:"Accountant",
-  };
+  const NAV_ITEMS = [
+    {icon:"🏠",label:"Dashboard",path:"/dashboard",roles:[]},
+    {icon:"📋",label:"Requisitions",path:"/requisitions",roles:["admin","procurement_manager","procurement_officer","requisitioner"]},
+    {icon:"🛒",label:"Purchase Orders",path:"/purchase-orders",roles:["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]},
+    {icon:"📦",label:"Goods Received",path:"/goods-received",roles:["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager"]},
+    {icon:"💰",label:"Finance Desktop",path:"/finance-dashboard",roles:["admin","finance_manager","finance_officer","accountant"]},
+    {icon:"💳",label:"Vouchers",path:"/vouchers",roles:["admin","procurement_manager","accountant","finance_manager","finance_officer"]},
+    {icon:"📊",label:"Reports",path:"/reports",roles:[]},
+    {icon:"👥",label:"Users",path:"/users",roles:["admin","superadmin","webmaster","database_admin"]},
+    {icon:"⚙️",label:"Settings",path:"/settings",roles:["admin","superadmin","webmaster"]},
+    {icon:"🔑",label:"Audit Log",path:"/audit-log",roles:["admin","procurement_manager","accountant","finance_manager"]},
+  ].filter(i=>!i.roles.length||i.roles.some(r=>roles.includes(r)));
 
   return (
-    <div style={{padding:"24px 28px",background:"#f8fafc",minHeight:"100vh",
-      fontFamily:"'Inter','Segoe UI',system-ui,sans-serif"}}>
+    <div style={{width:"100vw",height:"100vh",background:XP.desktop,
+      position:"fixed" as const,inset:0,overflow:"hidden",fontFamily:XP.font}}>
 
-      {/* Header */}
-      <div style={{marginBottom:28,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:14}}>
-        <div>
-          <div style={{fontSize:13,color:"#6b7280",fontWeight:600,marginBottom:2}}>
-            {now.toLocaleDateString("en-KE",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}
-          </div>
-          <h1 style={{margin:0,fontSize:24,fontWeight:900,color:DARK,letterSpacing:"-.02em"}}>
-            {greet}, {profile?.full_name?.split(" ")[0] || "Welcome"}
-          </h1>
-          <div style={{fontSize:12,color:"#6b7280",marginTop:3,display:"flex",alignItems:"center",gap:8}}>
-            <span style={{background:TEAL+"18",color:TEAL,fontWeight:700,fontSize:10,
-              padding:"2px 8px",borderRadius:6}}>
-              {role_label[primaryRole]||primaryRole}
-            </span>
-            <span>EL5 MediProcure · Embu Level 5 Hospital</span>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",
-            background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:8,cursor:"pointer",
-            fontSize:12,fontWeight:700,color:"#374151",boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
-            <RefreshCw size={13} style={loading?{animation:"spin .8s linear infinite"}:{}}/>
-            {loading?"Loading…":"Refresh"}
+      {/* Desktop icons (left column) */}
+      <div style={{position:"absolute" as const,top:12,left:10,display:"flex",flexDirection:"column" as const,gap:4,zIndex:10}}>
+        {[
+          {icon:"💰",label:"Finance Desktop",path:"/finance-dashboard",roles:["admin","finance_manager","finance_officer","accountant"]},
+          {icon:"📋",label:"Requisitions",path:"/requisitions",roles:["admin","procurement_manager","procurement_officer","requisitioner","warehouse_officer"]},
+          {icon:"🛒",label:"Purchase Orders",path:"/purchase-orders",roles:["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]},
+          {icon:"📦",label:"Goods Received",path:"/goods-received",roles:["admin","procurement_manager","warehouse_officer","inventory_manager"]},
+          {icon:"📊",label:"Reports",path:"/reports",roles:[]},
+          {icon:"📁",label:"Documents",path:"/documents",roles:[]},
+          {icon:"👥",label:"Users",path:"/users",roles:["admin","superadmin","webmaster","database_admin"]},
+        ].filter(i=>!i.roles.length||i.roles.some(r=>roles.includes(r))).map(ic=>(
+          <button key={ic.path} onDoubleClick={()=>navigate(ic.path)}
+            style={{background:"transparent",border:"none",cursor:"pointer",
+              display:"flex",flexDirection:"column" as const,alignItems:"center",
+              gap:3,padding:"6px 8px",borderRadius:4,width:72,
+              color:"#fff",fontFamily:XP.font,fontSize:10,
+              textShadow:"1px 1px 3px rgba(0,0,0,.9)"}}
+            onMouseEnter={e=>(e.currentTarget as any).style.background="rgba(255,255,255,.18)"}
+            onMouseLeave={e=>(e.currentTarget as any).style.background="transparent"}>
+            <span style={{fontSize:26,filter:"drop-shadow(1px 1px 3px rgba(0,0,0,.6))"}}>{ic.icon}</span>
+            <span style={{textAlign:"center",lineHeight:1.2,wordBreak:"break-word" as const}}>{ic.label}</span>
           </button>
-          <button onClick={()=>setShowWheel(w=>!w)}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",
-              background:showWheel?TEAL:"#fff",border:`1.5px solid ${TEAL}`,borderRadius:8,cursor:"pointer",
-              fontSize:12,fontWeight:700,color:showWheel?"#fff":TEAL,boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
-            🌐 {showWheel?"Close":"ERP Navigator"}
-          </button>
-        </div>
-      </div>
-
-      {/* ERP Wheel */}
-      {showWheel && (
-        <div style={{background:"#fff",borderRadius:14,padding:24,marginBottom:24,
-          boxShadow:"0 4px 20px rgba(0,0,0,.08)",border:"1px solid #e2e8f0",
-          display:"flex",justifyContent:"center"}}>
-          <ERPWheelButton/>
-        </div>
-      )}
-
-      {/* KPI Grid */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:24}}>
-        {visibleKpis.map(k=>(
-          <KPICard key={k.label} k={k} onClick={()=>nav(k.path)}/>
         ))}
       </div>
 
-      {/* Lower grid */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+      {/* Main window */}
+      <div style={{position:"absolute" as const,top:10,left:90,right:10,bottom:46,
+        background:XP.windowBg,border:"2px solid #0054e3",borderRadius:6,
+        boxShadow:"4px 4px 18px rgba(0,0,0,.6)",display:"flex",flexDirection:"column" as const,overflow:"hidden"}}>
 
-        {/* Activity */}
-        <div style={{background:"#fff",borderRadius:12,padding:20,
-          boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:"1px solid #f1f5f9"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{fontSize:14,fontWeight:800,color:DARK}}>Recent Activity</div>
-            <Activity size={16} color={TEAL}/>
+        {/* Title bar */}
+        <div style={{background:XP.titleBar,display:"flex",alignItems:"center",
+          justifyContent:"space-between",padding:"3px 5px 3px 8px",flexShrink:0,userSelect:"none" as const}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:14}}>🏥</span>
+            <span style={{color:"#fff",fontSize:11,fontWeight:700,textShadow:"1px 1px 2px rgba(0,0,0,.6)"}}>
+              EL5 MediProcure — Dashboard · {profile?.full_name||user?.email} · {primaryRole?.replace(/_/g," ")}
+            </span>
           </div>
-          {loading ? (
-            <div style={{textAlign:"center",padding:30,color:"#9ca3af",fontSize:13}}>Loading…</div>
-          ) : acts.length === 0 ? (
-            <div style={{textAlign:"center",padding:30,color:"#9ca3af",fontSize:13}}>No recent activity</div>
-          ) : acts.map((a,i)=>{
-            const [Icon,col] = actionIcon[a.action?.toUpperCase()]||[Activity,TEAL];
-            return <ActivityItem key={i} icon={Icon} color={col}
-              text={`${a.action||"Action"} on ${a.table_name||"record"}`}
-              time={fmt(a.created_at)}/>;
-          })}
+          <div style={{display:"flex",gap:2}}>
+            <button onClick={()=>navigate(-1)} title="Back" style={{width:21,height:21,background:"linear-gradient(180deg,#f0a830,#c87000)",border:"1px solid #7a4400",borderRadius:3,cursor:"pointer",color:"#fff",fontSize:12}}>–</button>
+            <button onClick={fetchKPI} title="Refresh" style={{width:21,height:21,background:"linear-gradient(180deg,#60d060,#289028)",border:"1px solid #1a7018",borderRadius:3,cursor:"pointer",color:"#fff",fontSize:10}}>↻</button>
+            <button onClick={signOut} title="Sign Out" style={{width:21,height:21,background:"linear-gradient(180deg,#e85040,#b01818)",border:"1px solid #701010",borderRadius:3,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:900}}>✕</button>
+          </div>
         </div>
 
-        {/* Quick Actions */}
-        <div style={{background:"#fff",borderRadius:12,padding:20,
-          boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:"1px solid #f1f5f9"}}>
-          <div style={{fontSize:14,fontWeight:800,color:DARK,marginBottom:16}}>Quick Actions</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {[
-              {l:"New Requisition",      p:"/requisitions",      col:BLUE,   icon:FileText,     roles:[]},
-              {l:"Receive Goods (GRN)",  p:"/goods-received",    col:GREEN,  icon:CheckCircle,  roles:["admin","procurement_manager","procurement_officer","warehouse_officer"]},
-              {l:"Record Payment",       p:"/vouchers/payment",  col:ORANGE, icon:DollarSign,   roles:["admin","procurement_manager","accountant"]},
-              {l:"Stock Check",          p:"/items",             col:TEAL,   icon:Package,      roles:[]},
-              {l:"View Reports",         p:"/reports",           col:PURPLE, icon:BarChart2,    roles:[]},
-              {l:"Manage Users",         p:"/users",             col:"#374151",icon:Users,      roles:["admin","superadmin","webmaster"]},
-              {l:"WhatsApp Hub",          p:"/whatsapp",          col:"#25D366",icon:MessageSquare, roles:[]},
-              {l:"AI Agent Hub",          p:"/ai-agent",          col:"#7c3aed",icon:MessageSquare, roles:[]},
-            ].filter(a=>!a.roles.length||a.roles.some(r=>roles.includes(r))).map(a=>{
-              const Ic=a.icon;
-              return(
-                <button key={a.l} onClick={()=>nav(a.p)}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",
-                    background:"#f8fafc",border:"1.5px solid #e5e7eb",borderRadius:9,
-                    cursor:"pointer",fontSize:12.5,fontWeight:700,color:DARK,
-                    textAlign:"left" as const,transition:"all .14s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.background=a.col+"12";e.currentTarget.style.borderColor=a.col;}}
-                  onMouseLeave={e=>{e.currentTarget.style.background="#f8fafc";e.currentTarget.style.borderColor="#e5e7eb";}}>
-                  <div style={{width:28,height:28,borderRadius:7,background:a.col+"18",
-                    display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <Ic size={14} color={a.col}/>
-                  </div>
-                  {a.l}
-                </button>
-              );
-            })}
+        {/* Menu bar */}
+        <div style={{background:XP.windowBg,borderBottom:`1px solid ${XP.btnBorder}`,
+          display:"flex",alignItems:"center",padding:"1px 4px",flexShrink:0}}>
+          {[
+            {label:"File",items:[{l:"↻ Refresh",fn:fetchKPI},{l:"🚪 Sign Out",fn:signOut}]},
+            {label:"Go",items:NAV_ITEMS.map(n=>({l:`${n.icon} ${n.label}`,fn:()=>navigate(n.path)}))},
+            {label:"View",items:[{l:"🏠 Dashboard",fn:()=>navigate("/dashboard")},{l:"📊 Reports",fn:()=>navigate("/reports")}]},
+            {label:"Tools",items:[{l:"📁 Documents",fn:()=>navigate("/documents")},{l:"📬 Inbox",fn:()=>navigate("/inbox")},{l:"🔔 Notifications",fn:()=>navigate("/notifications")}]},
+            {label:"Help",items:[{l:"ℹ️ About EL5 MediProcure",fn:()=>alert("EL5 MediProcure v11.0 — Embu Level 5 Hospital")}]},
+          ].map(menu=><XPMenu key={menu.label} label={menu.label} items={menu.items}/>)}
+        </div>
+
+        {/* Toolbar */}
+        <div style={{background:"linear-gradient(180deg,#f5f4ea,#e8e5d8)",
+          borderBottom:`1px solid ${XP.btnBorder}`,padding:"3px 8px",
+          display:"flex",gap:6,alignItems:"center",flexShrink:0,flexWrap:"wrap" as const}}>
+          {[
+            {icon:"🏠",label:"Home",fn:()=>navigate("/dashboard")},
+            {icon:"↻",label:"Refresh",fn:fetchKPI},
+            ...(isFinance?[{icon:"💰",label:"Finance Desktop",fn:()=>navigate("/finance-dashboard")}]:[]),
+            ...(isProc||isAdmin?[{icon:"📋",label:"Requisitions",fn:()=>navigate("/requisitions")},{icon:"🛒",label:"PO",fn:()=>navigate("/purchase-orders")}]:[]),
+            {icon:"📊",label:"Reports",fn:()=>navigate("/reports")},
+            {icon:"📁",label:"Documents",fn:()=>navigate("/documents")},
+            {icon:"📬",label:"Inbox",fn:()=>navigate("/inbox")},
+          ].map(b=>(
+            <XPToolBtn key={b.label} icon={b.icon} label={b.label} onClick={b.fn}/>
+          ))}
+          <div style={{flex:1}}/>
+          <span style={{fontSize:10,fontFamily:XP.font,color:"#555"}}>
+            {loading?"⏳ Loading…":`${visibleTiles.length} modules · ${new Date().toLocaleDateString("en-KE")}`}
+          </span>
+        </div>
+
+        {/* Content */}
+        <div style={{flex:1,display:"flex",overflow:"hidden",minHeight:0}}>
+          {/* Left nav panel */}
+          <div style={{width:168,background:"linear-gradient(180deg,#6f9fcf,#4a7fc4)",
+            borderRight:`1px solid ${XP.gridBorder}`,overflowY:"auto" as const,flexShrink:0}}>
+            <div style={{background:"rgba(0,0,0,.15)",padding:"6px 10px",fontSize:9,
+              fontWeight:700,color:"rgba(255,255,255,.7)",letterSpacing:".06em",textTransform:"uppercase" as const}}>Navigation</div>
+            {NAV_ITEMS.map(n=>(
+              <button key={n.path} onClick={()=>navigate(n.path)}
+                style={{display:"flex",alignItems:"center",gap:7,padding:"7px 10px",
+                  color:"#fff",fontSize:11,fontFamily:XP.font,background:"transparent",
+                  border:"none",cursor:"pointer",width:"100%",textAlign:"left" as const,
+                  borderBottom:"1px solid rgba(255,255,255,.08)"}}
+                onMouseEnter={e=>(e.currentTarget as any).style.background="rgba(255,255,255,.18)"}
+                onMouseLeave={e=>(e.currentTarget as any).style.background="transparent"}>
+                <span style={{fontSize:14}}>{n.icon}</span>
+                <span>{n.label}</span>
+              </button>
+            ))}
+            {/* User info panel */}
+            <div style={{margin:"12px 8px",padding:8,background:"rgba(255,255,255,.12)",borderRadius:4}}>
+              <div style={{color:"#fff",fontWeight:700,fontSize:11,marginBottom:3}}>{profile?.full_name||"User"}</div>
+              <div style={{color:"rgba(255,255,255,.75)",fontSize:9}}>{primaryRole?.replace(/_/g," ")}</div>
+              <div style={{color:"rgba(255,255,255,.65)",fontSize:9,marginTop:2}}>{user?.email}</div>
+              <button onClick={signOut} style={{marginTop:8,background:"rgba(220,40,40,.7)",border:"1px solid rgba(255,255,255,.3)",borderRadius:3,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",width:"100%",fontFamily:XP.font}}>Sign Out</button>
+            </div>
           </div>
+
+          {/* Main content */}
+          <div style={{flex:1,overflowY:"auto" as const,padding:12}}>
+            {/* Welcome banner */}
+            <div style={{background:"linear-gradient(135deg,#1a3580,#2a5fc3)",borderRadius:4,padding:"10px 16px",marginBottom:12,
+              display:"flex",justifyContent:"space-between",alignItems:"center",color:"#fff"}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:14}}>Welcome back, {profile?.full_name?.split(" ")[0]||"User"}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.75)",marginTop:2}}>
+                  {new Date().toLocaleDateString("en-KE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})} · Embu Level 5 Hospital
+                </div>
+              </div>
+              <div style={{textAlign:"right" as const,fontSize:10,color:"rgba(255,255,255,.75)"}}>
+                <div>EL5 MediProcure v11.0</div>
+                <div style={{fontSize:9}}>Role: {primaryRole?.replace(/_/g," ")}</div>
+              </div>
+            </div>
+
+            {/* KPI tiles grid */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:8,marginBottom:12}}>
+              {visibleTiles.map(tile=>(
+                <button key={tile.path} onClick={()=>navigate(tile.path)}
+                  style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",
+                    border:`1px solid ${XP.btnBorder}`,borderRadius:4,padding:"10px 12px",
+                    cursor:"pointer",textAlign:"left" as const,fontFamily:XP.font,
+                    boxShadow:"1px 1px 4px rgba(0,0,0,.1)",transition:"all .15s",
+                    borderLeft:`3px solid ${tile.color}`}}
+                  onMouseEnter={e=>{(e.currentTarget as any).style.background="linear-gradient(180deg,#fff,#f5f3e8)";(e.currentTarget as any).style.boxShadow="2px 2px 8px rgba(0,0,0,.18)";(e.currentTarget as any).style.transform="translateY(-1px)";}}
+                  onMouseLeave={e=>{(e.currentTarget as any).style.background="linear-gradient(180deg,#f8f7ee,#ece9d8)";(e.currentTarget as any).style.boxShadow="1px 1px 4px rgba(0,0,0,.1)";(e.currentTarget as any).style.transform="none";}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                    <span style={{fontSize:22}}>{tile.icon}</span>
+                    <span style={{fontSize:9,color:"#888",background:"#e8e5d0",padding:"1px 5px",borderRadius:2,border:`1px solid ${XP.btnBorder}`}}>→</span>
+                  </div>
+                  <div style={{fontSize:9,fontWeight:700,color:"#555",textTransform:"uppercase" as const,letterSpacing:".05em",marginBottom:4}}>{tile.label}</div>
+                  <div style={{fontSize:20,fontWeight:900,color:tile.color,lineHeight:1,marginBottom:2}}>{loading?"…":tile.value}</div>
+                  <div style={{fontSize:9,color:"#888"}}>{tile.sub}</div>
+                </button>
+              ))}
+            </div>
+
+            {/* Bottom row: Activity + Quick actions */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {/* Recent activity */}
+              <div style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",border:`1px solid ${XP.btnBorder}`,borderRadius:4,padding:"8px 12px"}}>
+                <div style={{fontWeight:700,fontSize:11,marginBottom:6,borderBottom:`1px solid ${XP.btnBorder}`,paddingBottom:4}}>🕐 Recent Activity</div>
+                {activity.length===0
+                  ? <div style={{fontSize:10,color:"#888",fontFamily:XP.font,padding:"8px 0"}}>No recent activity</div>
+                  : activity.map((a,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${XP.gridBorder}`,alignItems:"flex-start"}}>
+                      <span style={{fontSize:14,flexShrink:0}}>📝</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:10,fontFamily:XP.font,color:"#1a1a1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{a.action||a.description||"System event"}</div>
+                        <div style={{fontSize:9,color:"#888",fontFamily:XP.font}}>{a.created_at?new Date(a.created_at).toLocaleString("en-KE",""):"—"}</div>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+
+              {/* Quick actions */}
+              <div style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",border:`1px solid ${XP.btnBorder}`,borderRadius:4,padding:"8px 12px"}}>
+                <div style={{fontWeight:700,fontSize:11,marginBottom:6,borderBottom:`1px solid ${XP.btnBorder}`,paddingBottom:4}}>⚡ Quick Actions</div>
+                <div style={{display:"flex",flexDirection:"column" as const,gap:5}}>
+                  {[
+                    ...(isFinance?[{icon:"💰",label:"Open Finance Desktop",path:"/finance-dashboard",color:"#245ebd"},{icon:"💳",label:"New Payment Voucher",path:"/vouchers/payment",color:"#dc2626"},{icon:"🧾",label:"New Receipt Voucher",path:"/vouchers/receipt",color:"#0e7490"}]:[]),
+                    ...(isProc||isAdmin?[{icon:"📋",label:"New Requisition",path:"/requisitions",color:"#7c3aed"},{icon:"🛒",label:"Purchase Orders",path:"/purchase-orders",color:"#0078d4"}]:[]),
+                    {icon:"📊",label:"View Reports",path:"/reports",color:"#059669"},
+                    {icon:"📁",label:"Documents",path:"/documents",color:"#d97706"},
+                    {icon:"📬",label:"Inbox",path:"/inbox",color:"#4f46e5"},
+                    ...(isAdmin?[{icon:"👥",label:"Manage Users",path:"/users",color:"#7c3aed"}]:[]),
+                  ].map((a,i)=>(
+                    <button key={i} onClick={()=>navigate(a.path)}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",
+                        background:"linear-gradient(180deg,#f5f4ea,#dbd9c9)",
+                        border:`1px solid ${XP.btnBorder}`,borderRadius:3,cursor:"pointer",
+                        fontFamily:XP.font,fontSize:11,color:"#1a1a1a",textAlign:"left" as const,
+                        boxShadow:"1px 1px 2px rgba(255,255,255,.8) inset,-1px -1px 2px rgba(0,0,0,.08) inset"}}
+                      onMouseEnter={e=>(e.currentTarget as any).style.background="linear-gradient(180deg,#fdfcea,#edead0)"}
+                      onMouseLeave={e=>(e.currentTarget as any).style.background="linear-gradient(180deg,#f5f4ea,#dbd9c9)"}>
+                      <span style={{fontSize:14}}>{a.icon}</span>
+                      <span>{a.label}</span>
+                      <span style={{marginLeft:"auto",fontSize:10,color:"#888"}}>→</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status bar */}
+        <div style={{background:XP.windowBg,borderTop:`1px solid ${XP.btnBorder}`,
+          display:"flex",gap:10,padding:"2px 8px",fontSize:9,fontFamily:XP.font,
+          color:"#555",flexShrink:0,flexWrap:"wrap" as const}}>
+          <span style={{borderRight:`1px solid ${XP.btnBorder}`,paddingRight:8}}>👤 {profile?.full_name||user?.email}</span>
+          <span style={{borderRight:`1px solid ${XP.btnBorder}`,paddingRight:8}}>🔐 {primaryRole?.replace(/_/g," ")}</span>
+          <span style={{borderRight:`1px solid ${XP.btnBorder}`,paddingRight:8}}>🏥 Embu Level 5 Hospital</span>
+          <span style={{borderRight:`1px solid ${XP.btnBorder}`,paddingRight:8}}>{loading?"⏳ Loading…":`${visibleTiles.length} modules visible`}</span>
+          <span style={{marginLeft:"auto"}}>EL5 MediProcure v11.0</span>
         </div>
       </div>
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {/* XP Taskbar */}
+      <div style={{position:"fixed" as const,bottom:0,left:0,right:0,height:36,
+        background:XP.taskbar,display:"flex",alignItems:"center",
+        padding:"0 4px",gap:3,zIndex:9999,boxShadow:"0 -1px 4px rgba(0,0,0,.4)"}}>
+        {/* Start */}
+        <button onClick={()=>setStartOpen(o=>!o)}
+          style={{background:startOpen?"linear-gradient(180deg,#3ea03d,#237022)":"linear-gradient(180deg,#5cb85c,#3d9b3d)",
+            border:"1px solid #1a7a1a",borderRadius:3,color:"#fff",
+            padding:"3px 12px 3px 8px",fontSize:13,fontWeight:900,fontFamily:XP.font,
+            cursor:"pointer",display:"flex",alignItems:"center",gap:5,height:28}}>
+          <span>⊞</span>start
+        </button>
+        {/* Start menu */}
+        {startOpen&&(
+          <div style={{position:"absolute" as const,bottom:36,left:0,width:220,
+            background:"linear-gradient(180deg,#1a55c0,#1a3580)",
+            borderRadius:"4px 4px 0 0",boxShadow:"3px 0 12px rgba(0,0,0,.6)",zIndex:10000}}>
+            <div style={{background:"linear-gradient(90deg,#1a55c0,#3d7bdb)",padding:"10px",
+              borderBottom:"1px solid rgba(255,255,255,.2)",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏥</div>
+              <div>
+                <div style={{color:"#fff",fontWeight:700,fontSize:12}}>{profile?.full_name||"User"}</div>
+                <div style={{color:"#aad0ff",fontSize:9}}>{primaryRole?.replace(/_/g," ")}</div>
+              </div>
+            </div>
+            {NAV_ITEMS.map(n=>(
+              <button key={n.path} onClick={()=>{navigate(n.path);setStartOpen(false);}}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"6px 12px",
+                  color:"#fff",fontSize:11,fontFamily:XP.font,background:"transparent",
+                  border:"none",cursor:"pointer",width:"100%",textAlign:"left" as const,
+                  borderBottom:"1px solid rgba(255,255,255,.06)"}}
+                onMouseEnter={e=>(e.currentTarget as any).style.background="#316ac5"}
+                onMouseLeave={e=>(e.currentTarget as any).style.background="transparent"}>
+                <span>{n.icon}</span>{n.label}
+              </button>
+            ))}
+            <div style={{borderTop:"1px solid rgba(255,255,255,.2)",padding:"4px 0"}}>
+              <button onClick={signOut} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 12px",color:"#fff",fontSize:11,fontFamily:XP.font,background:"transparent",border:"none",cursor:"pointer",width:"100%",textAlign:"left" as const}} onMouseEnter={e=>(e.currentTarget as any).style.background="#c02020"} onMouseLeave={e=>(e.currentTarget as any).style.background="transparent"}>🔴 Sign Out</button>
+            </div>
+          </div>
+        )}
+        <div style={{width:1,height:24,background:"rgba(255,255,255,.2)",margin:"0 2px"}}/>
+        <button onClick={()=>navigate("/dashboard")}
+          style={{background:"rgba(0,0,0,.3)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:"#fff",padding:"2px 10px",fontSize:10,fontFamily:XP.font,cursor:"pointer",height:24,display:"flex",alignItems:"center",gap:5}}>
+          🏥 EL5 MediProcure
+        </button>
+        <div style={{flex:1}}/>
+        {loading&&<span style={{color:"rgba(255,255,255,.6)",fontSize:9}}>⏳</span>}
+        <button onClick={fetchKPI} title="Refresh" style={{background:"rgba(0,0,0,.2)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,color:"#fff",padding:"2px 8px",fontSize:10,cursor:"pointer",height:24}}>↻</button>
+        <div style={{background:"rgba(0,0,0,.25)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:XP.font,height:24,display:"flex",alignItems:"center"}}>
+          {time.toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Mini components ──────────────────────────────────────────────
+function XPToolBtn({icon,label,onClick}:{icon:string;label:string;onClick:()=>void}) {
+  const [h,setH]=useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",
+        background:h?"linear-gradient(180deg,#fdfcea,#edead0)":"linear-gradient(180deg,#f5f4ea,#dbd9c9)",
+        border:`1px solid ${XP.btnBorder}`,borderRadius:3,cursor:"pointer",
+        fontFamily:XP.font,fontSize:11,color:"#1a1a1a",
+        boxShadow:"1px 1px 2px rgba(255,255,255,.8) inset"}}>
+      <span style={{fontSize:13}}>{icon}</span>{label}
+    </button>
+  );
+}
+
+function XPMenu({label,items}:{label:string;items:{l:string;fn:()=>void}[]}) {
+  const [open,setOpen]=useState(false);
+  const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    if(!open)return;
+    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[open]);
+  return (
+    <div ref={ref} style={{position:"relative" as const}}>
+      <span onClick={()=>setOpen(o=>!o)} style={{padding:"2px 8px",cursor:"pointer",fontSize:11,fontFamily:XP.font,display:"inline-block",background:open?"#316ac5":"transparent",color:open?"#fff":"#1a1a1a"}}
+        onMouseEnter={e=>{(e.currentTarget as any).style.background="#316ac5";(e.currentTarget as any).style.color="#fff";}}
+        onMouseLeave={e=>{if(!open){(e.currentTarget as any).style.background="transparent";(e.currentTarget as any).style.color="#1a1a1a";}}}>
+        {label}
+      </span>
+      {open&&(
+        <div style={{position:"absolute" as const,top:"100%",left:0,minWidth:180,zIndex:9999,
+          background:XP.windowBg,border:`1px solid ${XP.btnBorder}`,boxShadow:"3px 3px 8px rgba(0,0,0,.35)"}}>
+          {items.map((it,i)=>(
+            <div key={i} onClick={()=>{it.fn();setOpen(false);}}
+              style={{padding:"4px 16px 4px 22px",fontSize:11,fontFamily:XP.font,cursor:"pointer",color:"#1a1a1a"}}
+              onMouseEnter={e=>{(e.currentTarget as any).style.background="#316ac5";(e.currentTarget as any).style.color="#fff";}}
+              onMouseLeave={e=>{(e.currentTarget as any).style.background="transparent";(e.currentTarget as any).style.color="#1a1a1a";}}>
+              {it.l}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
