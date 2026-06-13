@@ -2,7 +2,7 @@
  * EL5 MediProcure — Dashboard v2.0
  * Full Windows XP Luna Blue desktop with role-aware tiles and live data
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
