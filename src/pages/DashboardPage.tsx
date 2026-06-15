@@ -10,9 +10,17 @@ import { getDefaultRoute } from "@/lib/sessionCookie";
 
 const db = supabase as any;
 
+// Procurement cycle background (graceful fallback to XP blue)
+let DESK_BG_URL = "";
+try { DESK_BG_URL = new URL("../assets/procurement-bg.jpg", import.meta.url).href; } catch (_e) { /* ignore */ }
+
+const DESK_BG = DESK_BG_URL
+  ? `url("${DESK_BG_URL}") center/cover no-repeat`
+  : "linear-gradient(160deg,#245ebd 0%,#1a4595 40%,#0f317a 100%)";
+
 const XP = {
   titleBar: "linear-gradient(180deg,#4490d9 0%,#2461bf 8%,#245ebd 92%,#1a50aa 100%)",
-  desktop:  "linear-gradient(160deg,#245ebd 0%,#1a4595 40%,#0f317a 100%)",
+  desktop:  DESK_BG,
   taskbar:  "linear-gradient(180deg,#3a77cc 0%,#2256b5 4%,#2357b8 96%,#1a4ea6 100%)",
   windowBg: "#ece9d8",
   btnBorder:"#a29d7f",
@@ -129,6 +137,13 @@ export default function DashboardPage() {
   return (
     <div style={{width:"100vw",height:"100vh",background:XP.desktop,
       position:"fixed" as const,inset:0,overflow:"hidden",fontFamily:XP.font}}>
+
+      {/* Dark overlay — keeps icons & text readable over the photo */}
+      {DESK_BG_URL && (
+        <div style={{position:"absolute" as const,inset:0,
+          background:"linear-gradient(160deg,rgba(5,18,60,.55) 0%,rgba(8,28,80,.38) 50%,rgba(4,14,48,.62) 100%)",
+          zIndex:0,pointerEvents:"none"}} />
+      )}
 
       {/* Desktop icons (left column) */}
       <div style={{position:"absolute" as const,top:12,left:10,display:"flex",flexDirection:"column" as const,gap:4,zIndex:10}}>

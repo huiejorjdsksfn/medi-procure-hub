@@ -83,8 +83,18 @@ const EnterpriseDashboardPage = () => {
     { icon: Star, label: "Favorites" },
   ];
 
+  let _EDBG = "";
+  try { _EDBG = new URL("../assets/procurement-bg.jpg", import.meta.url).href; } catch (_e) { /* ignore */ }
+
   return (
-    <div className="flex h-[calc(100vh-7rem)] -m-4 md:-m-6 bg-[hsl(215_30%_10%)] text-foreground">
+    <div
+      className="flex h-[calc(100vh-7rem)] -m-4 md:-m-6 text-foreground"
+      style={_EDBG ? {
+        backgroundImage: `linear-gradient(160deg,rgba(5,18,60,.72) 0%,rgba(8,28,80,.58) 100%), url("${_EDBG}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      } : { background: "hsl(215 30% 10%)" }}
+    >
       {/* Left rail */}
       <aside className="w-56 bg-[hsl(215_35%_8%)] border-r border-sidebar-border flex flex-col text-sm">
         <div className="p-3 border-b border-sidebar-border font-bold text-sidebar-foreground">
