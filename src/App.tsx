@@ -22,6 +22,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
 import ResponsiveBot from "@/components/ResponsiveBot";
 import SessionBot from "@/components/SessionBot";
+import KeepAliveBot from "@/components/KeepAliveBot";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
 
@@ -110,6 +111,7 @@ const App = () => (
         <AuthProvider>
           <NetworkGuard>
             <SessionBot />
+            <KeepAliveBot />
             <PWAInstallPrompt />
             <ErrorBoundary pageName="Routing">
             <Routes>
