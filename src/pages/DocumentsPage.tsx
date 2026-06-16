@@ -756,5 +756,3 @@ interface UploadQueueItem {
   error?: string; docId?: string; parsedDoc?: ParsedDocument;
 }
 
-import * as XLSX from "xlsx";
-import type React from "react";
