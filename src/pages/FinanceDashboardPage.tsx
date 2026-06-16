@@ -12,11 +12,17 @@ import { toast } from "@/hooks/use-toast";
 const db = supabase as any;
 
 // ══ XP PALETTE ═══════════════════════════════════════════════════
+let _FDESKBG = "";
+try { _FDESKBG = new URL("../assets/procurement-bg.jpg", import.meta.url).href; } catch (_e) { /* ignore */ }
+const _FDESK  = _FDESKBG
+  ? `url("${_FDESKBG}") center/cover no-repeat`
+  : "linear-gradient(160deg,#245ebd 0%,#1a4595 40%,#0f317a 100%)";
+
 const XP = {
   titleBar:    "linear-gradient(180deg,#4490d9 0%,#2461bf 8%,#245ebd 92%,#1a50aa 100%)",
   titleBarInactive: "linear-gradient(180deg,#9db8d2 0%,#6d93b5 8%,#6e90b0 92%,#5d80a0 100%)",
   windowBg:    "#ece9d8",
-  desktop:     "linear-gradient(160deg,#245ebd 0%,#1a4595 40%,#0f317a 100%)",
+  desktop:     _FDESK,
   taskbar:     "linear-gradient(180deg,#3a77cc 0%,#2256b5 4%,#2357b8 96%,#1a4ea6 100%)",
   menuBg:      "#ece9d8",
   menuBlue:    "linear-gradient(90deg,#1a3fa0 0%,#2255c0 100%)",
@@ -1007,6 +1013,13 @@ export default function FinanceDashboardPage() {
   return (
     <div style={{width:"100vw",height:"calc(100vh - 0px)",background:XP.desktop,
       position:"fixed" as const,inset:0,overflow:"hidden",fontFamily:XP.font}}>
+
+      {/* Dark overlay for photo readability */}
+      {_FDESKBG && (
+        <div style={{position:"absolute" as const,inset:0,
+          background:"linear-gradient(160deg,rgba(5,18,60,.55) 0%,rgba(8,28,80,.38) 50%,rgba(4,14,48,.62) 100%)",
+          zIndex:0,pointerEvents:"none"}} />
+      )}
 
       {/* Desktop icons */}
       <div style={{position:"absolute" as const,top:16,left:12,display:"flex",flexDirection:"column" as const,gap:6,zIndex:10}}>

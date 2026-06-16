@@ -22,6 +22,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
 import ResponsiveBot from "@/components/ResponsiveBot";
 import SessionBot from "@/components/SessionBot";
+import KeepAliveBot from "@/components/KeepAliveBot";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
 
@@ -74,6 +75,7 @@ import BackupPage from "@/pages/BackupPage";
 import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
 import AdminActivityPage from "@/pages/AdminActivityPage";
+import AdminTrackerPage from "@/pages/AdminTrackerPage";
 import IpAccessPage from "@/pages/IpAccessPage";
 import ProfilePage from "@/pages/ProfilePage";
 import GuiEditorPage from "@/pages/GuiEditorPage";
@@ -110,6 +112,7 @@ const App = () => (
         <AuthProvider>
           <NetworkGuard>
             <SessionBot />
+            <KeepAliveBot />
             <PWAInstallPrompt />
             <ErrorBoundary pageName="Routing">
             <Routes>
@@ -199,6 +202,7 @@ const App = () => (
             <Route path="/admin/not-found-log" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
             <Route path="/admin/users-ip-audit" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><UsersIpAuditPage /></RoleGuard></P>} />
             <Route path="/admin/create-user" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminCreateUserPage /></RoleGuard></P>} />
+            <Route path="/admin/tracker" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminTrackerPage /></RoleGuard></P>} />
 
             {/* Finance & Accountant Workspaces */}
             <Route path="/accountant" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />

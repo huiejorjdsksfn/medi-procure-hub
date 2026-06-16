@@ -1,651 +1,1127 @@
 /**
- * ProcurBosse - Document Editor
- * Rich text editor for creating official hospital documents
- * Supports templates, letterhead, print, and save to library
+ * EL5 MediProcure — Document Studio v14
+ * Full document writer + template library + live report generator + form filler
+ * Tabs: Writer | Templates | Reports | Forms | Library
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { PrintEngine } from "@/engines/print/PrintEngine";
-import { pageCache } from "@/lib/pageCache";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { logAudit } from "@/lib/audit";
-import {
-  Save, Printer, Download, X, Bold, Italic, Underline, AlignLeft,
-  AlignCenter, AlignRight, AlignJustify, List, ListOrdered, Type,
-  Image, Table, Link, Undo, Redo, FileText, ChevronDown,
-  Eye, Edit3, Plus, Trash2, Copy
-} from "lucide-react";
-import logoImg from "@/assets/logo.png";
+import { addLetterhead, addFooter } from "@/lib/printDocument";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-// - Types -
-interface DocMeta {
-  id?: string;
-  name: string;
-  category: string;
-  description: string;
-  is_template: boolean;
-  tags: string[];
-}
+const db = supabase as any;
+const NOW = () => new Date().toLocaleDateString("en-KE", { day: "2-digit", month: "long", year: "numeric" });
+const FMT_KES = (v: number) => `KES ${(v || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`;
+const FMT_DT  = (s: string) => s ? new Date(s).toLocaleDateString("en-KE") : "";
 
-const TEMPLATES: { name: string; category: string; body: string }[] = [
+/* ═══════════════════════ DESIGN TOKENS ═══════════════════════════════ */
+const C = {
+  blue:   "#1a3a6b", blue2: "#2563eb", blue3: "#dbeafe",
+  green:  "#166534", green3:"#dcfce7",
+  red:    "#991b1b", red3:  "#fee2e2",
+  gray:   "#374151", gray2: "#6b7280", gray3:"#f3f4f6", gray4:"#e5e7eb",
+  white:  "#ffffff", border:"#d1d5db",
+  toolbar:"#f8fafc", ribbon:"#1e3a5f",
+};
+const S = {
+  btn: (active=false,color="blue"): React.CSSProperties => ({
+    padding:"3px 8px", border:`1px solid ${C.border}`, borderRadius:3, cursor:"pointer",
+    background: active ? C.blue3 : C.white, color: active ? C.blue2 : C.gray,
+    fontSize:11, fontFamily:"Segoe UI,Tahoma,sans-serif", display:"flex",
+    alignItems:"center", gap:4, whiteSpace:"nowrap" as const,
+  }),
+  inp: { padding:"3px 6px", border:`1px solid ${C.border}`, borderRadius:3, fontSize:11,
+         fontFamily:"Segoe UI,Tahoma,sans-serif", background:C.white } as React.CSSProperties,
+  th: { background:C.blue, color:"#fff", padding:"4px 8px", fontSize:10,
+        textAlign:"left" as const, fontWeight:700, whiteSpace:"nowrap" as const },
+  td: { padding:"3px 8px", fontSize:11, borderBottom:`1px solid ${C.gray4}` } as React.CSSProperties,
+};
+
+/* ═══════════════════════ TOOLBAR BUTTON DEF ══════════════════════════ */
+type TBDef = {
+  id: string; label: string; icon: string; group: string;
+  action?: string; value?: string; type?: string; options?: string[];
+};
+const DEFAULT_TOOLBAR: TBDef[] = [
+  // Text formatting
+  { id:"bold",       label:"Bold",          icon:"B",    group:"fmt",  action:"bold"              },
+  { id:"italic",     label:"Italic",        icon:"I",    group:"fmt",  action:"italic"             },
+  { id:"underline",  label:"Underline",     icon:"U",    group:"fmt",  action:"underline"          },
+  { id:"strike",     label:"Strikethrough", icon:"S̶",   group:"fmt",  action:"strikeThrough"     },
+  // Alignment
+  { id:"left",       label:"Align Left",    icon:"⬅",  group:"align", action:"justifyLeft"       },
+  { id:"center",     label:"Centre",        icon:"↔",   group:"align", action:"justifyCenter"     },
+  { id:"right",      label:"Align Right",   icon:"➡",  group:"align", action:"justifyRight"      },
+  { id:"justify",    label:"Justify",       icon:"≡",   group:"align", action:"justifyFull"       },
+  // Lists
+  { id:"ulst",       label:"Bullet List",   icon:"•≡",  group:"list",  action:"insertUnorderedList"},
+  { id:"olst",       label:"Numbered List", icon:"1≡",  group:"list",  action:"insertOrderedList" },
+  { id:"indent",     label:"Indent",        icon:"→≡",  group:"list",  action:"indent"             },
+  { id:"outdent",    label:"Outdent",       icon:"←≡",  group:"list",  action:"outdent"            },
+  // Heading
+  { id:"h1",  label:"Heading 1", icon:"H1", group:"head", action:"formatBlock", value:"h1" },
+  { id:"h2",  label:"Heading 2", icon:"H2", group:"head", action:"formatBlock", value:"h2" },
+  { id:"h3",  label:"Heading 3", icon:"H3", group:"head", action:"formatBlock", value:"h3" },
+  { id:"p",   label:"Paragraph", icon:"¶",  group:"head", action:"formatBlock", value:"p"  },
+  // Insert
+  { id:"hr",  label:"Horizontal Rule", icon:"─", group:"ins", action:"insertHorizontalRule" },
+  { id:"link",label:"Insert Link",     icon:"🔗", group:"ins", type:"link" },
+  { id:"img", label:"Insert Image URL",icon:"🖼", group:"ins", type:"img"  },
+  { id:"tbl", label:"Insert Table",    icon:"⊞", group:"ins", type:"table"},
+  // Edit
+  { id:"undo",  label:"Undo",  icon:"↩", group:"edit", action:"undo"  },
+  { id:"redo",  label:"Redo",  icon:"↪", group:"edit", action:"redo"  },
+  { id:"clear", label:"Clear Formatting", icon:"✕fmt", group:"edit", action:"removeFormat" },
+  // Colors
+  { id:"fgcol", label:"Text Colour",       icon:"A🎨", group:"color", type:"foreColor" },
+  { id:"bgcol", label:"Highlight Colour",  icon:"🖊🎨", group:"color", type:"backColor"  },
+];
+
+/* ═══════════════════════ TEMPLATE DEFINITIONS ════════════════════════ */
+const TEMPLATES = [
   {
-    name: "Internal Memo",
-    category: "Memo",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.6;padding:20px">
+    id:"memo",      cat:"Official",      icon:"📋",
+    name:"Internal Memorandum",
+    desc:"Standard EL5H internal memo with TO/FROM/SUBJECT fields",
+    body:`<div style="font-family:Times New Roman,serif;font-size:12pt;line-height:1.7;padding:24px 32px">
 <div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px">
-<strong style="font-size:14pt;color:#1a3a6b">INTERNAL MEMORANDUM</strong><br/>
-<span style="font-size:11pt">Embu Level 5 Hospital</span>
+  <div style="font-size:8pt;color:#555">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU</div>
+  <div style="font-size:15pt;font-weight:bold;color:#1a3a6b;margin:4px 0">EMBU LEVEL 5 HOSPITAL</div>
+  <div style="font-size:13pt;font-weight:bold;margin:6px 0">INTERNAL MEMORANDUM</div>
 </div>
-<table style="width:100%;margin-bottom:20px;border-collapse:collapse">
-<tr><td style="width:120px;font-weight:bold;padding:4px 0">TO:</td><td style="border-bottom:1px solid #ccc;padding:4px 8px">&nbsp;</td></tr>
-<tr><td style="font-weight:bold;padding:4px 0">FROM:</td><td style="border-bottom:1px solid #ccc;padding:4px 8px">&nbsp;</td></tr>
-<tr><td style="font-weight:bold;padding:4px 0">DATE:</td><td style="border-bottom:1px solid #ccc;padding:4px 8px">${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</td></tr>
-<tr><td style="font-weight:bold;padding:4px 0">SUBJECT:</td><td style="border-bottom:1px solid #ccc;padding:4px 8px">&nbsp;</td></tr>
-<tr><td style="font-weight:bold;padding:4px 0">REF:</td><td style="border-bottom:1px solid #ccc;padding:4px 8px">&nbsp;</td></tr>
+<table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+  <tr><td style="width:130px;font-weight:bold;padding:4px 0">TO:</td><td style="border-bottom:1px solid #ccc;padding:4px 10px;min-width:300px">&nbsp;</td></tr>
+  <tr><td style="font-weight:bold;padding:4px 0">FROM:</td><td style="border-bottom:1px solid #ccc;padding:4px 10px">&nbsp;</td></tr>
+  <tr><td style="font-weight:bold;padding:4px 0">DATE:</td><td style="border-bottom:1px solid #ccc;padding:4px 10px">${NOW()}</td></tr>
+  <tr><td style="font-weight:bold;padding:4px 0">REF NO:</td><td style="border-bottom:1px solid #ccc;padding:4px 10px">&nbsp;</td></tr>
+  <tr><td style="font-weight:bold;padding:4px 0">SUBJECT:</td><td style="border-bottom:1px solid #ccc;padding:4px 10px;font-weight:bold">&nbsp;</td></tr>
 </table>
-<p style="margin-bottom:12px">&nbsp;</p>
-<p style="margin-bottom:12px">&nbsp;</p>
-<p style="margin-bottom:12px">&nbsp;</p>
-<div style="margin-top:40px">
-<div style="width:200px;border-top:1px solid #333;padding-top:4px"><strong>Signature:</strong></div>
-<div style="margin-top:16px"><strong>Name:</strong> ________________________</div>
-<div style="margin-top:8px"><strong>Designation:</strong> ________________________</div>
-<div style="margin-top:8px"><strong>Date:</strong> ________________________</div>
-</div>
-</div>`
+<p style="margin:12px 0">Dear Sir / Madam,</p>
+<p style="margin:12px 0">&nbsp;</p>
+<p style="margin:12px 0">&nbsp;</p>
+<p style="margin:12px 0">&nbsp;</p>
+<div style="margin-top:40px;display:flex;justify-content:space-between">
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Signature &amp; Name</div></div>
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Designation &amp; Date</div></div>
+</div></div>`,
   },
   {
-    name: "Official Letter",
-    category: "Letter",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.8;padding:20px">
-<div style="text-align:right;margin-bottom:20px">
-<strong>Embu Level 5 Hospital</strong><br/>
-Embu County Government<br/>
-P.O. Box 591-60100, Embu<br/>
-Tel: +254 060 000000<br/>
-Email: info@embu.health.go.ke<br/>
+    id:"letter",    cat:"Official",      icon:"✉",
+    name:"Official Letter",
+    desc:"Formal letter with reference number and letterhead",
+    body:`<div style="font-family:Times New Roman,serif;font-size:12pt;line-height:1.7;padding:24px 32px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:12px;margin-bottom:24px">
+  <div style="font-size:8pt;color:#555">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU</div>
+  <div style="font-size:15pt;font-weight:bold;color:#1a3a6b;margin:4px 0">EMBU LEVEL 5 HOSPITAL</div>
+  <div style="font-size:7pt;color:#666">P.O. Box 33 – 60100, Embu | Tel: +254 68 31055 | pghembu@gmail.com</div>
+</div>
+<div style="margin-bottom:16px">
+  <div>Ref: <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong></div>
+  <div style="margin-top:8px">Date: <strong>${NOW()}</strong></div>
 </div>
 <div style="margin-bottom:20px">
-Ref: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}<br/>
+  <div>&nbsp;</div><div>&nbsp;</div>
+  <div>Dear Sir / Madam,</div>
 </div>
-<div style="margin-bottom:20px">
-The [Title]<br/>
-[Name]<br/>
-[Organisation]<br/>
-[Address]<br/>
-</div>
-<p style="font-weight:bold;margin-bottom:12px">Dear Sir/Madam,</p>
-<p style="font-weight:bold;text-decoration:underline;text-align:center;margin-bottom:20px">RE: [SUBJECT IN CAPITALS]</p>
-<p style="margin-bottom:12px">&nbsp;</p>
-<p style="margin-bottom:12px">&nbsp;</p>
-<p style="margin-bottom:12px">&nbsp;</p>
-<p style="margin-bottom:20px">Yours faithfully,</p>
+<div style="text-align:center;font-weight:bold;text-decoration:underline;margin-bottom:16px">RE: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+<p style="margin:12px 0">&nbsp;</p><p style="margin:12px 0">&nbsp;</p><p style="margin:12px 0">&nbsp;</p>
+<p style="margin:16px 0">Yours faithfully,</p>
 <div style="margin-top:40px">
-<div style="border-top:1px solid #333;width:200px;padding-top:4px">Signature</div>
-<div style="margin-top:12px"><strong>[NAME IN FULL]</strong></div>
-<div>[DESIGNATION]</div>
-<div>Embu Level 5 Hospital</div>
-</div>
-</div>`
+  <div style="border-top:1px solid #333;width:220px;padding-top:4px">
+    <strong>&nbsp;</strong><br/>Hospital Director<br/>Embu Level 5 Hospital
+  </div>
+</div></div>`,
   },
   {
-    name: "Minutes of Meeting",
-    category: "Minutes",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.6;padding:20px">
-<div style="text-align:center;margin-bottom:20px">
-<strong style="font-size:14pt">MINUTES OF [COMMITTEE/MEETING NAME]</strong><br/>
-<strong>Held on: ${new Date().toLocaleDateString("en-KE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</strong><br/>
-<strong>Venue: Boardroom, Embu Level 5 Hospital</strong><br/>
-<strong>Time: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong>
+    id:"minutes",   cat:"Official",      icon:"📝",
+    name:"Minutes of Meeting",
+    desc:"Formal meeting minutes with agenda, attendees and resolutions",
+    body:`<div style="font-family:Times New Roman,serif;font-size:12pt;line-height:1.7;padding:24px 32px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL</div>
+  <div style="font-size:14pt;font-weight:bold;color:#1a3a6b">MINUTES OF MEETING</div>
+  <div style="font-size:11pt;font-weight:bold">&nbsp;</div>
 </div>
-<div style="margin-bottom:20px">
-<strong>1. ATTENDANCE</strong>
-<table style="width:100%;border-collapse:collapse;margin-top:8px">
-<tr style="background:#1a3a6b;color:white"><th style="border:1px solid #ccc;padding:6px">Name</th><th style="border:1px solid #ccc;padding:6px">Designation</th><th style="border:1px solid #ccc;padding:6px">Status</th></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">Present</td></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">Present</td></tr>
-</table>
-</div>
-<div style="margin-bottom:16px"><strong>2. APOLOGIES:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div style="margin-bottom:16px"><strong>3. CONFIRMATION OF PREVIOUS MINUTES</strong><br/>&nbsp;</div>
-<div style="margin-bottom:16px"><strong>4. MATTERS ARISING</strong><br/>&nbsp;</div>
-<div style="margin-bottom:16px"><strong>5. AGENDA ITEMS</strong><br/>&nbsp;</div>
-<div style="margin-bottom:16px"><strong>6. ANY OTHER BUSINESS</strong><br/>&nbsp;</div>
-<div style="margin-bottom:16px"><strong>7. NEXT MEETING:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div style="margin-top:40px;display:flex;gap:80px">
-<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Chairperson</div><div>Date: _____________</div></div>
-<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Secretary</div><div>Date: _____________</div></div>
-</div>
-</div>`
-  },
-  {
-    name: "Procurement Report",
-    category: "Report",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.6;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:16px;margin-bottom:20px">
-<strong style="font-size:16pt;color:#1a3a6b">PROCUREMENT REPORT</strong><br/>
-<span>Embu Level 5 Hospital | Department of Health</span><br/>
-<span>Period: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; to &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-</div>
-<div style="margin-bottom:20px"><strong>1. EXECUTIVE SUMMARY</strong><br/>&nbsp;</div>
-<div style="margin-bottom:20px"><strong>2. PROCUREMENT ACTIVITIES</strong>
-<table style="width:100%;border-collapse:collapse;margin-top:8px">
-<tr style="background:#1a3a6b;color:white">
-<th style="border:1px solid #ccc;padding:6px">Item</th>
-<th style="border:1px solid #ccc;padding:6px">Supplier</th>
-<th style="border:1px solid #ccc;padding:6px">LPO No.</th>
-<th style="border:1px solid #ccc;padding:6px">Amount (KES)</th>
-<th style="border:1px solid #ccc;padding:6px">Status</th>
-</tr>
-<tr><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
-</table>
-</div>
-<div style="margin-bottom:20px"><strong>3. BUDGET UTILISATION</strong><br/>&nbsp;</div>
-<div style="margin-bottom:20px"><strong>4. RECOMMENDATIONS</strong><br/>&nbsp;</div>
-<div style="margin-top:40px">
-<div style="border-top:1px solid #333;width:250px;padding-top:4px">Procurement Manager</div>
-<div>Date: _____________</div>
-</div>
-</div>`
-  },
-  {
-    name: "Request for Quotation",
-    category: "RFQ",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.6;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #C45911;padding-bottom:12px;margin-bottom:20px">
-<strong style="font-size:14pt;color:#1a3a6b">REQUEST FOR QUOTATION (RFQ)</strong><br/>
-<span>Embu Level 5 Hospital</span><br/>
-<span>RFQ No: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</span>
-</div>
-<div style="margin-bottom:16px"><strong>TO:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div style="margin-bottom:16px">We invite you to submit your best quotation for the following items/services:</div>
 <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
-<tr style="background:#1a3a6b;color:white">
-<th style="border:1px solid #ccc;padding:6px">No.</th>
-<th style="border:1px solid #ccc;padding:6px">Description</th>
-<th style="border:1px solid #ccc;padding:6px">Unit</th>
-<th style="border:1px solid #ccc;padding:6px">Qty</th>
-<th style="border:1px solid #ccc;padding:6px">Unit Price</th>
-<th style="border:1px solid #ccc;padding:6px">Total</th>
-</tr>
-<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">2</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+  <tr><td style="width:150px;font-weight:bold;padding:3px 0">Meeting Type:</td><td style="border-bottom:1px solid #ddd;padding:3px 8px">&nbsp;</td></tr>
+  <tr><td style="font-weight:bold;padding:3px 0">Date &amp; Time:</td><td style="border-bottom:1px solid #ddd;padding:3px 8px">${NOW()}, &nbsp;&nbsp;&nbsp;hrs</td></tr>
+  <tr><td style="font-weight:bold;padding:3px 0">Venue:</td><td style="border-bottom:1px solid #ddd;padding:3px 8px">&nbsp;</td></tr>
+  <tr><td style="font-weight:bold;padding:3px 0">Chaired by:</td><td style="border-bottom:1px solid #ddd;padding:3px 8px">&nbsp;</td></tr>
+  <tr><td style="font-weight:bold;padding:3px 0">Minutes by:</td><td style="border-bottom:1px solid #ddd;padding:3px 8px">&nbsp;</td></tr>
 </table>
-<div style="margin-bottom:12px"><strong>Quotation deadline:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div style="margin-bottom:12px"><strong>Delivery terms:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div style="margin-bottom:12px"><strong>Payment terms:</strong> Net 30 days from delivery</div>
-<div style="margin-top:30px">
-<div style="border-top:1px solid #333;width:250px;padding-top:4px">Procurement Officer</div>
-<div>Embu Level 5 Hospital</div>
-</div>
-</div>`
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin-bottom:8px">ATTENDEES</div>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+  <tr style="background:#1a3a6b;color:#fff"><th style="padding:5px 8px;border:1px solid #ccc">#</th><th style="padding:5px 8px;border:1px solid #ccc">Name</th><th style="padding:5px 8px;border:1px solid #ccc">Department</th><th style="padding:5px 8px;border:1px solid #ccc">Sign</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:5px 8px">1</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:5px 8px">2</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:5px 8px">3</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td></tr>
+</table>
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin-bottom:8px">AGENDA &amp; DISCUSSIONS</div>
+<div style="margin-bottom:8px"><strong>1. Opening Prayer / Preliminaries</strong><br/>&nbsp;</div>
+<div style="margin-bottom:8px"><strong>2. Confirmation of Previous Minutes</strong><br/>&nbsp;</div>
+<div style="margin-bottom:8px"><strong>3. Agenda Item:</strong><br/>&nbsp;</div>
+<div style="margin-bottom:8px"><strong>4. AOB</strong><br/>&nbsp;</div>
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin:16px 0 8px">ACTION ITEMS</div>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+  <tr style="background:#1a3a6b;color:#fff"><th style="padding:5px 8px;border:1px solid #ccc">#</th><th style="padding:5px 8px;border:1px solid #ccc">Action</th><th style="padding:5px 8px;border:1px solid #ccc">Responsible</th><th style="padding:5px 8px;border:1px solid #ccc">Deadline</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:5px 8px">1</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px 8px">&nbsp;</td></tr>
+</table>
+<div style="display:flex;justify-content:space-between;margin-top:30px">
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Chairperson</div></div>
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Secretary / Date</div></div>
+</div></div>`,
   },
   {
-    name: "Blank Document",
-    category: "General",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.8;padding:20px;min-height:600px"><p>&nbsp;</p></div>`
-  },
-  {
-    name: "Local Purchase Order (LPO)",
-    category: "LPO",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:10px;margin-bottom:16px">
-<strong style="font-size:14pt;color:#1a3a6b">LOCAL PURCHASE ORDER</strong><br/>
-<span>Embu Level 5 Hospital · Embu County Government</span><br/>
-<span>LPO No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</span>
+    id:"lpo",       cat:"Procurement",   icon:"🛒",
+    name:"Local Purchase Order (LPO)",
+    desc:"Formal LPO issued to supplier with item table and approval",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">COUNTY GOVERNMENT OF EMBU — DEPARTMENT OF HEALTH</div>
+  <div style="font-size:14pt;font-weight:bold;color:#1a3a6b">EMBU LEVEL 5 HOSPITAL</div>
+  <div style="font-size:13pt;font-weight:bold;margin-top:4px">LOCAL PURCHASE ORDER</div>
+  <div style="font-size:10pt">LPO No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
 </div>
 <table style="width:100%;margin-bottom:12px">
-<tr><td style="width:50%"><strong>Supplier:</strong> _______________________</td><td><strong>Delivery to:</strong> Stores, EL5H</td></tr>
-<tr><td><strong>KRA PIN:</strong> _______________________</td><td><strong>Delivery date:</strong> ____________</td></tr>
-<tr><td><strong>Quotation Ref:</strong> _______________________</td><td><strong>Payment terms:</strong> Net 30 days</td></tr>
+  <tr><td style="width:50%"><strong>TO (Supplier):</strong><br/>&nbsp;<br/>_________________________</td><td><strong>From:</strong><br/>Procurement Dept, EL5 Hospital<br/>P.O. Box 33 – 60100 Embu</td></tr>
+  <tr><td style="padding-top:6px"><strong>KRA PIN:</strong> ___________________</td><td style="padding-top:6px"><strong>Delivery to:</strong> Main Stores, EL5H</td></tr>
+  <tr><td><strong>Quotation Ref:</strong> ___________</td><td><strong>Payment Terms:</strong> Net 30 days</td></tr>
+  <tr><td><strong>Delivery Date:</strong> ___________</td><td><strong>Vote Head:</strong> _______________</td></tr>
 </table>
-<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
-<tr style="background:#1a3a6b;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Description</th><th style="border:1px solid #ccc;padding:6px">UoM</th><th style="border:1px solid #ccc;padding:6px">Qty</th><th style="border:1px solid #ccc;padding:6px">Unit Price (KES)</th><th style="border:1px solid #ccc;padding:6px">Amount (KES)</th></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
-<tr><td style="border:1px solid #ccc;padding:6px" colspan="5"><strong>Sub-total</strong></td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
-<tr><td style="border:1px solid #ccc;padding:6px" colspan="5"><strong>VAT 16%</strong></td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
-<tr style="background:#f1f5f9"><td style="border:1px solid #ccc;padding:6px" colspan="5"><strong>TOTAL</strong></td><td style="border:1px solid #ccc;padding:6px"><strong>&nbsp;</strong></td></tr>
+<table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+  <tr style="background:#1a3a6b;color:#fff">
+    <th style="border:1px solid #999;padding:6px;width:5%">#</th>
+    <th style="border:1px solid #999;padding:6px;width:38%">Item Description</th>
+    <th style="border:1px solid #999;padding:6px;width:8%">UoM</th>
+    <th style="border:1px solid #999;padding:6px;width:9%">Qty</th>
+    <th style="border:1px solid #999;padding:6px;width:18%">Unit Price (KES)</th>
+    <th style="border:1px solid #999;padding:6px;width:18%">Amount (KES)</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">1</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">2</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">3</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px" colspan="5" style="text-align:right;font-weight:bold">Sub-Total</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px" colspan="5" style="text-align:right;font-weight:bold">VAT (16%)</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr style="background:#f0f4ff"><td style="border:1px solid #ddd;padding:6px" colspan="5" style="text-align:right;font-weight:bold">TOTAL (KES)</td><td style="border:1px solid #ddd;padding:6px;font-weight:bold">&nbsp;</td></tr>
 </table>
-<div style="display:flex;justify-content:space-between;margin-top:30px">
-<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Procurement Officer</div></div>
-<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">CEO / Authorised Officer</div></div>
-</div></div>`
+<div style="font-size:10pt;margin-bottom:12px"><strong>Terms &amp; Conditions:</strong> Delivery must be within 14 days. Goods must meet specified standards. All deliveries must be accompanied by a delivery note and invoice. EL5H reserves the right to reject substandard goods.</div>
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:20px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Procurement Officer</strong><br/>Name: _______________<br/>Sign: _______________<br/>Date: _______________</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Procurement Manager</strong><br/>Name: _______________<br/>Sign: _______________<br/>Date: _______________</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>CEO / Hospital Director</strong><br/>Name: _______________<br/>Sign: _______________<br/>Date: _______________</div></div>
+</div></div>`,
   },
   {
-    name: "Goods Received Note (GRN)",
-    category: "GRN",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #0e6655;padding-bottom:10px;margin-bottom:16px">
-<strong style="font-size:14pt;color:#0e6655">GOODS RECEIVED NOTE</strong><br/>
-<span>Embu Level 5 Hospital · Stores Department</span><br/>
-<span>GRN No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</span>
+    id:"grn",       cat:"Procurement",   icon:"📦",
+    name:"Goods Received Note (GRN)",
+    desc:"GRN for stores — recording received quantities and condition",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #0e6655;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL — STORES DEPARTMENT</div>
+  <div style="font-size:14pt;font-weight:bold;color:#0e6655">GOODS RECEIVED NOTE</div>
+  <div>GRN No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
 </div>
 <table style="width:100%;margin-bottom:12px">
-<tr><td><strong>LPO Ref:</strong> ____________</td><td><strong>Supplier:</strong> ____________</td></tr>
-<tr><td><strong>Delivery Note:</strong> ____________</td><td><strong>Invoice No:</strong> ____________</td></tr>
+  <tr><td><strong>LPO Reference:</strong> ____________</td><td><strong>Supplier:</strong> ____________</td></tr>
+  <tr><td><strong>Delivery Note No:</strong> ____________</td><td><strong>Invoice No:</strong> ____________</td></tr>
+  <tr><td><strong>Delivery Vehicle:</strong> ____________</td><td><strong>Driver Name:</strong> ____________</td></tr>
 </table>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
-<tr style="background:#0e6655;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Item</th><th style="border:1px solid #ccc;padding:6px">UoM</th><th style="border:1px solid #ccc;padding:6px">Qty Ordered</th><th style="border:1px solid #ccc;padding:6px">Qty Received</th><th style="border:1px solid #ccc;padding:6px">Condition</th></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+  <tr style="background:#0e6655;color:#fff">
+    <th style="border:1px solid #999;padding:6px">#</th><th style="border:1px solid #999;padding:6px">Item Description</th>
+    <th style="border:1px solid #999;padding:6px">UoM</th><th style="border:1px solid #999;padding:6px">Qty Ordered</th>
+    <th style="border:1px solid #999;padding:6px">Qty Received</th><th style="border:1px solid #999;padding:6px">Condition</th><th style="border:1px solid #999;padding:6px">Remarks</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">1</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">Good/Damaged</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">2</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">Good/Damaged</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
 </table>
-<div style="margin-bottom:8px"><strong>Inspection notes:</strong> _________________________________</div>
-<div style="display:flex;justify-content:space-between;margin-top:30px">
-<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Storekeeper</div></div>
-<div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Inspection &amp; Acceptance Cmt.</div></div>
-</div></div>`
+<div style="margin-bottom:8px"><strong>General condition of delivery:</strong> ___________________________</div>
+<div style="margin-bottom:8px"><strong>Storage location:</strong> ___________________________</div>
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:20px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Storekeeper</strong><br/>Name: ___<br/>Sign: ___<br/>Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>I&amp;A Committee</strong><br/>Name: ___<br/>Sign: ___<br/>Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Supplier's Rep</strong><br/>Name: ___<br/>Sign: ___<br/>Date: ___</div></div>
+</div></div>`,
   },
   {
-    name: "Issue Voucher (Form S 11)",
-    category: "Voucher",
-    body: `<div style="font-family:Times New Roman;font-size:11pt;line-height:1.4;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #6c3483;padding-bottom:8px;margin-bottom:14px">
-<strong style="font-size:13pt">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU</strong><br/>
-<strong style="font-size:13pt;color:#6c3483">STORES ISSUE / RECEIPT VOUCHER · Form S 11</strong><br/>
-<span>Embu Level 5 Hospital · Voucher No: ____________ · Date: ${new Date().toLocaleDateString("en-KE")}</span>
+    id:"rfq",       cat:"Procurement",   icon:"📊",
+    name:"Request for Quotation (RFQ)",
+    desc:"Formal RFQ sent to suppliers to request pricing",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL — PROCUREMENT DEPARTMENT</div>
+  <div style="font-size:14pt;font-weight:bold;color:#1a3a6b">REQUEST FOR QUOTATION (RFQ)</div>
+  <div>RFQ No: ______________ &nbsp;|&nbsp; Date: ${NOW()} &nbsp;|&nbsp; Closing: ______________</div>
 </div>
-<table style="width:100%;margin-bottom:10px">
-<tr><td><strong>Issuing Store:</strong> Main Pharmacy / General Stores</td><td><strong>Receiving Dept / Officer:</strong> ____________</td></tr>
-<tr><td><strong>Vote / Account:</strong> ____________</td><td><strong>Requisition Ref:</strong> ____________</td></tr>
+<p>Dear Sir/Madam, you are invited to submit your best quotation for the following items:</p>
+<table style="width:100%;border-collapse:collapse;margin:12px 0">
+  <tr style="background:#1a3a6b;color:#fff">
+    <th style="border:1px solid #999;padding:6px">#</th><th style="border:1px solid #999;padding:6px">Description</th>
+    <th style="border:1px solid #999;padding:6px">UoM</th><th style="border:1px solid #999;padding:6px">Qty</th>
+    <th style="border:1px solid #999;padding:6px">Unit Price (KES)</th><th style="border:1px solid #999;padding:6px">Total (KES)</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">1</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">2</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
 </table>
-<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-<tr style="background:#6c3483;color:white"><th style="border:1px solid #ccc;padding:5px">#</th><th style="border:1px solid #ccc;padding:5px">Item Description</th><th style="border:1px solid #ccc;padding:5px">UoM</th><th style="border:1px solid #ccc;padding:5px">Qty Demanded</th><th style="border:1px solid #ccc;padding:5px">Qty Issued</th><th style="border:1px solid #ccc;padding:5px">Unit Cost (KES)</th><th style="border:1px solid #ccc;padding:5px">Total (KES)</th></tr>
-<tr><td style="border:1px solid #ccc;padding:5px">1</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td></tr>
-</table>
-<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px">
-<div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Issued by</strong><br/>Name / Sign / Date</div></div>
-<div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Received by</strong><br/>Name / Sign / Date</div></div>
-<div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Authorised by</strong><br/>Name / Sign / Date</div></div>
-</div></div>`
+<p><strong>Instructions:</strong> Quote inclusive of all taxes. Attach certified copy of KRA PIN, CR12, and Business Registration. Delivery within 14 days. Validity: 90 days from closing date.</p>
+<div style="display:flex;justify-content:space-between;margin-top:24px">
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Procurement Officer</div></div>
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Procurement Manager</div></div>
+</div></div>`,
   },
   {
-    name: "Inspection & Acceptance Report",
-    category: "Inspection",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #c0392b;padding-bottom:10px;margin-bottom:16px">
-<strong style="font-size:14pt;color:#c0392b">INSPECTION &amp; ACCEPTANCE REPORT</strong><br/>
-<span>Embu Level 5 Hospital</span><br/>
-<span>Report No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE")}</span>
+    id:"s11",       cat:"Government Forms", icon:"🏛",
+    name:"Stores Issue / Receipt Voucher (Form S 11)",
+    desc:"Kenya Government standard stores movement voucher",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #6c3483;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:9pt;font-weight:bold">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU</div>
+  <div style="font-size:13pt;font-weight:bold;color:#6c3483;margin:4px 0">STORES ISSUE / RECEIPT VOUCHER</div>
+  <div style="font-size:10pt;font-weight:bold">Form S 11</div>
+  <div>Voucher No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
 </div>
-<table style="width:100%;margin-bottom:10px">
-<tr><td><strong>LPO Ref:</strong> ____________</td><td><strong>GRN Ref:</strong> ____________</td></tr>
-<tr><td><strong>Supplier:</strong> ____________</td><td><strong>Delivery Date:</strong> ____________</td></tr>
+<table style="width:100%;margin-bottom:12px">
+  <tr><td style="width:50%"><strong>Issuing Store:</strong> ____________________</td><td><strong>Vote / Account No:</strong> ____________________</td></tr>
+  <tr><td style="padding-top:4px"><strong>Receiving Dept:</strong> ____________________</td><td style="padding-top:4px"><strong>Requisition Ref:</strong> ____________________</td></tr>
+  <tr><td><strong>Receiving Officer:</strong> ____________________</td><td><strong>LPO Ref (if applicable):</strong> ________________</td></tr>
 </table>
-<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-<tr style="background:#c0392b;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Item</th><th style="border:1px solid #ccc;padding:6px">Spec Met</th><th style="border:1px solid #ccc;padding:6px">Qty Accepted</th><th style="border:1px solid #ccc;padding:6px">Qty Rejected</th><th style="border:1px solid #ccc;padding:6px">Remarks</th></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">Yes / No</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+  <tr style="background:#6c3483;color:#fff">
+    <th style="border:1px solid #aaa;padding:5px">#</th><th style="border:1px solid #aaa;padding:5px">Stock Code</th>
+    <th style="border:1px solid #aaa;padding:5px">Description</th><th style="border:1px solid #aaa;padding:5px">UoM</th>
+    <th style="border:1px solid #aaa;padding:5px">Qty Demanded</th><th style="border:1px solid #aaa;padding:5px">Qty Issued</th>
+    <th style="border:1px solid #aaa;padding:5px">Unit Cost (KES)</th><th style="border:1px solid #aaa;padding:5px">Total (KES)</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:5px">1</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:5px">2</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td></tr>
+  <tr style="font-weight:bold"><td style="border:1px solid #ddd;padding:5px" colspan="7" style="text-align:right">TOTAL (KES)</td><td style="border:1px solid #ddd;padding:5px">&nbsp;</td></tr>
 </table>
-<div><strong>Overall recommendation:</strong> ACCEPT / PARTIAL ACCEPT / REJECT</div>
-<div style="display:flex;justify-content:space-between;margin-top:30px">
-<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Chair, I&amp;A Committee</div></div>
-<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Member</div></div>
-<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Member</div></div>
-</div></div>`
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:16px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Issued by</strong><br/>Name: ___<br/>Sign: ___<br/>Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Received by</strong><br/>Name: ___<br/>Sign: ___<br/>Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Authorised by</strong><br/>Name: ___<br/>Sign: ___<br/>Date: ___</div></div>
+</div></div>`,
   },
   {
-    name: "Stores Requisition",
-    category: "Requisition",
-    body: `<div style="font-family:Times New Roman;font-size:12pt;line-height:1.5;padding:20px">
-<div style="text-align:center;border-bottom:2px solid #7d6608;padding-bottom:10px;margin-bottom:16px">
-<strong style="font-size:14pt;color:#7d6608">STORES REQUISITION</strong><br/>
-<span>Embu Level 5 Hospital</span><br/>
-<span>REQ No: ____________ &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString("en-KE")}</span>
+    id:"inspection", cat:"Government Forms", icon:"🔍",
+    name:"Inspection & Acceptance Report",
+    desc:"I&A committee report for received goods",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #c0392b;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL · INSPECTION &amp; ACCEPTANCE COMMITTEE</div>
+  <div style="font-size:14pt;font-weight:bold;color:#c0392b">INSPECTION &amp; ACCEPTANCE REPORT</div>
+  <div>Report No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
 </div>
 <table style="width:100%;margin-bottom:10px">
-<tr><td><strong>Department:</strong> ____________</td><td><strong>Priority:</strong> Normal / Urgent / Emergency</td></tr>
-<tr><td><strong>Cost Centre / Vote:</strong> ____________</td><td><strong>Required By:</strong> ____________</td></tr>
+  <tr><td><strong>LPO Ref:</strong> ____________</td><td><strong>GRN Ref:</strong> ____________</td></tr>
+  <tr><td><strong>Supplier:</strong> ____________</td><td><strong>Invoice No:</strong> ____________</td></tr>
+  <tr><td><strong>Delivery Date:</strong> ____________</td><td><strong>Vote Head:</strong> ____________</td></tr>
 </table>
-<div style="margin-bottom:8px"><strong>Justification:</strong> _________________________________________________</div>
 <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-<tr style="background:#7d6608;color:white"><th style="border:1px solid #ccc;padding:6px">#</th><th style="border:1px solid #ccc;padding:6px">Item</th><th style="border:1px solid #ccc;padding:6px">UoM</th><th style="border:1px solid #ccc;padding:6px">Qty Required</th><th style="border:1px solid #ccc;padding:6px">Est. Unit Price (KES)</th><th style="border:1px solid #ccc;padding:6px">Est. Total (KES)</th></tr>
-<tr><td style="border:1px solid #ccc;padding:6px">1</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td><td style="border:1px solid #ccc;padding:6px">&nbsp;</td></tr>
+  <tr style="background:#c0392b;color:#fff">
+    <th style="border:1px solid #aaa;padding:6px">#</th><th style="border:1px solid #aaa;padding:6px">Item</th>
+    <th style="border:1px solid #aaa;padding:6px">Spec Met</th><th style="border:1px solid #aaa;padding:6px">Qty Accepted</th>
+    <th style="border:1px solid #aaa;padding:6px">Qty Rejected</th><th style="border:1px solid #aaa;padding:6px">Rejection Reason</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">1</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">Yes / No</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">2</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">Yes / No</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
 </table>
-<div style="display:flex;justify-content:space-between;margin-top:30px">
-<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Requested by (HOD)</div></div>
-<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Stores Officer</div></div>
-<div><div style="border-top:1px solid #333;width:180px;padding-top:4px">Procurement Manager</div></div>
-</div></div>`
+<div style="margin-bottom:8px"><strong>Overall Recommendation:</strong> &nbsp; ☐ ACCEPTED &nbsp;&nbsp; ☐ PARTIALLY ACCEPTED &nbsp;&nbsp; ☐ REJECTED</div>
+<div style="margin-bottom:8px"><strong>Remarks:</strong> ___________________________</div>
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:16px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Chairperson I&amp;A</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Member</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Member</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+</div></div>`,
+  },
+  {
+    id:"pv",        cat:"Finance",       icon:"💸",
+    name:"Payment Voucher",
+    desc:"Accountant's payment voucher for approved expenditure",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL · FINANCE &amp; ACCOUNTS DEPARTMENT</div>
+  <div style="font-size:14pt;font-weight:bold;color:#1a3a6b">PAYMENT VOUCHER</div>
+  <div>PV No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
+</div>
+<table style="width:100%;margin-bottom:12px">
+  <tr><td style="width:50%"><strong>Payee:</strong> ____________________________</td><td><strong>Amount (KES):</strong> ____________________________</td></tr>
+  <tr><td style="padding-top:4px"><strong>Account No / Bank:</strong> ______________</td><td style="padding-top:4px"><strong>Vote Head:</strong> ____________________________</td></tr>
+  <tr><td><strong>Invoice No:</strong> ______________</td><td><strong>LPO Ref:</strong> ____________________________</td></tr>
+  <tr><td><strong>GL Account:</strong> ______________</td><td><strong>Payment Method:</strong> Cheque / EFT / Cash</td></tr>
+</table>
+<div style="margin-bottom:12px"><strong>Particulars / Description of Expenditure:</strong><br/>___________________________________________________________________<br/>___________________________________________________________________</div>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+  <tr style="background:#1a3a6b;color:#fff">
+    <th style="border:1px solid #aaa;padding:6px">GL Code</th><th style="border:1px solid #aaa;padding:6px">Account Description</th>
+    <th style="border:1px solid #aaa;padding:6px">Amount Dr (KES)</th><th style="border:1px solid #aaa;padding:6px">Amount Cr (KES)</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">Expenditure Account</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">—</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">Accounts Payable / Bank</td><td style="border:1px solid #ddd;padding:6px">—</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+</table>
+<div style="font-weight:bold;margin-bottom:12px">Amount in Words: ______________________________________________</div>
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:16px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Prepared by (Accountant)</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Verified by (Finance Manager)</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Approved by (CEO/Director)</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+</div></div>`,
+  },
+  {
+    id:"rv",        cat:"Finance",       icon:"📥",
+    name:"Receipt Voucher",
+    desc:"Official receipt for money received",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #0e6655;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL · FINANCE &amp; ACCOUNTS DEPARTMENT</div>
+  <div style="font-size:14pt;font-weight:bold;color:#0e6655">OFFICIAL RECEIPT</div>
+  <div>Receipt No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
+</div>
+<table style="width:100%;margin-bottom:12px">
+  <tr><td><strong>Received from:</strong> ____________________________</td><td><strong>Amount (KES):</strong> ____________________________</td></tr>
+  <tr><td style="padding-top:4px"><strong>Payment Method:</strong> Cash / Cheque / EFT</td><td style="padding-top:4px"><strong>GL Account:</strong> ____________________________</td></tr>
+  <tr><td><strong>Reference / Invoice:</strong> ____________</td><td><strong>Department:</strong> ____________________________</td></tr>
+</table>
+<div style="margin-bottom:12px"><strong>Being payment for:</strong><br/>___________________________________________________________________<br/>___________________________________________________________________</div>
+<div style="font-weight:bold;border:1px solid #ddd;padding:8px;margin-bottom:12px;font-size:12pt">AMOUNT IN WORDS: ____________________________________________________________</div>
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:16px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Cashier / Accountant</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Finance Manager</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Received by (Payer)</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+</div></div>`,
+  },
+  {
+    id:"jv",        cat:"Finance",       icon:"📖",
+    name:"Journal Voucher",
+    desc:"GL journal entry voucher for accounting entries",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.5;padding:20px 28px">
+<div style="text-align:center;border-bottom:2px solid #6c3483;padding-bottom:10px;margin-bottom:14px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL · ACCOUNTS DEPARTMENT</div>
+  <div style="font-size:14pt;font-weight:bold;color:#6c3483">JOURNAL VOUCHER</div>
+  <div>JV No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
+</div>
+<div style="margin-bottom:10px"><strong>Narration:</strong> _______________________________________________</div>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+  <tr style="background:#6c3483;color:#fff">
+    <th style="border:1px solid #aaa;padding:6px">GL Code</th><th style="border:1px solid #aaa;padding:6px">Account Name</th>
+    <th style="border:1px solid #aaa;padding:6px">Dr (KES)</th><th style="border:1px solid #aaa;padding:6px">Cr (KES)</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">—</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">—</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr style="font-weight:bold;background:#f5f0ff"><td colspan="2" style="border:1px solid #ddd;padding:6px;text-align:right">TOTAL</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+</table>
+<div style="display:flex;justify-content:space-between;margin-top:24px;gap:16px">
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Prepared by</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Reviewed by</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+  <div style="flex:1"><div style="border-top:1px solid #333;padding-top:4px"><strong>Approved by</strong><br/>Sign: ___&nbsp; Date: ___</div></div>
+</div></div>`,
+  },
+  {
+    id:"contract",  cat:"Procurement",   icon:"📜",
+    name:"Framework Contract",
+    desc:"Procurement framework contract with supplier",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.6;padding:20px 32px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px">
+  <div style="font-size:8pt;color:#555">COUNTY GOVERNMENT OF EMBU — DEPARTMENT OF HEALTH</div>
+  <div style="font-size:15pt;font-weight:bold;color:#1a3a6b">EMBU LEVEL 5 HOSPITAL</div>
+  <div style="font-size:13pt;font-weight:bold;margin:6px 0">FRAMEWORK CONTRACT</div>
+  <div>Contract No: ______________ &nbsp;|&nbsp; Date: ${NOW()}</div>
+</div>
+<p>This Agreement is made between <strong>Embu Level 5 Hospital</strong> ("the Hospital") and <strong>____________________________</strong> ("the Supplier").</p>
+<div style="font-weight:bold;border-left:3px solid #1a3a6b;padding-left:10px;margin:12px 0">1. SCOPE OF SUPPLY</div>
+<p>The Supplier agrees to supply the following goods/services: _______________________________________________</p>
+<div style="font-weight:bold;border-left:3px solid #1a3a6b;padding-left:10px;margin:12px 0">2. CONTRACT VALUE</div>
+<p>Total Contract Value: <strong>KES ____________________________</strong> (inclusive of all taxes)</p>
+<div style="font-weight:bold;border-left:3px solid #1a3a6b;padding-left:10px;margin:12px 0">3. CONTRACT PERIOD</div>
+<p>From: ______________ &nbsp; To: ______________</p>
+<div style="font-weight:bold;border-left:3px solid #1a3a6b;padding-left:10px;margin:12px 0">4. PAYMENT TERMS</div>
+<p>Payment within 30 days of receipt of invoice and delivery note.</p>
+<div style="font-weight:bold;border-left:3px solid #1a3a6b;padding-left:10px;margin:12px 0">5. DELIVERY</div>
+<p>All deliveries to: Main Stores, Embu Level 5 Hospital within ___ days of LPO.</p>
+<div style="font-weight:bold;border-left:3px solid #1a3a6b;padding-left:10px;margin:12px 0">6. PERFORMANCE BOND</div>
+<p>The Supplier shall provide a Performance Bond of 10% of contract value.</p>
+<div style="display:flex;justify-content:space-between;margin-top:36px;gap:30px">
+  <div style="flex:1"><div style="border-top:2px solid #333;padding-top:8px"><strong>FOR: EMBU LEVEL 5 HOSPITAL</strong><br/><br/>Name: ____________________<br/>Title: CEO / Hospital Director<br/>Sign: ___&nbsp; Date: ___<br/><br/>Official Stamp:</div></div>
+  <div style="flex:1"><div style="border-top:2px solid #333;padding-top:8px"><strong>FOR: SUPPLIER</strong><br/><br/>Name: ____________________<br/>Title: ____________________<br/>Sign: ___&nbsp; Date: ___<br/><br/>Official Stamp:</div></div>
+</div></div>`,
+  },
+  {
+    id:"report",    cat:"Reports",       icon:"📊",
+    name:"Procurement Report (Blank)",
+    desc:"General format for monthly/quarterly procurement reports",
+    body:`<div style="font-family:Times New Roman,serif;font-size:11pt;line-height:1.6;padding:20px 32px">
+<div style="text-align:center;border-bottom:2px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px">
+  <div style="font-size:8pt;color:#555">EMBU LEVEL 5 HOSPITAL · PROCUREMENT DEPARTMENT</div>
+  <div style="font-size:14pt;font-weight:bold;color:#1a3a6b">PROCUREMENT REPORT</div>
+  <div>Period: ______________ &nbsp;|&nbsp; Prepared by: ______________</div>
+  <div>Date: ${NOW()}</div>
+</div>
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin-bottom:8px">1. EXECUTIVE SUMMARY</div>
+<p>&nbsp;</p><p>&nbsp;</p>
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin:16px 0 8px">2. PROCUREMENT ACTIVITIES</div>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+  <tr style="background:#1a3a6b;color:#fff">
+    <th style="border:1px solid #aaa;padding:6px">#</th><th style="border:1px solid #aaa;padding:6px">Activity</th>
+    <th style="border:1px solid #aaa;padding:6px">No. of LPOs</th><th style="border:1px solid #aaa;padding:6px">Value (KES)</th>
+    <th style="border:1px solid #aaa;padding:6px">Status</th>
+  </tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">1</td><td style="border:1px solid #ddd;padding:6px">Medical Supplies</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">2</td><td style="border:1px solid #ddd;padding:6px">Pharmaceuticals</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:6px">3</td><td style="border:1px solid #ddd;padding:6px">General Supplies</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr>
+</table>
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin:16px 0 8px">3. BUDGET UTILISATION</div>
+<p>&nbsp;</p>
+<div style="font-weight:bold;font-size:12pt;border-bottom:1px solid #1a3a6b;margin:16px 0 8px">4. CHALLENGES &amp; RECOMMENDATIONS</div>
+<p>&nbsp;</p>
+<div style="display:flex;justify-content:space-between;margin-top:32px">
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Procurement Manager</div></div>
+  <div><div style="border-top:1px solid #333;width:200px;padding-top:4px">Hospital Director</div></div>
+</div></div>`,
   },
 ];
 
-const FONT_SIZES = ["8","9","10","11","12","14","16","18","20","22","24","28","32","36","48","72"];
-const FONT_FAMILIES = ["Times New Roman","Arial","Calibri","Georgia","Verdana","Courier New","Cambria","Palatino"];
+/* ═══════════════════════ REPORT MODULES ══════════════════════════════ */
+type ReportMod = {
+  id: string; label: string; icon: string; table: string;
+  cols: { key: string; label: string; fmt?: (v: any, r: any) => string }[];
+  orderBy?: string;
+};
+const REPORT_MODS: ReportMod[] = [
+  { id:"requisitions", label:"Requisitions", icon:"📋", table:"requisitions",
+    cols:[{key:"requisition_number",label:"Req No"},{key:"department",label:"Dept"},{key:"status",label:"Status"},{key:"total_amount",label:"Amount",fmt:v=>FMT_KES(v)},{key:"created_at",label:"Date",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"purchase_orders", label:"Purchase Orders", icon:"🛒", table:"purchase_orders",
+    cols:[{key:"po_number",label:"PO No"},{key:"status",label:"Status"},{key:"total_amount",label:"Total",fmt:v=>FMT_KES(v)},{key:"payment_terms",label:"Terms"},{key:"created_at",label:"Date",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"suppliers", label:"Suppliers", icon:"🏪", table:"suppliers",
+    cols:[{key:"name",label:"Name"},{key:"contact_person",label:"Contact"},{key:"email",label:"Email"},{key:"phone",label:"Phone"},{key:"status",label:"Status"}]
+  },
+  { id:"goods_received", label:"GRNs", icon:"📦", table:"goods_received",
+    cols:[{key:"grn_number",label:"GRN No"},{key:"supplier_name",label:"Supplier"},{key:"lpo_reference",label:"LPO Ref"},{key:"status",label:"Status"},{key:"received_date",label:"Date",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"tenders", label:"Tenders", icon:"📢", table:"tenders",
+    cols:[{key:"tender_number",label:"Tender No"},{key:"title",label:"Title"},{key:"status",label:"Status"},{key:"estimated_value",label:"Est. Value",fmt:v=>FMT_KES(v)},{key:"closing_date",label:"Closing",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"contracts", label:"Contracts", icon:"📜", table:"contracts",
+    cols:[{key:"contract_number",label:"Contract No"},{key:"supplier_name",label:"Supplier"},{key:"contract_value",label:"Value",fmt:v=>FMT_KES(v)},{key:"status",label:"Status"},{key:"end_date",label:"Expires",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"payment_vouchers", label:"Payment Vouchers", icon:"💸", table:"payment_vouchers",
+    cols:[{key:"voucher_number",label:"PV No"},{key:"payee",label:"Payee"},{key:"total_amount",label:"Amount",fmt:v=>FMT_KES(v)},{key:"payment_method",label:"Method"},{key:"status",label:"Status"},{key:"created_at",label:"Date",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"receipt_vouchers", label:"Receipt Vouchers", icon:"📥", table:"receipt_vouchers",
+    cols:[{key:"receipt_number",label:"RV No"},{key:"received_from",label:"From"},{key:"amount",label:"Amount",fmt:v=>FMT_KES(v)},{key:"payment_method",label:"Method"},{key:"status",label:"Status"},{key:"created_at",label:"Date",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"budgets", label:"Budgets", icon:"📊", table:"budgets",
+    cols:[{key:"budget_name",label:"Name"},{key:"fiscal_year",label:"FY"},{key:"department",label:"Dept"},{key:"total_budget",label:"Allocated",fmt:v=>FMT_KES(v)},{key:"spent",label:"Spent",fmt:v=>FMT_KES(v)}]
+  },
+  { id:"fixed_assets", label:"Fixed Assets", icon:"🏗", table:"fixed_assets",
+    cols:[{key:"asset_code",label:"Code"},{key:"asset_name",label:"Name"},{key:"category",label:"Category"},{key:"purchase_price",label:"Cost",fmt:v=>FMT_KES(v)},{key:"net_book_value",label:"NBV",fmt:v=>FMT_KES(v)},{key:"status",label:"Status"}]
+  },
+  { id:"audit_logs", label:"Audit Log", icon:"🔍", table:"audit_logs",
+    cols:[{key:"action",label:"Action"},{key:"module",label:"Module"},{key:"table_name",label:"Table"},{key:"created_at",label:"Date",fmt:v=>FMT_DT(v)}]
+  },
+  { id:"profiles", label:"Users", icon:"👥", table:"profiles",
+    cols:[{key:"full_name",label:"Name"},{key:"email",label:"Email"},{key:"department",label:"Dept"},{key:"is_active",label:"Active",fmt:v=>v?"Yes":"No"},{key:"created_at",label:"Since",fmt:v=>FMT_DT(v)}]
+  },
+];
 
-// - Toolbar Button -
-const TB = ({ icon: Icon, title, onClick, active }: any) => (
-  <button title={title} onClick={onClick}
-    style={{ padding:"4px 6px",border:"none",borderRadius:4,cursor:"pointer",background:active?"#e0e7ff":"transparent",color:active?"#4f46e5":"#374151",display:"flex",alignItems:"center",justifyContent:"center" }}
-    onMouseEnter={e=>(e.currentTarget.style.background=active?"#e0e7ff":"#f3f4f6")}
-    onMouseLeave={e=>(e.currentTarget.style.background=active?"#e0e7ff":"transparent")}>
-    <Icon style={{width:14,height:14}} />
-  </button>
-);
+/* ═══════════════════════ MAIN COMPONENT ═════════════════════════════ */
+type Tab = "writer"|"templates"|"reports"|"library";
 
-// - Main Component -
 export default function DocumentEditorPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { getSetting } = useSystemSettings();
   const editorRef = useRef<HTMLDivElement>(null);
 
-  const [meta, setMeta] = useState<DocMeta>({
-    name: "Untitled Document",
-    category: "General",
-    description: "",
-    is_template: false,
-    tags: []
-  });
-  const [mode, setMode] = useState<"edit"|"preview">("edit");
-  const [saving, setSaving] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showMeta, setShowMeta] = useState(false);
-  const [fontSize, setFontSize] = useState("12");
-  const [fontFamily, setFontFamily] = useState("Times New Roman");
-  const [docId, setDocId] = useState<string|null>(null);
+  /* ── state ─────────────────────────────────────────────────── */
+  const [tab, setTab]             = useState<Tab>("writer");
+  const [docName, setDocName]     = useState("Untitled Document");
+  const [docCat, setDocCat]       = useState("General");
+  const [docIsTemplate, setDocIT] = useState(false);
+  const [docId, setDocId]         = useState<string|null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
 
-  const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
-  const countyName   = getSetting("county_name","Embu County Government");
-  const sysName      = getSetting("system_name","EL5 MediProcure");
+  /* ── toolbar drag-to-reorder ────────────────────────────────── */
+  const [toolbar, setToolbar]     = useState<TBDef[]>(DEFAULT_TOOLBAR);
+  const [toolbarVis, setTBVis]    = useState<Set<string>>(new Set(DEFAULT_TOOLBAR.map(t=>t.id)));
+  const [dragId, setDragId]       = useState<string|null>(null);
+  const [dragOver, setDragOver]   = useState<string|null>(null);
+  const [showTBEditor, setShowTBE] = useState(false);
+  const [fontSize, setFontSize]   = useState("12");
+  const [fontFamily, setFontFamily] = useState("Times New Roman,serif");
 
+  /* ── templates tab ──────────────────────────────────────────── */
+  const [tplCat, setTplCat]       = useState("All");
+  const [tplSearch, setTplSearch] = useState("");
+
+  /* ── reports tab ────────────────────────────────────────────── */
+  const [repMod, setRepMod]       = useState<ReportMod>(REPORT_MODS[0]);
+  const [repRows, setRepRows]     = useState<any[]>([]);
+  const [repLoading, setRepLoad]  = useState(false);
+  const [repFilter, setRepFilter] = useState("");
+  const [repDateFrom, setRepDF]   = useState("");
+  const [repDateTo, setRepDT]     = useState("");
+  const [repStatus, setRepStatus] = useState("ALL");
+
+  /* ── library tab ────────────────────────────────────────────── */
+  const [library, setLibrary]     = useState<any[]>([]);
+  const [libSearch, setLibSearch] = useState("");
+  const [libLoading, setLibLoad]  = useState(false);
+
+  /* ── init ───────────────────────────────────────────────────── */
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) loadDoc(id);
+    else loadBlank();
+    loadLibrary();
+  }, [searchParams]);
+
+  const loadBlank = () => {
+    if (editorRef.current) editorRef.current.innerHTML = TEMPLATES.find(t=>t.id==="memo")?.body || "";
+    updateCounts();
+  };
+
+  const loadDoc = async (id: string) => {
+    const { data } = await db.from("documents").select("*").eq("id",id).single();
+    if (!data) return;
+    setDocId(data.id); setDocName(data.name); setDocCat(data.category||"General");
+    setDocIT(data.is_template||false);
+    if (editorRef.current && data.template_html) editorRef.current.innerHTML = data.template_html;
+    updateCounts();
+  };
+
+  const loadLibrary = async () => {
+    setLibLoad(true);
+    const { data } = await db.from("documents").select("*").order("created_at",{ascending:false}).limit(200);
+    setLibrary(data||[]);
+    setLibLoad(false);
+  };
+
+  /* ── editor helpers ─────────────────────────────────────────── */
   const exec = useCallback((cmd: string, val?: string) => {
     document.execCommand(cmd, false, val);
     editorRef.current?.focus();
   }, []);
 
-  // Load document if ID in URL
-  useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) {
-      (supabase as any).from("documents").select("*").eq("id", id).single().then(({ data }: any) => {
-        if (data) {
-          setDocId(data.id);
-          setMeta({ name:data.name, category:data.category||"General", description:data.description||"", is_template:data.is_template||false, tags:data.tags||[] });
-          if (editorRef.current && data.template_html) {
-            editorRef.current.innerHTML = data.template_html;
-          }
-        }
-      });
-    } else {
-      // Load blank template by default
-      if (editorRef.current) {
-        editorRef.current.innerHTML = TEMPLATES[TEMPLATES.length-1].body;
-      }
-    }
-  }, [searchParams]);
+  const updateCounts = useCallback(() => {
+    if (!editorRef.current) return;
+    const text = editorRef.current.innerText || "";
+    setCharCount(text.length);
+    setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+  }, []);
 
-  const loadTemplate = (t: typeof TEMPLATES[0]) => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = t.body;
-      setMeta(p => ({ ...p, name: t.name, category: t.category }));
-    }
-    setShowTemplates(false);
-    toast({ title: `Template loaded: ${t.name}` });
+  const insertTable = () => {
+    exec("insertHTML", `<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><th style="border:1px solid #999;padding:6px;background:#1a3a6b;color:#fff">Column 1</th><th style="border:1px solid #999;padding:6px;background:#1a3a6b;color:#fff">Column 2</th><th style="border:1px solid #999;padding:6px;background:#1a3a6b;color:#fff">Column 3</th></tr><tr><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr><tr><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td><td style="border:1px solid #ddd;padding:6px">&nbsp;</td></tr></table>`);
   };
 
-  const save = async () => {
+  /* ── toolbar click handler ──────────────────────────────────── */
+  const handleTB = useCallback((btn: TBDef) => {
+    if (btn.action) { exec(btn.action, btn.value); return; }
+    if (btn.type === "link") {
+      const url = prompt("Enter URL:");
+      if (url) exec("createLink", url);
+    } else if (btn.type === "img") {
+      const url = prompt("Enter image URL:");
+      if (url) exec("insertHTML", `<img src="${url}" style="max-width:100%;height:auto" />`);
+    } else if (btn.type === "table") {
+      insertTable();
+    } else if (btn.type === "foreColor") {
+      const c = prompt("Hex colour (#rrggbb):", "#000000");
+      if (c) exec("foreColor", c);
+    } else if (btn.type === "backColor") {
+      const c = prompt("Highlight colour (#rrggbb):", "#ffff00");
+      if (c) exec("backColor", c);
+    }
+  }, [exec]);
+
+  /* ── save document ──────────────────────────────────────────── */
+  const saveDoc = async () => {
     if (!editorRef.current) return;
     setSaving(true);
     const html = editorRef.current.innerHTML;
     const payload = {
-      name: meta.name,
-      category: meta.category,
-      description: meta.description,
-      is_template: meta.is_template,
-      tags: meta.tags,
-      template_html: html,
-      file_type: "html",
-      created_by: user?.id,
+      name: docName, category: docCat,
+      is_template: docIsTemplate, template_html: html,
+      file_type: "html", created_by: user?.id,
+      file_size: html.length, tags: [], description: "",
       updated_at: new Date().toISOString(),
     };
-    let res: any;
-    if (docId) {
-      res = await (supabase as any).from("documents").update(payload).eq("id", docId).select().single();
-    } else {
-      res = await (supabase as any).from("documents").insert(payload).select().single();
-    }
-    if (res.error) {
-      toast({ title: "Save failed: " + res.error.message, variant: "destructive" });
-    } else {
-      if (!docId) setDocId(res.data?.id);
-      toast({ title: "- Document saved to library" });
-      logAudit(user?.id, profile?.full_name, docId?"update":"create", "documents", res.data?.id, { name: meta.name });
+    try {
+      if (docId) {
+        await db.from("documents").update(payload).eq("id", docId);
+        toast({ title: "✓ Document updated" });
+      } else {
+        const { data } = await db.from("documents").insert({ ...payload, created_at: new Date().toISOString() }).select().single();
+        if (data?.id) setDocId(data.id);
+        toast({ title: "✓ Document saved" });
+      }
+      loadLibrary();
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
     }
     setSaving(false);
   };
 
-  const print = () => {
+  /* ── print with letterhead ──────────────────────────────────── */
+  const printDoc = () => {
     const html = editorRef.current?.innerHTML || "";
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head>
-<title>${meta.name} - ${hospitalName}</title>
-<style>
-  @page { size: A4; margin: 20mm 25mm; }
-  body { font-family: 'Times New Roman',serif; font-size:12pt; color:#000; margin:0; padding:0; }
-  @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-  .letterhead { display:flex; align-items:center; gap:16px; border-bottom:3px solid #1a3a6b; padding-bottom:10px; margin-bottom:20px; }
-  .letterhead img { width:60px; height:60px; object-fit:contain; }
-  .letterhead-text { flex:1; }
-  .letterhead-title { font-size:18pt; font-weight:900; color:#1a3a6b; }
-  .letterhead-sub { font-size:10pt; color:#374151; }
-  .footer { margin-top:30px; border-top:1px solid #ccc; padding-top:6px; font-size:8pt; color:#6b7280; display:flex; justify-content:space-between; }
-</style>
-</head><body>
-<div class="letterhead">
-  <img src="${window.location.origin}/logo.png" onerror="this.style.display='none'" />
-  <div class="letterhead-text">
-    <div class="letterhead-title">${hospitalName}</div>
-    <div class="letterhead-sub">${countyName} | ${sysName}</div>
-  </div>
-  <div style="text-align:right;font-size:9pt;color:#6b7280;">
-    Doc: ${meta.name}<br/>
-    Date: ${new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}<br/>
-    Category: ${meta.category}
-  </div>
+    const win = window.open("","_blank","width=900,height=700");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><title>${docName}</title><style>
+@page{margin:2cm}body{font-family:Times New Roman,serif;font-size:12pt;margin:0;padding:24px}
+table{border-collapse:collapse}img{max-width:100%}
+@media print{.no-print{display:none}}
+</style></head><body>
+<div style="text-align:center;border-bottom:3px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px">
+  <div style="font-size:8pt;color:#555">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU — DEPARTMENT OF HEALTH</div>
+  <div style="font-size:16pt;font-weight:bold;color:#1a3a6b">EMBU LEVEL 5 HOSPITAL</div>
+  <div style="font-size:8pt;color:#666">P.O. Box 33 – 60100, Embu | Tel: +254 68 31055 | pghembu@gmail.com | "Quality Healthcare for All"</div>
+  <div style="border-top:1px solid #cc7700;margin-top:4px;padding-top:4px;font-size:8pt;color:#888">EL5 MediProcure · ${new Date().toLocaleString("en-KE")}</div>
 </div>
 ${html}
-<div class="footer">
-  <span>${hospitalName} - Official Document</span>
-  <span>Printed: ${new Date().toLocaleString("en-KE")} | ${sysName}</span>
+<div style="margin-top:40px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#888;text-align:center">
+  Printed from EL5 MediProcure — Embu Level 5 Hospital — ${new Date().toLocaleString("en-KE")}
 </div>
+<script>window.onload=()=>{window.print();window.close();}</script>
 </body></html>`);
-    w.document.close();
-    setTimeout(() => { w.print(); w.close(); }, 500);
+    win.document.close();
   };
 
-  const downloadHTML = () => {
-    const html = editorRef.current?.innerHTML || "";
-    const blob = new Blob([`<!DOCTYPE html><html><head><title>${meta.name}</title></head><body>${html}</body></html>`], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${meta.name.replace(/\s+/g,"_")}.html`;
-    a.click();
-  };
-
-  const insertTable = () => {
-    const rows = 3, cols = 3;
-    let table = `<table style="width:100%;border-collapse:collapse;margin:12px 0">`;
-    for (let r = 0; r < rows; r++) {
-      table += "<tr>";
-      for (let c = 0; c < cols; c++) {
-        const tag = r === 0 ? "th" : "td";
-        table += `<${tag} style="border:1px solid #ccc;padding:6px 8px;${r===0?"background:#1a3a6b;color:#fff;font-weight:bold":""}">&nbsp;</${tag}>`;
-      }
-      table += "</tr>";
+  /* ── export PDF ─────────────────────────────────────────────── */
+  const exportPDF = async () => {
+    const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+    const startY = await addLetterhead(doc, docName, "");
+    const html = editorRef.current?.innerText || "";
+    const lines = doc.splitTextToSize(html, 180);
+    let y = startY + 4;
+    for (const line of lines) {
+      if (y > 270) { doc.addPage(); addFooter(doc,doc.getNumberOfPages(),doc.getNumberOfPages()); y=20; }
+      doc.setFontSize(11); doc.setFont("helvetica","normal"); doc.setTextColor(40,40,40);
+      doc.text(line, 15, y); y += 6;
     }
-    table += "</table>";
-    exec("insertHTML", table);
+    addFooter(doc, 1, doc.getNumberOfPages());
+    doc.save(`${docName.replace(/[^a-zA-Z0-9]/g,"-")}.pdf`);
   };
 
-  const S: any = {
-    page: { minHeight:"100vh",background:"#f8fafc",display:"flex",flexDirection:"column" },
-    bar: { background:"#1a3a6b",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:100 },
-    tb: { background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 12px",display:"flex",alignItems:"center",gap:2,flexWrap:"wrap" as const },
-    sep: { width:1,height:20,background:"#e5e7eb",margin:"0 4px" },
-    paper: { maxWidth:850,margin:"20px auto",background:"#fff",boxShadow:"0 2px 12px rgba(0,0,0,0.1)",borderRadius:4,padding:"40px 50px",minHeight:1000 },
-    inp: { padding:"4px 8px",border:"1px solid #d1d5db",borderRadius:4,fontSize:12,outline:"none" },
+  /* ── load report ────────────────────────────────────────────── */
+  const loadReport = async (mod: ReportMod) => {
+    setRepLoad(true);
+    setRepMod(mod);
+    try {
+      let q = db.from(mod.table).select("*").order("created_at",{ascending:false}).limit(500);
+      if (repDateFrom) q = q.gte("created_at", repDateFrom);
+      if (repDateTo)   q = q.lte("created_at", repDateTo+"T23:59:59");
+      if (repStatus !== "ALL" && mod.cols.find(c=>c.key==="status")) q = q.eq("status",repStatus);
+      const { data, error } = await q;
+      if (error) throw error;
+      setRepRows(data||[]);
+    } catch (e: any) {
+      toast({ title: "Load failed", description: e.message, variant:"destructive" });
+      setRepRows([]);
+    }
+    setRepLoad(false);
   };
+
+  useEffect(() => { if (tab==="reports") loadReport(repMod); }, [tab]);
+
+  /* ── print report ───────────────────────────────────────────── */
+  const printReport = async () => {
+    const filtered = repRows.filter(r => {
+      const s = repFilter.toLowerCase();
+      return !s || repMod.cols.some(c => String(r[c.key]||"").toLowerCase().includes(s));
+    });
+    const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"a4" });
+    const startY = await addLetterhead(doc, `${repMod.label} Report`, "");
+    doc.setFontSize(8); doc.setTextColor(80,80,80);
+    doc.text(`Generated: ${new Date().toLocaleString("en-KE")} | Records: ${filtered.length}`, 14, startY+4);
+    autoTable(doc, {
+      startY: startY+10,
+      head: [repMod.cols.map(c=>c.label)],
+      body: filtered.map(r => repMod.cols.map(c => c.fmt ? c.fmt(r[c.key],r) : String(r[c.key]||""))),
+      styles: { fontSize:7, cellPadding:2 },
+      headStyles: { fillColor:[26,58,107], textColor:255, fontStyle:"bold" },
+      alternateRowStyles: { fillColor:[245,248,255] },
+      margin:{ left:14, right:14 },
+    });
+    addFooter(doc, 1, doc.getNumberOfPages());
+    doc.save(`${repMod.label.replace(/ /g,"-")}-Report-${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
+  /* ── paste report into editor ───────────────────────────────── */
+  const pasteReportToEditor = () => {
+    const filtered = repRows.filter(r => {
+      const s = repFilter.toLowerCase();
+      return !s || repMod.cols.some(c => String(r[c.key]||"").toLowerCase().includes(s));
+    });
+    const thead = repMod.cols.map(c=>`<th style="border:1px solid #aaa;padding:6px;background:#1a3a6b;color:#fff">${c.label}</th>`).join("");
+    const tbody = filtered.map(r=>
+      `<tr>${repMod.cols.map(c=>`<td style="border:1px solid #ddd;padding:6px">${c.fmt?c.fmt(r[c.key],r):String(r[c.key]||"—")}</td>`).join("")}</tr>`
+    ).join("");
+    const tableHTML = `<div style="margin:12px 0"><strong>${repMod.label} — ${new Date().toLocaleDateString("en-KE")} (${filtered.length} records)</strong><br/><table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:10pt"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+    if (editorRef.current) {
+      editorRef.current.innerHTML += tableHTML;
+      updateCounts();
+    }
+    setTab("writer");
+    toast({ title: "✓ Report inserted into document" });
+  };
+
+  /* ── toolbar drag handlers ──────────────────────────────────── */
+  const onDragStart = (id: string) => setDragId(id);
+  const onDragOver  = (id: string) => setDragOver(id);
+  const onDrop      = () => {
+    if (!dragId || !dragOver || dragId === dragOver) { setDragId(null); setDragOver(null); return; }
+    setToolbar(prev => {
+      const arr = [...prev];
+      const from = arr.findIndex(t=>t.id===dragId);
+      const to   = arr.findIndex(t=>t.id===dragOver);
+      const [item] = arr.splice(from,1);
+      arr.splice(to,0,item);
+      return arr;
+    });
+    setDragId(null); setDragOver(null);
+  };
+
+  /* ══════════════════════ RENDER ══════════════════════════════ */
+  const filteredTpls = TEMPLATES.filter(t =>
+    (tplCat==="All" || t.cat===tplCat) &&
+    (!tplSearch || t.name.toLowerCase().includes(tplSearch.toLowerCase()) || t.desc.toLowerCase().includes(tplSearch.toLowerCase()))
+  );
+  const tplCats = ["All", ...Array.from(new Set(TEMPLATES.map(t=>t.cat)))];
+  const filteredLib = library.filter(d => !libSearch || d.name.toLowerCase().includes(libSearch.toLowerCase()) || (d.category||"").toLowerCase().includes(libSearch.toLowerCase()));
+  const filteredRep = repRows.filter(r => {
+    const s = repFilter.toLowerCase();
+    return !s || repMod.cols.some(c => String(r[c.key]||"").toLowerCase().includes(s));
+  });
+
+  const TABS = [
+    { id:"writer",    label:"✏ Writer",     title:"Rich document editor" },
+    { id:"templates", label:"📋 Templates",  title:"Pre-built form templates" },
+    { id:"reports",   label:"📊 Reports",    title:"Live system reports" },
+    { id:"library",   label:"🗂 Library",    title:"Saved documents" },
+  ] as { id: Tab; label: string; title: string }[];
 
   return (
-    <div style={S.page}>
-      {/* - Header - */}
-      <div style={S.bar}>
-        <button onClick={() => navigate("/documents")} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.9)",cursor:"pointer",padding:0 }}>
-          <X style={{ width:18,height:18 }} />
-        </button>
-        <img src={logoImg} alt="" style={{ width:28,height:28,borderRadius:6,objectFit:"contain",background:"#e2e8f0",padding:2 }} />
-        <input value={meta.name} onChange={e=>setMeta(p=>({...p,name:e.target.value}))}
-          style={{ background:"#f8fafc",border:"none",color:"#fff",fontSize:15,fontWeight:600,outline:"none",flex:1,minWidth:200 }} />
-        <div style={{ display:"flex",gap:8,marginLeft:"auto" }}>
-          <button onClick={() => setShowTemplates(p=>!p)} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
-            <FileText style={{ width:13,height:13 }} /> Templates
-          </button>
-          <button onClick={() => setMode(m => m==="edit"?"preview":"edit")}
-            style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
-            {mode==="edit" ? <Eye style={{ width:13,height:13 }} /> : <Edit3 style={{ width:13,height:13 }} />}
-            {mode==="edit" ? "Preview" : "Edit"}
-          </button>
-          <button onClick={print} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
-            <Printer style={{ width:13,height:13 }} /> Print
-          </button>
-          <button onClick={downloadHTML} style={{ padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.3)",background:"#f1f5f9",color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:5 }}>
-            <Download style={{ width:13,height:13 }} /> Export
-          </button>
-          <button onClick={save} disabled={saving}
-            style={{ padding:"6px 14px",borderRadius:6,border:"none",background:"#C45911",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
-            <Save style={{ width:13,height:13 }} /> {saving ? "Saving-" : "Save"}
-          </button>
-        </div>
-      </div>
+    <div style={{ display:"flex", flexDirection:"column", height:"100vh", fontFamily:"Segoe UI,Tahoma,Arial,sans-serif", fontSize:12, background:C.gray3 }}>
 
-      {/* - Templates Panel - */}
-      {showTemplates && (
-        <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"12px 20px",display:"flex",gap:10,flexWrap:"wrap" as const,alignItems:"center" }}>
-          <span style={{ fontSize:12,fontWeight:700,color:"#374151",marginRight:4 }}>Choose template:</span>
-          {TEMPLATES.map(t => (
-            <button key={t.name} onClick={() => loadTemplate(t)}
-              style={{ padding:"5px 12px",borderRadius:16,border:"1px solid #d1d5db",background:"#f9fafb",cursor:"pointer",fontSize:12,color:"#374151" }}
-              onMouseEnter={e=>{e.currentTarget.style.background="#eff6ff";e.currentTarget.style.borderColor="#4f46e5"}}
-              onMouseLeave={e=>{e.currentTarget.style.background="#f9fafb";e.currentTarget.style.borderColor="#d1d5db"}}>
-              {t.name}
-            </button>
-          ))}
-          <button onClick={() => setShowTemplates(false)} style={{ marginLeft:"auto",padding:"4px 8px",border:"none",background:"none",cursor:"pointer",color:"#6b7280" }}>
-            <X style={{ width:14,height:14 }} />
-          </button>
-        </div>
-      )}
-
-      {/* - Toolbar (edit mode only) - */}
-      {mode === "edit" && (
-        <div style={S.tb}>
-          {/* Font family */}
-          <select value={fontFamily} onChange={e=>{setFontFamily(e.target.value);exec("fontName",e.target.value)}} style={{...S.inp,width:130}}>
-            {FONT_FAMILIES.map(f=><option key={f}>{f}</option>)}
-          </select>
-          {/* Font size */}
-          <select value={fontSize} onChange={e=>{setFontSize(e.target.value);exec("fontSize","3");if(editorRef.current){const sel=window.getSelection();if(sel&&sel.rangeCount>0){const range=sel.getRangeAt(0);const span=document.createElement("span");span.style.fontSize=e.target.value+"pt";try{range.surroundContents(span);}catch{}}}}} style={{...S.inp,width:60}}>
-            {FONT_SIZES.map(s=><option key={s}>{s}</option>)}
-          </select>
-          <div style={S.sep}/>
-          <TB icon={Bold} title="Bold" onClick={()=>exec("bold")} />
-          <TB icon={Italic} title="Italic" onClick={()=>exec("italic")} />
-          <TB icon={Underline} title="Underline" onClick={()=>exec("underline")} />
-          <div style={S.sep}/>
-          <TB icon={AlignLeft} title="Align Left" onClick={()=>exec("justifyLeft")} />
-          <TB icon={AlignCenter} title="Center" onClick={()=>exec("justifyCenter")} />
-          <TB icon={AlignRight} title="Right" onClick={()=>exec("justifyRight")} />
-          <TB icon={AlignJustify} title="Justify" onClick={()=>exec("justifyFull")} />
-          <div style={S.sep}/>
-          <TB icon={List} title="Bullet List" onClick={()=>exec("insertUnorderedList")} />
-          <TB icon={ListOrdered} title="Numbered List" onClick={()=>exec("insertOrderedList")} />
-          <div style={S.sep}/>
-          <TB icon={Undo} title="Undo" onClick={()=>exec("undo")} />
-          <TB icon={Redo} title="Redo" onClick={()=>exec("redo")} />
-          <div style={S.sep}/>
-          <TB icon={Table} title="Insert Table" onClick={insertTable} />
-          <div style={S.sep}/>
-          {/* Heading buttons */}
-          {["H1","H2","H3"].map(h=>(
-            <button key={h} title={h} onClick={()=>exec("formatBlock",`<${h.toLowerCase()}>`)}
-              style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"#f8fafc",fontSize:11,fontWeight:700,color:"#374151" }}>
-              {h}
-            </button>
-          ))}
-          <button title="Paragraph" onClick={()=>exec("formatBlock","<p>")}
-            style={{ padding:"2px 7px",border:"none",borderRadius:3,cursor:"pointer",background:"#f8fafc",fontSize:11,color:"#374151" }}>P</button>
-          <div style={S.sep}/>
-          {/* Text color */}
-          <input type="color" title="Text Color" defaultValue="#000000"
-            onChange={e=>exec("foreColor",e.target.value)}
-            style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",padding:1 }} />
-          {/* Highlight */}
-          <input type="color" title="Highlight" defaultValue="#ffff00"
-            onChange={e=>exec("hiliteColor",e.target.value)}
-            style={{ width:28,height:24,border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",padding:1 }} />
-          <div style={S.sep}/>
-          <button title="Clear Formatting" onClick={()=>exec("removeFormat")}
-            style={{ padding:"3px 7px",border:"1px solid #d1d5db",borderRadius:3,cursor:"pointer",fontSize:11,background:"#f8fafc" }}>
-            Clear
-          </button>
-        </div>
-      )}
-
-      {/* - Document Metadata Bar - */}
-      <div style={{ background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"4px 16px",display:"flex",alignItems:"center",gap:12,fontSize:12,color:"#6b7280" }}>
-        <span>Category:</span>
-        <select value={meta.category} onChange={e=>setMeta(p=>({...p,category:e.target.value}))} style={{...S.inp,padding:"2px 6px",fontSize:11}}>
-          {["General","Memo","Letter","Report","Minutes","RFQ","Contract","Policy","Template","Other"].map(c=><option key={c}>{c}</option>)}
+      {/* ══ TOP RIBBON ═══════════════════════════════════════════ */}
+      <div style={{ background:C.ribbon, padding:"6px 12px", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", boxShadow:"0 2px 6px rgba(0,0,0,0.4)" }}>
+        <div style={{ color:"#fff", fontWeight:700, fontSize:13, marginRight:8 }}>📄 Document Studio</div>
+        <input value={docName} onChange={e=>setDocName(e.target.value)}
+          style={{ ...S.inp, background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", width:240, fontWeight:600, fontSize:12 }}
+          placeholder="Document name…" />
+        <select value={docCat} onChange={e=>setDocCat(e.target.value)} style={{ ...S.inp, background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>
+          {["General","Official","Procurement","Finance","HR","Report","Memo","Letter","Minutes","Other"].map(c=><option key={c} value={c}>{c}</option>)}
         </select>
-        <label style={{ display:"flex",alignItems:"center",gap:5 }}>
-          <input type="checkbox" checked={meta.is_template} onChange={e=>setMeta(p=>({...p,is_template:e.target.checked}))} />
-          Save as template
+        <label style={{ color:"rgba(255,255,255,0.85)", fontSize:11, display:"flex", alignItems:"center", gap:4 }}>
+          <input type="checkbox" checked={docIsTemplate} onChange={e=>setDocIT(e.target.checked)} /> Template
         </label>
-        <span style={{ marginLeft:"auto" }}>
-          {mode==="edit" ? "- Editing" : "- Preview"} | {hospitalName}
-        </span>
+        <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
+          <button onClick={saveDoc} disabled={saving} style={{ ...S.btn(false), background:C.green3, color:C.green, border:"1px solid #166534", fontWeight:700 }}>
+            {saving?"⏳ Saving…":"💾 Save"}
+          </button>
+          <button onClick={printDoc} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>🖨 Print</button>
+          <button onClick={exportPDF} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>📤 PDF</button>
+          <button onClick={()=>navigate("/documents")} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>✕ Close</button>
+        </div>
       </div>
 
-      {/* - Editor Area - */}
-      <div style={{ flex:1,padding:"20px",overflowY:"auto" }}>
-        {mode === "edit" ? (
-          <div style={S.paper}>
-            {/* Letterhead */}
-            <div style={{ display:"flex",alignItems:"center",gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
-              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" }} />
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:16,fontWeight:900,color:"#1a3a6b" }}>{hospitalName}</div>
-                <div style={{ fontSize:11,color:"#6b7280" }}>{countyName}</div>
-              </div>
-              <div style={{ textAlign:"right",fontSize:10,color:"#9ca3af" }}>
-                <div>{new Date().toLocaleDateString("en-KE",{day:"2-digit",month:"long",year:"numeric"})}</div>
-                <div style={{ fontStyle:"italic" as const }}>{meta.category} Document</div>
-              </div>
-            </div>
-            {/* Editable content */}
-            <div ref={editorRef} contentEditable suppressContentEditableWarning
-              style={{ outline:"none",minHeight:600,fontFamily,fontSize:`${fontSize}pt`,lineHeight:1.8,color:"#111" }}
-              onPaste={e=>{e.preventDefault();const text=e.clipboardData.getData("text/html")||e.clipboardData.getData("text/plain");exec("insertHTML",text);}} />
-          </div>
-        ) : (
-          <div style={S.paper}>
-            <div style={{ display:"flex",alignItems:"center",gap:14,borderBottom:"3px solid #1a3a6b",paddingBottom:12,marginBottom:20 }}>
-              <img src={logoImg} alt="EL5H" style={{ width:56,height:56,objectFit:"contain" }} />
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:16,fontWeight:900,color:"#1a3a6b" }}>{hospitalName}</div>
-                <div style={{ fontSize:11,color:"#6b7280" }}>{countyName}</div>
-              </div>
-            </div>
-            <div style={{ fontFamily,fontSize:`${fontSize}pt`,lineHeight:1.8,color:"#111" }}
-              dangerouslySetInnerHTML={{ __html: editorRef.current?.innerHTML || "" }} />
-          </div>
-        )}
+      {/* ══ TAB BAR ═══════════════════════════════════════════════ */}
+      <div style={{ display:"flex", background:C.blue, borderBottom:"2px solid #0f2550" }}>
+        {TABS.map(t => (
+          <button key={t.id} title={t.title} onClick={()=>setTab(t.id as Tab)}
+            style={{ padding:"7px 18px", border:"none", cursor:"pointer", fontSize:12, fontWeight:tab===t.id?700:400,
+              background:tab===t.id?C.white:"transparent", color:tab===t.id?C.blue:"rgba(255,255,255,0.85)",
+              borderRight:"1px solid rgba(255,255,255,0.15)", borderRadius:tab===t.id?"4px 4px 0 0":0,
+              marginBottom:tab===t.id?-2:0 }}>
+            {t.label}
+          </button>
+        ))}
       </div>
+
+      {/* ══════════ WRITER TAB ════════════════════════════════════ */}
+      {tab==="writer" && (
+        <div style={{ display:"flex", flexDirection:"column", flex:1, overflow:"hidden" }}>
+
+          {/* Formatting toolbar */}
+          <div style={{ background:C.toolbar, borderBottom:`1px solid ${C.border}`, padding:"3px 6px", display:"flex", flexWrap:"wrap", gap:2, alignItems:"center" }}>
+
+            {/* Font family */}
+            <select value={fontFamily} onChange={e=>{setFontFamily(e.target.value);exec("fontName",e.target.value);}}
+              style={{ ...S.inp, width:150, fontSize:11 }}>
+              {["Times New Roman,serif","Arial,sans-serif","Calibri,sans-serif","Georgia,serif","Verdana,sans-serif","Courier New,monospace","Cambria,serif"].map(f=>
+                <option key={f} value={f}>{f.split(",")[0]}</option>
+              )}
+            </select>
+            <select value={fontSize} onChange={e=>{setFontSize(e.target.value);exec("fontSize","3");
+              const sel=document.getSelection();if(sel&&sel.rangeCount){const r=sel.getRangeAt(0);const span=document.createElement("span");span.style.fontSize=e.target.value+"pt";try{r.surroundContents(span);}catch{}}}}
+              style={{ ...S.inp, width:55, fontSize:11 }}>
+              {["8","9","10","11","12","14","16","18","20","24","28","32","36","48","72"].map(s=>
+                <option key={s} value={s}>{s}</option>
+              )}
+            </select>
+
+            <div style={{ width:1, background:C.border, height:20, margin:"0 4px" }}/>
+
+            {/* Draggable buttons */}
+            {toolbar.filter(t=>toolbarVis.has(t.id)).map(btn=>(
+              <div key={btn.id} draggable
+                onDragStart={()=>onDragStart(btn.id)}
+                onDragOver={e=>{e.preventDefault();onDragOver(btn.id);}}
+                onDrop={onDrop}
+                style={{ opacity: dragOver===btn.id?0.4:1 }}>
+                <button title={btn.label} onClick={()=>handleTB(btn)}
+                  style={{ padding:"3px 6px", border:`1px solid ${C.border}`, borderRadius:3,
+                    cursor:"grab", background:C.white, color:C.gray, fontSize:11,
+                    fontWeight:["bold","italic"].includes(btn.id)?"bold":"normal",
+                    fontStyle:btn.id==="italic"?"italic":"normal",
+                    textDecoration:btn.id==="underline"?"underline":"none",
+                    minWidth:26, textAlign:"center" }}>
+                  {btn.icon}
+                </button>
+              </div>
+            ))}
+
+            <div style={{ width:1, background:C.border, height:20, margin:"0 4px" }}/>
+            <button title="Customise toolbar" onClick={()=>setShowTBE(p=>!p)}
+              style={{ ...S.btn(showTBEditor), fontSize:10 }}>⚙ Toolbar</button>
+
+            {/* Insert section */}
+            <div style={{ width:1, background:C.border, height:20, margin:"0 4px" }}/>
+            <button onClick={insertTable} style={{ ...S.btn(), fontSize:10 }}>⊞ Table</button>
+            <button onClick={()=>{const s=prompt("Rows:","3");const c=prompt("Cols:","3");if(!s||!c)return;const r=parseInt(s),cl=parseInt(c);let html=`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr>${Array(cl).fill(0).map((_,i)=>`<th style="border:1px solid #999;padding:6px;background:#1a3a6b;color:#fff">Col ${i+1}</th>`).join("")}</tr>`;for(let i=0;i<r;i++)html+=`<tr>${Array(cl).fill(0).map(()=>`<td style="border:1px solid #ddd;padding:6px">&nbsp;</td>`).join("")}</tr>`;html+="</table>";exec("insertHTML",html);}} style={{ ...S.btn(), fontSize:10 }}>⊞ Custom Table</button>
+            <button onClick={()=>{const today=new Date().toLocaleDateString("en-KE");exec("insertHTML",`<span>${today}</span>`);}} style={{ ...S.btn(), fontSize:10 }}>📅 Date</button>
+            <button onClick={()=>{exec("insertHTML","<hr style='border:none;border-top:2px solid #1a3a6b;margin:12px 0'/>");}} style={{ ...S.btn(), fontSize:10 }}>─ Rule</button>
+            <button onClick={()=>{exec("insertHTML","<div style='display:flex;justify-content:space-between;margin-top:30px;gap:20px'><div style='flex:1'><div style='border-top:1px solid #333;padding-top:4px'>Signature / Name</div></div><div style='flex:1'><div style='border-top:1px solid #333;padding-top:4px'>Designation / Date</div></div></div>");}} style={{ ...S.btn(), fontSize:10 }}>✍ Sig Block</button>
+          </div>
+
+          {/* Toolbar editor panel */}
+          {showTBEditor && (
+            <div style={{ background:"#fefce8", border:`1px solid ${C.border}`, borderTop:"none", padding:"8px 12px", display:"flex", flexWrap:"wrap", gap:6, alignItems:"center", maxHeight:120, overflowY:"auto" }}>
+              <span style={{ fontSize:11, fontWeight:700, color:C.gray }}>Toggle buttons (drag toolbar buttons above to reorder):</span>
+              {DEFAULT_TOOLBAR.map(btn=>(
+                <label key={btn.id} style={{ display:"flex", alignItems:"center", gap:3, fontSize:11, cursor:"pointer" }}>
+                  <input type="checkbox" checked={toolbarVis.has(btn.id)}
+                    onChange={e=>{setTBVis(prev=>{const s=new Set(prev);e.target.checked?s.add(btn.id):s.delete(btn.id);return s;});}}/>
+                  {btn.label}
+                </label>
+              ))}
+              <button onClick={()=>{setToolbar(DEFAULT_TOOLBAR);setTBVis(new Set(DEFAULT_TOOLBAR.map(t=>t.id)));}} style={{ ...S.btn(), fontSize:10, marginLeft:"auto" }}>↺ Reset</button>
+            </div>
+          )}
+
+          {/* Editor area */}
+          <div style={{ flex:1, overflowY:"auto", background:"#d5d8dc", padding:"20px", display:"flex", justifyContent:"center" }}>
+            <div style={{ background:"#fff", width:"210mm", minHeight:"297mm", padding:"20mm 25mm", boxShadow:"0 4px 20px rgba(0,0,0,0.3)", position:"relative" }}>
+              <div ref={editorRef} contentEditable
+                suppressContentEditableWarning
+                onInput={updateCounts}
+                onKeyUp={updateCounts}
+                style={{ outline:"none", minHeight:"240mm", fontFamily:fontFamily, fontSize:fontSize+"pt", lineHeight:1.6, color:"#111" }}
+              />
+            </div>
+          </div>
+
+          {/* Status bar */}
+          <div style={{ background:C.toolbar, borderTop:`1px solid ${C.border}`, padding:"3px 12px", display:"flex", gap:16, fontSize:10, color:C.gray2 }}>
+            <span>Words: <strong>{wordCount}</strong></span>
+            <span>Characters: <strong>{charCount}</strong></span>
+            <span>Document: <strong>{docName}</strong></span>
+            <span>Category: <strong>{docCat}</strong></span>
+            {docId && <span>ID: <strong>{docId.slice(0,8)}…</strong></span>}
+            <span style={{ marginLeft:"auto" }}>{new Date().toLocaleString("en-KE")}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ TEMPLATES TAB ════════════════════════════════ */}
+      {tab==="templates" && (
+        <div style={{ flex:1, overflowY:"auto", padding:16 }}>
+          <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap", alignItems:"center" }}>
+            <input value={tplSearch} onChange={e=>setTplSearch(e.target.value)} placeholder="🔍 Search templates…"
+              style={{ ...S.inp, width:240 }} />
+            <span style={{ fontSize:11, color:C.gray2 }}>Category:</span>
+            {tplCats.map(c=>(
+              <button key={c} onClick={()=>setTplCat(c)}
+                style={{ ...S.btn(tplCat===c), fontSize:11 }}>{c}</button>
+            ))}
+            <span style={{ marginLeft:"auto", fontSize:11, color:C.gray2 }}>{filteredTpls.length} templates</span>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:12 }}>
+            {filteredTpls.map(t=>(
+              <div key={t.id} style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:4, overflow:"hidden", boxShadow:"0 1px 4px rgba(0,0,0,0.08)" }}>
+                <div style={{ background:C.blue, color:"#fff", padding:"8px 12px", display:"flex", alignItems:"center", gap:8 }}>
+                  <span style={{ fontSize:18 }}>{t.icon}</span>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:12 }}>{t.name}</div>
+                    <div style={{ fontSize:10, opacity:.8 }}>{t.cat}</div>
+                  </div>
+                </div>
+                <div style={{ padding:12 }}>
+                  <div style={{ fontSize:11, color:C.gray2, marginBottom:10, minHeight:36 }}>{t.desc}</div>
+                  {/* Mini preview */}
+                  <div style={{ border:`1px solid ${C.border}`, borderRadius:2, padding:6, marginBottom:10, maxHeight:80, overflow:"hidden", fontSize:8, lineHeight:1.4, color:"#555", background:C.gray3 }}
+                    dangerouslySetInnerHTML={{ __html: t.body.replace(/<[^>]+>/g," ").slice(0,400) }}/>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <button onClick={()=>{
+                      if(editorRef.current) editorRef.current.innerHTML = t.body;
+                      setDocName(t.name); setDocCat(t.cat==="Government Forms"?"Report":t.cat);
+                      updateCounts(); setTab("writer");
+                      toast({title:`✓ Template loaded: ${t.name}`});
+                    }} style={{ ...S.btn(true), flex:1, justifyContent:"center", fontSize:11 }}>
+                      ✏ Open in Writer
+                    </button>
+                    <button onClick={()=>{
+                      const win=window.open("","_blank","width=900,height=700");
+                      if(!win)return;
+                      win.document.write(`<!DOCTYPE html><html><head><title>${t.name}</title><style>@page{margin:2cm}body{font-family:Times New Roman,serif;font-size:12pt;padding:20px}</style></head><body>${t.body}<script>window.onload=()=>{window.print();window.close();}</script></body></html>`);
+                      win.document.close();
+                    }} style={{ ...S.btn(), fontSize:11 }}>🖨</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ REPORTS TAB ══════════════════════════════════ */}
+      {tab==="reports" && (
+        <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+          {/* Module sidebar */}
+          <div style={{ width:180, background:C.blue, overflowY:"auto", flexShrink:0 }}>
+            <div style={{ padding:"8px 12px", color:"rgba(255,255,255,0.6)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".08em" }}>Modules</div>
+            {REPORT_MODS.map(m=>(
+              <button key={m.id} onClick={()=>loadReport(m)}
+                style={{ width:"100%", textAlign:"left", padding:"8px 14px", border:"none", cursor:"pointer",
+                  background:repMod.id===m.id?"rgba(255,255,255,0.2)":"transparent",
+                  color:"#fff", fontSize:11, borderLeft:repMod.id===m.id?"3px solid #fff":"3px solid transparent",
+                  display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ fontSize:14 }}>{m.icon}</span>{m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Report content */}
+          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+            {/* Report toolbar */}
+            <div style={{ background:C.toolbar, borderBottom:`1px solid ${C.border}`, padding:"6px 10px", display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+              <span style={{ fontWeight:700, fontSize:12 }}>{repMod.icon} {repMod.label}</span>
+              <div style={{ width:1, background:C.border, height:20, margin:"0 4px" }}/>
+              <input value={repFilter} onChange={e=>setRepFilter(e.target.value)} placeholder="🔍 Search…"
+                style={{ ...S.inp, width:180 }}/>
+              <select value={repStatus} onChange={e=>setRepStatus(e.target.value)} style={S.inp}>
+                {["ALL","draft","pending","approved","active","paid","closed","rejected"].map(s=><option key={s}>{s}</option>)}
+              </select>
+              <input type="date" value={repDateFrom} onChange={e=>setRepDF(e.target.value)} style={{ ...S.inp, width:130 }}/>
+              <input type="date" value={repDateTo}   onChange={e=>setRepDT(e.target.value)} style={{ ...S.inp, width:130 }}/>
+              <button onClick={()=>loadReport(repMod)} style={{ ...S.btn(true), fontSize:11 }}>🔄 Load</button>
+              <button onClick={printReport} disabled={!filteredRep.length} style={{ ...S.btn(), fontSize:11 }}>🖨 Print PDF</button>
+              <button onClick={pasteReportToEditor} disabled={!filteredRep.length} style={{ ...S.btn(), fontSize:11 }}>📋 Insert to Writer</button>
+              <button onClick={()=>{
+                const csv=[repMod.cols.map(c=>c.label).join(","),...filteredRep.map(r=>repMod.cols.map(c=>`"${c.fmt?c.fmt(r[c.key],r):String(r[c.key]||"")}"`).join(","))].join("\n");
+                const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=`${repMod.label}-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+              }} disabled={!filteredRep.length} style={{ ...S.btn(), fontSize:11 }}>📤 CSV</button>
+              <span style={{ marginLeft:"auto", fontSize:11, color:C.gray2 }}>
+                {repLoading?"⏳ Loading…":`${filteredRep.length} / ${repRows.length} records`}
+              </span>
+            </div>
+
+            {/* Report grid */}
+            <div style={{ flex:1, overflowX:"auto", overflowY:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+                <thead>
+                  <tr>{repMod.cols.map(c=>(
+                    <th key={c.key} style={S.th}>{c.label}</th>
+                  ))}</tr>
+                </thead>
+                <tbody>
+                  {repLoading && <tr><td colSpan={repMod.cols.length} style={{ ...S.td, textAlign:"center", padding:20, color:C.gray2 }}>⏳ Loading {repMod.label}…</td></tr>}
+                  {!repLoading && filteredRep.length===0 && <tr><td colSpan={repMod.cols.length} style={{ ...S.td, textAlign:"center", padding:20, color:C.gray2 }}>No records found</td></tr>}
+                  {filteredRep.map((row,i)=>(
+                    <tr key={row.id||i} style={{ background:i%2===0?C.white:"#f8fafc" }}
+                      onMouseEnter={e=>(e.currentTarget.style.background=C.blue3)}
+                      onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?C.white:"#f8fafc")}>
+                      {repMod.cols.map(c=>(
+                        <td key={c.key} style={{ ...S.td, maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                          {c.fmt ? c.fmt(row[c.key],row) : String(row[c.key]||"—")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Summary bar */}
+            {filteredRep.length>0 && (
+              <div style={{ background:"#f0fdf4", borderTop:`1px solid ${C.border}`, padding:"4px 10px", fontSize:10, color:C.gray2, display:"flex", gap:12 }}>
+                <span>Total records: <strong>{filteredRep.length}</strong></span>
+                {repMod.cols.find(c=>c.key.includes("amount")||c.key.includes("value")||c.key.includes("price")||c.key.includes("budget")) && (
+                  <span>Total amount: <strong>{FMT_KES(filteredRep.reduce((a,r)=>a+(r[repMod.cols.find(c=>c.key.includes("amount")||c.key.includes("value")||c.key.includes("price"))?.key||""]||0),0))}</strong></span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ LIBRARY TAB ══════════════════════════════════ */}
+      {tab==="library" && (
+        <div style={{ flex:1, overflowY:"auto", padding:12 }}>
+          <div style={{ display:"flex", gap:8, marginBottom:12, alignItems:"center" }}>
+            <input value={libSearch} onChange={e=>setLibSearch(e.target.value)}
+              placeholder="🔍 Search library…" style={{ ...S.inp, width:260 }}/>
+            <button onClick={loadLibrary} style={{ ...S.btn(), fontSize:11 }}>🔄 Refresh</button>
+            <button onClick={()=>{setDocId(null);setDocName("Untitled Document");setDocCat("General");if(editorRef.current)editorRef.current.innerHTML="";setTab("writer");}} style={{ ...S.btn(true), fontSize:11 }}>➕ New Document</button>
+            <span style={{ marginLeft:"auto", fontSize:11, color:C.gray2 }}>{filteredLib.length} documents</span>
+          </div>
+          {libLoading && <div style={{ textAlign:"center", padding:40, color:C.gray2 }}>⏳ Loading library…</div>}
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+            <thead>
+              <tr>
+                {["Name","Category","Template","Size","Saved By","Date","Actions"].map(h=>(
+                  <th key={h} style={S.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLib.length===0 && !libLoading && (
+                <tr><td colSpan={7} style={{ ...S.td, textAlign:"center", padding:24, color:C.gray2 }}>No documents saved yet. Start writing in the Writer tab and save your work.</td></tr>
+              )}
+              {filteredLib.map((doc,i)=>(
+                <tr key={doc.id} style={{ background:i%2===0?C.white:"#f8fafc" }}
+                  onMouseEnter={e=>(e.currentTarget.style.background=C.blue3)}
+                  onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?C.white:"#f8fafc")}>
+                  <td style={{ ...S.td, fontWeight:600, color:C.blue2 }}>{doc.name}</td>
+                  <td style={S.td}>{doc.category||"General"}</td>
+                  <td style={S.td}>{doc.is_template?<span style={{ background:C.blue3,color:C.blue2,padding:"1px 6px",borderRadius:10,fontSize:10,fontWeight:700 }}>Template</span>:"—"}</td>
+                  <td style={S.td}>{doc.file_size?`${Math.round(doc.file_size/1024)} KB`:"—"}</td>
+                  <td style={S.td}>{doc.created_by?.slice(0,8)||"—"}</td>
+                  <td style={S.td}>{FMT_DT(doc.created_at)}</td>
+                  <td style={{ ...S.td, whiteSpace:"nowrap" }}>
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button onClick={()=>{loadDoc(doc.id);setTab("writer");}} style={{ ...S.btn(true), fontSize:10, padding:"2px 6px" }}>✏ Open</button>
+                      <button onClick={()=>{
+                        const win=window.open("","_blank","width=900,height=700");
+                        if(!win)return;
+                        win.document.write(`<!DOCTYPE html><html><head><title>${doc.name}</title><style>@page{margin:2cm}body{font-family:Times New Roman,serif;padding:20px}</style></head><body><div style="text-align:center;border-bottom:3px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px"><div style="font-size:8pt;color:#555">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU</div><div style="font-size:15pt;font-weight:bold;color:#1a3a6b">EMBU LEVEL 5 HOSPITAL</div></div>${doc.template_html||""}<script>window.onload=()=>{window.print();window.close();}</script></body></html>`);
+                        win.document.close();
+                      }} style={{ ...S.btn(), fontSize:10, padding:"2px 6px" }}>🖨</button>
+                      <button onClick={async()=>{if(!confirm(`Delete "${doc.name}"?`))return;await db.from("documents").delete().eq("id",doc.id);loadLibrary();toast({title:"✓ Deleted"});}} style={{ ...S.btn(), fontSize:10, padding:"2px 6px", color:C.red }}>🗑</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
-
