@@ -91,11 +91,37 @@ export default {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // Button ripple
+        "ripple": {
+          "0%":   { transform: "scale(1)",   opacity: "0.6" },
+          "100%": { transform: "scale(28)",  opacity: "0" },
+        },
+        // Subtle shimmer for loading states
+        "shimmer": {
+          "0%":   { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        // Bounce in for success toasts
+        "bounce-in": {
+          "0%":   { transform: "scale(0.85)", opacity: "0" },
+          "60%":  { transform: "scale(1.05)", opacity: "1" },
+          "100%": { transform: "scale(1)",    opacity: "1" },
+        },
+        // Pulse ring for notifications
+        "pulse-ring": {
+          "0%":   { transform: "scale(0.95)", boxShadow: "0 0 0 0 rgba(10,37,88,0.4)" },
+          "70%":  { transform: "scale(1)",    boxShadow: "0 0 0 8px rgba(10,37,88,0)" },
+          "100%": { transform: "scale(0.95)", boxShadow: "0 0 0 0 rgba(10,37,88,0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.3s ease-out",
+        "accordion-up":   "accordion-up 0.2s ease-out",
+        "fade-in":        "fade-in 0.3s ease-out",
+        "ripple":         "ripple 0.6s linear forwards",
+        "shimmer":        "shimmer 1.5s infinite linear",
+        "bounce-in":      "bounce-in 0.35s ease-out",
+        "pulse-ring":     "pulse-ring 1.5s cubic-bezier(0.215,0.61,0.355,1) infinite",
       },
     },
   },

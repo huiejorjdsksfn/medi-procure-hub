@@ -728,4 +728,3 @@ export default function ODBCPage() {
     </div>
   );
 }
-import type React from "react";

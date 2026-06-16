@@ -10,6 +10,7 @@
  *  3. Intercept any <a href="..."> clicks that aren't hash-based
  *  4. Expose a useHashNav() hook so components can navigate safely
  */
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -34,6 +35,8 @@ export const APP_ROUTES = [
   "/hmis", "/hmis/sync", "/hmis/mapping", "/hmis/logs",
   "/whatsapp",
   "/ai-agent",
+  "/admin/tracker",
+  "/admin/ip-audit",
 ];
 
 /**
