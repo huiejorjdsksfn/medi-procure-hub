@@ -6,12 +6,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, Mail, RefreshCw, Shield, Building2 } from "lucide-react";
-
-// Assets — graceful fallback if missing
-let BG = ""; let LOGO = "";
-try { BG   = new URL("../assets/procurement-bg.jpg", import.meta.url).href;  } catch {}
-try { LOGO = new URL("../assets/embu-county-logo.jpg", import.meta.url).href; } catch {}
+import { Eye, EyeOff, Lock, Mail, RefreshCw, Shield } from "lucide-react";
+import bgImg   from "@/assets/procurement-bg.jpg";
+import logoImg from "@/assets/embu-county-logo.jpg";
 
 const BLUE  = "#0e2a4a";
 const TEAL  = "#0e7490";
@@ -59,10 +56,9 @@ export default function LoginPage() {
 
   const s: Record<string, React.CSSProperties> = {
     root: { position:"fixed", inset:0, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", overflow:"hidden" },
-    bg:   { position:"absolute", inset:0, backgroundImage:BG?`url(${BG})`:"none",
+    bg:   { position:"absolute", inset:0, backgroundImage:`url(${bgImg})`,
             backgroundSize:"cover", backgroundPosition:"center 40%",
-            filter:"brightness(0.78) saturate(1.2)",
-            background: BG ? undefined : "linear-gradient(135deg,#001830 0%,#003060 50%,#001830 100%)" },
+            filter:"brightness(0.78) saturate(1.2)" },
     ov:   { position:"absolute", inset:0,
             background:"linear-gradient(135deg,rgba(0,14,35,.65) 0%,rgba(0,0,0,.18) 50%,rgba(0,20,50,.70) 100%)" },
     wrap: { position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
@@ -112,10 +108,7 @@ export default function LoginPage() {
         <div style={s.card}>
           {/* Logo */}
           <div style={s.logo}>
-            {LOGO && <img src={LOGO} alt="EL5H" style={s.logoImg} onError={e=>{(e.target as HTMLImageElement).style.display="none"}}/>}
-            {!LOGO && <div style={{...s.logoImg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <Building2 size={22} color={TEAL}/>
-            </div>}
+            <img src={logoImg} alt="EL5H" style={s.logoImg} onError={e=>{(e.target as HTMLImageElement).style.display="none"}}/>
             <div>
               <div style={s.name}>EL5 MediProcure</div>
             </div>
