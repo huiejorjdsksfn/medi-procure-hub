@@ -1109,5 +1109,3 @@ export default function AdminPanelPage() {
     </div>
   );
 }
-
-import type React from "react";
