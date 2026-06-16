@@ -132,6 +132,7 @@ export default function DashboardPage() {
     {icon:"👥",label:"Users",path:"/users",roles:["admin","superadmin","webmaster","database_admin"]},
     {icon:"⚙️",label:"Settings",path:"/settings",roles:["admin","superadmin","webmaster"]},
     {icon:"🔑",label:"Audit Log",path:"/audit-log",roles:["admin","procurement_manager","accountant","finance_manager"]},
+    {icon:"🔐",label:"Tracker",path:"/admin/tracker",roles:["admin","superadmin","webmaster"]},
   ].filter(i=>!i.roles.length||i.roles.some(r=>roles.includes(r)));
 
   return (
