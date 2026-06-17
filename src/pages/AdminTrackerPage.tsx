@@ -1,15 +1,18 @@
 /**
- * EL5 MediProcure — Admin Security Tracker v2.0
+ * EL5 MediProcure — Admin Security Tracker v2.1
  * ADMIN-ONLY · /admin/tracker
  *
  * Tabs:
- *  🔑 Password Vault   — real passwords, blur/reveal, export, delete
  *  🖥 Device Tracker   — OS · browser · screen · timezone · language
  *  🌍 Geo / Location   — IP geolocation · city · ISP · lat/lng · map link
  *  🟢 Live Sessions    — active sessions · kill · force-logout
  *  📡 Real-Time Feed   — live Supabase realtime event console
  *  📋 Access Log       — denied attempts, login/logout, resource access
  *  💾 Session Cache    — inspect & clear cached page states per user
+ *
+ * SECURITY FIX v2.1: removed Password Vault tab — it displayed real
+ * user passwords in plaintext. Credential capture has been fully
+ * decommissioned (see passwordVault.ts).
  *
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -19,12 +22,11 @@ import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { MobileTable } from "@/components/MobileTable";
-import { getAllVaultEntries, deleteVaultEntry, clearVault, type VaultEntry } from "@/lib/passwordVault";
 import { getAllDeviceSessions } from "@/lib/deviceTracker";
 
 const db = supabase as any;
 
-type Tab = "vault" | "devices" | "geo" | "sessions" | "realtime" | "access_log" | "cache";
+type Tab = "devices" | "geo" | "sessions" | "realtime" | "access_log" | "cache";
 
 function fmtDT(s: string) {
   if (!s) return "—";
@@ -40,21 +42,6 @@ function ago(s: string) {
 }
 
 function SC({ s }: { s: string }) { return <span style={erpStyles.statusChip(s)}>{s}</span>; }
-
-function pwdStrength(pwd: string): { label: string; color: string; score: number } {
-  if (!pwd) return { label: "empty", color: "#aaa", score: 0 };
-  let score = 0;
-  if (pwd.length >= 8)  score++;
-  if (pwd.length >= 12) score++;
-  if (/[A-Z]/.test(pwd)) score++;
-  if (/[0-9]/.test(pwd)) score++;
-  if (/[^A-Za-z0-9]/.test(pwd)) score++;
-  if (score <= 1) return { label: "very weak", color: "#ef4444", score };
-  if (score === 2) return { label: "weak",      color: "#f97316", score };
-  if (score === 3) return { label: "fair",       color: "#f59e0b", score };
-  if (score === 4) return { label: "strong",     color: "#22c55e", score };
-  return             { label: "very strong",  color: "#10b981", score };
-}
 
 interface AccessLog {
   id: string; user_email?: string; action: string; ip_address?: string;
@@ -84,7 +71,6 @@ function getCacheEntries(): CacheEntry[] {
 }
 
 const TABS: { id: Tab; label: string; icon: string; col: string }[] = [
-  { id: "vault",      label: "Password Vault",   icon: "🔑", col: "#7c3aed" },
   { id: "devices",    label: "Device Tracker",   icon: "🖥", col: "#1d4ed8" },
   { id: "geo",        label: "Geo / Location",   icon: "🌍", col: "#059669" },
   { id: "sessions",   label: "Live Sessions",    icon: "🟢", col: "#16a34a" },
@@ -95,18 +81,14 @@ const TABS: { id: Tab; label: string; icon: string; col: string }[] = [
 
 export default function AdminTrackerPage() {
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState<Tab>("vault");
-  const [vault,     setVault]     = useState<VaultEntry[]>([]);
+  const [tab, setTab] = useState<Tab>("devices");
   const [devices,   setDevices]   = useState<any[]>([]);
   const [sessions,  setSessions]  = useState<any[]>([]);
   const [accessLog, setAccessLog] = useState<AccessLog[]>([]);
   const [loading,   setLoading]   = useState(true);
-  const [revealPwd, setRevealPwd] = useState<Record<string, boolean>>({});
-  const [searchVault,  setSearchVault]  = useState("");
   const [searchDev,    setSearchDev]    = useState("");
   const [searchGeo,    setSearchGeo]    = useState("");
   const [searchLog,    setSearchLog]    = useState("");
-  const [vaultLoading, setVaultLoading] = useState(false);
   const [rtLines, setRtLines] = useState<string[]>(["📡 Connecting to realtime…"]);
   const [rtActive, setRtActive] = useState(false);
   const [cacheEntries, setCacheEntries] = useState<CacheEntry[]>([]);
@@ -116,13 +98,11 @@ export default function AdminTrackerPage() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [vaultRes, devRes, sessRes, logRes] = await Promise.allSettled([
-      getAllVaultEntries(),
+    const [devRes, sessRes, logRes] = await Promise.allSettled([
       getAllDeviceSessions(),
       db.from("user_sessions").select("*").order("last_activity", { ascending: false }).limit(150),
       db.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
-    if (vaultRes.status === "fulfilled") setVault(vaultRes.value);
     if (devRes.status   === "fulfilled") setDevices(devRes.value);
     if (sessRes.status  === "fulfilled") setSessions(sessRes.value.data || []);
     if (logRes.status   === "fulfilled") setAccessLog(logRes.value.data || []);
@@ -180,22 +160,6 @@ export default function AdminTrackerPage() {
     else toast({ title: "Error: " + error.message, variant: "destructive" });
   }
 
-  async function deleteEntry(email: string) {
-    if (!window.confirm(`Delete vault entry for ${email}?`)) return;
-    await deleteVaultEntry(email);
-    toast({ title: "✓ Entry deleted" });
-    loadAll();
-  }
-
-  async function nukeVault() {
-    if (!window.confirm("CLEAR ENTIRE PASSWORD VAULT? This cannot be undone.")) return;
-    setVaultLoading(true);
-    await clearVault();
-    setVaultLoading(false);
-    toast({ title: "✓ Vault cleared" });
-    loadAll();
-  }
-
   function clearCacheEntry(key: string) {
     try {
       if (key.startsWith("[LS]")) localStorage.removeItem(key.replace("[LS]",""));
@@ -217,15 +181,6 @@ export default function AdminTrackerPage() {
     } catch (_e) { /* ignore */ }
   }
 
-  function exportVault() {
-    const rows = ["Email,Password,Source,Strength,Captured",
-      ...vault.map(v => { const s = pwdStrength(v.password); return `"${v.email}","${v.password}","${v.source}","${s.label}","${v.capturedAt}"`; })];
-    const b = new Blob([rows.join("\n")], { type: "text/csv" });
-    const u = URL.createObjectURL(b); const a = document.createElement("a");
-    a.href = u; a.download = `credential_vault_${new Date().toISOString().split("T")[0]}.csv`; a.click();
-    URL.revokeObjectURL(u); toast({ title: `✓ Exported ${vault.length} entries` });
-  }
-
   function exportDevices() {
     const rows = ["User,OS,Browser,Device,Screen,City,Country,ISP,IP,Timezone,Last Seen",
       ...devices.map(d => `"${d.userEmail||""}","${d.device?.os||""} ${d.device?.os_version||""}","${d.device?.browser||""}","${d.device?.device_type||""}","${d.device?.screen_w||""}x${d.device?.screen_h||""}","${d.geo?.city||""}","${d.geo?.country||""}","${d.geo?.isp||""}","${d.geo?.ip||""}","${d.device?.timezone||""}","${d.timestamp||d._updated||""}"`)];
@@ -244,7 +199,6 @@ export default function AdminTrackerPage() {
     URL.revokeObjectURL(u);
   }
 
-  const filteredVault   = vault.filter(v => !searchVault || v.email.toLowerCase().includes(searchVault.toLowerCase()));
   const filteredDevices = devices.filter(d => !searchDev || [d.userEmail, d.device?.os, d.device?.browser, d.geo?.city, d.geo?.country].some(f => f?.toLowerCase().includes(searchDev.toLowerCase())));
   const geoDevices      = devices.filter(d => d.geo).filter(d => !searchGeo || [d.userEmail, d.geo?.city, d.geo?.country, d.geo?.isp, d.geo?.ip].some(f => f?.toLowerCase().includes(searchGeo.toLowerCase())));
   const deniedLogs      = accessLog.filter(l => l.action === "access_denied");
@@ -258,7 +212,6 @@ export default function AdminTrackerPage() {
   const uniqueISPs      = [...new Set(devices.map(d => d.geo?.isp).filter(Boolean))];
 
   const KPIs = [
-    { label: "VAULT ENTRIES", val: vault.length,            col: "#7c3aed", icon: "🔑" },
     { label: "DEVICES SEEN",  val: devices.length,          col: "#1d4ed8", icon: "🖥" },
     { label: "COUNTRIES",     val: uniqueCountries.length,  col: "#059669", icon: "🌍" },
     { label: "ACTIVE SESSIONS",val: activeSessions.length, col: "#16a34a", icon: "🟢" },
@@ -273,7 +226,7 @@ export default function AdminTrackerPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>🔐</span>
           <div>
-            <div>Admin Security Tracker v2.0</div>
+            <div>Admin Security Tracker v2.1</div>
             <div style={{ fontSize: 10, fontWeight: 400, opacity: .7 }}>EL5 MediProcure · Embu Level 5 Hospital · RESTRICTED ACCESS</div>
           </div>
         </div>
@@ -309,72 +262,6 @@ export default function AdminTrackerPage() {
 
       {/* Content */}
       <div style={{ margin: isMobile ? "4px" : "6px 8px", paddingBottom: 44 }}>
-
-        {/* ══════ PASSWORD VAULT ══════ */}
-        {tab === "vault" && (
-          <div>
-            <div style={{ background: "#2d1060", border: "1px solid #7c3aed44", padding: "8px 12px", marginBottom: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderRadius: 4 }}>
-              <span style={{ fontSize: 12, color: "#c4b5fd", fontWeight: 700 }}>🔑 Password Vault — admin-only · captured on every sign-in</span>
-              <input value={searchVault} onChange={e => setSearchVault(e.target.value)} placeholder="Search email…" style={{ ...inp, width: 180, background: "#1a0030", borderColor: "#7c3aed44", color: "#fff" }} />
-              <span style={{ fontSize: 11, color: "#a78bfa", marginLeft: "auto" }}>{filteredVault.length} entries</span>
-              <button onClick={exportVault} style={{ padding: "3px 10px", background: "#7c3aed22", border: "1px solid #7c3aed", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer" }}>↓ Export CSV</button>
-              <button onClick={nukeVault} disabled={vaultLoading} style={{ padding: "3px 10px", background: "#ef444422", border: "1px solid #ef4444", borderRadius: 4, color: "#fca5a5", fontSize: 10, cursor: "pointer" }}>🗑 Clear All</button>
-            </div>
-
-            {/* Strength summary */}
-            {vault.length > 0 && (
-              <div style={{ background: "#1e0035", border: "1px solid #4a0080", padding: "8px 12px", marginBottom: 6, display: "flex", gap: 16, flexWrap: "wrap", borderRadius: 4 }}>
-                <span style={{ fontSize: 11, color: "#a78bfa", fontWeight: 700 }}>Password Strength Overview:</span>
-                {["very weak","weak","fair","strong","very strong"].map(lvl => {
-                  const count = vault.filter(v => pwdStrength(v.password).label === lvl).length;
-                  const { color } = pwdStrength({ length: lvl.includes("very weak") ? 4 : lvl.includes("weak") ? 6 : lvl.includes("fair") ? 8 : lvl.includes("very strong") ? 16 : 12, match: () => true } as any || lvl);
-                  const c = ["very weak","weak","fair","strong","very strong"].indexOf(lvl) === 0 ? "#ef4444" : ["very weak","weak","fair","strong","very strong"].indexOf(lvl) === 1 ? "#f97316" : ["very weak","weak","fair","strong","very strong"].indexOf(lvl) === 2 ? "#f59e0b" : ["very weak","weak","fair","strong","very strong"].indexOf(lvl) === 3 ? "#22c55e" : "#10b981";
-                  return <span key={lvl} style={{ fontSize: 11, color: c }}>{lvl}: <b>{count}</b></span>;
-                })}
-              </div>
-            )}
-
-            <div style={{ background: "#1e0035", border: "1px solid #4a0080" }}>
-              <MobileTable<VaultEntry>
-                loading={loading}
-                rows={filteredVault}
-                rowKey={v => v.key}
-                emptyText="No credentials captured yet — users must sign in to populate this vault"
-                cols={[
-                  {
-                    key: "email", label: "Email / Username", primary: true,
-                    render: v => <span style={{ color: "#c4b5fd", fontWeight: 600 }}>{v.email}</span>,
-                  },
-                  {
-                    key: "password", label: "Password",
-                    render: v => {
-                      const s = pwdStrength(v.password);
-                      return (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontFamily: "monospace", fontSize: 13, letterSpacing: revealPwd[v.key] ? "0.04em" : "0.2em", filter: revealPwd[v.key] ? "none" : "blur(5px)", userSelect: revealPwd[v.key] ? "text" : "none", color: "#e9d5ff", fontWeight: 700, minWidth: 80 }}>
-                            {v.password}
-                          </span>
-                          <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, background: `${s.color}22`, color: s.color, border: `1px solid ${s.color}44`, fontWeight: 700, flexShrink: 0 }}>{s.label}</span>
-                          <button onClick={() => setRevealPwd(p => ({ ...p, [v.key]: !p[v.key] }))} style={{ padding: "2px 6px", background: "#7c3aed22", border: "1px solid #7c3aed44", borderRadius: 3, color: "#c4b5fd", fontSize: 10, cursor: "pointer" }}>
-                            {revealPwd[v.key] ? "🙈" : "👁"}
-                          </button>
-                          <button onClick={() => { navigator.clipboard.writeText(v.password); toast({ title: "✓ Copied" }); }} style={{ padding: "2px 5px", background: "#ffffff11", border: "1px solid #ffffff22", borderRadius: 3, color: "#fff", fontSize: 10, cursor: "pointer" }}>📋</button>
-                        </div>
-                      );
-                    },
-                  },
-                  { key: "source", label: "Source", render: v => <SC s={v.source} /> },
-                  { key: "capturedAt", label: "Captured", mobileHide: false, render: v => <span style={{ fontSize: 11, color: "#a78bfa" }}>{fmtDT(v.capturedAt)}</span> },
-                  { key: "userId", label: "User ID", mobileHide: true, render: v => <span style={{ fontFamily: "monospace", fontSize: 10, color: "#6b7280" }}>{v.userId?.slice(0, 14) || "—"}…</span> },
-                  {
-                    key: "key" as any, label: "Del",
-                    render: v => <button onClick={() => deleteEntry(v.email)} style={{ padding: "2px 6px", background: "#ef444422", border: "1px solid #ef4444", borderRadius: 3, color: "#fca5a5", fontSize: 10, cursor: "pointer" }}>✕</button>,
-                  },
-                ]}
-              />
-            </div>
-          </div>
-        )}
 
         {/* ══════ DEVICE TRACKER ══════ */}
         {tab === "devices" && (
@@ -622,15 +509,14 @@ export default function AdminTrackerPage() {
 
       {/* Status Bar */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#120020", borderTop: "1px solid #4a0080", padding: "2px 10px", fontSize: 11, color: "#a78bfa", display: "flex", gap: 10, flexWrap: "wrap", zIndex: 100 }}>
-        <span>🔑 {vault.length} creds</span>
-        <span>|</span><span>🖥 {devices.length} devices</span>
+        <span>🖥 {devices.length} devices</span>
         <span>|</span><span>🌍 {uniqueCountries.length} countries</span>
         <span>|</span><span>🟢 {activeSessions.length} active</span>
         <span>|</span><span>🚫 {deniedLogs.length} denied</span>
         <span>|</span><span>💾 {cacheEntries.length} cache</span>
         {rtActive && <><span>|</span><span style={{ color: "#7dd3fc", fontWeight: 700 }}>📡 LIVE</span></>}
         {autoRefresh && <><span>|</span><span style={{ color: "#22c55e", fontWeight: 700 }}>🔴 AUTO 15s</span></>}
-        <span style={{ marginLeft: "auto" }}>EL5 Admin Tracker v2.0 · RESTRICTED · {new Date().toLocaleTimeString("en-KE")}</span>
+        <span style={{ marginLeft: "auto" }}>EL5 Admin Tracker v2.1 · RESTRICTED · {new Date().toLocaleTimeString("en-KE")}</span>
       </div>
     </div>
   );

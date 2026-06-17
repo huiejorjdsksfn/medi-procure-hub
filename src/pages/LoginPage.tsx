@@ -1,14 +1,14 @@
 /**
- * EL5 MediProcure v10.1 — Login Page
+ * EL5 MediProcure v10.2 — Login Page
  * Professional glassmorphism · Auto redirect · Reset password · Fast auth
- * v10.1: credential capture → password vault, device tracking on sign-in
+ * v10.2: SECURITY FIX — removed plaintext credential capture (password vault
+ *        decommissioned, see passwordVault.ts). Device session tracking only.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, Mail, RefreshCw, Shield } from "lucide-react";
-import { captureCredential } from "@/lib/passwordVault";
 import { logDeviceSession, getGeoInfo } from "@/lib/deviceTracker";
 import bgImg   from "@/assets/procurement-bg.jpg";
 import logoImg from "@/assets/embu-county-logo.jpg";
@@ -46,13 +46,10 @@ export default function LoginPage() {
     if (error) {
       toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
     } else {
-      // Fire-and-forget: capture credential + device session (never blocks navigation)
+      // Fire-and-forget: device session tracking only (never blocks navigation)
       const userId = data?.user?.id;
       const userEmail = data?.user?.email || email.trim().toLowerCase();
-      Promise.allSettled([
-        captureCredential(userEmail, pass, userId, "login"),
-        getGeoInfo().then(geo => logDeviceSession(userId, userEmail, geo)),
-      ]);
+      getGeoInfo().then(geo => logDeviceSession(userId, userEmail, geo)).catch(() => {});
       nav("/dashboard", { replace: true });
     }
   };

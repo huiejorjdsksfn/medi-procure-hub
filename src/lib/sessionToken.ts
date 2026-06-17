@@ -131,6 +131,10 @@ export function getLocalToken(): SessionToken | null {
 
 /**
  * Refreshes the token — re-fetches roles from DB and extends expiry 24h.
+ * SECURITY FIX v2.0: the server now ROTATES the opaque token value on
+ * every refresh (old string is invalidated). We must store the new
+ * token returned by the server, not keep reusing the old one — this
+ * caps a leaked token's useful lifetime to one refresh cycle.
  * Call this in the background every TOKEN_REFRESH_MINS minutes.
  */
 export async function refreshToken(): Promise<boolean> {
@@ -138,9 +142,10 @@ export async function refreshToken(): Promise<boolean> {
   if (!stored) return false;
   const result = await callEdge({ action: "refresh", token: stored.token });
   if (!result?.ok) return false;
-  // Update local storage with fresh roles/profile
+  // Update local storage with the NEW rotated token + fresh roles/profile
   saveToken({
     ...stored,
+    token:      result.token || stored.token,
     roles:      result.roles || stored.roles,
     profile:    result.profile || stored.profile,
     expires_at: result.expires_at,

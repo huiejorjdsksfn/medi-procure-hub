@@ -16,6 +16,7 @@ const ROLES = [
   "superadmin","webmaster","admin","database_admin",
   "procurement_manager","procurement_officer","inventory_manager",
   "warehouse_officer","requisitioner","accountant",
+  "finance_officer","finance_manager",
 ];
 const DEPARTMENTS = [
   "Finance & Accounts","Procurement","Pharmacy","Nursing","Medical",
