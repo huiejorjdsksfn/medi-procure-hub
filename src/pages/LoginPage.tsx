@@ -7,18 +7,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, Mail, RefreshCw, Shield, Building2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, RefreshCw, Shield } from "lucide-react";
 import { captureCredential } from "@/lib/passwordVault";
 import { logDeviceSession, getGeoInfo } from "@/lib/deviceTracker";
+import bgImg   from "@/assets/procurement-bg.jpg";
+import logoImg from "@/assets/embu-county-logo.jpg";
 
-// Assets — graceful fallback if missing
-let BG = ""; let LOGO = "";
-try { BG   = new URL("../assets/procurement-bg.jpg", import.meta.url).href;  } catch (_e) { /* ignore */ }
-// Richer overlay when image loads — stronger vignette on the photo
-const BG_OVERLAY = BG
-  ? "linear-gradient(135deg,rgba(0,14,35,.72) 0%,rgba(0,0,0,.22) 50%,rgba(0,20,50,.78) 100%)"
-  : "linear-gradient(135deg,#001830 0%,#003060 50%,#001830 100%)";
-try { LOGO = new URL("../assets/embu-county-logo.jpg", import.meta.url).href; } catch (_e) { /* ignore */ }
+const BG_OVERLAY = "linear-gradient(135deg,rgba(0,14,35,.72) 0%,rgba(0,0,0,.22) 50%,rgba(0,20,50,.78) 100%)";
 
 const BLUE  = "#0e2a4a";
 const TEAL  = "#0e7490";
@@ -76,10 +71,9 @@ export default function LoginPage() {
 
   const s: Record<string, React.CSSProperties> = {
     root: { position:"fixed", inset:0, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", overflow:"hidden" },
-    bg:   { position:"absolute", inset:0, backgroundImage:BG?`url(${BG})`:"none",
+    bg:   { position:"absolute", inset:0, backgroundImage:`url(${bgImg})`,
             backgroundSize:"cover", backgroundPosition:"center 42%",
-            filter:"brightness(0.72) saturate(1.25) contrast(1.05)",
-            background: BG ? undefined : "linear-gradient(135deg,#001830 0%,#003060 50%,#001830 100%)" },
+            filter:"brightness(0.72) saturate(1.25) contrast(1.05)" },
     ov:   { position:"absolute", inset:0, background: BG_OVERLAY },
     wrap: { position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
     card: { background:"rgba(255,255,255,.975)", borderRadius:10, width:"100%", maxWidth:400,
