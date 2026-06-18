@@ -372,12 +372,13 @@ function PaymentsContent({ data, refresh, isManager, user, profile }: any) {
   const save = async () => {
     if (!f.payee||!f.total_amount){toast({title:"Payee and amount required",variant:"destructive"});return;}
     setSaving(true);
+    const amt=parseFloat(f.total_amount);
     if (editRow) {
-      await db.from("payment_vouchers").update({...f,total_amount:parseFloat(f.total_amount),updated_at:new Date().toISOString()}).eq("id",editRow.id);
+      await db.from("payment_vouchers").update({...f,payee_name:f.payee,total_amount:amt,amount:amt,updated_at:new Date().toISOString()}).eq("id",editRow.id);
       toast({title:"✓ Voucher updated"});
     } else {
       const vn=`PV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
-      await db.from("payment_vouchers").insert({...f,voucher_number:vn,total_amount:parseFloat(f.total_amount),status:"draft"});
+      await db.from("payment_vouchers").insert({...f,payee_name:f.payee,voucher_number:vn,total_amount:amt,amount:amt,status:"draft"});
       toast({title:`✓ ${vn} created`});
     }
     setSaving(false); setShowForm(false); setEditRow(null); refresh();
@@ -522,12 +523,13 @@ function ReceiptsContent({ data, refresh, isManager, user, profile }: any) {
   const save = async () => {
     if (!f.payer||!f.amount){toast({title:"Payer and amount required",variant:"destructive"});return;}
     setSaving(true);
+    const amt2=parseFloat(f.amount);
     if (editRow) {
-      await db.from("receipt_vouchers").update({...f,amount:parseFloat(f.amount),updated_at:new Date().toISOString()}).eq("id",editRow.id);
+      await db.from("receipt_vouchers").update({...f,amount:amt2,total_amount:amt2,updated_at:new Date().toISOString()}).eq("id",editRow.id);
       toast({title:"✓ Updated"});
     } else {
       const rn=`RV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
-      await db.from("receipt_vouchers").insert({...f,receipt_number:rn,amount:parseFloat(f.amount),status:"draft"});
+      await db.from("receipt_vouchers").insert({...f,receipt_number:rn,received_from:f.payer,amount:amt2,total_amount:amt2,status:"draft"});
       toast({title:`✓ ${rn} created`});
     }
     setSaving(false);setShowForm(false);setEditRow(null);refresh();

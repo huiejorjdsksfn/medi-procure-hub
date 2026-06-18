@@ -254,7 +254,15 @@ export const paymentVouchersApi = {
     () => db.from("payment_vouchers").select("*").eq("id", id).single()),
   create: async (data: any) => {
     cache.invalidate(CACHE_KEYS.VOUCHERS);
-    return apiFetch(null, () => db.from("payment_vouchers").insert(data).select().single(), 0);
+    // Normalise field aliases so both old and new column names are written
+    const normalised = {
+      ...data,
+      payee_name: data.payee_name || data.payee || null,
+      payee: data.payee || data.payee_name || null,
+      amount: data.amount ?? data.total_amount ?? 0,
+      total_amount: data.total_amount ?? data.amount ?? 0,
+    };
+    return apiFetch(null, () => db.from("payment_vouchers").insert(normalised).select().single(), 0);
   },
   approve: async (id: string, userId: string) => {
     cache.invalidate(CACHE_KEYS.VOUCHERS);
@@ -590,7 +598,14 @@ export const receiptVouchersApi = {
     () => db.from("receipt_vouchers").select("*").eq("id", id).single()),
   create: async (data: any) => {
     cache.invalidate(CACHE_KEYS.VOUCHERS);
-    return apiFetch(null, () => db.from("receipt_vouchers").insert(data).select().single(), 0);
+    // Normalise field aliases
+    const normalised = {
+      ...data,
+      received_from: data.received_from || data.payer || null,
+      amount: data.amount ?? data.total_amount ?? 0,
+      total_amount: data.total_amount ?? data.amount ?? 0,
+    };
+    return apiFetch(null, () => db.from("receipt_vouchers").insert(normalised).select().single(), 0);
   },
   confirm: async (id: string, userId: string) => {
     cache.invalidate(CACHE_KEYS.VOUCHERS);

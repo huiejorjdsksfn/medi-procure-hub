@@ -4045,22 +4045,28 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
+          currency: string | null
           description: string | null
           due_date: string | null
           expense_account: string | null
           facility_id: string | null
           fund_code: string | null
+          gl_account: string | null
           grn_number: string | null
           id: string
+          invoice_reference: string | null
           line_items: Json | null
           net_amount: number | null
           paid_at: string | null
-          payee_name: string
+          payee: string | null
+          payee_account: string | null
+          payee_name: string | null
           payee_pin: string | null
           payee_type: string | null
           payment_method: string | null
           payment_mode: string | null
           period: string | null
+          po_reference: string | null
           reference: string | null
           rejection_reason: string | null
           status: string | null
@@ -4070,7 +4076,7 @@ export type Database = {
           total_amount: number | null
           updated_at: string | null
           vote_head: string | null
-          voucher_date: string
+          voucher_date: string | null
           voucher_number: string
           withholding_tax: number | null
         }
@@ -4088,22 +4094,28 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          currency?: string | null
           description?: string | null
           due_date?: string | null
           expense_account?: string | null
           facility_id?: string | null
           fund_code?: string | null
+          gl_account?: string | null
           grn_number?: string | null
           id?: string
+          invoice_reference?: string | null
           line_items?: Json | null
           net_amount?: number | null
           paid_at?: string | null
-          payee_name: string
+          payee?: string | null
+          payee_account?: string | null
+          payee_name?: string | null
           payee_pin?: string | null
           payee_type?: string | null
           payment_method?: string | null
           payment_mode?: string | null
           period?: string | null
+          po_reference?: string | null
           reference?: string | null
           rejection_reason?: string | null
           status?: string | null
@@ -4113,7 +4125,7 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           vote_head?: string | null
-          voucher_date?: string
+          voucher_date?: string | null
           voucher_number?: string
           withholding_tax?: number | null
         }
@@ -4131,22 +4143,28 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          currency?: string | null
           description?: string | null
           due_date?: string | null
           expense_account?: string | null
           facility_id?: string | null
           fund_code?: string | null
+          gl_account?: string | null
           grn_number?: string | null
           id?: string
+          invoice_reference?: string | null
           line_items?: Json | null
           net_amount?: number | null
           paid_at?: string | null
-          payee_name?: string
+          payee?: string | null
+          payee_account?: string | null
+          payee_name?: string | null
           payee_pin?: string | null
           payee_type?: string | null
           payment_method?: string | null
           payment_mode?: string | null
           period?: string | null
+          po_reference?: string | null
           reference?: string | null
           rejection_reason?: string | null
           status?: string | null
@@ -4156,7 +4174,7 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           vote_head?: string | null
-          voucher_date?: string
+          voucher_date?: string | null
           voucher_number?: string
           withholding_tax?: number | null
         }
@@ -5050,6 +5068,8 @@ export type Database = {
       receipt_vouchers: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
           bank_name: string | null
           bank_reference: string | null
           created_at: string | null
@@ -5057,18 +5077,26 @@ export type Database = {
           created_by_name: string | null
           department_id: string | null
           description: string | null
+          fund_code: string | null
+          gl_account: string | null
           id: string
           income_account: string | null
+          notes: string | null
           payment_method: string | null
-          receipt_date: string
-          receipt_number: string
-          received_from: string
+          period: string | null
+          receipt_date: string | null
+          receipt_number: string | null
+          received_by: string | null
+          received_from: string | null
           reference: string | null
           status: string | null
+          total_amount: number | null
           updated_at: string | null
         }
         Insert: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
           bank_name?: string | null
           bank_reference?: string | null
           created_at?: string | null
@@ -5076,18 +5104,26 @@ export type Database = {
           created_by_name?: string | null
           department_id?: string | null
           description?: string | null
+          fund_code?: string | null
+          gl_account?: string | null
           id?: string
           income_account?: string | null
+          notes?: string | null
           payment_method?: string | null
-          receipt_date?: string
-          receipt_number?: string
-          received_from: string
+          period?: string | null
+          receipt_date?: string | null
+          receipt_number?: string | null
+          received_by?: string | null
+          received_from?: string | null
           reference?: string | null
           status?: string | null
+          total_amount?: number | null
           updated_at?: string | null
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
           bank_name?: string | null
           bank_reference?: string | null
           created_at?: string | null
@@ -5095,14 +5131,20 @@ export type Database = {
           created_by_name?: string | null
           department_id?: string | null
           description?: string | null
+          fund_code?: string | null
+          gl_account?: string | null
           id?: string
           income_account?: string | null
+          notes?: string | null
           payment_method?: string | null
-          receipt_date?: string
-          receipt_number?: string
-          received_from?: string
+          period?: string | null
+          receipt_date?: string | null
+          receipt_number?: string | null
+          received_by?: string | null
+          received_from?: string | null
           reference?: string | null
           status?: string | null
+          total_amount?: number | null
           updated_at?: string | null
         }
         Relationships: [
