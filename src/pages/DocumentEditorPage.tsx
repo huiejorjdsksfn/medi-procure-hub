@@ -528,7 +528,7 @@ const REPORT_MODS: ReportMod[] = [
 ];
 
 /* ═══════════════════════ MAIN COMPONENT ═════════════════════════════ */
-type Tab = "writer"|"templates"|"reports"|"library";
+type Tab = "writer"|"templates"|"reports"|"library"|"signatures";
 
 export default function DocumentEditorPage() {
   const [searchParams] = useSearchParams();
@@ -572,6 +572,27 @@ export default function DocumentEditorPage() {
   const [library, setLibrary]     = useState<any[]>([]);
   const [libSearch, setLibSearch] = useState("");
   const [libLoading, setLibLoad]  = useState(false);
+
+  /* ── signatures tab ─────────────────────────────────────────── */
+  const sigCanvasRef    = useRef<HTMLCanvasElement>(null);
+  const sigStampRef     = useRef<HTMLInputElement>(null);
+  const sigUploadRef    = useRef<HTMLInputElement>(null);
+  const [sigMode, setSigMode]           = useState<"draw"|"upload"|"stamp">("draw");
+  const [sigDrawing, setSigDrawing]     = useState(false);
+  const [sigLastX, setSigLastX]         = useState(0);
+  const [sigLastY, setSigLastY]         = useState(0);
+  const [sigData, setSigData]           = useState<string>("");          // base64 current sig
+  const [stampData, setStampData]       = useState<string>("");          // base64 stamp
+  const [savedSigs, setSavedSigs]       = useState<any[]>([]);           // from DB
+  const [savedStamps, setSavedStamps]   = useState<any[]>([]);           // from DB
+  const [signees, setSignees]           = useState<any[]>([]);           // scheduled signees
+  const [newSignee, setNewSignee]       = useState({ name:"", role:"", email:"", due:"", note:"" });
+  const [sigLoading, setSigLoading]     = useState(false);
+  const [sigSaving, setSigSaving]       = useState(false);
+  const [sigLabel, setSigLabel]         = useState("");
+  const [stampLabel, setStampLabel]     = useState("");
+  const [selSig, setSelSig]             = useState<any>(null);
+  const [selStamp, setSelStamp]         = useState<any>(null);
 
   /* ── init ───────────────────────────────────────────────────── */
   useEffect(() => {
@@ -799,11 +820,134 @@ ${html}
     return !s || repMod.cols.some(c => String(r[c.key]||"").toLowerCase().includes(s));
   });
 
+  /* ── signatures: load from DB ──────────────────────────────── */
+  const loadSigData = async () => {
+    setSigLoading(true);
+    try {
+      const [s, st, sn] = await Promise.all([
+        db.from("user_signatures").select("*").order("created_at",{ascending:false}).limit(20),
+        db.from("org_stamps").select("*").order("created_at",{ascending:false}).limit(10),
+        docId ? db.from("document_signees").select("*").eq("document_id",docId).order("sort_order") : Promise.resolve({data:[]}),
+      ]);
+      setSavedSigs(s.data||[]);
+      setSavedStamps(st.data||[]);
+      setSignees(sn.data||[]);
+    } catch {}
+    setSigLoading(false);
+  };
+
+  useEffect(() => { if (tab==="signatures") loadSigData(); }, [tab, docId]);
+
+  /* ── canvas draw helpers ────────────────────────────────────── */
+  const canvasDraw = (e: React.MouseEvent<HTMLCanvasElement>, type: "start"|"move"|"end") => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const ctx = canvas.getContext("2d")!;
+    ctx.strokeStyle = "#1a3a6b";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if (type === "start") { ctx.beginPath(); ctx.moveTo(x,y); setSigDrawing(true); setSigLastX(x); setSigLastY(y); }
+    if (type === "move" && sigDrawing) { ctx.lineTo(x,y); ctx.stroke(); setSigLastX(x); setSigLastY(y); }
+    if (type === "end") { setSigDrawing(false); setSigData(canvas.toDataURL()); }
+  };
+
+  const clearCanvas = () => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    canvas.getContext("2d")!.clearRect(0,0,canvas.width,canvas.height);
+    setSigData("");
+  };
+
+  /* ── save signature ─────────────────────────────────────────── */
+  const saveSig = async () => {
+    if (!sigData && sigMode==="draw") { toast({title:"Draw a signature first",variant:"destructive"}); return; }
+    setSigSaving(true);
+    try {
+      await db.from("user_signatures").insert({
+        user_id: user?.id, label: sigLabel||"My Signature",
+        sig_type: sigMode, image_base64: sigData,
+        created_at: new Date().toISOString(),
+      });
+      toast({title:"✓ Signature saved"});
+      setSigLabel(""); clearCanvas(); setSigData(""); loadSigData();
+    } catch(e:any) { toast({title:"Save failed",description:e.message,variant:"destructive"}); }
+    setSigSaving(false);
+  };
+
+  /* ── save stamp ─────────────────────────────────────────────── */
+  const saveStamp = async () => {
+    if (!stampData) { toast({title:"Upload a stamp first",variant:"destructive"}); return; }
+    setSigSaving(true);
+    try {
+      await db.from("org_stamps").insert({
+        label: stampLabel||"Official Stamp", image_base64: stampData,
+        created_at: new Date().toISOString(), uploaded_by: user?.id,
+      });
+      toast({title:"✓ Stamp saved"});
+      setStampLabel(""); setStampData(""); loadSigData();
+    } catch(e:any) { toast({title:"Save failed",description:e.message,variant:"destructive"}); }
+    setSigSaving(false);
+  };
+
+  /* ── insert sig/stamp into doc ─────────────────────────────── */
+  const insertSigBlock = (imgSrc: string, label: string, isStamp=false) => {
+    if (!editorRef.current) return;
+    const html = isStamp
+      ? `<div style="display:inline-block;margin:8px 4px;text-align:center"><img src="${imgSrc}" alt="${label}" style="width:100px;height:100px;object-fit:contain;border:2px solid #1a3a6b;border-radius:4px" /><div style="font-size:9pt;color:#666;margin-top:2px">${label}</div></div>`
+      : `<div style="display:inline-block;margin:8px 16px 8px 4px;min-width:180px;vertical-align:bottom"><img src="${imgSrc}" alt="${label}" style="width:180px;height:60px;object-fit:contain;display:block" /><div style="border-top:1px solid #333;padding-top:3px;font-size:9pt">${label}</div></div>`;
+    editorRef.current.innerHTML += html;
+    setTab("writer");
+    toast({title:`✓ ${isStamp?"Stamp":"Signature"} inserted into document`});
+  };
+
+  /* ── insert placeholder ─────────────────────────────────────── */
+  const insertSigPlaceholder = (role: string) => {
+    if (!editorRef.current) return;
+    const html = `<div style="display:inline-block;margin:8px 16px;min-width:200px;vertical-align:bottom"><div style="border:2px dashed #2563eb;border-radius:4px;padding:18px 8px;text-align:center;background:#eff6ff;color:#2563eb;font-size:10pt;min-height:60px;cursor:pointer" data-sig-placeholder="${role}">✍ Sign here<br/><span style="font-size:8pt;color:#6b7280">${role}</span></div><div style="border-top:1px solid #999;margin-top:4px;font-size:9pt;color:#374151;padding-top:2px">${role}</div></div>`;
+    editorRef.current.innerHTML += html;
+    setTab("writer");
+    toast({title:`✓ Signature placeholder added for: ${role}`});
+  };
+
+  /* ── add scheduled signee ───────────────────────────────────── */
+  const addSignee = async () => {
+    if (!newSignee.name) { toast({title:"Enter a name",variant:"destructive"}); return; }
+    if (!docId) { toast({title:"Save the document first",variant:"destructive"}); return; }
+    setSigSaving(true);
+    try {
+      await db.from("document_signees").insert({
+        document_id: docId, signee_name: newSignee.name,
+        signee_role: newSignee.role, signee_email: newSignee.email,
+        due_date: newSignee.due||null, note: newSignee.note,
+        status: "pending", sort_order: signees.length,
+        created_at: new Date().toISOString(),
+      });
+      setNewSignee({name:"",role:"",email:"",due:"",note:""});
+      toast({title:"✓ Signee added"});
+      loadSigData();
+    } catch(e:any) { toast({title:"Failed",description:e.message,variant:"destructive"}); }
+    setSigSaving(false);
+  };
+
+  const removeSignee = async (id:string) => {
+    await db.from("document_signees").delete().eq("id",id);
+    loadSigData();
+  };
+
+  /* ── file → base64 ──────────────────────────────────────────── */
+  const fileToB64 = (file: File): Promise<string> =>
+    new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result as string); r.onerror=rej; r.readAsDataURL(file); });
+
   const TABS = [
-    { id:"writer",    label:"✏ Writer",     title:"Rich document editor" },
-    { id:"templates", label:"📋 Templates",  title:"Pre-built form templates" },
-    { id:"reports",   label:"📊 Reports",    title:"Live system reports" },
-    { id:"library",   label:"🗂 Library",    title:"Saved documents" },
+    { id:"writer",     label:"✏ Writer",     title:"Rich document editor" },
+    { id:"templates",  label:"📋 Templates",  title:"Pre-built form templates" },
+    { id:"reports",    label:"📊 Reports",    title:"Live system reports" },
+    { id:"signatures", label:"✍ Signatures",  title:"Signatures, stamps & signees" },
+    { id:"library",    label:"🗂 Library",     title:"Saved documents" },
   ] as { id: Tab; label: string; title: string }[];
 
   return (
@@ -1067,6 +1211,228 @@ ${html}
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ SIGNATURES TAB ══════════════════════════════ */}
+      {tab==="signatures" && (
+        <div style={{ flex:1, overflowY:"auto", padding:12, display:"flex", flexDirection:"column", gap:12 }}>
+
+          {/* Sig mode selector */}
+          <div style={{ display:"flex", gap:0, borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, alignSelf:"flex-start" }}>
+            {[{id:"draw",icon:"✏",label:"Draw Signature"},{id:"upload",icon:"⬆",label:"Upload Signature"},{id:"stamp",icon:"🔖",label:"Org Stamp"}].map(m=>(
+              <button key={m.id} onClick={()=>setSigMode(m.id as any)}
+                style={{ padding:"7px 18px", border:"none", cursor:"pointer", fontSize:12,
+                  background:sigMode===m.id?C.blue:"#f8fafc", color:sigMode===m.id?"#fff":C.gray,
+                  fontWeight:sigMode===m.id?700:400, borderRight:`1px solid ${C.border}` }}>
+                {m.icon} {m.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+
+            {/* Left: create/upload panel */}
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+
+              {/* Draw mode */}
+              {sigMode==="draw" && (
+                <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                  <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8 }}>✏ Draw Your Signature</div>
+                  <div style={{ position:"relative", background:"#f0f4ff", borderRadius:6, border:`1px dashed ${C.blue2}`, marginBottom:8 }}>
+                    <canvas ref={sigCanvasRef} width={480} height={150}
+                      style={{ display:"block", width:"100%", height:150, cursor:"crosshair", borderRadius:6 }}
+                      onMouseDown={e=>canvasDraw(e,"start")}
+                      onMouseMove={e=>canvasDraw(e,"move")}
+                      onMouseUp={e=>canvasDraw(e,"end")}
+                      onMouseLeave={e=>canvasDraw(e,"end")} />
+                    <div style={{ position:"absolute", top:6, right:8, fontSize:10, color:"#9ca3af", pointerEvents:"none" }}>Sign here ↓</div>
+                  </div>
+                  <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+                    <input value={sigLabel} onChange={e=>setSigLabel(e.target.value)} placeholder="Label (e.g. Dr. John Mwangi)"
+                      style={{ ...S.inp, flex:1 }} />
+                    <button onClick={clearCanvas} style={{ ...S.btn(), fontSize:11, color:C.red }}>🗑 Clear</button>
+                    <button onClick={saveSig} disabled={sigSaving||!sigData} style={{ ...S.btn(true), fontSize:11, opacity:sigSaving||!sigData?.5:1 }}>
+                      {sigSaving?"Saving…":"💾 Save Sig"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload signature mode */}
+              {sigMode==="upload" && (
+                <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                  <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8 }}>⬆ Upload Signature Image</div>
+                  <div style={{ fontSize:11, color:C.gray2, marginBottom:8 }}>Upload a scanned signature or digital signature image (PNG, JPEG, BMP)</div>
+                  <input ref={sigUploadRef} type="file" accept="image/*"
+                    style={{ display:"none" }}
+                    onChange={async e=>{
+                      const f=e.target.files?.[0]; if(!f)return;
+                      const b64=await fileToB64(f); setSigData(b64);
+                    }} />
+                  <div style={{ border:`2px dashed ${C.blue2}`, borderRadius:8, padding:24, textAlign:"center", marginBottom:8,
+                    background: sigData?"#eff6ff":"#f8fafc", cursor:"pointer" }}
+                    onClick={()=>sigUploadRef.current?.click()}>
+                    {sigData
+                      ? <img src={sigData} alt="preview" style={{ maxWidth:280, maxHeight:100, objectFit:"contain" }} />
+                      : <div style={{ color:C.gray2, fontSize:12 }}>📁 Click to browse or drag & drop<br/><span style={{ fontSize:10 }}>PNG · JPEG · BMP · GIF — scanned or digital</span></div>
+                    }
+                  </div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <input value={sigLabel} onChange={e=>setSigLabel(e.target.value)} placeholder="Signee name / label"
+                      style={{ ...S.inp, flex:1 }} />
+                    {sigData && <button onClick={()=>setSigData("")} style={{ ...S.btn(), fontSize:11, color:C.red }}>✕</button>}
+                    <button onClick={saveSig} disabled={sigSaving||!sigData} style={{ ...S.btn(true), fontSize:11, opacity:!sigData?.5:1 }}>
+                      {sigSaving?"Saving…":"💾 Save"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Stamp mode */}
+              {sigMode==="stamp" && (
+                <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                  <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8 }}>🔖 Organisation Stamp</div>
+                  <div style={{ fontSize:11, color:C.gray2, marginBottom:8 }}>Upload official EL5H / Embu County stamp image (PNG with transparent background recommended)</div>
+                  <input ref={sigStampRef} type="file" accept="image/*"
+                    style={{ display:"none" }}
+                    onChange={async e=>{
+                      const f=e.target.files?.[0]; if(!f)return;
+                      const b64=await fileToB64(f); setStampData(b64);
+                    }} />
+                  <div style={{ border:`2px dashed #9333ea`, borderRadius:8, padding:24, textAlign:"center", marginBottom:8,
+                    background: stampData?"#f5f3ff":"#f8fafc", cursor:"pointer" }}
+                    onClick={()=>sigStampRef.current?.click()}>
+                    {stampData
+                      ? <img src={stampData} alt="stamp" style={{ maxWidth:150, maxHeight:150, objectFit:"contain" }} />
+                      : <div style={{ color:C.gray2, fontSize:12 }}>📁 Click to upload stamp image<br/><span style={{ fontSize:10 }}>PNG with transparency works best</span></div>
+                    }
+                  </div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <input value={stampLabel} onChange={e=>setStampLabel(e.target.value)} placeholder="Stamp label (e.g. Official Seal)"
+                      style={{ ...S.inp, flex:1 }} />
+                    {stampData && <button onClick={()=>setStampData("")} style={{ ...S.btn(), fontSize:11, color:C.red }}>✕</button>}
+                    <button onClick={saveStamp} disabled={sigSaving||!stampData} style={{ ...S.btn(true), fontSize:11, background:"#9333ea", opacity:!stampData?.5:1 }}>
+                      {sigSaving?"Saving…":"💾 Save Stamp"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Insert Placeholder */}
+              <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8 }}>📌 Insert Signature Placeholders</div>
+                <div style={{ fontSize:11, color:C.gray2, marginBottom:8 }}>Click a role to insert a dashed signature placeholder box into your document</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                  {["Procurement Officer","Procurement Manager","CEO / Hospital Director","Finance Manager","Accountant",
+                    "Storekeeper","HOD","Supplier Representative","Auditor","Witness","Authorized Signatory","Date"].map(role=>(
+                    <button key={role} onClick={()=>insertSigPlaceholder(role)}
+                      style={{ padding:"5px 10px", border:`1px dashed ${C.blue2}`, borderRadius:4, cursor:"pointer",
+                        background:"#eff6ff", color:C.blue2, fontSize:10, fontWeight:600 }}>
+                      + {role}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: saved signatures + stamps + signees */}
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+
+              {/* Saved Signatures */}
+              <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span>✍ Saved Signatures</span>
+                  <button onClick={loadSigData} style={{ ...S.btn(), fontSize:10 }}>🔄</button>
+                </div>
+                {sigLoading && <div style={{ fontSize:11, color:C.gray2, padding:10, textAlign:"center" }}>Loading…</div>}
+                {!sigLoading && savedSigs.length===0 && <div style={{ fontSize:11, color:C.gray2, textAlign:"center", padding:10 }}>No saved signatures yet</div>}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                  {savedSigs.map((s:any)=>(
+                    <div key={s.id} style={{ border:`1px solid ${selSig?.id===s.id?C.blue2:C.border}`, borderRadius:4, padding:6, cursor:"pointer",
+                      background:selSig?.id===s.id?C.blue3:C.white }}
+                      onClick={()=>setSelSig(s)}>
+                      {s.image_base64 && <img src={s.image_base64} alt={s.label} style={{ width:"100%", height:50, objectFit:"contain", display:"block" }} />}
+                      <div style={{ fontSize:10, textAlign:"center", marginTop:3, color:C.gray }}>{s.label||"Signature"}</div>
+                      <div style={{ display:"flex", gap:3, marginTop:4 }}>
+                        <button onClick={e=>{e.stopPropagation();insertSigBlock(s.image_base64,s.label||"Signature");}}
+                          style={{ ...S.btn(true), fontSize:9, padding:"2px 6px", flex:1 }}>Insert ↓</button>
+                        <button onClick={e=>{e.stopPropagation();if(confirm("Delete?"))db.from("user_signatures").delete().eq("id",s.id).then(()=>loadSigData());}}
+                          style={{ ...S.btn(), fontSize:9, padding:"2px 4px", color:C.red }}>🗑</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Saved Stamps */}
+              <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                <div style={{ fontWeight:700, fontSize:12, color:"#9333ea", marginBottom:8 }}>🔖 Organisation Stamps</div>
+                {savedStamps.length===0 && <div style={{ fontSize:11, color:C.gray2, textAlign:"center", padding:8 }}>No stamps uploaded yet</div>}
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {savedStamps.map((s:any)=>(
+                    <div key={s.id} style={{ border:`1px solid ${selStamp?.id===s.id?"#9333ea":C.border}`, borderRadius:4, padding:6, cursor:"pointer",
+                      background:selStamp?.id===s.id?"#f5f3ff":C.white, textAlign:"center" }}
+                      onClick={()=>setSelStamp(s)}>
+                      {s.image_base64 && <img src={s.image_base64} alt={s.label} style={{ width:70, height:70, objectFit:"contain", display:"block", margin:"0 auto" }} />}
+                      <div style={{ fontSize:9, color:C.gray, marginTop:3 }}>{s.label}</div>
+                      <button onClick={e=>{e.stopPropagation();insertSigBlock(s.image_base64,s.label||"Stamp",true);}}
+                        style={{ ...S.btn(true), fontSize:9, padding:"2px 8px", marginTop:3, background:"#9333ea" }}>Insert</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Scheduled Signees */}
+              <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
+                <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8 }}>📅 Scheduled Signees</div>
+                {!docId && <div style={{ fontSize:11, color:"#b45309", background:"#fffbeb", borderRadius:4, padding:"6px 10px", marginBottom:8 }}>Save the document first to add signees</div>}
+                {/* Add signee form */}
+                <div style={{ background:C.gray3, borderRadius:6, padding:8, marginBottom:8 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:6 }}>
+                    <input value={newSignee.name} onChange={e=>setNewSignee(p=>({...p,name:e.target.value}))} placeholder="Full name *"
+                      style={{ ...S.inp, fontSize:11 }} />
+                    <input value={newSignee.role} onChange={e=>setNewSignee(p=>({...p,role:e.target.value}))} placeholder="Role / Title"
+                      style={{ ...S.inp, fontSize:11 }} />
+                    <input value={newSignee.email} onChange={e=>setNewSignee(p=>({...p,email:e.target.value}))} placeholder="Email"
+                      style={{ ...S.inp, fontSize:11 }} type="email" />
+                    <input value={newSignee.due} onChange={e=>setNewSignee(p=>({...p,due:e.target.value}))} placeholder="Due date"
+                      style={{ ...S.inp, fontSize:11 }} type="date" />
+                  </div>
+                  <input value={newSignee.note} onChange={e=>setNewSignee(p=>({...p,note:e.target.value}))} placeholder="Note (optional)"
+                    style={{ ...S.inp, fontSize:11, width:"100%", marginBottom:6, boxSizing:"border-box" as const }} />
+                  <button onClick={addSignee} disabled={sigSaving||!docId} style={{ ...S.btn(true), fontSize:11, opacity:!docId?.5:1 }}>
+                    {sigSaving?"Adding…":"+ Add Signee"}
+                  </button>
+                </div>
+                {/* Signee list */}
+                {signees.length===0 && <div style={{ fontSize:11, color:C.gray2, textAlign:"center", padding:6 }}>No signees scheduled</div>}
+                {signees.map((sn:any)=>(
+                  <div key={sn.id} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 8px",
+                    border:`1px solid ${C.border}`, borderRadius:4, marginBottom:4, background:C.white }}>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:C.blue }}>{sn.signee_name}</div>
+                      <div style={{ fontSize:10, color:C.gray2 }}>
+                        {sn.signee_role && <span>{sn.signee_role} · </span>}
+                        {sn.signee_email && <span>{sn.signee_email} · </span>}
+                        {sn.due_date && <span>Due: {FMT_DT(sn.due_date)}</span>}
+                      </div>
+                    </div>
+                    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:10, fontWeight:700,
+                      background: sn.status==="signed"?C.green3:sn.status==="rejected"?C.red3:"#fef9c3",
+                      color: sn.status==="signed"?C.green:sn.status==="rejected"?C.red:"#854d0e" }}>
+                      {sn.status||"pending"}
+                    </span>
+                    <button onClick={()=>insertSigPlaceholder(sn.signee_role||sn.signee_name)}
+                      style={{ ...S.btn(true), fontSize:9, padding:"2px 7px" }}>Insert ↓</button>
+                    <button onClick={()=>removeSignee(sn.id)}
+                      style={{ ...S.btn(), fontSize:9, padding:"2px 4px", color:C.red }}>🗑</button>
+                  </div>
+                ))}
+              </div>
+
+            </div>
           </div>
         </div>
       )}

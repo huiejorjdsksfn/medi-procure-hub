@@ -108,8 +108,14 @@ function inferFieldType(label: string): { type: string; options?: string[] } {
 
 // ── Build Google Forms API request body ────────────────────────────
 function buildFormBody(title: string, description: string, fields: string[], formId: string) {
-  const items = fields.map((label, index) => {
-    const { type, options } = inferFieldType(label);
+  // Always include email as first required question
+  const allFields = [
+    "Your Official Email Address (e.g. yourname@embu.go.ke)",
+    ...fields
+  ];
+  const items = allFields.map((label, index) => {
+    const isEmailField = index === 0;
+    const { type, options } = isEmailField ? { type: "SHORT_ANSWER", options: undefined as string[] | undefined } : inferFieldType(label);
     const question: Record<string, unknown> = {
       required: true,
     };
@@ -212,8 +218,9 @@ async function createGoogleForm(
           updateSettings: {
             settings: {
               quizSettings: { isQuiz: false },
+              emailCollectionType: "VERIFIED",
             },
-            updateMask: "quizSettings.isQuiz",
+            updateMask: "quizSettings.isQuiz,emailCollectionType",
           },
         }],
       }),

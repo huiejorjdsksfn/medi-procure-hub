@@ -101,10 +101,22 @@ function BrandedFormPreview({
 
       {/* Form fields */}
       <div style={{background:"#fff",padding:"16px 24px",borderRadius:6,boxShadow:"0 1px 3px rgba(0,0,0,.1)"}}>
+        {/* Email field — always first, always required */}
+        <div style={{marginBottom:18,background:"#f5f3ff",borderRadius:8,padding:"12px 16px",border:"1px solid #ddd6fe"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#673ab7",marginBottom:2}}>📧 Required — Please use your official email</div>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:6,color:"#1f2937",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{color:"#673ab7",fontWeight:700,fontSize:11}}>1.</span>
+            Your Official Email Address (e.g. yourname@embu.go.ke)
+            <span style={{color:"#ef4444",fontSize:11}}>*</span>
+          </div>
+          <input type="email" placeholder="Enter your official email address…"
+            style={{width:"100%",border:"none",borderBottom:"2px solid #673ab7",outline:"none",fontSize:13,padding:"4px 0",background:"transparent",boxSizing:"border-box"}}
+            readOnly />
+        </div>
         {formFields.map((f,i)=>(
           <div key={i} style={{marginBottom:18}}>
             <div style={{fontSize:13,fontWeight:500,marginBottom:6,color:"#1f2937",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{color:"#673ab7",fontWeight:700,fontSize:11}}>{i+1}.</span>
+              <span style={{color:"#673ab7",fontWeight:700,fontSize:11}}>{i+2}.</span>
               {f}
               <span style={{color:"#ef4444",fontSize:11}}>*</span>
             </div>
@@ -759,7 +771,10 @@ export default function AIAgentPage() {
                   </div>
 
                   <div style={{marginBottom:12}}>
-                    <label style={{fontSize:11,color:C.muted,display:"block",marginBottom:8}}>Form Fields ({formFields.length})</label>
+                    <label style={{fontSize:11,color:C.muted,display:"block",marginBottom:4}}>Form Fields ({formFields.length})</label>
+                    <div style={{fontSize:10,color:C.purple,background:`${C.purple}14`,borderRadius:6,padding:"5px 10px",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                      📧 <b>Field #1 — Official Email Address</b> is always included automatically (required)
+                    </div>
                     <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10,maxHeight:200,overflowY:"auto"}}>
                       {formFields.map((f,i)=>(
                         <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"#0a0f1e",borderRadius:7,padding:"6px 12px",border:`1px solid ${C.border}`}}>
