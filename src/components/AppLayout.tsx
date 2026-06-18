@@ -20,7 +20,7 @@ import {
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt, BookMarked, Calendar,
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
-  BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch
+  BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch, PenLine
 } from "lucide-react";
 
 const db = supabase as any;
@@ -106,9 +106,10 @@ const MODS = [
    ]},
   {id:"reports",label:"Reports & BI",col:T.reports,roles:[],
    items:[
-     {l:"Analytics",  p:"/reports",   I:BarChart3},
-     {l:"Documents",  p:"/documents", I:FileText},
-     {l:"Audit Log",  p:"/audit-log", I:Activity},
+     {l:"Analytics",  p:"/reports",       I:BarChart3},
+     {l:"Documents",  p:"/documents",      I:FileText},
+     {l:"Document Studio",p:"/documents/editor",I:PenLine},
+     {l:"Audit Log",  p:"/audit-log",      I:Activity},
    ]},
   {id:"comms",label:"Communications",col:T.comms,roles:[],
    items:[
