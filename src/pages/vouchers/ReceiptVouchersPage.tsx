@@ -62,14 +62,17 @@ export default function ReceiptVouchersPage() {
     if(!form.received_from||!form.total_amount){toast({title:"Payer and amount required",variant:"destructive"});return;}
     setSaving(true);
     const rNum=`RV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+    const amt = parseFloat(form.total_amount);
     const {error}=await db.from("receipt_vouchers").insert({
-      receipt_number:rNum,received_from:form.received_from,total_amount:parseFloat(form.total_amount),
-      payment_method:form.payment_method,gl_account:form.gl_account,description:form.description,
-      reference:form.reference,bank_name:form.bank_name,status:"draft",
+      receipt_number:rNum, received_from:form.received_from,
+      total_amount:amt, amount:amt,
+      payment_method:form.payment_method, gl_account:form.gl_account,
+      description:form.description, reference:form.reference,
+      bank_name:form.bank_name, status:"draft",
       received_by:profile?.full_name||user?.email,
     });
     setSaving(false);
-    if(error){toast({title:"Error: "+error.message,variant:"destructive"});return;}
+    if(error){toast({title:"Save failed: "+error.message,variant:"destructive"});return;}
     toast({title:`✓ Receipt ${rNum} created`});
     setShowNew(false);
     setForm({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"3000 - MOH Grant Revenue",description:"",reference:"",bank_name:""});

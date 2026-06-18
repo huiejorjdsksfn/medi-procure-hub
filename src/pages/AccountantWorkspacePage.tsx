@@ -609,8 +609,10 @@ export default function AccountantWorkspacePage() {
     setSaving(true);
     if (editVoucher) {
       // UPDATE
+      const amt2 = parseFloat(f.total_amount);
       const { error } = await db.from("payment_vouchers").update({
-        payee: f.payee, total_amount: parseFloat(f.total_amount),
+        payee: f.payee, payee_name: f.payee,
+        total_amount: amt2, amount: amt2,
         payment_method: f.payment_method, gl_account: f.gl_account,
         vote_head: f.vote_head, description: f.description,
         po_reference: f.po_reference, invoice_reference: f.invoice_reference,
@@ -625,8 +627,10 @@ export default function AccountantWorkspacePage() {
     } else {
       // INSERT
       const vNum = `PV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, "0")}/${String(Date.now()).slice(-4)}`;
+      const amt = parseFloat(f.total_amount);
       const { error } = await db.from("payment_vouchers").insert({
-        voucher_number: vNum, payee: f.payee, total_amount: parseFloat(f.total_amount),
+        voucher_number: vNum, payee: f.payee, payee_name: f.payee,
+        total_amount: amt, amount: amt,
         payment_method: f.payment_method, gl_account: f.gl_account,
         vote_head: f.vote_head, description: f.description,
         po_reference: f.po_reference, invoice_reference: f.invoice_reference,

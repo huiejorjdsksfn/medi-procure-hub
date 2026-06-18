@@ -84,16 +84,18 @@ export default function PaymentVouchersPage() {
     if(!form.payee||!form.total_amount){ toast({title:"Payee and amount required",variant:"destructive"}); return; }
     setSaving(true);
     const vNum = `PV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+    const amt = parseFloat(form.total_amount);
     const { error } = await db.from("payment_vouchers").insert({
-      voucher_number:vNum, payee:form.payee, payee_account:form.payee_account,
-      bank_name:form.bank_name, total_amount:parseFloat(form.total_amount),
+      voucher_number:vNum, payee:form.payee, payee_name:form.payee,
+      payee_account:form.payee_account, bank_name:form.bank_name,
+      total_amount:amt, amount:amt,
       payment_method:form.payment_method, due_date:form.due_date||null,
       description:form.description, po_reference:form.po_reference,
       invoice_reference:form.invoice_reference, gl_account:form.gl_account,
       vote_head:form.vote_head, currency:form.currency, status:"draft",
     });
     setSaving(false);
-    if(error){ toast({title:"Error: "+error.message,variant:"destructive"}); return; }
+    if(error){ toast({title:"Save failed: "+error.message,variant:"destructive"}); return; }
     toast({title:`✓ Voucher ${vNum} created`});
     setShowNew(false);
     setForm({payee:"",payee_account:"",bank_name:"",total_amount:"",payment_method:"cheque",due_date:"",description:"",po_reference:"",invoice_reference:"",gl_account:"2100 - Accounts Payable",vote_head:"",currency:"KES"});
