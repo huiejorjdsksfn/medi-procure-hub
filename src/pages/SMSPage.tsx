@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunctionWithRetry } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import type React from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -159,7 +160,7 @@ export default function SMSPage() {
   async function checkStatus(){
     setStatusLoading(true);
     try{
-      const {data,error}= await supabase.functions.invoke("send-sms",{body:{action:"status"}});
+      const {data,error}= await invokeFunctionWithRetry("send-sms",{body:{action:"status"}});
       if(error) throw error;
       setTwilioStatus(data);
       if(data?.ok) showMsg("✓ Twilio account active — "+data.friendly_name);
@@ -177,7 +178,7 @@ export default function SMSPage() {
     const toNum= to.trim(); if(!toNum||!msg.trim()){showMsg("Enter recipient and message.",true);return;}
     setSending(true);
     try{
-      const {data,error}= await supabase.functions.invoke("send-sms",{
+      const {data,error}= await invokeFunctionWithRetry("send-sms",{
         body:{to:toNum,message:msg,channel,recipient_name:recipientName||undefined,department:dept||undefined}
       });
       if(error) throw error;
@@ -199,7 +200,7 @@ export default function SMSPage() {
     if(!nums.length||!bulkMsg.trim()){showMsg("Enter numbers and message.",true);return;}
     setBulkSending(true); setBulkResult(null);
     try{
-      const {data,error}= await supabase.functions.invoke("send-sms",{body:{to:nums,message:bulkMsg,channel}});
+      const {data,error}= await invokeFunctionWithRetry("send-sms",{body:{to:nums,message:bulkMsg,channel}});
       if(error)throw error;
       setBulkResult(data);
       showMsg(`✓ Bulk sent: ${data?.sent||0}/${data?.total||nums.length} delivered`);
@@ -212,7 +213,7 @@ export default function SMSPage() {
     const num= callTo.trim(); if(!num){showMsg("Enter phone number.",true);return;}
     setCalling(true); setCallResult(null);
     try{
-      const {data,error}= await supabase.functions.invoke("send-sms",{body:{action:"call",to:num,message:callMsg}});
+      const {data,error}= await invokeFunctionWithRetry("send-sms",{body:{action:"call",to:num,message:callMsg}});
       if(error)throw error;
       setCallResult(data);
       showMsg(data?.ok?`✓ Call initiated to ${num} (SID: ${data?.sid})`:"Call failed: "+(data?.error||"Unknown"),!data?.ok);
@@ -224,7 +225,7 @@ export default function SMSPage() {
   async function fetchTwilioMessages(){
     setFetchingTwilio(true);
     try{
-      const {data,error}= await supabase.functions.invoke("send-sms",{body:{action:"fetch_messages",limit:50}});
+      const {data,error}= await invokeFunctionWithRetry("send-sms",{body:{action:"fetch_messages",limit:50}});
       if(error)throw error;
       setTwilioMsgs(data?.messages||[]);
       showMsg(`✓ Fetched ${data?.total||0} messages from Twilio`);

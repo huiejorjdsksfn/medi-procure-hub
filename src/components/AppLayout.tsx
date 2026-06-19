@@ -162,20 +162,24 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
 
   const isAdmin   = roles?.some(r=>["admin","superadmin","webmaster"].includes(r));
   const isDbAdmin = roles?.some(r=>["database_admin"].includes(r)) || isAdmin;
+  // While roles haven't loaded yet, show full nav (avoids flash of empty navigation)
+  const rolesReady = roles && roles.length > 0;
   const sysName   = s.get("system_name",   "EL5 MediProcure");
   const hospName  = s.get("hospital_name", "Embu Level 5 Hospital");
 
   const canSee = useCallback((modRoles:string[])=>{
     if(!modRoles.length) return true;
+    if(!rolesReady) return true; // show all until roles loaded
     if(isAdmin) return true;
     return modRoles.some(r=>roles?.includes(r));
-  },[roles,isAdmin]);
+  },[roles,isAdmin,rolesReady]);
 
   // Filter individual nav items by the role matrix
   const filterItems = useCallback((items:{p:string;[k:string]:any}[])=>{
+    if(!rolesReady) return items; // show all until roles loaded
     if(isAdmin) return items;
     return items.filter(item => isRouteAllowed(primaryRole, item.p));
-  },[isAdmin,primaryRole]);
+  },[isAdmin,primaryRole,rolesReady]);
 
   // Auto-detect active module
   useEffect(()=>{

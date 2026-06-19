@@ -14,10 +14,29 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST,GET,OPTIONS",
 };
 
-const sb = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-);
+// Lazy client init — prevents a cold-start crash (e.g. missing env var)
+// from killing the entire function before it can even respond.
+// A module-level throw here would make EVERY request fail with the generic
+// "Failed to send a request to the Edge Function" client-side error.
+let _sb: ReturnType<typeof createClient> | null = null;
+function getSb() {
+  if (_sb) return _sb;
+  try {
+    _sb = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    return _sb;
+  } catch (e) {
+    console.error("[send-sms] Supabase client init failed:", e);
+    throw e;
+  }
+}
+// Backward-compat: existing code below references `sb` directly.
+// We proxy lazily so the createClient() call never happens at module scope.
+const sb = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_t, prop) { return (getSb() as any)[prop]; },
+});
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -179,17 +198,17 @@ Deno.serve(async (req) => {
   // ── CORS preflight
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  const creds = await loadCreds();
-
-  // ── GET status (legacy support)
-  const url = new URL(req.url);
-  if (req.method === "GET" && url.searchParams.get("action") === "status") {
-    return json({ ok: !!creds.ACCT && !!creds.AUTH, version: "14.0",
-      acct_set: !!creds.ACCT, auth_set: !!creds.AUTH,
-      sms_from: creds.FROM, wa_from: creds.FROM_WA, mg_sid: creds.MSID });
-  }
-
   try {
+    const creds = await loadCreds();
+
+    // ── GET status (legacy support)
+    const url = new URL(req.url);
+    if (req.method === "GET" && url.searchParams.get("action") === "status") {
+      return json({ ok: !!creds.ACCT && !!creds.AUTH, version: "14.0",
+        acct_set: !!creds.ACCT, auth_set: !!creds.AUTH,
+        sms_from: creds.FROM, wa_from: creds.FROM_WA, mg_sid: creds.MSID });
+    }
+
     const b = await req.json().catch(() => ({}));
     const { action, to, message, channel = "sms",
       module: mod, recipient_name: name, department: dept } = b;
