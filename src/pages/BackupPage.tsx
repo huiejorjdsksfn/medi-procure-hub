@@ -21,7 +21,7 @@ const BACKUP_TABLES = [
 
 function BackupInner() {
   const { user, profile } = useAuth();
-  const { get: getSetting } = useSystemSettings();
+  const { get: getSetting, save: saveSysSetting } = useSystemSettings();
   const hospitalName = getSetting("hospital_name","Embu Level 5 Hospital");
   const sysName = getSetting("system_name","EL5 MediProcure");
   const [jobs, setJobs] = useState<any[]>([]);
@@ -45,6 +45,23 @@ function BackupInner() {
     const { data } = await (supabase as any).from("backup_jobs").select("*").order("started_at",{ascending:false}).limit(20);
     setJobs(data||[]);
     setLoading(false);
+  };
+
+  const verifyLastBackup = async () => {
+    const last = jobs.find((j: any) => j.status === "completed") || jobs[0];
+    if (!last) { toast({ title: "No backup found", description: "Run a backup first.", variant: "destructive" }); return; }
+    const ok = last.status === "completed" && !!last.completed_at;
+    toast({
+      title: ok ? "✓ Last backup verified" : "⚠ Last backup incomplete",
+      description: `${last.label || "Backup"} — ${last.status} — ${last.completed_at ? new Date(last.completed_at).toLocaleString("en-KE") : "not finished"}`,
+      variant: ok ? "default" : "destructive",
+    });
+  };
+
+  const saveSchedule = async () => {
+    await saveSysSetting("backup_schedule", backupSch);
+    await saveSysSetting("backup_scope", JSON.stringify(backupScope));
+    toast({ title: "✓ Backup schedule saved", description: `${backupSch} — ${backupScope.length} scope(s)` });
   };
 
   const runBackup = async () => {
@@ -263,10 +280,10 @@ function BackupInner() {
               <button onClick={runBackup} disabled={running} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,color:"#fff",border:"none",cursor:"pointer",background:"linear-gradient(135deg,#1a3a6b,#1d4a87)"}}>
                 <Download style={{width:14,height:14}}/> Full Backup Now
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
+              <button onClick={verifyLastBackup} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#f0fdf4",color:"#15803d",border:"1px solid #86efac"}}>
                 <Shield style={{width:14,height:14}}/> Verify Last Backup
               </button>
-              <button style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
+              <button onClick={saveSchedule} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>
                 <Settings style={{width:14,height:14}}/> Save Schedule
               </button>
             </div>

@@ -34,6 +34,8 @@ export default function TelephonyPage() {
   const [menus, setMenus] = useState<IVRMenu[]>([]);
   const [queues, setQueues] = useState<CallQueue[]>([]);
   const [voicemails, setVoicemails] = useState<Voicemail[]>([]);
+  const [playingVm, setPlayingVm] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dialNum, setDialNum] = useState("");
@@ -58,6 +60,24 @@ export default function TelephonyPage() {
   },[]);
 
   useEffect(()=>{ loadAll(); },[loadAll]);
+
+  const playVoicemail = (vm: any) => {
+    if (!vm.audio_url) return;
+    if (playingVm === vm.id) {
+      audioRef.current?.pause();
+      setPlayingVm(null);
+      return;
+    }
+    if (audioRef.current) audioRef.current.pause();
+    const audio = new Audio(vm.audio_url);
+    audioRef.current = audio;
+    audio.onended = () => setPlayingVm(null);
+    audio.onerror = () => { showToast("⚠ Could not load voicemail audio"); setPlayingVm(null); };
+    audio.play().then(() => setPlayingVm(vm.id)).catch(() => showToast("⚠ Playback failed"));
+    if (vm.status !== "listened" && vm.status !== "archived") {
+      db.from("voicemails").update({ status: "listened" }).eq("id", vm.id).then(()=>{});
+    }
+  };
 
   useEffect(()=>{
     const ch = db.channel("telephony_rt")
@@ -382,7 +402,7 @@ export default function TelephonyPage() {
                   {vm.transcript&&<div style={{fontSize:12,color:"#374151",marginTop:6,fontStyle:"italic"}}>"{vm.transcript}"</div>}
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  {vm.audio_url&&<button style={{...btn("#7c3aed"),padding:"6px 12px",fontSize:12}}>- Play</button>}
+                  {vm.audio_url&&<button onClick={()=>playVoicemail(vm)} style={{...btn("#7c3aed"),padding:"6px 12px",fontSize:12}}>{playingVm===vm.id?"❙❙ Pause":"▶ Play"}</button>}
                   <button onClick={()=>TelephonyAPI.markVoicemailListened(vm.id).then(loadAll)} style={{...btn("#6b7280"),padding:"6px 12px",fontSize:12}}>- Mark Heard</button>
                 </div>
               </div>

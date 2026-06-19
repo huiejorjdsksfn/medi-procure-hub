@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,8 +70,9 @@ const EnterpriseDashboardPage = () => {
     })();
   }, []);
 
+  const [activeSection, setActiveSection] = useState("Enterprise Overview");
   const sidebar = [
-    { icon: LayoutGrid, label: "Enterprise Overview", active: true },
+    { icon: LayoutGrid, label: "Enterprise Overview" },
     { icon: Heart, label: "Enterprise Health" },
     { icon: Lightbulb, label: "What-if" },
     { icon: Boxes, label: "Inventory" },
@@ -81,7 +83,14 @@ const EnterpriseDashboardPage = () => {
     { icon: GitBranch, label: "Change" },
     { icon: FileBarChart, label: "Data Reports" },
     { icon: Star, label: "Favorites" },
-  ];
+  ].map(s => ({ ...s, active: s.label === activeSection }));
+
+  const selectSection = (label: string) => {
+    setActiveSection(label);
+    if (label !== "Enterprise Overview") {
+      toast({ title: `${label}`, description: "This view is coming soon." });
+    }
+  };
 
   let _EDBG = "";
   try { _EDBG = new URL("../assets/procurement-bg.jpg", import.meta.url).href; } catch (_e) { /* ignore */ }
@@ -104,6 +113,7 @@ const EnterpriseDashboardPage = () => {
           {sidebar.map((s) => (
             <button
               key={s.label}
+              onClick={()=>selectSection(s.label)}
               className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left ${
                 s.active
                   ? "bg-sidebar-accent text-sidebar-primary font-medium"
@@ -121,7 +131,7 @@ const EnterpriseDashboardPage = () => {
         {/* Top tabs */}
         <div className="bg-[hsl(215_28%_14%)] border-b border-sidebar-border px-4 py-2 flex items-center gap-4 text-xs">
           {["Dashboard", "Visualization", "Capacity", "Assets", "Connectivity", "Change", "Reports", "Events", "Settings"].map((t, i) => (
-            <button key={t} className={`px-2 py-1 ${i === 0 ? "text-accent border-b-2 border-accent font-semibold" : "text-sidebar-foreground/70 hover:text-sidebar-foreground"}`}>
+            <button key={t} onClick={()=>selectSection(i===0?"Enterprise Overview":t)} className={`px-2 py-1 ${(i === 0 ? "Enterprise Overview" : t) === activeSection ? "text-accent border-b-2 border-accent font-semibold" : "text-sidebar-foreground/70 hover:text-sidebar-foreground"}`}>
               {t}
             </button>
           ))}

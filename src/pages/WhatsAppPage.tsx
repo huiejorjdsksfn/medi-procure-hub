@@ -221,6 +221,38 @@ export default function WhatsAppPage() {
     setBcSending(false);
   };
 
+  /* Load real recipient numbers for a quick-broadcast group */
+  const loadGroupNumbers = async (groupLabel: string) => {
+    try {
+      let nums: string[] = [];
+      if (groupLabel === "Suppliers (Active)") {
+        const { data } = await (supabase as any).from("suppliers")
+          .select("phone").eq("status","active").not("phone","is",null);
+        nums = (data||[]).map((s:any)=>s.phone).filter(Boolean);
+      } else {
+        const roleMap: Record<string,string[]> = {
+          "Department All-Staff": ["requisitioner","inventory_manager","warehouse_officer"],
+          "Procurement Team": ["procurement_manager","procurement_officer"],
+          "Finance Team": ["accountant","finance_officer","finance_manager"],
+        };
+        const roles = roleMap[groupLabel] || [];
+        if (roles.length) {
+          const { data: roleRows } = await (supabase as any).from("user_roles").select("user_id").in("role",roles);
+          const ids = [...new Set((roleRows||[]).map((r:any)=>r.user_id))];
+          if (ids.length) {
+            const { data: profs } = await (supabase as any).from("profiles").select("phone,phone_number").in("id",ids);
+            nums = (profs||[]).map((p:any)=>p.phone||p.phone_number).filter(Boolean);
+          }
+        }
+      }
+      if (!nums.length) { toast({ title:"No phone numbers found", description: `No contacts on file for "${groupLabel}"`, variant:"destructive" }); return; }
+      setBcPhones(nums.join("\n"));
+      toast({ title: `✓ Loaded ${nums.length} number(s)`, description: groupLabel });
+    } catch(e:any) {
+      toast({ title:"Failed to load group", description:e.message, variant:"destructive" });
+    }
+  };
+
   /* Apply template */
   const applyTemplate = (tpl: typeof WA_TEMPLATES[0]) => {
     setSelTpl(tpl);
@@ -499,7 +531,7 @@ export default function WhatsAppPage() {
                       <div style={{fontSize:13,fontWeight:600}}>{g.l}</div>
                       <div style={{fontSize:11,color:"#888"}}>{g.nums}</div>
                     </div>
-                    <button style={btn("#e8f5e9",{color:DARK,fontSize:11,padding:"5px 10px"})}>Load</button>
+                    <button onClick={()=>loadGroupNumbers(g.l)} style={btn("#e8f5e9",{color:DARK,fontSize:11,padding:"5px 10px"})}>Load</button>
                   </div>
                 ))}
               </div>

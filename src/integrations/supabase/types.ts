@@ -4805,13 +4805,16 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
+          currency: string | null
           description: string | null
           due_date: string | null
           expense_account: string | null
+          gl_account: string | null
           id: string
           invoice_number: string | null
           line_items: Json | null
           po_reference: string | null
+          purchase_order_id: string | null
           rejection_reason: string | null
           status: string | null
           subtotal: number | null
@@ -4830,13 +4833,16 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          currency?: string | null
           description?: string | null
           due_date?: string | null
           expense_account?: string | null
+          gl_account?: string | null
           id?: string
           invoice_number?: string | null
           line_items?: Json | null
           po_reference?: string | null
+          purchase_order_id?: string | null
           rejection_reason?: string | null
           status?: string | null
           subtotal?: number | null
@@ -4855,13 +4861,16 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          currency?: string | null
           description?: string | null
           due_date?: string | null
           expense_account?: string | null
+          gl_account?: string | null
           id?: string
           invoice_number?: string | null
           line_items?: Json | null
           po_reference?: string | null
+          purchase_order_id?: string | null
           rejection_reason?: string | null
           status?: string | null
           subtotal?: number | null
@@ -5802,19 +5811,26 @@ export type Database = {
       sales_vouchers: {
         Row: {
           amount: number | null
+          approved_at: string | null
+          approved_by: string | null
+          approved_by_name: string | null
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
+          currency: string | null
+          customer_contact: string | null
           customer_name: string
           customer_type: string | null
           department_id: string | null
           description: string | null
           due_date: string | null
+          gl_account: string | null
           id: string
           income_account: string | null
           line_items: Json | null
           patient_number: string | null
           payment_method: string | null
+          reference_number: string | null
           status: string | null
           subtotal: number | null
           tax_amount: number | null
@@ -5825,19 +5841,26 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          currency?: string | null
+          customer_contact?: string | null
           customer_name: string
           customer_type?: string | null
           department_id?: string | null
           description?: string | null
           due_date?: string | null
+          gl_account?: string | null
           id?: string
           income_account?: string | null
           line_items?: Json | null
           patient_number?: string | null
           payment_method?: string | null
+          reference_number?: string | null
           status?: string | null
           subtotal?: number | null
           tax_amount?: number | null
@@ -5848,19 +5871,26 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          currency?: string | null
+          customer_contact?: string | null
           customer_name?: string
           customer_type?: string | null
           department_id?: string | null
           description?: string | null
           due_date?: string | null
+          gl_account?: string | null
           id?: string
           income_account?: string | null
           line_items?: Json | null
           patient_number?: string | null
           payment_method?: string | null
+          reference_number?: string | null
           status?: string | null
           subtotal?: number | null
           tax_amount?: number | null

@@ -224,12 +224,12 @@ export default function PaymentVouchersPage() {
         <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ ...erpStyles.inp, width:120 }}/>
         <span style={{ color:"#555" }}>to</span>
         <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ ...erpStyles.inp, width:120 }}/>
-        <button onClick={fetchData} style={erpStyles.btn(false)}>↻ Refresh</button>
+        <button onClick={fetchVouchers} style={erpStyles.btn(false)}>↻ Refresh</button>
         <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
           <button style={{ ...erpStyles.btn(true) }} onClick={()=>setShowNew(v=>!v)}>+ New Voucher</button>
           {selected.length>0 && <button onClick={bulkApprove} style={{ ...erpStyles.btn(true), background:"linear-gradient(180deg,#22c55e,#16a34a)", borderColor:"#16a34a" }}>✓ Approve {selected.length}</button>}
           <button onClick={exportCSV} style={erpStyles.btn(false)}>- Export</button>
-          <button style={erpStyles.btn(false)}>- Print</button>
+          <button onClick={()=>window.print()} style={erpStyles.btn(false)}>- Print</button>
         </div>
       </div>
 

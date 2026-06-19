@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.6.0";
+export const APP_VERSION = "11.7.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,24 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.7.0", date: "2026-06-19",  status: "stable", codename: "Button Audit",
+    highlights: [
+      "Fix: purchase_vouchers missing 'expense_account' & 'tax_rate' columns (schema cache error) — duplicate conflicting CREATE TABLE IF NOT EXISTS migrations resolved",
+      "Fix: sales_vouchers missing 'tax_rate', 'patient_number', 'department_id' columns — same root cause as purchase_vouchers",
+      "Heavily audited 1100+ onClick handlers app-wide via static analysis — found and fixed 8 genuinely dead/broken buttons",
+      "PaymentVouchersPage: 'Refresh' toolbar button called nonexistent fetchData() — now correctly calls fetchVouchers()",
+      "PaymentVouchersPage, FacilitiesPage, QualityDashboardPage: dead 'Print'/'Export' toolbar buttons wired to window.print() / CSV export",
+      "BackupPage: 'Verify Last Backup' and 'Save Schedule' buttons now functional (were no-ops)",
+      "WhatsAppPage: Quick-broadcast 'Load' buttons now fetch real recipient phone numbers by role/department/supplier instead of doing nothing",
+      "TelephonyPage: Voicemail 'Play' button now actually plays audio (HTML5 Audio, play/pause toggle, marks as listened)",
+      "EnterpriseDashboardPage: sidebar + top tab strips were fully inert — now stateful with active highlighting and 'coming soon' toast for unbuilt sections",
+      "TrackingApprovalPage: 9-icon quick-action ribbon now navigates to Requisitions/POs/Reports/Items/Backup/Goods-Received",
+      "Verified clean production build (vite build, 3445 modules, zero errors) after all fixes",
+      "Version bump 11.6.0 → 11.7.0",
+    ],
+    dbMigrations: 1, bugsFixed: 11,
+    engines: ["SchemaCache","UIAudit"],
+    modules: ["Vouchers","Finance","Backup","WhatsApp","Telephony","Enterprise","Tracking"] },
   { version: "11.6.0", date: "2026-06-18",  status: "stable", codename: "Resilience Pass",
     highlights: [
       "Fix: 'public.ip_access_rules' table did not exist — created with full RLS, unique IP index, hit-count trigger",
