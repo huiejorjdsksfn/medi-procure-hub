@@ -66,9 +66,22 @@ export async function fetchUserData(uid: string): Promise<{ profile: any; roles:
     supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", uid),
   ]);
+
   const profile = pRes.status === "fulfilled" ? pRes.value.data : null;
-  const roles   = rRes.status === "fulfilled" ? (rRes.value.data as any[] || []).map((r: any) => r.role) : [];
+  const rawRoles = rRes.status === "fulfilled" ? (rRes.value.data as any[] || []).map((r: any) => r.role) : [];
+
+  // RESILIENCE: if DB returned 0 roles for a known user, fall back to cache
+  // so transient RLS hiccups don't clear the UI
+  let roles = rawRoles;
+  if (roles.length === 0) {
+    const cached = authCache.get(uid);
+    if (cached && cached.roles.length > 0) {
+      console.warn("[Auth] DB returned 0 roles — using cache fallback");
+      roles = cached.roles;
+    }
+  }
+
   // Always write to cache so page refreshes restore roles instantly from localStorage
-  authCache.set(uid, profile, roles);
+  if (roles.length > 0) authCache.set(uid, profile, roles);
   return { profile, roles };
 }

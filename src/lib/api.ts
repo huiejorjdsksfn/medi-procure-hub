@@ -6,6 +6,32 @@
 import { supabase } from "@/integrations/supabase/client";
 import { cache, CACHE_KEYS } from "./cache";
 
+/**
+ * Resilient edge function invoker — retries once after a short delay on
+ * transient network/cold-start failures (the generic "Failed to send a
+ * request to the Edge Function" error from supabase-js). Most cold starts
+ * resolve within 1-2s, so a single retry eliminates the vast majority of
+ * these false-failure toasts without the user needing to click again.
+ */
+export async function invokeFunctionWithRetry(
+  name: string,
+  options: { body?: any } = {},
+  retries = 1,
+): Promise<{ data: any; error: any }> {
+  let lastErr: any = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await supabase.functions.invoke(name, options);
+      if (!result.error) return result;
+      lastErr = result.error;
+    } catch (e) {
+      lastErr = e;
+    }
+    if (attempt < retries) await new Promise(r => setTimeout(r, 1200));
+  }
+  return { data: null, error: lastErr };
+}
+
 const db = supabase as any;
 
 // - Rate limiting (simple in-memory) -

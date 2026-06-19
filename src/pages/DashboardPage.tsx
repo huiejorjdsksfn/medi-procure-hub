@@ -97,12 +97,13 @@ export default function DashboardPage() {
 
   useEffect(()=>{fetchKPI();},[fetchKPI]);
 
-  // Redirect finance users directly to their desktop
+  // Redirect finance/specialist users to their role-specific desktop
+  // Guard: only redirect AFTER roles are actually loaded (not the "requisitioner" default)
   useEffect(()=>{
-    if (!primaryRole) return;
+    if (!primaryRole || roles.length === 0) return; // wait for real role data
     const dest = getDefaultRoute(primaryRole);
     if (dest !== "/dashboard") navigate(dest, {replace:true});
-  },[primaryRole, navigate]);
+  },[primaryRole, roles.length, navigate]);
 
   const TILES: Tile[] = [
     {icon:"📋",label:"Requisitions",value:kpi.requisitions,sub:"Total submitted",color:"#7c3aed",path:"/requisitions",roles:["admin","procurement_manager","procurement_officer","requisitioner"]},

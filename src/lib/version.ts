@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.5.0";
+export const APP_VERSION = "11.6.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,20 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.6.0", date: "2026-06-18",  status: "stable", codename: "Resilience Pass",
+    highlights: [
+      "Fix: 'public.ip_access_rules' table did not exist — created with full RLS, unique IP index, hit-count trigger",
+      "Fix: AuthContext rewritten — user data no longer blanks after a few seconds (DB fetch failures keep existing roles instead of wiping state)",
+      "Fix: role no longer flips on page refresh — TOKEN_REFRESHED event no longer re-triggers a full role reload",
+      "Fix: AppLayout & DashboardPage nav/redirect no longer fire on the default 'requisitioner' role before real roles finish loading",
+      "send-sms edge function hardened: lazy Supabase client init (prevents cold-start crash), full handler wrapped in try/catch",
+      "SMSPage: all 5 edge-function calls now use invokeFunctionWithRetry — auto-retries once on transient failure",
+      "fetchUserData: falls back to cache when DB returns 0 roles (prevents transient RLS hiccups from clearing the UI)",
+      "Version bump 11.5.0 → 11.6.0",
+    ],
+    dbMigrations: 1, bugsFixed: 6,
+    engines: ["AuthContext","SchemaCache","SMSEngine"],
+    modules: ["Auth","Security","SMS","Dashboard","Navigation"] },
   { version: "11.5.0", date: "2026-06-18",  status: "stable", codename: "Schema Fortress",
     highlights: [
       "Critical fix: 'gl_account' column missing from payment_vouchers & receipt_vouchers (schema cache error)",
