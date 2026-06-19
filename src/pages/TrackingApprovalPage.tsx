@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,19 +12,20 @@ import {
 } from "lucide-react";
 
 const QUICK = [
-  { icon: ShoppingCart, label: "Requisitions", color: "bg-sky-500" },
-  { icon: FileText, label: "POs", color: "bg-sky-500" },
-  { icon: BarChart3, label: "Overview Report", color: "bg-sky-500" },
-  { icon: Package, label: "Sell Report", color: "bg-sky-500" },
-  { icon: ClipboardList, label: "Purchase Report", color: "bg-sky-500" },
-  { icon: AlertTriangle, label: "Stock Alert", color: "bg-sky-500" },
-  { icon: Clock, label: "Expired", color: "bg-sky-500" },
-  { icon: Database, label: "Backup / Restore", color: "bg-sky-500" },
-  { icon: Store, label: "Stores", color: "bg-sky-500" },
+  { icon: ShoppingCart, label: "Requisitions", color: "bg-sky-500", route: "/requisitions" },
+  { icon: FileText, label: "POs", color: "bg-sky-500", route: "/purchase-orders" },
+  { icon: BarChart3, label: "Overview Report", color: "bg-sky-500", route: "/reports" },
+  { icon: Package, label: "Sell Report", color: "bg-sky-500", route: "/reports" },
+  { icon: ClipboardList, label: "Purchase Report", color: "bg-sky-500", route: "/reports" },
+  { icon: AlertTriangle, label: "Stock Alert", color: "bg-sky-500", route: "/items" },
+  { icon: Clock, label: "Expired", color: "bg-sky-500", route: "/items" },
+  { icon: Database, label: "Backup / Restore", color: "bg-sky-500", route: "/backup" },
+  { icon: Store, label: "Stores", color: "bg-sky-500", route: "/goods-received" },
 ];
 
 const TrackingApprovalPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [tiles, setTiles] = useState({ invoices: 0, customers: 0, suppliers: 0, products: 0,
     invToday: 0, custToday: 0, supToday: 0, prodToday: 0 });
   const [activity, setActivity] = useState<any[]>([]);
@@ -91,7 +93,7 @@ const TrackingApprovalPage = () => {
       <Card className="border-slate-200">
         <CardContent className="p-4 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
           {QUICK.map((q) => (
-            <button key={q.label} className="flex flex-col items-center text-xs text-slate-600 hover:text-sky-600">
+            <button key={q.label} onClick={()=>navigate(q.route)} className="flex flex-col items-center text-xs text-slate-600 hover:text-sky-600">
               <div className={`w-12 h-12 rounded-full ${q.color} text-white flex items-center justify-center shadow`}>
                 <q.icon className="w-6 h-6" />
               </div>

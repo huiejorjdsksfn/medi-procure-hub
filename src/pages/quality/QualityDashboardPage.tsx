@@ -26,6 +26,21 @@ function fmt(n: number) { return (n||0).toLocaleString("en-KE"); }
 function fmtDate(s: string) { if(!s) return "—"; return new Date(s).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
 function StatusChip({ status }: { status: string }) { return <span style={erpStyles.statusChip(status)}>{status}</span>; }
 
+function exportRowsToCSV(rows: any[], filename: string) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(","),
+    ...rows.map(r => headers.map(h => `"${String(r[h] ?? "").replace(/"/g,'""')}"`).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${filename}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 type QCTab = "dashboard"|"inspections"|"ncr"|"metrics";
 
 export default function QualityDashboardPage() {
@@ -148,8 +163,8 @@ export default function QualityDashboardPage() {
               {t.label}
             </button>
           ))}
-          <button style={erpStyles.btn(false)}>- Print</button>
-          <button style={erpStyles.btn(false)}>- Export</button>
+          <button onClick={()=>window.print()} style={erpStyles.btn(false)}>- Print</button>
+          <button onClick={()=>exportRowsToCSV(tab==="ncr"?ncrs:inspections, tab==="ncr"?"ncr_reports":"inspections")} style={erpStyles.btn(false)}>- Export</button>
         </div>
       </div>
 

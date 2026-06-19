@@ -138,7 +138,7 @@ export default function FacilitiesPage() {
         <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
           <button onClick={()=>setShowNew(v=>!v)} style={erpStyles.btn(true)}>+ New Facility</button>
           <button onClick={exportCSV} style={erpStyles.btn(false)}>- Export</button>
-          <button style={erpStyles.btn(false)}>- Print</button>
+          <button onClick={()=>window.print()} style={erpStyles.btn(false)}>- Print</button>
         </div>
       </div>
 
