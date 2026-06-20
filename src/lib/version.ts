@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.8.0";
+export const APP_VERSION = "11.9.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,20 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.9.0", date: "2026-06-20",  status: "stable", codename: "Full Coverage",
+    highlights: [
+      "Exhaustive button audit: zero genuinely dead onClick handlers remain anywhere in the app (1100+ handlers verified, no-op/empty/console.log-only patterns scanned, bare function refs checked against definitions)",
+      "Orphaned-page audit: found 6 fully-built pages with zero routes (unreachable by any user) — SystemReportPage, EnterpriseDashboardPage, TrackingApprovalPage, PrintEnginePage, DatabaseAdminPage, CommunicationsPage",
+      "Routed the 4 genuinely unique ones: /dashboard/enterprise, /reports/system-utilization, /reports/print-engine, /tracking-approval — each now has a discoverable nav link, not just a URL",
+      "Skipped routing DatabaseAdminPage and CommunicationsPage — confirmed legacy duplicates already superseded by the actively-maintained AdminDatabasePage and SMSPage; adding routes for these would have created confusing duplicate functionality",
+      "Updated role-access matrix (sessionCookie.ts) so the new /tracking-approval route is actually reachable by procurement_manager, procurement_officer, inventory_manager, warehouse_officer, and requisitioner roles, not just admins",
+      "Rebuilt both dist/ and web/ deployment bundles to include the newly-routed pages",
+      "Verified zero TypeScript errors and a clean production build after every change",
+      "Version bump 11.8.0 -> 11.9.0",
+    ],
+    dbMigrations: 0, bugsFixed: 6,
+    engines: ["Routing","Navigation"],
+    modules: ["Dashboard","Reports","Procurement"] },
   { version: "11.8.0", date: "2026-06-20",  status: "stable", codename: "Security Patch",
     highlights: [
       "Security: npm audit fix resolved 35 of 42 vulnerabilities (4 critical -> 0) — affected axios, react-router, react-router-dom, ws, lodash, rollup, tar, and others",
