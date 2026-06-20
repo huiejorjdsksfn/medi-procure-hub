@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.7.0";
+export const APP_VERSION = "11.8.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,20 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.8.0", date: "2026-06-20",  status: "stable", codename: "Security Patch",
+    highlights: [
+      "Security: npm audit fix resolved 35 of 42 vulnerabilities (4 critical -> 0) — affected axios, react-router, react-router-dom, ws, lodash, rollup, tar, and others",
+      "Security: replaced abandoned/vulnerable 'xlsx' npm package (frozen at 0.18.5, prototype pollution + ReDoS, no fix on npm) with '@e965/xlsx' — an automated npm mirror of the patched SheetJS 0.20.x releases, across all 24 files that import it",
+      "Security: PDF.js text-extraction hardened (isEvalSupported/disableAutoFetch/disableStream/disableFontFace) against GHSA-wgrm-67xf-hhpq without the breaking v4+ .mjs worker migration",
+      "Rebuilt and re-committed the web/ deployment bundle so no stale vulnerable xlsx code remains in the tracked build output",
+      "Runtime fix: PrintEnginePage — a single malformed saved template could throw inside a .then() and silently break the entire template list; now guarded per-template with a safe fallback",
+      "Runtime fix: structuredCloneSafe (conflict resolver) hardened against non-serializable values instead of throwing",
+      "Verified zero TypeScript errors and a clean production build (3445 modules) after every change",
+      "Version bump 11.7.0 -> 11.8.0",
+    ],
+    dbMigrations: 0, bugsFixed: 4,
+    engines: ["Security","BuildPipeline"],
+    modules: ["Dependencies","Documents","Reports"] },
   { version: "11.7.0", date: "2026-06-19",  status: "stable", codename: "Button Audit",
     highlights: [
       "Fix: purchase_vouchers missing 'expense_account' & 'tax_rate' columns (schema cache error) — duplicate conflicting CREATE TABLE IF NOT EXISTS migrations resolved",

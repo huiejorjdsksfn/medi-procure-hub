@@ -4,7 +4,7 @@
  * Maps parsed data to ERP modules (requisitions, items, suppliers, etc.)
  * EL5 MediProcure - Embu Level 5 Hospital
  */
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 
 export type FileKind = "excel" | "word" | "csv" | "pdf" | "image" | "unknown";
 
@@ -143,7 +143,18 @@ export async function parsePDF(file: File): Promise<ParsedDocument> {
 
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
     const ab = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+    // Security hardening (GHSA-wgrm-67xf-hhpq): this app only extracts plain
+    // text via getTextContent() and never renders/executes embedded PDF
+    // scripting or XFA forms — the vulnerable surface for that CVE. We
+    // additionally disable eval, auto-fetch, and streaming defensively so a
+    // malicious PDF cannot trigger any code path beyond text extraction.
+    const pdf = await pdfjsLib.getDocument({
+      data: ab,
+      isEvalSupported: false,
+      disableAutoFetch: true,
+      disableStream: true,
+      disableFontFace: true,
+    }).promise;
     let fullText = "";
 
     for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {

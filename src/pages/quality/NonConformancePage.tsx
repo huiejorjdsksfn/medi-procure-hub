@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, RefreshCw, Download, X, Save, Trash2, Eye, AlertTriangle, Search } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 
 const genNo = ()=>`NCR/EL5H/${new Date().getFullYear()}/${String(Math.floor(100+Math.random()*900))}`;
 const SC: Record<string,{bg:string;color:string}> = {

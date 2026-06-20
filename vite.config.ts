@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => ({
           "supabase-vendor": ["@supabase/supabase-js"],
           "ui-vendor":       ["lucide-react", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs"],
           "chart-vendor":    ["recharts"],
-          "xlsx-vendor":     ["xlsx"],
+          "xlsx-vendor":     ["@e965/xlsx"],
           "form-vendor":     ["react-hook-form", "@hookform/resolvers", "zod"],
           "doc-vendor":      ["mammoth", "papaparse"],
           "pdf-vendor":      ["jspdf", "jspdf-autotable"],

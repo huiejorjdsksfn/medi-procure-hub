@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement } from "@/lib/notify";
 import { Plus, Search, RefreshCw, Eye, CheckCircle, Gavel, X, Save, Download, Mail } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;

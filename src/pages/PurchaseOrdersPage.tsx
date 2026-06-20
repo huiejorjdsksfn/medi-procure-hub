@@ -12,7 +12,7 @@ import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
   CheckCircle, XCircle, ShoppingCart, Send, Trash2, Edit3, Save
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import { notifyProcurement } from "@/lib/notify";
 import { executePOAction, type POAction } from "@/lib/procurement/poWorkflow";
 import { useSystemSettings } from "@/hooks/useSystemSettings";

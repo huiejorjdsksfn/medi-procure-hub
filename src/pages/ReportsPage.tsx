@@ -13,7 +13,7 @@ import { RefreshCw, Printer, FileSpreadsheet, Search, X, Calendar,
   BarChart3, TrendingUp, Package, ShoppingCart, DollarSign, FileText,
   Truck, Shield, Activity, BookOpen, Gavel, ClipboardList, ChevronRight,
   Filter, Download } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { T } from "@/lib/theme";
 

@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2 } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printGenericVoucher } from "@/lib/printDocument";
 

@@ -16,7 +16,7 @@ import {
   CheckCircle, XCircle, Clock, ClipboardList, Send, AlertTriangle,
   Download, Edit3, ChevronDown
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
