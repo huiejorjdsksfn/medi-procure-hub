@@ -84,6 +84,10 @@ import DbTestPage from "@/pages/DbTestPage";
 import NotFoundLogPage from "@/pages/NotFoundLogPage";
 import UsersIpAuditPage from "@/pages/UsersIpAuditPage";
 import AdminCreateUserPage from "@/pages/AdminCreateUserPage";
+import SystemReportPage from "@/pages/SystemReportPage";
+import EnterpriseDashboardPage from "@/pages/EnterpriseDashboardPage";
+import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
+import PrintEnginePage from "@/pages/PrintEnginePage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000, gcTime: 300000, refetchOnWindowFocus: false, refetchOnReconnect: "always" } }
@@ -121,11 +125,13 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/index" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<P><DashboardPage /></P>} />
+            <Route path="/dashboard/enterprise" element={<P><EnterpriseDashboardPage /></P>} />
 
             {/* Procurement - role-gated */}
             <Route path="/requisitions" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","requisitioner","warehouse_officer","inventory_manager"]}><RequisitionsPage /></RoleGuard></P>} />
             <Route path="/purchase-orders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]}><PurchaseOrdersPage /></RoleGuard></P>} />
             <Route path="/goods-received" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager","accountant","finance_manager","finance_officer"]}><GoodsReceivedPage /></RoleGuard></P>} />
+            <Route path="/tracking-approval" element={<P><TrackingApprovalPage /></P>} />
             <Route path="/suppliers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><SuppliersPage /></RoleGuard></P>} />
             <Route path="/crm" element={<Navigate to="/suppliers" replace />} />
             <Route path="/tenders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><TendersPage /></RoleGuard></P>} />
@@ -135,6 +141,8 @@ const App = () => (
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
+            <Route path="/reports/system-utilization" element={<P><SystemReportPage /></P>} />
+            <Route path="/reports/print-engine" element={<P><PrintEnginePage /></P>} />
             <Route path="/bi" element={<Navigate to="/reports" replace />} />
             <Route path="/fabric" element={<Navigate to="/reports" replace />} />
             <Route path="/documents" element={<P><DocumentsPage /></P>} />

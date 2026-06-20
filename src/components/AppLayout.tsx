@@ -20,7 +20,8 @@ import {
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt, BookMarked, Calendar,
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
-  BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch, PenLine
+  BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch, PenLine,
+  LayoutGrid, CheckCircle, Printer
 } from "lucide-react";
 
 const db = supabase as any;
@@ -64,6 +65,8 @@ const MODS = [
    roles:["admin","superadmin","webmaster","procurement_manager","procurement_officer","requisitioner","inventory_manager","warehouse_officer"],
    items:[
      {l:"Home",           p:"/dashboard",           I:Home},
+     {l:"Enterprise View",p:"/dashboard/enterprise",I:LayoutGrid},
+     {l:"Tracking & Approval",p:"/tracking-approval",I:CheckCircle},
      {l:"Requisitions",   p:"/requisitions",        I:ClipboardList, b:"requisitions"},
      {l:"Purchase Orders",p:"/purchase-orders",     I:ShoppingCart,  b:"purchase_orders"},
      {l:"Goods Received", p:"/goods-received",      I:Package,       b:"goods_received"},
@@ -107,6 +110,8 @@ const MODS = [
   {id:"reports",label:"Reports & BI",col:T.reports,roles:[],
    items:[
      {l:"Analytics",  p:"/reports",       I:BarChart3},
+     {l:"System Utilization",p:"/reports/system-utilization",I:Activity},
+     {l:"Print Engine",p:"/reports/print-engine",I:Printer},
      {l:"Documents",  p:"/documents",      I:FileText},
      {l:"Document Studio",p:"/documents/editor",I:PenLine},
      {l:"Audit Log",  p:"/audit-log",      I:Activity},
