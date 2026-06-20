@@ -71,6 +71,7 @@ export default function SalesVouchersPage() {
     if(!form.customer_name){toast({title:"Customer name required",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,voucher_number:genNo(),subtotal,tax_amount:taxAmt,amount:total,
+      tax_rate:Number(form.tax_rate||0),due_date:form.due_date||null,
       department_id:form.department_id||null,line_items:lineItems,status:"confirmed",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("sales_vouchers").insert(payload).select().single();
     if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}

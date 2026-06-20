@@ -13,7 +13,7 @@ const db = supabase as any;
 interface JournalEntry {
   id: string; reference?: string; description?: string; gl_account?: string;
   debit?: number; credit?: number; status?: string; created_at: string;
-  posted_by?: string; fiscal_year?: string; period?: string; narration?: string;
+  posted_by?: string; posted_by_name?: string; fiscal_year?: string; period?: string; narration?: string;
 }
 
 function fmtK(n?:number|null){const v=n||0;if(v>=1_000_000)return`KES ${(v/1_000_000).toFixed(2)}M`;if(v>=1_000)return`KES ${(v/1_000).toFixed(2)}K`;return`KES ${v.toLocaleString("en-KE",{minimumFractionDigits:2})}`;}
@@ -61,7 +61,7 @@ export default function JournalVouchersPage() {
       debit:form.debit?parseFloat(form.debit):null,
       credit:form.credit?parseFloat(form.credit):null,
       narration:form.narration,fiscal_year:form.fiscal_year,
-      status:"posted",posted_by:profile?.full_name||user?.email,
+      status:"posted",posted_by:user?.id||null,posted_by_name:profile?.full_name||user?.email,
       created_at:new Date().toISOString(),
     });
     setSaving(false);
@@ -88,7 +88,7 @@ export default function JournalVouchersPage() {
 
   function exportCSV(){
     const rows=["Reference,Description,GL Account,Debit,Credit,Status,Date,Posted By",
-      ...filtered.map(e=>`${e.reference||""},${e.description||""},${e.gl_account||""},${e.debit||""},${e.credit||""},${e.status||""},${fmtDate(e.created_at)},${e.posted_by||""}`)
+      ...filtered.map(e=>`${e.reference||""},${e.description||""},${e.gl_account||""},${e.debit||""},${e.credit||""},${e.status||""},${fmtDate(e.created_at)},${e.posted_by_name||""}`)
     ];
     const blob=new Blob([rows.join("\n")],{type:"text/csv"});
     const url=URL.createObjectURL(blob);
@@ -211,7 +211,7 @@ export default function JournalVouchersPage() {
                     <td style={{...erpStyles.gridTd,fontWeight:700,color:e.credit?"#004085":"#888"}}>{e.credit?fmtK(e.credit):"—"}</td>
                     <td style={erpStyles.gridTd}><StatusChip status={e.status||"posted"}/></td>
                     <td style={{...erpStyles.gridTd,color:"#555"}}>{fmtDate(e.created_at)}</td>
-                    <td style={{...erpStyles.gridTd,color:"#555"}}>{e.posted_by||"—"}</td>
+                    <td style={{...erpStyles.gridTd,color:"#555"}}>{e.posted_by_name||"—"}</td>
                     <td style={erpStyles.gridTd}>
                       {e.status==="posted"&&<button onClick={()=>reverseEntry(e.id)} style={{...erpStyles.btn(false),fontSize:10,padding:"2px 7px",color:"#721c24"}}>Reverse</button>}
                     </td>

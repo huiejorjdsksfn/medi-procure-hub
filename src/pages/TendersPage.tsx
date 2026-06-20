@@ -132,7 +132,7 @@ export default function TendersPage() {
     if(new Date(form.closing_date) < new Date(new Date().toDateString())){ toast({title:"Closing date must be today or in the future",variant:"destructive"}); return; }
     if(form.estimated_value&&isNaN(Number(form.estimated_value))){ toast({title:"Estimated value must be a number",variant:"destructive"}); return; }
     setSaving(true);
-    const payload={...form,estimated_value:form.estimated_value?Number(form.estimated_value):null,created_by:user?.id,created_by_name:profile?.full_name};
+    const payload={...form,estimated_value:form.estimated_value?Number(form.estimated_value):null,opening_date:form.opening_date||null,closing_date:form.closing_date||null,bid_bond_amount:form.bid_bond_amount?Number(form.bid_bond_amount):null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       await(supabase as any).from("tenders").update(payload).eq("id",editing.id);
       toast({title:"Tender updated -"});

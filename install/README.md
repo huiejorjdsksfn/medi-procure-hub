@@ -1,4 +1,4 @@
-# ProcurBosse v5.9 — Installation Guide
+# ProcurBosse v11.10 — Installation Guide
 
 ## Web (Recommended)
 Visit: **https://procurbosse.edgeone.app**
@@ -19,4 +19,4 @@ Visit: **https://procurbosse.edgeone.app**
 
 ## Support
 - Hospital IT: ict@embu.health.go.ke
-- System: EL5 MediProcure v5.9
+- System: EL5 MediProcure v11.10
