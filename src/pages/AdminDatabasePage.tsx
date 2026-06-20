@@ -17,7 +17,7 @@ import {
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import RoleGuard from "@/components/RoleGuard";
 
 // - Table groups with all 57 tables -

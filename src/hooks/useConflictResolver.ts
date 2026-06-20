@@ -109,6 +109,9 @@ function sameValue(a: any, b: any) {
 }
 
 function structuredCloneSafe<T>(value: T): T {
-  if (typeof structuredClone === "function") return structuredClone(value);
-  return JSON.parse(JSON.stringify(value));
+  if (typeof structuredClone === "function") {
+    try { return structuredClone(value); } catch { /* fall through to JSON clone */ }
+  }
+  try { return JSON.parse(JSON.stringify(value)); }
+  catch { return value; }
 }

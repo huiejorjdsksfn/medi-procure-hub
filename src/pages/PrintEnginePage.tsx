@@ -13,7 +13,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import { Printer, FileText, Settings, RefreshCw, Download, Eye, ChevronRight, X, Save, BarChart3, FileSpreadsheet, Filter, Search, Play } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 
 const db = supabase as any;
 
@@ -129,7 +129,10 @@ export default function PrintEnginePage() {
 
   useEffect(()=>{
     db.from("system_settings").select("*").eq("category","print_templates").then(({data}:any)=>{
-      if(data)setTmpls(data.map((d:any)=>({key:d.key,...JSON.parse(d.value||"{}")})));
+      if(data)setTmpls(data.map((d:any)=>{
+        try { return {key:d.key,...JSON.parse(d.value||"{}")}; }
+        catch { return {key:d.key,name:d.key,reportType:"",cols:[],startDate:"",endDate:"",statusF:"all",pageSize:"A4"}; }
+      }));
     });
   },[savingT]);
 

@@ -13,7 +13,7 @@ export async function exportToExcel(
   facility = "EL5H",
   period = "",
 ): Promise<void> {
-  const XLSX = (await import("xlsx")).default;
+  const XLSX = (await import("@e965/xlsx")).default;
 
   const wb = XLSX.utils.book_new();
 

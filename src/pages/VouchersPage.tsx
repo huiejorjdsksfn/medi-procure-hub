@@ -9,7 +9,7 @@ import { notifyProcurement } from "@/lib/notify";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, RefreshCw, Eye, Printer, Download, FileText, DollarSign, X, Save, CheckCircle, XCircle, Clock } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 
 const genNo = () => { const d=new Date(); return `SRV/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.floor(1000+Math.random()*9000)}`; };
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
