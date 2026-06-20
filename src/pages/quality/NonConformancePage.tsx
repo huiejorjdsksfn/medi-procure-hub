@@ -53,7 +53,7 @@ export default function NonConformancePage() {
   const save = async()=>{
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
-    const payload={...form,ncr_number:genNo(),issue_description:form.title||form.description||"",created_by:user?.id,created_by_name:profile?.full_name};
+    const payload={...form,ncr_number:genNo(),issue_description:form.title||form.description||"",target_date:form.target_date||null,created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("non_conformance").insert(payload).select().single();
     if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","non_conformance",data?.id,{title:form.title});toast({title:"NCR created -"});setShowNew(false);load();}

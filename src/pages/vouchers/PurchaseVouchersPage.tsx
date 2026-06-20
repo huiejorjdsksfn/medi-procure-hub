@@ -69,6 +69,7 @@ export default function PurchaseVouchersPage() {
     if(!form.supplier_name||items.length===0){toast({title:"Please fill all required fields",variant:"destructive"});return;}
     setSaving(true);
     const payload={...form,voucher_number:genNo(),supplier_id:form.supplier_id||null,subtotal,tax_amount:taxAmt,amount:total,
+      tax_rate:Number(form.tax_rate||0),due_date:form.due_date||null,
       line_items:items,status:"pending",created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("purchase_vouchers").insert(payload).select().single();
     if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}

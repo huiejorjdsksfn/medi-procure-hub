@@ -53,7 +53,7 @@ export default function ProcurementPlanningPage() {
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
     const dept = depts.find(d=>d.id===form.department_id);
-    const payload={...form,plan_number:editing?editing.plan_number:genNo(),item_description:form.description||form.title||"",department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,created_by:user?.id,created_by_name:profile?.full_name};
+    const payload={...form,plan_number:editing?editing.plan_number:genNo(),item_description:form.description||form.title||"",department_name:dept?.name||"",estimated_budget:Number(form.estimated_budget||0),department_id:form.department_id||null,start_date:form.start_date||null,end_date:form.end_date||null,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("procurement_plans").update(payload).eq("id",editing.id);
       if(!error){toast({title:"Plan updated -"});logAudit(user?.id,profile?.full_name,"update","procurement_plans",editing.id,{title:form.title});}

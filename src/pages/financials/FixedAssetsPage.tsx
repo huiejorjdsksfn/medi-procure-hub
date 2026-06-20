@@ -73,7 +73,7 @@ export default function FixedAssetsPage() {
     setSaving(true);
     const {annual,accumulated,nbv} = calcDepreciation();
     const dept = depts.find(d=>d.id===form.department_id);
-    const payload={...form,asset_number:editing?editing.asset_number:genNo(),department_id:form.department_id||null,department_name:dept?.name||"",purchase_cost:Number(form.purchase_cost||0),useful_life:Number(form.useful_life||0),residual_value:Number(form.residual_value||0),annual_depreciation:annual,accumulated_depreciation:accumulated,net_book_value:nbv,created_by:user?.id,created_by_name:profile?.full_name};
+    const payload={...form,asset_number:editing?editing.asset_number:genNo(),department_id:form.department_id||null,department_name:dept?.name||"",purchase_date:form.purchase_date||null,warranty_expiry:form.warranty_expiry||null,purchase_cost:Number(form.purchase_cost||0),useful_life:Number(form.useful_life||0),residual_value:Number(form.residual_value||0),annual_depreciation:annual,accumulated_depreciation:accumulated,net_book_value:nbv,created_by:user?.id,created_by_name:profile?.full_name};
     if(editing){
       const{error}=await(supabase as any).from("fixed_assets").update(payload).eq("id",editing.id);
       if(!error){logAudit(user?.id,profile?.full_name,"update","fixed_assets",editing.id,{name:form.asset_name});toast({title:"Asset updated -"});}

@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.9.0";
+export const APP_VERSION = "11.10.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,22 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.10.0", date: "2026-06-20",  status: "stable", codename: "Schema Reconciliation",
+    highlights: [
+      "Fix: budgets missing description/total_budget/spent/remaining/vote_head columns (same duplicate-CREATE-TABLE root cause as prior fixes) — migration adds them + back-fills from the columns that DO exist",
+      "Fix: fixed_assets missing annual_depreciation + 7 other columns (four competing CREATE TABLE migrations existed for this one table)",
+      "Fix: gl_entries missing narration/fiscal_year/period/posted_by_name columns",
+      "Fix: gl_entries.posted_by is a UUID foreign key but the code was writing a name/email string into it — would have thrown 'invalid input syntax for type uuid' on first real post. Now writes user.id to posted_by and the display name to the new posted_by_name column; UI and CSV export updated to match",
+      "Fix: lib/api.ts glApi.listEntries ordered by 'entry_date' and filtered by 'account_code' — neither column has ever existed on the live gl_entries table. Now orders by created_at and filters by gl_account",
+      "Fix: 'invalid input syntax for type numeric: \"\"' — root-caused to {...form} spreads sending empty-string form fields straight into numeric/date database columns. Fixed across 7 forms: PurchaseVouchersPage (tax_rate/due_date), SalesVouchersPage (tax_rate/due_date), FixedAssetsPage (purchase_date/warranty_expiry), ProcurementPlanningPage (start_date/end_date), ContractsPage (start_date/end_date), TendersPage (opening_date/closing_date/bid_bond_amount), NonConformancePage (target_date), ItemsPage (expiry_date)",
+      "types.ts brought back in sync with the real live schema for budgets, fixed_assets, and gl_entries (the gl_entries types had drifted to model a schema that was never actually deployed)",
+      "Rebuilt dist/ and web/ deployment bundles",
+      "Verified zero TypeScript errors and a clean production build after every change",
+      "Version bump 11.9.0 -> 11.10.0",
+    ],
+    dbMigrations: 1, bugsFixed: 9,
+    engines: ["SchemaCache"],
+    modules: ["Finance","Vouchers","Procurement","Quality","Inventory"] },
   { version: "11.9.0", date: "2026-06-20",  status: "stable", codename: "Full Coverage",
     highlights: [
       "Exhaustive button audit: zero genuinely dead onClick handlers remain anywhere in the app (1100+ handlers verified, no-op/empty/console.log-only patterns scanned, bare function refs checked against definitions)",

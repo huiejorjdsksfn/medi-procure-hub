@@ -128,7 +128,7 @@ export default function ContractsPage() {
     if(form.total_value&&Number(form.total_value)<0){toast({title:"Contract value cannot be negative",variant:"destructive"});return;}
     setSaving(true);
     const sup = suppliers.find(s=>s.id===form.supplier_id);
-    const payload={...form,contract_number:form.contract_number||genNo(),total_value:parseFloat(form.total_value)||0,performance_score:parseInt(form.performance_score)||0,created_by:user?.id,supplier_name:sup?.name};
+    const payload={...form,contract_number:form.contract_number||genNo(),total_value:parseFloat(form.total_value)||0,performance_score:parseInt(form.performance_score)||0,start_date:form.start_date||null,end_date:form.end_date||null,created_by:user?.id,supplier_name:sup?.name};
     if(editing){
       const{error}=await(supabase as any).from("contracts").update(payload).eq("id",editing.id);
       if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});setSaving(false);return;}

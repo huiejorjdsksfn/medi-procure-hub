@@ -490,16 +490,21 @@ export type Database = {
           department: string | null
           department_id: string | null
           department_name: string | null
+          description: string | null
           financial_year: string
           fiscal_year: string | null
           id: string
           notes: string | null
           period_end: string | null
           period_start: string | null
+          remaining: number | null
           remaining_amount: number | null
+          spent: number | null
           spent_amount: number | null
           status: string | null
+          total_budget: number | null
           updated_at: string | null
+          vote_head: string | null
         }
         Insert: {
           allocated_amount?: number | null
@@ -516,16 +521,21 @@ export type Database = {
           department?: string | null
           department_id?: string | null
           department_name?: string | null
+          description?: string | null
           financial_year?: string
           fiscal_year?: string | null
           id?: string
           notes?: string | null
           period_end?: string | null
           period_start?: string | null
+          remaining?: number | null
           remaining_amount?: number | null
+          spent?: number | null
           spent_amount?: number | null
           status?: string | null
+          total_budget?: number | null
           updated_at?: string | null
+          vote_head?: string | null
         }
         Update: {
           allocated_amount?: number | null
@@ -542,16 +552,21 @@ export type Database = {
           department?: string | null
           department_id?: string | null
           department_name?: string | null
+          description?: string | null
           financial_year?: string
           fiscal_year?: string | null
           id?: string
           notes?: string | null
           period_end?: string | null
           period_start?: string | null
+          remaining?: number | null
           remaining_amount?: number | null
+          spent?: number | null
           spent_amount?: number | null
           status?: string | null
+          total_budget?: number | null
           updated_at?: string | null
+          vote_head?: string | null
         }
         Relationships: [
           {
@@ -1890,6 +1905,7 @@ export type Database = {
           accumulated_depreciation: number | null
           acquisition_cost: number | null
           acquisition_date: string | null
+          annual_depreciation: number | null
           asset_code: string | null
           asset_name: string | null
           asset_number: string
@@ -1916,11 +1932,14 @@ export type Database = {
           purchase_cost: number | null
           purchase_date: string | null
           purchase_price: number | null
+          residual_value: number | null
           salvage_value: number | null
           serial_number: string | null
           status: string | null
           supplier_id: string | null
+          supplier_name: string | null
           updated_at: string | null
+          useful_life: number | null
           useful_life_years: number | null
           warranty_expiry: string | null
         }
@@ -1928,6 +1947,7 @@ export type Database = {
           accumulated_depreciation?: number | null
           acquisition_cost?: number | null
           acquisition_date?: string | null
+          annual_depreciation?: number | null
           asset_code?: string | null
           asset_name?: string | null
           asset_number?: string
@@ -1954,11 +1974,14 @@ export type Database = {
           purchase_cost?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
+          residual_value?: number | null
           salvage_value?: number | null
           serial_number?: string | null
           status?: string | null
           supplier_id?: string | null
+          supplier_name?: string | null
           updated_at?: string | null
+          useful_life?: number | null
           useful_life_years?: number | null
           warranty_expiry?: string | null
         }
@@ -1966,6 +1989,7 @@ export type Database = {
           accumulated_depreciation?: number | null
           acquisition_cost?: number | null
           acquisition_date?: string | null
+          annual_depreciation?: number | null
           asset_code?: string | null
           asset_name?: string | null
           asset_number?: string
@@ -1992,11 +2016,14 @@ export type Database = {
           purchase_cost?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
+          residual_value?: number | null
           salvage_value?: number | null
           serial_number?: string | null
           status?: string | null
           supplier_id?: string | null
+          supplier_name?: string | null
           updated_at?: string | null
+          useful_life?: number | null
           useful_life_years?: number | null
           warranty_expiry?: string | null
         }
@@ -2019,49 +2046,73 @@ export type Database = {
       }
       gl_entries: {
         Row: {
-          account_code: string
+          account_code: string | null
           account_name: string | null
           created_at: string | null
           credit: number | null
           debit: number | null
           description: string | null
-          entry_date: string
+          entry_date: string | null
+          erp_sync_id: string | null
+          fiscal_year: string | null
+          gl_account: string | null
           id: string
+          narration: string | null
           period: string | null
           posted_by: string | null
+          posted_by_name: string | null
           reference: string | null
           reference_id: string | null
           reference_type: string | null
+          status: string | null
+          updated_at: string | null
+          voucher_id: string | null
         }
         Insert: {
-          account_code: string
+          account_code?: string | null
           account_name?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
           description?: string | null
-          entry_date?: string
+          entry_date?: string | null
+          erp_sync_id?: string | null
+          fiscal_year?: string | null
+          gl_account?: string | null
           id?: string
+          narration?: string | null
           period?: string | null
           posted_by?: string | null
+          posted_by_name?: string | null
           reference?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          voucher_id?: string | null
         }
         Update: {
-          account_code?: string
+          account_code?: string | null
           account_name?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
           description?: string | null
-          entry_date?: string
+          entry_date?: string | null
+          erp_sync_id?: string | null
+          fiscal_year?: string | null
+          gl_account?: string | null
           id?: string
+          narration?: string | null
           period?: string | null
           posted_by?: string | null
+          posted_by_name?: string | null
           reference?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          voucher_id?: string | null
         }
         Relationships: []
       }

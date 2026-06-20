@@ -318,8 +318,8 @@ export const glApi = {
     () => db.from("chart_of_accounts").select("*").order("account_code"), 300),
   listEntries: (filters?: { account_code?: string; limit?: number }) =>
     apiFetch(null, () => {
-      let q = db.from("gl_entries").select("*").order("entry_date", { ascending: false });
-      if (filters?.account_code) q = q.eq("account_code", filters.account_code);
+      let q = db.from("gl_entries").select("*").order("created_at", { ascending: false });
+      if (filters?.account_code) q = q.eq("gl_account", filters.account_code);
       q = q.limit(filters?.limit || 200);
       return q;
     }, 60),
