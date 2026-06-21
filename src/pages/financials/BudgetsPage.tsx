@@ -7,6 +7,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
+import { useVoteHeads } from "@/hooks/useVoteHeads";
+import { useAuth } from "@/contexts/AuthContext";
+import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
 
 const db = supabase as any;
 interface Budget {
@@ -22,6 +25,9 @@ const DEPARTMENTS=["Finance & Accounts","Procurement","Pharmacy","Nursing","Medi
 
 export default function BudgetsPage() {
   const navigate=useNavigate();
+  const { voteHeads, defaultFor } = useVoteHeads();
+  const { isAdminTier } = useAuth();
+  const [showVoteHeadManager, setShowVoteHeadManager] = useState(false);
   const [budgets,setBudgets]=useState<Budget[]>([]);
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState("");
@@ -30,6 +36,11 @@ export default function BudgetsPage() {
   const [saving,setSaving]=useState(false);
   const [editBudget,setEditBudget]=useState<Budget|null>(null);
   const [form,setForm]=useState({budget_name:"",fiscal_year:new Date().getFullYear().toString(),total_budget:"",department:"Finance & Accounts",description:"",vote_head:""});
+
+  useEffect(() => {
+    if (!showNew || form.vote_head) return;
+    setForm(p => ({ ...p, vote_head: p.vote_head || defaultFor("budget") }));
+  }, [showNew, defaultFor]);
 
   const fetch=useCallback(async()=>{
     setLoading(true);
@@ -147,7 +158,16 @@ export default function BudgetsPage() {
             <select value={form.department} onChange={e=>setForm(p=>({...p,department:e.target.value}))} style={inp}>
               {DEPARTMENTS.map(d=><option key={d}>{d}</option>)}
             </select></div>
-            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Vote Head</label><input value={form.vote_head} onChange={e=>setForm(p=>({...p,vote_head:e.target.value}))} placeholder="e.g. 2210100" style={inp}/></div>
+            <div>
+              <label style={{fontSize:10,fontWeight:700,color:"#555",display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                <span>Vote Head</span>
+                {isAdminTier && <button type="button" onClick={()=>setShowVoteHeadManager(true)} style={{fontSize:9,color:"#0a2558",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>Manage</button>}
+              </label>
+              <select value={form.vote_head} onChange={e=>setForm(p=>({...p,vote_head:e.target.value}))} style={inp}>
+                <option value="">— Select —</option>
+                {voteHeads.map(v=><option key={v.code} value={v.code}>{v.label}</option>)}
+              </select>
+            </div>
             <div style={{gridColumn:"span 2"}}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Description</label><input value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} style={inp}/></div>
           </div>
           <div style={{marginTop:8,display:"flex",gap:6}}>
@@ -230,6 +250,7 @@ export default function BudgetsPage() {
         <span>Remaining: {fmtK(totalRemaining)}</span>
         <span style={{marginLeft:"auto"}}>EL5 MediProcure v12 · Budgets</span>
       </div>
+      {showVoteHeadManager && <VoteHeadManagerModal onClose={()=>setShowVoteHeadManager(false)} />}
     </div>
   );
 }

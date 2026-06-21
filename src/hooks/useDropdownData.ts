@@ -19,3 +19,8 @@ export function useItems() {
   const dd = useCachedDropdown({ table: "items", select: "id,name,sku,unit,status,quantity_in_stock,item_categories(name)", filter: { status: "active" }, order: "name", pageSize: 100, searchColumns: ["name", "sku"] });
   return { items: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
 }
+
+export function useChartOfAccounts() {
+  const dd = useCachedDropdown({ table: "chart_of_accounts", select: "id,account_code,account_name,account_type,category", order: "account_code", pageSize: 200, searchColumns: ["account_code", "account_name"] });
+  return { accounts: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
+}

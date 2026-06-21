@@ -8,6 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { pageCache } from "@/lib/pageCache";
+import { useVoteHeads } from "@/hooks/useVoteHeads";
+import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { useAuth } from "@/contexts/AuthContext";
+import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
 
 interface PaymentVoucher {
   id: string; voucher_number?: string; payee?: string; payee_account?: string; bank_name?: string;
@@ -30,13 +34,6 @@ function StatusChip({ status }: { status: string }) {
 }
 
 const METHODS = ["bank_transfer","cheque","cash","mpesa","rtgs","swift"];
-const VOTE_HEADS = ["2210100","2210200","2210300","2211100","3110200","3110300","2710200","2640400"];
-const GL_ACCOUNTS = [
-  "1000 - Cash","2100 - Accounts Payable","5100 - Medical Supplies",
-  "5200 - Pharmaceuticals","5300 - Salaries & Wages","5400 - Utilities",
-  "5500 - Maintenance","6100 - Equipment","6200 - Transport",
-];
-
 export default function PaymentVouchersPage() {
   const [vouchers, setVouchers] = useState<PaymentVoucher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,9 +49,23 @@ export default function PaymentVouchersPage() {
   const [form, setForm] = useState({
     payee:"", payee_account:"", bank_name:"", total_amount:"",
     payment_method:"cheque", due_date:"", description:"",
-    po_reference:"", invoice_reference:"", gl_account:"2100 - Accounts Payable",
+    po_reference:"", invoice_reference:"", gl_account:"",
     vote_head:"", currency:"KES",
   });
+  const { voteHeads, defaultFor } = useVoteHeads();
+  const { accounts: glAccounts } = useChartOfAccounts();
+  const { isAdminTier } = useAuth();
+  const [showVoteHeadManager, setShowVoteHeadManager] = useState(false);
+
+  // Auto-default GL Account and Vote Head once their data loads, for new (empty) vouchers
+  useEffect(() => {
+    if (!showNew || form.gl_account || form.vote_head) return;
+    setForm(p => ({
+      ...p,
+      gl_account: p.gl_account || (glAccounts.find((a:any)=>a.account_code==="2100")?.account_name ? `2100 - ${glAccounts.find((a:any)=>a.account_code==="2100")?.account_name}` : glAccounts[0] ? `${glAccounts[0].account_code} - ${glAccounts[0].account_name}` : ""),
+      vote_head: p.vote_head || defaultFor("payment"),
+    }));
+  }, [showNew, glAccounts, voteHeads, defaultFor]);
 
   const fetchVouchers = useCallback(async () => {
     setLoading(true);
@@ -98,7 +109,7 @@ export default function PaymentVouchersPage() {
     if(error){ toast({title:"Save failed: "+error.message,variant:"destructive"}); return; }
     toast({title:`✓ Voucher ${vNum} created`});
     setShowNew(false);
-    setForm({payee:"",payee_account:"",bank_name:"",total_amount:"",payment_method:"cheque",due_date:"",description:"",po_reference:"",invoice_reference:"",gl_account:"2100 - Accounts Payable",vote_head:"",currency:"KES"});
+    setForm({payee:"",payee_account:"",bank_name:"",total_amount:"",payment_method:"cheque",due_date:"",description:"",po_reference:"",invoice_reference:"",gl_account:"",vote_head:"",currency:"KES"});
     fetchVouchers();
   }
 
@@ -261,20 +272,22 @@ export default function PaymentVouchersPage() {
               { label:"PO Reference", key:"po_reference", type:"text", placeholder:"" },
               { label:"Invoice Reference", key:"invoice_reference", type:"text", placeholder:"" },
               { label:"Due Date", key:"due_date", type:"date", placeholder:"" },
-              { label:"Vote Head", key:"vote_head", type:"select", options:VOTE_HEADS },
             ].map(f=>(
               <div key={f.key}>
                 <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>{f.label}</label>
-                {f.type==="select" ? (
-                  <select value={(form as any)[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} style={inp}>
-                    <option value="">— Select —</option>
-                    {f.options?.map(o=><option key={o}>{o}</option>)}
-                  </select>
-                ) : (
-                  <input type={f.type} value={(form as any)[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} style={inp}/>
-                )}
+                <input type={f.type} value={(form as any)[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} style={inp}/>
               </div>
             ))}
+            <div>
+              <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                <span>Vote Head</span>
+                {isAdminTier && <button type="button" onClick={()=>setShowVoteHeadManager(true)} style={{ fontSize:9, color:"#0a2558", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>Manage</button>}
+              </label>
+              <select value={form.vote_head} onChange={e=>setForm(p=>({...p,vote_head:e.target.value}))} style={inp}>
+                <option value="">— Select —</option>
+                {voteHeads.map(v=><option key={v.code} value={v.code}>{v.label}</option>)}
+              </select>
+            </div>
             <div>
               <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Payment Method</label>
               <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))} style={inp}>
@@ -284,7 +297,8 @@ export default function PaymentVouchersPage() {
             <div>
               <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>GL Account</label>
               <select value={form.gl_account} onChange={e=>setForm(p=>({...p,gl_account:e.target.value}))} style={inp}>
-                {GL_ACCOUNTS.map(a=><option key={a}>{a}</option>)}
+                <option value="">— Select —</option>
+                {glAccounts.map((a:any)=><option key={a.id} value={`${a.account_code} - ${a.account_name}`}>{a.account_code} — {a.account_name}</option>)}
               </select>
             </div>
             <div style={{ gridColumn:"span 2" }}>
@@ -439,6 +453,7 @@ export default function PaymentVouchersPage() {
           <span style={{ marginLeft:"auto" }}>EL5 MediProcure v10 · Payment Vouchers</span>
         </div>
       </div>
+      {showVoteHeadManager && <VoteHeadManagerModal onClose={()=>setShowVoteHeadManager(false)} />}
     </div>
   );
 }

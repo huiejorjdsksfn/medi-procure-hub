@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useChartOfAccounts } from "@/hooks/useDropdownData";
 
 const db = supabase as any;
 
@@ -58,26 +59,6 @@ const fmtDate = (s?: string | null) =>
   s ? new Date(s).toLocaleDateString("en-KE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
 const genId = () => Math.random().toString(36).slice(2,10);
 
-const COA = [
-  {code:"1001",name:"Cash & Cash Equivalents",type:"ass"},
-  {code:"1010",name:"KCB Operating Account",type:"ass"},
-  {code:"1011",name:"Co-op Bank Account",type:"ass"},
-  {code:"1020",name:"Accounts Receivable",type:"ass"},
-  {code:"1030",name:"NHIF Receivable",type:"ass"},
-  {code:"1040",name:"MOH Grant Receivable",type:"ass"},
-  {code:"1060",name:"Pharmaceuticals Stock",type:"ass"},
-  {code:"1070",name:"Medical Supplies Stock",type:"ass"},
-  {code:"2000",name:"Accounts Payable",type:"lib"},
-  {code:"2100",name:"Salaries Payable",type:"lib"},
-  {code:"3000",name:"MOH Grant Revenue",type:"inc"},
-  {code:"3100",name:"NHIF Revenue",type:"inc"},
-  {code:"3200",name:"Patient Fee Revenue",type:"inc"},
-  {code:"4000",name:"Salaries & Wages",type:"exp"},
-  {code:"4100",name:"Medical Supplies Expense",type:"exp"},
-  {code:"4200",name:"Utilities Expense",type:"exp"},
-  {code:"4300",name:"Maintenance & Repairs",type:"exp"},
-  {code:"4400",name:"Depreciation Expense",type:"exp"},
-];
 const PAY_METHODS = ["cheque","bank_transfer","cash","mpesa","rtgs","swift"];
 const ASSET_CATS  = ["Medical Equipment","Furniture & Fittings","IT Equipment",
   "Motor Vehicles","Land & Buildings","Office Equipment","Laboratory Equipment"];
@@ -347,7 +328,7 @@ function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
   );
 }
 
-function PaymentsContent({ data, refresh, isManager, user, profile }: any) {
+function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) {
   const [sel, setSel]         = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [editRow, setEditRow]   = useState<any>(null);
@@ -363,10 +344,10 @@ function PaymentsContent({ data, refresh, isManager, user, profile }: any) {
   }),[data,search,filter]);
 
   const [f,setF] = useState({payee:"",total_amount:"",payment_method:"cheque",
-    gl_account:"2000 - Accounts Payable",vote_head:"",description:"",
+    gl_account:"",vote_head:"",description:"",
     po_reference:"",invoice_reference:"",bank_name:"",payee_account:"",due_date:"",currency:"KES"});
 
-  const openNew = () => { setEditRow(null); setF({payee:"",total_amount:"",payment_method:"cheque",gl_account:"2000 - Accounts Payable",vote_head:"",description:"",po_reference:"",invoice_reference:"",bank_name:"",payee_account:"",due_date:"",currency:"KES"}); setShowForm(true); };
+  const openNew = () => { setEditRow(null); setF({payee:"",total_amount:"",payment_method:"cheque",gl_account:"",vote_head:"",description:"",po_reference:"",invoice_reference:"",bank_name:"",payee_account:"",due_date:"",currency:"KES"}); setShowForm(true); };
   const openEdit = (r:any) => { setEditRow(r); setF({payee:r.payee||"",total_amount:r.total_amount?.toString()||"",payment_method:r.payment_method||"cheque",gl_account:r.gl_account||"",vote_head:r.vote_head||"",description:r.description||"",po_reference:r.po_reference||"",invoice_reference:r.invoice_reference||"",bank_name:r.bank_name||"",payee_account:r.payee_account||"",due_date:r.due_date||"",currency:r.currency||"KES"}); setShowForm(true); };
 
   const save = async () => {
@@ -488,7 +469,7 @@ function PaymentsContent({ data, refresh, isManager, user, profile }: any) {
                 <div><FieldRow label="Amount (KES) *"><input type="number" value={f.total_amount} onChange={e=>setF(p=>({...p,total_amount:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Method"><select value={f.payment_method} onChange={e=>setF(p=>({...p,payment_method:e.target.value}))} style={sel}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</select></FieldRow></div>
                 <div><FieldRow label="Currency"><select value={f.currency} onChange={e=>setF(p=>({...p,currency:e.target.value}))} style={sel}>{["KES","USD","EUR","GBP"].map(c=><option key={c}>{c}</option>)}</select></FieldRow></div>
-                <div><FieldRow label="GL Account"><select value={f.gl_account} onChange={e=>setF(p=>({...p,gl_account:e.target.value}))} style={sel}>{COA.map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
+                <div><FieldRow label="GL Account"><select value={f.gl_account} onChange={e=>setF(p=>({...p,gl_account:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
                 <div><FieldRow label="Bank Name"><input value={f.bank_name} onChange={e=>setF(p=>({...p,bank_name:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Account No."><input value={f.payee_account} onChange={e=>setF(p=>({...p,payee_account:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Due Date"><input type="date" value={f.due_date} onChange={e=>setF(p=>({...p,due_date:e.target.value}))} style={inp}/></FieldRow></div>
@@ -508,16 +489,16 @@ function PaymentsContent({ data, refresh, isManager, user, profile }: any) {
   );
 }
 
-function ReceiptsContent({ data, refresh, isManager, user, profile }: any) {
+function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editRow, setEditRow] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-  const [f, setF] = useState({payer:"",amount:"",payment_method:"cash",gl_account:"3200 - Patient Fee Revenue",description:"",reference_number:""});
+  const [f, setF] = useState({payer:"",amount:"",payment_method:"cash",gl_account:"",description:"",reference_number:""});
 
   const rows = useMemo(()=>data.filter((v:any)=>!search||[v.receipt_number,v.payer,v.description].some((x:any)=>x?.toLowerCase().includes(search.toLowerCase()))),[data,search]);
 
-  const openNew = ()=>{setEditRow(null);setF({payer:"",amount:"",payment_method:"cash",gl_account:"3200 - Patient Fee Revenue",description:"",reference_number:""});setShowForm(true);};
+  const openNew = ()=>{setEditRow(null);setF({payer:"",amount:"",payment_method:"cash",gl_account:"",description:"",reference_number:""});setShowForm(true);};
   const openEdit = (r:any)=>{setEditRow(r);setF({payer:r.payer||"",amount:r.amount?.toString()||"",payment_method:r.payment_method||"cash",gl_account:r.gl_account||"",description:r.description||"",reference_number:r.reference_number||""});setShowForm(true);};
 
   const save = async () => {
@@ -576,7 +557,7 @@ function ReceiptsContent({ data, refresh, isManager, user, profile }: any) {
                 <div style={{gridColumn:"span 2"}}><FieldRow label="Payer *"><input value={f.payer} onChange={e=>setF(p=>({...p,payer:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Amount (KES) *"><input type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Method"><select value={f.payment_method} onChange={e=>setF(p=>({...p,payment_method:e.target.value}))} style={sel}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</select></FieldRow></div>
-                <div style={{gridColumn:"span 2"}}><FieldRow label="GL Account"><select value={f.gl_account} onChange={e=>setF(p=>({...p,gl_account:e.target.value}))} style={sel}>{COA.filter(a=>a.type==="inc"||a.type==="ass").map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="GL Account"><select value={f.gl_account} onChange={e=>setF(p=>({...p,gl_account:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.filter(a=>a.type==="inc"||a.type==="ass").map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
                 <div><FieldRow label="Reference No."><input value={f.reference_number} onChange={e=>setF(p=>({...p,reference_number:e.target.value}))} style={inp}/></FieldRow></div>
                 <div style={{gridColumn:"span 3"}}><FieldRow label="Description"><input value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} style={inp}/></FieldRow></div>
               </div>
@@ -592,10 +573,10 @@ function ReceiptsContent({ data, refresh, isManager, user, profile }: any) {
   );
 }
 
-function JournalsContent({ data, refresh }: any) {
+function JournalsContent({ data, refresh, coa }: any) {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving]     = useState(false);
-  const [f, setF] = useState({reference:"",description:"",gl_debit:"4000 - Salaries & Wages",gl_credit:"2100 - Salaries Payable",debit:"",credit:""});
+  const [f, setF] = useState({reference:"",description:"",gl_debit:"",gl_credit:"",debit:"",credit:""});
   const bal = (parseFloat(f.debit)||0)-(parseFloat(f.credit)||0);
   const balanced = Math.abs(bal)<0.01;
   const drTot = data.reduce((s:number,g:any)=>s+(g.debit||0),0);
@@ -641,9 +622,9 @@ function JournalsContent({ data, refresh }: any) {
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                 <div><FieldRow label="Reference"><input value={f.reference} onChange={e=>setF(p=>({...p,reference:e.target.value}))} placeholder="JV-00001" style={inp}/></FieldRow></div>
                 <div style={{gridColumn:"span 2"}}><FieldRow label="Description *"><input value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} style={inp}/></FieldRow></div>
-                <div style={{gridColumn:"span 2"}}><FieldRow label="Debit Account"><select value={f.gl_debit} onChange={e=>setF(p=>({...p,gl_debit:e.target.value}))} style={sel}>{COA.map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="Debit Account"><select value={f.gl_debit} onChange={e=>setF(p=>({...p,gl_debit:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
                 <div><FieldRow label="Debit Amount"><input type="number" value={f.debit} onChange={e=>setF(p=>({...p,debit:e.target.value}))} style={inp}/></FieldRow></div>
-                <div style={{gridColumn:"span 2"}}><FieldRow label="Credit Account"><select value={f.gl_credit} onChange={e=>setF(p=>({...p,gl_credit:e.target.value}))} style={sel}>{COA.map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="Credit Account"><select value={f.gl_credit} onChange={e=>setF(p=>({...p,gl_credit:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
                 <div><FieldRow label="Credit Amount"><input type="number" value={f.credit} onChange={e=>setF(p=>({...p,credit:e.target.value}))} style={inp}/></FieldRow></div>
               </div>
               <div style={{marginTop:8,padding:"5px 10px",background:balanced?"#d4edda":"#fff3cd",border:`1px solid ${balanced?"#c3e6cb":"#ffc107"}`,borderRadius:3,fontSize:10,fontFamily:XP.font}}>
@@ -691,7 +672,7 @@ function BudgetsContent({ data }: any) {
   );
 }
 
-function GLContent({ data }: any) {
+function GLContent({ data, coa }: any) {
   const balMap: Record<string,{dr:number;cr:number}> = {};
   data.forEach((g:any)=>{const k=g.gl_account||"Unknown";if(!balMap[k])balMap[k]={dr:0,cr:0};balMap[k].dr+=g.debit||0;balMap[k].cr+=g.credit||0;});
   const rows=Object.entries(balMap).map(([acct,b])=>({id:acct,account:acct,dr:b.dr,cr:b.cr,balance:b.dr-b.cr}));
@@ -711,7 +692,7 @@ function GLContent({ data }: any) {
           {key:"dr",lbl:"Total Debit",w:120,render:(v:number)=><span style={{fontWeight:700,color:"#155724"}}>{fmtK(v)}</span>},
           {key:"cr",lbl:"Total Credit",w:120,render:(v:number)=><span style={{fontWeight:700,color:"#004085"}}>{fmtK(v)}</span>},
           {key:"balance",lbl:"Net Balance",w:120,render:(v:number)=><span style={{fontWeight:700,color:v>=0?"#155724":"#721c24"}}>{v<0?"-":""}{fmtK(Math.abs(v))}</span>},
-          {key:"_type",lbl:"Type",w:55,render:(_:any,r:any)=>{const a=COA.find(c=>r.account?.includes(c.code));return <span style={{fontSize:9,color:"#555",textTransform:"uppercase" as const}}>{a?.type||"—"}</span>;}},
+          {key:"_type",lbl:"Type",w:55,render:(_:any,r:any)=>{const a=coa.find(c=>r.account?.includes(c.code));return <span style={{fontSize:9,color:"#555",textTransform:"uppercase" as const}}>{a?.type||"—"}</span>;}},
         ]}
         rows={rows} empty="No GL entries — post journal entries to see the trial balance"
       />
@@ -926,6 +907,9 @@ export default function FinanceDashboardPage() {
   const { user, profile, roles, primaryRole, signOut } = useAuth();
   const navigate = useNavigate();
   const isManager = roles.some(r=>["finance_manager","admin","procurement_manager"].includes(r));
+  const { accounts: liveAccounts } = useChartOfAccounts();
+  const COA_TYPE_MAP: Record<string,string> = { asset:"ass", liability:"lib", equity:"eq", revenue:"inc", expense:"exp" };
+  const coa = liveAccounts.map((a:any)=>({ code:a.account_code, name:a.account_name, type:COA_TYPE_MAP[a.account_type]||a.account_type||"" }));
 
   // Data
   const [payments,  setPayments]  = useState<any[]>([]);
@@ -994,14 +978,14 @@ export default function FinanceDashboardPage() {
   function focusWin(id:WinId){const z=++zTop.current;setActiveWin(id);setWins(p=>p.map(w=>w.id===id?{...w,z,min:false}:w));}
 
   function renderContent(id:WinId){
-    const props={payments,receipts,glEntries,budgets,assets,refresh:fetchAll,isManager,user,profile};
+    const props={payments,receipts,glEntries,budgets,assets,refresh:fetchAll,isManager,user,profile,coa};
     switch(id){
       case "overview":  return <OverviewContent {...props}/>;
       case "payments":  return <PaymentsContent {...props}/>;
       case "receipts":  return <ReceiptsContent {...props}/>;
-      case "journals":  return <JournalsContent data={glEntries} refresh={fetchAll}/>;
+      case "journals":  return <JournalsContent data={glEntries} refresh={fetchAll} coa={coa}/>;
       case "budgets":   return <BudgetsContent data={budgets}/>;
-      case "gl":        return <GLContent data={glEntries}/>;
+      case "gl":        return <GLContent data={glEntries} coa={coa}/>;
       case "assets":    return <AssetsContent data={assets} refresh={fetchAll}/>;
       case "bank":      return <BankContent {...props}/>;
       case "reports":   return <ReportsContent payments={payments} receipts={receipts} glEntries={glEntries} budgets={budgets}/>;
