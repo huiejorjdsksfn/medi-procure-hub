@@ -93,6 +93,86 @@ export async function addLetterhead(doc: jsPDF, title: string, docNo: string): P
   return 46; // y position after letterhead
 }
 
+/**
+ * Draws a formal, circular official document stamp — double ring border,
+ * the hospital name curved along the inner rim (classic notary/seal
+ * styling), and a bold centre label (e.g. APPROVED / PAID / POSTED) with
+ * the county name and a date line beneath it. Rendered in translucent
+ * navy ink so it reads as a genuine stamp rather than printed text.
+ */
+function drawOfficialStamp(
+  doc: jsPDF,
+  cx: number,
+  cy: number,
+  opts: { label: string; subLabel?: string; radius?: number },
+): void {
+  const r = opts.radius ?? 17;
+  const inkR = 0, inkG = 51, inkB = 102; // formal navy ink
+
+  doc.saveGraphicsState?.();
+  try {
+    // @ts-ignore - GState exists on the jsPDF instance at runtime
+    if (doc.setGState && (doc as any).GState) {
+      // @ts-ignore
+      doc.setGState(new (doc as any).GState({ opacity: 0.82 }));
+    }
+  } catch { /* opacity not supported in this jsPDF build — fall back to solid ink */ }
+
+  // Slight rotation for a hand-stamped, authentic feel
+  const angle = -6;
+  doc.setDrawColor(inkR, inkG, inkB);
+  doc.setTextColor(inkR, inkG, inkB);
+
+  // Outer + inner ring
+  doc.setLineWidth(0.7);
+  doc.circle(cx, cy, r, "S");
+  doc.setLineWidth(0.35);
+  doc.circle(cx, cy, r - 2.2, "S");
+
+  // Curved hospital name along the inner-top rim, letter by letter
+  const rimText = `* ${HOSPITAL.name} * EMBU COUNTY *`;
+  const textRadius = r - 4.2;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(5.4);
+  const totalArc = 200; // degrees of arc the text sweeps across the top
+  const startDeg = -90 - totalArc / 2 + angle;
+  const stepDeg = totalArc / Math.max(rimText.length - 1, 1);
+  for (let i = 0; i < rimText.length; i++) {
+    const deg = startDeg + i * stepDeg;
+    const rad = (deg * Math.PI) / 180;
+    const tx = cx + textRadius * Math.cos(rad);
+    const ty = cy + textRadius * Math.sin(rad);
+    // jsPDF angle is counter-clockwise from horizontal; orient each glyph tangent to the circle
+    const glyphAngle = -(deg + 90);
+    doc.text(rimText[i], tx, ty, { align: "center", angle: glyphAngle });
+  }
+
+  // Centre label (APPROVED / PAID / POSTED / etc.)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.2);
+  doc.text(opts.label.toUpperCase(), cx, cy + 1.5, { align: "center", angle });
+
+  // Sub-label (county / date) beneath the centre label, along the bottom rim
+  if (opts.subLabel) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(4.4);
+    doc.text(opts.subLabel, cx, cy + 6, { align: "center", angle });
+  }
+
+  try {
+    // @ts-ignore
+    if (doc.setGState && (doc as any).GState) {
+      // @ts-ignore
+      doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    }
+  } catch { /* no-op */ }
+  doc.restoreGraphicsState?.();
+
+  // Reset text/draw colour for whatever renders next
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(0, 0, 0);
+}
+
 /** Add footer to each page */
 export function addFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   const W = doc.internal.pageSize.getWidth();
@@ -112,6 +192,9 @@ export async function printDocument(config: {
   docNo:    string;
   content:  (doc: jsPDF, startY: number) => void | Promise<void>;
   filename: string;
+  /** Optional formal circular stamp drawn on the last page (e.g. when a
+   *  voucher/document has been approved, paid, or posted) */
+  stamp?: { label: string; subLabel?: string } | null;
 }): Promise<void> {
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
   const startY = await addLetterhead(doc, config.title, config.docNo);
@@ -124,15 +207,25 @@ export async function printDocument(config: {
     addFooter(doc, i, total);
   }
 
+  // Stamp the last page only, bottom-right, away from the footer rule
+  if (config.stamp?.label) {
+    doc.setPage(total);
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    drawOfficialStamp(doc, W - 38, H - 38, config.stamp);
+  }
+
   doc.save(config.filename + ".pdf");
 }
 
 /** Print requisition */
 export async function printRequisition(req: any, items: any[]): Promise<void> {
+  const isApproved = ["approved","fulfilled","completed"].includes((req.status||"").toLowerCase());
   await printDocument({
     title:    "STORES REQUISITION FORM",
     docNo:    req.requisition_number || req.id?.slice(0,8).toUpperCase(),
     filename: `REQ-${req.requisition_number || req.id?.slice(0,8)}`,
+    stamp: isApproved ? { label: "Approved", subLabel: req.approved_at ? new Date(req.approved_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
       const W = doc.internal.pageSize.getWidth();
 
@@ -187,10 +280,13 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
 
 /** Print LPO */
 export async function printPurchaseOrder(po: any, items: any[], supplier: any): Promise<void> {
+  const status = (po.status||"").toLowerCase();
+  const isApproved = ["approved","issued","completed"].includes(status);
   await printDocument({
     title:    "LOCAL PURCHASE ORDER (LPO)",
     docNo:    po.po_number || po.id?.slice(0,8).toUpperCase(),
     filename: `LPO-${po.po_number || po.id?.slice(0,8)}`,
+    stamp: isApproved ? { label: status==="issued"?"Issued":"Approved", subLabel: po.approved_at ? new Date(po.approved_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
@@ -224,9 +320,18 @@ export async function printPurchaseOrder(po: any, items: any[], supplier: any): 
         margin:       { left:12, right:12 },
       });
 
-      const fy = (doc as any).lastAutoTable.finalY + 8;
-      doc.setFontSize(7); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
-      doc.text("Authorised by: _______________________     Procurement Officer: _______________________     Finance: _______________________", 12, fy);
+      const fy = (doc as any).lastAutoTable.finalY + 10;
+      [["Authorised By", po.approved_by_name||""], ["Procurement Officer", po.created_by_name||""], ["Finance", ""]].forEach(([role,name],i) => {
+        const x = 12 + i*64;
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
+        doc.line(x, fy+12, x+54, fy+12);
+        doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+        doc.text(name||"_______________", x+27, fy+10, { align:"center" });
+        doc.setFont("helvetica","bold");
+        doc.text(role, x+27, fy+16, { align:"center" });
+        doc.setFont("helvetica","normal"); doc.setFontSize(6);
+        doc.text("Signature & Stamp", x+27, fy+20, { align:"center" });
+      });
     },
   });
 }
@@ -238,6 +343,7 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
     title: "GOODS RECEIVED NOTE (GRN)",
     docNo: grn.grn_number || grn.id?.slice(0,8).toUpperCase(),
     filename: `GRN-${grn.grn_number || grn.id?.slice(0,8)}`,
+    stamp: { label: "Received", subLabel: grn.created_at ? new Date(grn.created_at).toLocaleDateString("en-KE") : "" },
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
@@ -263,15 +369,30 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
         theme: "grid",
         margin: { left: 12, right: 12 },
       });
+
+      const fy = (doc as any).lastAutoTable.finalY + 10;
+      [["Store Keeper", grn.received_by_name||""], ["Supplier Rep.", ""], ["Inspecting Officer", ""]].forEach(([role,name],i) => {
+        const x = 12 + i*64;
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
+        doc.line(x, fy+12, x+54, fy+12);
+        doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+        doc.text(name||"_______________", x+27, fy+10, { align:"center" });
+        doc.setFont("helvetica","bold");
+        doc.text(role, x+27, fy+16, { align:"center" });
+        doc.setFont("helvetica","normal"); doc.setFontSize(6);
+        doc.text("Signature & Stamp", x+27, fy+20, { align:"center" });
+      });
     },
   });
 };
 
 export const printJournalVoucher = async (voucher: any, lines: any[]) => {
+  const isPosted = (voucher.status||"").toLowerCase()==="posted";
   await printDocument({
     title: "JOURNAL VOUCHER",
     docNo: voucher.voucher_number || voucher.id?.slice(0,8).toUpperCase(),
     filename: `JV-${voucher.voucher_number || voucher.id?.slice(0,8)}`,
+    stamp: isPosted ? { label: "Posted", subLabel: voucher.created_at ? new Date(voucher.created_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
@@ -282,15 +403,31 @@ export const printJournalVoucher = async (voucher: any, lines: any[]) => {
         theme: "grid",
         margin: { left: 12, right: 12 },
       });
+
+      const fy = (doc as any).lastAutoTable.finalY + 10;
+      [["Prepared By", voucher.created_by_name||""], ["Reviewed By", ""], ["Approved By", voucher.posted_by_name||""]].forEach(([role,name],i) => {
+        const x = 12 + i*64;
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
+        doc.line(x, fy+12, x+54, fy+12);
+        doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+        doc.text(name||"_______________", x+27, fy+10, { align:"center" });
+        doc.setFont("helvetica","bold");
+        doc.text(role, x+27, fy+16, { align:"center" });
+        doc.setFont("helvetica","normal"); doc.setFontSize(6);
+        doc.text("Signature & Stamp", x+27, fy+20, { align:"center" });
+      });
     },
   });
 };
 
 export const printGenericVoucher = async (voucher: any, type: string) => {
+  const status = (voucher.status||"").toLowerCase();
+  const isFinal = ["paid","approved","completed","confirmed"].includes(status);
   await printDocument({
     title: `${type.toUpperCase()} VOUCHER`,
     docNo: voucher.voucher_number || voucher.id?.slice(0,8).toUpperCase(),
     filename: `${type.slice(0,3).toUpperCase()}-${voucher.voucher_number || voucher.id?.slice(0,8)}`,
+    stamp: isFinal ? { label: status==="paid"?"Paid":"Approved", subLabel: voucher.paid_at||voucher.approved_at ? new Date(voucher.paid_at||voucher.approved_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
@@ -304,6 +441,19 @@ export const printGenericVoucher = async (voucher: any, type: string) => {
         columnStyles: { 0:{fontStyle:"bold",cellWidth:32}, 1:{cellWidth:68}, 2:{fontStyle:"bold",cellWidth:22}, 3:{cellWidth:46} },
         theme: "plain",
         margin: { left: 12, right: 12 },
+      });
+
+      const fy = (doc as any).lastAutoTable.finalY + 12;
+      [["Prepared By", voucher.created_by_name||""], ["Approved By", voucher.approved_by_name||""], ["Cashier / Bank", ""]].forEach(([role,name],i) => {
+        const x = 12 + i*64;
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
+        doc.line(x, fy+12, x+54, fy+12);
+        doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+        doc.text(name||"_______________", x+27, fy+10, { align:"center" });
+        doc.setFont("helvetica","bold");
+        doc.text(role, x+27, fy+16, { align:"center" });
+        doc.setFont("helvetica","normal"); doc.setFontSize(6);
+        doc.text("Signature & Stamp", x+27, fy+20, { align:"center" });
       });
     },
   });

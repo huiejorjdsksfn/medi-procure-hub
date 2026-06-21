@@ -8,6 +8,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useVoteHeads } from "@/hooks/useVoteHeads";
+import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
 
 // ── XP Luna palette ──────────────────────────────────────────────────────────
 const XP = {
@@ -82,37 +85,7 @@ interface Budget {
 interface MenuAction { label: string; icon?: string; onClick: () => void; divider?: boolean; disabled?: boolean; }
 
 // ── COA ───────────────────────────────────────────────────────────────────────
-const COA = [
-  { code: "1000", name: "Current Assets", type: "ass" },
-  { code: "1001", name: "Cash & Cash Equivalents", type: "ass" },
-  { code: "1002", name: "Petty Cash", type: "ass" },
-  { code: "1010", name: "KCB Operating Account", type: "ass" },
-  { code: "1011", name: "Co-op Bank Account", type: "ass" },
-  { code: "1020", name: "Accounts Receivable", type: "ass" },
-  { code: "1030", name: "NHIF Receivable", type: "ass" },
-  { code: "1040", name: "MOH Grant Receivable", type: "ass" },
-  { code: "1050", name: "Inventory / Stock Value", type: "ass" },
-  { code: "1060", name: "Pharmaceuticals Stock", type: "ass" },
-  { code: "1070", name: "Medical Supplies Stock", type: "ass" },
-  { code: "1080", name: "Prepaid Expenses", type: "ass" },
-  { code: "1500", name: "Property, Plant & Equipment", type: "ass" },
-  { code: "1510", name: "Medical Equipment", type: "ass" },
-  { code: "1900", name: "Accumulated Depreciation", type: "ass" },
-  { code: "2000", name: "Accounts Payable", type: "lib" },
-  { code: "2100", name: "Salaries Payable", type: "lib" },
-  { code: "2200", name: "NHIF Payable", type: "lib" },
-  { code: "2300", name: "NSSF Payable", type: "lib" },
-  { code: "3000", name: "MOH Grant Revenue", type: "inc" },
-  { code: "3100", name: "NHIF Revenue", type: "inc" },
-  { code: "3200", name: "Patient Fee Revenue", type: "inc" },
-  { code: "4000", name: "Salaries & Wages", type: "exp" },
-  { code: "4100", name: "Medical Supplies Expense", type: "exp" },
-  { code: "4200", name: "Utilities Expense", type: "exp" },
-  { code: "4300", name: "Maintenance & Repairs", type: "exp" },
-  { code: "5000", name: "Retained Earnings", type: "eq" },
-];
 
-const VOTE_HEADS = ["2210100", "2210200", "2210300", "2211100", "3110200", "3110300", "2710200", "2640400"];
 const PAY_METHODS = ["cheque", "bank_transfer", "cash", "mpesa", "rtgs", "swift"];
 
 // ── XPButton ──────────────────────────────────────────────────────────────────
@@ -325,15 +298,19 @@ function XPGrid({ cols, rows, onRowClick, selectedId, emptyMsg }: {
 }
 
 // ── VoucherForm (New / Edit) ──────────────────────────────────────────────────
-function VoucherForm({ onSave, onCancel, saving, initial }: {
+function VoucherForm({ onSave, onCancel, saving, initial, coa, voteHeads, onManageVoteHeads, isAdminTier }: {
   onSave: (f: any) => void; onCancel: () => void;
   saving: boolean; initial?: Partial<Payment>;
+  coa: { code: string; name: string; type: string }[];
+  voteHeads: { code: string; label: string }[];
+  onManageVoteHeads?: () => void;
+  isAdminTier?: boolean;
 }) {
   const [f, setF] = useState({
     payee: initial?.payee ?? "",
     total_amount: initial?.total_amount?.toString() ?? "",
     payment_method: initial?.payment_method ?? "cheque",
-    gl_account: initial?.gl_account ?? "2000 - Accounts Payable",
+    gl_account: initial?.gl_account ?? "",
     vote_head: initial?.vote_head ?? "",
     description: initial?.description ?? "",
     po_reference: initial?.po_reference ?? "",
@@ -381,14 +358,18 @@ function VoucherForm({ onSave, onCancel, saving, initial }: {
         <div>
           {label("GL Account")}
           <select value={f.gl_account} onChange={e => setF(p => ({ ...p, gl_account: e.target.value }))} style={inp}>
-            {COA.map(a => <option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}
+            <option value="">— Select —</option>
+            {coa.map(a => <option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}
           </select>
         </div>
         <div>
-          {label("Vote Head")}
+          <div style={{ display:"flex", justifyContent:"space-between" }}>
+            {label("Vote Head")}
+            {isAdminTier && onManageVoteHeads && <button type="button" onClick={onManageVoteHeads} style={{ fontSize: 9, color: "#00008b", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Manage</button>}
+          </div>
           <select value={f.vote_head} onChange={e => setF(p => ({ ...p, vote_head: e.target.value }))} style={inp}>
             <option value="">— Select —</option>
-            {VOTE_HEADS.map(v => <option key={v}>{v}</option>)}
+            {voteHeads.map(v => <option key={v.code} value={v.code}>{v.label}</option>)}
           </select>
         </div>
         <div>
@@ -489,10 +470,11 @@ function VoucherDetailPanel({ voucher, onClose, onApprove, onReject, onMarkPaid,
 }
 
 // ── JournalEntryForm ──────────────────────────────────────────────────────────
-function JournalEntryForm({ onSave, onCancel, saving }: {
+function JournalEntryForm({ onSave, onCancel, saving, coa }: {
   onSave: (f: any) => void; onCancel: () => void; saving: boolean;
+  coa: { code: string; name: string; type: string }[];
 }) {
-  const [f, setF] = useState({ reference: "", description: "", gl_account: "4000 - Salaries & Wages", debit: "", credit: "" });
+  const [f, setF] = useState({ reference: "", description: "", gl_account: "", debit: "", credit: "" });
   const inp: React.CSSProperties = { padding: "2px 5px", border: `1px solid ${XP.btnBorder}`, borderRadius: 2, fontSize: 11, fontFamily: XP.font, background: "#fff", outline: "none", width: "100%", boxSizing: "border-box" as const };
   return (
     <div style={{ background: "#f5f4ea", borderBottom: `1px solid ${XP.gridBorder}`, padding: "8px 12px" }}>
@@ -517,7 +499,8 @@ function JournalEntryForm({ onSave, onCancel, saving }: {
         <div style={{ gridColumn: "span 5" }}>
           <label style={{ fontSize: 10, fontWeight: 700, color: "#555", display: "block", marginBottom: 2 }}>GL Account</label>
           <select value={f.gl_account} onChange={e => setF(p => ({ ...p, gl_account: e.target.value }))} style={{ ...inp }}>
-            {COA.map(a => <option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}
+            <option value="">— Select —</option>
+            {coa.map(a => <option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}
           </select>
         </div>
       </div>
@@ -531,8 +514,16 @@ function JournalEntryForm({ onSave, onCancel, saving }: {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AccountantWorkspacePage() {
-  const { user, profile, roles } = useAuth();
+  const { user, profile, roles, isAdminTier } = useAuth();
   const navigate = useNavigate();
+  const { voteHeads, defaultFor } = useVoteHeads();
+  const { accounts: liveAccounts } = useChartOfAccounts();
+  const [showVoteHeadManager, setShowVoteHeadManager] = useState(false);
+  // Backward-compatible {code,name,type} shape mapped from the live chart_of_accounts table
+  // (account_type 'asset'/'liability'/'equity'/'revenue'/'expense' -> short codes the
+  // existing sidebar/filter UI below already expects)
+  const TYPE_MAP: Record<string,string> = { asset:"ass", liability:"lib", equity:"eq", revenue:"inc", expense:"exp" };
+  const COA = liveAccounts.map((a: any) => ({ code: a.account_code, name: a.account_name, type: TYPE_MAP[a.account_type] || a.account_type || "" }));
 
   const [tab, setTab] = useState<WinTab>("vouchers");
   const [vouchers, setVouchers] = useState<Payment[]>([]);
@@ -1108,10 +1099,12 @@ export default function AccountantWorkspacePage() {
           <VoucherForm
             onSave={saveVoucher} onCancel={() => { setShowNewVoucher(false); setEditVoucher(null); }}
             saving={saving} initial={editVoucher ?? undefined}
+            coa={COA} voteHeads={voteHeads} isAdminTier={isAdminTier}
+            onManageVoteHeads={() => setShowVoteHeadManager(true)}
           />
         )}
         {(showNewJournal && tab === "journals") && (
-          <JournalEntryForm onSave={saveJournalEntry} onCancel={() => setShowNewJournal(false)} saving={saving} />
+          <JournalEntryForm onSave={saveJournalEntry} onCancel={() => setShowNewJournal(false)} saving={saving} coa={COA} />
         )}
 
         {/* Body: COA sidebar + content */}
@@ -1351,6 +1344,7 @@ export default function AccountantWorkspacePage() {
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      {showVoteHeadManager && <VoteHeadManagerModal onClose={() => setShowVoteHeadManager(false)} />}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
+import { useChartOfAccounts } from "@/hooks/useDropdownData";
 
 const db = supabase as any;
 interface Receipt {
@@ -47,7 +48,8 @@ export default function ReceiptVouchersPage() {
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [form, setForm] = useState({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"3000 - MOH Grant Revenue",description:"",reference:"",bank_name:""});
+  const [form, setForm] = useState({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"",description:"",reference:"",bank_name:""});
+  const { accounts: glAccounts } = useChartOfAccounts();
 
   const fetch = useCallback(async()=>{
     setLoading(true);
@@ -75,7 +77,7 @@ export default function ReceiptVouchersPage() {
     if(error){toast({title:"Save failed: "+error.message,variant:"destructive"});return;}
     toast({title:`✓ Receipt ${rNum} created`});
     setShowNew(false);
-    setForm({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"3000 - MOH Grant Revenue",description:"",reference:"",bank_name:""});
+    setForm({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"",description:"",reference:"",bank_name:""});
     fetch();
   }
 
@@ -207,7 +209,8 @@ export default function ReceiptVouchersPage() {
             </select></div>
             <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>GL Account</label>
             <select value={form.gl_account} onChange={e=>setForm(p=>({...p,gl_account:e.target.value}))} style={inp}>
-              {["3000 - MOH Grant Revenue","3100 - NHIF Revenue","3200 - Patient Fee Revenue","1010 - KCB Operating Account","1011 - Co-op Bank Account"].map(a=><option key={a}>{a}</option>)}
+              <option value="">— Select —</option>
+              {glAccounts.map((a:any)=><option key={a.id} value={`${a.account_code} - ${a.account_name}`}>{a.account_code} — {a.account_name}</option>)}
             </select></div>
           </div>
           <div style={{marginTop:8,display:"flex",gap:6}}>

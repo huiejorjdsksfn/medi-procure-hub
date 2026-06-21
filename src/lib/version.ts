@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.10.0";
+export const APP_VERSION = "11.11.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,22 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.11.0", date: "2026-06-20",  status: "stable", codename: "Official Seal",
+    highlights: [
+      "Vote Heads centralized: new useVoteHeads() hook backed by system_settings — auto-seeded with 13 Kenyan-government-style defaults on first use, fully admin-customizable via a new 'Manage' modal (no code changes needed to add/remove vote heads going forward)",
+      "Eliminated 3 duplicated hardcoded vote-head/GL-account arrays across PaymentVouchersPage, AccountantWorkspacePage, and FinanceDashboardPage — all now read from the same live source",
+      "GL Account dropdowns (PaymentVouchersPage, AccountantWorkspacePage, FinanceDashboardPage's Payments/Receipts/Journals/GL tabs, ReceiptVouchersPage) now pull from the real, admin-manageable chart_of_accounts table instead of disconnected hardcoded lists",
+      "BudgetsPage: Vote Head field converted from a free-text input (users had to guess/remember codes) to the same managed dropdown",
+      "Auto-default vote head selection based on document type (payment/receipt/budget/journal) via defaultFor() — new vouchers no longer start with an empty or guessed value",
+      "Built a new formal circular official stamp (drawOfficialStamp) — double-ring border, hospital name curved along the rim, bold centre status label (Approved/Paid/Posted/Received/Issued), translucent navy ink with a slight rotation for an authentic hand-stamped look. Automatically applied to the last page of approved/paid/posted printed documents",
+      "Added proper named signature blocks (Prepared By / Approved By / Cashier or Bank with signature lines) to printPurchaseOrder, printGRN, printJournalVoucher, and printGenericVoucher — previously only printRequisition had them",
+      "Verified the stamp renders correctly via an isolated jsPDF smoke test (curved rim text, circles, GState opacity) before shipping",
+      "Verified zero TypeScript errors and a clean production build after every change",
+      "Version bump 11.10.0 -> 11.11.0",
+    ],
+    dbMigrations: 0, bugsFixed: 0,
+    engines: ["VoteHeadRegistry","ChartOfAccounts","StampEngine"],
+    modules: ["Finance","Vouchers","Procurement","Documents"] },
   { version: "11.10.0", date: "2026-06-20",  status: "stable", codename: "Schema Reconciliation",
     highlights: [
       "Fix: budgets missing description/total_budget/spent/remaining/vote_head columns (same duplicate-CREATE-TABLE root cause as prior fixes) — migration adds them + back-fills from the columns that DO exist",
