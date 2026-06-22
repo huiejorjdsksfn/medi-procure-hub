@@ -1,7 +1,8 @@
 /**
- * ProcurBosse - Superadmin / Webmaster Control Centre v5.0
+ * ProcurBosse - Superadmin / Webmaster Control Centre v6.0
  * Full working system settings · Module toggles · Role caps · Broadcast
  * Live DB monitor · Codebase viewer · Deploy trigger · Console terminal
+ * PRO FEATURES: Realtime CLI, query exec, history, live stats, uptime
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -11,12 +12,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystemSettings, saveSetting, saveSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
   Globe, RefreshCw, Activity, Package, Shield, Code2, Radio,
   Server, Terminal, ArrowRight, Users, Bell, Hash, Settings,
   Database, Eye, Edit3, Save, Copy, X, Check, Lock, Unlock,
   Trash2, Search, HardDrive, AlertTriangle, BarChart3, Cpu,
   Monitor, Wifi, ChevronRight, Power, Zap, Plus, BookOpen,
+  Play, Clock, Zap as Zap2, Layers, FileCode,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -91,9 +94,77 @@ export default function WebmasterPage() {
   const [selectedFile, setSelectedFile] = useState<typeof CODE_FILES[0]|null>(null);
   const [fileContent, setFileContent] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [termOutput, setTermOutput] = useState<string[]>(["EL5 MediProcure Webmaster Terminal v6.0", "Type 'help' for commands", "---"]);
+  const [termOutput, setTermOutput] = useState<string[]>([]);
   const [termInput, setTermInput] = useState("");
+  const [termHistory, setTermHistory] = useState<string[]>([]);
+  const [histIdx, setHistIdx] = useState(-1);
+  const [rtConnected, setRtConnected] = useState(false);
+  const [realtimeFeed, setRealtimeFeed] = useState(true);
   const termRef = useRef<HTMLDivElement>(null);
+  const rtChan = useRef<any>(null);
+  const startTime = useRef(Date.now());
+  const [liveStats, setLiveStats] = useState({ users:0, reqs:0, items:0, notifs:0, uptime:"" });
+
+  const uptime = () => {
+    const s = Math.floor((Date.now() - startTime.current) / 1000);
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+    return `${h}h ${m}m ${sec}s`;
+  };
+
+  const add = (s: string, type?: "info"|"success"|"error"|"warn"|"cmd") => {
+    const prefix = type==="success"?"✅":type==="error"?"❌":type==="warn"?"⚠":type==="cmd"?"›":"";
+    setTermOutput(p => [...p.slice(-499), `${prefix} ${s}`.trim()]);
+  };
+
+  const addSection = (lines: string[]) => lines.forEach(l => add(l));
+  const addTable = (rows: [string,string][]) => rows.forEach(([k,v]) => add(`  ${k.padEnd(20)} ${v}`));
+
+  useEffect(() => {
+    add("EL5 MediProcure Webmaster Console v6.0", "info");
+    add(`Connected to Supabase · ${new Date().toLocaleString("en-KE")}`, "info");
+    add("Type 'help' for commands, 'subscribe' to toggle realtime feed", "info");
+    add("─".repeat(50));
+    // load live stats for terminal
+    const loadLive = async () => {
+      const [u,r,i,n] = await Promise.allSettled([
+        db.from("profiles").select("id",{count:"exact",head:true}),
+        db.from("requisitions").select("id",{count:"exact",head:true}),
+        db.from("items").select("id",{count:"exact",head:true}),
+        db.from("notifications").select("id",{count:"exact",head:true}).eq("is_read",false),
+      ]);
+      const v = (x:any) => x.status==="fulfilled"?(x.value?.count??0):0;
+      setLiveStats({ users:v(u), reqs:v(r), items:v(i), notifs:v(n), uptime:uptime() });
+    };
+    loadLive();
+    const id = setInterval(() => {
+      setLiveStats(s => ({...s, uptime: uptime()}));
+      if (realtimeFeed) loadLive();
+    }, 10000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Realtime subscription for terminal events
+  useEffect(() => {
+    if (!realtimeFeed) { if(rtChan.current){ supabase.removeChannel(rtChan.current); rtChan.current=null; } setRtConnected(false); return; }
+    rtChan.current = db.channel("wm_terminal_rt")
+      .on("postgres_changes",{event:"*",schema:"public",table:"audit_log"},(p:any)=>{
+        const d=p.new||{}; add(`📋 ${d.action||"event"} · ${d.user_email||"system"} · ${d.ip_address||"—"}`,"info");
+      })
+      .on("postgres_changes",{event:"*",schema:"public",table:"notifications"},(p:any)=>{
+        add(`🔔 Notification: ${p.new?.title||"new notification"}`,"warn");
+      })
+      .on("postgres_changes",{event:"*",schema:"public",table:"user_sessions"},(p:any)=>{
+        add(`🟢 Session ${p.eventType?.toLowerCase()} · ${p.new?.user_email||"—"}`,"info");
+      })
+      .subscribe((s:string)=>{
+        if(s==="SUBSCRIBED"){setRtConnected(true);add("📡 Realtime feed CONNECTED","success");}
+        if(s==="CHANNEL_ERROR"){setRtConnected(false);add("❌ Realtime feed DISCONNECTED","error");}
+      });
+    return ()=>{ if(rtChan.current){supabase.removeChannel(rtChan.current);rtChan.current=null;} };
+  },[realtimeFeed]);
+
+  useEffect(()=>{ setTimeout(()=>termRef.current?.scrollTo(0,termRef.current.scrollHeight),50); },[termOutput]);
 
   /* Controlled system settings state */
   const [sysForm, setSysForm] = useState<Record<string,string>>({});
@@ -152,17 +223,217 @@ export default function WebmasterPage() {
   };
 
   const runCmd = (cmd: string) => {
-    const add = (s: string) => setTermOutput(p => [...p, s]);
-    const c = cmd.trim().toLowerCase();
-    if      (c === "help")    add("Commands: help | status | users | modules | clear | nav <path> | reload");
-    else if (c === "status")  { add(`DB: Supabase connected`); add(`Users: ${kpis.users} | Reqs: ${kpis.requisitions} | Items: ${kpis.items}`); add(`Maintenance: ${settings.maintenance_mode}`); }
-    else if (c === "users")   add(`Total users: ${kpis.users}`);
-    else if (c === "modules") MODULES.forEach(m => add(`${m.label}: ${settings[m.key]==="false"?"DISABLED":"ENABLED"}`));
-    else if (c === "clear")   setTermOutput(["Terminal cleared"]);
-    else if (c.startsWith("nav ")) { nav(c.slice(4)); add(`Navigating to ${c.slice(4)}...`); }
-    else if (c === "reload")  window.location.reload();
-    else if (c) add(`Unknown: ${cmd}`);
-    setTimeout(() => termRef.current?.scrollTo(0, termRef.current.scrollHeight), 50);
+    const c = cmd.trim();
+    if (!c) return;
+    setTermHistory(p => [...p.slice(-99), c]);
+    setHistIdx(-1);
+    const lc = c.toLowerCase();
+    add(`$ ${c}`, "cmd");
+
+    // ── HELP ──────────────────────────────────────────────────────────────
+    if (lc === "help") {
+      addSection([
+        "┌─ EL5 MediProcure CLI Commands ─────────────────────────────────┐",
+        "│  General          │  Database         │  System               │",
+        "│  help            │  status           │  uptime               │",
+        "│  clear / cls     │  users            │  modules              │",
+        "│  ping            │  reqs             │  items                │",
+        "│  whoami          │  notifs           │  version              │",
+        "│                                                            │",
+        "│  Navigation     │  Realtime         │  Query (PRO)           │",
+        "│  nav <path>     │  subscribe        │  exec <table>         │",
+        "│  reload         │  unsubscribe      │  count <table>        │",
+        "│  exit           │  rt on|off        │  stats                │",
+        "└────────────────────────────────────────────────────────────────┘",
+      ]);
+    }
+    // ── PING ────────────────────────────────────────────────────────────
+    else if (lc === "ping") {
+      const t0 = Date.now();
+      add(`🏓 Pinging Supabase...`);
+      db.from("profiles").select("id",{count:"exact",head:true}).then((r:any)=>{
+        const ms = Date.now()-t0;
+        if(r.error) add(`❌ DB error: ${r.error.message}`,"error");
+        else add(`✅ Pong! DB responded in ${ms}ms · ${r.count} profiles`,"success");
+      });
+    }
+    // ── STATUS ─────────────────────────────────────────────────────────
+    else if (lc === "status") {
+      addSection(["┌─ System Status ────────────────────────────────────────────────────┐"]);
+      addTable([
+        ["Database",     "Supabase PostgreSQL"],
+        ["Realtime",     rtConnected?"CONNECTED":"DISCONNECTED"],
+        ["Users",        `${liveStats.users} total`],
+        ["Requisitions", `${liveStats.reqs} total`],
+        ["Items",        `${liveStats.items} total`],
+        ["Notifications",`${liveStats.notifs} unread`],
+        ["Uptime",        liveStats.uptime||"—"],
+        ["Build",         "v22.10.0"],
+      ]);
+      add(`└─────────────────────────────────────────────────────────────────────┘`);
+    }
+    // ── UPTIME ─────────────────────────────────────────────────────────
+    else if (lc === "uptime") {
+      add(`⏱ Session uptime: ${liveStats.uptime||"—"}`);
+      add(`📅 Started: ${new Date(startTime.current).toLocaleString("en-KE")}`);
+    }
+    // ── USERS ───────────────────────────────────────────────────────────
+    else if (lc === "users") {
+      add(`👥 Total users: ${liveStats.users}`);
+      add(`🔔 Unread notifications: ${liveStats.notifs}`);
+    }
+    // ── REQS ────────────────────────────────────────────────────────────
+    else if (lc === "reqs" || lc === "requisitions") {
+      add(`📋 Total requisitions: ${liveStats.reqs}`);
+    }
+    // ── ITEMS ───────────────────────────────────────────────────────────
+    else if (lc === "items") {
+      add(`📦 Total items: ${liveStats.items}`);
+    }
+    // ── NOTIFS ───────────────────────────────────────────────────────────
+    else if (lc === "notifs") {
+      add(`🔔 Unread notifications: ${liveStats.notifs}`);
+    }
+    // ── MODULES ────────────────────────────────────────────────────────
+    else if (lc === "modules") {
+      addSection(["┌─ Module Status ───────────────────────────────────────────────────┐"]);
+      MODULES.forEach(m => {
+        const enabled = settings[m.key] !== "false";
+        add(`  ${enabled?"✅":"❌"} ${m.label.padEnd(20)} ${enabled?"ENABLED":"DISABLED"}`);
+      });
+      add(`└─────────────────────────────────────────────────────────────────────┘`);
+    }
+    // ── WHOAMI ─────────────────────────────────────────────────────────
+    else if (lc === "whoami") {
+      addSection(["┌─ Current Session ──────────────────────────────────────────────────┐"]);
+      addTable([
+        ["Email",    user?.email||"—"],
+        ["ID",        user?.id?.slice(0,20)||"—"],
+        ["Roles",     roles?.join(", ")||"—"],
+        ["Session",   rtConnected?"LIVE":"OFFLINE"],
+      ]);
+      add(`└─────────────────────────────────────────────────────────────────────┘`);
+    }
+    // ── VERSION ────────────────────────────────────────────────────────
+    else if (lc === "version" || lc === "ver") {
+      addSection(["┌─ Version Info ──────────────────────────────────────────────────┐"]);
+      addTable([
+        ["App Build",  "v22.10.0"],
+        ["Framework",   "React 18 + Vite 5"],
+        ["Database",    "Supabase PostgreSQL 15"],
+        ["Auth",        "Supabase Auth (PKCE)"],
+        ["Realtime",    "Supabase Realtime WS"],
+        ["Deploy",      "EdgeOne CDN"],
+      ]);
+      add(`└─────────────────────────────────────────────────────────────────────┘`);
+    }
+    // ── STATS ──────────────────────────────────────────────────────────
+    else if (lc === "stats") {
+      addSection(["┌─ Live Statistics ──────────────────────────────────────────────────┐"]);
+      addTable([
+        ["Profiles",    String(liveStats.users)],
+        ["Requisitions", String(liveStats.reqs)],
+        ["Items",       String(liveStats.items)],
+        ["Notifs",      String(liveStats.notifs)],
+        ["Realtime",    rtConnected?"LIVE":"OFF"],
+      ]);
+      add(`└─────────────────────────────────────────────────────────────────────┘`);
+    }
+    // ── CLEAR / CLS ────────────────────────────────────────────────────
+    else if (lc === "clear" || lc === "cls") {
+      setTermOutput(["Terminal cleared · type 'help' for commands"]);
+      return;
+    }
+    // ── RELOAD ─────────────────────────────────────────────────────────
+    else if (lc === "reload" || lc === "refresh") {
+      add("🔄 Reloading page...");
+      setTimeout(() => window.location.reload(), 500);
+      return;
+    }
+    // ── NAV ─────────────────────────────────────────────────────────────
+    else if (lc.startsWith("nav ")) {
+      const path = c.slice(4).trim();
+      add(`🧭 Navigating to ${path}...`);
+      setTimeout(() => nav(path), 300);
+      return;
+    }
+    // ── EXIT ───────────────────────────────────────────────────────────
+    else if (lc === "exit" || lc === "quit") {
+      add("Use the sidebar navigation to leave this page.", "warn");
+    }
+    // ── SUBSCRIBE / UNSUBSCRIBE ────────────────────────────────────────
+    else if (lc === "subscribe") {
+      if (!realtimeFeed) { setRealtimeFeed(true); add("📡 Enabling realtime feed...","info"); }
+      else add("📡 Realtime feed is already ON","info");
+    }
+    else if (lc === "unsubscribe" || lc === "rt off") {
+      if (realtimeFeed) { setRealtimeFeed(false); add("📡 Realtime feed paused","warn"); }
+      else add("📡 Realtime feed is already OFF","warn");
+    }
+    else if (lc === "rt on") { setRealtimeFeed(true); add("📡 Realtime feed ENABLED","success"); }
+    // ── EXEC <table> — PRO QUERY ───────────────────────────────────────
+    else if (lc.startsWith("exec ") || lc.startsWith("query ")) {
+      const table = (lc.startsWith("exec ") ? c.slice(5) : c.slice(6)).trim();
+      if (!table) { add("Usage: exec <table_name> [limit=10]","warn"); return; }
+      const limit = parseInt(table.split(" ").find(p=>!isNaN(+p))||"10");
+      const tbl = table.split(" ")[0];
+      add(`🔍 Executing: SELECT * FROM ${tbl} LIMIT ${limit}...`);
+      const t0 = Date.now();
+      db.from(tbl).select("*").limit(limit).then(async (r:any)=>{
+        const ms = Date.now()-t0;
+        if (r.error) { add(`❌ Error: ${r.error.message}`,"error"); return; }
+        const rows = r.data||[];
+        add(`✅ ${rows.length} rows returned in ${ms}ms`,"success");
+        rows.slice(0,5).forEach((row:any,i:number)=>{
+          const cols = Object.keys(row).slice(0,6).join(" | ");
+          add(`  [${i+1}] ${cols}`,"info");
+        });
+        if(rows.length>5) add(`  ... and ${rows.length-5} more rows (use limit:N to change)`,"warn");
+      }).catch((e:any)=>add(`❌ Exception: ${e.message}`,"error"));
+    }
+    // ── COUNT <table> ─────────────────────────────────────────────────
+    else if (lc.startsWith("count ")) {
+      const table = c.slice(6).trim();
+      if (!table) { add("Usage: count <table_name>","warn"); return; }
+      add(`🔢 Counting rows in ${table}...`);
+      db.from(table).select("*",{count:"exact",head:true}).then((r:any)=>{
+        if(r.error) add(`❌ Error: ${r.error.message}`,"error");
+        else add(`📊 ${table}: ${r.count} rows`,"success");
+      });
+    }
+    // ── ECHO ───────────────────────────────────────────────────────────
+    else if (lc.startsWith("echo ")) {
+      add(c.slice(5));
+    }
+    // ── DATE ───────────────────────────────────────────────────────────
+    else if (lc === "date" || lc === "time") {
+      add(`📅 ${new Date().toLocaleString("en-KE",{dateStyle:"full",timeStyle:"long"})}`);
+    }
+    // ── UNKNOWN ───────────────────────────────────────────────────────
+    else {
+      add(`Unknown command: '${cmd}' — type 'help' for available commands`,"warn");
+    }
+  };
+
+  const handleTermKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const val = termInput.trim();
+      setTermInput("");
+      if (val) { runCmd(val); setHistIdx(-1); }
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const newIdx = histIdx < termHistory.length - 1 ? histIdx + 1 : histIdx;
+      setHistIdx(newIdx);
+      if (termHistory[termHistory.length - 1 - newIdx]) setTermInput(termHistory[termHistory.length - 1 - newIdx]);
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const newIdx = histIdx > 0 ? histIdx - 1 : -1;
+      setHistIdx(newIdx);
+      setTermInput(newIdx < 0 ? "" : (termHistory[termHistory.length - 1 - newIdx] || ""));
+    }
+    if (e.key === "l" && e.ctrlKey) { e.preventDefault(); setTermOutput(["Terminal cleared"]); }
   };
 
   const TABS: { id:WMTab; label:string; icon:any }[] = [
@@ -489,19 +760,64 @@ export default function WebmasterPage() {
 
       {/* ── TERMINAL ── */}
       {tab==="terminal" && (
-        <div style={{ ...card, fontFamily:"monospace" }}>
-          <div style={{ fontWeight:800, color:T.fg, fontSize:14, marginBottom:10 }}>Webmaster Console</div>
-          <div ref={termRef} style={{ background:"#0a0f1e", borderRadius:8, padding:16, height:400, overflowY:"auto", marginBottom:10, fontSize:12, lineHeight:1.8 }}>
-            {termOutput.map((l, i) => (
-              <div key={i} style={{ color:l.startsWith("EL5")||l.startsWith("---")?"#38bdf8":l.startsWith(">")?"#22c55e":"#94a3b8" }}>{l}</div>
-            ))}
+        <div style={{ ...card, fontFamily:"monospace", padding:0 }}>
+          {/* Terminal header bar */}
+          <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:10 }}>
+            <Terminal size={14} color={T.primary}/>
+            <span style={{ fontWeight:800, color:T.fg, fontSize:13 }}>Webmaster Console PRO v6.0</span>
+            <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+              {/* Live stats */}
+              <div style={{ display:"flex", gap:10, fontSize:10, color:T.fgDim }}>
+                <span>👥 {liveStats.users}</span>
+                <span>📋 {liveStats.reqs}</span>
+                <span>📦 {liveStats.items}</span>
+              </div>
+              {/* Realtime indicator */}
+              <button onClick={()=>setRealtimeFeed(p=>!p)} style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 10px", borderRadius:99, border:`1px solid ${realtimeFeed?"#10b981":"#e2e8f0"}`, background:realtimeFeed?"#10b98118":"transparent", cursor:"pointer", fontSize:10, fontWeight:700, color:realtimeFeed?"#10b981":T.fgDim }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background:realtimeFeed?"#10b981":T.border, animation:realtimeFeed?"pulse 2s infinite":"none" }}/>
+                {realtimeFeed?"LIVE":"OFF"}
+              </button>
+              {/* Uptime */}
+              <span style={{ fontSize:10, color:T.fgDim }}>⏱ {liveStats.uptime||"—"}</span>
+              <button onClick={()=>setTermOutput([])} style={{ background:"none", border:`1px solid ${T.border}`, borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:10, color:T.fgDim }}>Clear</button>
+            </div>
           </div>
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            <span style={{ color:T.primary, fontWeight:700 }}>$</span>
-            <input value={termInput} onChange={e=>setTermInput(e.target.value)}
-              onKeyDown={e => { if (e.key==="Enter") { setTermOutput(p=>[...p,`$ ${termInput}`]); runCmd(termInput); setTermInput(""); }}}
-              style={{ ...inp, fontFamily:"monospace", fontSize:13 }} placeholder="Type command..."/>
+          {/* Terminal output */}
+          <div ref={termRef} style={{ background:"#0a0f1e", borderRadius:0, padding:16, height:420, overflowY:"auto", fontSize:12, lineHeight:1.8 }}>
+            {termOutput.map((l, i) => {
+              const isCmd = l.startsWith("›")||l.startsWith("$");
+              const isSuccess = l.includes("✅");
+              const isError = l.includes("❌");
+              const isWarn = l.includes("⚠");
+              const isInfo = l.includes("📡")||l.includes("📋")||l.includes("📊")||l.includes("📦")||l.includes("📋")||l.includes("📅")||l.includes("📅");
+              const isHeader = l.startsWith("┌")||l.startsWith("│")||l.startsWith("└");
+              return (
+                <div key={i} style={{
+                  color: isCmd?"#22c55e":isError?"#ef4444":isWarn?"#f59e0b":isSuccess?"#4ade80":isHeader?"#7dd3fc":isInfo?"#38bdf8":"#94a3b8",
+                  whiteSpace:"pre-wrap",
+                  wordBreak:"break-all",
+                  paddingTop: isHeader?0:0,
+                }}>{l}</div>
+              );
+            })}
           </div>
+          {/* Terminal input */}
+          <div style={{ display:"flex", gap:0, alignItems:"center", borderTop:`1px solid #1e293b`, background:"#0d1117", padding:"8px 12px" }}>
+            <span style={{ color:"#22c55e", fontWeight:900, fontSize:14, marginRight:8, flexShrink:0 }}>›</span>
+            <input
+              value={termInput}
+              onChange={e=>setTermInput(e.target.value)}
+              onKeyDown={handleTermKey}
+              style={{ flex:1, background:"transparent", border:"none", outline:"none", color:"#e2e8f0", fontFamily:"'Fira Code','Courier New',monospace", fontSize:12 }}
+              placeholder="Type 'help' for commands..."
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button onClick={()=>runCmd(termInput)} disabled={!termInput.trim()} style={{ background:termInput.trim()?"#22c55e":"#1e293b", border:"none", borderRadius:6, padding:"4px 12px", color:"#fff", fontSize:11, fontWeight:700, cursor:termInput.trim()?"pointer":"not-allowed", opacity:termInput.trim()?1:0.5 }}>
+              <Play size={12}/>
+            </button>
+          </div>
+          <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
         </div>
       )}
 
