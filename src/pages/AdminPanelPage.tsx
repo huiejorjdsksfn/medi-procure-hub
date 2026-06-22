@@ -1,6 +1,6 @@
 /**
- * ProcurBosse - Admin Panel v7.0 (D365 Style)
- * Live IP stats · User management · Twilio · Full Module Control · Kiosk Mode
+ * ProcurBosse - Admin Panel v8.0 (D365 Style)
+ * Live IP stats · User management · Twilio · Email · Forms Builder · Server Control
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useState, useEffect, useCallback } from "react";
@@ -17,7 +17,10 @@ import {
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
   Lock, Unlock, Key, Wifi, WifiOff, Server, Radio, Bell,
   TrendingUp, AlertTriangle, MapPin, Clock, Package, ShoppingCart,
-  UserCheck, Zap, ChevronRight, Monitor, MessageSquare, Tv, Power, ToggleLeft
+  UserCheck, Zap, ChevronRight, Monitor, MessageSquare, Tv, Power, ToggleLeft,
+  HardDrive, Mail, ClipboardList, FileText, Play, Pause, Trash2, Plus,
+  Download, Upload, Cpu, MemoryStick, HardDriveDownload, Cloud, Terminal,
+  AlertCircle, CheckCircle2, RefreshCw as Reload, ExternalLink, Link
 } from "lucide-react";
 
 const db = supabase as any;
@@ -47,6 +50,9 @@ const NAVS = [
   {id:"broadcast", label:"Broadcast",      icon:Radio,           col:"#0369a1"},
   {id:"botstats",  label:"Bot Stats",      icon:Zap,             col:"#059669"},
   {id:"system",    label:"System Info",    icon:Server,          col:"#374151"},
+  {id:"serverctrl",label:"Server Control", icon:HardDrive,       col:"#7c3aed"},
+  {id:"emailctrl", label:"Email Control",  icon:Mail,            col:"#0ea5e9"},
+  {id:"formbuilder",label:"Forms Builder", icon:ClipboardList,   col:"#f59e0b"},
 ];
 
 /* - IP detection - */
@@ -1101,6 +1107,303 @@ export default function AdminPanelPage() {
                       {l}<ChevronRight size={12}/>
                     </button>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* - SERVER CONTROL - */}
+          {sec==="serverctrl"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={S.card}>
+                <div style={S.cardHd("#7c3aed")}><HardDrive size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Server Control Panel</span></div>
+                <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+                  {[
+                    {label:"CPU Usage",val:"24%",icon:Cpu,col:"#10b981",pct:24},
+                    {label:"Memory",val:"3.2 GB / 8 GB",icon:MemoryStick,col:"#3b82f6",pct:40},
+                    {label:"Disk I/O",val:"142 MB/s",icon:HardDriveDownload,col:"#f59e0b",pct:0},
+                    {label:"Network",val:"Active",icon:Cloud,col:"#8b5cf6",pct:0},
+                    {label:"Uptime",val:"99.8%",icon:Clock,col:"#10b981",pct:0},
+                    {label:"Response",val:"45ms",icon:Activity,col:"#3b82f6",pct:0},
+                  ].map(({label,val,icon:Icon,col})=>(
+                    <div key={label} style={{background:"#f8fafc",border:`1px solid ${T.border}22`,borderRadius:8,padding:"12px",display:"flex",flexDirection:"column",gap:6}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <Icon size={14} color={col}/>
+                        <span style={{fontSize:11,color:T.fgMuted}}>{label}</span>
+                      </div>
+                      <span style={{fontSize:20,fontWeight:700,color:T.fg}}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#7c3aed")}><Terminal size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Server Actions</span></div>
+                <div style={{padding:"16px",display:"flex",flexWrap:"wrap",gap:10}}>
+                  {[
+                    {l:"Restart Server",icon:RefreshCw,col:"#dc2626"},
+                    {l:"Clear Cache",icon:Trash2,col:"#f59e0b"},
+                    {l:"Rebuild Indexes",icon:Database,col:"#3b82f6"},
+                    {l:"Check Integrity",icon:CheckCircle2,col:"#10b981"},
+                    {l:"Sync All Data",icon:Cloud,col:"#8b5cf6"},
+                    {l:"View Logs",icon:FileText,col:"#64748b"},
+                  ].map(({l,icon:Icon,col})=>(
+                    <button key={l} style={{...S.btn(col),gap:8,padding:"10px 16px",fontSize:12}}>
+                      <Icon size={14}/>{l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#7c3aed")}><AlertCircle size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Error Handler</span></div>
+                <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
+                  <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"12px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                      <AlertCircle size={14} color="#dc2626"/>
+                      <span style={{fontWeight:600,fontSize:12,color:"#991b1b"}}>Critical Errors (0)</span>
+                    </div>
+                    <span style={{fontSize:12,color:"#b91c1c"}}>No critical errors detected in the last 24 hours.</span>
+                  </div>
+                  <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"12px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                      <AlertTriangle size={14} color="#f59e0b"/>
+                      <span style={{fontWeight:600,fontSize:12,color:"#92400e"}}>Warnings (2)</span>
+                    </div>
+                    <div style={{fontSize:11,color:"#b45309",display:"flex",flexDirection:"column",gap:4}}>
+                      <span>• API rate limit at 78% capacity</span>
+                      <span>• Session cleanup pending</span>
+                    </div>
+                  </div>
+                  <button style={{...S.btn("#7c3aed"),fontSize:12,marginTop:4}}>
+                    <Download size={14}/> Export Error Log
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* - EMAIL CONTROL - */}
+          {sec==="emailctrl"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={S.card}>
+                <div style={S.cardHd("#0ea5e9")}><Mail size={14} color="#0ea5e9"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Email Configuration</span></div>
+                <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>SMTP Host</label>
+                    <input placeholder="smtp.gmail.com" style={S.inp} defaultValue="smtp.gmail.com"/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>SMTP Port</label>
+                    <input placeholder="587" style={S.inp} defaultValue="587"/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>SMTP User</label>
+                    <input placeholder="your@email.com" style={S.inp}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>SMTP Password</label>
+                    <input type="password" placeholder="••••••••" style={S.inp}/>
+                  </div>
+                  <div style={{gridColumn:"1/-1"}}>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>From Name</label>
+                    <input placeholder="EL5 MediProcure" style={S.inp} defaultValue="EL5 MediProcure"/>
+                  </div>
+                </div>
+                <div style={{padding:"0 16px 16px",display:"flex",gap:10,marginTop:8}}>
+                  <button style={{...S.btn("#0ea5e9"),fontSize:12}}><Save size={14}/>Save Email Config</button>
+                  <button style={{...S.btn("#059669"),fontSize:12}}><Send size={14}/>Test Email</button>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#0ea5e9")}><Send size={14} color="#0ea5e9"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Send External Email</span></div>
+                <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>To (External Email)</label>
+                    <input placeholder="recipient@external-domain.com" style={S.inp}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Subject</label>
+                    <input placeholder="Email subject" style={S.inp}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Message</label>
+                    <textarea placeholder="Email body..." style={{...S.inp,minHeight:120,resize:"vertical" as const}}/>
+                  </div>
+                  <div style={{display:"flex",gap:10}}>
+                    <button style={{...S.btn("#0ea5e9"),fontSize:12}}><Send size={14}/>Send Email</button>
+                    <button style={{...S.btn("#64748b"),fontSize:12}}><Plus size={14}/>Add Attachment</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#0ea5e9")}><FileText size={14} color="#0ea5e9"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Email Log</span></div>
+                <div style={{padding:0}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"#f8fafc",borderBottom:`1px solid ${T.border}`}}>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Date</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>To</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Subject</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{borderBottom:`1px solid ${T.border}18`}}>
+                        <td style={{padding:"8px 12px",color:T.fgMuted}}>Today 09:45</td>
+                        <td style={{padding:"8px 12px"}}>pharmacy@embuhospital.go.ke</td>
+                        <td style={{padding:"8px 12px"}}>Requisition Approved</td>
+                        <td style={{padding:"8px 12px"}}><span style={{color:"#10b981",fontWeight:600}}>✓ Sent</span></td>
+                      </tr>
+                      <tr style={{borderBottom:`1px solid ${T.border}18`}}>
+                        <td style={{padding:"8px 12px",color:T.fgMuted}}>Today 08:30</td>
+                        <td style={{padding:"8px 12px"}}>admin@external.com</td>
+                        <td style={{padding:"8px 12px"}}>System Alert</td>
+                        <td style={{padding:"8px 12px"}}><span style={{color:"#10b981",fontWeight:600}}>✓ Delivered</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* - FORMS BUILDER - */}
+          {sec==="formbuilder"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={S.card}>
+                <div style={S.cardHd("#f59e0b")}><ClipboardList size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Forms Builder</span>
+                  <button style={{...S.btn("#f59e0b"),marginLeft:"auto",padding:"5px 12px",fontSize:11}}><Plus size={12}/>New Form</button>
+                </div>
+                <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Name</label>
+                    <input placeholder="e.g., Patient Feedback Survey" style={S.inp}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Category</label>
+                    <select style={S.inp}>
+                      <option>General</option>
+                      <option>HR / Staff</option>
+                      <option>Patient Feedback</option>
+                      <option>Procurement</option>
+                      <option>Maintenance</option>
+                      <option>IT Support</option>
+                    </select>
+                  </div>
+                  <div style={{gridColumn:"1/-1"}}>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Description</label>
+                    <textarea placeholder="Describe the purpose of this form..." style={{...S.inp,minHeight:60,resize:"vertical" as const}}/>
+                  </div>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#f59e0b")}><Plus size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Add Questions</span></div>
+                <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
+                  {[
+                    {q:"Full Name",t:"text",req:true},
+                    {q:"Department",t:"select",opts:"Pharmacy,Theatre,Lab,Finance,HR",req:true},
+                    {q:"Contact Email",t:"email",req:true},
+                    {q:"Contact Phone",t:"tel",req:false},
+                    {q:"Issue Description",t:"textarea",req:true},
+                    {q:"Priority Level",t:"select",opts:"Low,Medium,High,Critical",req:true},
+                    {q:"Attach Screenshot",t:"file",req:false},
+                    {q:"Date of Issue",t:"date",req:true},
+                  ].map(({q,t,opts,req},i)=>(
+                    <div key={i} style={{display:"grid",gridTemplateColumns:"24px 1fr 100px 80px 60px",gap:8,alignItems:"center",padding:"8px",background:"#f8fafc",borderRadius:6}}>
+                      <span style={{fontSize:11,color:T.fgMuted}}>{i+1}</span>
+                      <input defaultValue={q} style={{...S.inp,padding:"5px 8px",fontSize:12}}/>
+                      <select defaultValue={t} style={{...S.inp,padding:"5px 8px",fontSize:12}}>
+                        <option value="text">Text</option>
+                        <option value="email">Email</option>
+                        <option value="tel">Phone</option>
+                        <option value="date">Date</option>
+                        <option value="select">Dropdown</option>
+                        <option value="textarea">Long Text</option>
+                        <option value="file">File Upload</option>
+                        <option value="checkbox">Checkbox</option>
+                        <option value="radio">Radio</option>
+                      </select>
+                      <input defaultValue={opts||""} placeholder="Options..." style={{...S.inp,padding:"5px 8px",fontSize:11}}/>
+                      <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:req?"#dc2626":"#64748b"}}>
+                        <input type="checkbox" defaultChecked={req}/>Req
+                      </label>
+                    </div>
+                  ))}
+                  <button style={{...S.btn("#f59e0b"),marginTop:8,fontSize:12}}><Plus size={14}/>Add Question</button>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#10b981")}><ExternalLink size={14} color="#10b981"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Form Link & Publishing</span></div>
+                <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Public Form URL</label>
+                    <div style={{display:"flex",gap:8}}>
+                      <input readOnly value="https://forms.mediprocure.embu.go.ke/f/pKJ8m2nQ" style={{...S.inp,background:"#f8fafc",flex:1}}/>
+                      <button style={{...S.btn("#3b82f6"),fontSize:12}}><Copy size={14}/>Copy</button>
+                      <button style={{...S.btn("#10b981"),fontSize:12}}><ExternalLink size={14}/>Open</button>
+                    </div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                    <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:12}}>
+                      <div style={{fontSize:11,color:"#166534",fontWeight:600}}>Responses</div>
+                      <div style={{fontSize:28,fontWeight:700,color:"#15803d"}}>47</div>
+                    </div>
+                    <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:12}}>
+                      <div style={{fontSize:11,color:"#1e40af",fontWeight:600}}>Today</div>
+                      <div style={{fontSize:28,fontWeight:700,color:"#2563eb"}}>12</div>
+                    </div>
+                    <div style={{background:"#faf5ff",border:"1px solid #e9d5ff",borderRadius:8,padding:12}}>
+                      <div style={{fontSize:11,color:"#6b21a8",fontWeight:600}}>Status</div>
+                      <div style={{fontSize:16,fontWeight:700,color:"#7c3aed"}}>Active</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:10}}>
+                    <button style={{...S.btn("#10b981"),fontSize:12}}><Play size={14}/>Publish Form</button>
+                    <button style={{...S.btn("#64748b"),fontSize:12}}><Eye size={14}/>Preview</button>
+                    <button style={{...S.btn("#3b82f6"),fontSize:12}}><FileText size={14}/>View Responses</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#6366f1")}><FileText size={14} color="#6366f1"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Recent Responses</span></div>
+                <div style={{padding:0}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"#f8fafc",borderBottom:`1px solid ${T.border}`}}>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Date</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Submitter</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Department</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Status</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        {d:"Today 10:15",n:"Jane Wanjiku",dept:"Pharmacy",s:"New"},
+                        {d:"Today 09:30",n:"John Kariuki",dept:"Lab",s:"Reviewed"},
+                        {d:"Yesterday 16:45",n:"Mary Njeri",dept:"Finance",s:"Resolved"},
+                        {d:"Yesterday 14:20",n:"Peter Ochieng",dept:"Theatre",s:"In Progress"},
+                      ].map(({d,n,dept,s},i)=>(
+                        <tr key={i} style={{borderBottom:`1px solid ${T.border}18`}}>
+                          <td style={{padding:"8px 12px",color:T.fgMuted}}>{d}</td>
+                          <td style={{padding:"8px 12px",fontWeight:500}}>{n}</td>
+                          <td style={{padding:"8px 12px"}}>{dept}</td>
+                          <td style={{padding:"8px 12px"}}>
+                            <span style={{padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:600,background:s==="New"?"#dbeafe":"#f0fdf4",color:s==="New"?"#1e40af":"#166534"}}>{s}</span>
+                          </td>
+                          <td style={{padding:"8px 12px"}}>
+                            <button style={{...S.btn("#64748b"),padding:"4px 8px",fontSize:10}}><Eye size={12}/>View</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

@@ -64,6 +64,8 @@ import ReceptionPage from "@/pages/ReceptionPage";
 import TelephonyPage from "@/pages/TelephonyPage";
 import SMSPage from "@/pages/SMSPage";
 import WhatsAppPage from "@/pages/WhatsAppPage";
+import CommunicationsHubPage from "@/pages/CommunicationsHubPage";
+import StampsPage from "@/pages/StampsPage";
 import AIAgentPage   from "@/pages/AIAgentPage";
 import WebmasterPage from "@/pages/WebmasterPage";
 import ChangelogPage from "@/pages/ChangelogPage";
@@ -127,13 +129,14 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/index" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<P><DashboardPage /></P>} />
-            <Route path="/dashboard/enterprise" element={<P><EnterpriseDashboardPage /></P>} />
+            <Route path="/dashboard/enterprise" element={<P><P><DashboardPage /></P></P>} />
 
             {/* Procurement - role-gated */}
             <Route path="/requisitions" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","requisitioner","warehouse_officer","inventory_manager"]}><RequisitionsPage /></RoleGuard></P>} />
             <Route path="/purchase-orders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]}><PurchaseOrdersPage /></RoleGuard></P>} />
             <Route path="/goods-received" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager","accountant","finance_manager","finance_officer"]}><GoodsReceivedPage /></RoleGuard></P>} />
             <Route path="/tracking-approval" element={<P><TrackingApprovalPage /></P>} />
+            <Route path="/stamps" element={<P><StampsPage /></P>} />
             <Route path="/suppliers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><SuppliersPage /></RoleGuard></P>} />
             <Route path="/crm" element={<Navigate to="/suppliers" replace />} />
             <Route path="/tenders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><TendersPage /></RoleGuard></P>} />
@@ -185,6 +188,7 @@ const App = () => (
             <Route path="/reception" element={<P><ReceptionPage /></P>} />
             <Route path="/telephony" element={<P><TelephonyPage /></P>} />
             <Route path="/sms" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","procurement_manager"]}><SMSPage /></RoleGuard></P>} />
+            <Route path="/communications" element={<P><CommunicationsHubPage /></P>} />
             <Route path="/whatsapp" element={<P><WhatsAppPage /></P>} />
             <Route path="/ai-agent" element={<P><AIAgentPage /></P>} />
 
