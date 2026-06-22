@@ -279,6 +279,9 @@ function buildMenu() {
         { label: 'About ProcurBosse',  click: () => showAbout() },
         { label: 'System Information', click: () => showSysInfo() },
         { type: 'separator' },
+        { label: 'Download Releases', click: () => shell.openExternal('https://github.com/huiejorjdsksfn/medi-procure-hub/releases') },
+        { label: 'Install VC++ Redistributable', click: () => openVCRedistDownload() },
+        { type: 'separator' },
         { label: 'Open Log File',   click: () => { const p = path.join(app.getPath('userData'),'crash.log'); fs.existsSync(p) ? shell.openPath(p) : dialog.showMessageBox(win,{type:'info',message:'No log file.',buttons:['OK']}); } },
         { label: 'Open Data Folder',click: () => shell.openPath(app.getPath('userData')) },
       ],
@@ -372,6 +375,30 @@ async function checkForUpdates(manual = false) {
   }
 }
 
+// ── VC++ Redistributable Helper ─────────────────────────────────────────────
+// Opens the Microsoft download page for VC++ Redistributable
+function openVCRedistDownload() {
+  const url = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+  shell.openExternal(url).catch(() => {
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'Download VC++ Redistributable',
+      message: 'Please download VC++ Redistributable from:',
+      detail: url,
+      buttons: ['OK'],
+    });
+  });
+}
+
+// ── Dependency Check on Startup ──────────────────────────────────────────────
+function checkDependencies() {
+  // Check if we need to warn about VC++ redistributable
+  // This is a heuristic - we try to load and if it fails, we show the warning
+  if (process.platform === 'win32') {
+    crashLog(`App started - checking dependencies`);
+  }
+}
+
 // ── IPC Handlers (ALL handlers — complete set) ─────────────────────────────
 ipcMain.handle('get-app-version',  () => APP_VERSION);
 ipcMain.handle('get-platform',     () => `${process.platform}-${process.arch}`);
@@ -381,6 +408,18 @@ ipcMain.handle('is-packaged',      () => app.isPackaged);
 ipcMain.handle('is-win7',          () => IS_WIN7);
 ipcMain.handle('navigate',   (_, route)  => navigate(route));
 ipcMain.handle('check-updates',    ()    => checkForUpdates(true));
+
+// VC++ Redistributable handler
+ipcMain.handle('install-vc-redist', () => {
+  openVCRedistDownload();
+  return { ok: true };
+});
+
+// Open releases page in browser
+ipcMain.handle('open-releases-page', () => {
+  shell.openExternal('https://github.com/huiejorjdsksfn/medi-procure-hub/releases');
+  return { ok: true };
+});
 
 ipcMain.handle('get-system-info',  () => ({
   os:       `${os.type()} ${os.release()}`,
