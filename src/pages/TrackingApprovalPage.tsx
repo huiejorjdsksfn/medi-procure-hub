@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import procurementBg from "@/assets/procurement-bg.jpg";
 import {
   ShoppingCart, FileText, Package, ClipboardList, BarChart3,
   AlertTriangle, Clock, Database, CheckCircle2, XCircle,
@@ -283,7 +284,17 @@ const TrackingApprovalPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-indigo-50">
+    <div 
+      className="min-h-screen"
+      style={{
+        backgroundImage: `url(${procurementBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Overlay */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900/90 via-sky-900/85 to-indigo-900/90">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -1054,6 +1065,7 @@ const TrackingApprovalPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };
