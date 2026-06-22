@@ -87,7 +87,7 @@ import NotFoundLogPage from "@/pages/NotFoundLogPage";
 import UsersIpAuditPage from "@/pages/UsersIpAuditPage";
 import AdminCreateUserPage from "@/pages/AdminCreateUserPage";
 import SystemReportPage from "@/pages/SystemReportPage";
-import EnterpriseDashboardPage from "@/pages/EnterpriseDashboardPage";
+
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
 import PrintEnginePage from "@/pages/PrintEnginePage";
 import AdminHubPage from "@/pages/AdminHubPage";
@@ -129,7 +129,6 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/index" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<P><DashboardPage /></P>} />
-            <Route path="/dashboard/enterprise" element={<P><P><DashboardPage /></P></P>} />
 
             {/* Procurement - role-gated */}
             <Route path="/requisitions" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","requisitioner","warehouse_officer","inventory_manager"]}><RequisitionsPage /></RoleGuard></P>} />
