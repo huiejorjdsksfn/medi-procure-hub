@@ -33,3 +33,12 @@ admin-app/dist-electron/
 # Installer packages
 installers/ProcurBosse/
 installers/ProcurBosse-IT-Admin/
+
+# Capacitor (mobile builds)
+# These are auto-generated directories
+# ios/
+# android/
+# capacitor.config.ts
+
+# However, we want to track the mobile builds for release
+# So we'll add ios/ and android/ to git but ignore build outputs
