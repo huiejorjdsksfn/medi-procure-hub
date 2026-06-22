@@ -64,41 +64,60 @@ const SystemReportPage = () => {
     try {
       const now = new Date();
       let startDate: Date;
-      
+      let prevStart: Date;
+      let prevEnd: Date;
+
       switch (timePeriod) {
         case "today":
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          prevEnd = startDate;
           break;
         case "yesterday":
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+          prevEnd = startDate;
           break;
         case "this_week":
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+          prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - 7);
+          prevEnd = startDate;
           break;
         case "last_week":
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - 7);
+          prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - 14);
+          prevEnd = startDate;
           break;
         case "this_month":
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          prevEnd = startDate;
           break;
         case "last_month":
           startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+          prevEnd = startDate;
           break;
         case "this_quarter":
           startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+          prevStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - 3, 1);
+          prevEnd = startDate;
           break;
         case "this_year":
         case "ytd":
         default:
           startDate = new Date(now.getFullYear(), 0, 1);
+          prevStart = new Date(now.getFullYear() - 1, 0, 1);
+          prevEnd = startDate;
       }
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel — current period + previous period (for trend deltas)
       const [
         reqRes, reqPending, reqApproved, reqRejected,
         poRes, poApproved, poPending,
         grnRes, grnPending,
-        supRes, itemRes, userRes,
+        supRes, supActiveRes, supNewRes, itemRes, lowStockRes, userRes,
+        prevReqRes, prevPoRes, prevGrnRes, prevSupNewRes,
       ] = await Promise.all([
         supabase.from("requisitions").select("id", { count: "exact", head: true }).gte("created_at", startDate.toISOString()),
         supabase.from("requisitions").select("id", { count: "exact", head: true }).gte("created_at", startDate.toISOString()).eq("status", "pending"),
@@ -110,13 +129,32 @@ const SystemReportPage = () => {
         supabase.from("goods_received").select("id", { count: "exact", head: true }).gte("received_date", startDate.toISOString()),
         supabase.from("goods_received").select("id", { count: "exact", head: true }).gte("received_date", startDate.toISOString()).eq("status", "pending"),
         supabase.from("suppliers").select("id", { count: "exact", head: true }),
-        supabase.from("items").select("id, quantity_in_stock, reorder_level", { count: "exact", head: true }),
+        supabase.from("suppliers").select("id", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("suppliers").select("id", { count: "exact", head: true }).gte("created_at", startDate.toISOString()),
+        supabase.from("items").select("id", { count: "exact", head: true }),
+        (supabase as any).from("items").select("id, quantity_in_stock, reorder_level"),
         supabase.from("user_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("requisitions").select("id", { count: "exact", head: true }).gte("created_at", prevStart.toISOString()).lt("created_at", prevEnd.toISOString()),
+        supabase.from("purchase_orders").select("id", { count: "exact", head: true }).gte("created_at", prevStart.toISOString()).lt("created_at", prevEnd.toISOString()),
+        supabase.from("goods_received").select("id", { count: "exact", head: true }).gte("received_date", prevStart.toISOString()).lt("received_date", prevEnd.toISOString()),
+        supabase.from("suppliers").select("id", { count: "exact", head: true }).gte("created_at", prevStart.toISOString()).lt("created_at", prevEnd.toISOString()),
       ]);
 
       const reqTotal = reqRes.count || 0;
       const poTotal = poRes.count || 0;
       const grnTotal = grnRes.count || 0;
+      const supTotal = supRes.count || 0;
+      const supActive = supActiveRes.count || 0;
+
+      // Real % change vs. the equivalent prior period (avoids divide-by-zero by treating 0→N as +100%)
+      const pctChange = (current: number, previous: number) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return Math.round(((current - previous) / previous) * 100);
+      };
+
+      const lowStockCount = (lowStockRes.data || []).filter(
+        (i: any) => (i.quantity_in_stock || 0) < (i.reorder_level || 10)
+      ).length;
 
       setMetrics({
         requisitions: {
@@ -124,28 +162,28 @@ const SystemReportPage = () => {
           approved: reqApproved.count || 0,
           pending: reqPending.count || 0,
           rejected: reqRejected.count || 0,
-          trend: 12, // Mock trend for demo
+          trend: pctChange(reqTotal, prevReqRes.count || 0),
         },
         purchaseOrders: {
           total: poTotal,
           approved: poApproved.count || 0,
           pending: poPending.count || 0,
-          trend: 8,
+          trend: pctChange(poTotal, prevPoRes.count || 0),
         },
         grns: {
           total: grnTotal,
           received: (grnRes.count || 0) - (grnPending.count || 0),
           pending: grnPending.count || 0,
-          trend: 5,
+          trend: pctChange(grnTotal, prevGrnRes.count || 0),
         },
         suppliers: {
-          total: supRes.count || 0,
-          active: supRes.count || 0,
-          trend: 3,
+          total: supTotal,
+          active: supActive,
+          trend: pctChange(supNewRes.count || 0, prevSupNewRes.count || 0),
         },
         items: {
           total: itemRes.count || 0,
-          lowStock: 0,
+          lowStock: lowStockCount,
         },
         users: {
           total: userRes.count || 0,
@@ -337,21 +375,22 @@ const SystemReportPage = () => {
           />
           <MetricCard
             title="Active Suppliers"
-            value={metrics.suppliers.total}
+            value={metrics.suppliers.active}
             icon={Building2}
             color="text-amber-600"
             bg="bg-amber-100"
             trend={metrics.suppliers.trend}
-            subtitle={`${metrics.items.total} items · ${metrics.users.total} users`}
+            subtitle={`${metrics.suppliers.total} total · ${metrics.items.total} items`}
           />
         </div>
 
         {/* Status Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: "Pending Requisitions", value: metrics.requisitions.pending, icon: Clock, color: "amber" },
             { label: "Approved Today", value: metrics.requisitions.approved, icon: CheckCircle2, color: "emerald" },
             { label: "Rejected Today", value: metrics.requisitions.rejected, icon: XCircle, color: "red" },
+            { label: "Low Stock Items", value: metrics.items.lowStock, icon: AlertTriangle, color: metrics.items.lowStock > 0 ? "red" : "emerald" },
             { label: "System Users", value: metrics.users.total, icon: Users, color: "purple" },
           ].map((stat, i) => (
             <div

@@ -261,16 +261,57 @@ const TrackingApprovalPage = () => {
     );
   };
 
+  // Date helpers for day-over-day trend comparisons
+  const isOnDate = (iso: string | null | undefined, daysAgo: number) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    const target = new Date(); target.setHours(0, 0, 0, 0); target.setDate(target.getDate() - daysAgo);
+    const next = new Date(target); next.setDate(next.getDate() + 1);
+    return d >= target && d < next;
+  };
+  const pctDelta = (today: number, yesterday: number): { dir: "up" | "down" | "neutral"; label: string } => {
+    if (yesterday === 0) {
+      if (today === 0) return { dir: "neutral", label: "0%" };
+      return { dir: "up", label: "+100%" };
+    }
+    const pct = Math.round(((today - yesterday) / yesterday) * 100);
+    if (pct > 0) return { dir: "up", label: `+${pct}%` };
+    if (pct < 0) return { dir: "down", label: `${pct}%` };
+    return { dir: "neutral", label: "0%" };
+  };
+
   // KPI Stats
   const stats = {
     pendingReqs: requisitions.filter((r: any) => r.status === "pending").length,
     approvedReqs: requisitions.filter((r: any) => r.status === "approved").length,
     rejectedReqs: requisitions.filter((r: any) => r.status === "rejected").length,
+    approvedTodayCount: requisitions.filter((r: any) => r.status === "approved" && isOnDate(r.approved_at, 0)).length,
+    rejectedTodayCount: requisitions.filter((r: any) => r.status === "rejected" && isOnDate(r.rejected_at, 0)).length,
     openPOs: purchaseOrders.filter((p: any) => p.status === "open" || p.status === "pending").length,
     totalPOs: purchaseOrders.length,
     pendingGRNs: goodsReceived.filter((g: any) => g.status === "pending" || g.status === "partial").length,
     lowStock: items.filter((i: any) => (i.quantity_in_stock || 0) < (i.reorder_level || 10)).length,
     totalItems: items.length,
+  };
+
+  // Day-over-day trend deltas for the Overview KPI cards (real data, computed from loaded records)
+  const trends = {
+    pendingReqs: pctDelta(
+      requisitions.filter((r: any) => r.status === "pending" && isOnDate(r.created_at, 0)).length,
+      requisitions.filter((r: any) => r.status === "pending" && isOnDate(r.created_at, 1)).length,
+    ),
+    approvedToday: pctDelta(
+      stats.approvedTodayCount,
+      requisitions.filter((r: any) => r.status === "approved" && isOnDate(r.approved_at, 1)).length,
+    ),
+    rejectedToday: pctDelta(
+      stats.rejectedTodayCount,
+      requisitions.filter((r: any) => r.status === "rejected" && isOnDate(r.rejected_at, 1)).length,
+    ),
+    openPOs: pctDelta(
+      purchaseOrders.filter((p: any) => (p.status === "open" || p.status === "pending") && isOnDate(p.created_at, 0)).length,
+      purchaseOrders.filter((p: any) => (p.status === "open" || p.status === "pending") && isOnDate(p.created_at, 1)).length,
+    ),
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
@@ -381,10 +422,10 @@ const TrackingApprovalPage = () => {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Pending Requisitions", value: stats.pendingReqs, icon: Clock, color: "text-amber-600", bg: "bg-amber-100", trend: "up" },
-                { label: "Approved Today", value: stats.approvedReqs, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-100", trend: "up" },
-                { label: "Rejected Today", value: stats.rejectedReqs, icon: XCircle, color: "text-red-600", bg: "bg-red-100", trend: "down" },
-                { label: "Open POs", value: stats.openPOs, icon: FileText, color: "text-sky-600", bg: "bg-sky-100", trend: "neutral" },
+                { label: "Pending Requisitions", value: stats.pendingReqs, icon: Clock, color: "text-amber-600", bg: "bg-amber-100", trend: trends.pendingReqs },
+                { label: "Approved Today", value: stats.approvedTodayCount, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-100", trend: trends.approvedToday },
+                { label: "Rejected Today", value: stats.rejectedTodayCount, icon: XCircle, color: "text-red-600", bg: "bg-red-100", trend: trends.rejectedToday },
+                { label: "Open POs", value: stats.openPOs, icon: FileText, color: "text-sky-600", bg: "bg-sky-100", trend: trends.openPOs },
               ].map((kpi, i) => (
                 <Card key={i} className="bg-white border-slate-200 hover:shadow-lg transition-shadow">
                   <CardContent className="p-5">
@@ -392,9 +433,9 @@ const TrackingApprovalPage = () => {
                       <div className={`p-2.5 rounded-xl ${kpi.bg}`}>
                         <kpi.icon className={`w-5 h-5 ${kpi.color}`} />
                       </div>
-                      <div className={`flex items-center gap-0.5 ${kpi.trend === "up" ? "text-emerald-600" : kpi.trend === "down" ? "text-red-600" : "text-slate-400"}`}>
-                        {kpi.trend === "up" ? <TrendingUp className="w-4 h-4" /> : kpi.trend === "down" ? <TrendingDown className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
-                        <span className="text-xs font-bold">{kpi.trend === "up" ? "+12%" : kpi.trend === "down" ? "-5%" : "0%"}</span>
+                      <div className={`flex items-center gap-0.5 ${kpi.trend.dir === "up" ? "text-emerald-600" : kpi.trend.dir === "down" ? "text-red-600" : "text-slate-400"}`}>
+                        {kpi.trend.dir === "up" ? <TrendingUp className="w-4 h-4" /> : kpi.trend.dir === "down" ? <TrendingDown className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                        <span className="text-xs font-bold">{kpi.trend.label}</span>
                       </div>
                     </div>
                     <div className="mt-4">
@@ -611,7 +652,12 @@ const TrackingApprovalPage = () => {
                                 size="sm"
                                 variant="outline"
                                 className="gap-1"
-                                onClick={() => forwardItem(r.id)}
+                                onClick={() => {
+                                  setSelectedItems(new Set([r.id]));
+                                  setRecipientPhone("");
+                                  setBulkAction("forward");
+                                  setBulkDialogOpen(true);
+                                }}
                               >
                                 <Send className="w-3 h-3" /> Forward
                               </Button>
@@ -974,7 +1020,7 @@ const TrackingApprovalPage = () => {
                   <Download className="w-4 h-4" />
                   {backupRunning ? "Backing up..." : "Download Backup (JSON)"}
                 </Button>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" onClick={() => window.print()}>
                   <Printer className="w-4 h-4" />
                   Print Report
                 </Button>
@@ -1026,6 +1072,11 @@ const TrackingApprovalPage = () => {
             <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
             <Button
               className={`${bulkAction === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : bulkAction === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-sky-600 hover:bg-sky-700"}`}
+              disabled={
+                selectedItems.size === 0 ||
+                (bulkAction === "forward" && !recipientPhone) ||
+                (bulkAction === "notify" && (!recipientPhone || !customMessage))
+              }
               onClick={executeBulkAction}
             >
               Confirm ({selectedItems.size})
