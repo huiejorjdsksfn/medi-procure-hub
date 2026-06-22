@@ -35,6 +35,22 @@ const WEB_APP_URL = "https://procurbosse.edgeone.app";
 const detectPlatform = (): "windows" | "macos" | "linux" | "ios" | "android" | "other" => {
   if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent.toLowerCase();
+  
+  // Check for Capacitor native platforms first
+  // @ts-ignore
+  const isCapacitor = window.Capacitor?.isNativePlatform?.() || 
+                      window.capacitor?.isNative?.() ||
+                      (typeof window.webkit !== "undefined" && window.webkit.messageHandlers?.CapacitorApp);
+  
+  if (isCapacitor) {
+    // @ts-ignore
+    const platform = window.Capacitor?.getPlatform?.() || 
+                    window.capacitor?.platform;
+    if (platform === 'ios') return "ios";
+    if (platform === 'android') return "android";
+  }
+  
+  // Fallback to user agent detection
   if (ua.includes("iphone") || ua.includes("ipad")) return "ios";
   if (ua.includes("android")) return "android";
   if (ua.includes("win")) return "windows";
@@ -49,56 +65,54 @@ const PLATFORM_META = {
     icon: Monitor,
     color: "#0078d4",
     bg: "#eff6ff",
-    desc: "Download the .zip file, extract, and run launch.bat",
+    desc: "Download and install the desktop app",
     supportsDesktop: true,
-    supportsWeb: true,
+    supportsMobile: false,
   },
   macos: {
     label: "macOS",
     icon: Monitor,
     color: "#333333",
     bg: "#f5f5f5",
-    desc: "Download the .zip file and extract to run the app",
+    desc: "Download and install the desktop app",
     supportsDesktop: true,
-    supportsWeb: true,
+    supportsMobile: false,
   },
   linux: {
     label: "Linux",
     icon: Monitor,
     color: "#e95420",
     bg: "#fff4f0",
-    desc: "Download the .zip file, extract, and run the executable",
+    desc: "Download and install the desktop app",
     supportsDesktop: true,
-    supportsWeb: true,
+    supportsMobile: false,
   },
   ios: {
     label: "iOS",
     icon: Package,
     color: "#007aff",
     bg: "#f0f7ff",
-    desc: "Use the web app in Safari or install as PWA",
+    desc: "Download and install the native iOS app",
     supportsDesktop: false,
-    supportsWeb: true,
-    pwaGuide: "Go to the web app in Safari → Share → Add to Home Screen",
+    supportsMobile: true,
   },
   android: {
     label: "Android",
     icon: Package,
     color: "#3ddc84",
     bg: "#f0fff4",
-    desc: "Use the web app in Chrome or install as PWA",
+    desc: "Download and install the native Android app",
     supportsDesktop: false,
-    supportsWeb: true,
-    pwaGuide: "Go to the web app in Chrome → Menu → Install app",
+    supportsMobile: true,
   },
   other: {
     label: "Desktop/Web",
     icon: Globe,
     color: "#059669",
     bg: "#f0fdf4",
-    desc: "Access via web browser or download desktop version",
+    desc: "Download desktop app or access via web",
     supportsDesktop: true,
-    supportsWeb: true,
+    supportsMobile: true,
   },
 };
 
@@ -123,6 +137,21 @@ interface GHRelease {
   html_url: string;
   assets: GHAsset[];
 }
+
+// Asset kind extended for mobile
+type AssetKind = "win64" | "win32" | "web" | "launcher" | "checksum" | "android" | "ios" | "other";
+
+const assetKind = (name: string): AssetKind => {
+  const lower = name.toLowerCase();
+  if (lower.includes("android") || lower.endsWith(".apk") || lower.includes("-android")) return "android";
+  if (lower.includes("ios") || lower.endsWith(".ipa")) return "ios";
+  if (lower.includes("win-x64") || lower.includes("win64")) return "win64";
+  if (lower.includes("win-ia32")) return "win32";
+  if (lower.includes("web.zip") || lower.includes("-web.")) return "web";
+  if (lower.endsWith(".bat") || lower.endsWith(".cmd") || lower.endsWith(".sh")) return "launcher";
+  if (lower.includes("sha256") || lower.endsWith(".txt")) return "checksum";
+  return "other";
+};
 interface DownloadProgress {
   assetId: number;
   name: string;
@@ -153,6 +182,15 @@ const fmtSpeed = (bytesPerSec: number) => {
   return `${bytesPerSec.toFixed(0)} B/s`;
 };
 
+const KIND_META = {
+  win64:    { label: "Windows 64-bit",  icon: Monitor,   color: "#0078d4", bg: "#eff6ff", desc: "Recommended for modern PCs (most common)" },
+  win32:    { label: "Windows 32-bit",  icon: Cpu,       color: "#6b7280", bg: "#f9fafb", desc: "For older 32-bit Windows systems" },
+  android:  { label: "Android App",      icon: Package,   color: "#3ddc84", bg: "#f0fff4", desc: "Install directly on Android (.apk)" },
+  ios:      { label: "iOS App",          icon: Package,   color: "#007aff", bg: "#f0f7ff", desc: "Sideload on iPhone/iPad (.ipa)" },
+  web:      { label: "Web Bundle",      icon: Globe,     color: "#059669", bg: "#f0fdf4", desc: "Self-contained web app — run with any web server" },
+  launcher: { label: "Launcher Script", icon: Terminal,  color: "#7c3aed", bg: "#faf5ff", desc: "Quick-start .bat / .cmd scripts" },
+  checksum: { label: "Checksum",        icon: Shield,    color: "#94a3b8", bg: "#f8fafc", desc: "SHA-256 hash verification file" },
+  other:    { label: "Other",           icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
 type AssetKindType = "win64" | "win32" | "web" | "launcher" | "checksum" | "android" | "ios" | "admin" | "kiosk" | "server" | "other";
 
 const assetKind = (name: string): AssetKindType => {
@@ -746,6 +784,39 @@ export default function ReleasesPage() {
             
             {/* Quick action buttons based on platform */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {platform === "ios" && (
+                <a
+                  href="itms-services://?action=download-manifest&url=https://github.com/huiejorjdsksfn/medi-procure-hub/releases/latest/download/manifest.plist"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#007aff", color: "#fff",
+                    textDecoration: "none", fontSize: 11, fontWeight: 700,
+                  }}
+                >
+                  <Download size={12} /> Install iOS App
+                </a>
+              )}
+              
+              {platform === "android" && (
+                <button
+                  onClick={() => {
+                    toast({
+                      title: "Android App Download",
+                      description: "Scroll down to Downloads section and tap the Android APK file to install.",
+                    });
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#3ddc84", color: "#fff",
+                    border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  <Download size={12} /> Install Android App
+                </button>
+              )}
+              
               {PLATFORM_META[platform].supportsWeb && (
                 <a
                   href={WEB_APP_URL}
@@ -760,26 +831,6 @@ export default function ReleasesPage() {
                 >
                   <Globe size={12} /> Open Web App
                 </a>
-              )}
-              
-              {(platform === "ios" || platform === "android") && (
-                <button
-                  onClick={() => {
-                    const guide = platform === "ios" 
-                      ? "1. Open Safari\n2. Go to " + WEB_APP_URL + "\n3. Tap Share button\n4. Tap 'Add to Home Screen'"
-                      : "1. Open Chrome\n2. Go to " + WEB_APP_URL + "\n3. Tap Menu (⋮)\n4. Tap 'Install app' or 'Add to Home screen'";
-                    alert(guide);
-                  }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "8px 14px", borderRadius: 8,
-                    background: "#fff", color: PLATFORM_META[platform].color,
-                    border: `1px solid ${PLATFORM_META[platform].color}`,
-                    fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  <Download size={12} /> PWA Install Guide
-                </button>
               )}
               
               {platform === "windows" && (
@@ -997,6 +1048,7 @@ export default function ReleasesPage() {
                       Downloads
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10 }}>
+                      {(["android", "ios", "win64", "win32", "web", "launcher"] as const).map(kind => {
                       {(["android", "ios", "admin", "kiosk", "server", "win64", "win32", "web", "launcher"] as const).map(kind => {
                         const kindAssets = groups[kind];
                         if (!kindAssets?.length) return null;
