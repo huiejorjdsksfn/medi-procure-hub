@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import procurementBg from "@/assets/procurement-bg.jpg";
 import {
   BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus,
   Users, ShoppingCart, FileText, Package, Building2, Calendar,
@@ -242,7 +243,17 @@ const SystemReportPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-indigo-50">
+    <div 
+      className="min-h-screen"
+      style={{
+        backgroundImage: `url(${procurementBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Overlay */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900/90 via-sky-900/85 to-indigo-900/90">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -532,6 +543,7 @@ const SystemReportPage = () => {
           <p>EL5 MediProcure System Utilization Report · Embu Level 5 Hospital</p>
           <p className="mt-1">Generated {new Date().toLocaleString()} · {TIME_PERIODS.find(p => p.key === timePeriod)?.label}</p>
         </div>
+      </div>
       </div>
     </div>
   );
