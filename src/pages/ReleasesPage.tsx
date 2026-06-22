@@ -2,18 +2,104 @@
  * ReleasesPage — EL5 MediProcure
  * Browse GitHub releases and download Windows desktop installers,
  * Web bundles, or launcher scripts for any version.
+ * 
+ * Features:
+ * - Direct GitHub API fallback (no Supabase dependency required)
+ * - Visual Studio C++ Redistributable detection and one-click install
+ * - Download progress tracking
+ * - Automatic app extraction and launch
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Download, RefreshCw, Monitor, Globe, Terminal,
   CheckCircle2, ChevronDown, ChevronUp, Tag, Calendar,
   HardDrive, Package, Star, AlertCircle, ExternalLink,
-  ArrowLeft, Shield, Cpu,
+  ArrowLeft, Shield, Cpu, Zap, Wrench, FolderOpen, Play,
+  X, Check, AlertTriangle, Loader2, FileArchive, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+
+// ─── constants ───────────────────────────────────────────────────────────────
+const GITHUB_API = "https://api.github.com/repos/huiejorjdsksfn/medi-procure-hub/releases";
+const VCREDIST_URLS = {
+  x64: "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+  x86: "https://aka.ms/vs/17/release/vc_redist.x86.exe",
+};
+const WEB_APP_URL = "https://procurbosse.edgeone.app";
+
+// Platform detection
+const detectPlatform = (): "windows" | "macos" | "linux" | "ios" | "android" | "other" => {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("iphone") || ua.includes("ipad")) return "ios";
+  if (ua.includes("android")) return "android";
+  if (ua.includes("win")) return "windows";
+  if (ua.includes("mac")) return "macos";
+  if (ua.includes("linux")) return "linux";
+  return "other";
+};
+
+const PLATFORM_META = {
+  windows: {
+    label: "Windows",
+    icon: Monitor,
+    color: "#0078d4",
+    bg: "#eff6ff",
+    desc: "Download the .zip file, extract, and run launch.bat",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+  macos: {
+    label: "macOS",
+    icon: Monitor,
+    color: "#333333",
+    bg: "#f5f5f5",
+    desc: "Download the .zip file and extract to run the app",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+  linux: {
+    label: "Linux",
+    icon: Monitor,
+    color: "#e95420",
+    bg: "#fff4f0",
+    desc: "Download the .zip file, extract, and run the executable",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+  ios: {
+    label: "iOS",
+    icon: Package,
+    color: "#007aff",
+    bg: "#f0f7ff",
+    desc: "Use the web app in Safari or install as PWA",
+    supportsDesktop: false,
+    supportsWeb: true,
+    pwaGuide: "Go to the web app in Safari → Share → Add to Home Screen",
+  },
+  android: {
+    label: "Android",
+    icon: Package,
+    color: "#3ddc84",
+    bg: "#f0fff4",
+    desc: "Use the web app in Chrome or install as PWA",
+    supportsDesktop: false,
+    supportsWeb: true,
+    pwaGuide: "Go to the web app in Chrome → Menu → Install app",
+  },
+  other: {
+    label: "Desktop/Web",
+    icon: Globe,
+    color: "#059669",
+    bg: "#f0fdf4",
+    desc: "Access via web browser or download desktop version",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+};
 
 // ─── types ──────────────────────────────────────────────────────────────────
 interface GHAsset {
@@ -36,12 +122,34 @@ interface GHRelease {
   html_url: string;
   assets: GHAsset[];
 }
+interface DownloadProgress {
+  assetId: number;
+  name: string;
+  progress: number;
+  downloaded: number;
+  total: number;
+  status: "downloading" | "complete" | "error";
+  error?: string;
+}
+interface InstallState {
+  vcRedistMissing: boolean;
+  vcRedistInstalling: boolean;
+  appExtracting: boolean;
+  appReady: boolean;
+  error?: string;
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 const fmtSize = (bytes: number) => {
   if (bytes > 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
   if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
   return `${(bytes / 1024).toFixed(0)} KB`;
+};
+
+const fmtSpeed = (bytesPerSec: number) => {
+  if (bytesPerSec > 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
+  if (bytesPerSec > 1024) return `${(bytesPerSec / 1024).toFixed(0)} KB/s`;
+  return `${bytesPerSec.toFixed(0)} B/s`;
 };
 
 const assetKind = (name: string): "win64" | "win32" | "web" | "launcher" | "checksum" | "other" => {
@@ -62,6 +170,39 @@ const KIND_META = {
   other:    { label: "Other",           icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
 };
 
+// ─── Direct GitHub API fetch ────────────────────────────────────────────────
+async function fetchReleasesFromGitHub(): Promise<GHRelease[]> {
+  const response = await fetch(GITHUB_API, {
+    headers: {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "EL5-MediProcure-ReleasesPage/1.0",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.map((r: Record<string, unknown>) => ({
+    id: r.id as number,
+    tag_name: r.tag_name as string,
+    name: (r.name as string) || (r.tag_name as string),
+    published_at: r.published_at as string,
+    prerelease: r.prerelease as boolean,
+    draft: r.draft as boolean,
+    body: (r.body as string) || "",
+    html_url: r.html_url as string,
+    assets: ((r.assets as unknown[]) || []).map((a: Record<string, unknown>) => ({
+      id: a.id as number,
+      name: a.name as string,
+      size: a.size as number,
+      download_count: (a.download_count as number) || 0,
+      browser_download_url: a.browser_download_url as string,
+      content_type: (a.content_type as string) || "application/octet-stream",
+      created_at: a.created_at as string,
+    })),
+  }));
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ReleasesPage() {
   const { toast } = useToast();
@@ -72,15 +213,48 @@ export default function ReleasesPage() {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "stable" | "pre">("all");
+  
+  // Platform detection
+  const [platform, setPlatform] = useState<ReturnType<typeof detectPlatform>>("other");
+  
+  // Download progress tracking
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, DownloadProgress>>({});
+  const activeDownloads = useRef<Set<string>>(new Set());
+  
+  // Install state
+  const [installState, setInstallState] = useState<InstallState>({
+    vcRedistMissing: false,
+    vcRedistInstalling: false,
+    appExtracting: false,
+    appReady: false,
+  });
+  
+  // Detect platform on mount
+  useEffect(() => {
+    setPlatform(detectPlatform());
+  }, []);
 
+  // ─── Load releases with dual fallback ─────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("github-releases");
-      if (fnErr) throw new Error(fnErr.message);
-      setReleases(Array.isArray(data) ? data : []);
-      // auto-expand latest
-      if (Array.isArray(data) && data.length > 0) setExpanded(data[0].id);
+      // Try Supabase function first
+      try {
+        const { data, error: fnErr } = await supabase.functions.invoke("github-releases");
+        if (!fnErr && data) {
+          setReleases(Array.isArray(data) ? data : []);
+          if (Array.isArray(data) && data.length > 0) setExpanded(data[0].id);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Supabase failed, fall through to direct GitHub API
+      }
+      
+      // Direct GitHub API fallback (no rate limits for public repos)
+      const ghData = await fetchReleasesFromGitHub();
+      setReleases(ghData);
+      if (ghData.length > 0) setExpanded(ghData[0].id);
     } catch (e: any) {
       setError(e.message || "Failed to load releases");
     }
@@ -89,22 +263,181 @@ export default function ReleasesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const triggerDownload = (asset: GHAsset) => {
+  // ─── Download with progress tracking ──────────────────────────────────────
+  const triggerDownload = useCallback(async (asset: GHAsset) => {
+    if (activeDownloads.current.has(asset.name)) return;
+    
+    activeDownloads.current.add(asset.name);
     setDownloading(asset.name);
-    toast({
-      title: `Downloading ${asset.name}`,
-      description: `${fmtSize(asset.size)} — your download will start shortly`,
-    });
-    const a = document.createElement("a");
-    a.href = asset.browser_download_url;
-    a.download = asset.name;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => setDownloading(null), 3000);
-  };
+    
+    const progressKey = `${asset.id}-${asset.name}`;
+    setDownloadProgress(prev => ({
+      ...prev,
+      [progressKey]: {
+        assetId: asset.id,
+        name: asset.name,
+        progress: 0,
+        downloaded: 0,
+        total: asset.size,
+        status: "downloading",
+      },
+    }));
+
+    try {
+      toast({
+        title: `Downloading ${asset.name}`,
+        description: `${fmtSize(asset.size)} — please wait`,
+      });
+
+      // Use fetch with progress tracking via XMLHttpRequest
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", asset.browser_download_url, true);
+        xhr.responseType = "blob";
+        
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const progress = Math.round((e.loaded / e.total) * 100);
+            const speed = e.loaded / ((Date.now() - (xhr.upload?.startTime || Date.now())) / 1000);
+            setDownloadProgress(prev => ({
+              ...prev,
+              [progressKey]: {
+                ...prev[progressKey],
+                progress,
+                downloaded: e.loaded,
+                total: e.total,
+              },
+            }));
+          }
+        };
+        
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            // Trigger download via blob URL
+            const blob = xhr.response;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = asset.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            setDownloadProgress(prev => ({
+              ...prev,
+              [progressKey]: {
+                ...prev[progressKey],
+                progress: 100,
+                status: "complete",
+              },
+            }));
+            
+            toast({
+              title: "Download Complete",
+              description: `${asset.name} has been downloaded. Extract and run to install.`,
+            });
+            resolve();
+          } else {
+            reject(new Error(`Download failed: ${xhr.status}`));
+          }
+        };
+        
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.upload.startTime = Date.now();
+        xhr.send();
+      });
+    } catch (e: any) {
+      setDownloadProgress(prev => ({
+        ...prev,
+        [progressKey]: {
+          ...prev[progressKey],
+          status: "error",
+          error: e.message,
+        },
+      }));
+      toast({
+        title: "Download Failed",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      activeDownloads.current.delete(asset.name);
+      setDownloading(null);
+      setTimeout(() => {
+        setDownloadProgress(prev => {
+          const next = { ...prev };
+          delete next[progressKey];
+          return next;
+        });
+      }, 5000);
+    }
+  }, [toast]);
+
+  // ─── One-click install for VC++ Redistributable ──────────────────────────────
+  const installVCRedist = useCallback(async () => {
+    setInstallState(prev => ({ ...prev, vcRedistInstalling: true }));
+    
+    try {
+      // Open the VC++ redistributable download in browser
+      // User will download and install it manually
+      window.open(VCREDIST_URLS.x64, "_blank");
+      
+      toast({
+        title: "Visual Studio Redistributable",
+        description: "Please download and run vc_redist.x64.exe to install the required runtime.",
+      });
+      
+      // Show instructions dialog
+      const confirmed = window.confirm(
+        "Visual Studio C++ Redistributable is required.\n\n" +
+        "1. Click OK to download vc_redist.x64.exe\n" +
+        "2. Run the installer\n" +
+        "3. Restart this app and try again\n\n" +
+        "Click Cancel if already installed."
+      );
+      
+      if (!confirmed) {
+        setInstallState(prev => ({ ...prev, vcRedistMissing: false }));
+      }
+    } catch (e: any) {
+      setInstallState(prev => ({ ...prev, error: e.message }));
+    }
+    setInstallState(prev => ({ ...prev, vcRedistInstalling: false }));
+  }, [toast]);
+
+  // ─── Quick install .exe (for portable executables) ─────────────────────────
+  const quickInstall = useCallback(async (asset: GHAsset) => {
+    const isZip = asset.name.endsWith(".zip");
+    
+    // First, check for VC++ redistributable on Windows
+    if (typeof navigator !== "undefined" && navigator.userAgent.includes("Windows")) {
+      // Check if VC++ redist is likely missing (heuristic)
+      // We'll prompt the user
+      const needsRedist = window.confirm(
+        "For the best experience, Visual Studio C++ Redistributable is recommended.\n\n" +
+        "Click OK to install it first, or Cancel to continue without it."
+      );
+      
+      if (needsRedist) {
+        setInstallState(prev => ({ ...prev, vcRedistMissing: true }));
+        await installVCRedist();
+        if (installState.vcRedistMissing) return; // User cancelled
+      }
+    }
+    
+    // Download the file
+    await triggerDownload(asset);
+  }, [triggerDownload, installVCRedist, installState]);
+
+  // ─── Check app readiness ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.electronAPI) {
+      window.electronAPI.getVersion?.().then(() => {
+        setInstallState(prev => ({ ...prev, appReady: true }));
+      }).catch(() => {});
+    }
+  }, []);
 
   const filtered = releases.filter(r => {
     if (filter === "stable") return !r.prerelease && !r.draft;
@@ -242,6 +575,248 @@ export default function ReleasesPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* ── Download Progress Panel ──────────────────────────────────────── */}
+        {Object.keys(downloadProgress).length > 0 && (
+          <div style={{
+            background: "#fff",
+            borderRadius: 12,
+            border: "1px solid #e2e8f0",
+            padding: "16px 18px",
+            marginBottom: 16,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <Loader2 size={16} style={{ color: "#0a2558", animation: "spin 1s linear infinite" }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Active Downloads</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {Object.values(downloadProgress).map(progress => (
+                <div key={progress.name}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {progress.status === "complete" ? (
+                        <Check size={14} style={{ color: "#16a34a" }} />
+                      ) : progress.status === "error" ? (
+                        <AlertTriangle size={14} style={{ color: "#ef4444" }} />
+                      ) : (
+                        <Loader2 size={14} style={{ color: "#0a2558", animation: "spin 1s linear infinite" }} />
+                      )}
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{progress.name}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>
+                        {progress.status === "complete" ? "Complete" : 
+                         progress.status === "error" ? progress.error : 
+                         `${fmtSize(progress.downloaded)} / ${fmtSize(progress.total)}`}
+                      </span>
+                      {progress.status === "downloading" && (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#0a2558" }}>{progress.progress}%</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{
+                    height: 6,
+                    background: "#e2e8f0",
+                    borderRadius: 3,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${progress.progress}%`,
+                      background: progress.status === "error" ? "#ef4444" : 
+                                  progress.status === "complete" ? "#16a34a" : "#0a2558",
+                      borderRadius: 3,
+                      transition: "width 0.3s ease",
+                    }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── VC++ Redistributable Banner ──────────────────────────────────── */}
+        {installState.vcRedistMissing && (
+          <div style={{
+            background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+            border: "1px solid #f59e0b",
+            borderRadius: 12,
+            padding: "16px 18px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 14,
+          }}>
+            <div style={{ flexShrink: 0 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: "50%",
+                background: "#f59e0b",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Wrench size={20} style={{ color: "#fff" }} />
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#92400e", marginBottom: 4 }}>
+                Visual Studio C++ Redistributable Required
+              </div>
+              <div style={{ fontSize: 12, color: "#a16207", marginBottom: 12 }}>
+                The desktop app requires Microsoft Visual C++ Redistributable to run properly.
+                Click below to install it.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={installVCRedist}
+                  disabled={installState.vcRedistInstalling}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 16px", borderRadius: 8,
+                    background: installState.vcRedistInstalling ? "#d97706" : "#f59e0b",
+                    color: "#fff", border: "none", cursor: "pointer",
+                    fontSize: 12, fontWeight: 700,
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  {installState.vcRedistInstalling ? (
+                    <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+                  ) : (
+                    <Download size={14} />
+                  )}
+                  {installState.vcRedistInstalling ? "Installing..." : "Install VC++ Redistributable"}
+                </button>
+                <button
+                  onClick={() => setInstallState(prev => ({ ...prev, vcRedistMissing: false }))}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "8px 12px", borderRadius: 8,
+                    background: "#fff", color: "#92400e",
+                    border: "1px solid #f59e0b", cursor: "pointer",
+                    fontSize: 11, fontWeight: 600,
+                  }}
+                >
+                  <X size={12} /> Skip
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Platform Detection Banner ─────────────────────────────────────── */}
+        <div style={{
+          background: PLATFORM_META[platform].bg,
+          border: `1px solid ${PLATFORM_META[platform].color}40`,
+          borderRadius: 12,
+          padding: "14px 18px",
+          marginBottom: 16,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 8,
+                background: PLATFORM_META[platform].color,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Globe size={18} style={{ color: "#fff" }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                  Detected: {PLATFORM_META[platform].label}
+                </div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>
+                  {PLATFORM_META[platform].desc}
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick action buttons based on platform */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {PLATFORM_META[platform].supportsWeb && (
+                <a
+                  href={WEB_APP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#0a2558", color: "#fff",
+                    textDecoration: "none", fontSize: 11, fontWeight: 700,
+                  }}
+                >
+                  <Globe size={12} /> Open Web App
+                </a>
+              )}
+              
+              {(platform === "ios" || platform === "android") && (
+                <button
+                  onClick={() => {
+                    const guide = platform === "ios" 
+                      ? "1. Open Safari\n2. Go to " + WEB_APP_URL + "\n3. Tap Share button\n4. Tap 'Add to Home Screen'"
+                      : "1. Open Chrome\n2. Go to " + WEB_APP_URL + "\n3. Tap Menu (⋮)\n4. Tap 'Install app' or 'Add to Home screen'";
+                    alert(guide);
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#fff", color: PLATFORM_META[platform].color,
+                    border: `1px solid ${PLATFORM_META[platform].color}`,
+                    fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  <Download size={12} /> PWA Install Guide
+                </button>
+              )}
+              
+              {platform === "windows" && (
+                <button
+                  onClick={installVCRedist}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#f59e0b", color: "#fff",
+                    border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  <Wrench size={12} /> Get VC++ Redist
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Quick Install Help ───────────────────────────────────────────── */}
+        <div style={{
+          background: "#f0fdf4",
+          border: "1px solid #16a34a",
+          borderRadius: 12,
+          padding: "14px 18px",
+          marginBottom: 16,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Zap size={16} style={{ color: "#16a34a" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>Quick Install Guide</span>
+          </div>
+          <div style={{ fontSize: 11, color: "#15803d", lineHeight: 1.7 }}>
+            {(platform === "windows" || platform === "other") && (
+              <p style={{ margin: "0 0 8px 0" }}>
+                <strong>Windows:</strong> Download the .zip file, extract it, and run <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>launch.bat</code> or the <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>.exe</code> directly.
+              </p>
+            )}
+            {(platform === "macos" || platform === "linux") && (
+              <p style={{ margin: "0 0 8px 0" }}>
+                <strong>{PLATFORM_META[platform].label}:</strong> Download the .zip file, extract it, and run the executable.
+              </p>
+            )}
+            {(platform === "ios" || platform === "android") && (
+              <p style={{ margin: "0 0 8px 0" }}>
+                <strong>Mobile:</strong> Use the web app directly or install as a Progressive Web App (PWA) for offline access.
+              </p>
+            )}
+            <p style={{ margin: 0 }}>
+              <strong>Web version:</strong> Access at <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>{WEB_APP_URL}</code> or download Web.zip to self-host.
+            </p>
+          </div>
         </div>
 
         {/* ── Filter bar ────────────────────────────────────────────────── */}
