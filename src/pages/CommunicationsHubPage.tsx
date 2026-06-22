@@ -1,7 +1,7 @@
 /**
- * EL5 MediProcure — Communications Hub v1.0
+ * EL5 MediProcure — Communications Hub v2.0
  * Complete Email, SMS, WhatsApp, Voice & Video Communications
- * Full External Sending - No Restrictions
+ * Optimized for Kenya - Kenyan Phone Numbers & Email
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,8 @@ import {
   AlertCircle, Clock, SendHorizontal, MessageCircle, Hash, Megaphone,
   Paperclip, Image, Smile, MoreVertical, Star, Trash2, Reply, Forward,
   Volume2, VolumeX, Mic, MicOff, Video as VideoIcon, PhoneOff, User, Building2,
-  Calendar, Clock3, CheckCheck, XCircle, Eye, Edit3, ChevronDown, Filter
+  Calendar, Clock3, CheckCheck, XCircle, Eye, Edit3, ChevronDown, Filter,
+  Globe, MapPin
 } from "lucide-react";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -32,7 +33,101 @@ interface CallLog {
   recording?: string;
 }
 
-/* ─── Helpers ───────────────────────────────────────────────────────── */
+/* ─── KENYA CONFIG ─────────────────────────────────────────────── */
+const KENYA_CONFIG = {
+  country: 'Kenya',
+  countryCode: '+254',
+  flag: '🇰🇪',
+  timezone: 'Africa/Nairobi',
+  currency: 'KES',
+  currencySymbol: 'KSh',
+  carriers: {
+    '0710': 'Safaricom', '0711': 'Safaricom', '0712': 'Safaricom', '0713': 'Safaricom',
+    '0714': 'Safaricom', '0715': 'Safaricom', '0716': 'Safaricom', '0717': 'Safaricom',
+    '0718': 'Safaricom', '0719': 'Safaricom',
+    '0100': 'Airtel', '0101': 'Airtel', '0102': 'Airtel',
+    '0750': 'Airtel', '0751': 'Airtel', '0752': 'Airtel',
+    '0770': 'Airtel', '0771': 'Airtel', '0772': 'Airtel',
+    '0200': 'Telkom', '0201': 'Telkom',
+  },
+  hospitalDomain: 'embuhospital.go.ke',
+  governmentDomains: ['go.ke', 'gov.ke', 'ac.ke', 'co.ke'],
+};
+
+/* ─── KENYA PHONE HELPERS ───────────────────────────────────────── */
+const normalizeKenyaPhone = (phone: string): string => {
+  // Remove all non-digits
+  const digits = phone.replace(/\D/g, '');
+  
+  // Handle various formats
+  if (digits.startsWith('254')) {
+    return '+254' + digits.slice(3);
+  }
+  if (digits.startsWith('0') && digits.length === 10) {
+    return '+254' + digits.slice(1);
+  }
+  if (digits.length === 9) {
+    return '+254' + digits;
+  }
+  // Already in international format
+  if (digits.startsWith('254') && digits.length === 12) {
+    return '+' + digits;
+  }
+  return phone;
+};
+
+const formatKenyaPhone = (phone: string): string => {
+  const normalized = normalizeKenyaPhone(phone);
+  const digits = normalized.replace(/\D/g, '');
+  
+  if (digits.length === 12) {
+    // +254 XXX XXX XXX
+    return `+254 ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9)}`;
+  }
+  return phone;
+};
+
+const getKenyaCarrier = (phone: string): string => {
+  const normalized = normalizeKenyaPhone(phone);
+  const prefix = normalized.slice(4, 8); // After +254
+  
+  if (KENYA_CONFIG.carriers[prefix as keyof typeof KENYA_CONFIG.carriers]) {
+    return KENYA_CONFIG.carriers[prefix as keyof typeof KENYA_CONFIG.carriers];
+  }
+  return 'Unknown Carrier';
+};
+
+const isValidKenyaPhone = (phone: string): boolean => {
+  const normalized = normalizeKenyaPhone(phone);
+  const digits = normalized.replace(/\D/g, '');
+  return digits.length === 12 && digits.startsWith('254');
+};
+
+/* ─── DATE/TIME HELPERS (Kenya Time) ────────────────────────────── */
+const formatKenyaTime = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleTimeString('en-KE', { 
+    timeZone: KENYA_CONFIG.timezone,
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+};
+
+const formatKenyaDate = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-KE', { 
+    timeZone: KENYA_CONFIG.timezone,
+    day: '2-digit', 
+    month: 'short', 
+    year: 'numeric' 
+  });
+};
+
+const formatKenyaDateTime = (date: string | Date): string => {
+  return `${formatKenyaDate(date)} ${formatKenyaTime(date)}`;
+};
+
 const timeAgo = (d: string) => {
   const diff = (Date.now() - new Date(d).getTime()) / 1000;
   if (diff < 60) return 'Just now';
@@ -40,7 +135,9 @@ const timeAgo = (d: string) => {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 };
-const formatPhone = (p: string) => p.replace(/(\+\d{3})(\d{3})(\d{3})(\d{3})/, '$1 $2 $3 $4');
+
+// Format phone using Kenya format
+const formatPhone = (p: string) => formatKenyaPhone(p);
 const initials = (n: string) => n.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
 
 /* ─── Status Colors ──────────────────────────────────────────────── */
@@ -50,6 +147,12 @@ const STATUS_COLORS = {
   read: '#10b981', unread: '#3b82f6',
 };
 const CHANNEL_COLORS = { sms: '#3b82f6', whatsapp: '#25D366', email: '#0078d4', voice: '#8b5cf6' };
+const CARRIER_COLORS: Record<string, string> = {
+  'Safaricom': '#00A651',
+  'Airtel': '#E60000',
+  'Telkom': '#FF6900',
+  'Unknown Carrier': '#6b7280',
+};
 
 /* ─── Main Component ─────────────────────────────────────────────── */
 export default function CommunicationsHubPage() {
@@ -161,12 +264,24 @@ export default function CommunicationsHubPage() {
       toast({ title: 'Missing fields', description: 'Please enter recipient and message.', variant: 'destructive' });
       return;
     }
+    
+    // Validate Kenya phone number
+    const normalizedPhone = normalizeKenyaPhone(smsDraft.to);
+    if (!isValidKenyaPhone(normalizedPhone)) {
+      toast({ 
+        title: 'Invalid Phone Number', 
+        description: 'Please enter a valid Kenyan phone number (e.g., 0712 345 678 or +254 712 345 678)', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
     setSendingSMS(true);
     try {
       // Call Supabase edge function to send SMS via Twilio
       const { error } = await (supabase.functions as any).invoke('send-sms', {
         body: {
-          to: smsDraft.to,
+          to: normalizedPhone,
           message: smsDraft.message,
           channel: smsDraft.channel,
           contactName: 'Unknown Contact',
@@ -296,6 +411,23 @@ export default function CommunicationsHubPage() {
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Kenya Status Bar */}
+          <div className="px-4 py-2 bg-emerald-50 border-b border-emerald-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{KENYA_CONFIG.flag}</span>
+              <span className="text-sm font-medium text-emerald-800">Communications Hub</span>
+              <span className="text-xs text-emerald-600">• Embu Level 5 Hospital</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-emerald-700">
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> Nairobi Time: {formatKenyaTime(new Date())}
+              </span>
+              <span className="flex items-center gap-1">
+                <Globe className="w-3 h-3" /> {KENYA_CONFIG.timezone}
+              </span>
+            </div>
+          </div>
+          
           {/* Email Tab */}
           {activeTab === 'email' && (
             <div className="flex flex-1">
@@ -498,10 +630,35 @@ export default function CommunicationsHubPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Recipient (Phone Number)</label>
-                        <input value={smsDraft.to} onChange={e => setSmsDraft(d => ({ ...d, to: e.target.value }))}
-                          placeholder="+254 722 000 000"
-                          className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Recipient (Kenyan Phone Number) {KENYA_CONFIG.flag}
+                        </label>
+                        <div className="relative">
+                          <input value={smsDraft.to} onChange={e => setSmsDraft(d => ({ ...d, to: e.target.value }))}
+                            placeholder="0712 345 678 or +254 712 345 678"
+                            className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none pr-20"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+                            KE
+                          </span>
+                        </div>
+                        {smsDraft.to && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-slate-500">
+                              {isValidKenyaPhone(normalizeKenyaPhone(smsDraft.to)) ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 inline text-emerald-500 mr-1" />
+                                  Valid Kenyan number • {getKenyaCarrier(smsDraft.to)}
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="w-3 h-3 inline text-red-500 mr-1" />
+                                  Enter valid Kenyan number (07XX or +254)
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
@@ -660,26 +817,45 @@ export default function CommunicationsHubPage() {
       {/* Dialpad Modal */}
       {showCallDialer && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowCallDialer(false)}>
-          <div className="bg-white rounded-2xl p-6 w-80" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-4 text-center">Dial Number</h3>
-            <input value={dialNumber} onChange={e => setDialNumber(e.target.value)}
-              placeholder="Enter number"
-              className="w-full px-4 py-3 text-center text-xl border rounded-lg mb-4" />
+          <div className="bg-white rounded-2xl p-6 w-80 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold flex items-center justify-center gap-2">
+                <Phone className="w-5 h-5 text-emerald-600" /> Kenya Dialer {KENYA_CONFIG.flag}
+              </h3>
+              <p className="text-xs text-slate-500">Africa/Nairobi • {KENYA_CONFIG.currencySymbol}</p>
+            </div>
+            <div className="relative">
+              <input value={dialNumber} onChange={e => setDialNumber(e.target.value)}
+                placeholder="0712 345 678"
+                className="w-full px-4 py-3 text-center text-xl border-2 border-emerald-200 rounded-lg mb-2 bg-emerald-50" />
+              {dialNumber && (
+                <div className="text-xs text-center mb-3">
+                  {isValidKenyaPhone(normalizeKenyaPhone(dialNumber)) ? (
+                    <span className="text-emerald-600">
+                      <CheckCircle2 className="w-3 h-3 inline mr-1" />
+                      {formatPhone(dialNumber)} • {getKenyaCarrier(dialNumber)}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Enter Kenyan number</span>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-2 mb-4">
               {['1','2','3','4','5','6','7','8','9','*','0','#'].map(key => (
                 <button key={key} onClick={() => setDialNumber(d => d + key)}
-                  className="py-3 text-lg font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                  className="py-3 text-lg font-medium bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 rounded-lg transition">
                   {key}
                 </button>
               ))}
             </div>
             <div className="flex gap-2">
               <button onClick={() => setDialNumber(d => d.slice(0, -1))}
-                className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 rounded-lg">
+                className="flex-1 py-3 bg-slate-200 hover:bg-red-100 text-slate-700 hover:text-red-600 rounded-lg transition">
                 <XCircle className="w-5 h-5 mx-auto" />
               </button>
-              <button onClick={handleMakeCall}
-                className="flex-[2] py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center justify-center gap-2">
+              <button onClick={handleMakeCall} disabled={!dialNumber}
+                className="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-lg flex items-center justify-center gap-2 transition">
                 <PhoneCall className="w-5 h-5" /> Call
               </button>
             </div>
