@@ -178,21 +178,17 @@ export default function UsersIpAuditPage() {
     return () => clearInterval(id);
   }, [autoRefresh, loadAll]);
 
-  // Real-time — all related tables
+  // Real-time
   useEffect(() => {
-    const ch = db.channel("users_ip_audit_v3")
+    const ch = db.channel("users_ip_audit_v2")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, (payload: any) => {
         const log = payload.new;
         setLiveActivity(prev => [`${new Date().toLocaleTimeString()} - ${log.action} - ${log.user_email || "system"} - ${log.ip_address || "?"}`, ...prev.slice(0, 9)]);
         setAuditLogs(prev => [log, ...prev.slice(0, 999)]);
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_sessions" }, () => loadAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "ip_whitelist" }, () => loadAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ip_access_rules" }, () => loadAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [loadAll]);
+  }, []);
 
   const today = new Date().toDateString();
   const uniqueIPs = useMemo(() => [...new Set(auditLogs.map(l => l.ip_address).filter(Boolean))], [auditLogs]);
