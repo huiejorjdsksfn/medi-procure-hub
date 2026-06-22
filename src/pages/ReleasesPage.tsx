@@ -18,6 +18,7 @@ import {
   HardDrive, Package, Star, AlertCircle, ExternalLink,
   ArrowLeft, Shield, Cpu, Zap, Wrench, FolderOpen, Play,
   X, Check, AlertTriangle, Loader2, FileArchive, ShieldCheck,
+  Server,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -152,22 +153,35 @@ const fmtSpeed = (bytesPerSec: number) => {
   return `${bytesPerSec.toFixed(0)} B/s`;
 };
 
-const assetKind = (name: string): "win64" | "win32" | "web" | "launcher" | "checksum" | "other" => {
-  if (name.includes("win-x64")) return "win64";
-  if (name.includes("win-ia32")) return "win32";
-  if (name.includes("Web.zip") || name.includes("-Web.")) return "web";
-  if (name.endsWith(".bat") || name.endsWith(".cmd") || name.endsWith(".sh")) return "launcher";
-  if (name.includes("SHA256") || name.endsWith(".txt")) return "checksum";
+type AssetKindType = "win64" | "win32" | "web" | "launcher" | "checksum" | "android" | "ios" | "admin" | "kiosk" | "server" | "other";
+
+const assetKind = (name: string): AssetKindType => {
+  const lower = name.toLowerCase();
+  if (lower.includes("android") || lower.endsWith(".apk") || lower.includes("-android")) return "android";
+  if (lower.includes("ios") || lower.endsWith(".ipa")) return "ios";
+  if (lower.includes("admin") || lower.includes("it-admin") || lower.includes("server-app")) return "admin";
+  if (lower.includes("kiosk")) return "kiosk";
+  if (lower.includes("server") && lower.includes("windows")) return "server";
+  if (lower.includes("win-x64") || lower.includes("windows-x64")) return "win64";
+  if (lower.includes("win-ia32") || lower.includes("windows-ia32")) return "win32";
+  if (lower.includes("web.zip") || lower.includes("-web.")) return "web";
+  if (lower.endsWith(".bat") || lower.endsWith(".cmd") || lower.endsWith(".sh")) return "launcher";
+  if (lower.includes("sha256") || lower.endsWith(".txt")) return "checksum";
   return "other";
 };
 
 const KIND_META = {
-  win64:    { label: "Windows 64-bit",  icon: Monitor,   color: "#0078d4", bg: "#eff6ff", desc: "Recommended for modern PCs (most common)" },
-  win32:    { label: "Windows 32-bit",  icon: Cpu,       color: "#6b7280", bg: "#f9fafb", desc: "For older 32-bit Windows systems" },
-  web:      { label: "Web Bundle",      icon: Globe,     color: "#059669", bg: "#f0fdf4", desc: "Self-contained web app — run with any web server" },
-  launcher: { label: "Launcher Script", icon: Terminal,  color: "#7c3aed", bg: "#faf5ff", desc: "Quick-start .bat / .cmd scripts" },
-  checksum: { label: "Checksum",        icon: Shield,    color: "#94a3b8", bg: "#f8fafc", desc: "SHA-256 hash verification file" },
-  other:    { label: "Other",           icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
+  win64:    { label: "Windows App (x64)", icon: Monitor,   color: "#0078d4", bg: "#eff6ff", desc: "Standard Windows desktop app for procurement staff" },
+  win32:    { label: "Windows App (x86)", icon: Cpu,       color: "#6b7280", bg: "#f9fafb", desc: "For older 32-bit Windows systems" },
+  android:  { label: "Android App",        icon: Package,   color: "#3ddc84", bg: "#f0fff4", desc: "Native Android app — install directly on devices" },
+  ios:      { label: "iOS App",           icon: Package,   color: "#007aff", bg: "#f0f7ff", desc: "Native iOS app — sideload on iPhone/iPad" },
+  admin:    { label: "IT Admin App",      icon: Shield,    color: "#8b5cf6", bg: "#faf5ff", desc: "Full system control — Supabase access + admin features" },
+  kiosk:    { label: "Kiosk App",        icon: Monitor,   color: "#f59e0b", bg: "#fffbeb", desc: "Self-service kiosk for visitors and staff" },
+  server:   { label: "Server/IT App",     icon: Server,   color: "#10b981", bg: "#f0fdf4", desc: "Server management — full access + overview dashboard" },
+  web:      { label: "Web Bundle",         icon: Globe,     color: "#059669", bg: "#f0fdf4", desc: "Self-hosted web app — run with any web server" },
+  launcher: { label: "Launcher Script",    icon: Terminal,  color: "#7c3aed", bg: "#faf5ff", desc: "Quick-start scripts (.bat / .cmd / .sh)" },
+  checksum: { label: "Checksum",          icon: Shield,    color: "#94a3b8", bg: "#f8fafc", desc: "SHA-256 hash verification file" },
+  other:    { label: "Other",             icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
 };
 
 // ─── Direct GitHub API fetch ────────────────────────────────────────────────
@@ -983,7 +997,7 @@ export default function ReleasesPage() {
                       Downloads
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10 }}>
-                      {(["win64", "win32", "web", "launcher"] as const).map(kind => {
+                      {(["android", "ios", "admin", "kiosk", "server", "win64", "win32", "web", "launcher"] as const).map(kind => {
                         const kindAssets = groups[kind];
                         if (!kindAssets?.length) return null;
                         const meta = KIND_META[kind];
