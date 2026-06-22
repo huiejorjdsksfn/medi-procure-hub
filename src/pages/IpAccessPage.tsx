@@ -1,45 +1,64 @@
 /**
- * EL5 MediProcure — IP Access Control v2.0
- * Live stats, IP whitelist, device tracking, geolocation, production mode
- * All features fully functional with Supabase real-time
+ * EL5 MediProcure — IP Access Control v3.0
+ * Real-time data from ip_access_log + network_whitelist + audit_log
+ * Embu Level 5 Hospital
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import procurementBg from "@/assets/procurement-bg.jpg";
 import {
-  Shield, Globe, MapPin, Lock, Unlock, Wifi, Monitor, Smartphone, Laptop,
+  Shield, Globe, Lock, Unlock, Monitor, Smartphone, Laptop,
   Clock, CheckCircle, XCircle, AlertTriangle, RefreshCw, Download, Search,
-  Eye, EyeOff, Trash2, Zap, Plus, ChevronRight, Ban, Server, Activity,
-  Database, Users, BarChart3, ShieldCheck, ShieldAlert, ShieldX,
-  Building2, Signal, UserCheck,
+  Trash2, Zap, Plus, ChevronRight, Ban, Activity,
+  Users, ShieldCheck, ShieldX, Signal, Network, Eye,
+  ChevronDown, Home, Terminal,
 } from "lucide-react";
 
 const db = supabase as any;
 
-type TabType = "overview" | "rules" | "whitelist" | "devices" | "monitor" | "analytics";
+type TabType = "overview" | "access_log" | "whitelist" | "monitor" | "analytics";
 
-interface IPRule {
-  id: string; ip_address: string; rule_type: "allow" | "block" | "monitor";
-  description?: string; is_active: boolean;
-  created_at: string; expires_at?: string; hit_count?: number;
-}
-interface IPSession {
-  id: string; ip_address?: string; user_email?: string;
-  started_at: string; last_activity?: string; is_active?: boolean;
-  user_agent?: string; location?: string;
-}
-interface AuditEntry {
-  id: string; action: string; ip_address?: string; user_email?: string;
-  created_at: string; details?: any;
+interface AccessLogEntry {
+  id: string;
+  ip_address: string;
+  user_email?: string | null;
+  user_agent?: string | null;
+  city?: string | null;
+  country?: string | null;
+  allowed: boolean;
+  reason?: string | null;
+  path?: string | null;
+  created_at?: string | null;
 }
 
-function ago(s: string) {
+interface WhitelistEntry {
+  id: string;
+  cidr: string;
+  label: string;
+  active?: boolean | null;
+  type?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+}
+
+const D = {
+  blue:    "#0078d4", blueLt:  "#deecf9",
+  bg:      "#f3f2f1", card:    "#ffffff",
+  border:  "#edebe9", borderMd:"#c8c6c4",
+  text:    "#323130", textSub: "#605e5c", textMt:  "#a19f9d",
+  success: "#107c10", successLt:"#dff6dd",
+  warn:    "#ff8c00", warnLt:  "#fff4ce",
+  danger:  "#a4262c", dangerLt:"#fde7e9",
+  teal:    "#038387", tealLt:  "#d1f2f4",
+  purple:  "#8764b8", purpleLt:"#e8d0f7",
+  shadow:  "0 1.6px 3.6px rgba(0,0,0,.132)",
+  shadowHov:"0 6.4px 14.4px rgba(0,0,0,.132)",
+  radius:  "4px",
+  font:    "'Segoe UI','Segoe UI Web','Arial',sans-serif",
+};
+
+function ago(s?: string | null): string {
   if (!s) return "—";
   const d = Date.now() - new Date(s).getTime();
   if (d < 60000) return `${Math.floor(d / 1000)}s ago`;
@@ -48,582 +67,612 @@ function ago(s: string) {
   return `${Math.floor(d / 86400000)}d ago`;
 }
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const colors: Record<string, string> = {
-    allow: "bg-emerald-100 text-emerald-700",
-    block: "bg-red-100 text-red-700",
-    monitor: "bg-amber-100 text-amber-700",
-    active: "bg-emerald-100 text-emerald-700",
-    inactive: "bg-slate-100 text-slate-600",
-    online: "bg-emerald-100 text-emerald-700",
-  };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${colors[status] || "bg-slate-100 text-slate-600"}`}>
-      {status}
-    </span>
-  );
-};
-
-function parseDeviceType(ua?: string): "desktop" | "mobile" | "tablet" {
+function parseDeviceType(ua?: string | null): "desktop" | "mobile" | "tablet" {
   if (!ua) return "desktop";
   if (ua.includes("Mobile") || ua.includes("Android")) return "mobile";
   if (ua.includes("iPad") || ua.includes("Tablet")) return "tablet";
   return "desktop";
 }
 
-function DeviceIcon({ type }: { type: string }) {
-  if (type === "mobile") return <Smartphone className="w-4 h-4" />;
-  if (type === "tablet") return <Laptop className="w-4 h-4" />;
-  return <Monitor className="w-4 h-4" />;
+function parseBrowser(ua?: string | null): string {
+  if (!ua) return "Unknown";
+  if (ua.includes("Edg")) return "Edge";
+  if (ua.includes("Chrome")) return "Chrome";
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Safari")) return "Safari";
+  return "Other";
 }
 
+function DeviceIcon({ ua }: { ua?: string | null }) {
+  const t = parseDeviceType(ua);
+  if (t === "mobile") return <Smartphone size={12} />;
+  if (t === "tablet") return <Laptop size={12} />;
+  return <Monitor size={12} />;
+}
+
+function cs(extra?: any) {
+  return { background: D.card, borderRadius: "6px", boxShadow: D.shadow, border: `1px solid ${D.border}`, ...extra };
+}
+
+const TABS: { id: TabType; label: string; I: any }[] = [
+  { id: "overview",    label: "Overview",    I: Shield    },
+  { id: "access_log",  label: "Access Log",  I: Clock     },
+  { id: "whitelist",   label: "Whitelist",   I: ShieldCheck },
+  { id: "monitor",     label: "Live Monitor",I: Terminal  },
+  { id: "analytics",   label: "Analytics",   I: Activity  },
+];
+
 export default function IpAccessPage() {
+  const { profile } = useAuth();
   const [tab, setTab] = useState<TabType>("overview");
-  const [rules, setRules] = useState<IPRule[]>([]);
-  const [sessions, setSessions] = useState<IPSession[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+  const [accessLog, setAccessLog] = useState<AccessLogEntry[]>([]);
+  const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const [liveLog, setLiveLog] = useState<string[]>([]);
-  const [showRuleDialog, setShowRuleDialog] = useState(false);
-  const [ruleIP, setRuleIP] = useState("");
-  const [ruleType, setRuleType] = useState<"allow" | "block" | "monitor">("allow");
-  const [ruleDesc, setRuleDesc] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newCidr, setNewCidr] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const [newType, setNewType] = useState("allow");
+  const [newNotes, setNewNotes] = useState("");
+  const liveRef = useRef<HTMLDivElement>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [rulesRes, sessRes, logsRes] = await Promise.allSettled([
-        db.from("ip_access_rules").select("*").order("created_at", { ascending: false }).limit(300),
-        db.from("user_sessions").select("*").order("last_activity", { ascending: false }).limit(150),
-        db.from("audit_log").select("*").order("created_at", { ascending: false }).limit(500),
+      const [logRes, wlRes] = await Promise.allSettled([
+        db.from("ip_access_log").select("*").order("created_at", { ascending: false }).limit(500),
+        db.from("network_whitelist").select("*").order("created_at", { ascending: false }).limit(200),
       ]);
-      if (rulesRes.status === "fulfilled") setRules(rulesRes.value.data || []);
-      if (sessRes.status === "fulfilled") setSessions(sessRes.value.data || []);
-      if (logsRes.status === "fulfilled") setAuditLogs(logsRes.value.data || []);
+      if (logRes.status === "fulfilled") setAccessLog(logRes.value.data || []);
+      if (wlRes.status === "fulfilled") setWhitelist(wlRes.value.data || []);
     } catch (e) { console.error("Load error:", e); }
     setLoading(false);
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Auto-refresh
+  // Auto-refresh every 20s
   useEffect(() => {
-    if (!autoRefresh) return;
     const id = setInterval(() => {
       loadAll();
-      setLiveLog(prev => [`${new Date().toLocaleTimeString()} - Data refreshed`, ...prev.slice(0, 9)]);
-    }, 15000);
+      setLiveLog(prev => [`${new Date().toLocaleTimeString("en-KE")} — Data refreshed`, ...prev.slice(0, 49)]);
+    }, 20000);
     return () => clearInterval(id);
-  }, [autoRefresh, loadAll]);
+  }, [loadAll]);
 
-  // Real-time
+  // Real-time subscriptions on actual tables
   useEffect(() => {
-    const ch = db.channel("ip_access_v2")
-      .on("postgres_changes", { event: "*", schema: "public", table: "ip_access_rules" }, () => loadAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, (payload: any) => {
-        const log = payload.new;
-        setLiveLog(prev => [`${new Date().toLocaleTimeString()} - ${log.action} - ${log.ip_address || "?"} - ${log.user_email || "system"}`, ...prev.slice(0, 49)]);
-        setAuditLogs(prev => [log, ...prev.slice(0, 499)]);
+    const ch = db.channel("ip_access_control_v3")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ip_access_log" }, (payload: any) => {
+        const row: AccessLogEntry = payload.new;
+        setAccessLog(prev => [row, ...prev.slice(0, 499)]);
+        const status = row.allowed ? "✅ ALLOWED" : "🚫 BLOCKED";
+        const loc = [row.city, row.country].filter(Boolean).join(", ") || "Unknown";
+        setLiveLog(prev => [
+          `${new Date().toLocaleTimeString("en-KE")} — ${status} ${row.ip_address} | ${row.user_email || "anonymous"} | ${loc} | ${row.path || "/"}`,
+          ...prev.slice(0, 49),
+        ]);
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "network_whitelist" }, () => loadAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [loadAll]);
 
-  async function createRule() {
-    if (!ruleIP) { toast({ title: "IP address required", variant: "destructive" }); return; }
-    const { error } = await db.from("ip_access_rules").insert({
-      ip_address: ruleIP.trim(), rule_type: ruleType,
-      description: ruleDesc || null, is_active: true, hit_count: 0,
+  // Scroll live monitor
+  useEffect(() => {
+    if (liveRef.current) liveRef.current.scrollTop = 0;
+  }, [liveLog]);
+
+  const stats = useMemo(() => ({
+    total:    accessLog.length,
+    allowed:  accessLog.filter(e => e.allowed).length,
+    blocked:  accessLog.filter(e => !e.allowed).length,
+    uniqueIPs:[...new Set(accessLog.map(e => e.ip_address))].length,
+    uniqueUsers:[...new Set(accessLog.map(e => e.user_email).filter(Boolean))].length,
+    wlActive: whitelist.filter(w => w.active !== false).length,
+    wlTotal:  whitelist.length,
+    today:    accessLog.filter(e => e.created_at && new Date(e.created_at).toDateString() === new Date().toDateString()).length,
+  }), [accessLog, whitelist]);
+
+  const ipFrequency = useMemo(() => {
+    const map: Record<string, { count: number; allowed: number; blocked: number; lastSeen?: string | null; user?: string | null; city?: string | null; country?: string | null }> = {};
+    for (const e of accessLog) {
+      if (!map[e.ip_address]) map[e.ip_address] = { count: 0, allowed: 0, blocked: 0, lastSeen: e.created_at, user: e.user_email, city: e.city, country: e.country };
+      map[e.ip_address].count++;
+      if (e.allowed) map[e.ip_address].allowed++;
+      else map[e.ip_address].blocked++;
+    }
+    return Object.entries(map).sort((a, b) => b[1].count - a[1].count);
+  }, [accessLog]);
+
+  const filteredLog = useMemo(() => {
+    if (!search) return accessLog;
+    const q = search.toLowerCase();
+    return accessLog.filter(e =>
+      e.ip_address.includes(q) ||
+      (e.user_email?.toLowerCase() || "").includes(q) ||
+      (e.city?.toLowerCase() || "").includes(q) ||
+      (e.country?.toLowerCase() || "").includes(q) ||
+      (e.reason?.toLowerCase() || "").includes(q)
+    );
+  }, [accessLog, search]);
+
+  const filteredWhitelist = useMemo(() => {
+    if (!search) return whitelist;
+    const q = search.toLowerCase();
+    return whitelist.filter(w =>
+      w.cidr.includes(q) || (w.label?.toLowerCase() || "").includes(q) || (w.notes?.toLowerCase() || "").includes(q)
+    );
+  }, [whitelist, search]);
+
+  async function addWhitelist() {
+    if (!newCidr || !newLabel) { toast({ title: "CIDR and label required", variant: "destructive" }); return; }
+    const { error } = await db.from("network_whitelist").insert({
+      cidr: newCidr.trim(), label: newLabel.trim(),
+      type: newType, notes: newNotes || null, active: true,
+      added_by: profile?.id || null,
     });
     if (error) toast({ title: "Error: " + error.message, variant: "destructive" });
     else {
-      toast({ title: `Rule created: ${ruleType.toUpperCase()} ${ruleIP}` });
-      setShowRuleDialog(false);
-      setRuleIP(""); setRuleDesc("");
+      toast({ title: `Added: ${newLabel} (${newCidr})` });
+      setShowAddDialog(false);
+      setNewCidr(""); setNewLabel(""); setNewNotes("");
       loadAll();
     }
   }
 
-  async function toggleRule(id: string, current: boolean) {
-    const { error } = await db.from("ip_access_rules").update({ is_active: !current }).eq("id", id);
-    if (!error) { toast({ title: `Rule ${!current ? "enabled" : "disabled"}` }); loadAll(); }
+  async function toggleWhitelist(id: string, current: boolean | null) {
+    const { error } = await db.from("network_whitelist").update({ active: !current, updated_by: profile?.id || null }).eq("id", id);
+    if (!error) { toast({ title: `Entry ${!current ? "enabled" : "disabled"}` }); loadAll(); }
     else toast({ title: "Error", variant: "destructive" });
   }
 
-  async function deleteRule(id: string, ip: string) {
-    if (!window.confirm(`Delete rule for ${ip}?`)) return;
-    const { error } = await db.from("ip_access_rules").delete().eq("id", id);
-    if (!error) { toast({ title: "Rule deleted" }); loadAll(); }
+  async function deleteWhitelist(id: string, label: string) {
+    if (!window.confirm(`Remove "${label}" from whitelist?`)) return;
+    const { error } = await db.from("network_whitelist").delete().eq("id", id);
+    if (!error) { toast({ title: "Entry removed" }); loadAll(); }
     else toast({ title: "Error", variant: "destructive" });
   }
 
-  async function quickBlock(ip: string) {
-    if (!window.confirm(`Block IP ${ip}?`)) return;
-    const { error } = await db.from("ip_access_rules").upsert({
-      ip_address: ip, rule_type: "block", is_active: true,
-      description: `Blocked via IP Monitor ${new Date().toLocaleDateString("en-KE")}`, hit_count: 0,
-    }, { onConflict: "ip_address" });
-    if (!error) { toast({ title: `${ip} blocked` }); loadAll(); }
-    else toast({ title: "Error", variant: "destructive" });
-  }
-
-  function exportRules() {
-    const rows = ["IP Address,Rule Type,Description,Active,Hit Count,Created",
-      ...filteredRules.map(r => `"${r.ip_address}","${r.rule_type}","${r.description || ""}",${r.is_active},${r.hit_count || 0},"${r.created_at}"`)
+  function exportLog() {
+    const rows = ["IP,User,City,Country,Status,Path,Time",
+      ...filteredLog.map(e => `"${e.ip_address}","${e.user_email || ""}","${e.city || ""}","${e.country || ""}","${e.allowed ? "ALLOWED" : "BLOCKED"}","${e.path || ""}","${e.created_at || ""}"`)
     ];
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "ip_access_rules.csv";
+    const a = document.createElement("a"); a.href = url; a.download = "ip_access_log.csv";
     a.click(); URL.revokeObjectURL(url);
     toast({ title: "Exported to CSV" });
   }
 
-  const filteredRules = useMemo(() => {
-    if (!search) return rules;
-    return rules.filter(r => 
-      r.ip_address.includes(search) || 
-      (r.description?.toLowerCase() || "").includes(search.toLowerCase())
-    );
-  }, [rules, search]);
-
-  const stats = useMemo(() => ({
-    totalRules: rules.length,
-    allowRules: rules.filter(r => r.rule_type === "allow" && r.is_active).length,
-    blockRules: rules.filter(r => r.rule_type === "block" && r.is_active).length,
-    monitorRules: rules.filter(r => r.rule_type === "monitor" && r.is_active).length,
-    activeSessions: sessions.filter(s => s.is_active).length,
-    totalAuditEvents: auditLogs.length,
-    uniqueIPs: [...new Set(auditLogs.map(l => l.ip_address).filter(Boolean))].length,
-  }), [rules, sessions, auditLogs]);
-
-  const TABS = [
-    { key: "overview", label: "Overview", icon: BarChart3 },
-    { key: "rules", label: "IP Rules", icon: Shield },
-    { key: "whitelist", label: "Whitelist", icon: Lock },
-    { key: "devices", label: "Devices", icon: Monitor },
-    { key: "monitor", label: "Live Monitor", icon: Activity },
-    { key: "analytics", label: "Analytics", icon: Globe },
-  ];
-
   return (
-    <div className="min-h-screen" style={{ backgroundImage: `url(${procurementBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900/95 via-sky-900/90 to-indigo-900/95">
-        {/* Header */}
-        <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                  <Shield className="w-6 h-6 text-sky-600" />
-                  IP Access Control Center
-                </h1>
-                <p className="text-sm text-slate-500 mt-1">
-                  Security management · IP whitelist · Live monitoring
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
-                  {autoRefresh ? <Zap className="w-4 h-4 text-emerald-600" /> : <Zap className="w-4 h-4" />}
-                  {autoRefresh ? "Live ON" : "Live OFF"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
-                  <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                </Button>
-                <Button variant="outline" size="sm" onClick={exportRules}>
-                  <Download className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+    <div style={{ background: D.bg, minHeight: "100vh", fontFamily: D.font, color: D.text }}>
+      <div style={{ background: D.blue, height: 4 }} />
 
-            {/* Tabs */}
-            <div className="flex gap-1 overflow-x-auto pb-1">
-              {TABS.map((t) => (
-                <button key={t.key} onClick={() => setTab(t.key as TabType)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                    tab === t.key ? "bg-sky-600 text-white shadow-md" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                  }`}>
-                  <t.icon className="w-4 h-4" />
-                  {t.label}
-                </button>
-              ))}
-            </div>
+      {/* Breadcrumb */}
+      <div style={{ background: D.card, borderBottom: `1px solid ${D.border}`, padding: "5px 24px", display: "flex", alignItems: "center", gap: 6 }}>
+        <Home size={11} color={D.textMt} />
+        <span style={{ fontSize: 11, color: D.textMt }}>Admin</span>
+        <ChevronRight size={9} color={D.textMt} />
+        <span style={{ fontSize: 11, color: D.blue, fontWeight: 600 }}>IP Access Control</span>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 10, color: liveLog.length > 0 ? D.success : D.textMt }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: liveLog.length > 0 ? D.success : D.textMt, display: "inline-block", marginRight: 4, animation: liveLog.length > 0 ? "pulse 2s infinite" : "none" }} />
+            {liveLog.length > 0 ? "Live" : "Idle"}
+          </span>
+        </div>
+      </div>
+
+      {/* Header bar */}
+      <div style={{ background: D.card, borderBottom: `1px solid ${D.border}`, padding: "7px 20px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 10 }}>
+          <div style={{ width: 30, height: 30, borderRadius: D.radius, background: D.danger, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Shield size={15} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: D.text }}>IP Access Control</div>
+            <div style={{ fontSize: 10, color: D.textMt }}>Network whitelist · Access logs · Real-time monitor</div>
           </div>
         </div>
+        <div style={{ width: 1, height: 26, background: D.border }} />
+        <button onClick={() => setShowAddDialog(true)}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", background: D.blue, color: "#fff", border: "none", borderRadius: D.radius, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          <Plus size={12} /> Add to Whitelist
+        </button>
+        <button onClick={exportLog}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "transparent", border: `1px solid ${D.borderMd}`, borderRadius: D.radius, fontSize: 12, cursor: "pointer", color: D.text }}>
+          <Download size={11} /> Export
+        </button>
+        <button onClick={loadAll} disabled={loading}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "transparent", border: `1px solid ${D.borderMd}`, borderRadius: D.radius, fontSize: 12, cursor: "pointer", color: D.text }}>
+          <RefreshCw size={11} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} /> Refresh
+        </button>
+        <div style={{ flex: 1 }} />
+        <div style={{ position: "relative" }}>
+          <Search size={11} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: D.textMt, pointerEvents: "none" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search IPs, users, locations…"
+            style={{ padding: "5px 8px 5px 24px", border: `1px solid ${D.borderMd}`, borderRadius: D.radius, fontSize: 12, outline: "none", width: 210, fontFamily: D.font }} />
+          {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 5, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: D.textMt, lineHeight: 1 }}>×</button>}
+        </div>
+      </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          {/* Live Activity */}
-          {autoRefresh && (
-            <Card className="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 border-emerald-500/30">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-emerald-300 text-sm font-medium">LIVE</span>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="text-xs text-emerald-200/70 truncate">{liveLog[0] || "Waiting for events..."}</div>
+      {/* Tabs */}
+      <div style={{ background: D.card, borderBottom: `1px solid ${D.border}`, padding: "0 20px", display: "flex", gap: 0 }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", background: "transparent", border: "none", borderBottom: tab === t.id ? `2px solid ${D.blue}` : "2px solid transparent", color: tab === t.id ? D.blue : D.textSub, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .1s" }}>
+            <t.I size={12} />{t.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: "14px 20px 24px" }}>
+
+        {/* OVERVIEW */}
+        {tab === "overview" && (
+          <div>
+            {/* KPI row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 8, marginBottom: 14 }}>
+              {[
+                { label: "Total Events",   val: stats.total,        color: D.blue,    bg: "#deecf9", I: Clock   },
+                { label: "Allowed",        val: stats.allowed,      color: D.success, bg: D.successLt, I: CheckCircle },
+                { label: "Blocked",        val: stats.blocked,      color: D.danger,  bg: D.dangerLt, I: XCircle },
+                { label: "Unique IPs",     val: stats.uniqueIPs,    color: D.teal,    bg: D.tealLt,   I: Globe   },
+                { label: "Unique Users",   val: stats.uniqueUsers,  color: D.purple,  bg: D.purpleLt, I: Users   },
+                { label: "Today",          val: stats.today,        color: D.warn,    bg: D.warnLt,   I: Signal  },
+                { label: "Whitelist",      val: stats.wlActive,     color: D.success, bg: D.successLt,I: ShieldCheck },
+              ].map(k => (
+                <div key={k.label} style={{ ...cs(), padding: "12px 14px", borderTop: `3px solid ${k.color}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: D.radius, background: k.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <k.I size={11} color={k.color} />
+                    </div>
                   </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: k.color, lineHeight: 1, marginBottom: 4 }}>
+                    {loading ? "—" : k.val}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: D.text, textTransform: "uppercase", letterSpacing: ".04em" }}>{k.label}</div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ))}
+            </div>
 
-          {/* Overview */}
-          {tab === "overview" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Top IPs table */}
+            <div style={cs()}>
+              <div style={{ padding: "11px 16px", borderBottom: `1px solid ${D.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>Top IP Addresses</span>
+                <span style={{ fontSize: 11, color: D.textMt }}>{ipFrequency.length} unique IPs</span>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: D.bg }}>
+                      {["IP Address", "Total", "Allowed", "Blocked", "Block%", "Location", "User", "Last Seen"].map(h => (
+                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: D.textSub, fontSize: 11, whiteSpace: "nowrap", borderBottom: `1px solid ${D.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ipFrequency.slice(0, 20).map(([ip, d]) => {
+                      const blockPct = d.count > 0 ? Math.round((d.blocked / d.count) * 100) : 0;
+                      return (
+                        <tr key={ip} style={{ borderBottom: `1px solid ${D.border}` }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = D.bg; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}>
+                          <td style={{ padding: "8px 12px", fontFamily: "monospace", fontWeight: 600, color: D.blue }}>{ip}</td>
+                          <td style={{ padding: "8px 12px", fontWeight: 700 }}>{d.count}</td>
+                          <td style={{ padding: "8px 12px", color: D.success, fontWeight: 600 }}>{d.allowed}</td>
+                          <td style={{ padding: "8px 12px", color: d.blocked > 0 ? D.danger : D.textMt, fontWeight: d.blocked > 0 ? 700 : 400 }}>{d.blocked}</td>
+                          <td style={{ padding: "8px 12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ width: 50, height: 4, background: D.border, borderRadius: 99 }}>
+                                <div style={{ width: `${blockPct}%`, height: 4, background: blockPct > 50 ? D.danger : blockPct > 20 ? D.warn : D.success, borderRadius: 99 }} />
+                              </div>
+                              <span style={{ fontSize: 10, color: blockPct > 50 ? D.danger : D.textMt }}>{blockPct}%</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "8px 12px", color: D.textSub, fontSize: 11 }}>{[d.city, d.country].filter(Boolean).join(", ") || "—"}</td>
+                          <td style={{ padding: "8px 12px", color: D.textMt, fontSize: 11, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.user || "—"}</td>
+                          <td style={{ padding: "8px 12px", color: D.textMt, fontSize: 11, whiteSpace: "nowrap" }}>{ago(d.lastSeen)}</td>
+                        </tr>
+                      );
+                    })}
+                    {ipFrequency.length === 0 && (
+                      <tr><td colSpan={8} style={{ padding: "24px", textAlign: "center", color: D.textMt }}>No access log data yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ACCESS LOG */}
+        {tab === "access_log" && (
+          <div style={cs()}>
+            <div style={{ padding: "11px 16px", borderBottom: `1px solid ${D.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>Access Log</span>
+              <span style={{ fontSize: 11, color: D.textMt }}>{filteredLog.length.toLocaleString()} entries</span>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: D.bg }}>
+                    {["Status", "IP Address", "User", "City", "Country", "Browser", "Path", "Reason", "Time"].map(h => (
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: D.textSub, fontSize: 11, whiteSpace: "nowrap", borderBottom: `1px solid ${D.border}` }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLog.slice(0, 200).map(e => (
+                    <tr key={e.id} style={{ borderBottom: `1px solid ${D.border}` }}
+                      onMouseEnter={ev => { (ev.currentTarget as HTMLElement).style.background = D.bg; }}
+                      onMouseLeave={ev => { (ev.currentTarget as HTMLElement).style.background = ""; }}>
+                      <td style={{ padding: "7px 12px" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 7px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: e.allowed ? D.successLt : D.dangerLt, color: e.allowed ? D.success : D.danger }}>
+                          {e.allowed ? <CheckCircle size={9} /> : <XCircle size={9} />}
+                          {e.allowed ? "ALLOWED" : "BLOCKED"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "7px 12px", fontFamily: "monospace", color: D.blue, fontWeight: 600 }}>{e.ip_address}</td>
+                      <td style={{ padding: "7px 12px", color: D.text, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.user_email || <span style={{ color: D.textMt }}>anonymous</span>}</td>
+                      <td style={{ padding: "7px 12px", color: D.textSub }}>{e.city || "—"}</td>
+                      <td style={{ padding: "7px 12px", color: D.textSub }}>{e.country || "—"}</td>
+                      <td style={{ padding: "7px 12px", color: D.textMt }}><div style={{ display: "flex", alignItems: "center", gap: 4 }}><DeviceIcon ua={e.user_agent} /> {parseBrowser(e.user_agent)}</div></td>
+                      <td style={{ padding: "7px 12px", color: D.textMt, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 11 }}>{e.path || "/"}</td>
+                      <td style={{ padding: "7px 12px", color: D.textMt, fontSize: 11, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.reason || "—"}</td>
+                      <td style={{ padding: "7px 12px", color: D.textMt, whiteSpace: "nowrap", fontSize: 11 }}>{ago(e.created_at)}</td>
+                    </tr>
+                  ))}
+                  {filteredLog.length === 0 && (
+                    <tr><td colSpan={9} style={{ padding: "32px", textAlign: "center", color: D.textMt }}>No entries match your search</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {filteredLog.length > 200 && (
+              <div style={{ padding: "10px 16px", textAlign: "center", color: D.textMt, fontSize: 11, borderTop: `1px solid ${D.border}` }}>
+                Showing 200 of {filteredLog.length} entries — export CSV for full data
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* WHITELIST */}
+        {tab === "whitelist" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+              <button onClick={() => setShowAddDialog(true)}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", background: D.blue, color: "#fff", border: "none", borderRadius: D.radius, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <Plus size={12} /> Add Network
+              </button>
+            </div>
+            <div style={cs()}>
+              <div style={{ padding: "11px 16px", borderBottom: `1px solid ${D.border}` }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>Network Whitelist</span>
+                <span style={{ fontSize: 11, color: D.textMt, marginLeft: 8 }}>{filteredWhitelist.length} entries · {stats.wlActive} active</span>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: D.bg }}>
+                      {["Status", "CIDR / IP", "Label", "Type", "Notes", "Added", "Actions"].map(h => (
+                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: D.textSub, fontSize: 11, whiteSpace: "nowrap", borderBottom: `1px solid ${D.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredWhitelist.map(w => (
+                      <tr key={w.id} style={{ borderBottom: `1px solid ${D.border}`, opacity: w.active === false ? 0.5 : 1 }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = D.bg; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}>
+                        <td style={{ padding: "8px 12px" }}>
+                          <span style={{ padding: "2px 7px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: w.active !== false ? D.successLt : "#f0f0f0", color: w.active !== false ? D.success : D.textMt }}>
+                            {w.active !== false ? "Active" : "Disabled"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "8px 12px", fontFamily: "monospace", fontWeight: 600, color: D.blue }}>{w.cidr}</td>
+                        <td style={{ padding: "8px 12px", fontWeight: 600, color: D.text }}>{w.label}</td>
+                        <td style={{ padding: "8px 12px" }}>
+                          <span style={{ padding: "2px 7px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: w.type === "block" ? D.dangerLt : D.successLt, color: w.type === "block" ? D.danger : D.success }}>
+                            {w.type || "allow"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "8px 12px", color: D.textMt, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.notes || "—"}</td>
+                        <td style={{ padding: "8px 12px", color: D.textMt, whiteSpace: "nowrap", fontSize: 11 }}>{ago(w.created_at)}</td>
+                        <td style={{ padding: "8px 12px" }}>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button onClick={() => toggleWhitelist(w.id, w.active !== false)}
+                              style={{ padding: "3px 8px", fontSize: 11, border: `1px solid ${D.borderMd}`, borderRadius: D.radius, cursor: "pointer", background: "transparent", color: D.text }}>
+                              {w.active !== false ? <><Unlock size={10} /> Disable</> : <><Lock size={10} /> Enable</>}
+                            </button>
+                            <button onClick={() => deleteWhitelist(w.id, w.label)}
+                              style={{ padding: "3px 7px", fontSize: 11, border: `1px solid ${D.dangerLt}`, borderRadius: D.radius, cursor: "pointer", background: D.dangerLt, color: D.danger }}>
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredWhitelist.length === 0 && (
+                      <tr><td colSpan={7} style={{ padding: "32px", textAlign: "center", color: D.textMt }}>
+                        No whitelist entries. <button onClick={() => setShowAddDialog(true)} style={{ color: D.blue, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>Add one</button>
+                      </td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LIVE MONITOR */}
+        {tab === "monitor" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 12 }}>
+            <div style={cs()}>
+              <div style={{ padding: "11px 16px", borderBottom: `1px solid ${D.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: D.text, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: D.success, display: "inline-block", animation: "pulse 2s infinite" }} />
+                  Live Terminal
+                </span>
+                <button onClick={() => setLiveLog([])} style={{ fontSize: 11, color: D.textMt, background: "none", border: "none", cursor: "pointer" }}>Clear</button>
+              </div>
+              <div ref={liveRef} style={{ background: "#0d1117", minHeight: 400, maxHeight: 600, overflowY: "auto", padding: "14px 16px", fontFamily: "monospace", fontSize: 12 }}>
+                {liveLog.length === 0 ? (
+                  <div style={{ color: "#58a6ff" }}>
+                    <div>$ Waiting for real-time events…</div>
+                    <div style={{ color: "#3fb950", marginTop: 8 }}>▶ Connected to ip_access_log · network_whitelist</div>
+                    <div style={{ color: "#e3b341", marginTop: 4 }}>ℹ New access events will appear here instantly</div>
+                  </div>
+                ) : liveLog.map((line, i) => (
+                  <div key={i} style={{ color: line.includes("BLOCKED") ? "#f85149" : line.includes("ALLOWED") ? "#3fb950" : line.includes("refreshed") ? "#58a6ff" : "#c9d1d9", marginBottom: 3, borderBottom: "1px solid #21262d", paddingBottom: 3 }}>
+                    {line}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={cs({ padding: "14px" })}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: D.textSub, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Live Statistics</div>
                 {[
-                  { label: "Total Rules", value: stats.totalRules, icon: Shield, color: "text-sky-400", bg: "bg-sky-900/50" },
-                  { label: "Allow Rules", value: stats.allowRules, icon: ShieldCheck, color: "text-emerald-400", bg: "bg-emerald-900/50" },
-                  { label: "Block Rules", value: stats.blockRules, icon: ShieldX, color: "text-red-400", bg: "bg-red-900/50" },
-                  { label: "Active Sessions", value: stats.activeSessions, icon: Wifi, color: "text-amber-400", bg: "bg-amber-900/50" },
-                ].map((kpi, i) => (
-                  <Card key={i} className="bg-white/10 backdrop-blur border-white/20">
-                    <CardContent className="p-5">
-                      <div className={`p-2.5 rounded-xl ${kpi.bg} w-fit mb-3`}><kpi.icon className={`w-5 h-5 ${kpi.color}`} /></div>
-                      <div className="text-3xl font-bold text-white">{kpi.value}</div>
-                      <div className="text-sm text-slate-400 mt-1">{kpi.label}</div>
-                    </CardContent>
-                  </Card>
+                  { l: "Events Today",    v: stats.today,      c: D.blue    },
+                  { l: "Allowed Today",   v: accessLog.filter(e => e.allowed && e.created_at && new Date(e.created_at).toDateString() === new Date().toDateString()).length, c: D.success },
+                  { l: "Blocked Today",   v: accessLog.filter(e => !e.allowed && e.created_at && new Date(e.created_at).toDateString() === new Date().toDateString()).length, c: D.danger },
+                  { l: "Unique IPs",      v: stats.uniqueIPs,  c: D.teal    },
+                  { l: "Active Users",    v: stats.uniqueUsers,c: D.purple  },
+                ].map(s => (
+                  <div key={s.l} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${D.border}` }}>
+                    <span style={{ fontSize: 12, color: D.textSub }}>{s.l}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: s.c }}>{s.v}</span>
+                  </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-white/10 backdrop-blur border-white/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" /> Allowed IPs
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {rules.filter(r => r.rule_type === "allow" && r.is_active).slice(0, 5).map(r => (
-                        <div key={r.id} className="flex items-center justify-between p-2 bg-emerald-900/30 rounded-lg">
-                          <span className="font-mono text-emerald-300 text-sm">{r.ip_address}</span>
-                          <StatusBadge status="allow" />
-                        </div>
-                      ))}
-                      {rules.filter(r => r.rule_type === "allow" && r.is_active).length === 0 && (
-                        <div className="text-slate-500 text-sm">No allow rules</div>
-                      )}
+              <div style={cs({ padding: "14px" })}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: D.textSub, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Recent Events</div>
+                {accessLog.slice(0, 10).map(e => (
+                  <div key={e.id} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${D.border}`, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 10, color: e.allowed ? D.success : D.danger, fontWeight: 700, flexShrink: 0 }}>{e.allowed ? "✅" : "🚫"}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontFamily: "monospace", color: D.blue, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.ip_address}</div>
+                      <div style={{ fontSize: 10, color: D.textMt, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.user_email || "anonymous"}</div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/10 backdrop-blur border-white/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                      <ShieldX className="w-4 h-4 text-red-400" /> Blocked IPs
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {rules.filter(r => r.rule_type === "block" && r.is_active).slice(0, 5).map(r => (
-                        <div key={r.id} className="flex items-center justify-between p-2 bg-red-900/30 rounded-lg">
-                          <span className="font-mono text-red-300 text-sm">{r.ip_address}</span>
-                          <StatusBadge status="block" />
-                        </div>
-                      ))}
-                      {rules.filter(r => r.rule_type === "block" && r.is_active).length === 0 && (
-                        <div className="text-slate-500 text-sm">No blocked IPs</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/10 backdrop-blur border-white/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-amber-400" /> Live Stats
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between"><span className="text-slate-400">Unique IPs</span><span className="text-white font-bold">{stats.uniqueIPs}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Total Events</span><span className="text-white font-bold">{stats.totalAuditEvents}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Active Sessions</span><span className="text-emerald-400 font-bold">{stats.activeSessions}</span></div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <span style={{ fontSize: 10, color: D.textMt, flexShrink: 0 }}>{ago(e.created_at)}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Rules Tab */}
-          {tab === "rules" && (
-            <div className="space-y-4">
-              <Card className="bg-white/10 backdrop-blur border-white/20">
-                <CardContent className="p-4">
-                  <div className="flex gap-3 flex-wrap">
-                    <div className="flex-1 min-w-[200px]">
-                      <Input placeholder="Search IP rules..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-white/10 text-white border-white/20" />
+        {/* ANALYTICS */}
+        {tab === "analytics" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {/* Country breakdown */}
+            <div style={cs()}>
+              <div style={{ padding: "11px 16px", borderBottom: `1px solid ${D.border}` }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>Traffic by Country</span>
+              </div>
+              <div style={{ padding: "12px 16px" }}>
+                {(() => {
+                  const countryMap: Record<string, number> = {};
+                  for (const e of accessLog) { const k = e.country || "Unknown"; countryMap[k] = (countryMap[k] || 0) + 1; }
+                  const sorted = Object.entries(countryMap).sort((a, b) => b[1] - a[1]);
+                  const total = accessLog.length || 1;
+                  return sorted.slice(0, 10).map(([country, count]) => (
+                    <div key={country} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+                        <span style={{ color: D.text, fontWeight: 500 }}>{country}</span>
+                        <span style={{ color: D.textMt, fontSize: 11 }}>{count} ({Math.round(count / total * 100)}%)</span>
+                      </div>
+                      <div style={{ height: 4, background: D.border, borderRadius: 99 }}>
+                        <div style={{ height: 4, background: D.blue, borderRadius: 99, width: `${(count / total) * 100}%` }} />
+                      </div>
                     </div>
-                    <Button size="sm" onClick={() => setShowRuleDialog(true)}>
-                      <Plus className="w-4 h-4 mr-1" /> Add Rule
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur border-white/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> IP Rules ({filteredRules.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-white/5">
-                    {filteredRules.map((rule) => (
-                      <div key={rule.id} className="p-4 hover:bg-white/5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className={`p-2 rounded-lg ${rule.rule_type === "allow" ? "bg-emerald-900/50" : rule.rule_type === "block" ? "bg-red-900/50" : "bg-amber-900/50"}`}>
-                              {rule.rule_type === "allow" ? <ShieldCheck className="w-5 h-5 text-emerald-400" /> :
-                               rule.rule_type === "block" ? <ShieldX className="w-5 h-5 text-red-400" /> :
-                               <ShieldAlert className="w-5 h-5 text-amber-400" />}
-                            </div>
-                            <div>
-                              <div className="font-mono font-bold text-white">{rule.ip_address}</div>
-                              <div className="text-xs text-slate-400">{rule.description || "No description"}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <StatusBadge status={rule.is_active ? rule.rule_type : "inactive"} />
-                            <span className="text-xs text-slate-500">{rule.hit_count || 0} hits</span>
-                            <Button size="sm" variant="ghost" onClick={() => toggleRule(rule.id, rule.is_active)}>
-                              {rule.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-red-400" onClick={() => deleteRule(rule.id, rule.ip_address)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {filteredRules.length === 0 && (
-                      <div className="text-center py-12 text-slate-400"><Shield className="w-12 h-12 mx-auto mb-3 opacity-50" />No IP rules found</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                  ));
+                })()}
+                {accessLog.length === 0 && <div style={{ color: D.textMt, fontSize: 12, textAlign: "center", padding: "20px 0" }}>No data yet</div>}
+              </div>
             </div>
-          )}
 
-          {/* Whitelist Tab */}
-          {tab === "whitelist" && (
-            <Card className="bg-white/10 backdrop-blur border-white/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                  <Lock className="w-4 h-4" /> IP Whitelist ({rules.filter(r => r.rule_type === "allow" && r.is_active).length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-white/5">
-                  {rules.filter(r => r.rule_type === "allow" && r.is_active).map((rule) => (
-                    <div key={rule.id} className="p-4 hover:bg-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-900/50 rounded-lg"><Lock className="w-4 h-4 text-emerald-400" /></div>
-                        <div>
-                          <div className="font-mono font-bold text-white">{rule.ip_address}</div>
-                          <div className="text-xs text-slate-400">{rule.description || "Whitelisted"}</div>
-                        </div>
+            {/* Block/allow ratio by day */}
+            <div style={cs()}>
+              <div style={{ padding: "11px 16px", borderBottom: `1px solid ${D.border}` }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>Daily Access Summary</span>
+              </div>
+              <div style={{ padding: "12px 16px" }}>
+                {(() => {
+                  const dayMap: Record<string, { allowed: number; blocked: number }> = {};
+                  for (const e of accessLog) {
+                    if (!e.created_at) continue;
+                    const day = new Date(e.created_at).toLocaleDateString("en-KE", { day: "2-digit", month: "short" });
+                    if (!dayMap[day]) dayMap[day] = { allowed: 0, blocked: 0 };
+                    if (e.allowed) dayMap[day].allowed++;
+                    else dayMap[day].blocked++;
+                  }
+                  return Object.entries(dayMap).slice(0, 7).map(([day, d]) => (
+                    <div key={day} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+                        <span style={{ color: D.text, fontWeight: 500 }}>{day}</span>
+                        <span style={{ fontSize: 11 }}>
+                          <span style={{ color: D.success }}>{d.allowed} allowed</span>
+                          {d.blocked > 0 && <span style={{ color: D.danger, marginLeft: 8 }}>{d.blocked} blocked</span>}
+                        </span>
                       </div>
-                      <Button size="sm" variant="ghost" className="text-red-400" onClick={() => deleteRule(rule.id, rule.ip_address)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div style={{ display: "flex", height: 5, borderRadius: 99, overflow: "hidden", background: D.border }}>
+                        <div style={{ height: 5, background: D.success, width: `${(d.allowed / (d.allowed + d.blocked)) * 100}%` }} />
+                        <div style={{ height: 5, background: D.danger, width: `${(d.blocked / (d.allowed + d.blocked)) * 100}%` }} />
+                      </div>
                     </div>
-                  ))}
-                  {rules.filter(r => r.rule_type === "allow" && r.is_active).length === 0 && (
-                    <div className="text-center py-12 text-slate-400"><Lock className="w-12 h-12 mx-auto mb-3 opacity-50" />No whitelisted IPs</div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Devices Tab */}
-          {tab === "devices" && (
-            <Card className="bg-white/10 backdrop-blur border-white/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                  <Monitor className="w-4 h-4" /> Connected Devices ({sessions.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="bg-slate-800/50 border-b border-white/10">
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-400">Device</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-400">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-400">IP</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-400">Location</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-400">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-400">Last Active</th>
-                    </tr></thead>
-                    <tbody className="divide-y divide-white/5">
-                      {sessions.slice(0, 100).map((s) => (
-                        <tr key={s.id} className="hover:bg-white/5">
-                          <td className="px-4 py-3"><div className="flex items-center gap-2"><DeviceIcon type={parseDeviceType(s.user_agent)} /><span className="text-white">{parseDeviceType(s.user_agent)}</span></div></td>
-                          <td className="px-4 py-3 text-slate-300">{s.user_email || "—"}</td>
-                          <td className="px-4 py-3 font-mono text-sky-400">{s.ip_address || "—"}</td>
-                          <td className="px-4 py-3 text-slate-400 text-xs">{s.location || "Kenya"}</td>
-                          <td className="px-4 py-3 text-center"><StatusBadge status={s.is_active ? "online" : "inactive"} /></td>
-                          <td className="px-4 py-3 text-slate-400 text-xs">{s.last_activity ? ago(s.last_activity) : "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Monitor Tab */}
-          {tab === "monitor" && (
-            <div className="space-y-4">
-              <Card className="bg-slate-950 border-slate-700">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm text-emerald-400 flex items-center gap-2">
-                      <Activity className="w-4 h-4" /> Live Activity Feed
-                    </CardTitle>
-                    <span className="text-xs text-slate-500">{liveLog.length} events</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="font-mono text-xs space-y-1 max-h-96 overflow-y-auto">
-                    {liveLog.map((line, i) => (
-                      <div key={i} className={`p-2 rounded ${i === 0 ? "bg-emerald-900/30 text-emerald-300" : "text-slate-400"}`}>
-                        <span className="text-slate-600 mr-2">{">"}</span>{line}
-                      </div>
-                    ))}
-                    {liveLog.length === 0 && <div className="text-slate-600 text-center py-8">Waiting for events...</div>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur border-white/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-                    <Clock className="w-4 h-4" /> Recent Audit Events ({auditLogs.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-white/5">
-                    {auditLogs.slice(0, 50).map((log) => (
-                      <div key={log.id} className="p-4 hover:bg-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${log.action?.includes("fail") || log.action?.includes("denied") ? "bg-red-900/50" : log.action === "login" ? "bg-emerald-900/50" : "bg-slate-800/50"}`}>
-                            {log.action?.includes("fail") || log.action?.includes("denied") ? <XCircle className="w-4 h-4 text-red-400" /> :
-                             log.action === "login" ? <CheckCircle className="w-4 h-4 text-emerald-400" /> :
-                             <Activity className="w-4 h-4 text-sky-400" />}
-                          </div>
-                          <div>
-                            <div className="text-sm text-white">{log.action}</div>
-                            <div className="text-xs text-slate-400">{log.user_email || "system"}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-sm text-sky-400">{log.ip_address || "—"}</span>
-                          <span className="text-xs text-slate-500">{ago(log.created_at)}</span>
-                          {log.ip_address && <Button size="sm" variant="ghost" className="text-red-400" onClick={() => quickBlock(log.ip_address)}><Ban className="w-4 h-4" /></Button>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Analytics Tab */}
-          {tab === "analytics" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-white/10 backdrop-blur border-white/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-slate-200">IP Activity Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { label: "Total Events", value: auditLogs.length, color: "text-sky-400" },
-                      { label: "Unique IPs", value: stats.uniqueIPs, color: "text-violet-400" },
-                      { label: "Login Events", value: auditLogs.filter(l => l.action === "login").length, color: "text-emerald-400" },
-                      { label: "Failed Attempts", value: auditLogs.filter(l => l.action?.includes("fail")).length, color: "text-red-400" },
-                    ].map((stat) => (
-                      <div key={stat.label} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                        <span className="text-slate-400">{stat.label}</span>
-                        <span className={`font-bold ${stat.color}`}>{stat.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur border-white/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-slate-200">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="bg-emerald-900/30 border-emerald-500/30 text-emerald-300" onClick={() => { setRuleType("allow"); setShowRuleDialog(true); }}>
-                      <ShieldCheck className="w-4 h-4 mr-2" /> Add Allow Rule
-                    </Button>
-                    <Button variant="outline" className="bg-red-900/30 border-red-500/30 text-red-300" onClick={() => { setRuleType("block"); setShowRuleDialog(true); }}>
-                      <ShieldX className="w-4 h-4 mr-2" /> Add Block Rule
-                    </Button>
-                    <Button variant="outline" className="bg-amber-900/30 border-amber-500/30 text-amber-300" onClick={() => { setRuleType("monitor"); setShowRuleDialog(true); }}>
-                      <ShieldAlert className="w-4 h-4 mr-2" /> Add Monitor Rule
-                    </Button>
-                    <Button variant="outline" className="bg-white/10" onClick={exportRules}>
-                      <Download className="w-4 h-4 mr-2" /> Export CSV
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {/* Rule Dialog */}
-        <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
-          <DialogContent className="bg-slate-900 border-white/20">
-            <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <Shield className="w-5 h-5 text-sky-400" />
-                Create IP Rule
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">IP Address</label>
-                <Input placeholder="e.g., 192.168.1.100" value={ruleIP} onChange={(e) => setRuleIP(e.target.value)} className="bg-white/10 text-white border-white/20" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Rule Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["allow", "block", "monitor"] as const).map(type => (
-                    <button key={type} onClick={() => setRuleType(type)}
-                      className={`p-3 rounded-lg border-2 transition-all ${ruleType === type ? 
-                        (type === "allow" ? "border-emerald-500 bg-emerald-900/50" : type === "block" ? "border-red-500 bg-red-900/50" : "border-amber-500 bg-amber-900/50") :
-                        "border-white/20 bg-white/5"}`}>
-                      <div className={`text-sm font-medium ${ruleType === type ? "text-white" : "text-slate-400"}`}>{type.toUpperCase()}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Description (optional)</label>
-                <Input placeholder="e.g., Office network" value={ruleDesc} onChange={(e) => setRuleDesc(e.target.value)} className="bg-white/10 text-white border-white/20" />
+                  ));
+                })()}
+                {accessLog.length === 0 && <div style={{ color: D.textMt, fontSize: 12, textAlign: "center", padding: "20px 0" }}>No data yet</div>}
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowRuleDialog(false)}>Cancel</Button>
-              <Button onClick={createRule}>Create Rule</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </div>
+
+      {/* Add Whitelist Dialog */}
+      {showAddDialog && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: D.card, borderRadius: "8px", boxShadow: "0 24px 48px rgba(0,0,0,.25)", width: 400, padding: 24 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: D.text, marginBottom: 16 }}>Add to Network Whitelist</div>
+            {[
+              { label: "CIDR / IP Address *", val: newCidr, set: setNewCidr, ph: "e.g. 192.168.1.0/24 or 10.0.0.1" },
+              { label: "Label *",             val: newLabel, set: setNewLabel, ph: "e.g. Hospital LAN" },
+              { label: "Notes",               val: newNotes, set: setNewNotes, ph: "Optional notes" },
+            ].map(f => (
+              <div key={f.label} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: D.textSub, marginBottom: 4 }}>{f.label}</div>
+                <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.ph}
+                  style={{ width: "100%", padding: "7px 10px", border: `1px solid ${D.borderMd}`, borderRadius: D.radius, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: D.font }} />
+              </div>
+            ))}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: D.textSub, marginBottom: 4 }}>Type</div>
+              <select value={newType} onChange={e => setNewType(e.target.value)}
+                style={{ width: "100%", padding: "7px 10px", border: `1px solid ${D.borderMd}`, borderRadius: D.radius, fontSize: 13, outline: "none", fontFamily: D.font }}>
+                <option value="allow">Allow</option>
+                <option value="block">Block</option>
+                <option value="monitor">Monitor</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => { setShowAddDialog(false); setNewCidr(""); setNewLabel(""); setNewNotes(""); }}
+                style={{ padding: "7px 14px", border: `1px solid ${D.borderMd}`, borderRadius: D.radius, fontSize: 12, cursor: "pointer", background: "transparent", color: D.text }}>Cancel</button>
+              <button onClick={addWhitelist}
+                style={{ padding: "7px 14px", background: D.blue, color: "#fff", border: "none", borderRadius: D.radius, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add Entry</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+        @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.4 } }
+      `}</style>
     </div>
   );
 }
