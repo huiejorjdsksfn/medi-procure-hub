@@ -313,16 +313,15 @@ export default function SMSPage() {
         </div>
       </div>
 
-      {/* Twilio error banner */}
+      {/* Twilio status - subtle */}
       {twilioStatus&&!twilioStatus.ok&&(
-        <div style={{marginBottom:16,padding:"12px 16px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8}}>
-          <div style={{fontWeight:700,color:"#dc2626",marginBottom:6}}>❌ Twilio Connection Issue</div>
-          <div style={{fontSize:12,color:"#7f1d1d",lineHeight:1.6}}>
-            {twilioStatus.twilio_error||twilioStatus.error||"Unknown error"}
-            {twilioStatus.hint&&<div style={{marginTop:4,padding:"6px 8px",background:"#fffbeb",border:"1px solid #fef08a",borderRadius:4,color:"#92400e"}}><b>💡 Hint:</b> {twilioStatus.hint}</div>}
-            {!twilioStatus.acct_set&&<div style={{marginTop:4,color:"#dc2626"}}>• <b>TWILIO_ACCOUNT_SID</b> is not set in Supabase secrets</div>}
-            {!twilioStatus.auth_set&&<div style={{color:"#dc2626"}}>• <b>TWILIO_AUTH_TOKEN</b> is not set in Supabase secrets</div>}
+        <div style={{marginBottom:16,padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:16}}>⚠️</span>
+          <div style={{fontSize:12,color:"#7f1d1d",flex:1}}>
+            <b>Twilio:</b> {twilioStatus.twilio_error||twilioStatus.error||"Configuration needed"}
+            {twilioStatus.hint&&<span style={{marginLeft:8,color:"#92400e"}}>💡 {twilioStatus.hint}</span>}
           </div>
+          <button onClick={()=>checkTwilioStatus().then(s=>setTwilioStatus(s))} style={{padding:"4px 10px",background:"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:11,cursor:"pointer"}}>Retry</button>
         </div>
       )}
 
