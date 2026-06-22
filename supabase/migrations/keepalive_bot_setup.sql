@@ -62,6 +62,26 @@ BEGIN
 END;
 $$;
 
+-- 4b. Generic trim function (works on any table with a created_at field)
+CREATE OR REPLACE FUNCTION trim_generic(tbl text, keep integer)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    EXECUTE format(
+        'DELETE FROM %I WHERE id NOT IN (SELECT id FROM %I ORDER BY created_at DESC LIMIT %s)',
+        tbl, tbl, keep
+    );
+EXCEPTION WHEN OTHERS THEN
+    -- Fallback: delete by created_at cutoff
+    EXECUTE format(
+        'DELETE FROM %I WHERE created_at < (SELECT created_at FROM %I ORDER BY created_at DESC LIMIT 1 OFFSET %s)',
+        tbl, tbl, keep
+    ) ON CONFLICT DO NOTHING;
+END;
+$$;
+
 -- 5. Create RPC function for health stats (if not exists)
 CREATE OR REPLACE FUNCTION get_db_health_stats()
 RETURNS TABLE (
