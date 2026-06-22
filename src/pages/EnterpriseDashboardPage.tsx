@@ -21,6 +21,9 @@ import {
   ChevronRight, ChevronLeft, List, Grid, Clock, AlertTriangle,
   TrendingDown, ArrowUp, ArrowDown, Minus, Save, Trash2, Edit,
   Download, Upload, Search, Filter, Building2, MapPin, Phone, Mail, ExternalLink,
+  Cpu, HardDrive, Cloud, Signal, MessageSquare, Video, Mic, MailOpen,
+  FileText, UsersRound, DollarSign, Pill, Stethoscope, Bed, Car,
+  GraduationCap, UserCheck, Briefcase, Target, Gauge, Battery, WifiHigh,
 } from "lucide-react";
 
 // ─── Professional color palette ────────────────────────────────────────────
@@ -46,34 +49,50 @@ const COLORS = {
 
 const PIE_COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#ec4899"];
 
-// ─── Section definitions ──────────────────────────────────────────────────────
+// ─── Section definitions - Healthcare Enterprise ────────────────────────────
 const SIDEBAR_SECTIONS = [
-  { key:"overview",     icon:LayoutGrid,  label:"Enterprise Overview" },
-  { key:"health",       icon:Heart,       label:"Enterprise Health" },
-  { key:"whatif",       icon:Lightbulb,   label:"What-if" },
-  { key:"inventory",    icon:Boxes,       label:"Inventory" },
-  { key:"space",        icon:Layers,      label:"Space" },
-  { key:"power",        icon:Zap,         label:"Power" },
-  { key:"cooling",      icon:Snowflake,   label:"Cooling" },
-  { key:"connectivity", icon:Wifi,        label:"Connectivity" },
-  { key:"change",       icon:GitBranch,   label:"Change" },
-  { key:"reports",      icon:FileBarChart,label:"Data Reports" },
-  { key:"favorites",    icon:Star,        label:"Favorites" },
+  { key:"overview",     icon:LayoutGrid,   label:"Hospital Overview" },
+  { key:"procurement", icon:ShoppingCart, label:"Procurement" },
+  { key:"finance",     icon:DollarSign,   label:"Finance & Budget" },
+  { key:"inventory",    icon:Pill,         label:"Pharmacy & Inventory" },
+  { key:"clinical",    icon:Stethoscope,  label:"Clinical Services" },
+  { key:"hr",          icon:Users,        label:"HR & Staff" },
+  { key:"facilities",  icon:Building2,    label:"Facilities" },
+  { key:"communications",icon:MessageSquare,label:"Communications" },
+  { key:"analytics",   icon:BarChart3,    label:"Analytics" },
+  { key:"settings",    icon:Settings,     label:"System Settings" },
 ];
 
-const TOP_TABS = ["Dashboard","Visualization","Capacity","Assets","Connectivity","Change","Reports","Events","Settings"];
+const TOP_TABS = ["Executive","Operations","Clinical","Finance","HR","Infrastructure","Communications","Reports","Settings"];
 
 // ─── Mini badge ───────────────────────────────────────────────────────────────
-const StatusDot = ({ok}:{ok:boolean}) => (
-  <span className={`inline-block w-2 h-2 rounded-full ${ok?"bg-emerald-400":"bg-red-400"}`}/>
+const StatusDot = ({ok, size="sm"}:{ok:boolean, size?:string}) => (
+  <span className={`inline-block rounded-full ${size==="sm"?"w-2 h-2":"w-3 h-3"} ${ok?"bg-emerald-400 animate-pulse":"bg-red-400"}`}/>
 );
 
-// ─── Tiny trend indicator ─────────────────────────────────────────────────────
-const Trend = ({val}:{val:number}) => val>0
-  ? <span className="text-emerald-400 text-xs flex items-center gap-0.5"><ArrowUp className="w-3 h-3"/>{val}%</span>
+// ─── Trend indicator ───────────────────────────────────────────────────────────
+const Trend = ({val, size="sm"}:{val:number, size?:string}) => val>0
+  ? <span className={`${size==="sm"?"text-xs":"text-sm"} text-emerald-400 flex items-center gap-0.5`}><ArrowUp className={size==="sm"?"w-3 h-3":"w-4 h-4"}/>{val}%</span>
   : val<0
-  ? <span className="text-red-400 text-xs flex items-center gap-0.5"><ArrowDown className="w-3 h-3"/>{Math.abs(val)}%</span>
-  : <span className="text-slate-400 text-xs flex items-center gap-0.5"><Minus className="w-3 h-3"/>0%</span>;
+  ? <span className={`${size==="sm"?"text-xs":"text-sm"} text-red-400 flex items-center gap-0.5`}><ArrowDown className={size==="sm"?"w-3 h-3":"w-4 h-4"}/>{Math.abs(val)}%</span>
+  : <span className={`${size==="sm"?"text-xs":"text-sm"} text-slate-400 flex items-center gap-0.5`}><Minus className={size==="sm"?"w-3 h-3":"w-4 h-4"}/>0%</span>;
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+const StatCard = ({label, value, icon:Icon, trend, color, subtitle}:{label:string,value:string|number,icon:any,trend?:number,color:string,subtitle?:string}) => (
+  <Card className={`bg-gradient-to-br ${color} border-slate-700/50 backdrop-blur shadow-xl hover:shadow-2xl transition-all duration-300`}>
+    <CardContent className="p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white/10`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        {trend !== undefined && <Trend val={trend} size="sm" />}
+      </div>
+      <div className="text-3xl font-bold text-white mb-1">{value}</div>
+      <div className="text-sm font-medium text-white/80">{label}</div>
+      {subtitle && <div className="text-xs text-white/60 mt-1">{subtitle}</div>}
+    </CardContent>
+  </Card>
+);
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const EnterpriseDashboardPage = () => {
@@ -82,7 +101,7 @@ const EnterpriseDashboardPage = () => {
 
   // ── State ──────────────────────────────────────────────────────────────
   const [activeSection, setActiveSection] = useState("overview");
-  const [activeTopTab, setActiveTopTab] = useState("Dashboard");
+  const [activeTopTab, setActiveTopTab] = useState("Executive");
   const [slideshowOn, setSlideshowOn] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(["overview","inventory"]);
   const [dashboards, setDashboards] = useState<{id:string;name:string;section:string}[]>([
@@ -117,6 +136,9 @@ const EnterpriseDashboardPage = () => {
   // Data
   const [loading, setLoading] = useState(false);
   const [overview, setOverview] = useState({
+    totalBeds:150, occupiedBeds:127, bedOccupancy:84.7,
+    patientsToday:89, emergencyCases:12, surgeries:5,
+    totalSpend:2845000, budgetUsed:68.4, budgetRemaining:1315000,
     spend:0, suppliers:0, openPOs:0, pendingApprovals:0,
     incidents:0, advisories:0, healthy:100, items:0, grns:0,
   });
