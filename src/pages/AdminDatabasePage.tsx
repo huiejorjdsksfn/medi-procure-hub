@@ -106,8 +106,28 @@ ORDER BY t.table_name;`);
   const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
   const [realtimeOn, setRealtimeOn] = useState(false);
   const [tableCounts, setTableCounts] = useState<Record<string,number>>({});
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [savedQueries, setSavedQueries] = useState<{name:string;sql:string}[]>([
+    { name:"All Tables",         sql:"SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;" },
+    { name:"Table Stats",        sql:"SELECT table_name, (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_name=t.table_name) AS cols FROM information_schema.tables t WHERE table_schema='public' ORDER BY table_name;" },
+    { name:"Active Sessions",    sql:"SELECT * FROM user_sessions WHERE is_active=true ORDER BY last_activity DESC LIMIT 50;" },
+    { name:"Recent Audit",       sql:"SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 50;" },
+    { name:"Unread Notifs",      sql:"SELECT * FROM notifications WHERE is_read=false ORDER BY created_at DESC LIMIT 50;" },
+    { name:"Pending Reqs",       sql:"SELECT * FROM requisitions WHERE status IN ('pending','submitted') ORDER BY created_at DESC LIMIT 50;" },
+    { name:"Low Stock Items",    sql:"SELECT * FROM items WHERE quantity_in_stock < 10 ORDER BY quantity_in_stock ASC LIMIT 50;" },
+    { name:"Open POs",           sql:"SELECT * FROM purchase_orders WHERE status IN ('pending','approved','open') ORDER BY created_at DESC LIMIT 50;" },
+  ]);
+  const [queryName, setQueryName] = useState("");
+  const [selectedSaved, setSelectedSaved] = useState<string>("");
   const sqlRef = useRef<HTMLTextAreaElement>(null);
   const rtChannel = useRef<any>(null);
+
+  // Auto-refresh for table data
+  useEffect(()=>{
+    if(!autoRefresh) return;
+    const id = setInterval(()=>loadTable(), 15000);
+    return ()=>clearInterval(id);
+  },[autoRefresh, loadTable]);
 
   // - Load table data -
   const loadTable = useCallback(async () => {
@@ -514,18 +534,28 @@ ORDER BY t.table_name;`);
         {/* - SQL EDITOR tab - */}
         {activeTab === "sql" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}` }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real SQL Editor - PostgreSQL</span>
-              {sqlMs !== null && <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>Executed in {sqlMs}ms</span>}
-              <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
-                <button onClick={()=>setSql("SELECT * FROM " + selectedTable + " LIMIT 50;")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
-                  Select *
-                </button>
-                <button onClick={()=>setSql("SELECT COUNT(*) FROM " + selectedTable + ";")} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
-                  Count
-                </button>
-                <button onClick={()=>setSql(`SELECT table_name, column_count, policy_count, trigger_count FROM db_stats ORDER BY table_name;`)} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
-                  DB Stats
+            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}`,flexWrap:"wrap" as const }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>SQL Editor PRO</span>
+              {sqlMs !== null && <span style={{ fontSize:11,color:"#059669",fontFamily:S.font,background:"rgba(5,150,105,0.1)",padding:"1px 6px",borderRadius:4,fontWeight:700 }}>⏱ {sqlMs}ms</span>}
+              {/* Saved queries */}
+              <select value={selectedSaved} onChange={e=>{
+                const q=savedQueries.find(q=>q.name===e.target.value);
+                if(q){ setSql(q.sql); setSelectedSaved(e.target.value); } else setSelectedSaved("");
+              }} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,background:"#fff",maxWidth:160 }}>
+                <option value="">— Saved Queries —</option>
+                {savedQueries.map(q=><option key={q.name} value={q.name}>{q.name}</option>)}
+              </select>
+              {/* Save current */}
+              <div style={{ display:"flex",gap:4,alignItems:"center" }}>
+                <input value={queryName} onChange={e=>setQueryName(e.target.value)} placeholder="Save as…"
+                  style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,background:"#fff",width:110 }} />
+                <button onClick={()=>{ if(!queryName||!sql.trim()){toast({title:"Name & SQL required"});return;} setSavedQueries(p=>[...p.filter(q=>q.name!==queryName),{name:queryName,sql}]); setQueryName(""); toast({title:"Query saved"}); }}
+                  style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"2px 6px",cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:700 }}>💾</button>
+              </div>
+              <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
+                {/* Auto-refresh */}
+                <button onClick={()=>setAutoRefresh(p=>!p)} style={{ border:`1px solid ${autoRefresh?"#006600":"#b0b0b0"}`,background:autoRefresh?"#006600":S.bg,color:autoRefresh?"#fff":S.fg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <div style={{ width:6,height:6,borderRadius:"50%",background:autoRefresh?"#4ade80":"#ccc" }} />{autoRefresh?"AUTO 15s":"Auto OFF"}
                 </button>
                 <button onClick={()=>{
                   if(!sqlResult.length){ toast({title:"Run a query first"}); return; }
@@ -548,8 +578,8 @@ ORDER BY t.table_name;`);
                 }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Printer style={{width:11,height:11}}/> Print
                 </button>
-                <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
-                  <Play style={{ width:12,height:12 }} />{sqlRunning?"Running-":"Run -"}
+                <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:sqlRunning?"not-allowed":"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
+                  <Play style={{ width:12,height:12 }} />{sqlRunning?"Running…":"Run ⌘↵"}
                 </button>
               </div>
             </div>
@@ -573,12 +603,15 @@ ORDER BY t.table_name;`);
               )}
               {sqlResult.length > 0 && (
                 <div>
-                  <div style={{ padding:"4px 12px",background:"rgba(74,222,128,0.1)",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600" }}>
-                    <CheckCircle style={{ width:11,height:11,display:"inline",marginRight:6 }} />{sqlResult.length} row(s) returned in {sqlMs}ms
+                  <div style={{ padding:"4px 12px",background:"rgba(74,222,128,0.1)",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600",display:"flex",alignItems:"center",gap:6 }}>
+                    <CheckCircle style={{ width:11,height:11,display:"inline" }} />
+                    {sqlResult.length} row(s) returned in {sqlMs}ms
+                    <span style={{ marginLeft:8,color:"#999",fontSize:10 }}>{Object.keys(sqlResult[0]).length} columns</span>
                   </div>
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                     <thead style={{ position:"sticky",top:0 }}>
                       <tr>
+                        <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:40 }}>#</th>
                         {Object.keys(sqlResult[0]).map(k => (
                           <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{k}</th>
                         ))}
@@ -587,8 +620,9 @@ ORDER BY t.table_name;`);
                     <tbody>
                       {sqlResult.map((r,i) => (
                         <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                          <td style={{ ...CELL,color:"#999",fontSize:10,textAlign:"center",width:40 }}>{i+1}</td>
                           {Object.values(r).map((v:any,j) => (
-                            <td key={j} style={CELL}>{v===null?<span style={{ color:"#999" }}>null</span>:String(v).slice(0,200)}</td>
+                            <td key={j} style={CELL}>{v===null?<span style={{ color:"#999",fontStyle:"italic" }}>NULL</span>:typeof v==="boolean"?<span style={{ color:v?"#006600":"#cc0000",fontWeight:700 }}>{String(v)}</span>:String(v).slice(0,200)}</td>
                           ))}
                         </tr>
                       ))}
