@@ -173,6 +173,22 @@ export default function AdminHubPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-refresh every 30s
+  useEffect(() => {
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  // Real-time subscription for live stats
+  useEffect(() => {
+    const ch = db.channel("admin_hub_rt_v2")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "user_sessions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [load]);
+
   const filteredSections = search
     ? SECTIONS.map(s => ({ ...s, items: s.items.filter(i => i.l.toLowerCase().includes(search.toLowerCase()) || i.desc.toLowerCase().includes(search.toLowerCase())) })).filter(s => s.items.length > 0)
     : SECTIONS;

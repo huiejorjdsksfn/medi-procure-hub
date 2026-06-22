@@ -79,7 +79,7 @@ function AuditLogFeed() {
     let mounted = true;
     (async () => {
       try {
-        const { data } = await db.from("audit_logs")
+        const { data } = await db.from("audit_log")
           .select("id,action,details,created_at,user_id")
           .order("created_at", { ascending: false })
           .limit(20);
