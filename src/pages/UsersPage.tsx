@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import ImageUploader from "@/components/ImageUploader";
 import {
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
   Plus, Search, RefreshCw, Edit3, Trash2, Shield, X, Check,
   Key, Eye, EyeOff, Users, Lock, Unlock, AlertTriangle,
   Activity, Copy, Clock, Mail, Phone, Building2, UserCheck,
@@ -268,6 +269,7 @@ export default function UsersPage() {
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg }}>
+      <AdminBreadcrumb />
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
 
       {/* ── RIBBON ── */}

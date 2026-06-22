@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import RoleGuard from "@/components/RoleGuard";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 // - Table groups with all 57 tables -
 const TABLE_GROUPS = [
@@ -289,6 +290,7 @@ ORDER BY t.table_name;`);
 
   return (
     <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:S.font,color:S.fg,minHeight:"100%" }}>
+      <AdminBreadcrumb />
 
       {/* - Header - */}
       <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>

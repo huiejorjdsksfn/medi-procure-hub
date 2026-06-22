@@ -23,6 +23,7 @@ import { ERP, erpStyles } from "@/lib/erpTheme";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { MobileTable } from "@/components/MobileTable";
 import { getAllDeviceSessions } from "@/lib/deviceTracker";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 const db = supabase as any;
 
@@ -221,6 +222,7 @@ export default function AdminTrackerPage() {
 
   return (
     <div style={{ background: "#1a0030", minHeight: "100vh", fontFamily: ERP.fontFamily, fontSize: 12, color: "#fff" }}>
+      <AdminBreadcrumb />
       {/* Title Bar */}
       <div style={{ background: "linear-gradient(135deg,#2d0050,#1a0030)", color: "#fff", padding: "7px 12px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #4a0080" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

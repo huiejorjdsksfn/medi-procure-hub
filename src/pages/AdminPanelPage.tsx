@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import { checkTwilioStatus, sendSms, makeCall } from "@/lib/sms";
 import {
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
   LayoutDashboard, Users, Shield, Phone, Globe, Activity, Database,
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
   Lock, Unlock, Key, Wifi, WifiOff, Server, Radio, Bell,
@@ -300,6 +301,7 @@ export default function AdminPanelPage() {
 
   return (
     <div style={S.page}>
+      <AdminBreadcrumb />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* D365-style page header */}

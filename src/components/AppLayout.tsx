@@ -21,7 +21,7 @@ import {
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
   BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch, PenLine,
-  LayoutGrid, CheckCircle, Printer
+  LayoutGrid, CheckCircle, Printer, UserCheck, Monitor, AlertTriangle
 } from "lucide-react";
 
 const db = supabase as any;
@@ -128,21 +128,26 @@ const MODS = [
   {id:"admin",label:"Administration",col:T.system,
    roles:["admin","superadmin","webmaster","database_admin"],
    items:[
-     {l:"Admin Panel",  p:"/admin/panel",    I:Settings},
-     {l:"Users",        p:"/users",          I:Users},
-      {l:"Create User",  p:"/admin/create-user",I:Users},
-      {l:"Activity Stats",p:"/admin/activity",I:Activity},
-      {l:"Users & IP Audit",p:"/admin/users-ip-audit",I:Users},
-     {l:"Facilities",   p:"/facilities",     I:Building2},
-     {l:"IP Access",    p:"/admin/ip-access",I:Lock},
-     {l:"Database",     p:"/admin/database", I:Database},
-     {l:"DB Monitor",   p:"/admin/db-test",  I:Activity},
-     {l:"Backup",       p:"/backup",         I:Archive},
-     {l:"ODBC/MySQL",   p:"/odbc",           I:Server},
-     {l:"Changelog",    p:"/changelog",      I:GitBranch},{l:"Webmaster",    p:"/webmaster",      I:Globe},
-     {l:"GUI Editor",   p:"/gui-editor",     I:Code2},
-     {l:"Settings",     p:"/settings",       I:Wrench},
-     {l:"Superadmin",   p:"/superadmin",     I:Radio},
+     {l:"Admin Hub",          p:"/admin",                 I:LayoutGrid},
+     {l:"Admin Panel",        p:"/admin/panel",           I:Settings},
+     {l:"Users",              p:"/users",                 I:Users},
+     {l:"Create User",        p:"/admin/create-user",     I:UserCheck},
+     {l:"Activity Stats",     p:"/admin/activity",        I:Activity},
+     {l:"Security Tracker",   p:"/admin/tracker",         I:Eye},
+     {l:"Users & IP Audit",   p:"/admin/users-ip-audit",  I:Globe},
+     {l:"IP Access",          p:"/admin/ip-access",       I:Lock},
+     {l:"Facilities",         p:"/facilities",            I:Building2},
+     {l:"Settings",           p:"/settings",              I:Wrench},
+     {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
+     {l:"Database",           p:"/admin/database",        I:Database},
+     {l:"DB Monitor",         p:"/admin/db-test",         I:Monitor},
+     {l:"Backup",             p:"/backup",                I:Archive},
+     {l:"ODBC/MySQL",         p:"/odbc",                  I:Server},
+     {l:"HMIS Sync",          p:"/hmis",                  I:RefreshCw},
+     {l:"Changelog",          p:"/changelog",             I:GitBranch},
+     {l:"Not-Found Log",      p:"/admin/not-found-log",   I:AlertTriangle},
+     {l:"Webmaster",          p:"/webmaster",             I:Globe},
+     {l:"Superadmin",         p:"/superadmin",            I:Radio},
    ]},
 ];
 
@@ -245,11 +250,33 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* - ADMIN QUICK BAR - */}
       {(isAdmin||isDbAdmin)&&(
         <div style={{background:T.accent,padding:"3px 14px",display:"flex",gap:5,alignItems:"center",flexShrink:0,overflowX:"auto"}}>
-          <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,whiteSpace:"nowrap"}}>- ADMIN</span>
-          {[{l:"Users",p:"/users"},{l:"IP Stats",p:"/admin/ip-access"},{l:"DB Monitor",p:"/admin/db-test"},{l:"Settings",p:"/settings"},{l:"Changelog",p:"/changelog"},{l:"Webmaster",p:"/webmaster"},{l:"Superadmin",p:"/superadmin"}].map(a=>(
-            <button key={a.p} onClick={()=>nav(a.p)} style={{padding:"2px 10px",borderRadius:T.r,background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.28)",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}
+          <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,whiteSpace:"nowrap",flexShrink:0}}>⚡ ADMIN</span>
+          {[
+            {l:"Hub",        p:"/admin"},
+            {l:"Users",      p:"/users"},
+            {l:"+ User",     p:"/admin/create-user"},
+            {l:"Activity",   p:"/admin/activity"},
+            {l:"Tracker",    p:"/admin/tracker"},
+            {l:"IP Access",  p:"/admin/ip-access"},
+            {l:"IP Audit",   p:"/admin/users-ip-audit"},
+            {l:"Audit Log",  p:"/audit-log"},
+            {l:"Settings",   p:"/settings"},
+            {l:"Facilities", p:"/facilities"},
+            {l:"GUI Editor", p:"/gui-editor"},
+            {l:"Database",   p:"/admin/database"},
+            {l:"DB Monitor", p:"/admin/db-test"},
+            {l:"Backup",     p:"/backup"},
+            {l:"ODBC",       p:"/odbc"},
+            {l:"HMIS",       p:"/hmis"},
+            {l:"Changelog",  p:"/changelog"},
+            {l:"404 Log",    p:"/admin/not-found-log"},
+            {l:"Webmaster",  p:"/webmaster"},
+            {l:"Superadmin", p:"/superadmin"},
+          ].map(a=>(
+            <button key={a.p} onClick={()=>nav(a.p)}
+              style={{padding:"2px 8px",borderRadius:T.r,background:loc.pathname===a.p?"rgba(255,255,255,.35)":"rgba(255,255,255,.15)",border:`1px solid rgba(255,255,255,${loc.pathname===a.p?".5":".2"})`,color:"#fff",fontSize:11,fontWeight:loc.pathname===a.p?800:500,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}
               onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.28)")}
-              onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.18)")}>
+              onMouseLeave={e=>(e.currentTarget.style.background=loc.pathname===a.p?"rgba(255,255,255,.35)":"rgba(255,255,255,.15)")}>
               {a.l}
             </button>
           ))}

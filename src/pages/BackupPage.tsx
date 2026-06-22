@@ -8,6 +8,7 @@ import { Archive, RefreshCw, Download, CheckCircle, Clock, AlertTriangle, Databa
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { logAudit } from "@/lib/audit";
 import * as XLSX from "@e965/xlsx";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 const BACKUP_TABLES = [
   "profiles","user_roles","items","item_categories","suppliers","departments",
@@ -158,6 +159,7 @@ function BackupInner() {
 
   return (
       <div style={{padding:24,maxWidth:896,margin:"0 auto",display:"flex",flexDirection:"column",gap:24, fontFamily:"'Segoe UI',system-ui,sans-serif", background:"transparent", minHeight:"100%" }}>
+      <AdminBreadcrumb />
       {/* Header card */}
       <div style={{borderRadius:16}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>

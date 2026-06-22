@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { invalidateDropdownCache } from "@/hooks/useCachedDropdown";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 const SUPABASE_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co";
 
@@ -162,6 +163,7 @@ export default function AdminCreateUserPage() {
 
   return (
     <div style={{ background: "#f0f0f0", minHeight: "100vh", fontFamily: ERP.fontFamily, fontSize: 12 }}>
+      <AdminBreadcrumb />
 
       {/* Title bar */}
       <div style={{
