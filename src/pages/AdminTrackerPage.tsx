@@ -24,6 +24,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { MobileTable } from "@/components/MobileTable";
 import { getAllDeviceSessions } from "@/lib/deviceTracker";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import procurementBg from "@/assets/procurement-bg.jpg";
 
 const db = supabase as any;
 
@@ -221,7 +222,8 @@ export default function AdminTrackerPage() {
   ];
 
   return (
-    <div style={{ background: "#1a0030", minHeight: "100vh", fontFamily: ERP.fontFamily, fontSize: 12, color: "#fff" }}>
+    <div style={{ backgroundImage: `url(${procurementBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: "100vh", fontFamily: ERP.fontFamily, fontSize: 12, color: "#fff" }}>
+      <div style={{ background: "rgba(15,0,30,0.92)", minHeight: "100vh" }}>
       <AdminBreadcrumb />
       {/* Title Bar */}
       <div style={{ background: "linear-gradient(135deg,#2d0050,#1a0030)", color: "#fff", padding: "7px 12px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #4a0080" }}>
@@ -519,6 +521,7 @@ export default function AdminTrackerPage() {
         {rtActive && <><span>|</span><span style={{ color: "#7dd3fc", fontWeight: 700 }}>📡 LIVE</span></>}
         {autoRefresh && <><span>|</span><span style={{ color: "#22c55e", fontWeight: 700 }}>🔴 AUTO 15s</span></>}
         <span style={{ marginLeft: "auto" }}>EL5 Admin Tracker v2.1 · RESTRICTED · {new Date().toLocaleTimeString("en-KE")}</span>
+      </div>
       </div>
     </div>
   );
