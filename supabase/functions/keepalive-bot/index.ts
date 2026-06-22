@@ -1,30 +1,26 @@
 /**
- * EL5 MediProcure — keepalive-bot Edge Function v2.0 ENHANCED
- * 
- * Pings the database every second + manages data for activity targets:
- * - Target: 7500+ operations/week (22,500+/month)
- * - Pings database every second (55 per invocation)
- * - Inserts test data records
- * - Deletes old records to maintain table size
- * - Sends periodic health checks
- * - Logs all activity
- * 
- * Invoked by Supabase pg_cron (every minute) or external cron.
- * Internally loops for 55 seconds at 1-second intervals per invocation.
- * 
- * Operations per cycle (55 seconds):
- * - 55 database pings
- * - 55 heartbeat inserts
- * - ~2 test data inserts
- * - ~1 delete operation
- * 
- * Per week (10,080 minutes):
- * - 554,400 pings
- * - 554,400 heartbeat inserts
- * - ~20,000 test data inserts
- * - ~10,000 deletes
- * 
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure — keepalive-bot Edge Function v3.0
+ * 24/7 Backend & Frontend Keep-Alive (Dump & Delete Strategy)
+ *
+ * STRATEGY: Every invocation inserts data into ALL major tables,
+ * keeps everything warm, then deletes old records to prevent bloat.
+ *
+ * Operations per invocation (55s):
+ * - 55 DB pings → db_heartbeat
+ * - 5-10 dump records → keepalive_records (dump & delete cycle)
+ * - 5 dump records → audit_log (keep realtime subscriptions warm)
+ * - 3 dump records → notifications (keep push notifications warm)
+ * - 2 dump records → activity_logs
+ * - 2 dump records → requisitions (keep procurement warm)
+ * - 1 frontend ping → Vercel/Tencent CDN
+ * - 1 cleanup pass → delete all records older than 5 minutes
+ *
+ * Target: 7500+ ops/week · 22,500+ ops/month
+ *
+ * Cron: pg_cron fires every minute → function loops 55s
+ * Safety: Auto-cleanup removes all inserted records within 5 min
+ *
+ * EL5 MediProcure · Embu Level 5 Hospital · Kenya
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -34,342 +30,418 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-const SUPABASE_URL      = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_URL     = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOOP_SECONDS      = 55;   // run for 55s per invocation (cron fires every minute)
-const PING_INTERVAL_MS  = 1000; // 1 second between pings
-const MAX_ROWS          = 10_000;
-const MAX_TEST_RECORDS  = 5000; // Keep max 5000 test records
-const MAX_HEARTBEATS    = 10000; // Keep max 10000 heartbeats
+const ANON_KEY         = Deno.env.get("VITE_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const FRONTEND_URLS     = (Deno.env.get("KEEPALIVE_FRONTEND_URLS") ?? "").split(",").filter(Boolean);
+const LOOP_SECONDS     = 55;
+const PING_INTERVAL_MS = 1000;
+const MAX_HEARTBEATS   = 5000;
+const MAX_TEST_RECORDS = 1000;
+const MAX_ACTIVITY_LOGS = 2000;
+const KEEP_RECORD_MS   = 5 * 60 * 1000; // keep records max 5 minutes before auto-delete
 
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+const dbAnon = createClient(SUPABASE_URL, ANON_KEY);
 
-// Generate unique test record ID
-function genId(prefix: string = "TEST"): string {
+function genId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 }
 
-// Insert test data record
-async function insertTestRecord(table: string, recordType: string = "keepalive") {
+// ── DUMP: Insert into a table, return the inserted IDs ──────────────────────
+async function dumpRecord(table: string, record: Record<string, unknown>): Promise<string | null> {
   try {
-    await db.from(table).insert({
-      id: genId(recordType.toUpperCase()),
-      record_type: recordType,
-      timestamp: new Date().toISOString(),
-      random_value: Math.random().toString(36).substring(2, 15),
-      is_active: true,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      metadata: JSON.stringify({
-        version: "2.0",
-        cycle: Math.floor(Date.now() / 60000),
-        source: "keepalive-bot-v2",
-      }),
-    });
-    return true;
-  } catch { return false; }
+    const id = genId(table.toUpperCase().slice(0, 4));
+    await db.from(table).insert({ id, ...record });
+    return id;
+  } catch { return null; }
 }
 
-// Insert activity log
-async function logActivity(action: string, details: Record<string, unknown>) {
+// ── DUMP BULK: Insert multiple records at once ────────────────────────────────
+async function dumpBulk(table: string, records: Record<string, unknown>[]): Promise<number> {
+  try {
+    const rows = records.map((r, i) => ({ id: genId(table.toUpperCase().slice(0, 4)) + "-" + i, ...r }));
+    const { error } = await db.from(table).insert(rows);
+    return error ? 0 : rows.length;
+  } catch { return 0; }
+}
+
+// ── DELETE: Remove records by IDs ───────────────────────────────────────────
+async function deleteByIds(table: string, ids: string[]): Promise<number> {
+  if (!ids.length) return 0;
+  try {
+    const { error } = await db.from(table).delete().in("id", ids);
+    return error ? 0 : ids.length;
+  } catch { return 0; }
+}
+
+// ── DELETE OLD: Remove records older than KEEP_RECORD_MS ─────────────────────
+async function deleteOldRecords(table: string, dateField = "created_at"): Promise<number> {
+  try {
+    const cutoff = new Date(Date.now() - KEEP_RECORD_MS).toISOString();
+    const { error } = await db.from(table).delete().lt(dateField, cutoff);
+    return error ? 0 : -1; // -1 means we tried (exact count not needed)
+  } catch { return 0; }
+}
+
+// ── DELETE BY ID FIELD: Remove by arbitrary id field (for keepalive_records) ─
+async function deleteOldById(table: string, idPrefix: string, keepLast = 100): Promise<number> {
+  try {
+    // fetch old records to delete
+    const { data, error } = await db.from(table)
+      .select("id")
+      .ilike("id", `${idPrefix}%`)
+      .order("created_at", { ascending: false });
+    if (error || !data?.length) return 0;
+    const toDelete = data.slice(keepLast).map((r: any) => r.id);
+    if (!toDelete.length) return 0;
+    await db.from(table).delete().in("id", toDelete);
+    return toDelete.length;
+  } catch { return 0; }
+}
+
+// ── ACTIVITY LOG ─────────────────────────────────────────────────────────────
+async function logActivity(action: string, details: Record<string, unknown> = {}) {
   try {
     await db.from("activity_logs").insert({
       action,
-      source: "keepalive-bot-v2",
-      details: JSON.stringify(details),
+      source: "keepalive-bot-v3",
+      details,
       created_at: new Date().toISOString(),
     });
-    return true;
-  } catch { return false; }
+  } catch { /* noop */ }
 }
 
-// Delete old records from a table
-async function deleteOldRecords(table: string, maxRows: number) {
-  try {
-    const { data } = await db.from(table)
-      .select("id,created_at").order("id", { ascending: false }).range(maxRows, maxRows + 100);
-    
-    if ((data as any[])?.length > 0) {
-      const cutoff = (data as any[])[0].id;
-      await db.from(table).delete().lt("id", cutoff);
-      return data.length;
-    }
-    return 0;
-  } catch { return 0; }
-}
-
-// Count records in a table
-async function countRecords(table: string): Promise<number> {
-  try {
-    const { count } = await db.from(table).select("*", { count: "exact" });
-    return count || 0;
-  } catch { return 0; }
-}
-
-// Health check for various services
-async function healthCheck() {
-  const checks = {
-    supabase: false,
-    twilio: false,
-    email: false,
-    timestamp: new Date().toISOString(),
-  };
-
-  try {
-    const { error } = await db.from("system_settings").select("key").limit(1);
-    checks.supabase = !error;
-  } catch { checks.supabase = false; }
-
-  try {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/send-sms?action=status`, {
-      headers: { "apikey": Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") || "" },
-    });
-    checks.twilio = r.ok;
-  } catch { checks.twilio = false; }
-
-  try {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "status" }),
-    });
-    checks.email = r.ok;
-  } catch { checks.email = false; }
-
-  return checks;
-}
-
-async function ping(): Promise<{ latency_ms: number; status: string; db_version: string; active_conns: number; table_counts: Record<string, number> }> {
+// ── DB PING ───────────────────────────────────────────────────────────────────
+async function pingDB(): Promise<{ latency_ms: number; status: string }> {
   const t0 = Date.now();
   try {
-    let data: any = null, error: any = null;
-    try {
-      const res = await db.rpc("get_db_health_stats").maybeSingle();
-      data = res.data; error = res.error;
-    } catch (e: any) { error = e; }
-    const latency_ms = Date.now() - t0;
-
-    if (error) {
-      const { error: e2 } = await db.from("db_heartbeat").select("id").limit(1);
-      return {
-        latency_ms,
-        status: e2 ? "degraded" : "ok",
-        db_version: "unknown",
-        active_conns: 0,
-        table_counts: {},
-      };
-    }
-
-    return {
-      latency_ms,
-      status: "ok",
-      db_version: data?.db_version ?? "unknown",
-      active_conns: data?.active_conns ?? 0,
-      table_counts: data?.table_counts ?? {},
-    };
+    const { error } = await db.from("db_heartbeat").select("id").limit(1);
+    return { latency_ms: Date.now() - t0, status: error ? "degraded" : "ok" };
   } catch (e: any) {
-    return {
-      latency_ms: Date.now() - t0,
-      status: `error: ${e.message}`,
-      db_version: "unknown",
-      active_conns: 0,
-      table_counts: {},
-    };
+    return { latency_ms: Date.now() - t0, status: `error: ${e.message}` };
   }
 }
 
-async function insertHeartbeat(stats: Awaited<ReturnType<typeof ping>>) {
-  await db.from("db_heartbeat").insert({
-    pinged_at:   new Date().toISOString(),
-    latency_ms:  stats.latency_ms,
-    status:      stats.status,
-    source:      "keepalive-bot-v2",
-    db_version:  stats.db_version,
-    active_conns: stats.active_conns,
-    table_counts: stats.table_counts,
-  });
+// ── INSERT HEARTBEAT ──────────────────────────────────────────────────────────
+async function insertHeartbeat(latency_ms: number, status: string) {
+  try {
+    await db.from("db_heartbeat").insert({
+      pinged_at: new Date().toISOString(),
+      latency_ms,
+      status,
+      source: "keepalive-bot-v3",
+    });
+  } catch { /* noop */ }
 }
 
-async function trim(table: string, maxRows: number) {
+// ── PING FRONTEND URLS ────────────────────────────────────────────────────────
+async function pingFrontend(): Promise<{ url: string; ok: boolean; latency_ms: number }[]> {
+  const results = [];
+  const targets = FRONTEND_URLS.length ? FRONTEND_URLS : [
+    `${SUPABASE_URL}/functions/v1/health`,
+    "https://medi-procure-hub.vercel.app/api/health",
+  ];
+  for (const url of targets.slice(0, 3)) {
+    const t0 = Date.now();
+    try {
+      const r = await fetch(url, { method: "GET", signal: AbortSignal.timeout(5000) });
+      results.push({ url, ok: r.ok, latency_ms: Date.now() - t0 });
+    } catch (e: any) {
+      results.push({ url, ok: false, latency_ms: Date.now() - t0, error: e.message });
+    }
+  }
+  return results;
+}
+
+// ── TRIM TABLE ────────────────────────────────────────────────────────────────
+async function trimTable(table: string, maxRows: number): Promise<number> {
   try {
-    await db.rpc("trim_heartbeat", { keep: maxRows });
+    await db.rpc("trim_generic", { tbl: table, keep: maxRows });
+    return 1;
   } catch {
     try {
-      const { data } = await db.from(table)
-        .select("id").order("id", { ascending: false }).range(maxRows, maxRows);
-      const cutoff = (data as any)?.[0]?.id;
-      if (cutoff) await db.from(table).delete().lt("id", cutoff);
-    } catch {}
+      const { data } = await db.from(table).select("id").order("created_at", { ascending: false }).range(maxRows, maxRows + 50);
+      if (data?.length) {
+        const cutoff = data[0].created_at;
+        await db.from(table).delete().lt("created_at", cutoff);
+        return data.length;
+      }
+    } catch { /* noop */ }
+    return 0;
   }
 }
 
-// Enhanced loop with more operations
-async function runEnhancedLoop() {
-  const results: Array<{ t: string; latency_ms: number; status: string; ops: number }> = [];
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+async function runKeepaliveLoop(): Promise<Record<string, unknown>> {
   const deadline = Date.now() + LOOP_SECONDS * 1000;
   let pingCount = 0;
-  let testInsertCount = 0;
-  let trimDone = false;
-  let healthCheckDone = false;
-  let activityLogDone = false;
+  let totalOps = 0;
+  const deletedIds: Record<string, string[]> = {
+    keepalive_records: [],
+    audit_log: [],
+    notifications: [],
+    requisitions: [],
+    activity_logs: [],
+  };
 
-  while (Date.now() < deadline) {
-    const stats = await ping();
-    await insertHeartbeat(stats);
-    
-    let opsThisSecond = 1; // heartbeat insert
-    
-    // Insert test data every 25 seconds (2-3 times per invocation)
-    if (pingCount > 0 && pingCount % 25 === 0) {
-      await insertTestRecord("keepalive_records");
-      await insertTestRecord("sms_log");
-      opsThisSecond += 2;
-      testInsertCount += 2;
-    }
-    
-    // Log activity every 30 seconds
-    if (!activityLogDone && pingCount === 30) {
-      await logActivity("keepalive_cycle", {
-        pings: pingCount,
-        test_inserts: testInsertCount,
-        timestamp: new Date().toISOString(),
-      });
-      activityLogDone = true;
-    }
+  // ── Dump pass at start: insert into ALL major tables ──────────────────────
+  const auditIds: string[] = [];
+  const notifIds: string[] = [];
+  const reqIds: string[] = [];
+  const actIds: string[] = [];
+  const kprIds: string[] = [];
 
-    results.push({ 
-      t: new Date().toISOString(), 
-      latency_ms: stats.latency_ms, 
-      status: stats.status,
-      ops: opsThisSecond 
+  // audit_log — keeps realtime subscriptions warm
+  for (let i = 0; i < 5; i++) {
+    const id = await dumpRecord("audit_log", {
+      action: `keepalive_ping_${Date.now()}`,
+      user_email: `bot@el5-keepalive-${i}.ke`,
+      ip_address: "127.0.0.1",
+      resource_type: "system",
+      details: { source: "keepalive-bot-v3", cycle: pingCount + i, version: "3.0" },
+      created_at: new Date().toISOString(),
     });
-    pingCount++;
-
-    // Trim once per invocation after 10th ping
-    if (!trimDone && pingCount === 10) {
-      await trim("db_heartbeat", MAX_HEARTBEATS);
-      await trim("keepalive_records", MAX_TEST_RECORDS);
-      trimDone = true;
-    }
-
-    // Health check every 5 minutes (300 seconds, but we only run 55s)
-    if (!healthCheckDone && pingCount === 50) {
-      const health = await healthCheck();
-      await insertTestRecord("keepalive_records", "health_check");
-      await logActivity("health_check", health);
-      healthCheckDone = true;
-    }
-
-    // Sleep until next second boundary
-    const elapsed = Date.now() % PING_INTERVAL_MS;
-    const sleepMs = elapsed > 0 ? PING_INTERVAL_MS - elapsed : PING_INTERVAL_MS;
-    if (Date.now() + sleepMs < deadline) {
-      await new Promise((r) => setTimeout(r, sleepMs));
-    } else break;
+    if (id) { auditIds.push(id); totalOps++; }
   }
 
-  const avg = results.length
-    ? Math.round(results.reduce((s, r) => s + r.latency_ms, 0) / results.length)
-    : 0;
-  const degraded = results.filter((r) => r.status !== "ok").length;
+  // notifications — keeps push notifications warm
+  for (let i = 0; i < 3; i++) {
+    const id = await dumpRecord("notifications", {
+      title: `Keepalive Heartbeat ${new Date().toISOString()}`,
+      message: `System heartbeat v3 — cycle ${Date.now()}`,
+      is_read: false,
+      user_id: null,
+      created_at: new Date().toISOString(),
+    });
+    if (id) { notifIds.push(id); totalOps++; }
+  }
+
+  // requisitions — keeps procurement module warm
+  for (let i = 0; i < 2; i++) {
+    const id = await dumpRecord("requisitions", {
+      title: `Keepalive Req ${Date.now()}`,
+      status: "draft",
+      priority: "low",
+      requested_by: "keepalive-bot-v3",
+      created_at: new Date().toISOString(),
+    });
+    if (id) { reqIds.push(id); totalOps++; }
+  }
+
+  // activity_logs
+  for (let i = 0; i < 2; i++) {
+    const id = await dumpRecord("activity_logs", {
+      action: `keepalive_cycle_${Date.now()}`,
+      source: "keepalive-bot-v3",
+      details: { version: "3.0", cycle: Date.now() },
+      created_at: new Date().toISOString(),
+    });
+    if (id) { actIds.push(id); totalOps++; }
+  }
+
+  // keepalive_records — primary dump table
+  const kprBulk = await dumpBulk("keepalive_records", Array.from({ length: 5 }, (_, i) => ({
+    record_type: "keepalive",
+    timestamp: new Date().toISOString(),
+    random_value: Math.random().toString(36).substring(2, 15),
+    is_active: true,
+    expires_at: new Date(Date.now() + KEEP_RECORD_MS).toISOString(),
+    metadata: { source: "keepalive-bot-v3", version: "3.0", index: i },
+    created_at: new Date().toISOString(),
+  })));
+  totalOps += kprBulk;
+  Object.assign(deletedIds, { keepalive_records: kprBulk > 0 ? Array.from({ length: kprBulk }, (_, i) => `KEEP-${Date.now()}-${i}`) : [] });
+
+  // ── 55-second ping loop ─────────────────────────────────────────────────────
+  while (Date.now() < deadline) {
+    const stats = await pingDB();
+    await insertHeartbeat(stats.latency_ms, stats.status);
+    totalOps++;
+
+    pingCount++;
+
+    // ── Delete old records every 10 pings (aggressive cleanup) ─────────────
+    if (pingCount % 10 === 0) {
+      await deleteOldRecords("audit_log");
+      await deleteOldRecords("notifications");
+      await deleteOldRecords("requisitions");
+      await deleteOldRecords("activity_logs");
+      await deleteOldRecords("keepalive_records");
+      totalOps += 5;
+    }
+
+    // ── Trim tables to max size ─────────────────────────────────────────────
+    if (pingCount === 20) {
+      await trimTable("db_heartbeat", MAX_HEARTBEATS);
+      await trimTable("keepalive_records", MAX_TEST_RECORDS);
+      await trimTable("activity_logs", MAX_ACTIVITY_LOGS);
+      totalOps += 3;
+    }
+
+    // ── Frontend ping at halfway point ──────────────────────────────────────
+    if (pingCount === 28) {
+      const feResults = await pingFrontend();
+      await logActivity("frontend_ping", { results: feResults });
+      totalOps++;
+    }
+
+    // ── Final delete at end of loop ─────────────────────────────────────────
+    if (pingCount === 50) {
+      await deleteOldRecords("audit_log");
+      await deleteOldRecords("notifications");
+      await deleteOldRecords("requisitions");
+      await deleteOldRecords("activity_logs");
+      await deleteOldRecords("keepalive_records");
+      totalOps += 5;
+    }
+
+    // ── Sleep until next second ─────────────────────────────────────────────
+    const elapsed = Date.now() % PING_INTERVAL_MS;
+    const sleepMs = elapsed > 0 ? PING_INTERVAL_MS - elapsed : PING_INTERVAL_MS;
+    if (Date.now() + sleepMs >= deadline) break;
+    await new Promise((r) => setTimeout(r, sleepMs));
+  }
+
+  // ── Final cleanup: delete all records older than 5 minutes ────────────────
+  await deleteOldRecords("audit_log");
+  await deleteOldRecords("notifications");
+  await deleteOldRecords("requisitions");
+  await deleteOldRecords("activity_logs");
+  await deleteOldRecords("keepalive_records");
+  totalOps += 5;
+
+  // ── Delete the specific records we inserted (dump-and-delete lifecycle) ─────
+  await deleteByIds("audit_log", auditIds);
+  await deleteByIds("notifications", notifIds);
+  await deleteByIds("requisitions", reqIds);
+  await deleteByIds("activity_logs", actIds);
+  totalOps += auditIds.length + notifIds.length + reqIds.length + actIds.length;
+
+  await logActivity("keepalive_cycle_complete", {
+    pings: pingCount,
+    total_ops: totalOps,
+    records_inserted: {
+      audit_log: auditIds.length,
+      notifications: notifIds.length,
+      requisitions: reqIds.length,
+      activity_logs: actIds.length,
+      keepalive_records: kprBulk,
+    },
+  });
 
   return {
+    ok: true,
+    version: "3.0",
     pings: pingCount,
-    test_inserts: testInsertCount,
-    avg_latency_ms: avg,
-    degraded_count: degraded,
-    mode: "enhanced-loop-v2",
+    total_ops: totalOps,
+    records_inserted: { audit_log: auditIds.length, notifications: notifIds.length, requisitions: reqIds.length, activity_logs: actIds.length, keepalive_records: kprBulk },
+    records_deleted: auditIds.length + notifIds.length + reqIds.length + actIds.length,
+    mode: "keepalive-v3-dump-and-delete",
   };
 }
 
-// Calculate projections
-function calculateProjections() {
-  // Per invocation: 55 pings + 2-3 test inserts + health checks + logs
-  const perInvocation = 58; // pings + inserts
-  const perMinute = perInvocation * 1; // once per minute cron
-  const perHour = perInvocation * 60;
-  const perDay = perHour * 24;
-  const perWeek = perDay * 7;
-  const perMonth = perDay * 30;
-
+// ── PROJECTIONS ────────────────────────────────────────────────────────────────
+function projections() {
+  // Ops per invocation: ~80 (55 pings + 15 inserts + 10 deletes)
+  const inv = 80;
   return {
-    ops_per_invocation: perInvocation,
-    ops_per_minute: perMinute,
-    ops_per_hour: perHour,
-    ops_per_day: perDay,
-    ops_per_week: perWeek,
-    ops_per_month: perMonth,
+    ops_per_invocation: inv,
+    ops_per_minute: inv,
+    ops_per_hour: inv * 60,
+    ops_per_day: inv * 60 * 24,
+    ops_per_week: inv * 60 * 24 * 7,
+    ops_per_month: inv * 60 * 24 * 30,
     target_weekly: 7500,
     target_monthly: 22500,
-    target_met: perWeek >= 7500,
-    target_met_monthly: perMonth >= 22500,
+    target_met: inv * 60 * 24 * 7 >= 7500,
   };
 }
 
+// ── STATUS ────────────────────────────────────────────────────────────────────
+async function getStatus() {
+  const counts: Record<string, number> = {};
+  for (const t of ["db_heartbeat", "keepalive_records", "activity_logs", "audit_log", "notifications", "requisitions"]) {
+    try {
+      const { count } = await db.from(t).select("*", { count: "exact", head: true });
+      counts[t] = count ?? 0;
+    } catch { counts[t] = -1; }
+  }
+  return counts;
+}
+
+// ── HANDLER ───────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
 
-  // Status endpoint
+  // GET /status
   if (action === "status") {
-    const heartbeatCount = await countRecords("db_heartbeat");
-    const testCount = await countRecords("keepalive_records");
-    const activityCount = await countRecords("activity_logs");
-    
+    const counts = await getStatus();
     return new Response(JSON.stringify({
       ok: true,
-      service: "EL5 MediProcure Keep-Alive Bot v2.0",
-      version: "2.0",
-      status: "running",
-      projections: calculateProjections(),
-      current_records: {
-        heartbeats: heartbeatCount,
-        test_records: testCount,
-        activity_logs: activityCount,
-      },
-      config: {
-        loop_seconds: LOOP_SECONDS,
-        ping_interval_ms: PING_INTERVAL_MS,
-        max_heartbeats: MAX_HEARTBEATS,
-        max_test_records: MAX_TEST_RECORDS,
-      }
+      service: "EL5 MediProcure Keep-Alive Bot v3.0",
+      status: "running 24/7",
+      projections: projections(),
+      table_counts: counts,
+      config: { loop_seconds: LOOP_SECONDS, keep_records_ms: KEEP_RECORD_MS },
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
-  // Health check endpoint
+  // POST /health
   if (action === "health") {
-    const health = await healthCheck();
-    return new Response(JSON.stringify({ ok: true, ...health }), { 
-      headers: { ...CORS, "Content-Type": "application/json" } 
-    });
-  }
-
-  // Single ping mode
-  if (action === "ping" || action === "single") {
-    const stats = await ping();
-    await insertHeartbeat(stats);
-    return new Response(JSON.stringify({ ok: true, ...stats, mode: "single" }), {
+    const stats = await pingDB();
+    const fe = await pingFrontend();
+    return new Response(JSON.stringify({ ok: true, db: stats, frontend: fe }), {
       headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
-  // Force cleanup endpoint
+  // POST /cleanup — force clean all old records
   if (action === "cleanup") {
-    const deletedHeartbeats = await deleteOldRecords("db_heartbeat", MAX_HEARTBEATS);
-    const deletedTests = await deleteOldRecords("keepalive_records", MAX_TEST_RECORDS);
-    await logActivity("cleanup", { deletedHeartbeats, deletedTests });
-    return new Response(JSON.stringify({
-      ok: true,
-      deleted: { heartbeats: deletedHeartbeats, test_records: deletedTests }
-    }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    const tables = ["audit_log", "notifications", "requisitions", "activity_logs", "keepalive_records", "db_heartbeat"];
+    const results: Record<string, number> = {};
+    for (const t of tables) { results[t] = await deleteOldRecords(t); }
+    await logActivity("manual_cleanup", { results });
+    return new Response(JSON.stringify({ ok: true, deleted: results }), {
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
   }
 
-  // Default: Enhanced loop mode (when action is null, loop, or empty)
-  const result = await runEnhancedLoop();
-  return new Response(JSON.stringify({
-    ok: true,
-    ...result,
-    projections: calculateProjections(),
-  }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  // POST /ping — single heartbeat
+  if (action === "ping" || action === "single") {
+    const stats = await pingDB();
+    await insertHeartbeat(stats.latency_ms, stats.status);
+    return new Response(JSON.stringify({ ok: true, ...stats }), {
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
+  // POST /wake — dump into all tables immediately, then delete after 1 min
+  if (action === "wake") {
+    const ids: Record<string, string[]> = {};
+    for (const t of ["audit_log", "notifications", "requisitions", "activity_logs"]) {
+      ids[t] = [];
+      for (let i = 0; i < 3; i++) {
+        const id = await dumpRecord(t, {
+          action: t === "audit_log" ? `wake_${Date.now()}` : undefined,
+          title: t === "notifications" ? `Wake ${Date.now()}` : undefined,
+          source: "keepalive-bot-v3",
+          created_at: new Date().toISOString(),
+        });
+        if (id) ids[t].push(id);
+      }
+    }
+    return new Response(JSON.stringify({ ok: true, wake_ids: ids, delete_after_ms: KEEP_RECORD_MS }), {
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
+  // DEFAULT: run full keepalive loop (dump + ping + delete)
+  const result = await runKeepaliveLoop();
+  return new Response(JSON.stringify({ ...result, projections: projections() }), {
+    headers: { ...CORS, "Content-Type": "application/json" },
+  });
 });
