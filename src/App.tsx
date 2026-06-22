@@ -34,6 +34,7 @@ import SuppliersPage from "@/pages/SuppliersPage";
 import GoodsReceivedPage from "@/pages/GoodsReceivedPage";
 import DepartmentsPage from "@/pages/DepartmentsPage";
 import ReportsPage from "@/pages/ReportsPage";
+import AboutPage from "@/pages/AboutPage";
 import ContractsPage from "@/pages/ContractsPage";
 import TendersPage from "@/pages/TendersPage";
 import BidEvaluationsPage from "@/pages/BidEvaluationsPage";
@@ -145,6 +146,7 @@ const App = () => (
 
             {/* Reports & Docs */}
             <Route path="/reports" element={<P><ReportsPage /></P>} />
+            <Route path="/about" element={<P><AboutPage /></P>} />
             <Route path="/reports/system-utilization" element={<P><SystemReportPage /></P>} />
             <Route path="/reports/print-engine" element={<P><PrintEnginePage /></P>} />
             <Route path="/bi" element={<Navigate to="/reports" replace />} />

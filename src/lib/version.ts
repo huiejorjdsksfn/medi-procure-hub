@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.12.0";
+export const APP_VERSION = "11.14.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,19 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.14.0", date: "2026-06-22",  status: "stable", codename: "Notifications Pro",
+    highlights: [
+      "New notification-hub edge function: Unified API for SMS, WhatsApp, Email, and Voice Calls",
+      "Bulk Actions: Multi-select requisitions for bulk approve, reject, forward, and notify",
+      "System Utilization Report: Complete redesign with KPI cards, trend indicators, and department breakdown",
+      "Tracking Approval Page: Checkbox selection, bulk action bar, and dedicated Notifications tab",
+      "About Page: New comprehensive about page with organization info and system overview",
+      "Updated README with new features and changelog",
+      "Build verified: Passing with zero errors",
+    ],
+    dbMigrations: 0, bugsFixed: 0,
+    engines: ["React 18", "Vite 5", "Supabase"],
+    modules: ["Notifications", "Reports", "Requisitions", "UI"] },
   { version: "11.12.0", date: "2026-06-21",  status: "stable", codename: "Mobile Auto-Fit",
     highlights: [
       "Tables: every <table> in the app is now its own horizontal-scroll container on phones/tablets (≤1024px) — thead/tbody/tr keep normal table flow internally so column alignment is preserved, only the outer table scrolls. Fixes data/columns being clipped or cut off on small screens",
