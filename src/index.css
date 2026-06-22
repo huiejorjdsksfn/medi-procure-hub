@@ -290,3 +290,145 @@ body { overflow-x: hidden; }
     --font-size-lg:   20px;
   }
 }
+
+/* ================================================================
+   MOBILE / TABLET AUTO-FIT v1.0
+   Most pages in this app use inline style={{}} objects (no Tailwind
+   classNames), so global CSS can't target individual page layouts
+   directly. These rules target either bare HTML tags (which inline
+   styles rarely override) or use attribute selectors that match
+   substrings inside the rendered `style` attribute — a pragmatic way
+   to retrofit responsiveness across 70+ pages without rewriting each
+   one's inline layout. Covers phones (≤640px) and tablets (641–1024px).
+   ================================================================ */
+
+/* ── Tables: every <table> becomes its own horizontal scroll
+   container on small screens. thead/tbody/tr keep normal table flow
+   internally, so column alignment is preserved — only the outer
+   <table> element scrolls. This is the standard CSS-only fix for
+   unwrapped tables and works regardless of what inline styles the
+   table itself carries (display/overflow are rarely set inline). */
+@media (max-width: 1024px) {
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+    max-width: 100% !important;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 6px;
+  }
+  table thead, table tbody, table tr { display: table; width: 100%; table-layout: auto; }
+  /* Keep a visible scroll affordance on touch devices */
+  table::-webkit-scrollbar { height: 6px; }
+}
+
+/* ── Grids: collapse the very common inline gridTemplateColumns
+   patterns (repeat(2..8,1fr)) down to fewer columns on phones, and a
+   medium count on tablets, instead of squeezing N equal columns into
+   a 360–768px viewport. Matched via attribute substring since these
+   elements have no class. */
+@media (max-width: 640px) {
+  [style*="grid-template-columns:repeat(8"],
+  [style*="grid-template-columns: repeat(8"],
+  [style*="grid-template-columns:repeat(7"],
+  [style*="grid-template-columns: repeat(7"],
+  [style*="grid-template-columns:repeat(6"],
+  [style*="grid-template-columns: repeat(6"],
+  [style*="grid-template-columns:repeat(5"],
+  [style*="grid-template-columns: repeat(5"],
+  [style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  [style*="grid-template-columns:repeat(3"],
+  [style*="grid-template-columns: repeat(3"],
+  [style*="grid-template-columns:repeat(2"],
+  [style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* "span 2" / "span 3" cells inside a now-single/double column grid
+     would otherwise overflow their collapsed parent */
+  [style*="gridColumn:\"span"], [style*="grid-column:span"], [style*="grid-column: span"] {
+    grid-column: 1 / -1 !important;
+  }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+  [style*="grid-template-columns:repeat(8"],
+  [style*="grid-template-columns: repeat(8"],
+  [style*="grid-template-columns:repeat(7"],
+  [style*="grid-template-columns: repeat(7"],
+  [style*="grid-template-columns:repeat(6"],
+  [style*="grid-template-columns: repeat(6"],
+  [style*="grid-template-columns:repeat(5"],
+  [style*="grid-template-columns: repeat(5"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  [style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── Flex toolbars: button rows that don't already wrap will overflow
+   off-screen on a phone width. Force-wrap any flex row on small
+   screens (gap is preserved so wrapped rows still look intentional).
+   React always serializes inline styles as standard CSS text
+   ("display: flex;"), regardless of the JS object syntax used to
+   define them, so the selector only needs to match that rendered form. */
+@media (max-width: 640px) {
+  [style*="display: flex"][style*="gap"] {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* ── Buttons & inputs: guarantee a comfortable touch target and
+   prevent text/icons from being squeezed unreadably small. */
+@media (max-width: 640px) {
+  button, [role="button"] { min-height: 38px; }
+  input, select, textarea { min-height: 36px; font-size: 14px !important; }
+}
+
+/* ── Fixed-pixel-width modals/panels: many inline modals are sized
+   like width:480 / width:520 for desktop. Clamp them to the viewport
+   on phones and tablets so they don't get clipped or force page-level
+   horizontal scroll. Matches the rendered "width: 480px" CSS text. */
+@media (max-width: 640px) {
+  [style*="position: fixed"][style*="width: 380px"],
+  [style*="position: fixed"][style*="width: 400px"],
+  [style*="position: fixed"][style*="width: 420px"],
+  [style*="position: fixed"][style*="width: 440px"],
+  [style*="position: fixed"][style*="width: 460px"],
+  [style*="position: fixed"][style*="width: 480px"],
+  [style*="position: fixed"][style*="width: 500px"],
+  [style*="position: fixed"][style*="width: 520px"],
+  [style*="position: fixed"][style*="width: 540px"],
+  [style*="position: fixed"][style*="width: 560px"],
+  [style*="position: fixed"][style*="width: 600px"],
+  [style*="position: fixed"][style*="width: 640px"] {
+    width: 94vw !important;
+    max-width: 94vw !important;
+  }
+}
+
+/* ── ERP Wheel: a fixed 480x480 decorative SVG (dashboard centerpiece)
+   that otherwise overflows phone screens. Targeted by its known viewBox
+   so small lucide-react icon SVGs elsewhere are unaffected. */
+@media (max-width: 640px) {
+  svg[viewBox="0 0 480 480"] {
+    width: 92vw !important;
+    height: 92vw !important;
+    max-width: 380px !important;
+    max-height: 380px !important;
+  }
+}
+
+/* ── KPI / stat tile rows commonly use repeat(auto-fit/auto-fill...)
+   with a large minmax — keep those but shrink the minimum so 2 tiles
+   fit a phone row instead of 1. */
+@media (max-width: 640px) {
+  [style*="minmax(200px"], [style*="minmax(220px"], [style*="minmax(240px"],
+  [style*="minmax(250px"], [style*="minmax(260px"], [style*="minmax(280px"] {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+  }
+}
