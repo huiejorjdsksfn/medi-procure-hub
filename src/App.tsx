@@ -18,7 +18,6 @@ import AccountantWorkspacePage from "@/pages/AccountantWorkspacePage";
 import FinanceWorkspacePage from "@/pages/FinanceWorkspacePage";
 import FinanceDashboardPage from "@/pages/FinanceDashboardPage";
 import NotificationsPage from "@/pages/NotificationsPage";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NetworkGuard from "@/components/NetworkGuard";
 import ResponsiveBot from "@/components/ResponsiveBot";
 import SessionBot from "@/components/SessionBot";
@@ -122,7 +121,6 @@ const App = () => (
           <NetworkGuard>
             <SessionBot />
             <KeepAliveBot />
-            <PWAInstallPrompt />
             <ErrorBoundary pageName="Routing">
             <Routes>
             <Route path="/login" element={<LoginPage />} />
