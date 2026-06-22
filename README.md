@@ -1,10 +1,10 @@
-# 🏥 EL5 MediProcure — ProcurBosse v11.13.0
+# 🏥 EL5 MediProcure — ProcurBosse v11.14.0
 
 **Hospital Procurement & ERP System — Embu Level 5 Hospital, Embu County Government, Kenya**
 
-> Full procure-to-pay workflow · WhatsApp Business automation · Role-based access · Native Mobile Apps · Twilio integration · Supabase/PostgreSQL backend
+> Full procure-to-pay workflow · WhatsApp Business automation · Role-based access · Native Mobile Apps · Multi-channel notifications · Bulk actions · Supabase/PostgreSQL backend
 
-[![Version](https://img.shields.io/badge/version-11.13.0-brightgreen)](https://github.com/huiejorjdsksfn/medi-procure-hub/releases)
+[![Version](https://img.shields.io/badge/version-11.14.0-brightgreen)](https://github.com/huiejorjdsksfn/medi-procure-hub/releases)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/huiejorjdsksfn/medi-procure-hub/actions)
 [![Platform](https://img.shields.io/badge/platform-Web%20%7C%20Electron%20%7C%20iOS%20%7C%20Android-blue)](https://procurbosse.edgeone.app)
 [![Stack](https://img.shields.io/badge/stack-React%2018%20%2B%20Supabase%20%2B%20Capacitor-blueviolet)](https://github.com/huiejorjdsksfn/medi-procure-hub)
@@ -139,16 +139,22 @@
 
 ---
 
-## 🚀 Recent Highlights (v11.11.0 → v11.13.0)
+## 🚀 Recent Highlights (v11.12.0 → v11.14.0)
 
+### v11.14.0 - Multi-Channel Notifications & Bulk Actions
+- **Notification Hub API**: Unified API for SMS, WhatsApp, Email, and Voice Calls
+- **Bulk Actions**: Multi-select requisitions for bulk approve, reject, forward, and notify
+- **System Utilization Report**: Redesigned dashboard with KPI cards, trend indicators, and department breakdown
+- **Improved Tracking Page**: Checkbox selection, bulk action bar, and dedicated Notifications tab
+
+### v11.13.0 - Full App Suite
 - **Native Mobile Apps**: Full iOS and Android support via Capacitor with push notifications, haptic feedback, and auto-update
 - **Professional Enterprise Dashboard**: Complete redesign with modern gradient UI, professional cards, and improved visualizations
 - **Specialized Apps**: IT Admin App (full Supabase access), Kiosk App (self-service), Server/IT App (full access + overview)
 - **GitHub Releases Integration**: Direct downloads from GitHub releases without Supabase dependency
-- **Schema reconciliation**: fixed a recurring class of bugs caused by duplicate, conflicting `CREATE TABLE IF NOT EXISTS` migrations
-- **Numeric/date input hardening**: empty-string form fields no longer crash inserts on numeric/date columns across 8+ forms
-- **Auth resilience**: fixed user data blanking after a few seconds and role-flip-on-refresh bugs in `AuthContext`
-- **Security**: resolved 35+ npm vulnerabilities (4 critical → 0), replaced the abandoned/vulnerable `xlsx` package
+
+### v11.12.0 - Enterprise Pro
+- Complete Enterprise Dashboard UI overhaul with modern gradients and professional styling
 
 See the in-app **Changelog** page (Admin → Changelog) for the full version-by-version history.
 
@@ -308,6 +314,7 @@ Full version-by-version history (40+ releases) is maintained in-app at **Admin �
 
 | Version | Codename | Summary |
 |---|---|---|
+| **11.14.0** | **Notifications Pro** | Notification Hub API (SMS/WhatsApp/Email/Call), Bulk Actions, System Utilization Redesign |
 | **11.13.0** | **Full App Suite** | Native iOS/Android via Capacitor, IT Admin/Kiosk/Server apps, professional Enterprise Dashboard redesign |
 | 11.12.0 | Enterprise Pro | Complete Enterprise Dashboard UI overhaul with modern gradients and professional styling |
 | 11.11.0 | Mobile Launch | iOS and Android native apps with Capacitor, auto-update service |
