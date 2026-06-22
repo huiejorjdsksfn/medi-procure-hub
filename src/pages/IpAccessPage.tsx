@@ -97,7 +97,7 @@ export default function IpAccessPage() {
       const [rulesRes, sessRes, logsRes] = await Promise.allSettled([
         db.from("ip_access_rules").select("*").order("created_at", { ascending: false }).limit(300),
         db.from("user_sessions").select("*").order("last_activity", { ascending: false }).limit(150),
-        db.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500),
+        db.from("audit_log").select("*").order("created_at", { ascending: false }).limit(500),
       ]);
       if (rulesRes.status === "fulfilled") setRules(rulesRes.value.data || []);
       if (sessRes.status === "fulfilled") setSessions(sessRes.value.data || []);
@@ -122,7 +122,7 @@ export default function IpAccessPage() {
   useEffect(() => {
     const ch = db.channel("ip_access_v2")
       .on("postgres_changes", { event: "*", schema: "public", table: "ip_access_rules" }, () => loadAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_logs" }, (payload: any) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, (payload: any) => {
         const log = payload.new;
         setLiveLog(prev => [`${new Date().toLocaleTimeString()} - ${log.action} - ${log.ip_address || "?"} - ${log.user_email || "system"}`, ...prev.slice(0, 49)]);
         setAuditLogs(prev => [log, ...prev.slice(0, 499)]);

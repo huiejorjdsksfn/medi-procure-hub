@@ -103,7 +103,7 @@ export default function AdminTrackerPage() {
     const [devRes, sessRes, logRes] = await Promise.allSettled([
       getAllDeviceSessions(),
       db.from("user_sessions").select("*").order("last_activity", { ascending: false }).limit(150),
-      db.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500),
+      db.from("audit_log").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
     if (devRes.status   === "fulfilled") setDevices(devRes.value);
     if (sessRes.status  === "fulfilled") setSessions(sessRes.value.data || []);
@@ -126,7 +126,7 @@ export default function AdminTrackerPage() {
     if (!rtActive) { if (rtChan.current) { supabase.removeChannel(rtChan.current); rtChan.current = null; } return; }
     const push = (line: string) => setRtLines(p => [line, ...p.slice(0, 199)]);
     rtChan.current = db.channel("admin_tracker_rt_v2")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_logs" }, (p: any) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, (p: any) => {
         const l = p.new;
         push(`${new Date().toLocaleTimeString("en-KE")} | ${l.action} | ${l.user_email || "system"} | ${l.ip_address || "?"} | ${l.resource_type || ""}`);
       })
@@ -138,7 +138,7 @@ export default function AdminTrackerPage() {
         push(`${new Date().toLocaleTimeString("en-KE")} | IP_RULE_${p.eventType} | ${p.new?.ip_address || p.old?.ip_address || "?"} | ${p.new?.rule_type || ""}`);
       })
       .subscribe((status: string) => {
-        if (status === "SUBSCRIBED") push("✅ Realtime connected — listening to audit_logs, user_sessions, ip_access_rules");
+        if (status === "SUBSCRIBED") push("✅ Realtime connected — listening to audit_log, user_sessions, ip_access_rules");
         if (status === "CHANNEL_ERROR") push("❌ Realtime error — check Supabase subscription");
       });
     return () => { if (rtChan.current) supabase.removeChannel(rtChan.current); };
@@ -149,7 +149,7 @@ export default function AdminTrackerPage() {
     const { error } = await db.from("user_sessions").update({ is_active: false, last_activity: new Date().toISOString() }).eq("id", id);
     if (!error) {
       // Log the kill action
-      await db.from("audit_logs").insert({ action: "session_kill", user_email: email, details: { killed_by: "admin", session_id: id }, resource_type: "session", created_at: new Date().toISOString() });
+      await db.from("audit_log").insert({ action: "session_kill", user_email: email, details: { killed_by: "admin", session_id: id }, resource_type: "session", created_at: new Date().toISOString() });
       toast({ title: `✓ Session killed for ${email}` });
       loadAll();
     } else toast({ title: "Error: " + error.message, variant: "destructive" });
@@ -416,7 +416,7 @@ export default function AdminTrackerPage() {
         {tab === "realtime" && (
           <div>
             <div style={{ background: "#0c1a2e", border: "1px solid #0369a144", padding: "8px 12px", marginBottom: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderRadius: 4 }}>
-              <span style={{ fontSize: 12, color: "#7dd3fc", fontWeight: 700 }}>📡 Realtime Event Console — audit_logs · user_sessions · ip_access_rules</span>
+              <span style={{ fontSize: 12, color: "#7dd3fc", fontWeight: 700 }}>📡 Realtime Event Console — audit_log · user_sessions · ip_access_rules</span>
               <button onClick={() => setRtActive(v => !v)} style={{ padding: "3px 10px", background: rtActive ? "#0369a1" : "#0369a122", border: "1px solid #0369a1", borderRadius: 4, color: "#7dd3fc", fontSize: 10, cursor: "pointer" }}>
                 {rtActive ? "🔴 Disconnect" : "▶ Connect"}
               </button>

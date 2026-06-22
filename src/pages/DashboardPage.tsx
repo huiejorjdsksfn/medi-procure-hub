@@ -89,8 +89,8 @@ export default function DashboardPage() {
       contracts:    g(conR),
       tenders:      g(tenR),
     });
-    // Recent activity from audit_logs
-    const {data:acts} = await db.from("audit_logs").select("*").order("created_at",{ascending:false}).limit(8);
+    // Recent activity from audit_log
+    const {data:acts} = await db.from("audit_log").select("*").order("created_at",{ascending:false}).limit(8);
     setActivity(acts||[]);
     setLoading(false);
   },[]);

@@ -138,7 +138,7 @@ export default function UsersIpAuditPage() {
     setLoading(true);
     try {
       const [logsRes, usersRes, sessionsRes, whitelistRes] = await Promise.allSettled([
-        db.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(1000),
+        db.from("audit_log").select("*").order("created_at", { ascending: false }).limit(1000),
         db.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
         db.from("user_sessions").select("*").order("last_activity", { ascending: false }).limit(300),
         db.from("ip_whitelist").select("*").order("created_at", { ascending: false }).limit(500),
@@ -178,17 +178,21 @@ export default function UsersIpAuditPage() {
     return () => clearInterval(id);
   }, [autoRefresh, loadAll]);
 
-  // Real-time
+  // Real-time — all related tables
   useEffect(() => {
-    const ch = db.channel("users_ip_audit_v2")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_logs" }, (payload: any) => {
+    const ch = db.channel("users_ip_audit_v3")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, (payload: any) => {
         const log = payload.new;
         setLiveActivity(prev => [`${new Date().toLocaleTimeString()} - ${log.action} - ${log.user_email || "system"} - ${log.ip_address || "?"}`, ...prev.slice(0, 9)]);
         setAuditLogs(prev => [log, ...prev.slice(0, 999)]);
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_sessions" }, () => loadAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ip_whitelist" }, () => loadAll())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ip_access_rules" }, () => loadAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+  }, [loadAll]);
 
   const today = new Date().toDateString();
   const uniqueIPs = useMemo(() => [...new Set(auditLogs.map(l => l.ip_address).filter(Boolean))], [auditLogs]);
