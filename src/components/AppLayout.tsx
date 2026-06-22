@@ -65,7 +65,6 @@ const MODS = [
    roles:["admin","superadmin","webmaster","procurement_manager","procurement_officer","requisitioner","inventory_manager","warehouse_officer"],
    items:[
      {l:"Home",           p:"/dashboard",           I:Home},
-     {l:"Enterprise View",p:"/dashboard/enterprise",I:LayoutGrid},
      {l:"Tracking & Approval",p:"/tracking-approval",I:CheckCircle},
      {l:"Requisitions",   p:"/requisitions",        I:ClipboardList, b:"requisitions"},
      {l:"Purchase Orders",p:"/purchase-orders",     I:ShoppingCart,  b:"purchase_orders"},

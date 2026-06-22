@@ -18,7 +18,6 @@ import {
   HardDrive, Package, Star, AlertCircle, ExternalLink,
   ArrowLeft, Shield, Cpu, Zap, Wrench, FolderOpen, Play,
   X, Check, AlertTriangle, Loader2, FileArchive, ShieldCheck,
-  Server,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -28,92 +27,6 @@ const GITHUB_API = "https://api.github.com/repos/huiejorjdsksfn/medi-procure-hub
 const VCREDIST_URLS = {
   x64: "https://aka.ms/vs/17/release/vc_redist.x64.exe",
   x86: "https://aka.ms/vs/17/release/vc_redist.x86.exe",
-};
-const WEB_APP_URL = "https://procurbosse.edgeone.app";
-
-// Platform detection
-const detectPlatform = (): "windows" | "macos" | "linux" | "ios" | "android" | "other" => {
-  if (typeof navigator === "undefined") return "other";
-  const ua = navigator.userAgent.toLowerCase();
-  
-  // Check for Capacitor native platforms first
-  // @ts-ignore
-  const isCapacitor = window.Capacitor?.isNativePlatform?.() || 
-                      window.capacitor?.isNative?.() ||
-                      (typeof window.webkit !== "undefined" && window.webkit.messageHandlers?.CapacitorApp);
-  
-  if (isCapacitor) {
-    // @ts-ignore
-    const platform = window.Capacitor?.getPlatform?.() || 
-                    window.capacitor?.platform;
-    if (platform === 'ios') return "ios";
-    if (platform === 'android') return "android";
-  }
-  
-  // Fallback to user agent detection
-  if (ua.includes("iphone") || ua.includes("ipad")) return "ios";
-  if (ua.includes("android")) return "android";
-  if (ua.includes("win")) return "windows";
-  if (ua.includes("mac")) return "macos";
-  if (ua.includes("linux")) return "linux";
-  return "other";
-};
-
-const PLATFORM_META = {
-  windows: {
-    label: "Windows",
-    icon: Monitor,
-    color: "#0078d4",
-    bg: "#eff6ff",
-    desc: "Download and install the desktop app",
-    supportsDesktop: true,
-    supportsMobile: false,
-  },
-  macos: {
-    label: "macOS",
-    icon: Monitor,
-    color: "#333333",
-    bg: "#f5f5f5",
-    desc: "Download and install the desktop app",
-    supportsDesktop: true,
-    supportsMobile: false,
-  },
-  linux: {
-    label: "Linux",
-    icon: Monitor,
-    color: "#e95420",
-    bg: "#fff4f0",
-    desc: "Download and install the desktop app",
-    supportsDesktop: true,
-    supportsMobile: false,
-  },
-  ios: {
-    label: "iOS",
-    icon: Package,
-    color: "#007aff",
-    bg: "#f0f7ff",
-    desc: "Download and install the native iOS app",
-    supportsDesktop: false,
-    supportsMobile: true,
-  },
-  android: {
-    label: "Android",
-    icon: Package,
-    color: "#3ddc84",
-    bg: "#f0fff4",
-    desc: "Download and install the native Android app",
-    supportsDesktop: false,
-    supportsMobile: true,
-  },
-  other: {
-    label: "Desktop/Web",
-    icon: Globe,
-    color: "#059669",
-    bg: "#f0fdf4",
-    desc: "Download desktop app or access via web",
-    supportsDesktop: true,
-    supportsMobile: true,
-  },
 };
 
 // ─── types ──────────────────────────────────────────────────────────────────
@@ -137,21 +50,6 @@ interface GHRelease {
   html_url: string;
   assets: GHAsset[];
 }
-
-// Asset kind extended for mobile
-type AssetKind = "win64" | "win32" | "web" | "launcher" | "checksum" | "android" | "ios" | "other";
-
-const assetKind = (name: string): AssetKind => {
-  const lower = name.toLowerCase();
-  if (lower.includes("android") || lower.endsWith(".apk") || lower.includes("-android")) return "android";
-  if (lower.includes("ios") || lower.endsWith(".ipa")) return "ios";
-  if (lower.includes("win-x64") || lower.includes("win64")) return "win64";
-  if (lower.includes("win-ia32")) return "win32";
-  if (lower.includes("web.zip") || lower.includes("-web.")) return "web";
-  if (lower.endsWith(".bat") || lower.endsWith(".cmd") || lower.endsWith(".sh")) return "launcher";
-  if (lower.includes("sha256") || lower.endsWith(".txt")) return "checksum";
-  return "other";
-};
 interface DownloadProgress {
   assetId: number;
   name: string;
@@ -182,44 +80,22 @@ const fmtSpeed = (bytesPerSec: number) => {
   return `${bytesPerSec.toFixed(0)} B/s`;
 };
 
-const KIND_META = {
-  win64:    { label: "Windows 64-bit",  icon: Monitor,   color: "#0078d4", bg: "#eff6ff", desc: "Recommended for modern PCs (most common)" },
-  win32:    { label: "Windows 32-bit",  icon: Cpu,       color: "#6b7280", bg: "#f9fafb", desc: "For older 32-bit Windows systems" },
-  android:  { label: "Android App",      icon: Package,   color: "#3ddc84", bg: "#f0fff4", desc: "Install directly on Android (.apk)" },
-  ios:      { label: "iOS App",          icon: Package,   color: "#007aff", bg: "#f0f7ff", desc: "Sideload on iPhone/iPad (.ipa)" },
-  web:      { label: "Web Bundle",      icon: Globe,     color: "#059669", bg: "#f0fdf4", desc: "Self-contained web app — run with any web server" },
-  launcher: { label: "Launcher Script", icon: Terminal,  color: "#7c3aed", bg: "#faf5ff", desc: "Quick-start .bat / .cmd scripts" },
-  checksum: { label: "Checksum",        icon: Shield,    color: "#94a3b8", bg: "#f8fafc", desc: "SHA-256 hash verification file" },
-  other:    { label: "Other",           icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
-type AssetKindType = "win64" | "win32" | "web" | "launcher" | "checksum" | "android" | "ios" | "admin" | "kiosk" | "server" | "other";
-
-const assetKind = (name: string): AssetKindType => {
-  const lower = name.toLowerCase();
-  if (lower.includes("android") || lower.endsWith(".apk") || lower.includes("-android")) return "android";
-  if (lower.includes("ios") || lower.endsWith(".ipa")) return "ios";
-  if (lower.includes("admin") || lower.includes("it-admin") || lower.includes("server-app")) return "admin";
-  if (lower.includes("kiosk")) return "kiosk";
-  if (lower.includes("server") && lower.includes("windows")) return "server";
-  if (lower.includes("win-x64") || lower.includes("windows-x64")) return "win64";
-  if (lower.includes("win-ia32") || lower.includes("windows-ia32")) return "win32";
-  if (lower.includes("web.zip") || lower.includes("-web.")) return "web";
-  if (lower.endsWith(".bat") || lower.endsWith(".cmd") || lower.endsWith(".sh")) return "launcher";
-  if (lower.includes("sha256") || lower.endsWith(".txt")) return "checksum";
+const assetKind = (name: string): "win64" | "win32" | "web" | "launcher" | "checksum" | "other" => {
+  if (name.includes("win-x64")) return "win64";
+  if (name.includes("win-ia32")) return "win32";
+  if (name.includes("Web.zip") || name.includes("-Web.")) return "web";
+  if (name.endsWith(".bat") || name.endsWith(".cmd") || name.endsWith(".sh")) return "launcher";
+  if (name.includes("SHA256") || name.endsWith(".txt")) return "checksum";
   return "other";
 };
 
 const KIND_META = {
-  win64:    { label: "Windows App (x64)", icon: Monitor,   color: "#0078d4", bg: "#eff6ff", desc: "Standard Windows desktop app for procurement staff" },
-  win32:    { label: "Windows App (x86)", icon: Cpu,       color: "#6b7280", bg: "#f9fafb", desc: "For older 32-bit Windows systems" },
-  android:  { label: "Android App",        icon: Package,   color: "#3ddc84", bg: "#f0fff4", desc: "Native Android app — install directly on devices" },
-  ios:      { label: "iOS App",           icon: Package,   color: "#007aff", bg: "#f0f7ff", desc: "Native iOS app — sideload on iPhone/iPad" },
-  admin:    { label: "IT Admin App",      icon: Shield,    color: "#8b5cf6", bg: "#faf5ff", desc: "Full system control — Supabase access + admin features" },
-  kiosk:    { label: "Kiosk App",        icon: Monitor,   color: "#f59e0b", bg: "#fffbeb", desc: "Self-service kiosk for visitors and staff" },
-  server:   { label: "Server/IT App",     icon: Server,   color: "#10b981", bg: "#f0fdf4", desc: "Server management — full access + overview dashboard" },
-  web:      { label: "Web Bundle",         icon: Globe,     color: "#059669", bg: "#f0fdf4", desc: "Self-hosted web app — run with any web server" },
-  launcher: { label: "Launcher Script",    icon: Terminal,  color: "#7c3aed", bg: "#faf5ff", desc: "Quick-start scripts (.bat / .cmd / .sh)" },
-  checksum: { label: "Checksum",          icon: Shield,    color: "#94a3b8", bg: "#f8fafc", desc: "SHA-256 hash verification file" },
-  other:    { label: "Other",             icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
+  win64:    { label: "Windows 64-bit",  icon: Monitor,   color: "#0078d4", bg: "#eff6ff", desc: "Recommended for modern PCs (most common)" },
+  win32:    { label: "Windows 32-bit",  icon: Cpu,       color: "#6b7280", bg: "#f9fafb", desc: "For older 32-bit Windows systems" },
+  web:      { label: "Web Bundle",      icon: Globe,     color: "#059669", bg: "#f0fdf4", desc: "Self-contained web app — run with any web server" },
+  launcher: { label: "Launcher Script", icon: Terminal,  color: "#7c3aed", bg: "#faf5ff", desc: "Quick-start .bat / .cmd scripts" },
+  checksum: { label: "Checksum",        icon: Shield,    color: "#94a3b8", bg: "#f8fafc", desc: "SHA-256 hash verification file" },
+  other:    { label: "Other",           icon: Package,   color: "#64748b", bg: "#f8fafc", desc: "" },
 };
 
 // ─── Direct GitHub API fetch ────────────────────────────────────────────────
@@ -266,9 +142,6 @@ export default function ReleasesPage() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "stable" | "pre">("all");
   
-  // Platform detection
-  const [platform, setPlatform] = useState<ReturnType<typeof detectPlatform>>("other");
-  
   // Download progress tracking
   const [downloadProgress, setDownloadProgress] = useState<Record<string, DownloadProgress>>({});
   const activeDownloads = useRef<Set<string>>(new Set());
@@ -280,11 +153,6 @@ export default function ReleasesPage() {
     appExtracting: false,
     appReady: false,
   });
-  
-  // Detect platform on mount
-  useEffect(() => {
-    setPlatform(detectPlatform());
-  }, []);
 
   // ─── Load releases with dual fallback ─────────────────────────────────────
   const load = useCallback(async () => {
@@ -755,101 +623,6 @@ export default function ReleasesPage() {
           </div>
         )}
 
-        {/* ── Platform Detection Banner ─────────────────────────────────────── */}
-        <div style={{
-          background: PLATFORM_META[platform].bg,
-          border: `1px solid ${PLATFORM_META[platform].color}40`,
-          borderRadius: 12,
-          padding: "14px 18px",
-          marginBottom: 16,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8,
-                background: PLATFORM_META[platform].color,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Globe size={18} style={{ color: "#fff" }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
-                  Detected: {PLATFORM_META[platform].label}
-                </div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>
-                  {PLATFORM_META[platform].desc}
-                </div>
-              </div>
-            </div>
-            
-            {/* Quick action buttons based on platform */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {platform === "ios" && (
-                <a
-                  href="itms-services://?action=download-manifest&url=https://github.com/huiejorjdsksfn/medi-procure-hub/releases/latest/download/manifest.plist"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "8px 14px", borderRadius: 8,
-                    background: "#007aff", color: "#fff",
-                    textDecoration: "none", fontSize: 11, fontWeight: 700,
-                  }}
-                >
-                  <Download size={12} /> Install iOS App
-                </a>
-              )}
-              
-              {platform === "android" && (
-                <button
-                  onClick={() => {
-                    toast({
-                      title: "Android App Download",
-                      description: "Scroll down to Downloads section and tap the Android APK file to install.",
-                    });
-                  }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "8px 14px", borderRadius: 8,
-                    background: "#3ddc84", color: "#fff",
-                    border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  <Download size={12} /> Install Android App
-                </button>
-              )}
-              
-              {PLATFORM_META[platform].supportsWeb && (
-                <a
-                  href={WEB_APP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "8px 14px", borderRadius: 8,
-                    background: "#0a2558", color: "#fff",
-                    textDecoration: "none", fontSize: 11, fontWeight: 700,
-                  }}
-                >
-                  <Globe size={12} /> Open Web App
-                </a>
-              )}
-              
-              {platform === "windows" && (
-                <button
-                  onClick={installVCRedist}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "8px 14px", borderRadius: 8,
-                    background: "#f59e0b", color: "#fff",
-                    border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  <Wrench size={12} /> Get VC++ Redist
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* ── Quick Install Help ───────────────────────────────────────────── */}
         <div style={{
           background: "#f0fdf4",
@@ -863,23 +636,14 @@ export default function ReleasesPage() {
             <span style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>Quick Install Guide</span>
           </div>
           <div style={{ fontSize: 11, color: "#15803d", lineHeight: 1.7 }}>
-            {(platform === "windows" || platform === "other") && (
-              <p style={{ margin: "0 0 8px 0" }}>
-                <strong>Windows:</strong> Download the .zip file, extract it, and run <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>launch.bat</code> or the <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>.exe</code> directly.
-              </p>
-            )}
-            {(platform === "macos" || platform === "linux") && (
-              <p style={{ margin: "0 0 8px 0" }}>
-                <strong>{PLATFORM_META[platform].label}:</strong> Download the .zip file, extract it, and run the executable.
-              </p>
-            )}
-            {(platform === "ios" || platform === "android") && (
-              <p style={{ margin: "0 0 8px 0" }}>
-                <strong>Mobile:</strong> Use the web app directly or install as a Progressive Web App (PWA) for offline access.
-              </p>
-            )}
+            <p style={{ margin: "0 0 8px 0" }}>
+              <strong>For Windows:</strong> Download the .zip file, extract it, and run <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>launch.bat</code> or the <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>.exe</code> directly.
+            </p>
+            <p style={{ margin: "0 0 8px 0" }}>
+              <strong>First time?</strong> If the app doesn't start, install the <strong>Visual Studio C++ Redistributable</strong> first.
+            </p>
             <p style={{ margin: 0 }}>
-              <strong>Web version:</strong> Access at <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>{WEB_APP_URL}</code> or download Web.zip to self-host.
+              <strong>Web version:</strong> Download Web.zip and serve with any web server (e.g., <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>python -m http.server</code>).
             </p>
           </div>
         </div>
@@ -1048,8 +812,7 @@ export default function ReleasesPage() {
                       Downloads
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10 }}>
-                      {(["android", "ios", "win64", "win32", "web", "launcher"] as const).map(kind => {
-                      {(["android", "ios", "admin", "kiosk", "server", "win64", "win32", "web", "launcher"] as const).map(kind => {
+                      {(["win64", "win32", "web", "launcher"] as const).map(kind => {
                         const kindAssets = groups[kind];
                         if (!kindAssets?.length) return null;
                         const meta = KIND_META[kind];
