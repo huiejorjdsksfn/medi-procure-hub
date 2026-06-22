@@ -28,6 +28,78 @@ const VCREDIST_URLS = {
   x64: "https://aka.ms/vs/17/release/vc_redist.x64.exe",
   x86: "https://aka.ms/vs/17/release/vc_redist.x86.exe",
 };
+const WEB_APP_URL = "https://procurbosse.edgeone.app";
+
+// Platform detection
+const detectPlatform = (): "windows" | "macos" | "linux" | "ios" | "android" | "other" => {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("iphone") || ua.includes("ipad")) return "ios";
+  if (ua.includes("android")) return "android";
+  if (ua.includes("win")) return "windows";
+  if (ua.includes("mac")) return "macos";
+  if (ua.includes("linux")) return "linux";
+  return "other";
+};
+
+const PLATFORM_META = {
+  windows: {
+    label: "Windows",
+    icon: Monitor,
+    color: "#0078d4",
+    bg: "#eff6ff",
+    desc: "Download the .zip file, extract, and run launch.bat",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+  macos: {
+    label: "macOS",
+    icon: Monitor,
+    color: "#333333",
+    bg: "#f5f5f5",
+    desc: "Download the .zip file and extract to run the app",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+  linux: {
+    label: "Linux",
+    icon: Monitor,
+    color: "#e95420",
+    bg: "#fff4f0",
+    desc: "Download the .zip file, extract, and run the executable",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+  ios: {
+    label: "iOS",
+    icon: Package,
+    color: "#007aff",
+    bg: "#f0f7ff",
+    desc: "Use the web app in Safari or install as PWA",
+    supportsDesktop: false,
+    supportsWeb: true,
+    pwaGuide: "Go to the web app in Safari → Share → Add to Home Screen",
+  },
+  android: {
+    label: "Android",
+    icon: Package,
+    color: "#3ddc84",
+    bg: "#f0fff4",
+    desc: "Use the web app in Chrome or install as PWA",
+    supportsDesktop: false,
+    supportsWeb: true,
+    pwaGuide: "Go to the web app in Chrome → Menu → Install app",
+  },
+  other: {
+    label: "Desktop/Web",
+    icon: Globe,
+    color: "#059669",
+    bg: "#f0fdf4",
+    desc: "Access via web browser or download desktop version",
+    supportsDesktop: true,
+    supportsWeb: true,
+  },
+};
 
 // ─── types ──────────────────────────────────────────────────────────────────
 interface GHAsset {
@@ -142,6 +214,9 @@ export default function ReleasesPage() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "stable" | "pre">("all");
   
+  // Platform detection
+  const [platform, setPlatform] = useState<ReturnType<typeof detectPlatform>>("other");
+  
   // Download progress tracking
   const [downloadProgress, setDownloadProgress] = useState<Record<string, DownloadProgress>>({});
   const activeDownloads = useRef<Set<string>>(new Set());
@@ -153,6 +228,11 @@ export default function ReleasesPage() {
     appExtracting: false,
     appReady: false,
   });
+  
+  // Detect platform on mount
+  useEffect(() => {
+    setPlatform(detectPlatform());
+  }, []);
 
   // ─── Load releases with dual fallback ─────────────────────────────────────
   const load = useCallback(async () => {
@@ -623,6 +703,88 @@ export default function ReleasesPage() {
           </div>
         )}
 
+        {/* ── Platform Detection Banner ─────────────────────────────────────── */}
+        <div style={{
+          background: PLATFORM_META[platform].bg,
+          border: `1px solid ${PLATFORM_META[platform].color}40`,
+          borderRadius: 12,
+          padding: "14px 18px",
+          marginBottom: 16,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 8,
+                background: PLATFORM_META[platform].color,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Globe size={18} style={{ color: "#fff" }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                  Detected: {PLATFORM_META[platform].label}
+                </div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>
+                  {PLATFORM_META[platform].desc}
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick action buttons based on platform */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {PLATFORM_META[platform].supportsWeb && (
+                <a
+                  href={WEB_APP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#0a2558", color: "#fff",
+                    textDecoration: "none", fontSize: 11, fontWeight: 700,
+                  }}
+                >
+                  <Globe size={12} /> Open Web App
+                </a>
+              )}
+              
+              {(platform === "ios" || platform === "android") && (
+                <button
+                  onClick={() => {
+                    const guide = platform === "ios" 
+                      ? "1. Open Safari\n2. Go to " + WEB_APP_URL + "\n3. Tap Share button\n4. Tap 'Add to Home Screen'"
+                      : "1. Open Chrome\n2. Go to " + WEB_APP_URL + "\n3. Tap Menu (⋮)\n4. Tap 'Install app' or 'Add to Home screen'";
+                    alert(guide);
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#fff", color: PLATFORM_META[platform].color,
+                    border: `1px solid ${PLATFORM_META[platform].color}`,
+                    fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  <Download size={12} /> PWA Install Guide
+                </button>
+              )}
+              
+              {platform === "windows" && (
+                <button
+                  onClick={installVCRedist}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "#f59e0b", color: "#fff",
+                    border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  <Wrench size={12} /> Get VC++ Redist
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* ── Quick Install Help ───────────────────────────────────────────── */}
         <div style={{
           background: "#f0fdf4",
@@ -636,14 +798,23 @@ export default function ReleasesPage() {
             <span style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>Quick Install Guide</span>
           </div>
           <div style={{ fontSize: 11, color: "#15803d", lineHeight: 1.7 }}>
-            <p style={{ margin: "0 0 8px 0" }}>
-              <strong>For Windows:</strong> Download the .zip file, extract it, and run <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>launch.bat</code> or the <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>.exe</code> directly.
-            </p>
-            <p style={{ margin: "0 0 8px 0" }}>
-              <strong>First time?</strong> If the app doesn't start, install the <strong>Visual Studio C++ Redistributable</strong> first.
-            </p>
+            {(platform === "windows" || platform === "other") && (
+              <p style={{ margin: "0 0 8px 0" }}>
+                <strong>Windows:</strong> Download the .zip file, extract it, and run <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>launch.bat</code> or the <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>.exe</code> directly.
+              </p>
+            )}
+            {(platform === "macos" || platform === "linux") && (
+              <p style={{ margin: "0 0 8px 0" }}>
+                <strong>{PLATFORM_META[platform].label}:</strong> Download the .zip file, extract it, and run the executable.
+              </p>
+            )}
+            {(platform === "ios" || platform === "android") && (
+              <p style={{ margin: "0 0 8px 0" }}>
+                <strong>Mobile:</strong> Use the web app directly or install as a Progressive Web App (PWA) for offline access.
+              </p>
+            )}
             <p style={{ margin: 0 }}>
-              <strong>Web version:</strong> Download Web.zip and serve with any web server (e.g., <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>python -m http.server</code>).
+              <strong>Web version:</strong> Access at <code style={{ background: "#dcfce7", padding: "1px 4px", borderRadius: 3 }}>{WEB_APP_URL}</code> or download Web.zip to self-host.
             </p>
           </div>
         </div>
