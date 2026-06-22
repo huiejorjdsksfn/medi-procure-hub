@@ -89,6 +89,7 @@ import EnterpriseDashboardPage from "@/pages/EnterpriseDashboardPage";
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
 import PrintEnginePage from "@/pages/PrintEnginePage";
 import AdminHubPage from "@/pages/AdminHubPage";
+import ReleasesPage from "@/pages/ReleasesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000, gcTime: 300000, refetchOnWindowFocus: false, refetchOnReconnect: "always" } }
@@ -221,6 +222,7 @@ const App = () => (
             <Route path="/finance-dashboard" element={<P><RoleGuard allowed={["admin","finance_manager","finance_officer","accountant","procurement_manager"]}><FinanceDashboardPage /></RoleGuard></P>} />
 
             <Route path="/notifications" element={<P><NotificationsPage /></P>} />
+            <Route path="/releases" element={<P><ReleasesPage /></P>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
             </ErrorBoundary>
