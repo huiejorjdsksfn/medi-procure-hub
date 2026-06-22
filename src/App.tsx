@@ -88,6 +88,7 @@ import SystemReportPage from "@/pages/SystemReportPage";
 import EnterpriseDashboardPage from "@/pages/EnterpriseDashboardPage";
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
 import PrintEnginePage from "@/pages/PrintEnginePage";
+import AdminHubPage from "@/pages/AdminHubPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000, gcTime: 300000, refetchOnWindowFocus: false, refetchOnReconnect: "always" } }
@@ -187,6 +188,7 @@ const App = () => (
             <Route path="/ai-agent" element={<P><AIAgentPage /></P>} />
 
             {/* Admin - role-gated */}
+            <Route path="/admin" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><AdminHubPage /></RoleGuard></P>} />
             <Route path="/users" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><UsersPage /></RoleGuard></P>} />
             <Route path="/settings" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><SettingsPage /></RoleGuard></P>} />
             <Route path="/audit" element={<Navigate to="/audit-log" replace />} />

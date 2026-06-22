@@ -12,6 +12,7 @@ import { useSystemSettings, saveSetting, saveSettings } from "@/hooks/useSystemS
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import {
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
   Globe, RefreshCw, Activity, Package, Shield, Code2, Radio,
   Server, Terminal, ArrowRight, Users, Bell, Hash, Settings,
   Database, Eye, Edit3, Save, Copy, X, Check, Lock, Unlock,
@@ -182,6 +183,7 @@ export default function WebmasterPage() {
 
   return (
     <div style={{ padding:20, minHeight:"100vh", background:T.bg }}>
+      <AdminBreadcrumb />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Header */}

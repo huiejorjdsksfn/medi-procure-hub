@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { MobileTable } from "@/components/MobileTable";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 const db = supabase as any;
 
@@ -200,6 +201,7 @@ export default function IpAccessPage() {
 
   return (
     <div style={{ background: "#f0f0f0", minHeight: "100vh", fontFamily: ERP.fontFamily, fontSize: 12 }}>
+      <AdminBreadcrumb />
       {/* Title Bar */}
       <div style={{ background: ERP.titleBar, color: "#fff", padding: "5px 10px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${ERP.titleBarBorder}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

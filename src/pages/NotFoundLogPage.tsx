@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, RefreshCw, AlertCircle } from "lucide-react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 type Row = {
   id: string;
@@ -64,6 +65,7 @@ export default function NotFoundLogPage() {
 
   return (
     <div style={{ padding: 24, fontFamily: "var(--font-family)" }}>
+      <AdminBreadcrumb />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>

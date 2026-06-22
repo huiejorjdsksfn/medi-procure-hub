@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import RoleGuard from "@/components/RoleGuard";
 import logoImg from "@/assets/logo.png";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 // - Tabs -
 const TABS = [
@@ -47,6 +48,7 @@ function Tog({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) 
 function FR({ label, sub, color, children }: { label: string; sub?: string; color?: string; children: React.ReactNode }) {
   return (
     <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid #f1f5f9",gap:16 }}>
+      <AdminBreadcrumb />
       <div style={{ flex:1 }}>
         {color && <span style={{ display:"inline-block",width:3,height:14,borderRadius:2,background:color,marginRight:8,verticalAlign:"middle" }} />}
         <span style={{ fontSize:13.5,fontWeight:500,color:"#1e293b" }}>{label}</span>
