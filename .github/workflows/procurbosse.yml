@@ -317,7 +317,7 @@ jobs:
 
       - name: Deploy edge functions
         run: |
-          for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook ai-agent verify-role notify-requisition make-call twilio-engine notify-api google-forms-api github-releases; do
+          for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook ai-agent verify-role notify-requisition make-call twilio-engine notify-api google-forms-api github-releases notification-hub; do
             [ -d "supabase/functions/$fn" ] || continue
             echo "Deploying $fn..."
             /usr/local/bin/supabase functions deploy $fn \

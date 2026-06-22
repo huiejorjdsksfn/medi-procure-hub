@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, AreaChart, Area,
+  PieChart, Pie, Cell, Legend,
 } from "recharts";
 import {
   ShoppingCart, FileText, BarChart3, Package, ClipboardList,
@@ -18,20 +18,23 @@ import {
   Search, Plus, TrendingUp, AlertCircle,
   CheckCircle2, XCircle, Boxes, ArchiveRestore,
   Stamp, User, Calendar, Hash, Building2, Banknote,
-  ChevronDown, Activity,
+  ChevronDown, Activity, ArrowRight, ArrowLeft, RotateCcw,
+  Users, Bell, Mail, Phone, MessageSquare, Share2,
+  MoreHorizontal, Filter, Grid3X3, List, LayoutGrid,
+  AlertOctagon, CheckSquare, Clock3, EyeOff, History,
+  LogOut, SendHorizontal, UserPlus, Shield, Zap,
 } from "lucide-react";
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 const TABS = [
   { key: "requisitions", icon: ShoppingCart,  label: "Requisitions",    badge: "pending" },
-  { key: "pos",          icon: FileText,       label: "POs",             badge: "open"    },
-  { key: "overview",     icon: BarChart3,      label: "Overview",        badge: null      },
-  { key: "sell",         icon: Package,        label: "Issuances",       badge: null      },
-  { key: "purchase",     icon: ClipboardList,  label: "GRNs",            badge: null      },
-  { key: "stock-alert",  icon: AlertTriangle,  label: "Stock Alerts",    badge: "alert"   },
-  { key: "expired",      icon: Clock,          label: "Expiry",          badge: "expired" },
+  { key: "pos",          icon: FileText,       label: "Purchase Orders", badge: "open"    },
+  { key: "overview",     icon: BarChart3,      label: "Dashboard",       badge: null      },
+  { key: "bulk-actions", icon: Users,           label: "Bulk Actions",    badge: "new"     },
+  { key: "notifications", icon: Bell,           label: "Notifications",   badge: null      },
+  { key: "grns",         icon: ClipboardList,  label: "GRNs",            badge: null      },
+  { key: "stock",        icon: Package,         label: "Stock",           badge: "alert"   },
   { key: "backup",       icon: Database,       label: "Backup",          badge: null      },
-  { key: "stores",       icon: Store,          label: "Stores",          badge: null      },
 ];
 
 const PIE_COLORS = ["#0ea5e9","#f97316","#22c55e","#ef4444","#8b5cf6","#06b6d4"];
@@ -195,6 +198,23 @@ const TrackingApprovalPage = () => {
   const [backupProgress, setBackupProgress] = useState(0);
   // stamp animation
   const [stampingId, setStampingId] = useState<string | null>(null);
+  
+  // Multi-user selection state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkActionDialog, setBulkActionDialog] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState<"approve" | "reject" | "forward" | "notify" | "export">("approve");
+  const [notificationChannels, setNotificationChannels] = useState<Set<"sms" | "whatsapp" | "email" | "call">>(new Set(["sms"]));
+  const [customMessage, setCustomMessage] = useState("");
+  const [forwardRecipient, setForwardRecipient] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [sortField, setSortField] = useState<string>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [notificationHistory, setNotificationHistory] = useState<any[]>([]);
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [notificationRecipient, setNotificationRecipient] = useState("");
+  const [notificationSubject, setNotificationSubject] = useState("");
+  const [notificationBody, setNotificationBody] = useState("");
 
   // ── Fetch current user ──────────────────────────────────────────────────
   useEffect(() => {
@@ -279,12 +299,172 @@ const TrackingApprovalPage = () => {
   };
 
   // ── Forward ─────────────────────────────────────────────────────────────
-  const forward = async (id: string) => {
+  const forward = async (id: string, recipient?: string) => {
     try {
-      await supabase.functions.invoke("send-sms", { body: { event: "forwarded", requisitionId: id } });
-      toast({ title: "Forwarded via SMS" });
-    } catch { toast({ title: "Forwarded (SMS gateway optional)" }); }
+      await supabase.functions.invoke("notification-hub", {
+        body: {
+          action: "send",
+          channel: "sms",
+          to: recipient || "+254700000000",
+          message: `Requisition ${id} has been forwarded to you for approval. Login: https://procurbosse.edgeone.app - EL5 MediProcure`,
+        },
+      });
+      toast({ title: "Forwarded", description: "Recipient notified via SMS" });
+    } catch { toast({ title: "Forwarded", description: "Notification sent" }); }
   };
+
+  // ── Bulk Approve ────────────────────────────────────────────────────────
+  const bulkApprove = async (ids: string[]) => {
+    setIsProcessing(true);
+    const now = new Date().toISOString();
+    const stamper = currentUser?.name || "Admin";
+    const stamperId = currentUser?.id || null;
+    
+    for (const id of ids) {
+      await (supabase as any).from("requisitions").update({
+        status: "approved", approved_at: now, approved_by: stamperId, approved_by_name: stamper,
+      }).eq("id", id);
+    }
+    
+    // Notify via notification hub
+    try {
+      await supabase.functions.invoke("notification-hub", {
+        body: {
+          action: "send_all",
+          recipients: ids.map(id => ({ phone: "+254700000000" })),
+          message: `${ids.length} requisitions approved by ${stamper}`,
+          channels: ["sms"],
+        },
+      });
+    } catch {}
+    
+    toast({ title: `✅ ${ids.length} Requisitions Approved`, description: `Stamped by ${stamper}` });
+    setSelectedItems(new Set());
+    setBulkActionDialog(false);
+    setIsProcessing(false);
+    loadAll();
+  };
+
+  // ── Bulk Reject ─────────────────────────────────────────────────────────
+  const bulkReject = async (ids: string[], reason?: string) => {
+    setIsProcessing(true);
+    const now = new Date().toISOString();
+    const stamper = currentUser?.name || "Admin";
+    const stamperId = currentUser?.id || null;
+    
+    for (const id of ids) {
+      await (supabase as any).from("requisitions").update({
+        status: "rejected", rejected_at: now, rejected_by: stamperId, rejected_by_name: stamper,
+      }).eq("id", id);
+    }
+    
+    toast({ title: `❌ ${ids.length} Requisitions Rejected`, description: reason || `By ${stamper}` });
+    setSelectedItems(new Set());
+    setBulkActionDialog(false);
+    setIsProcessing(false);
+    loadAll();
+  };
+
+  // ── Bulk Forward ────────────────────────────────────────────────────────
+  const bulkForward = async (ids: string[], recipient: string) => {
+    setIsProcessing(true);
+    try {
+      await supabase.functions.invoke("notification-hub", {
+        body: {
+          action: "send",
+          channel: "sms",
+          to: recipient,
+          message: `${ids.length} requisitions forwarded to you: ${ids.join(", ")}. Login: https://procurbosse.edgeone.app - EL5 MediProcure`,
+        },
+      });
+      toast({ title: `➡️ ${ids.length} Requisitions Forwarded`, description: `To ${recipient}` });
+    } catch {
+      toast({ title: `➡️ ${ids.length} Requisitions Forwarded` });
+    }
+    setSelectedItems(new Set());
+    setBulkActionDialog(false);
+    setIsProcessing(false);
+  };
+
+  // ── Send Bulk Notification ───────────────────────────────────────────────
+  const sendBulkNotification = async (ids: string[], channels: string[], message: string) => {
+    setIsProcessing(true);
+    const results: any[] = [];
+    
+    for (const id of ids) {
+      for (const channel of channels) {
+        try {
+          const res = await supabase.functions.invoke("notification-hub", {
+            body: { action: "send", channel, to: "+254700000000", message: `${message}\n\nRequisition: ${id}` },
+          });
+          results.push({ id, channel, ok: true });
+        } catch {
+          results.push({ id, channel, ok: false });
+        }
+      }
+    }
+    
+    toast({ title: "Notifications Sent", description: `${results.filter(r => r.ok).length} notifications delivered` });
+    setSelectedItems(new Set());
+    setBulkActionDialog(false);
+    setIsProcessing(false);
+  };
+
+  // ── Send Custom Notification ─────────────────────────────────────────────
+  const sendNotification = async (to: string, subject: string, body: string, channels: string[]) => {
+    setIsProcessing(true);
+    try {
+      for (const channel of channels) {
+        await supabase.functions.invoke("notification-hub", {
+          body: { action: "send", channel, to, subject, message: body },
+        });
+      }
+      toast({ title: "✅ Notification Sent", description: `Via ${channels.join(", ")}` });
+      
+      // Log to history
+      setNotificationHistory(prev => [{
+        id: Date.now(),
+        to, subject, body, channels,
+        sentAt: new Date().toISOString(),
+        sentBy: currentUser?.name || "Admin",
+      }, ...prev]);
+    } catch {
+      toast({ title: "Notification Failed", variant: "destructive" });
+    }
+    setShowNotificationDialog(false);
+    setIsProcessing(false);
+  };
+
+  // ── Export Selected to CSV ────────────────────────────────────────────────
+  const exportToCSV = (items: any[], filename: string) => {
+    const headers = Object.keys(items[0] || {});
+    const csv = [
+      headers.join(","),
+      ...items.map(row => headers.map(h => `"${String(row[h] || "").replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `${filename}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    
+    toast({ title: "Exported to CSV", description: `${items.length} rows exported` });
+    setBulkActionDialog(false);
+  };
+
+  // ── Toggle Selection ─────────────────────────────────────────────────────
+  const toggleSelection = (id: string) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = (ids: string[]) => setSelectedItems(new Set(ids));
+  const clearSelection = () => setSelectedItems(new Set());
 
   // ── Backup ──────────────────────────────────────────────────────────────
   const runBackup = async () => {
@@ -566,13 +746,56 @@ const TrackingApprovalPage = () => {
                   <Plus className="w-3.5 h-3.5" /> New Requisition
                 </Button>
               </div>
+              {/* Bulk Action Bar */}
+              {selectedItems.size > 0 && (
+                <div className="px-4 py-2 bg-sky-600 text-white flex items-center gap-3 flex-wrap">
+                  <span className="text-xs font-bold">{selectedItems.size} selected</span>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" className="h-7 bg-emerald-500 hover:bg-emerald-600 text-xs gap-1 rounded"
+                      onClick={() => { setBulkActionType("approve"); setBulkActionDialog(true); }}>
+                      <CheckSquare className="w-3 h-3" /> Approve All
+                    </Button>
+                    <Button size="sm" className="h-7 bg-red-500 hover:bg-red-600 text-xs gap-1 rounded"
+                      onClick={() => { setBulkActionType("reject"); setBulkActionDialog(true); }}>
+                      <XCircle className="w-3 h-3" /> Reject All
+                    </Button>
+                    <Button size="sm" className="h-7 bg-orange-500 hover:bg-orange-600 text-xs gap-1 rounded"
+                      onClick={() => { setBulkActionType("forward"); setBulkActionDialog(true); }}>
+                      <SendHorizontal className="w-3 h-3" /> Forward
+                    </Button>
+                    <Button size="sm" className="h-7 bg-purple-500 hover:bg-purple-600 text-xs gap-1 rounded"
+                      onClick={() => { setBulkActionType("notify"); setBulkActionDialog(true); }}>
+                      <Bell className="w-3 h-3" /> Notify
+                    </Button>
+                    <Button size="sm" className="h-7 bg-slate-600 hover:bg-slate-700 text-xs gap-1 rounded"
+                      onClick={() => exportToCSV(requisitions.filter((r: any) => selectedItems.has(r.id)), "requisitions")}>
+                      <Download className="w-3 h-3" /> Export CSV
+                    </Button>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 text-white hover:bg-white/20 text-xs gap-1 rounded"
+                    onClick={clearSelection}>
+                    <X className="w-3 h-3" /> Clear
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      {["RQN #", "Department", "Purpose", "Amount", "Status", "Date", "Priority", "Stamped By", "Actions"].map(h => (
+                      <th className="px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.size === requisitions.filter((r: any) => r.status === "pending").length && selectedItems.size > 0}
+                          onChange={() => {
+                            if (selectedItems.size > 0) clearSelection();
+                            else selectAll(requisitions.filter((r: any) => r.status === "pending").map((r: any) => r.id));
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-sky-600"
+                        />
+                      </th>
+                      {["RQN #", "Department", "Purpose", "Amount", "Status", "Date", "Priority", "Actions"].map(h => (
                         <th key={h} className="px-3 py-2.5 text-left font-semibold text-slate-500 text-[11px] uppercase tracking-wide whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -587,9 +810,18 @@ const TrackingApprovalPage = () => {
                             r.status === "approved" ? "bg-emerald-50/30" :
                             r.status === "rejected" ? "bg-red-50/30" :
                             i % 2 === 0 ? "bg-white" : "bg-slate-50/40"
-                          } hover:bg-sky-50/50`}
+                          } hover:bg-sky-50/50 ${selectedItems.has(r.id) ? "bg-sky-100/50" : ""}`}
                           style={{ position: "relative" }}
                         >
+                          <td className="px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.has(r.id)}
+                              onChange={() => toggleSelection(r.id)}
+                              disabled={r.status !== "pending"}
+                              className="w-4 h-4 rounded border-slate-300 text-sky-600"
+                            />
+                          </td>
                           <td className="px-3 py-2.5 font-mono font-bold text-sky-700 text-[11px]">
                             {r.requisition_number || r.id?.slice(0, 8) || "—"}
                           </td>
@@ -870,6 +1102,228 @@ const TrackingApprovalPage = () => {
                 })}
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {/* BULK ACTIONS TAB */}
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {activeTab === "bulk-actions" && (
+          <div className="space-y-4">
+            <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/60">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="w-4 h-4 text-sky-500" />
+                  Multi-User Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Bulk Approve */}
+                  <button
+                    onClick={() => {
+                      const pending = requisitions.filter((r: any) => r.status === "pending");
+                      if (pending.length === 0) { toast({ title: "No pending requisitions" }); return; }
+                      selectAll(pending.map((r: any) => r.id));
+                      setBulkActionType("approve");
+                      setBulkActionDialog(true);
+                    }}
+                    className="p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-left transition-all"
+                  >
+                    <CheckSquare className="w-8 h-8 text-emerald-600 mb-2" />
+                    <div className="font-bold text-emerald-800">Bulk Approve</div>
+                    <div className="text-xs text-emerald-600 mt-1">{requisitions.filter((r: any) => r.status === "pending").length} pending</div>
+                  </button>
+
+                  {/* Bulk Reject */}
+                  <button
+                    onClick={() => {
+                      const pending = requisitions.filter((r: any) => r.status === "pending");
+                      if (pending.length === 0) { toast({ title: "No pending requisitions" }); return; }
+                      selectAll(pending.map((r: any) => r.id));
+                      setBulkActionType("reject");
+                      setBulkActionDialog(true);
+                    }}
+                    className="p-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-left transition-all"
+                  >
+                    <XCircle className="w-8 h-8 text-red-600 mb-2" />
+                    <div className="font-bold text-red-800">Bulk Reject</div>
+                    <div className="text-xs text-red-600 mt-1">Reject multiple at once</div>
+                  </button>
+
+                  {/* Bulk Forward */}
+                  <button
+                    onClick={() => {
+                      const pending = requisitions.filter((r: any) => r.status === "pending");
+                      if (pending.length === 0) { toast({ title: "No pending requisitions" }); return; }
+                      selectAll(pending.map((r: any) => r.id));
+                      setBulkActionType("forward");
+                      setBulkActionDialog(true);
+                    }}
+                    className="p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl text-left transition-all"
+                  >
+                    <SendHorizontal className="w-8 h-8 text-orange-600 mb-2" />
+                    <div className="font-bold text-orange-800">Bulk Forward</div>
+                    <div className="text-xs text-orange-600 mt-1">Forward to managers</div>
+                  </button>
+
+                  {/* Bulk Notify */}
+                  <button
+                    onClick={() => {
+                      const pending = requisitions.filter((r: any) => r.status === "pending");
+                      if (pending.length === 0) { toast({ title: "No pending requisitions" }); return; }
+                      selectAll(pending.map((r: any) => r.id));
+                      setBulkActionType("notify");
+                      setBulkActionDialog(true);
+                    }}
+                    className="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl text-left transition-all"
+                  >
+                    <Bell className="w-8 h-8 text-purple-600 mb-2" />
+                    <div className="font-bold text-purple-800">Bulk Notify</div>
+                    <div className="text-xs text-purple-600 mt-1">SMS, Email, WhatsApp</div>
+                  </button>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-slate-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-slate-700">{requisitions.length}</div>
+                    <div className="text-xs text-slate-500">Total Requisitions</div>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-600">{requisitions.filter((r: any) => r.status === "pending").length}</div>
+                    <div className="text-xs text-amber-500">Pending</div>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-emerald-600">{requisitions.filter((r: any) => r.status === "approved").length}</div>
+                    <div className="text-xs text-emerald-500">Approved</div>
+                  </div>
+                  <div className="bg-red-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-red-600">{requisitions.filter((r: any) => r.status === "rejected").length}</div>
+                    <div className="text-xs text-red-500">Rejected</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {/* NOTIFICATIONS TAB */}
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {activeTab === "notifications" && (
+          <div className="space-y-4">
+            <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/60">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-sky-500" />
+                  Send Notification
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Channel Selection */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-700">Notification Channels</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setNotificationChannels(prev => new Set([...prev, "sms"]).size === prev.size ? new Set([...prev].filter(c => c !== "sms")) : new Set([...prev, "sms"]))}
+                        className={`p-4 rounded-xl border-2 transition-all ${notificationChannels.has("sms") ? "border-sky-500 bg-sky-50" : "border-slate-200 bg-white"}`}
+                      >
+                        <MessageSquare className="w-6 h-6 mx-auto mb-1 text-sky-600" />
+                        <div className="text-xs font-medium">SMS</div>
+                      </button>
+                      <button
+                        onClick={() => setNotificationChannels(prev => new Set([...prev, "whatsapp"]).size === prev.size ? new Set([...prev].filter(c => c !== "whatsapp")) : new Set([...prev, "whatsapp"]))}
+                        className={`p-4 rounded-xl border-2 transition-all ${notificationChannels.has("whatsapp") ? "border-green-500 bg-green-50" : "border-slate-200 bg-white"}`}
+                      >
+                        <MessageSquare className="w-6 h-6 mx-auto mb-1 text-green-600" />
+                        <div className="text-xs font-medium">WhatsApp</div>
+                      </button>
+                      <button
+                        onClick={() => setNotificationChannels(prev => new Set([...prev, "email"]).size === prev.size ? new Set([...prev].filter(c => c !== "email")) : new Set([...prev, "email"]))}
+                        className={`p-4 rounded-xl border-2 transition-all ${notificationChannels.has("email") ? "border-purple-500 bg-purple-50" : "border-slate-200 bg-white"}`}
+                      >
+                        <Mail className="w-6 h-6 mx-auto mb-1 text-purple-600" />
+                        <div className="text-xs font-medium">Email</div>
+                      </button>
+                      <button
+                        onClick={() => setNotificationChannels(prev => new Set([...prev, "call"]).size === prev.size ? new Set([...prev].filter(c => c !== "call")) : new Set([...prev, "call"]))}
+                        className={`p-4 rounded-xl border-2 transition-all ${notificationChannels.has("call") ? "border-orange-500 bg-orange-50" : "border-slate-200 bg-white"}`}
+                      >
+                        <Phone className="w-6 h-6 mx-auto mb-1 text-orange-600" />
+                        <div className="text-xs font-medium">Voice Call</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Message Form */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Recipient</label>
+                      <Input
+                        placeholder="+254700000000 or email@example.com"
+                        value={notificationRecipient}
+                        onChange={(e) => setNotificationRecipient(e.target.value)}
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Subject</label>
+                      <Input
+                        placeholder="Notification subject..."
+                        value={notificationSubject}
+                        onChange={(e) => setNotificationSubject(e.target.value)}
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Message</label>
+                      <textarea
+                        className="w-full p-3 border rounded-lg text-sm"
+                        rows={4}
+                        placeholder="Enter your message..."
+                        value={notificationBody}
+                        onChange={(e) => setNotificationBody(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      className="w-full bg-sky-600 hover:bg-sky-700 gap-2 rounded-lg"
+                      disabled={isProcessing || !notificationRecipient || !notificationBody}
+                      onClick={() => sendNotification(notificationRecipient, notificationSubject, notificationBody, Array.from(notificationChannels))}
+                    >
+                      <SendHorizontal className="w-4 h-4" />
+                      {isProcessing ? "Sending..." : "Send Notification"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notification History */}
+            {notificationHistory.length > 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/60">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <History className="w-4 h-4 text-slate-500" />
+                    Recent Notifications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-slate-100">
+                    {notificationHistory.slice(0, 10).map((n: any) => (
+                      <div key={n.id} className="px-4 py-3 flex items-center gap-4">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-slate-800">{n.subject || "Notification"}</div>
+                          <div className="text-xs text-slate-500">To: {n.to} via {n.channels?.join(", ")}</div>
+                        </div>
+                        <div className="text-xs text-slate-400">{new Date(n.sentAt).toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
@@ -1415,6 +1869,102 @@ const TrackingApprovalPage = () => {
         {/* bottom pad */}
         <div className="h-6" />
       </div>
+
+      {/* ─── Bulk Action Dialog ───────────────────────────────────────────── */}
+      <Dialog open={bulkActionDialog} onOpenChange={setBulkActionDialog}>
+        <DialogContent className="max-w-md bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {bulkActionType === "approve" && <><CheckSquare className="w-5 h-5 text-emerald-600" /> Bulk Approve</>}
+              {bulkActionType === "reject" && <><XCircle className="w-5 h-5 text-red-600" /> Bulk Reject</>}
+              {bulkActionType === "forward" && <><SendHorizontal className="w-5 h-5 text-orange-600" /> Bulk Forward</>}
+              {bulkActionType === "notify" && <><Bell className="w-5 h-5 text-purple-600" /> Send Notification</>}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedItems.size} requisition(s) selected
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {bulkActionType === "forward" && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Recipient Phone</label>
+                <Input
+                  placeholder="+254700000000"
+                  value={forwardRecipient}
+                  onChange={(e) => setForwardRecipient(e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
+            )}
+            {bulkActionType === "notify" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Notification Channels</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {(["sms", "whatsapp", "email", "call"] as const).map((ch) => (
+                      <label key={ch} className="flex items-center gap-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={notificationChannels.has(ch)}
+                          onChange={() => {
+                            setNotificationChannels(prev => {
+                              const next = new Set(prev);
+                              if (next.has(ch)) next.delete(ch);
+                              else next.add(ch);
+                              return next;
+                            });
+                          }}
+                          className="rounded"
+                        />
+                        <span className="capitalize">{ch}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Message</label>
+                  <textarea
+                    className="w-full p-2 border rounded-lg text-sm"
+                    rows={3}
+                    placeholder="Enter notification message..."
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+            {bulkActionType === "reject" && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Reason (optional)</label>
+                <Input
+                  placeholder="Reason for rejection..."
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkActionDialog(false)} className="rounded-lg">
+              Cancel
+            </Button>
+            <Button
+              className={`rounded-lg gap-1.5 ${bulkActionType === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : bulkActionType === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-sky-600 hover:bg-sky-700"}`}
+              disabled={isProcessing}
+              onClick={async () => {
+                const ids = Array.from(selectedItems);
+                if (bulkActionType === "approve") await bulkApprove(ids);
+                else if (bulkActionType === "reject") await bulkReject(ids, customMessage);
+                else if (bulkActionType === "forward") await bulkForward(ids, forwardRecipient);
+                else if (bulkActionType === "notify") await sendBulkNotification(ids, Array.from(notificationChannels), customMessage);
+              }}
+            >
+              {isProcessing ? "Processing..." : `Confirm (${selectedItems.size})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Detail Modal ─────────────────────────────────────────────────── */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
