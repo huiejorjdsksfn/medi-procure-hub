@@ -1,5 +1,5 @@
 // updated
-export const APP_VERSION = "11.11.0";
+export const APP_VERSION = "11.12.0";
 export const BUILD_DATE   = new Date().toISOString().slice(0,10);
 export const HOSPITAL     = "Embu Level 5 Hospital";
 export const SYSTEM_NAME  = "EL5 MediProcure";
@@ -30,6 +30,22 @@ export interface ReleaseEntry {
 }
 
 export const RELEASES: ReleaseEntry[] = [
+  { version: "11.12.0", date: "2026-06-21",  status: "stable", codename: "Mobile Auto-Fit",
+    highlights: [
+      "Tables: every <table> in the app is now its own horizontal-scroll container on phones/tablets (≤1024px) — thead/tbody/tr keep normal table flow internally so column alignment is preserved, only the outer table scrolls. Fixes data/columns being clipped or cut off on small screens",
+      "Forms/grids: the common inline gridTemplateColumns:'repeat(N,1fr)' pattern used across dozens of pages now collapses to 1–2 columns on phones (≤640px) and 2–3 on tablets (641–1024px) instead of squeezing N equal columns into a 360px viewport. 'span 2/3' cells widened to fill the collapsed row so nothing overflows",
+      "Button toolbars: any flex row with a gap now force-wraps on phones instead of overflowing off-screen",
+      "Touch targets: buttons get a 38px minimum height and inputs/selects 36px on phones, with font-size floored at 14px so fields stay legible and tappable",
+      "Modals/panels: common fixed pixel widths (380–640px) used by dozens of inline modals now clamp to 94vw on phones instead of being clipped or forcing page-level horizontal scroll",
+      "KPI/stat tile rows using repeat(auto-fit,minmax(200–280px,1fr)) now use a smaller 140px minimum on phones so 2 tiles fit per row instead of 1",
+      "Dashboard ERP wheel: the fixed 480×480px decorative SVG centerpiece now scales to ~92vw (capped at 380px) on phones instead of overflowing horizontally",
+      "All fixes are global CSS additions (attribute-selector matching against React's rendered inline-style text) — zero per-page rewrites needed across the app's 70+ inline-styled pages, and zero risk to desktop/tablet layouts since every rule is scoped inside a max-width media query",
+      "Verified the new CSS compiles and survives minification (checked the built dist/ CSS bundle directly for each new rule) and the full app still builds with zero TypeScript errors",
+      "Version bump 11.11.0 -> 11.12.0",
+    ],
+    dbMigrations: 0, bugsFixed: 0,
+    engines: ["ResponsiveCSS"],
+    modules: ["Global","Dashboard","Finance","Vouchers"] },
   { version: "11.11.0", date: "2026-06-20",  status: "stable", codename: "Official Seal",
     highlights: [
       "Vote Heads centralized: new useVoteHeads() hook backed by system_settings — auto-seeded with 13 Kenyan-government-style defaults on first use, fully admin-customizable via a new 'Manage' modal (no code changes needed to add/remove vote heads going forward)",
