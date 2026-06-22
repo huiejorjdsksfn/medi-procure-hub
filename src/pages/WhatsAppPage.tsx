@@ -328,12 +328,12 @@ export default function WhatsAppPage() {
         </div>
       </div>
 
-      {/* Sandbox banner */}
+      {/* Sandbox banner - subtle info */}
       {sandboxMode && (
-        <div style={{background:"#fff3cd",borderBottom:"1px solid #ffc107",padding:"8px 28px",fontSize:12,color:"#856404",display:"flex",alignItems:"center",gap:8}}>
-          <span>⚠️</span>
-          <span><b>Sandbox Mode:</b> Recipients must join first. Send <b>"{WA.CODE}"</b> to <b>{WA.NUMBER}</b> — or share the <a href={WA.LINK} target="_blank" rel="noreferrer" style={{color:DARK}}>join link</a>.</span>
-          <a href={WA.QR_URL} target="_blank" rel="noreferrer" style={{marginLeft:"auto",color:DARK,fontWeight:600}}>📷 QR Code</a>
+        <div style={{background:"#f0f9ff",borderBottom:"1px solid #bae6fd",padding:"8px 28px",fontSize:12,color:"#0369a1",display:"flex",alignItems:"center",gap:8}}>
+          <span>ℹ️</span>
+          <span>WhatsApp sandbox active — Recipients can join by sending <b>"{WA.CODE}"</b> to <b>{WA.NUMBER}</b> or using the <a href={WA.LINK} target="_blank" rel="noreferrer" style={{color:"#0284c7",fontWeight:600}}>join link</a>.</span>
+          <button onClick={()=>setSandboxMode(false)} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#64748b",fontSize:11,padding:"2px 8px"}}>Dismiss</button>
         </div>
       )}
 
