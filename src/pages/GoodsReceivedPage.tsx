@@ -225,7 +225,7 @@ export default function GoodsReceivedPage() {
             <div style={{padding:"12px 16px",background:"linear-gradient(90deg,#065f46,#047857)",display:"flex",alignItems:"center",gap:8}}>
               <Package style={{width:14,height:14,color:"#fff"}}/>
               <span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>{viewGrn.grn_number}</span>
-              <div style={{display:"flex",justifyContent:"center",padding:"12px 0"}}><DocumentStamp status={{viewGrn.status}} date={{viewGrn.received_date||viewGrn.created_at}} size={{100}} rotate={{-10}} /></div>
+              <div style={{display:"flex",justifyContent:"center",padding:"12px 0"}}><DocumentStamp status={viewGrn.status} date={viewGrn.received_date||viewGrn.created_at} size={100} rotate={-10} /></div>
               <button onClick={()=>printGrn(viewGrn)} style={{display:"flex",alignItems:"center",gap:5,background:"#e2e8f0",border:"none",borderRadius:6,padding:"5px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}><Printer style={{width:11,height:11}}/>Print GRN</button>
               <button onClick={()=>setViewGrn(null)} style={{background:"#e2e8f0",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}><X style={{width:12,height:12}}/></button>
             </div>
