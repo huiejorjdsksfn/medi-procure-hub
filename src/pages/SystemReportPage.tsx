@@ -11,8 +11,13 @@ import {
   Users, ShoppingCart, FileText, Package, Building2, Calendar,
   Database, Clock, CheckCircle2, XCircle, AlertTriangle, Activity,
   Download, Printer, List, Grid3X3, Filter, ArrowUpRight, ArrowDownRight,
-  DownloadCloud, FileSpreadsheet, FileJson, PieChart,
+  DownloadCloud, FileSpreadsheet, FileJson, PieChart, Star,
 } from "lucide-react";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip,
+  RadialBarChart, RadialBar,
+} from "recharts";
 
 // Time periods
 const TIME_PERIODS = [
@@ -49,6 +54,8 @@ const SystemReportPage = () => {
   // Table data
   const [tableData, setTableData] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [dailyTrend, setDailyTrend] = useState<{ day: string; requisitions: number; orders: number }[]>([]);
+  const [topSuppliers, setTopSuppliers] = useState<any[]>([]);
 
   // Load departments
   const loadDepartments = async () => {
@@ -193,7 +200,7 @@ const SystemReportPage = () => {
 
       // Build department table
       const { data: reqData } = await (supabase as any).from("requisitions")
-        .select("department, status")
+        .select("department, status, created_at")
         .gte("created_at", startDate.toISOString());
       
       const deptGroups: Record<string, any> = {};
@@ -208,6 +215,23 @@ const SystemReportPage = () => {
       });
       
       setTableData(Object.values(deptGroups));
+
+      // Daily trend (last 7 calendar days) — real counts from requisitions + purchase orders
+      const { data: poTrendData } = await supabase.from("purchase_orders").select("created_at").gte("created_at", new Date(now.getTime() - 7 * 86400000).toISOString());
+      const trendDays: { day: string; requisitions: number; orders: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const next = new Date(d); next.setDate(next.getDate() + 1);
+        const reqCount = (reqData || []).filter((r: any) => { const t = new Date(r.created_at); return t >= d && t < next; }).length;
+        const poCount = (poTrendData || []).filter((p: any) => { const t = new Date(p.created_at); return t >= d && t < next; }).length;
+        trendDays.push({ day: d.toLocaleDateString("en-KE", { weekday: "short" }), requisitions: reqCount, orders: poCount });
+      }
+      setDailyTrend(trendDays);
+
+      // Top suppliers for the sidebar list
+      const { data: supplierList } = await supabase.from("suppliers").select("id, name, status, rating").order("rating", { ascending: false }).limit(5);
+      setTopSuppliers(supplierList || []);
+
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error generating report:", err);
@@ -278,6 +302,25 @@ const SystemReportPage = () => {
       <div className={`h-1 bg-gradient-to-r ${bg.replace("100", "500")} to-transparent opacity-30`} />
     </Card>
   );
+
+  // Insights derived values (real, computed from metrics already fetched)
+  const approvalRate = metrics.requisitions.total > 0 ? Math.round((metrics.requisitions.approved / metrics.requisitions.total) * 100) : 0;
+  const fulfillmentRate = metrics.grns.total > 0 ? Math.round((metrics.grns.received / metrics.grns.total) * 100) : 0;
+  const supplierHealth = metrics.suppliers.total > 0 ? Math.round((metrics.suppliers.active / metrics.suppliers.total) * 100) : 0;
+  const stockHealth = metrics.items.total > 0 ? Math.round(((metrics.items.total - metrics.items.lowStock) / metrics.items.total) * 100) : 100;
+  const poApprovalRate = metrics.purchaseOrders.total > 0 ? Math.round((metrics.purchaseOrders.approved / metrics.purchaseOrders.total) * 100) : 0;
+
+  const radarData = [
+    { metric: "Approvals", value: approvalRate },
+    { metric: "Fulfillment", value: fulfillmentRate },
+    { metric: "Suppliers", value: supplierHealth },
+    { metric: "Stock Health", value: stockHealth },
+    { metric: "PO Approval", value: poApprovalRate },
+  ];
+
+  // Overall confidence score = average of the radar dimensions
+  const confidenceScore = Math.round(radarData.reduce((s, d) => s + d.value, 0) / radarData.length);
+  const confidenceGaugeData = [{ name: "score", value: confidenceScore, fill: confidenceScore >= 70 ? "#10b981" : confidenceScore >= 40 ? "#f59e0b" : "#ef4444" }];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -389,6 +432,142 @@ const SystemReportPage = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Insights Dashboard — D365-style 3-column layout: radar | expected vs actual | sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Performance Radar */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-slate-700">Performance Radar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={220}>
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: "#64748b" }} />
+                  <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
+                  <Radar dataKey="value" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.35} />
+                  <Tooltip formatter={(v: any) => `${v}%`} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Expected vs Actual — Gantt-style department comparison */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-slate-700">Approved vs Pending by Department</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tableData.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-sm">No data for this period</div>
+              ) : (
+                <div className="space-y-3">
+                  {[...tableData].sort((a, b) => b.req_total - a.req_total).slice(0, 5).map((row, i) => {
+                    const maxTotal = Math.max(...tableData.map((r) => r.req_total), 1);
+                    return (
+                      <div key={i}>
+                        <div className="text-xs font-medium text-slate-600 mb-1 truncate">{row.department}</div>
+                        <div className="flex gap-1 h-3">
+                          <div
+                            className="bg-sky-500 rounded-sm"
+                            style={{ width: `${(row.req_approved / maxTotal) * 100}%`, minWidth: row.req_approved > 0 ? "4px" : 0 }}
+                            title={`Approved: ${row.req_approved}`}
+                          />
+                          <div
+                            className="bg-amber-400 rounded-sm"
+                            style={{ width: `${(row.req_pending / maxTotal) * 100}%`, minWidth: row.req_pending > 0 ? "4px" : 0 }}
+                            title={`Pending: ${row.req_pending}`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-xs text-slate-500">
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-sky-500 inline-block" /> Approved</span>
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" /> Pending</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Sidebar: Top Suppliers + Activity Trend + Confidence */}
+          <div className="space-y-4">
+            <Card className="bg-white border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-slate-700">Top Suppliers</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {topSuppliers.length === 0 ? (
+                  <div className="text-xs text-slate-400 py-4 text-center">No suppliers yet</div>
+                ) : (
+                  <div className="space-y-2">
+                    {topSuppliers.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+                        <span className="text-sm text-slate-700 truncate">{s.name}</span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {s.rating > 0 && (
+                            <span className="flex items-center gap-0.5 text-xs text-amber-500">
+                              <Star className="w-3 h-3 fill-amber-400" />{s.rating}
+                            </span>
+                          )}
+                          <Badge className={s.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}>
+                            {s.status || "active"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-slate-700">7-Day Activity Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={110}>
+                  <AreaChart data={dailyTrend}>
+                    <defs>
+                      <linearGradient id="reqGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="poGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="requisitions" stroke="#0ea5e9" fill="url(#reqGrad)" strokeWidth={2} name="Requisitions" />
+                    <Area type="monotone" dataKey="orders" stroke="#8b5cf6" fill="url(#poGrad)" strokeWidth={2} name="Purchase Orders" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-slate-700">Confidence Score</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                <ResponsiveContainer width="100%" height={130}>
+                  <RadialBarChart data={confidenceGaugeData} startAngle={180} endAngle={0} innerRadius="70%" outerRadius="100%" barSize={14}>
+                    <RadialBar dataKey="value" cornerRadius={8} background={{ fill: "#f1f5f9" }} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="text-center -mt-10">
+                  <div className="text-2xl font-bold text-slate-800">{confidenceScore}%</div>
+                  <div className="text-xs text-slate-400">overall health</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* KPI Cards Grid */}

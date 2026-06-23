@@ -17,6 +17,11 @@ import {
   Printer, Share2, MoreHorizontal, User, Calendar,
   TrendingUp, TrendingDown, Minus, LayoutDashboard,
 } from "lucide-react";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip,
+  RadialBarChart, RadialBar,
+} from "recharts";
 
 // Tabs configuration
 const TABS = [
@@ -314,6 +319,52 @@ const TrackingApprovalPage = () => {
     ),
   };
 
+  // Approval pipeline stages — real counts from loaded requisitions
+  const pipelineStages = [
+    { key: "submitted", label: "Submitted", count: requisitions.length },
+    { key: "review", label: "Under Review", count: requisitions.filter((r: any) => r.status === "pending").length },
+    { key: "approved", label: "Approved", count: requisitions.filter((r: any) => r.status === "approved").length },
+    { key: "fulfilled", label: "Fulfilled", count: goodsReceived.filter((g: any) => g.status === "received" || g.status === "completed").length },
+  ];
+  const activeStageIdx = pipelineStages.reduce((best, s, i) => (s.count > pipelineStages[best].count ? i : best), 0);
+
+  // Insights — radar of approval health across the three pipelines
+  const reqApprovalPct = requisitions.length > 0 ? Math.round((stats.approvedReqs / requisitions.length) * 100) : 0;
+  const poApprovalPct = stats.totalPOs > 0 ? Math.round((purchaseOrders.filter((p: any) => p.status === "approved").length / stats.totalPOs) * 100) : 0;
+  const grnCompletionPct = goodsReceived.length > 0 ? Math.round(((goodsReceived.length - stats.pendingGRNs) / goodsReceived.length) * 100) : 0;
+  const stockHealthPct = stats.totalItems > 0 ? Math.round(((stats.totalItems - stats.lowStock) / stats.totalItems) * 100) : 100;
+  const supplierHealthPct = suppliers.length > 0 ? Math.round((suppliers.filter((s: any) => s.status === "active").length / suppliers.length) * 100) : 0;
+
+  const radarData = [
+    { metric: "Requisitions", value: reqApprovalPct },
+    { metric: "Purchase Orders", value: poApprovalPct },
+    { metric: "GRNs", value: grnCompletionPct },
+    { metric: "Stock Health", value: stockHealthPct },
+    { metric: "Suppliers", value: supplierHealthPct },
+  ];
+  const confidenceScore = Math.round(radarData.reduce((s, d) => s + d.value, 0) / radarData.length);
+  const confidenceGaugeData = [{ name: "score", value: confidenceScore, fill: confidenceScore >= 70 ? "#10b981" : confidenceScore >= 40 ? "#f59e0b" : "#ef4444" }];
+
+  // Department gantt-style comparison (top 5 by volume)
+  const deptGroups: Record<string, { department: string; approved: number; pending: number; total: number }> = {};
+  requisitions.forEach((r: any) => {
+    const dept = r.department || "Unassigned";
+    if (!deptGroups[dept]) deptGroups[dept] = { department: dept, approved: 0, pending: 0, total: 0 };
+    deptGroups[dept].total++;
+    if (r.status === "approved") deptGroups[dept].approved++;
+    if (r.status === "pending") deptGroups[dept].pending++;
+  });
+  const deptGanttData = Object.values(deptGroups).sort((a, b) => b.total - a.total).slice(0, 5);
+
+  // 7-day approval trend
+  const trendDays: { day: string; submitted: number; approved: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const submitted = requisitions.filter((r: any) => isOnDate(r.created_at, i)).length;
+    const approved = requisitions.filter((r: any) => r.status === "approved" && isOnDate(r.approved_at, i)).length;
+    const d = new Date(); d.setDate(d.getDate() - i);
+    trendDays.push({ day: d.toLocaleDateString("en-KE", { weekday: "short" }), submitted, approved });
+  }
+
   const StatusBadge = ({ status }: { status: string }) => {
     const colors = STATUS_COLORS[status?.toLowerCase()] || STATUS_COLORS.pending;
     return (
@@ -377,6 +428,30 @@ const TrackingApprovalPage = () => {
                 )}
               </button>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Approval Pipeline Stage Tracker — D365 process-bar style */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center">
+            {pipelineStages.map((stage, i) => {
+              const isActive = i === activeStageIdx;
+              const isPast = i < activeStageIdx;
+              return (
+                <div key={stage.key} className="flex items-center flex-1 last:flex-none">
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border whitespace-nowrap ${
+                    isActive ? "bg-sky-50 border-sky-400 shadow-sm" : isPast ? "bg-slate-50 border-slate-200" : "bg-white border-slate-200"
+                  }`}>
+                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isActive ? "bg-sky-500" : isPast ? "bg-slate-400" : "bg-slate-200"}`} />
+                    <span className={`text-xs font-semibold ${isActive ? "text-sky-700" : "text-slate-600"}`}>{stage.label}</span>
+                    <Badge className={isActive ? "bg-sky-500 text-white" : "bg-slate-200 text-slate-600"}>{stage.count}</Badge>
+                  </div>
+                  {i < pipelineStages.length - 1 && <div className="flex-1 h-px bg-slate-200 mx-2" />}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -445,6 +520,128 @@ const TrackingApprovalPage = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+
+            {/* Insights Dashboard — D365-style 3-column layout: radar | expected vs actual | sidebar */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Approval Health Radar */}
+              <Card className="bg-white border-slate-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-slate-700">Approval Health Radar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <RadarChart data={radarData}>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: "#64748b" }} />
+                      <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
+                      <Radar dataKey="value" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.35} />
+                      <Tooltip formatter={(v: any) => `${v}%`} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Approved vs Pending by Department — Gantt-style */}
+              <Card className="bg-white border-slate-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-slate-700">Approved vs Pending by Department</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {deptGanttData.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-sm">No requisitions yet</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {deptGanttData.map((row, i) => {
+                        const maxTotal = Math.max(...deptGanttData.map((r) => r.total), 1);
+                        return (
+                          <div key={i}>
+                            <div className="text-xs font-medium text-slate-600 mb-1 truncate">{row.department}</div>
+                            <div className="flex gap-1 h-3">
+                              <div className="bg-sky-500 rounded-sm" style={{ width: `${(row.approved / maxTotal) * 100}%`, minWidth: row.approved > 0 ? "4px" : 0 }} title={`Approved: ${row.approved}`} />
+                              <div className="bg-amber-400 rounded-sm" style={{ width: `${(row.pending / maxTotal) * 100}%`, minWidth: row.pending > 0 ? "4px" : 0 }} title={`Pending: ${row.pending}`} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-xs text-slate-500">
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-sky-500 inline-block" /> Approved</span>
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" /> Pending</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Sidebar: Pending Approvers queue + 7-day trend + Confidence */}
+              <div className="space-y-4">
+                <Card className="bg-white border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-slate-700">Awaiting Approval</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {requisitions.filter((r: any) => r.status === "pending").length === 0 ? (
+                      <div className="text-xs text-slate-400 py-4 text-center">Nothing pending — all caught up</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {requisitions.filter((r: any) => r.status === "pending").slice(0, 5).map((r: any) => (
+                          <div key={r.id} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+                            <div className="min-w-0">
+                              <div className="text-sm text-slate-700 truncate">{r.requisition_number || r.id?.slice(0, 8)}</div>
+                              <div className="text-xs text-slate-400 truncate">{r.department || "Unassigned"}</div>
+                            </div>
+                            <Badge className="bg-amber-100 text-amber-700 flex-shrink-0">Pending</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-slate-700">7-Day Approval Trend</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={110}>
+                      <AreaChart data={trendDays}>
+                        <defs>
+                          <linearGradient id="submittedGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="approvedGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="day" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                        <YAxis hide />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="submitted" stroke="#0ea5e9" fill="url(#submittedGrad)" strokeWidth={2} name="Submitted" />
+                        <Area type="monotone" dataKey="approved" stroke="#10b981" fill="url(#approvedGrad)" strokeWidth={2} name="Approved" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-slate-700">Confidence Score</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col items-center">
+                    <ResponsiveContainer width="100%" height={130}>
+                      <RadialBarChart data={confidenceGaugeData} startAngle={180} endAngle={0} innerRadius="70%" outerRadius="100%" barSize={14}>
+                        <RadialBar dataKey="value" cornerRadius={8} background={{ fill: "#f1f5f9" }} />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                    <div className="text-center -mt-10">
+                      <div className="text-2xl font-bold text-slate-800">{confidenceScore}%</div>
+                      <div className="text-xs text-slate-400">overall health</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Activity + Stats — main feed alongside a compact sidebar instead of stacked full-width blocks */}
