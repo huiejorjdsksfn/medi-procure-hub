@@ -54,7 +54,7 @@ const TILES = [
   { label: "Settings",       icon: Settings,      color: "#605e5c", path: "/settings"          },
 ];
 
-type ReqRow = { id: string; request_number: string; title?: string; department?: string; status: string; created_at: string; total_amount?: number };
+type ReqRow = { id: string; requisition_number: string; title?: string; department?: string; status: string; created_at: string; total_amount?: number; stamped?: boolean };
 
 export default function TrackingApprovalPage() {
   const nav = useNavigate();
@@ -66,18 +66,33 @@ export default function TrackingApprovalPage() {
   const [pending, setPending]     = useState<ReqRow[]>([]);
   const [counts, setCounts]       = useState({ reqs: 0, pos: 0, grns: 0 });
 
+  // Documents approved/issued/received but not yet officially stamped
+  const [needsStampReqs, setNeedsStampReqs] = useState<any[]>([]);
+  const [needsStampPOs, setNeedsStampPOs]   = useState<any[]>([]);
+  const [needsStampGRNs, setNeedsStampGRNs] = useState<any[]>([]);
+  const [stampingId, setStampingId]         = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [rRes, poRes, grRes] = await Promise.allSettled([
-        db.from("requisitions").select("id,request_number,title,department,status,created_at,total_amount")
+      const [rRes, poRes, grRes, stampReqRes, stampPoRes, stampGrnRes] = await Promise.allSettled([
+        db.from("requisitions").select("id,requisition_number,title,department,status,created_at,total_amount")
           .in("status", ["pending","submitted"]).order("created_at",{ascending:false}).limit(20),
         db.from("purchase_orders").select("id",{count:"exact",head:true}).in("status",["pending","open"]),
-        db.from("goods_received_notes").select("id",{count:"exact",head:true}).eq("status","pending"),
+        db.from("goods_received").select("id",{count:"exact",head:true}).eq("status","pending"),
+        db.from("requisitions").select("id,requisition_number,total_amount,approved_at,approved_by_name,department")
+          .eq("status","approved").or("stamped.is.null,stamped.eq.false").order("approved_at",{ascending:false}).limit(8),
+        db.from("purchase_orders").select("id,po_number,total_amount,approved_at,supplier_name,status")
+          .in("status",["approved","issued"]).or("stamped.is.null,stamped.eq.false").order("approved_at",{ascending:false}).limit(8),
+        db.from("goods_received").select("id,grn_number,supplier_name,received_date,created_at,status")
+          .in("status",["received","completed"]).or("stamped.is.null,stamped.eq.false").order("created_at",{ascending:false}).limit(8),
       ]);
       if (rRes.status === "fulfilled") setPending(rRes.value.data || []);
+      if (stampReqRes.status === "fulfilled") setNeedsStampReqs(stampReqRes.value.data || []);
+      if (stampPoRes.status === "fulfilled") setNeedsStampPOs(stampPoRes.value.data || []);
+      if (stampGrnRes.status === "fulfilled") setNeedsStampGRNs(stampGrnRes.value.data || []);
       setCounts({
-        reqs: pending.length,
+        reqs: rRes.status === "fulfilled" ? (rRes.value.data || []).length : 0,
         pos:  poRes.status === "fulfilled" ? (poRes.value.count || 0) : 0,
         grns: grRes.status === "fulfilled" ? (grRes.value.count || 0) : 0,
       });
@@ -86,6 +101,27 @@ export default function TrackingApprovalPage() {
   }, []);
 
   useEffect(()=>{ load(); },[load]);
+
+  // Officially stamp a document — real DB-backed action, mirrors the approved_by pattern
+  const stampItem = async (table: "requisitions" | "purchase_orders" | "goods_received", id: string, defaultLabel: string) => {
+    setStampingId(id);
+    const now = new Date().toISOString();
+    const stamper = profile?.full_name || "Admin";
+    try {
+      const { error } = await db.from(table).update({
+        stamped: true,
+        stamped_by_name: stamper,
+        stamped_at: now,
+        stamp_label: defaultLabel,
+      }).eq("id", id);
+      if (error) throw error;
+      toast({ title: "🔵 Officially Stamped", description: `${defaultLabel} stamp affixed by ${stamper}` });
+      await load();
+    } catch (err: any) {
+      toast({ title: "Stamp failed", description: err.message || "Could not apply stamp", variant: "destructive" });
+    }
+    setStampingId(null);
+  };
 
   const approve = async (id: string) => {
     await db.from("requisitions").update({ status: "approved" }).eq("id", id);
@@ -101,7 +137,7 @@ export default function TrackingApprovalPage() {
 
   const filtered = pending.filter(r =>
     !search ||
-    (r.request_number || "").toLowerCase().includes(search.toLowerCase()) ||
+    (r.requisition_number || "").toLowerCase().includes(search.toLowerCase()) ||
     (r.title || "").toLowerCase().includes(search.toLowerCase()) ||
     (r.department || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -234,7 +270,7 @@ export default function TrackingApprovalPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: O.blue, fontWeight: 600, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                     onClick={() => nav(`/requisitions`)}>
-                    {r.request_number || r.id.slice(0, 8)} — {r.title || "Procurement Request"}
+                    {r.requisition_number || r.id.slice(0, 8)} — {r.title || "Procurement Request"}
                   </div>
                   <div style={{ fontSize: 11, color: O.textMt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     EL5 MediProcure {"»"} Requisitions {"»"} {r.department || "General"}
@@ -268,6 +304,77 @@ export default function TrackingApprovalPage() {
             style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: O.blue, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>
             View all requisitions <ArrowRight size={13} />
           </button>
+        )}
+
+        {/* ── Divider ─────────────────────────────────────────── */}
+        <div style={{ borderTop: `1px solid ${O.border}`, margin: "28px 0 20px" }} />
+
+        {/* ── "Awaiting official stamp" — real DB-backed stamp action ── */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: O.textSub, margin: 0, fontWeight: 400 }}>Awaiting official stamp</p>
+          <span style={{ fontSize: 12, color: O.textMt }}>
+            {needsStampReqs.length + needsStampPOs.length + needsStampGRNs.length} document{needsStampReqs.length + needsStampPOs.length + needsStampGRNs.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {!loading && needsStampReqs.length === 0 && needsStampPOs.length === 0 && needsStampGRNs.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 0", color: O.textMt, fontSize: 13 }}>
+            <Stamp size={32} color="#8764b8" style={{ opacity: .5 }} />
+            <div style={{ marginTop: 8 }}>Nothing awaiting a stamp — all caught up</div>
+          </div>
+        ) : (
+          <div style={{ background: O.card, border: `1px solid ${O.border}`, borderRadius: 2, boxShadow: O.shadow }}>
+            {[
+              ...needsStampReqs.map(r => ({
+                id: r.id, table: "requisitions" as const, color: "#0078d4", icon: ShoppingCart,
+                title: r.requisition_number || r.id.slice(0, 8), path: "Requisitions",
+                meta: `${r.department || "General"} · KSh ${Number(r.total_amount || 0).toLocaleString()}`,
+                date: r.approved_at, by: r.approved_by_name, defaultLabel: "Approved",
+              })),
+              ...needsStampPOs.map(p => ({
+                id: p.id, table: "purchase_orders" as const, color: "#107c10", icon: FileText,
+                title: p.po_number || p.id.slice(0, 8), path: "Purchase Orders",
+                meta: `${p.supplier_name || "Supplier"} · KSh ${Number(p.total_amount || 0).toLocaleString()}`,
+                date: p.approved_at, by: undefined, defaultLabel: p.status === "issued" ? "Issued" : "Approved",
+              })),
+              ...needsStampGRNs.map(g => ({
+                id: g.id, table: "goods_received" as const, color: "#ca5010", icon: Package,
+                title: g.grn_number || g.id.slice(0, 8), path: "GRN Tracking",
+                meta: g.supplier_name || "Supplier",
+                date: g.received_date || g.created_at, by: undefined, defaultLabel: "Received",
+              })),
+            ].map((row, i, arr) => (
+              <div key={row.id}
+                style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${O.border}` : "none", transition: "background .1s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#f7f7f7"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+
+                <div style={{ width: 36, height: 36, background: row.color, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <row.icon size={16} color={O.white} strokeWidth={1.5} />
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: O.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {row.title} <span style={{ color: "#107c10", fontWeight: 600 }}>· {row.defaultLabel}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: O.textMt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    EL5 MediProcure {"»"} {row.path} {"»"} {row.meta}{row.by ? ` · by ${row.by}` : ""}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => stampItem(row.table, row.id, row.defaultLabel)}
+                  disabled={stampingId === row.id}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", background: stampingId === row.id ? "#a496c4" : "#8764b8", color: O.white, border: "none", borderRadius: 2, fontSize: 12, fontWeight: 600, cursor: stampingId === row.id ? "default" : "pointer", flexShrink: 0 }}>
+                  <Stamp size={12} /> {stampingId === row.id ? "Stamping…" : "Stamp"}
+                </button>
+
+                <div style={{ fontSize: 11, color: O.textMt, flexShrink: 0, minWidth: 90, textAlign: "right" }}>
+                  {row.date ? new Date(row.date).toLocaleDateString("en-KE", { day: "numeric", month: "short" }) : "—"}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

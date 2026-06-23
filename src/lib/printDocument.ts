@@ -220,12 +220,14 @@ export async function printDocument(config: {
 
 /** Print requisition */
 export async function printRequisition(req: any, items: any[]): Promise<void> {
-  const isApproved = ["approved","fulfilled","completed"].includes((req.status||"").toLowerCase());
   await printDocument({
     title:    "STORES REQUISITION FORM",
     docNo:    req.requisition_number || req.id?.slice(0,8).toUpperCase(),
     filename: `REQ-${req.requisition_number || req.id?.slice(0,8)}`,
-    stamp: isApproved ? { label: "Approved", subLabel: req.approved_at ? new Date(req.approved_at).toLocaleDateString("en-KE") : "" } : null,
+    stamp: req.stamped ? {
+      label: req.stamp_label || "Approved",
+      subLabel: [req.stamped_by_name, req.stamped_at ? new Date(req.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
+    } : null,
     content: async (doc, startY) => {
       const W = doc.internal.pageSize.getWidth();
 
@@ -281,12 +283,14 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
 /** Print LPO */
 export async function printPurchaseOrder(po: any, items: any[], supplier: any): Promise<void> {
   const status = (po.status||"").toLowerCase();
-  const isApproved = ["approved","issued","completed"].includes(status);
   await printDocument({
     title:    "LOCAL PURCHASE ORDER (LPO)",
     docNo:    po.po_number || po.id?.slice(0,8).toUpperCase(),
     filename: `LPO-${po.po_number || po.id?.slice(0,8)}`,
-    stamp: isApproved ? { label: status==="issued"?"Issued":"Approved", subLabel: po.approved_at ? new Date(po.approved_at).toLocaleDateString("en-KE") : "" } : null,
+    stamp: po.stamped ? {
+      label: po.stamp_label || (status==="issued"?"Issued":"Approved"),
+      subLabel: [po.stamped_by_name, po.stamped_at ? new Date(po.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
+    } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
@@ -343,7 +347,10 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
     title: "GOODS RECEIVED NOTE (GRN)",
     docNo: grn.grn_number || grn.id?.slice(0,8).toUpperCase(),
     filename: `GRN-${grn.grn_number || grn.id?.slice(0,8)}`,
-    stamp: { label: "Received", subLabel: grn.created_at ? new Date(grn.created_at).toLocaleDateString("en-KE") : "" },
+    stamp: grn.stamped ? {
+      label: grn.stamp_label || "Received",
+      subLabel: [grn.stamped_by_name, grn.stamped_at ? new Date(grn.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
+    } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
