@@ -22,8 +22,8 @@ import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
-import {
 import { DocumentStamp } from "@/components/DocumentStamp";
+import {
   executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
   generateRequisitionNumber, type RequisitionAction
 } from "@/lib/procurement/requisitionWorkflow";
