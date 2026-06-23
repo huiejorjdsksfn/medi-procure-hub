@@ -447,114 +447,117 @@ const TrackingApprovalPage = () => {
               ))}
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="bg-white border-slate-200">
+            {/* Activity + Stats — main feed alongside a compact sidebar instead of stacked full-width blocks */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Recent Activity — main panel */}
+              <Card className="bg-white border-slate-200 lg:col-span-2">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Package className="w-4 h-4 text-purple-600" />
-                    Inventory Status
+                    <Clock className="w-4 h-4 text-slate-500" />
+                    Recent Activity
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Total Items</span>
-                      <span className="font-bold text-slate-800">{stats.totalItems}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Low Stock Alerts</span>
-                      <span className="font-bold text-red-600">{stats.lowStock}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Pending GRNs</span>
-                      <span className="font-bold text-amber-600">{stats.pendingGRNs}</span>
-                    </div>
+                    {requisitions.slice(0, 6).map((r: any) => (
+                      <div key={r.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                        <div className={`p-2 rounded-full ${r.status === "approved" ? "bg-emerald-100" : r.status === "rejected" ? "bg-red-100" : "bg-amber-100"}`}>
+                          {r.status === "approved" ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : 
+                           r.status === "rejected" ? <XCircle className="w-4 h-4 text-red-600" /> : 
+                           <Clock className="w-4 h-4 text-amber-600" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-800 text-sm">{r.requisition_number || r.id?.slice(0, 8)}</div>
+                          <div className="text-xs text-slate-500">{r.department || "Unknown Department"} · {r.purpose || "No description"}</div>
+                        </div>
+                        <StatusBadge status={r.status} />
+                      </div>
+                    ))}
+                    {requisitions.length === 0 && (
+                      <div className="text-center py-8 text-slate-400">No recent activity</div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white border-slate-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-violet-600" />
-                    Purchase Orders
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Total POs</span>
-                      <span className="font-bold text-slate-800">{stats.totalPOs}</span>
+              {/* Compact stats sidebar */}
+              <div className="space-y-4">
+                <Card className="bg-white border-slate-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Package className="w-4 h-4 text-purple-600" />
+                      Inventory Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Total Items</span>
+                        <span className="font-bold text-slate-800">{stats.totalItems}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Low Stock Alerts</span>
+                        <span className="font-bold text-red-600">{stats.lowStock}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Pending GRNs</span>
+                        <span className="font-bold text-amber-600">{stats.pendingGRNs}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Open POs</span>
-                      <span className="font-bold text-orange-600">{stats.openPOs}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Approved</span>
-                      <span className="font-bold text-emerald-600">{purchaseOrders.filter((p: any) => p.status === "approved").length}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="bg-white border-slate-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <ShoppingCart className="w-4 h-4 text-sky-600" />
-                    Requisitions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Total</span>
-                      <span className="font-bold text-slate-800">{requisitions.length}</span>
+                <Card className="bg-white border-slate-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-violet-600" />
+                      Purchase Orders
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Total POs</span>
+                        <span className="font-bold text-slate-800">{stats.totalPOs}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Open POs</span>
+                        <span className="font-bold text-orange-600">{stats.openPOs}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Approved</span>
+                        <span className="font-bold text-emerald-600">{purchaseOrders.filter((p: any) => p.status === "approved").length}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Pending</span>
-                      <span className="font-bold text-amber-600">{stats.pendingReqs}</span>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ShoppingCart className="w-4 h-4 text-sky-600" />
+                      Requisitions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Total</span>
+                        <span className="font-bold text-slate-800">{requisitions.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Pending</span>
+                        <span className="font-bold text-amber-600">{stats.pendingReqs}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">Approved</span>
+                        <span className="font-bold text-emerald-600">{stats.approvedReqs}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">Approved</span>
-                      <span className="font-bold text-emerald-600">{stats.approvedReqs}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-
-            {/* Recent Activity */}
-            <Card className="bg-white border-slate-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {requisitions.slice(0, 5).map((r: any) => (
-                    <div key={r.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className={`p-2 rounded-full ${r.status === "approved" ? "bg-emerald-100" : r.status === "rejected" ? "bg-red-100" : "bg-amber-100"}`}>
-                        {r.status === "approved" ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : 
-                         r.status === "rejected" ? <XCircle className="w-4 h-4 text-red-600" /> : 
-                         <Clock className="w-4 h-4 text-amber-600" />}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-slate-800 text-sm">{r.requisition_number || r.id?.slice(0, 8)}</div>
-                        <div className="text-xs text-slate-500">{r.department || "Unknown Department"} · {r.purpose || "No description"}</div>
-                      </div>
-                      <StatusBadge status={r.status} />
-                    </div>
-                  ))}
-                  {requisitions.length === 0 && (
-                    <div className="text-center py-8 text-slate-400">No recent activity</div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
 

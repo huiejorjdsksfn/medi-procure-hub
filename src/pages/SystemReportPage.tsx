@@ -344,6 +344,53 @@ const SystemReportPage = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
+        {/* Hero Summary — the big-picture numbers first */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gradient-to-br from-sky-500 to-sky-600 border-sky-400 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white/20 rounded-xl">
+                  <Activity className="w-8 h-8" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">{metrics.requisitions.total + metrics.purchaseOrders.total + metrics.grns.total}</div>
+                  <div className="text-sky-100">Total Transactions</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white/20 rounded-xl">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">
+                    {metrics.requisitions.approved + metrics.purchaseOrders.approved}
+                  </div>
+                  <div className="text-emerald-100">Items Approved</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-violet-500 to-violet-600 border-violet-400 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white/20 rounded-xl">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">{metrics.suppliers.active}</div>
+                  <div className="text-violet-100">Active Suppliers</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <MetricCard
@@ -518,53 +565,6 @@ const SystemReportPage = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Quick Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-sky-500 to-sky-600 border-sky-400 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/20 rounded-xl">
-                  <Activity className="w-8 h-8" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">{metrics.requisitions.total + metrics.purchaseOrders.total + metrics.grns.total}</div>
-                  <div className="text-sky-100">Total Transactions</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/20 rounded-xl">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">
-                    {metrics.requisitions.approved + metrics.purchaseOrders.approved}
-                  </div>
-                  <div className="text-emerald-100">Items Approved</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-violet-500 to-violet-600 border-violet-400 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/20 rounded-xl">
-                  <Building2 className="w-8 h-8" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">{metrics.suppliers.total}</div>
-                  <div className="text-violet-100">Active Suppliers</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Footer */}
         <div className="text-center text-xs text-slate-400 py-6 border-t border-slate-200">
