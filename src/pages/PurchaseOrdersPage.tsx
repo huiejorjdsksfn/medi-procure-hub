@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><DocumentStamp status={viewPO.status} date={viewPO.created_at} size={100} rotate={-12} /></div> { useEffect, useState, useCallback } from "react";
 import { ERPCache } from "@/lib/erp-cache";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
@@ -20,6 +21,7 @@ import { printLPO } from "@/lib/printDocument";
 import { useSuppliers, useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:    {bg:"#f3f4f6",color:"#6b7280",  label:"Draft"},
@@ -725,3 +727,4 @@ export default function PurchaseOrdersPage() {
     </div>
   );
 }
+
