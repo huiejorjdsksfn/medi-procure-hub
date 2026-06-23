@@ -12,6 +12,7 @@ import { notifyProcurement } from "@/lib/notify";
 import { Plus, Search, RefreshCw, Eye, CheckCircle, Gavel, X, Save, Download, Mail } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
@@ -342,6 +343,7 @@ export default function TendersPage() {
             <div style={{padding:18,display:"flex",flexDirection:"column",gap:14}}>
               <div><div style={{fontSize:18,fontWeight:800,color:"#111827",lineHeight:1.3}}>{detail.title}</div>
                 <span className="status-chip" style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,marginTop:6,display:"inline-block"}}>{sc(detail.status).label}</span>
+              <div style={{display:"flex",justifyContent:"flex-end"}}><DocumentStamp status={detail.status} date={detail.created_at} size={100} rotate={-12} /></div>
               </div>
               {[["Category",detail.category||"-"],["Type",detail.tender_type||"-"],["Estimated Value",detail.estimated_value?fmtKES(detail.estimated_value):"-"],["Opening Date",fmtDate(detail.opening_date)],["Closing Date",fmtDate(detail.closing_date)],["Contact",detail.contact_person||"-"],["Created By",detail.created_by_name||"-"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f9fafb"}}>
@@ -365,3 +367,4 @@ export default function TendersPage() {
     </div>
   );
 }
+
