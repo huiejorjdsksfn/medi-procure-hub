@@ -207,7 +207,6 @@ export const CACHE_KEYS = {
   IP_RULES:           "ip_rules",
   ROLES:              "roles",
   PERMISSIONS:        "permissions",
-  HMIS_SYNC:          "hmis_sync",
   QUALITY_METRICS:    "quality:metrics",
   NON_CONFORMANCES:   "quality:ncr",
   COMMUNICATIONS:     "communications",

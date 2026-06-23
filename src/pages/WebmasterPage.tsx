@@ -533,7 +533,6 @@ export default function WebmasterPage() {
                 { label:"DB Monitor",    icon:Activity, path:"/admin/db-test",   color:"#d97706"  },
                 { label:"Audit Log",     icon:BookOpen, path:"/audit-log",       color:"#0891b2"  },
                 { label:"Backup",        icon:HardDrive,path:"/backup",          color:"#374151"  },
-                { label:"ODBC/MySQL",    icon:Database, path:"/odbc",            color:"#dc2626"  },
                 { label:"SMS Settings",  icon:Cpu,      path:"/sms",             color:"#c45910"  },
               ].map(a => (
                 <button key={a.path} onClick={() => nav(a.path)} style={{ ...btn(a.color), fontSize:11, padding:"6px 12px" }}>

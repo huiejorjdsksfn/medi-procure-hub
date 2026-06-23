@@ -26,8 +26,6 @@ const ADMIN_CRUMBS: Record<string, { section: string; label: string }> = {
   "/admin/database":           { section: "Database",   label: "Database Admin" },
   "/admin/db-test":            { section: "Database",   label: "DB Monitor" },
   "/backup":                   { section: "Database",   label: "Backup & Restore" },
-  "/odbc":                     { section: "Database",   label: "ODBC / MySQL" },
-  "/hmis":                     { section: "Database",   label: "HMIS Sync" },
   "/webmaster":                { section: "Developer",  label: "Webmaster" },
   "/superadmin":               { section: "Developer",  label: "Superadmin" },
   "/reports/system-utilization":{ section: "Developer", label: "System Report" },
@@ -69,8 +67,6 @@ const SECTION_SIBLINGS: Record<string, { l: string; p: string }[]> = {
     { l: "DB Admin",   p: "/admin/database" },
     { l: "DB Monitor", p: "/admin/db-test" },
     { l: "Backup",     p: "/backup" },
-    { l: "ODBC/MySQL", p: "/odbc" },
-    { l: "HMIS Sync",  p: "/hmis" },
   ],
   "Developer": [
     { l: "Webmaster",      p: "/webmaster" },

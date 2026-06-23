@@ -86,13 +86,11 @@ const SECTIONS = [
   },
   {
     id: "database", label: "Database & Storage", color: D.success, colorLt: D.successLt, icon: Database,
-    description: "Database monitoring, backup, ODBC and HMIS sync",
+    description: "Database monitoring, backup and restore",
     items: [
       { l: "Database Admin",   p: "/admin/database", I: Database, desc: "Browse tables, run queries" },
       { l: "DB Monitor",       p: "/admin/db-test",  I: Activity, desc: "Live connection & latency test" },
       { l: "Backup & Restore", p: "/backup",         I: Archive,  desc: "Export & import all system data" },
-      { l: "ODBC / MySQL",     p: "/odbc",           I: Server,   desc: "MySQL / ODBC bridge connector" },
-      { l: "HMIS Sync",        p: "/hmis",           I: Wifi,     desc: "Health Management Info System sync" },
     ],
   },
   {

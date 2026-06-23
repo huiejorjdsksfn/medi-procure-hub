@@ -10,7 +10,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import AppLayout from "@/components/AppLayout";
 import RoleGuard from "@/components/RoleGuard";
 import RouterGuard from "@/components/RouterGuard";
-import HMISSyncPage from "@/pages/HMISSyncPage";
 
 import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
@@ -74,7 +73,6 @@ import EmailPage from "@/pages/EmailPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import DocumentEditorPage from "@/pages/DocumentEditorPage";
 import BackupPage from "@/pages/BackupPage";
-import ODBCPage from "@/pages/ODBCPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
 import AdminActivityPage from "@/pages/AdminActivityPage";
 // AdminTrackerPage merged into UsersIpAuditPage — route redirects below
@@ -204,11 +202,8 @@ const App = () => (
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/changelog" element={<P><ChangelogPage /></P>} />
             <Route path="/backup" element={<P><RoleGuard allowed={["admin","superadmin","database_admin"]}><BackupPage /></RoleGuard></P>} />
-            <Route path="/odbc" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><ODBCPage /></RoleGuard></P>} />
             <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/ip-access" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><IpAccessPage /></RoleGuard></P>} />
-            <Route path="/hmis" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin","procurement_manager"]}><HMISSyncPage /></RoleGuard></P>} />
-            <Route path="/hmis/sync" element={<Navigate to="/hmis" replace />} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><GuiEditorPage /></RoleGuard></P>} />
             <Route path="/facilities" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><FacilitiesPage /></RoleGuard></P>} />

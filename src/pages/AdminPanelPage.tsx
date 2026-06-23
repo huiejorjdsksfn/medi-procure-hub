@@ -376,7 +376,6 @@ export default function AdminPanelPage() {
                     {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
                     {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
                     {l:"IP Access Control", p:"/admin/ip-access",  col:T.error},
-                    {l:"ODBC / MySQL",      p:"/odbc",             col:"#00188f"},
                   ].map(a=>(
                     <button key={a.l} onClick={()=>{if(a.cb)a.cb();else if(a.p)nav(a.p);}} style={S.btn(`${a.col}14`,a.col)} onMouseEnter={e=>(e.currentTarget.style.background=`${a.col}22`)} onMouseLeave={e=>(e.currentTarget.style.background=`${a.col}14`)}>
                       <ChevronRight size={12}/>{a.l}
@@ -729,7 +728,6 @@ export default function AdminPanelPage() {
                     {key:"enable_contracts_module", label:"Contracts",            desc:"Contract lifecycle · Renewals · SLAs",           col:"#6366f1"},
                     {key:"enable_documents",        label:"Document Management",  desc:"Upload · Parse · Auto-classify",                 col:"#ec4899"},
                     {key:"enable_reports",          label:"Reports & Analytics",  desc:"KPI dashboards · Exports · System reports",      col:"#f97316"},
-                    {key:"enable_hmis_sync",        label:"HMIS Sync",            desc:"Kenya HMIS integration · MOH data exchange",     col:"#0891b2"},
                     {key:"enable_email",            label:"Email Module",         desc:"Internal email · Notifications · SMTP relay",    col:"#3b82f6"},
                     {key:"enable_telephony",        label:"Telephony / VoIP",     desc:"Twilio voice · WhatsApp · SMS gateway",          col:"#10b981"},
                     {key:"enable_backup",           label:"Backup & Recovery",    desc:"DB snapshots · Data exports · Archives",         col:"#6b7280"},
@@ -758,7 +756,7 @@ export default function AdminPanelPage() {
                   })}
                 </div>
                 <div style={{padding:"12px 16px",background:"#f8fafc",borderTop:`1px solid ${T.border}`,display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button onClick={()=>{["enable_procurement","enable_financials","enable_vouchers","enable_quality","enable_scanner","enable_tenders","enable_contracts_module","enable_documents","enable_reports","enable_hmis_sync","enable_email","enable_telephony","enable_backup","enable_audit_log","realtime_notifications"].forEach(k=>{if(moduleCfg[k]==="false")toggleModule(k);});}} style={{...S.btn("#059669"),fontSize:12}}><Power size={12}/> Enable All Modules</button>
+                  <button onClick={()=>{["enable_procurement","enable_financials","enable_vouchers","enable_quality","enable_scanner","enable_tenders","enable_contracts_module","enable_documents","enable_reports","enable_email","enable_telephony","enable_backup","enable_audit_log","realtime_notifications"].forEach(k=>{if(moduleCfg[k]==="false")toggleModule(k);});}} style={{...S.btn("#059669"),fontSize:12}}><Power size={12}/> Enable All Modules</button>
                   <button onClick={()=>toggleModule("maintenance_mode")} style={{...S.btn(moduleCfg["maintenance_mode"]!=="false"?"#059669":"#dc2626"),fontSize:12}}><AlertTriangle size={12}/>{moduleCfg["maintenance_mode"]!=="false"?" Disable Maintenance":" Enable Maintenance"}</button>
                 </div>
               </div>
@@ -1099,7 +1097,6 @@ export default function AdminPanelPage() {
                     {l:"IP Access",    p:"/admin/ip-access"},
                     {l:"Audit Log",    p:"/audit-log"},
                     {l:"Webmaster",    p:"/webmaster"},
-                    {l:"ODBC/MySQL",   p:"/odbc"},
                     {l:"Backup",       p:"/backup"},
                     {l:"Superadmin",   p:"/superadmin"},
                   ].map(({l,p})=>(

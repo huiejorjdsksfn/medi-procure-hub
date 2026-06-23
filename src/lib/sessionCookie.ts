@@ -150,7 +150,7 @@ export const ROLE_MATRIX: Record<string, {
       "/vouchers","/financials","/reports","/items","/categories","/departments",
       "/scanner","/quality","/audit-log","/documents","/inbox","/email",
       "/notifications","/profile","/accountant","/finance-workspace","/whatsapp"],
-    deniedPrefixes: ["/admin","/users","/settings","/webmaster","/gui-editor","/backup","/odbc"],
+    deniedPrefixes: ["/admin","/users","/settings","/webmaster","/gui-editor","/backup"],
   },
   finance_manager: {
     label: "Finance Manager",
