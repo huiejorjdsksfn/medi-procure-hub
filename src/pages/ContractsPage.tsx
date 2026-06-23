@@ -11,6 +11,7 @@ import { notifyProcurement } from "@/lib/notify";
 import { Plus, Search, RefreshCw, Eye, FileText, X, Save, Download, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const genNo = () => `CNT/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
@@ -329,6 +330,7 @@ export default function ContractsPage() {
             <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
               <div style={{fontSize:17,fontWeight:800,color:"#111827"}}>{detail.title}</div>
               <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:sc(detail.status).bg,color:sc(detail.status).color,display:"inline-block"}}>{sc(detail.status).label}</span>
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><DocumentStamp status={detail.status} date={detail.created_at||detail.start_date} size={100} rotate={-12} /></div>
               {[["Supplier",detail.suppliers?.name||detail.supplier_name||"-"],["Total Value",fmtKES(detail.total_value)],["Start Date",fmtDate(detail.start_date)],["End Date",fmtDate(detail.end_date)],["Performance Score",`${detail.performance_score||0}/100`],["Payment Terms",detail.payment_terms||"-"],["Delivery Terms",detail.delivery_terms||"-"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f9fafb"}}>
                   <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
