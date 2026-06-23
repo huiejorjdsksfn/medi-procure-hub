@@ -14,7 +14,7 @@ import {
   AlertTriangle, FileText, BarChart3, Terminal, Printer, Wifi, Search,
   LayoutDashboard, UserCheck, Layers, Home, ExternalLink,
   BookOpen, Package, Rss, FormInput, HelpCircle, Network,
-  ClipboardList, Map, Cpu,
+  ClipboardList, Map as MapIcon, Cpu,
 } from "lucide-react";
 
 const D = {
@@ -115,7 +115,7 @@ const SECTIONS = [
       { l: "Webmaster",         p: "/webmaster",      I: Code2,          desc: "Module toggles, codebase viewer" },
       { l: "Admin Panel",       p: "/admin/panel",    I: LayoutDashboard,desc: "Admin control centre" },
       { l: "Network Guard",     p: "/admin/ip-access",I: Network,        desc: "Network & IP security layer" },
-      { l: "Map / Geo",         p: "/admin/users-ip-audit",I: Map,            desc: "Geolocation, devices & IP audit" },
+      { l: "Map / Geo",         p: "/admin/users-ip-audit",I: MapIcon, desc: "Geolocation, devices & IP audit" },
     ],
   },
 ];

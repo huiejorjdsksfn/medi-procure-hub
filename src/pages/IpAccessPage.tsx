@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
-  Shield, Lock, Unlock, Monitor, Smartphone, Laptop,
+  Shield, Globe, Lock, Unlock, Monitor, Smartphone, Laptop,
   Clock, CheckCircle, XCircle, RefreshCw, Download, Search,
   Trash2, Plus, Activity,
   Users, ShieldCheck, Signal, Network,
