@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Search, RefreshCw, Eye, Printer, Download, FileText, DollarSign, X, Save, CheckCircle, XCircle, Clock } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
 import * as XLSX from "@e965/xlsx";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const genNo = () => { const d=new Date(); return `SRV/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.floor(1000+Math.random()*9000)}`; };
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
@@ -204,7 +205,8 @@ export default function VouchersPage() {
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.departments?.name||r.department_name||"-"}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"#111827"}} onClick={()=>setDetail(r)}>{fmtKES(r.total_value||0)}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.date?new Date(r.date).toLocaleDateString("en-KE"):"-"}</td>
-                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
+                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span>
+              <div style={{display:"flex",justifyContent:"center",padding:"10px 0"}}><DocumentStamp status={detail?.status||"pending"} date={detail?.date||detail?.created_at} size={100} rotate={-12} /></div></td>
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
                       <button onClick={()=>setPrint(r)} title="Print" style={{padding:"4px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",lineHeight:0}}><Printer style={{width:11,height:11,color:"#6b7280"}}/></button>
@@ -316,6 +318,7 @@ export default function VouchersPage() {
                 </div>
                 <div style={{marginLeft:"auto",textAlign:"right"}}>
                   <div style={{fontSize:16,fontWeight:900,textTransform:"uppercase"}}>STORE REQUISITION VOUCHER</div>
+              <div style={{position:"absolute",right:24,top:24,opacity:0.85}}><DocumentStamp status={print?.status||"pending"} date={print?.date} size={90} rotate={-10} /></div>
                   <div style={{fontSize:13,fontWeight:700,marginTop:4}}>No: {print.voucher_number}</div>
                   <div style={{fontSize:11}}>Date: {print.date?new Date(print.date).toLocaleDateString("en-KE",{dateStyle:"long"}):"-"}</div>
                 </div>
@@ -371,3 +374,4 @@ export default function VouchersPage() {
     </div>
   );
 }
+
