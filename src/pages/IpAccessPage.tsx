@@ -7,12 +7,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
-  Shield, Globe, Lock, Unlock, Monitor, Smartphone, Laptop,
-  Clock, CheckCircle, XCircle, AlertTriangle, RefreshCw, Download, Search,
-  Trash2, Zap, Plus, ChevronRight, Ban, Activity,
-  Users, ShieldCheck, ShieldX, Signal, Network, Eye,
-  ChevronDown, Home, Terminal,
+  Shield, Lock, Unlock, Monitor, Smartphone, Laptop,
+  Clock, CheckCircle, XCircle, RefreshCw, Download, Search,
+  Trash2, Plus, Activity,
+  Users, ShieldCheck, Signal, Network,
+  Terminal,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -248,21 +249,7 @@ export default function IpAccessPage() {
 
   return (
     <div style={{ background: D.bg, minHeight: "100vh", fontFamily: D.font, color: D.text }}>
-      <div style={{ background: D.blue, height: 4 }} />
-
-      {/* Breadcrumb */}
-      <div style={{ background: D.card, borderBottom: `1px solid ${D.border}`, padding: "5px 24px", display: "flex", alignItems: "center", gap: 6 }}>
-        <Home size={11} color={D.textMt} />
-        <span style={{ fontSize: 11, color: D.textMt }}>Admin</span>
-        <ChevronRight size={9} color={D.textMt} />
-        <span style={{ fontSize: 11, color: D.blue, fontWeight: 600 }}>IP Access Control</span>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 10, color: liveLog.length > 0 ? D.success : D.textMt }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: liveLog.length > 0 ? D.success : D.textMt, display: "inline-block", marginRight: 4, animation: liveLog.length > 0 ? "pulse 2s infinite" : "none" }} />
-            {liveLog.length > 0 ? "Live" : "Idle"}
-          </span>
-        </div>
-      </div>
+      <AdminBreadcrumb />
 
       {/* Header bar */}
       <div style={{ background: D.card, borderBottom: `1px solid ${D.border}`, padding: "7px 20px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

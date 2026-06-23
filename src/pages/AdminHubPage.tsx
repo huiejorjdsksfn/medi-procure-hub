@@ -63,7 +63,7 @@ const SECTIONS = [
     description: "Track logins, sessions, IP access and audit trails",
     items: [
       { l: "Activity Stats",    p: "/admin/activity",       I: Activity,      desc: "Login trends & user activity charts" },
-      { l: "Security Tracker",  p: "/admin/tracker",        I: Monitor,       desc: "Device, geo & live session tracker" },
+      { l: "IP & Device Tracker",p: "/admin/users-ip-audit", I: Monitor,       desc: "Devices, geo & IP audit (merged)" },
       { l: "IP Access Control", p: "/admin/ip-access",      I: Lock,          desc: "Allow / block / monitor IP rules" },
       { l: "Users & IP Audit",  p: "/admin/users-ip-audit", I: Globe,         desc: "IP geolocation audit per user" },
       { l: "Audit Log",         p: "/audit-log",            I: FileText,      desc: "Full system event audit trail" },
@@ -115,7 +115,7 @@ const SECTIONS = [
       { l: "Webmaster",         p: "/webmaster",      I: Code2,          desc: "Module toggles, codebase viewer" },
       { l: "Admin Panel",       p: "/admin/panel",    I: LayoutDashboard,desc: "Admin control centre" },
       { l: "Network Guard",     p: "/admin/ip-access",I: Network,        desc: "Network & IP security layer" },
-      { l: "Map / Geo",         p: "/admin/tracker",  I: Map,            desc: "Geolocation & device map" },
+      { l: "Map / Geo",         p: "/admin/users-ip-audit",I: Map,            desc: "Geolocation, devices & IP audit" },
     ],
   },
 ];
@@ -127,7 +127,7 @@ const QUICK = [
   { l: "Settings",    p: "/settings",           I: Settings,  primary: false },
   { l: "IP Access",   p: "/admin/ip-access",    I: Lock,      primary: false },
   { l: "IP Audit",    p: "/admin/users-ip-audit",I: Globe,    primary: false },
-  { l: "Tracker",     p: "/admin/tracker",      I: Monitor,   primary: false },
+  { l: "Tracker",     p: "/admin/users-ip-audit",I: Monitor,  primary: false },
   { l: "DB Monitor",  p: "/admin/db-test",      I: Activity,  primary: false },
   { l: "Backup",      p: "/backup",             I: Archive,   primary: false },
   { l: "Webmaster",   p: "/webmaster",          I: Code2,     primary: false },
@@ -298,7 +298,7 @@ export default function AdminHubPage() {
                 { l: "IP Access Control", p: "/admin/ip-access",       I: Lock,     c: D.danger  },
                 { l: "Users & IP Audit",  p: "/admin/users-ip-audit",  I: Globe,    c: D.teal    },
                 { l: "Audit Log",         p: "/audit-log",             I: FileText, c: D.blue    },
-                { l: "Security Tracker",  p: "/admin/tracker",         I: Monitor,  c: D.purple  },
+                { l: "IP & Device Tracker", p: "/admin/users-ip-audit",  I: Monitor,  c: D.purple  },
                 { l: "Activity Stats",    p: "/admin/activity",        I: Activity, c: D.warn    },
                 { l: "Not Found Log",     p: "/admin/not-found-log",   I: AlertTriangle, c: D.textSub },
               ].map(b => (
