@@ -1,5 +1,5 @@
-import
-              <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><DocumentStamp status={viewPO.status} date={viewPO.created_at} size={100} rotate={-12} /></div> { useEffect, useState, useCallback } from "react";
+import { DocumentStamp } from "@/components/DocumentStamp";
+import { useEffect, useState, useCallback } from "react";
 import { ERPCache } from "@/lib/erp-cache";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
