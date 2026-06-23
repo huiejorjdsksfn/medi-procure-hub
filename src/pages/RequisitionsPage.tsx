@@ -23,6 +23,7 @@ import { useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
 import {
+import { DocumentStamp } from "@/components/DocumentStamp";
   executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
   generateRequisitionNumber, type RequisitionAction
 } from "@/lib/procurement/requisitionWorkflow";
@@ -486,6 +487,7 @@ export default function RequisitionsPage() {
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>{viewReq.title}</div>
               </div>
               <span className="status-chip" style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
+                  <DocumentStamp status={viewReq.status} date={viewReq.created_at} size={100} rotate={-12} />
                 {STATUS_CFG[viewReq.status]?.label||viewReq.status}
               </span>
               <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
@@ -552,3 +554,4 @@ export default function RequisitionsPage() {
     </div>
   );
 }
+
