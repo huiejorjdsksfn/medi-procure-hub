@@ -375,7 +375,7 @@ export default function AdminPanelPage() {
                     {l:"DB Monitor",        p:"/admin/db-test",    col:T.quality},
                     {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
                     {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
-                    {l:"IP Access Control", p:"/admin/ip-access",  col:T.error},
+                    {l:"IP Access Control", p:"/admin/users-ip-audit",  col:T.error},
                   ].map(a=>(
                     <button key={a.l} onClick={()=>{if(a.cb)a.cb();else if(a.p)nav(a.p);}} style={S.btn(`${a.col}14`,a.col)} onMouseEnter={e=>(e.currentTarget.style.background=`${a.col}22`)} onMouseLeave={e=>(e.currentTarget.style.background=`${a.col}14`)}>
                       <ChevronRight size={12}/>{a.l}
@@ -466,7 +466,7 @@ export default function AdminPanelPage() {
                         <span style={{width:6,height:6,borderRadius:"50%",background:blockedIPs.has(ip)?T.error:T.success,flexShrink:0}}/>
                         <code style={{fontSize:11,color:T.fg,fontFamily:"monospace",flex:1}}>{ip}</code>
                         <span style={{fontSize:9,padding:"1px 6px",borderRadius:T.r,background:classIP(ip)==="public"?T.primaryBg:`${T.inventory}14`,color:classIP(ip)==="public"?T.primary:T.inventory}}>{classIP(ip)}</span>
-                        <button onClick={()=>nav("/admin/ip-access")} style={{...S.btn(T.bg2,T.fgMuted),padding:"3px 7px",fontSize:10}}><Eye size={10}/></button>
+                        <button onClick={()=>nav("/admin/users-ip-audit")} style={{...S.btn(T.bg2,T.fgMuted),padding:"3px 7px",fontSize:10}}><Eye size={10}/></button>
                       </div>
                     ))}
                     {activeIPs.size===0&&<div style={{padding:20,textAlign:"center",color:T.fgMuted,fontSize:12}}>No active sessions in last 30 min</div>}
@@ -490,7 +490,7 @@ export default function AdminPanelPage() {
                         <span style={{fontWeight:700,color:c,fontFamily:"monospace"}}>{v}</span>
                       </div>
                     ))}
-                    <button onClick={()=>nav("/admin/ip-access")} style={{...S.btn(T.primary),marginTop:12,width:"100%",justifyContent:"center"}}>
+                    <button onClick={()=>nav("/admin/users-ip-audit")} style={{...S.btn(T.primary),marginTop:12,width:"100%",justifyContent:"center"}}>
                       <Globe size={13}/> Full IP Monitor
                     </button>
                   </div>
@@ -849,7 +849,7 @@ export default function AdminPanelPage() {
                     ["Chrome Web Kiosk","chrome --kiosk --incognito https://procurbosse.edgeone.app (run as limited OS user)"],
                     ["Touch Screens","All buttons are ≥44px tap targets. Use hardware-appropriate screen resolution."],
                     ["Auto-Logout","Enforced at app level via 5-minute idle timer. Pairs with Supabase session expiry."],
-                    ["Security","Combine kiosk mode with IP whitelist (/admin/ip-access) for maximum security."],
+                    ["Security","Combine kiosk mode with IP whitelist (/admin/users-ip-audit) for maximum security."],
                   ].map(([title,note],i)=>(
                     <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<4?`1px solid ${T.border}14`:"none",fontSize:12}}>
                       <span style={{color:"#6366f1",fontWeight:700,minWidth:130,flexShrink:0}}>{title}</span>
@@ -1094,7 +1094,7 @@ export default function AdminPanelPage() {
                 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}>
                   {[
                     {l:"DB Monitor",   p:"/admin/db-test"},
-                    {l:"IP Access",    p:"/admin/ip-access"},
+                    {l:"IP Access",    p:"/admin/users-ip-audit"},
                     {l:"Audit Log",    p:"/audit-log"},
                     {l:"Webmaster",    p:"/webmaster"},
                     {l:"Backup",       p:"/backup"},

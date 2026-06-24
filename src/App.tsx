@@ -76,14 +76,14 @@ import BackupPage from "@/pages/BackupPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
 import AdminActivityPage from "@/pages/AdminActivityPage";
 // AdminTrackerPage merged into UsersIpAuditPage — route redirects below
-import IpAccessPage from "@/pages/IpAccessPage";
+
 import ProfilePage from "@/pages/ProfilePage";
 import GuiEditorPage from "@/pages/GuiEditorPage";
-import FacilitiesPage from "@/pages/FacilitiesPage";
+
 import DbTestPage from "@/pages/DbTestPage";
 import NotFoundLogPage from "@/pages/NotFoundLogPage";
 import UsersIpAuditPage from "@/pages/UsersIpAuditPage";
-import AdminCreateUserPage from "@/pages/AdminCreateUserPage";
+
 import SystemReportPage from "@/pages/SystemReportPage";
 
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
@@ -202,15 +202,15 @@ const App = () => (
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/changelog" element={<P><ChangelogPage /></P>} />
             <Route path="/backup" element={<P><RoleGuard allowed={["admin","superadmin","database_admin"]}><BackupPage /></RoleGuard></P>} />
-            <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
-            <Route path="/ip-access" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><IpAccessPage /></RoleGuard></P>} />
+            <Route path="/admin/ip-access" element={<Navigate to="/admin/users-ip-audit" replace />} />
+            <Route path="/ip-access" element={<Navigate to="/admin/users-ip-audit" replace />} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><GuiEditorPage /></RoleGuard></P>} />
-            <Route path="/facilities" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><FacilitiesPage /></RoleGuard></P>} />
+            <Route path="/facilities" element={<Navigate to="/admin/users-ip-audit" replace />} />
             <Route path="/admin/db-test" element={<P><RoleGuard allowed={["admin","database_admin"]}><DbTestPage /></RoleGuard></P>} />
             <Route path="/admin/not-found-log" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
             <Route path="/admin/users-ip-audit" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><UsersIpAuditPage /></RoleGuard></P>} />
-            <Route path="/admin/create-user" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminCreateUserPage /></RoleGuard></P>} />
+            <Route path="/admin/create-user" element={<Navigate to="/users" replace />} />
             <Route path="/admin/tracker" element={<Navigate to="/admin/users-ip-audit" replace />} />
 
             {/* Finance & Accountant Workspaces */}

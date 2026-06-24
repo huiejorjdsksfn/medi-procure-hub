@@ -13,7 +13,7 @@ import { T } from "@/lib/theme";
 import {
   Users, Shield, Settings, Database, Activity, Globe, Lock, Server,
   GitBranch, Code2, Archive, Radio, RefreshCw, ChevronRight, Bell,
-  UserPlus, Monitor, Wrench, Building2,
+  Monitor, Wrench,
   AlertTriangle, FileText, BarChart3, Terminal, Printer, Wifi, Search,
   LayoutDashboard, UserCheck, Layers, Home, ExternalLink,
   BookOpen, Package, Rss, FormInput, HelpCircle, Network,
@@ -55,8 +55,7 @@ const SECTIONS = [
     id: "users", label: "User Management", color: D.purple, colorLt: D.purpleLt, icon: Users,
     description: "Create, manage and control all user accounts and roles",
     items: [
-      { l: "All Users",      p: "/users",             I: Users,      desc: "View and manage all staff accounts" },
-      { l: "Create User",    p: "/admin/create-user", I: UserPlus,   desc: "Add a new system user" },
+      { l: "All Users",      p: "/users",             I: Users,      desc: "View, create and manage all staff accounts" },
       { l: "Roles & Access", p: "/admin/panel",       I: Shield,     desc: "Assign roles and permissions" },
       { l: "Profile",        p: "/profile",           I: UserCheck,  desc: "Your profile & preferences" },
     ],
@@ -67,7 +66,6 @@ const SECTIONS = [
     items: [
       { l: "Activity Stats",    p: "/admin/activity",       I: Activity,      desc: "Login trends & user activity charts" },
       { l: "Security Tracker",  p: "/admin/tracker",        I: Monitor,       desc: "Device, geo & live session tracker" },
-      { l: "IP Access Control", p: "/admin/ip-access",      I: Lock,          desc: "Allow / block / monitor IP rules" },
       { l: "Users & IP Audit",  p: "/admin/users-ip-audit", I: Globe,         desc: "IP geolocation audit per user" },
       { l: "Audit Log",         p: "/audit-log",            I: FileText,      desc: "Full system event audit trail" },
       { l: "Not Found Log",     p: "/admin/not-found-log",  I: AlertTriangle, desc: "404 error log & broken links" },
@@ -78,7 +76,6 @@ const SECTIONS = [
     description: "Hospital settings, modules, appearance and broadcast",
     items: [
       { l: "System Settings", p: "/settings",      I: Wrench,    desc: "Hospital name, branding, modules" },
-      { l: "Facilities",      p: "/facilities",    I: Building2, desc: "Manage health facility locations" },
       { l: "GUI Editor",      p: "/gui-editor",    I: Layers,    desc: "Live CSS theme & design editor" },
       { l: "Notifications",   p: "/notifications", I: Bell,      desc: "System-wide broadcast & alerts" },
       { l: "Changelog",       p: "/changelog",     I: GitBranch, desc: "Version history & release notes" },
@@ -100,23 +97,22 @@ const SECTIONS = [
       { l: "Superadmin",        p: "/superadmin",                  I: Radio,          desc: "Full system override controls" },
       { l: "Webmaster",         p: "/webmaster",                   I: Code2,          desc: "Module toggles, codebase viewer" },
       { l: "Admin Panel",       p: "/admin/panel",                 I: LayoutDashboard,desc: "Admin control centre" },
-      { l: "Network Guard",     p: "/admin/ip-access",             I: Network,        desc: "Network & IP security layer" },
+      { l: "Network Guard",     p: "/admin/users-ip-audit",        I: Network,        desc: "Network & IP security layer" },
       { l: "Map / Geo",         p: "/admin/users-ip-audit",        I: MapIcon,        desc: "Geolocation, devices & IP audit" },
     ],
   },
 ];
 
 const QUICK = [
-  { l: "New User",   p: "/admin/create-user", I: UserPlus,  primary: true  },
-  { l: "Users",      p: "/users",             I: Users,     primary: false },
-  { l: "Audit Log",  p: "/audit-log",         I: FileText,  primary: false },
-  { l: "Settings",   p: "/settings",          I: Settings,  primary: false },
-  { l: "DB Monitor", p: "/admin/db-test",     I: Activity,  primary: false },
-  { l: "Backup",     p: "/backup",            I: Archive,   primary: false },
-  { l: "Tracker",    p: "/admin/tracker",     I: Monitor,   primary: false },
-  { l: "IP Access",  p: "/admin/ip-access",   I: Lock,      primary: false },
-  { l: "Webmaster",  p: "/webmaster",         I: Code2,     primary: false },
-  { l: "Superadmin", p: "/superadmin",        I: Radio,     primary: false },
+  { l: "Users",      p: "/users",                 I: Users,     primary: true  },
+  { l: "IP Audit",   p: "/admin/users-ip-audit",  I: Globe,     primary: false },
+  { l: "Audit Log",  p: "/audit-log",             I: FileText,  primary: false },
+  { l: "Settings",   p: "/settings",              I: Settings,  primary: false },
+  { l: "DB Monitor", p: "/admin/db-test",         I: Activity,  primary: false },
+  { l: "Backup",     p: "/backup",                I: Archive,   primary: false },
+  { l: "Tracker",    p: "/admin/tracker",         I: Monitor,   primary: false },
+  { l: "Webmaster",  p: "/webmaster",             I: Code2,     primary: false },
+  { l: "Superadmin", p: "/superadmin",            I: Radio,     primary: false },
 ];
 
 function cs(extra?: any): any {
@@ -183,7 +179,7 @@ export default function AdminHubPage() {
     { label: "Pending Requests", val: stats.pendingReqs,        icon: Clock,       color: D.warn,    bg: D.warnLt,    sub: "Awaiting approval",                    href: "/tracking"        },
     { label: "Low Stock Items",  val: stats.lowStock,           icon: Package,     color: "#ca5010", bg: "#fde8d8",   sub: "Below reorder level",                  href: "/inventory"       },
     { label: "Open POs",         val: stats.openPOs,            icon: FileText,    color: D.blue,    bg: D.blueLt,    sub: "In progress",                          href: "/purchase-orders" },
-    { label: "IP Rules",         val: stats.totalIpRules,       icon: Globe,       color: D.teal,    bg: D.tealLt,    sub: "Access control",                       href: "/admin/ip-access" },
+    { label: "IP Rules",         val: stats.totalIpRules,       icon: Globe,       color: D.teal,    bg: D.tealLt,    sub: "Access control",                       href: "/admin/users-ip-audit" },
     { label: "System Health",    val: `${stats.systemHealth}%`, icon: CheckCircle, color: hc,        bg: stats.systemHealth >= 90 ? D.successLt : stats.systemHealth >= 70 ? D.warnLt : D.dangerLt, sub: "Overall score", href: "/admin/db-test" },
     { label: "Audit Events",     val: stats.totalAuditEvents,   icon: Activity,    color: D.textSub, bg: D.bg,        sub: "Recent (last 15)",                     href: "/audit-log"       },
   ];

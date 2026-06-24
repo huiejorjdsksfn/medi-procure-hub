@@ -10,16 +10,13 @@ import { T } from "@/lib/theme";
 const ADMIN_CRUMBS: Record<string, { section: string; label: string }> = {
   "/admin":                    { section: "",           label: "Admin Hub" },
   "/admin/panel":              { section: "User Mgmt",  label: "Admin Panel" },
-  "/users":                    { section: "User Mgmt",  label: "All Users" },
-  "/admin/create-user":        { section: "User Mgmt",  label: "Create User" },
+  "/users":                    { section: "User Mgmt",  label: "Users" },
   "/admin/activity":           { section: "Security",   label: "Activity Stats" },
   "/admin/tracker":            { section: "Security",   label: "Security Tracker" },
-  "/admin/ip-access":          { section: "Security",   label: "IP Access Control" },
   "/admin/users-ip-audit":     { section: "Security",   label: "Users & IP Audit" },
   "/audit-log":                { section: "Security",   label: "Audit Log" },
   "/admin/not-found-log":      { section: "Security",   label: "Not Found Log" },
   "/settings":                 { section: "System",     label: "System Settings" },
-  "/facilities":               { section: "System",     label: "Facilities" },
   "/gui-editor":               { section: "System",     label: "GUI Editor" },
   "/notifications":            { section: "System",     label: "Notifications" },
   "/changelog":                { section: "Developer",  label: "Changelog" },
@@ -44,22 +41,19 @@ const SECTION_COLORS: Record<string, string> = {
 // Sibling pages per section for quick jump
 const SECTION_SIBLINGS: Record<string, { l: string; p: string }[]> = {
   "User Mgmt": [
-    { l: "All Users",    p: "/users" },
-    { l: "Create User",  p: "/admin/create-user" },
+    { l: "Users",        p: "/users" },
     { l: "Admin Panel",  p: "/admin/panel" },
     { l: "Profile",      p: "/profile" },
   ],
   "Security": [
     { l: "Activity Stats",   p: "/admin/activity" },
     { l: "Security Tracker", p: "/admin/tracker" },
-    { l: "IP Access",        p: "/admin/ip-access" },
     { l: "IP Audit",         p: "/admin/users-ip-audit" },
     { l: "Audit Log",        p: "/audit-log" },
     { l: "404 Log",          p: "/admin/not-found-log" },
   ],
   "System": [
     { l: "Settings",     p: "/settings" },
-    { l: "Facilities",   p: "/facilities" },
     { l: "GUI Editor",   p: "/gui-editor" },
     { l: "Notifications",p: "/notifications" },
   ],

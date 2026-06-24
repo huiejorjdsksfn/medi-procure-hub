@@ -10,12 +10,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import ImageUploader from "@/components/ImageUploader";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
   Plus, Search, RefreshCw, Edit3, Trash2, Shield, X, Check,
   Key, Eye, EyeOff, Users, Lock, Unlock, AlertTriangle,
   Activity, Copy, Clock, Mail, Phone, Building2, UserCheck,
   ChevronDown, ChevronUp, MoreHorizontal, Zap, Globe, Ban,
 } from "lucide-react";
+
+const SUPABASE_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co";
+const DEPARTMENTS = [
+  "Finance & Accounts","Procurement","Pharmacy","Nursing","Medical",
+  "Laboratory","Radiology","ICT","Administration","Records","Maintenance",
+];
 
 const db = supabase as any;
 
@@ -196,16 +203,46 @@ export default function UsersPage() {
     try {
       if (modal==="create") {
         const pw = form.password || genPassword();
-        const { data:authData, error } = (await (supabase.auth as any).admin?.createUser?.({ email:form.email, password:pw, email_confirm:true, user_metadata:{ full_name:form.full_name } })) || { data:null, error:null };
-        if (error) throw error;
-        const uid = authData?.user?.id;
+        const body = {
+          email: form.email.trim().toLowerCase(),
+          password: pw,
+          full_name: form.full_name,
+          phone: form.phone_number,
+          department: form.department,
+          roles: form.roles?.length ? form.roles : [form.role||"requisitioner"],
+        };
+        let result: any = null;
+        let lastErr = "";
+        /* Path 1 — edge function */
+        try {
+          const { data, error } = await (supabase as any).functions.invoke("admin-create-user", { body });
+          if (!error && data && !data.error) result = data;
+          else lastErr = error?.message || data?.error || "Edge function error";
+        } catch(e:any) { lastErr = e?.message || "Edge function unreachable"; }
+        /* Path 2 — direct fetch fallback */
+        if (!result) {
+          try {
+            const { data:sesData } = await supabase.auth.getSession();
+            const token = sesData?.session?.access_token || "";
+            const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-create-user`, {
+              method:"POST",
+              headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${token}`, "apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc" },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(20000),
+            });
+            const data = await resp.json();
+            if (resp.ok && data?.ok) result = data;
+            else lastErr = data?.error || `HTTP ${resp.status}`;
+          } catch(e2:any) { lastErr += ` | ${e2?.message}`; }
+        }
+        if (!result) throw new Error(lastErr || "Both paths failed");
+        /* Store temp pw */
+        const uid = result.user_id || result.id;
         if (uid) {
-          await db.from("profiles").upsert({ id:uid, full_name:form.full_name, email:form.email, phone_number:form.phone_number, department:form.department, employee_id:form.employee_id, avatar_url:form.avatar_url, is_active:true });
-          if (form.role) await db.from("user_roles").upsert({ user_id:uid, role:form.role }, { onConflict:"user_id,role" });
           await db.from("system_settings").upsert({ key:`temp_pw_${uid}`, value:pw, category:"security" }, { onConflict:"key" });
           setStoredPws(p => ({ ...p, [uid]:pw }));
         }
-        toast({ title:"✓ User created", description:`Temp password: ${pw}` });
+        toast({ title:"✓ User created & activated", description:`Password: ${pw}` });
       } else if (modal==="edit" && selected) {
         await db.from("profiles").update({ full_name:form.full_name, phone_number:form.phone_number, department:form.department, employee_id:form.employee_id, avatar_url:form.avatar_url, is_active:form.is_active }).eq("id",selected.id);
         if (form.role && !selected.roles.includes(form.role)) {
@@ -542,8 +579,7 @@ export default function UsersPage() {
                   { key:"email",        label:"Email *",       col:"1/-1", type:"email",    placeholder:"user@embu.health.go.ke", disabled:modal==="edit" },
                   ...(modal==="create"?[{ key:"password", label:"Password", col:"1/-1", type:showPw?"text":"password", placeholder:"Auto-generated if blank" }]:[]),
                   { key:"phone_number", label:"Phone",         col:"1/2",  type:"text",     placeholder:"+254 7xx xxx xxx"            },
-                  { key:"department",   label:"Department",    col:"2/3",  type:"text",     placeholder:"Procurement"                 },
-                  { key:"employee_id",  label:"Employee ID",   col:"1/2",  type:"text",     placeholder:"EL5-001"                     },
+                  { key:"employee_id",  label:"Employee ID",   col:"2/3",  type:"text",     placeholder:"EL5-001"                     },
                 ].map(({ key, label, col, type, placeholder, disabled }) => (
                   <div key={key} style={{ gridColumn:col }}>
                     <label style={{ fontSize:11,color:T.fgDim,fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".04em" }}>{label}</label>
@@ -560,16 +596,45 @@ export default function UsersPage() {
                     )}
                   </div>
                 ))}
-                <div>
-                  <label style={{ fontSize:11,color:T.fgDim,fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".04em" }}>Primary Role</label>
-                  <select value={form.role||"requisitioner"} onChange={e=>setForm((f:any)=>({...f,role:e.target.value}))} style={inp}>
-                    {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label||r}</option>)}
+                <div style={{ gridColumn:"1/-1" }}>
+                  <label style={{ fontSize:11,color:T.fgDim,fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".04em" }}>Department</label>
+                  <select value={form.department||""} onChange={e=>setForm((f:any)=>({...f,department:e.target.value}))} style={inp}>
+                    <option value="">— Select Department —</option>
+                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
-                <div style={{ display:"flex",alignItems:"center",gap:10,paddingTop:20 }}>
-                  <span style={{ fontSize:12,color:T.fgDim,fontWeight:600 }}>Active</span>
-                  <input type="checkbox" checked={form.is_active!==false} onChange={e=>setForm((f:any)=>({...f,is_active:e.target.checked}))} style={{ width:16,height:16,accentColor:T.primary }}/>
+                <div style={{ gridColumn:"1/-1" }}>
+                  <label style={{ fontSize:11,color:T.fgDim,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".04em" }}>
+                    {modal==="create" ? "Roles (select one or more)" : "Primary Role"}
+                  </label>
+                  {modal==="create" ? (
+                    <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
+                      {ALL_ROLES.map(r => {
+                        const on = (form.roles||[form.role||"requisitioner"]).includes(r);
+                        const rm = ROLE_META[r]||{color:T.fgDim,bg:T.bg,label:r};
+                        return (
+                          <button key={r} type="button" onClick={()=>{
+                            const cur: string[] = form.roles || [form.role||"requisitioner"];
+                            const next = on ? cur.filter((x:string)=>x!==r) : [...cur,r];
+                            setForm((f:any)=>({...f,roles:next.length?next:cur}));
+                          }} style={{ padding:"4px 10px",borderRadius:4,fontSize:11,fontWeight:700,cursor:"pointer",background:on?rm.bg:"transparent",color:on?rm.color:T.fgDim,border:`1px solid ${on?rm.color:T.border}` }}>
+                            {on?"✓ ":""}{rm.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <select value={form.role||"requisitioner"} onChange={e=>setForm((f:any)=>({...f,role:e.target.value}))} style={inp}>
+                      {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label||r}</option>)}
+                    </select>
+                  )}
                 </div>
+                {modal==="edit" && (
+                  <div style={{ display:"flex",alignItems:"center",gap:10,paddingTop:4 }}>
+                    <span style={{ fontSize:12,color:T.fgDim,fontWeight:600 }}>Active</span>
+                    <input type="checkbox" checked={form.is_active!==false} onChange={e=>setForm((f:any)=>({...f,is_active:e.target.checked}))} style={{ width:16,height:16,accentColor:T.primary }}/>
+                  </div>
+                )}
               </div>
               <div style={{ display:"flex",justifyContent:"flex-end",gap:8,marginTop:20,paddingTop:16,borderTop:`1px solid ${T.border}` }}>
                 <button onClick={()=>setModal(null)} style={btn(T.bg,T.border)}>Cancel</button>

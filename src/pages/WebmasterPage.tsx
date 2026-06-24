@@ -529,7 +529,7 @@ export default function WebmasterPage() {
               {[
                 { label:"Users",         icon:Users,    path:"/users",           color:T.primary  },
                 { label:"GUI Editor",    icon:Eye,      path:"/gui-editor",      color:"#7c3aed"  },
-                { label:"IP Access",     icon:Shield,   path:"/ip-access",       color:"#059669"  },
+                { label:"IP Access",     icon:Shield,   path:"/admin/users-ip-audit",       color:"#059669"  },
                 { label:"DB Monitor",    icon:Activity, path:"/admin/db-test",   color:"#d97706"  },
                 { label:"Audit Log",     icon:BookOpen, path:"/audit-log",       color:"#0891b2"  },
                 { label:"Backup",        icon:HardDrive,path:"/backup",          color:"#374151"  },

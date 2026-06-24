@@ -363,7 +363,7 @@ export default function AdminActivityPage() {
                   <div style={{fontWeight:700,color:"#dc2626",fontSize:14}}>{failures.length} Failed Login Attempt{failures.length!==1?"s":""} in the last {days} days</div>
                   <div style={{fontSize:12,color:T.fgMuted,marginTop:2}}>Investigate suspicious patterns and block bad IPs in IP Access Control</div>
                 </div>
-                <button onClick={()=>nav("/admin/ip-access")} style={{marginLeft:"auto",padding:"7px 14px",background:"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:"pointer"}}>Manage IP Rules →</button>
+                <button onClick={()=>nav("/admin/users-ip-audit")} style={{marginLeft:"auto",padding:"7px 14px",background:"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:"pointer"}}>Manage IP Rules →</button>
               </div>
             )}
             <div style={S.card}>
