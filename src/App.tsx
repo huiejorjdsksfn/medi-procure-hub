@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ import NetworkGuard from "@/components/NetworkGuard";
 import ResponsiveBot from "@/components/ResponsiveBot";
 import SessionBot from "@/components/SessionBot";
 import KeepAliveBot from "@/components/KeepAliveBot";
+import { liveDbEngine } from "@/engines/db/LiveDatabaseEngine";
 import NotFound from "@/pages/NotFound";
 import DashboardPage from "@/pages/DashboardPage";
 
@@ -67,20 +69,16 @@ import CommunicationsHubPage from "@/pages/CommunicationsHubPage";
 import StampsPage from "@/pages/StampsPage";
 import AIAgentPage   from "@/pages/AIAgentPage";
 import WebmasterPage from "@/pages/WebmasterPage";
-import ChangelogPage from "@/pages/ChangelogPage";
 import InboxPage from "@/pages/InboxPage";
 import EmailPage from "@/pages/EmailPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import DocumentEditorPage from "@/pages/DocumentEditorPage";
-import BackupPage from "@/pages/BackupPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
-import AdminActivityPage from "@/pages/AdminActivityPage";
 // AdminTrackerPage merged into UsersIpAuditPage — route redirects below
 
 import ProfilePage from "@/pages/ProfilePage";
 import GuiEditorPage from "@/pages/GuiEditorPage";
 
-import DbTestPage from "@/pages/DbTestPage";
 import NotFoundLogPage from "@/pages/NotFoundLogPage";
 import UsersIpAuditPage from "@/pages/UsersIpAuditPage";
 
@@ -88,7 +86,6 @@ import SystemReportPage from "@/pages/SystemReportPage";
 
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
 import PrintEnginePage from "@/pages/PrintEnginePage";
-import AdminHubPage from "@/pages/AdminHubPage";
 import ReleasesPage from "@/pages/ReleasesPage";
 
 const queryClient = new QueryClient({
@@ -105,7 +102,14 @@ const P = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-const App = () => (
+const App = () => {
+  // Start live database engine on app init (runs in background)
+  useEffect(() => {
+    liveDbEngine.start(60_000); // Check every 60 seconds
+    return () => liveDbEngine.stop();
+  }, []);
+
+  return (
   <ErrorBoundary pageName="Application Root">
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -190,24 +194,19 @@ const App = () => (
             <Route path="/ai-agent" element={<P><AIAgentPage /></P>} />
 
             {/* Admin - role-gated */}
-            <Route path="/admin" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><AdminHubPage /></RoleGuard></P>} />
+            <Route path="/admin" element={<Navigate to="/admin/panel" replace />} />
             <Route path="/users" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><UsersPage /></RoleGuard></P>} />
             <Route path="/settings" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><SettingsPage /></RoleGuard></P>} />
             <Route path="/audit" element={<Navigate to="/audit-log" replace />} />
             <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager"]}><AuditLogPage /></RoleGuard></P>} />
             <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
-            <Route path="/admin/activity" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><AdminActivityPage /></RoleGuard></P>} />
             <Route path="/superadmin" element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
-            <Route path="/changelog" element={<P><ChangelogPage /></P>} />
-            <Route path="/backup" element={<P><RoleGuard allowed={["admin","superadmin","database_admin"]}><BackupPage /></RoleGuard></P>} />
-            <Route path="/admin/ip-access" element={<Navigate to="/admin/users-ip-audit" replace />} />
-            <Route path="/ip-access" element={<Navigate to="/admin/users-ip-audit" replace />} />
+            <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
+            <Route path="/ip-access" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><IpAccessPage /></RoleGuard></P>} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><GuiEditorPage /></RoleGuard></P>} />
-            <Route path="/facilities" element={<Navigate to="/admin/users-ip-audit" replace />} />
-            <Route path="/admin/db-test" element={<P><RoleGuard allowed={["admin","database_admin"]}><DbTestPage /></RoleGuard></P>} />
             <Route path="/admin/not-found-log" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
             <Route path="/admin/users-ip-audit" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><UsersIpAuditPage /></RoleGuard></P>} />
             <Route path="/admin/create-user" element={<Navigate to="/users" replace />} />
@@ -231,6 +230,7 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { DocumentStamp } from "@/components/DocumentStamp";
 import {
   ShoppingCart, FileText, Package, Users, Bell,
   AlertTriangle, Database, CheckCircle2, XCircle,
@@ -362,6 +363,9 @@ export default function TrackingApprovalPage() {
                   </div>
                 </div>
 
+                <div style={{flexShrink:0,opacity:stampingId===row.id?0.4:0.85,transition:"opacity .3s"}}>
+                  <DocumentStamp status={row.defaultLabel.toLowerCase()} size={52} rotate={-8} />
+                </div>
                 <button
                   onClick={() => stampItem(row.table, row.id, row.defaultLabel)}
                   disabled={stampingId === row.id}

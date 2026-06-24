@@ -25,7 +25,7 @@ const PUBLIC_PATHS = ["/login", "/reset-password"];
 
 // Paths that are OK for every authenticated role
 const UNIVERSAL_PATHS = [
-  "/dashboard", "/profile", "/notifications", "/changelog",
+  "/dashboard", "/profile", "/notifications",
   "/inbox", "/email", "/whatsapp", "/reception", "/ai-agent",
 ];
 
