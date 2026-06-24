@@ -393,7 +393,7 @@ export default function AdminTrackerPage() {
                 rowKey={s => s.id}
                 emptyText="No session data"
                 cols={[
-                  { key: "user_email", label: "User", primary: true, render: s => <span style={{ color: "#86efac", fontWeight: 600 }}>{s.user_email || s.user_id?.slice(0,16) || "—"}</span> },
+                  { key: "user_email", label: "User", primary: true, render: s => <span style={{ color: "#86efac", fontWeight: 600 }}>{s.user_email || s.user_name || s.full_name || "Unknown User"}</span> },
                   { key: "ip_address", label: "IP", render: s => <code style={{ fontSize: 11 }}>{s.ip_address || "—"}</code> },
                   { key: "location", label: "Location", mobileHide: false, render: s => <span style={{ fontSize: 11 }}>{s.location || "—"}</span> },
                   { key: "is_active", label: "Status", render: s => <SC s={s.is_active ? "active" : "ended"} /> },
