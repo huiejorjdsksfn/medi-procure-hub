@@ -308,7 +308,7 @@ export default function WebmasterPage() {
       addSection(["┌─ Current Session ──────────────────────────────────────────────────┐"]);
       addTable([
         ["Email",    user?.email||"—"],
-        ["ID",        user?.id?.slice(0,20)||"—"],
+        ["Username",  user?.email?.split("@")[0]||user?.email||"—"],,
         ["Roles",     roles?.join(", ")||"—"],
         ["Session",   rtConnected?"LIVE":"OFFLINE"],
       ]);
