@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp } from "@/components/DocumentStamp";
 import {
   ShoppingCart, FileText, Package, Users, Bell,
-  AlertTriangle, CheckCircle2, XCircle,
+  AlertTriangle, Database, CheckCircle2, XCircle,
   RefreshCw, Search, BarChart3, Settings, Shield,
   ClipboardList, Send, Stamp, Eye, ArrowRight,
   Clock, CheckSquare, Home, ChevronRight,
@@ -46,8 +46,9 @@ const TILES = [
   { label: "GRN Tracking",   icon: Package,       color: "#ca5010", path: "/goods-received"    },
   { label: "Bulk Approve",   icon: CheckSquare,   color: "#8764b8", path: "/tracking-approval?tab=bulk" },
   { label: "Notifications",  icon: Bell,          color: "#038387", path: "/notifications"     },
-  { label: "Stock Alerts",   icon: AlertTriangle, color: "#a4262c", path: "/items"             },
+  { label: "Stock Alerts",   icon: AlertTriangle, color: "#a4262c", path: "/inventory"         },
   { label: "Audit Trail",    icon: ClipboardList, color: "#498205", path: "/audit-log"         },
+  { label: "Backup / DB",    icon: Database,      color: "#003966", path: "/backup"            },
   { label: "Reports",        icon: BarChart3,     color: "#4b3867", path: "/reports"           },
   { label: "Users",          icon: Users,         color: "#004e8c", path: "/users"             },
   { label: "Security",       icon: Shield,        color: "#7a3b3f", path: "/admin/tracker"     },
@@ -270,7 +271,7 @@ export default function TrackingApprovalPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: O.blue, fontWeight: 600, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                     onClick={() => nav(`/requisitions`)}>
-                    {r.requisition_number || r.id.slice(0, 8)} — {r.title || "Procurement Request"}
+                    {r.requisition_number || `REQ/${r.department || 'General'}`} — {r.title || "Procurement Request"}
                   </div>
                   <div style={{ fontSize: 11, color: O.textMt, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     EL5 MediProcure {"»"} Requisitions {"»"} {r.department || "General"}
@@ -327,19 +328,19 @@ export default function TrackingApprovalPage() {
             {[
               ...needsStampReqs.map(r => ({
                 id: r.id, table: "requisitions" as const, color: "#0078d4", icon: ShoppingCart,
-                title: r.requisition_number || r.id.slice(0, 8), path: "Requisitions",
+                title: r.requisition_number || `REQ/${r.department || 'General'}`, path: "Requisitions",
                 meta: `${r.department || "General"} · KSh ${Number(r.total_amount || 0).toLocaleString()}`,
                 date: r.approved_at, by: r.approved_by_name, defaultLabel: "Approved",
               })),
               ...needsStampPOs.map(p => ({
                 id: p.id, table: "purchase_orders" as const, color: "#107c10", icon: FileText,
-                title: p.po_number || p.id.slice(0, 8), path: "Purchase Orders",
+                title: p.po_number || `PO/${p.supplier_name || 'Supplier'}`, path: "Purchase Orders",
                 meta: `${p.supplier_name || "Supplier"} · KSh ${Number(p.total_amount || 0).toLocaleString()}`,
                 date: p.approved_at, by: undefined, defaultLabel: p.status === "issued" ? "Issued" : "Approved",
               })),
               ...needsStampGRNs.map(g => ({
                 id: g.id, table: "goods_received" as const, color: "#ca5010", icon: Package,
-                title: g.grn_number || g.id.slice(0, 8), path: "GRN Tracking",
+                title: g.grn_number || `GRN/${g.supplier_name || 'Received'}`, path: "GRN Tracking",
                 meta: g.supplier_name || "Supplier",
                 date: g.received_date || g.created_at, by: undefined, defaultLabel: "Received",
               })),
