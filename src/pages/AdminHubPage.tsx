@@ -131,6 +131,29 @@ export default function AdminHubPage() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [search, setSearch] = useState("");
 
+  const [ipEnabled, setIpEnabled] = useState<boolean | null>(null);
+  const [ipToggling, setIpToggling] = useState(false);
+
+  /* Load ip_restriction_enabled setting */
+  useEffect(() => {
+    db.from("system_settings").select("value").eq("key", "ip_restriction_enabled").maybeSingle()
+      .then(({ data }: any) => setIpEnabled(data?.value === "true"));
+  }, []);
+
+  const toggleIpAccess = async () => {
+    setIpToggling(true);
+    const next = !ipEnabled;
+    try {
+      await db.from("system_settings").upsert(
+        { key: "ip_restriction_enabled", value: String(next), category: "security" },
+        { onConflict: "key" }
+      );
+      setIpEnabled(next);
+      await db.from("audit_log").insert({ action: next ? "IP_RESTRICTION_ENABLED" : "IP_RESTRICTION_DISABLED", module: "Admin", details: `IP Access Control turned ${next ? "ON" : "OFF"}` });
+    } catch (e) { console.error(e); }
+    setIpToggling(false);
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -332,6 +355,48 @@ export default function AdminHubPage() {
               {roles?.map(r => (
                 <span key={r} style={{ padding: "2px 8px", borderRadius: 99, background: D.purpleLt, color: D.purple, fontSize: 10, fontWeight: 700, textTransform: "capitalize", border: `1px solid ${D.purple}30` }}>{r.replace(/_/g, " ")}</span>
               ))}
+            </div>
+          </div>
+
+          {/* ── IP Access Control Toggle ── */}
+          <div style={{ ...cs(), border: `2px solid ${ipEnabled ? D.teal : D.danger}`, transition: "border-color .3s" }}>
+            <div style={{ padding: "11px 15px", borderBottom: `1px solid ${D.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Globe size={13} color={ipEnabled ? D.teal : D.danger} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: D.textSub, textTransform: "uppercase", letterSpacing: ".07em" }}>IP Access Control</span>
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 10, background: ipEnabled ? D.tealLt : D.dangerLt, color: ipEnabled ? D.teal : D.danger, textTransform: "uppercase", letterSpacing: ".06em" }}>
+                {ipEnabled === null ? "…" : ipEnabled ? "ACTIVE" : "DISABLED"}
+              </span>
+            </div>
+            <div style={{ padding: "16px 15px" }}>
+              <p style={{ fontSize: 11, color: D.textSub, margin: "0 0 14px", lineHeight: 1.5 }}>
+                {ipEnabled
+                  ? "IP restriction is ON — only whitelisted IPs can access the system. Unknown IPs trigger the Access Denied screen."
+                  : "IP restriction is OFF — all IP addresses are permitted. Turn ON to enforce whitelist-based access control."}
+              </p>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  onClick={toggleIpAccess}
+                  disabled={ipToggling || ipEnabled === null}
+                  style={{
+                    padding: "8px 20px", borderRadius: D.radius, border: "none", cursor: ipToggling ? "wait" : "pointer",
+                    background: ipEnabled ? D.danger : D.teal, color: "#fff",
+                    fontSize: 12, fontWeight: 700, fontFamily: D.font,
+                    opacity: ipToggling || ipEnabled === null ? 0.6 : 1,
+                    boxShadow: D.shadow, transition: "background .3s",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  {ipToggling ? "Saving…" : ipEnabled ? "Turn OFF" : "Turn ON"}
+                </button>
+                <button
+                  onClick={() => nav("/admin/users-ip-audit")}
+                  style={{ padding: "8px 14px", borderRadius: D.radius, border: `1px solid ${D.borderMd}`, background: D.card, cursor: "pointer", fontSize: 12, color: D.textSub, fontFamily: D.font }}
+                >
+                  Manage Rules →
+                </button>
+              </div>
             </div>
           </div>
 

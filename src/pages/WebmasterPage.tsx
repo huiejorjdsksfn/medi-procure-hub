@@ -58,7 +58,7 @@ const CODE_FILES = [
   { path: "src/components/AppLayout.tsx",    group: "UI",     desc: "Nav + layout" },
   { path: "src/pages/DashboardPage.tsx",     group: "Pages",  desc: "Dashboard + ERP wheel" },
   { path: "src/pages/UsersPage.tsx",         group: "Pages",  desc: "User management" },
-  { path: "src/pages/IpAccessPage.tsx",      group: "Pages",  desc: "IP logger" },
+  { path: "src/pages/UsersIpAuditPage.tsx",   group: "Pages",  desc: "Users + IP audit dashboard" },
   { path: "src/pages/GuiEditorPage.tsx",     group: "Admin",  desc: "GUI Editor" },
   { path: "src/pages/WebmasterPage.tsx",     group: "Admin",  desc: "This page" },
   { path: "src/lib/ipRestriction.ts",        group: "Auth",   desc: "IP engine" },
