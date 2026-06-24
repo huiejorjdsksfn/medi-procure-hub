@@ -722,7 +722,7 @@ export default function WhatsAppPage() {
                         </span>
                       </td>
                       <td style={{padding:"10px 14px",color:"#888",fontSize:12}}>{m.sent_at?new Date(m.sent_at).toLocaleString("en-KE"):"—"}</td>
-                      <td style={{padding:"10px 14px",fontFamily:"monospace",fontSize:11,color:"#888"}}>{m.sid?.slice(0,16)||"—"}</td>
+                      <td style={{padding:"10px 14px",fontFamily:"monospace",fontSize:11,color:"#888"}}>{m.message_status||m.direction||m.status||(m.sid?"Sent":"—")}</td>
                     </tr>
                   ))}
                 </tbody>
