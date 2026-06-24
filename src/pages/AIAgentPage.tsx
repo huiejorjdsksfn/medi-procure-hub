@@ -337,13 +337,13 @@ export default function AIAgentPage() {
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"requisitions" }, async (payload: any) => {
         const rec = payload.new;
         if (!activeRules.find(r => r.id === "req_submit")) return;
-        addLog("info","Auto Agent","trigger",`New requisition: ${rec.id}`, rec.id);
+        addLog("info","Auto Agent","trigger",`New requisition: ${rec.requisition_number||rec.request_number||"REQ-NEW"}`, rec.id);
         const msg = await callAIAgent("Generate a brief SMS that a new requisition was submitted", {
-          ref: rec.id, amount: rec.total_amount||0, department: rec.department||"Unknown", channel:"sms"
+          ref: rec.requisition_number||rec.request_number||"REQ-NEW", amount: rec.total_amount||0, department: rec.department||"Unknown", channel:"sms"
         });
-        addLog("success","Auto Agent","auto-notify",`Notification queued for ${rec.id}`, rec.id);
+        addLog("success","Auto Agent","auto-notify",`Notification queued for ${rec.requisition_number||rec.request_number||"REQ-NEW"}`, rec.id);
         setEvents(prev => [{
-          id: Date.now().toString(), rule:"req_submit", ref: rec.id||"REQ-NEW",
+          id: Date.now().toString(), rule:"req_submit", ref: rec.requisition_number||rec.request_number||"REQ-NEW",
           amount: rec.total_amount||0, recipient:"procurement_manager",
           channel:"sms", status:"pending", ts: new Date().toISOString(), aiMsg: msg,
         }, ...prev]);
