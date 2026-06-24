@@ -1468,7 +1468,7 @@ ${html}
                   <td style={S.td}>{doc.category||"General"}</td>
                   <td style={S.td}>{doc.is_template?<span style={{ background:C.blue3,color:C.blue2,padding:"1px 6px",borderRadius:10,fontSize:10,fontWeight:700 }}>Template</span>:"—"}</td>
                   <td style={S.td}>{doc.file_size?`${Math.round(doc.file_size/1024)} KB`:"—"}</td>
-                  <td style={S.td}>{doc.created_by?.slice(0,8)||"—"}</td>
+                  <td style={S.td}>{doc.created_by_name||doc.created_by_email||"System"}</td>
                   <td style={S.td}>{FMT_DT(doc.created_at)}</td>
                   <td style={{ ...S.td, whiteSpace:"nowrap" }}>
                     <div style={{ display:"flex", gap:4 }}>
