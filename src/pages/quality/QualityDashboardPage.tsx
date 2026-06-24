@@ -371,7 +371,7 @@ export default function QualityDashboardPage() {
                   {loading ? <tr><td colSpan={9} style={{ padding:30, textAlign:"center" }}>Loading...</td></tr> :
                   ncrs.map((n,i)=>(
                     <tr key={n.id} style={{ background:i%2===0?"#fff":"#f7f7f7" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
-                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontSize:11, fontWeight:700, color:"#2255cc" }}>{n.ncr_number||"NCR-"+n.id.slice(-6)}</td>
+                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontSize:11, fontWeight:700, color:"#2255cc" }}>{n.ncr_number||`NCR/${new Date(n.created_at||Date.now()).getFullYear()}-AUTO`}</td>
                       <td style={erpStyles.gridTd}>{n.title||"—"}</td>
                       <td style={erpStyles.gridTd}><StatusChip status={n.severity||"medium"}/></td>
                       <td style={erpStyles.gridTd}>{n.department||"—"}</td>
