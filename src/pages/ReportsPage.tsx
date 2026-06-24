@@ -95,7 +95,7 @@ export default function ReportsPage() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,activeRpt.label);
-    XLSX.writeFile(wb,`${sysName}-${activeRpt.id}-${startDate}-${endDate}.xlsx`);
+    XLSX.writeFile(wb,`${sysName}-${(activeRpt.label||activeRpt.name||activeRpt.id).replace(/\s+/g,"-")}-${startDate}-${endDate}.xlsx`);
   };
 
   const printReport = () => {
