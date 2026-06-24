@@ -203,8 +203,8 @@ const App = () => {
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
             <Route path="/superadmin" element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
-            <Route path="/admin/ip-access" element={<P><RoleGuard allowed={["admin"]}><IpAccessPage /></RoleGuard></P>} />
-            <Route path="/ip-access" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><IpAccessPage /></RoleGuard></P>} />
+            <Route path="/admin/ip-access" element={<Navigate to="/admin/users-ip-audit" replace />} />
+            <Route path="/ip-access"       element={<Navigate to="/admin/users-ip-audit" replace />} />
             <Route path="/profile" element={<P><ProfilePage /></P>} />
             <Route path="/gui-editor" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><GuiEditorPage /></RoleGuard></P>} />
             <Route path="/admin/not-found-log" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
