@@ -1,9 +1,14 @@
 /**
- * EL5 MediProcure — send-email v7.0  PRODUCTION
- * Primary: Resend API (api.resend.com)
- * Fallback 1: SMTP2GO API (api.smtp2go.com)
- * Fallback 2: Supabase built-in email
- * EL5 MediProcure · Embu Level 5 Hospital
+ * EL5 MediProcure — send-email v8.0 KENYA-OPTIMIZED
+ * Primary: Resend API (https://resend.com) - best for transactional emails
+ * Fallback 1: SMTP2GO API (https://api.smtp2go.com) - good deliverability
+ * Fallback 2: Supabase built-in email (development only)
+ * 
+ * Configuration Required in Supabase Edge Functions → Secrets:
+ * - RESEND_API_KEY: Your Resend API key (re_xxxxx)
+ * - SMTP2GO_API_KEY: Your SMTP2GO API key (optional, for fallback)
+ * 
+ * EL5 MediProcure · Embu Level 5 Hospital · Kenya
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,7 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization,x-client-info,apikey,content-type",
-  "Access-Control-Allow-Methods": "POST,OPTIONS",
+  "Access-Control-Allow-Methods": "POST,GET,OPTIONS",
 };
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -42,12 +47,12 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
       port: cfg.smtp_port || "2525",
       user: cfg.smtp_user || "",
       pass: cfg.smtp_pass || "",
-      from_email: cfg.smtp_from_email || "hpdeskg9@gmail.com",
+      from_email: cfg.smtp_from_email || "noreply@embu.go.ke",
       from_name: cfg.smtp_from_name || "EL5 MediProcure",
       enabled: cfg.smtp_enabled === "true",
     };
   } catch {
-    return { host: "", port: "2525", user: "", pass: "", from_email: "hpdeskg9@gmail.com", from_name: "EL5 MediProcure", enabled: false };
+    return { host: "", port: "2525", user: "", pass: "", from_email: "noreply@embu.go.ke", from_name: "EL5 MediProcure", enabled: false };
   }
 }
 
@@ -77,7 +82,7 @@ function buildHtml(subject: string, body: string, actionUrl?: string, actionLabe
 }
 
 async function sendViaResend(to: string | string[], subject: string, html: string, text: string, fromEmail: string, fromName: string): Promise<{ ok: boolean; id?: string; error?: string }> {
-  if (!RESEND_KEY) return { ok: false, error: "RESEND_API_KEY not configured" };
+  if (!RESEND_KEY) return { ok: false, error: "RESEND_API_KEY not configured. Set RESEND_API_KEY in Supabase Edge Functions secrets." };
   const toArr = Array.isArray(to) ? to : [to];
   const payload: any = {
     from: `${fromName} <${fromEmail}>`,
@@ -124,19 +129,8 @@ async function sendViaSmtp2Go(to: string | string[], subject: string, html: stri
   } catch (e: any) { return { ok: false, error: e.message }; }
 }
 
-async function sendViaSmtp2GoWithSettings(to: string | string[], subject: string, html: string, text: string, smtp: SmtpSettings): Promise<{ ok: boolean; id?: string; error?: string }> {
-  // Derive SMTP2GO API key from smtp_user if it looks like an API key
-  // SMTP2GO users can use their API key in smtp_pass or separately
-  const apiKey = smtp.pass; // smtp_pass should contain the SMTP2GO API key
-
-  if (!apiKey) return { ok: false, error: "SMTP2GO API key not found in smtp_pass" };
-
-  return sendViaSmtp2Go(to, subject, html, text, smtp.from_email, smtp.from_name, apiKey);
-}
-
 async function logEmail(to: string, subject: string, status: string, provider: string, id?: string, err?: string) {
   try {
-    // Try email_logs table, create if doesn't exist
     const { error } = await sb.from("email_logs").insert({
       to_email: to,
       subject,
@@ -148,7 +142,6 @@ async function logEmail(to: string, subject: string, status: string, provider: s
     } as any);
 
     if (error && error.message?.includes("does not exist")) {
-      // Try alternative table names
       await sb.from("notification_logs").insert({
         to_email: to,
         subject,
@@ -166,22 +159,46 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const url = new URL(req.url);
-  if (req.method === "GET" && url.searchParams.get("action") === "status") {
+  
+  // GET status check - use URL params or return usage info
+  if (req.method === "GET") {
     const smtpSettings = await getSmtpSettings();
     return new Response(JSON.stringify({
       ok: true,
-      version: "7.0",
+      version: "8.0",
+      hospital: "EL5 MediProcure",
       resend_key_set: !!RESEND_KEY,
-      smtp2go_key_set: !!SMTP2GO_KEY || !!smtpSettings.pass,
+      smtp2go_key_set: !!SMTP2GO_KEY,
       smtp_enabled: smtpSettings.enabled,
       from: smtpSettings.from_email,
       from_name: smtpSettings.from_name,
+      providers: {
+        resend: { configured: !!RESEND_KEY, api: "https://api.resend.com" },
+        smtp2go: { configured: !!SMTP2GO_KEY, api: "https://api.smtp2go.com" },
+      },
+      usage: "POST with { to, subject, body } body fields",
+      kenya_note: "Emails work globally. For Kenya, consider Resend for best deliverability.",
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
   try {
     const b = await req.json();
     const { to, subject, body, html, action_url, action_label, reply_to, template, template_vars } = b;
+    
+    // Status check via POST with action=status
+    if (b.action === "status") {
+      const smtpSettings = await getSmtpSettings();
+      return new Response(JSON.stringify({
+        ok: true,
+        version: "8.0",
+        resend_key_set: !!RESEND_KEY,
+        smtp2go_key_set: !!SMTP2GO_KEY,
+        smtp_enabled: smtpSettings.enabled,
+        from: smtpSettings.from_email,
+        from_name: smtpSettings.from_name,
+      }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+    
     if (!to || !subject) {
       return new Response(JSON.stringify({ ok: false, error: "to and subject required" }), {
         status: 400,
@@ -190,7 +207,7 @@ serve(async (req) => {
     }
 
     const smtpSettings = await getSmtpSettings();
-    const fromEmail = smtpSettings.from_email || "hpdeskg9@gmail.com";
+    const fromEmail = smtpSettings.from_email || "noreply@embu.go.ke";
     const fromName = smtpSettings.from_name || "EL5 MediProcure";
 
     let finalBody = body || "";
@@ -212,7 +229,7 @@ serve(async (req) => {
     let result: { ok: boolean; id?: string; error?: string } = { ok: false, error: "No email provider available" };
     let provider = "none";
 
-    // Try Resend first if API key is set
+    // Try Resend first (primary)
     if (RESEND_KEY) {
       result = await sendViaResend(to, subject, htmlContent, textContent, fromEmail, fromName);
       provider = "resend";
@@ -226,7 +243,7 @@ serve(async (req) => {
 
     // Fallback to SMTP2GO via system_settings
     if (!result.ok && smtpSettings.enabled && smtpSettings.pass) {
-      result = await sendViaSmtp2GoWithSettings(to, subject, htmlContent, textContent, smtpSettings);
+      result = await sendViaSmtp2Go(to, subject, htmlContent, textContent, fromEmail, fromName, smtpSettings.pass);
       provider = "smtp2go-db";
     }
 
