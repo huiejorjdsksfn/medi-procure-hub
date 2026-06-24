@@ -403,7 +403,7 @@ export default function AdminActivityPage() {
                     {recentResets.map((r:any,i:number)=>(
                       <tr key={r.id||i} style={{background:i%2===0?"#fff":"#fafafa"}}>
                         <td style={S.td}>{fmtDT(r.created_at)}</td>
-                        <td style={S.td}>{r.user_email||r.email||r.user_id||"—"}</td>
+                        <td style={S.td}>{r.user_email||r.email||r.user_name||r.full_name||"—"}</td>
                         <td style={S.td}>{r.method||r.reset_type||"—"}</td>
                         <td style={{...S.td,fontFamily:"monospace",fontSize:11}}>{r.ip_address||"—"}</td>
                       </tr>
