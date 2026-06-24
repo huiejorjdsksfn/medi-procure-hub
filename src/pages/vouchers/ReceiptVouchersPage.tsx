@@ -242,7 +242,7 @@ export default function ReceiptVouchersPage() {
                 {filtered.map((r,i)=>(
                   <tr key={r.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
                     <td style={{...erpStyles.gridTd,textAlign:"center"}}><input type="checkbox" checked={selected.includes(r.id)} onChange={e=>setSelected(s=>e.target.checked?[...s,r.id]:s.filter(x=>x!==r.id))}/></td>
-                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700}}>{r.receipt_number||`RV/EL5H/${r.id.slice(-6)}`}</td>
+                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700}}>{r.receipt_number||`RV/EL5H/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</td>
                     <td style={erpStyles.gridTd}>{r.received_from||"—"}</td>
                     <td style={erpStyles.gridTd}>{r.payment_method?.replace(/_/g," ")||"—"}</td>
                     <td style={{...erpStyles.gridTd,fontSize:10,color:"#555"}}>{r.gl_account||"—"}</td>
