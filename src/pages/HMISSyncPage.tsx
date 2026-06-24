@@ -458,7 +458,7 @@ export default function HMISSyncPage() {
                 {syncLogs.slice(0, 20).map((l, i) => (
                   <div key={`log_${i}`} style={{ padding: "8px 12px", borderRadius: T.r, background: T.bg, border: `1px solid ${T.border}`, fontSize: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: T.fg }}>{l.erp_entity || l.source_table} → {l.erp_id}</span>
+                      <span style={{ color: T.fg }}>{l.erp_entity || l.source_table}{l.field_name||l.hmis_field ? <span style={{color:T.fgDim}}> → {l.field_name||l.hmis_field}</span> : null}</span>
                       <span style={chip(l.status === "completed" ? T.success : T.error)}>{l.status}</span>
                       <span style={{ color: T.fgDim, fontSize: 10 }}>{fmtAgo(l.created_at)}</span>
                     </div>
