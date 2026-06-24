@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement } from "@/lib/notify";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, RefreshCw, Eye, Printer, Download, FileText, DollarSign, X, Save, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Search, RefreshCw, Eye, Printer, Download, FileText, DollarSign, X, Save, CheckCircle, XCircle, Clock, Send } from "lucide-react";
 import logo from "@/assets/embu-county-logo.jpg";
 import * as XLSX from "@e965/xlsx";
 import { DocumentStamp } from "@/components/DocumentStamp";
@@ -205,8 +205,7 @@ export default function VouchersPage() {
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.departments?.name||r.department_name||"-"}</td>
                   <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"#111827"}} onClick={()=>setDetail(r)}>{fmtKES(r.total_value||0)}</td>
                   <td style={{padding:"12px 14px",fontSize:12,color:"#374151"}} onClick={()=>setDetail(r)}>{r.date?new Date(r.date).toLocaleDateString("en-KE"):"-"}</td>
-                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span>
-              <div style={{display:"flex",justifyContent:"center",padding:"10px 0"}}><DocumentStamp status={detail?.status||"pending"} date={detail?.date||detail?.created_at} size={100} rotate={-12} /></div></td>
+                  <td style={{padding:"12px 14px"}} onClick={()=>setDetail(r)}><span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:cfg.bg,color:cfg.color}}>{cfg.label}</span></td>
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
                       <button onClick={()=>setPrint(r)} title="Print" style={{padding:"4px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",lineHeight:0}}><Printer style={{width:11,height:11,color:"#6b7280"}}/></button>
@@ -225,6 +224,97 @@ export default function VouchersPage() {
       </div>
 
       {/* New Voucher Modal */}
+
+      {/* ── Voucher detail slide-over ──────────────────────── */}
+      {detail&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:400,display:"flex",justifyContent:"flex-end"}}
+          onClick={()=>setDetail(null)}>
+          <div style={{width:"min(440px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,.18)"}}
+            onClick={e=>e.stopPropagation()}>
+            {/* Header */}
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",display:"flex",alignItems:"center",gap:8}}>
+              <FileText style={{width:14,height:14,color:"#fff"}}/>
+              <span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>{detail.voucher_number}</span>
+              <button onClick={()=>setPrint(detail)} style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:5,padding:"4px 9px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>
+                <Printer style={{width:10,height:10}}/>Print
+              </button>
+              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:0}}>
+                <X style={{width:13,height:13}}/>
+              </button>
+            </div>
+            {/* Stamp + Status */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 16px 0"}}>
+              <div>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:99,background:sc(detail.status).bg,color:sc(detail.status).color}}>
+                  {sc(detail.status).label}
+                </span>
+                {detail.approved_by_name&&(
+                  <div style={{fontSize:11,color:"#9ca3af",marginTop:6}}>Approved by: {detail.approved_by_name}</div>
+                )}
+              </div>
+              <DocumentStamp status={detail.status} date={detail.approved_at||detail.date||detail.created_at} size={100} rotate={-12} />
+            </div>
+            {/* Details */}
+            <div style={{padding:"8px 16px 16px",display:"flex",flexDirection:"column",gap:0}}>
+              {[
+                ["Voucher No",  detail.voucher_number],
+                ["Purpose",     detail.purpose],
+                ["Requested By",detail.requested_by],
+                ["Department",  detail.departments?.name||detail.department_name||"—"],
+                ["Date",        detail.date?new Date(detail.date).toLocaleDateString("en-KE"):"—"],
+                ["Total Value", fmtKES(detail.total_value||0)],
+              ].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
+                  <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{l}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#111827",textAlign:"right",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis"}}>{v||"—"}</span>
+                </div>
+              ))}
+              {/* Items */}
+              {detail.items?.length>0&&(
+                <div style={{marginTop:12}}>
+                  <div style={{fontSize:10,fontWeight:800,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>
+                    Items ({detail.items.length})
+                  </div>
+                  <div style={{border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                      <thead><tr style={{background:"#5C2D91"}}>
+                        {["Description","Unit","Qty","Value"].map(h=>(
+                          <th key={h} style={{padding:"6px 8px",textAlign:"left",color:"rgba(255,255,255,.85)",fontWeight:700,fontSize:9,textTransform:"uppercase"}}>{h}</th>
+                        ))}
+                      </tr></thead>
+                      <tbody>{detail.items.map((it:any,i:number)=>(
+                        <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#f9fafb"}}>
+                          <td style={{padding:"6px 8px",fontWeight:600,color:"#1f2937"}}>{it.item_description||"—"}</td>
+                          <td style={{padding:"6px 8px",color:"#6b7280"}}>{it.unit_of_issue}</td>
+                          <td style={{padding:"6px 8px",textAlign:"center",color:"#374151"}}>{it.quantity_issued||it.quantity_required||0}</td>
+                          <td style={{padding:"6px 8px",textAlign:"right",fontWeight:700,color:"#5C2D91"}}>KES {Number(it.value||0).toLocaleString()}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              {/* Action buttons */}
+              {canApprove&&detail.status==="pending"&&(
+                <div style={{display:"flex",gap:8,marginTop:16}}>
+                  <button onClick={()=>{approve(detail);setDetail(null);}} style={{flex:1,padding:"9px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#15803d",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                    <CheckCircle style={{width:13,height:13}}/>Approve
+                  </button>
+                  <button onClick={()=>{reject_(detail);setDetail(null);}} style={{flex:1,padding:"9px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#dc2626",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                    <XCircle style={{width:13,height:13}}/>Reject
+                  </button>
+                </div>
+              )}
+              {canApprove&&detail.status==="approved"&&(
+                <button onClick={()=>{issue(detail);setDetail(null);}} style={{marginTop:16,width:"100%",padding:"9px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#1d4ed8",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                  <Send style={{width:13,height:13}}/>Issue Voucher
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNew&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"#fff",borderRadius:14,width:"min(800px,100%)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}>
