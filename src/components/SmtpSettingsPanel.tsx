@@ -138,7 +138,7 @@ export default function SmtpSettingsPanel() {
       if (error) throw new Error(error.message);
       const result = data?.results?.[0];
       if (data?.ok) {
-        showToast(`✓ SMS sent! SID: ${result?.sid?.slice(0,20)}... to ${testTo}`, true);
+        showToast(`✓ SMS sent successfully to ${testTo}`, true), true);
       } else {
         showToast(`✗ SMS failed: ${result?.error || "Unknown error"}`, false);
       }
