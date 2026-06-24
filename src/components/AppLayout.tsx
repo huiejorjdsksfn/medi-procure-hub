@@ -20,8 +20,8 @@ import {
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt, BookMarked, Calendar,
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
-  BarChart2, Code2, Radio, Archive, Users, RefreshCw, GitBranch, PenLine,
-  LayoutGrid, CheckCircle, Printer, UserCheck, Monitor, AlertTriangle
+  BarChart2, Code2, Radio, Users, RefreshCw, PenLine,
+  CheckCircle, Printer, UserCheck, AlertTriangle
 } from "lucide-react";
 
 const db = supabase as any;
@@ -127,18 +127,16 @@ const MODS = [
   {id:"admin",label:"Administration",col:T.system,
    roles:["admin","superadmin","webmaster","database_admin"],
    items:[
-     {l:"Admin Hub",          p:"/admin",                 I:LayoutGrid},
      {l:"Admin Panel",        p:"/admin/panel",           I:Settings},
      {l:"Users",              p:"/users",                 I:Users},
-     {l:"Activity Stats",     p:"/admin/activity",        I:Activity},
+     {l:"Create User",        p:"/admin/create-user",     I:UserCheck},
      {l:"Security Tracker",   p:"/admin/tracker",         I:Eye},
      {l:"Users & IP Audit",   p:"/admin/users-ip-audit",  I:Globe},
+     {l:"IP Access",          p:"/admin/ip-access",       I:Lock},
+     {l:"Facilities",         p:"/facilities",            I:Building2},
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},
-     {l:"DB Monitor",         p:"/admin/db-test",         I:Monitor},
-     {l:"Backup",             p:"/backup",                I:Archive},
-     {l:"Changelog",          p:"/changelog",             I:GitBranch},
      {l:"Not-Found Log",      p:"/admin/not-found-log",   I:AlertTriangle},
      {l:"Webmaster",          p:"/webmaster",             I:Globe},
      {l:"Superadmin",         p:"/superadmin",            I:Radio},
@@ -246,18 +244,17 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         <div style={{background:T.accent,padding:"3px 14px",display:"flex",gap:5,alignItems:"center",flexShrink:0,overflowX:"auto"}}>
           <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,whiteSpace:"nowrap",flexShrink:0}}>⚡ ADMIN</span>
           {[
-            {l:"Hub",        p:"/admin"},
+            {l:"Panel",      p:"/admin/panel"},
             {l:"Users",      p:"/users"},
-            {l:"Activity",   p:"/admin/activity"},
+            {l:"+ User",     p:"/admin/create-user"},
             {l:"Tracker",    p:"/admin/tracker"},
+            {l:"IP Access",  p:"/admin/ip-access"},
             {l:"IP Audit",   p:"/admin/users-ip-audit"},
             {l:"Audit Log",  p:"/audit-log"},
             {l:"Settings",   p:"/settings"},
+            {l:"Facilities", p:"/facilities"},
             {l:"GUI Editor", p:"/gui-editor"},
             {l:"Database",   p:"/admin/database"},
-            {l:"DB Monitor", p:"/admin/db-test"},
-            {l:"Backup",     p:"/backup"},
-            {l:"Changelog",  p:"/changelog"},
             {l:"404 Log",    p:"/admin/not-found-log"},
             {l:"Webmaster",  p:"/webmaster"},
             {l:"Superadmin", p:"/superadmin"},
