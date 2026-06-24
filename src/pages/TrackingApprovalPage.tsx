@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp } from "@/components/DocumentStamp";
 import {
   ShoppingCart, FileText, Package, Users, Bell,
-  AlertTriangle, Database, CheckCircle2, XCircle,
+  AlertTriangle, CheckCircle2, XCircle,
   RefreshCw, Search, BarChart3, Settings, Shield,
   ClipboardList, Send, Stamp, Eye, ArrowRight,
   Clock, CheckSquare, Home, ChevronRight,
@@ -46,9 +46,8 @@ const TILES = [
   { label: "GRN Tracking",   icon: Package,       color: "#ca5010", path: "/goods-received"    },
   { label: "Bulk Approve",   icon: CheckSquare,   color: "#8764b8", path: "/tracking-approval?tab=bulk" },
   { label: "Notifications",  icon: Bell,          color: "#038387", path: "/notifications"     },
-  { label: "Stock Alerts",   icon: AlertTriangle, color: "#a4262c", path: "/inventory"         },
+  { label: "Stock Alerts",   icon: AlertTriangle, color: "#a4262c", path: "/items"             },
   { label: "Audit Trail",    icon: ClipboardList, color: "#498205", path: "/audit-log"         },
-  { label: "Backup / DB",    icon: Database,      color: "#003966", path: "/backup"            },
   { label: "Reports",        icon: BarChart3,     color: "#4b3867", path: "/reports"           },
   { label: "Users",          icon: Users,         color: "#004e8c", path: "/users"             },
   { label: "Security",       icon: Shield,        color: "#7a3b3f", path: "/admin/tracker"     },
