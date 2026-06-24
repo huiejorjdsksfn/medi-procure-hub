@@ -567,7 +567,7 @@ export default function SMSPage() {
                     <td style={{...tblC,maxWidth:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={l.message}>{l.message||"—"}</td>
                     <td style={tblC}><Badge s={l.status}/>{l.error_msg&&<div style={{fontSize:9,color:"#ef4444",marginTop:2,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={l.error_msg}>{l.error_msg}</div>}</td>
                     <td style={{...tblC,fontSize:11,color:"#6b7280"}}>{l.module||l.department||"—"}</td>
-                    <td style={{...tblC,fontSize:10,fontFamily:"monospace",color:"#9ca3af"}}>{l.twilio_sid?l.twilio_sid.slice(0,14)+"…":"—"}</td>
+                    <td style={{...tblC,fontSize:10,fontFamily:"monospace",color:"#9ca3af"}}>{l.message_direction||l.direction||(l.twilio_sid?"Sent":"—")}</td>
                     <td style={{...tblC,fontSize:11,color:"#9ca3af",whiteSpace:"nowrap"}}>{fmtDT(l.sent_at||l.created_at)}</td>
                   </tr>
                 ))}
