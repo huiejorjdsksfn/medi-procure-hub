@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { DocumentStamp } from "@/components/DocumentStamp";
+import { DocumentStamp, QuickStampButton } from "@/components/DocumentStamp";
 import {
   ShoppingCart, FileText, Package, Users, Bell,
   AlertTriangle, Database, CheckCircle2, XCircle,
@@ -178,9 +178,12 @@ export default function TrackingApprovalPage() {
 
       {/* ── O365-style teal hero ────────────────────────────── */}
       <div style={{ background: O.hero, padding: "36px 24px 40px" }}>
-        <h1 style={{ color: O.white, fontSize: 28, fontWeight: 300, margin: "0 0 20px", letterSpacing: "-.02em" }}>
-          {greeting}, {profile?.full_name?.split(" ")[0] || "Administrator"}
-        </h1>
+        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:20 }}>
+          <h1 style={{ color: O.white, fontSize: 28, fontWeight: 300, margin: 0, letterSpacing: "-.02em" }}>
+            {greeting}, {profile?.full_name?.split(" ")[0] || "Administrator"}
+          </h1>
+          <QuickStampButton label="Official Stamp" size="md" variant="outline" />
+        </div>
 
         {/* Search bar — O365 style */}
         <div style={{ position: "relative", maxWidth: 380 }}>

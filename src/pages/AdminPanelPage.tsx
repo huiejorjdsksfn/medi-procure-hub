@@ -12,6 +12,7 @@ import { useSystemSettings, saveSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import { checkTwilioStatus, sendSms, makeCall } from "@/lib/sms";
+import { QuickStampButton } from "@/components/DocumentStamp";
 import {
   LayoutDashboard, Users, Shield, Phone, Globe, Activity, Database,
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
@@ -414,6 +415,26 @@ export default function AdminPanelPage() {
                       Manage Rules →
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* ── Official Stamp Panel ── */}
+              <div style={{...S.card, marginBottom:16, border:`1.5px solid #0d4f1c22`}}>
+                <div style={{...S.cardHd('#0d4f1c'), justifyContent:'space-between'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <svg width={14} height={14} viewBox="0 0 20 20" fill="#0d4f1c">
+                      <path d="M10 1a4 4 0 014 4 4 4 0 01-1.07 2.72L14 9H6l1.07-1.28A4 4 0 016 5a4 4 0 014-4zM4 10h12v2H4v-2zM3 13h14v2H3v-2z"/>
+                    </svg>
+                    <span style={{fontWeight:700,color:T.fg,fontSize:13}}>Official Stamp</span>
+                  </div>
+                  <span style={{fontSize:10,color:'#6b7280'}}>Affix stamps to approved documents</span>
+                </div>
+                <div style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                  <QuickStampButton label="Stamp Documents" size="md" variant="primary" />
+                  <QuickStampButton label="Quick Stamp (Outline)" size="md" variant="outline" />
+                  <span style={{fontSize:11,color:T.fgMuted,flex:1}}>
+                    Apply official circular approval stamps to requisitions, purchase orders and GRNs.
+                  </span>
                 </div>
               </div>
 
