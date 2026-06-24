@@ -21,7 +21,6 @@ import { printLPO } from "@/lib/printDocument";
 import { useSuppliers, useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
-import { DocumentStamp } from "@/components/DocumentStamp";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:    {bg:"#f3f4f6",color:"#6b7280",  label:"Draft"},
@@ -677,6 +676,7 @@ export default function PurchaseOrdersPage() {
               </div>
 
               {/* Line items */}
+              <div style={{display:"flex",justifyContent:"center",padding:"16px 0 8px"}}><DocumentStamp status={viewPO.status} date={viewPO.created_at} size={110} rotate={-12} /></div>
               {viewPO.line_items?.length>0&&(
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#9ca3af",marginBottom:8}}>Line Items</div>
