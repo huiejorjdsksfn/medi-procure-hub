@@ -367,7 +367,7 @@ export default function HMISSyncPage() {
                         <div style={{ display: "flex", gap: 16, fontSize: 11, color: T.fgDim, flexWrap: "wrap" }}>
                           {cfg.facility_code && <span>Facility: <strong>{cfg.facility_code}</strong></span>}
                           {cfg.org_unit      && <span>Org Unit: <strong>{cfg.org_unit}</strong></span>}
-                          {cfg.dataset_id    && <span>Dataset: <strong>{cfg.dataset_id}</strong></span>}
+                          {cfg.dataset_name  && <span>Dataset: <strong>{cfg.dataset_name}</strong></span>}{!cfg.dataset_name&&cfg.dataset_id&&<span>Dataset ID: <strong>{cfg.dataset_id}</strong></span>}
                           <span>Sync every: <strong>{cfg.sync_interval_minutes}m</strong></span>
                           <span>Last sync: <strong>{fmtAgo(cfg.last_sync)}</strong></span>
                         </div>
@@ -574,7 +574,7 @@ export default function HMISSyncPage() {
                   <td style={{ padding: "6px 10px", fontSize: 10, color: T.fgDim, whiteSpace: "nowrap" }}>{fmtAgo(l.created_at)}</td>
                   <td style={{ padding: "6px 10px" }}><span style={chip("#059669")}>{l.erp_system || "hmis"}</span></td>
                   <td style={{ padding: "6px 10px", fontFamily: "monospace", fontSize: 11 }}>{l.erp_entity || l.source_table}</td>
-                  <td style={{ padding: "6px 10px", fontFamily: "monospace", fontSize: 11 }}>{l.erp_id || "—"}</td>
+                  <td style={{ padding: "6px 10px", fontSize: 11 }}>{l.field_name||l.entity_name||l.record_label||l.erp_entity||"—"}</td>
                   <td style={{ padding: "6px 10px" }}><span style={chip(DIRECTION_COLOR[l.direction as keyof typeof DIRECTION_COLOR] || T.primary)}>{l.direction || "push"}</span></td>
                   <td style={{ padding: "6px 10px" }}><span style={chip(l.status === "completed" ? T.success : l.status === "pending" ? T.warning : T.error)}>{l.status}</span></td>
                   <td style={{ padding: "6px 10px", fontSize: 10, color: T.fgDim, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.error_message || l.source_ref || "—"}</td>

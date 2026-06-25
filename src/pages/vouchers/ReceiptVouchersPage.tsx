@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const db = supabase as any;
 interface Receipt {
@@ -48,6 +49,7 @@ export default function ReceiptVouchersPage() {
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [detail, setDetail] = useState<any>(null);
   const [form, setForm] = useState({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"",description:"",reference:"",bank_name:""});
   const { accounts: glAccounts } = useChartOfAccounts();
 
@@ -220,6 +222,8 @@ export default function ReceiptVouchersPage() {
         </div>
       )}
 
+
+
       {/* Filter + Grid */}
       <div style={{margin:"6px 8px"}}>
         <div style={{background:"#f5f4ea",border:"1px solid #ccc",padding:"4px 8px",marginBottom:4,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
@@ -242,7 +246,7 @@ export default function ReceiptVouchersPage() {
                 {filtered.map((r,i)=>(
                   <tr key={r.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
                     <td style={{...erpStyles.gridTd,textAlign:"center"}}><input type="checkbox" checked={selected.includes(r.id)} onChange={e=>setSelected(s=>e.target.checked?[...s,r.id]:s.filter(x=>x!==r.id))}/></td>
-                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700}}>{r.receipt_number||`RV/EL5H/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</td>
+                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700,cursor:"pointer"}} onClick={()=>setDetail(r)}>{r.receipt_number||`RV/EL5H/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</td>
                     <td style={erpStyles.gridTd}>{r.received_from||"—"}</td>
                     <td style={erpStyles.gridTd}>{r.payment_method?.replace(/_/g," ")||"—"}</td>
                     <td style={{...erpStyles.gridTd,fontSize:10,color:"#555"}}>{r.gl_account||"—"}</td>
@@ -265,6 +269,34 @@ export default function ReceiptVouchersPage() {
           )}
         </div>
       </div>
+      {/* Receipt Voucher Detail Slide-Over */}
+      {detail && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:500,display:"flex",justifyContent:"flex-end"}}
+          onClick={()=>setDetail(null)}>
+          <div style={{width:"min(460px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,.18)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#0e3460,#1d4ed8)",display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>Receipt Voucher — {detail.receipt_number||`RV/EL5H/${new Date(detail.created_at||Date.now()).getFullYear()}-AUTO`}</span>
+              <button onClick={()=>printReceipt(detail)} style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:5,padding:"4px 9px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>🖨 Print</button>
+              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:1}}>✕</button>
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 4px"}}>
+              <StatusChip status={detail.status||"draft"}/>
+              <DocumentStamp status={detail.status||"draft"} date={detail.created_at} size={100} rotate={-12}/>
+            </div>
+            <div style={{padding:"4px 16px 16px"}}>
+              {[["Received From",detail.received_from||"—"],["GL Account",detail.gl_account||"—"],["Method",(detail.payment_method||"—").replace(/_/g," ")],["Reference",detail.reference||"—"],["Bank",detail.bank_name||"—"],["Total Amount",`KES ${Number(detail.total_amount||0).toLocaleString()}`],["Date",detail.created_at?new Date(detail.created_at).toLocaleDateString("en-KE"):"—"],["Received By",detail.received_by||"—"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
+                  <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>{l}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#111827",textAlign:"right"}}>{v}</span>
+                </div>
+              ))}
+              {detail.status==="draft" && <button onClick={()=>{updateStatus(detail.id,"pending");setDetail(null);}} style={{marginTop:14,width:"100%",padding:"9px",background:"#dbeafe",border:"1px solid #bfdbfe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#1d4ed8"}}>Submit for Posting</button>}
+              {detail.status==="pending" && <button onClick={()=>{updateStatus(detail.id,"posted");setDetail(null);}} style={{marginTop:14,width:"100%",padding:"9px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#15803d"}}>✓ Mark Posted</button>}
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#e0e0e0",borderTop:"1px solid #aaa",padding:"2px 10px",fontSize:10,color:"#555",display:"flex",gap:14}}>
         <span>Records: {filtered.length}</span><span>|</span>
         <span>Posted: {receipts.filter(r=>r.status==="posted"||r.status==="received").length}</span><span>|</span>

@@ -117,7 +117,7 @@ export default function PrintEnginePage() {
   const exportExcel=()=>{
     const data=filtered.map(r=>{const o:any={};cols.forEach(k=>{o[allCols.find(c=>c.key===k)?.label||k]=fmtV(r[k],k);});return o;});
     const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,rt.label);
-    XLSX.writeFile(wb,`${rt.id}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb,`EL5-${(rt.label||rt.name||"report").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.xlsx`);
     toast({title:"Exported to Excel"});
   };
 

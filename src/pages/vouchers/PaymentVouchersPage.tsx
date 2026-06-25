@@ -12,6 +12,7 @@ import { useVoteHeads } from "@/hooks/useVoteHeads";
 import { useChartOfAccounts } from "@/hooks/useDropdownData";
 import { useAuth } from "@/contexts/AuthContext";
 import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 interface PaymentVoucher {
   id: string; voucher_number?: string; payee?: string; payee_account?: string; bank_name?: string;
@@ -345,6 +346,10 @@ export default function PaymentVouchersPage() {
                   <td colSpan={3} style={{ ...erpStyles.gridTd, fontWeight:800, fontSize:18, color:"#007700" }}>{fmt(viewVoucher.total_amount||0)}</td>
                 </tr>
               </table>
+              {/* Document Stamp */}
+              <div style={{display:"flex",justifyContent:"center",padding:"10px 0"}}>
+                <DocumentStamp status={viewVoucher.status} date={viewVoucher.created_at} size={105} rotate={-12}/>
+              </div>
               <div style={{ marginTop:12, display:"flex", gap:8 }}>
                 <button onClick={()=>printVoucher(viewVoucher)} style={erpStyles.btn(true)}>🖨 Print</button>
                 {viewVoucher.status==="pending" && <>

@@ -514,10 +514,10 @@ export default function UsersPage() {
                     )}
                   </div>
 
-                  {/* User ID */}
+                  {/* Account info */}
                   <div style={{ fontSize:10, color:T.fgDim }}>
-                    <span style={{ fontWeight:700 }}>User ID: </span>
-                    <code style={{ fontSize:10, fontFamily:"monospace" }}>{selected.id}</code>
+                    <span style={{ fontWeight:700 }}>Department: </span>
+                    <span>{selected.department||selected.job_title||"Staff Member"}</span>
                   </div>
                 </div>
               </div>

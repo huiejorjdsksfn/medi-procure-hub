@@ -110,7 +110,7 @@ export default function RequisitionsPage() {
         toast({ title: "Restored unsaved requisition", description: "Draft form data is kept until you save, cancel, or log out." });
       }
     } catch {
-      console.warn("[Requisitions] Failed to restore cached form");
+      console.error("[Requisitions] Failed to restore cached form");
     }
   }, [user?.id]);
 

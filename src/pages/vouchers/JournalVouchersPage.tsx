@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const db = supabase as any;
 interface JournalEntry {
@@ -41,6 +42,7 @@ export default function JournalVouchersPage() {
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [detail, setDetail] = useState<any>(null);
   const [form, setForm] = useState({reference:"",description:"",gl_account:"4000 - Salaries & Wages",debit:"",credit:"",narration:"",fiscal_year:new Date().getFullYear().toString()});
 
   const fetch = useCallback(async()=>{
@@ -181,7 +183,6 @@ export default function JournalVouchersPage() {
           </div>
         </div>
       )}
-
       {/* Filter + Grid */}
       <div style={{margin:"6px 8px"}}>
         <div style={{background:"#f5f4ea",border:"1px solid #ccc",padding:"4px 8px",marginBottom:4,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
@@ -233,6 +234,35 @@ export default function JournalVouchersPage() {
           )}
         </div>
       </div>
+
+
+      {/* Journal Entry Detail Slide-Over */}
+      {detail && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:500,display:"flex",justifyContent:"flex-end"}}
+          onClick={()=>setDetail(null)}>
+          <div style={{width:"min(460px,100%)",background:"#fff",height:"100%",overflowY:"auto",boxShadow:"-4px 0 24px rgba(0,0,0,.18)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#3b0764,#7c3aed)",display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:13,fontWeight:800,color:"#fff",flex:1}}>Journal Entry — {detail.reference||`JV/${new Date(detail.created_at||Date.now()).getFullYear()}-AUTO`}</span>
+              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:5,padding:"4px 7px",cursor:"pointer",color:"#fff",lineHeight:1}}>✕</button>
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 4px"}}>
+              <StatusChip status={detail.status||"posted"}/>
+              <DocumentStamp status={detail.status||"posted"} date={detail.created_at} size={100} rotate={-12}/>
+            </div>
+            <div style={{padding:"4px 16px 16px"}}>
+              {[["Reference",detail.reference||"—"],["Description",detail.description||detail.narrative||"—"],["Account",detail.account_name||detail.gl_account||"—"],["Debit",detail.debit!=null?`KES ${Number(detail.debit).toLocaleString()}`:"—"],["Credit",detail.credit!=null?`KES ${Number(detail.credit).toLocaleString()}`:"—"],["Cost Centre",detail.cost_centre||"—"],["Posted By",detail.posted_by_name||detail.created_by_name||"—"],["Date",detail.created_at?new Date(detail.created_at).toLocaleDateString("en-KE"):"—"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
+                  <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>{l}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#111827",textAlign:"right",maxWidth:240,overflow:"hidden",textOverflow:"ellipsis"}}>{v}</span>
+                </div>
+              ))}
+              {detail.status!=="posted" && <button onClick={()=>{(async()=>{await(supabase as any).from("gl_entries").update({status:"posted"}).eq("id",detail.id);setDetail(null);fetchEntries();})();}} style={{marginTop:14,width:"100%",padding:"9px",background:"#ede9fe",border:"1px solid #ddd6fe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#7c3aed"}}>✓ Post Journal Entry</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#e0e0e0",borderTop:"1px solid #aaa",padding:"2px 10px",fontSize:10,color:"#555",display:"flex",gap:14}}>
         <span>Entries: {filtered.length}</span><span>|</span>
         <span>Debits: {fmtK(totalDebit)}</span><span>|</span>
