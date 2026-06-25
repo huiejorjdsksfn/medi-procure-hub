@@ -67,6 +67,7 @@ import SMSPage from "@/pages/SMSPage";
 import WhatsAppPage from "@/pages/WhatsAppPage";
 import CommunicationsHubPage from "@/pages/CommunicationsHubPage";
 import StampsPage from "@/pages/StampsPage";
+import StampDesignPage from "@/pages/StampDesignPage";
 import AIAgentPage   from "@/pages/AIAgentPage";
 import WebmasterPage from "@/pages/WebmasterPage";
 import InboxPage from "@/pages/InboxPage";
@@ -137,6 +138,7 @@ const App = () => {
             <Route path="/goods-received" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","warehouse_officer","inventory_manager","accountant","finance_manager","finance_officer"]}><GoodsReceivedPage /></RoleGuard></P>} />
             <Route path="/tracking-approval" element={<P><TrackingApprovalPage /></P>} />
             <Route path="/stamps" element={<P><StampsPage /></P>} />
+            <Route path="/admin/stamp-design" element={<P><RoleGuard allowed={["admin","superadmin","webmaster","procurement_manager"]}><StampDesignPage /></RoleGuard></P>} />
             <Route path="/suppliers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><SuppliersPage /></RoleGuard></P>} />
             <Route path="/crm" element={<Navigate to="/suppliers" replace />} />
             <Route path="/tenders" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer"]}><TendersPage /></RoleGuard></P>} />
