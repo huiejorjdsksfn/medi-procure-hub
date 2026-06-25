@@ -76,6 +76,48 @@ function notify(s: SystemSettings) {
   _listeners.forEach(fn => fn(s));
 }
 
+/**
+ * Module-level realtime channel singleton.
+ *
+ * `useSystemSettings()` is called by 25+ pages AND by AppLayout on every
+ * route, so several instances are always mounted at once. supabase-js
+ * returns the SAME channel object for a repeated topic name — it does not
+ * create a fresh one — so a second `.on('postgres_changes', ...)` call on
+ * an already-`subscribe()`d channel throws. Ref-counting here ensures only
+ * the first mount ever creates/subscribes the channel, and it's only torn
+ * down once the last consumer unmounts.
+ */
+let _channel: any = null;
+let _channelRefCount = 0;
+
+function acquireChannel() {
+  _channelRefCount += 1;
+  if (_channel) return;
+
+  _channel = (supabase as any)
+    .channel("sys_settings_v6")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "system_settings" },
+      (payload: any) => {
+        if (payload.new?.key) {
+          const updated = { ...(_cache || DEFAULTS), [payload.new.key]: payload.new.value ?? "" };
+          notify(updated);
+          applyThemeToDOM(updated);
+        }
+      }
+    )
+    .subscribe();
+}
+
+function releaseChannel() {
+  _channelRefCount = Math.max(0, _channelRefCount - 1);
+  if (_channelRefCount === 0 && _channel) {
+    (supabase as any).removeChannel(_channel);
+    _channel = null;
+  }
+}
+
 /* ── Hook ── */
 export function useSystemSettings() {
   const [settings, setSettings] = useState<SystemSettings>(_cache || DEFAULTS);
@@ -98,19 +140,10 @@ export function useSystemSettings() {
       setLoading(false);
     }
 
-    /* Realtime — one channel per tab, removes itself on unmount */
-    const channel = (supabase as any).channel("sys_settings_v6")
-      .on("postgres_changes", { event: "*", schema: "public", table: "system_settings" },
-        (payload: any) => {
-          if (payload.new?.key) {
-            const updated = { ...(_cache || DEFAULTS), [payload.new.key]: payload.new.value ?? "" };
-            notify(updated);
-            applyThemeToDOM(updated);
-          }
-        })
-      .subscribe();
+    /* Realtime — ONE channel per tab, shared across every hook instance */
+    acquireChannel();
 
-    return () => { _listeners.delete(handler); (supabase as any).removeChannel(channel); };
+    return () => { _listeners.delete(handler); releaseChannel(); };
   }, []);
 
   const get  = useCallback((key: string, def = "") => settings[key] ?? DEFAULTS[key] ?? def, [settings]);
