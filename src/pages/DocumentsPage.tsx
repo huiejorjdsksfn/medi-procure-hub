@@ -655,7 +655,7 @@ export default function DocumentsPage() {
               ].map(t=>(
                 <button key={t.module}
                   onClick={()=>{
-                    const XLSX=(window as any).XLSX||require("xlsx");
+                    const XLSX=(window as any).XLSX||require("@e965/xlsx");
                     const templates:{[key:string]:string[]}={
                       items:["name","unit_of_measure","current_quantity","reorder_level","unit_price","category"],
                       suppliers:["name","contact_person","phone","email","kra_pin","address","category"],
