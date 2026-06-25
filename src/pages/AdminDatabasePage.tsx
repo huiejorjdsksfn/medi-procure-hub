@@ -122,13 +122,6 @@ ORDER BY t.table_name;`);
   const sqlRef = useRef<HTMLTextAreaElement>(null);
   const rtChannel = useRef<any>(null);
 
-  // Auto-refresh for table data
-  useEffect(()=>{
-    if(!autoRefresh) return;
-    const id = setInterval(()=>loadTable(), 15000);
-    return ()=>clearInterval(id);
-  },[autoRefresh, loadTable]);
-
   // - Load table data -
   const loadTable = useCallback(async () => {
     if (!selectedTable) return;
@@ -164,6 +157,18 @@ ORDER BY t.table_name;`);
   }, [selectedTable, page, pageSize, sortCol, sortAsc]);
 
   useEffect(() => { loadTable(); }, [loadTable]);
+
+  // Auto-refresh for table data
+  // (must come after the `loadTable` declaration above — this effect's
+  // dependency array references `loadTable`, and that array is evaluated
+  // synchronously on every render, so declaring this effect earlier than
+  // `const loadTable = useCallback(...)` throws "Cannot access 'loadTable'
+  // before initialization" on the very first render.)
+  useEffect(()=>{
+    if(!autoRefresh) return;
+    const id = setInterval(()=>loadTable(), 15000);
+    return ()=>clearInterval(id);
+  },[autoRefresh, loadTable]);
 
   // - Load table row counts -
   useEffect(() => {
