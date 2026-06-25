@@ -870,7 +870,7 @@ export default function AccountantWorkspacePage() {
       key: "reference", label: "Reference", width: 130,
       render: (v: string, row: GLEntry) => (
         <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, color: "#00008b" }}>
-          {v ?? "JV-" + row.id.slice(-6)}
+          {v || `JV/${new Date(row.created_at||Date.now()).getFullYear()}-AUTO`}
         </span>
       ),
     },

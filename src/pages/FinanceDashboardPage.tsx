@@ -316,7 +316,7 @@ function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
           <thead><tr style={{background:XP.gridHdr}}>{["Voucher No.","Payee","Amount","Status"].map(h=><th key={h} style={{padding:"3px 6px",textAlign:"left",borderBottom:`1px solid ${XP.gridBorder}`}}>{h}</th>)}</tr></thead>
           <tbody>{payments.slice(0,6).map((p:any,i:number)=>(
             <tr key={p.id} style={{background:i%2===0?"#fff":"#f5f4ea"}}>
-              <td style={{padding:"2px 6px",color:"#00008b",fontWeight:700,borderRight:`1px solid ${XP.gridBorder}`}}>{p.voucher_number||p.id.slice(-8)}</td>
+              <td style={{padding:"2px 6px",color:"#00008b",fontWeight:700,borderRight:`1px solid ${XP.gridBorder}`}}>{p.voucher_number||`PV/${new Date(p.created_at||Date.now()).getFullYear()}-AUTO`}</td>
               <td style={{padding:"2px 6px",borderRight:`1px solid ${XP.gridBorder}`}}>{p.payee||"—"}</td>
               <td style={{padding:"2px 6px",fontWeight:700,borderRight:`1px solid ${XP.gridBorder}`}}>{fmtK(p.total_amount)}</td>
               <td style={{padding:"2px 6px"}}><StatusPill s={p.status}/></td>
@@ -410,7 +410,7 @@ function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) 
         <Grid
           cols={[
             {key:"_chk",lbl:"",w:24,render:(_:any,r:any)=><input type="checkbox" checked={checked.includes(r.id)} onClick={e=>e.stopPropagation()} onChange={e=>setChecked(s=>e.target.checked?[...s,r.id]:s.filter(x=>x!==r.id))}/>},
-            {key:"voucher_number",lbl:"Voucher No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setSel(r);}}>{r.voucher_number||r.id.slice(-8)}</span>},
+            {key:"voucher_number",lbl:"Voucher No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setSel(r);}}>{r.voucher_number||`PV/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</span>},
             {key:"payee",lbl:"Payee",w:130},
             {key:"payment_method",lbl:"Method",w:75,render:(v:string)=>v?v.replace("_"," "):"—"},
             {key:"gl_account",lbl:"GL Account",w:160,render:(v:string)=><span style={{fontSize:9,color:"#555"}}>{v||"—"}</span>},
@@ -530,7 +530,7 @@ function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) 
       </div>
       <Grid
         cols={[
-          {key:"receipt_number",lbl:"Receipt No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700}}>{r.receipt_number||r.id.slice(-8)}</span>},
+          {key:"receipt_number",lbl:"Receipt No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700}}>{r.receipt_number||`RV/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</span>},
           {key:"payer",lbl:"Payer / Source",w:130},{key:"payment_method",lbl:"Method",w:75},{key:"gl_account",lbl:"GL Account",w:160,render:(v:string)=><span style={{fontSize:9,color:"#555"}}>{v||"—"}</span>},
           {key:"status",lbl:"Status",w:65,render:(v:string)=><StatusPill s={v}/>},
           {key:"amount",lbl:"Amount",w:95,render:(v:number)=><span style={{fontWeight:700,color:"#155724"}}>{fmtK(v)}</span>},
@@ -602,7 +602,7 @@ function JournalsContent({ data, refresh, coa }: any) {
       </div>
       <Grid
         cols={[
-          {key:"reference",lbl:"Reference",w:120,render:(v:string,r:any)=><span style={{fontFamily:"monospace",fontSize:9,fontWeight:700,color:"#00008b"}}>{v||"JV-"+r.id.slice(-6)}</span>},
+          {key:"reference",lbl:"Reference",w:120,render:(v:string,r:any)=><span style={{fontFamily:"monospace",fontSize:9,fontWeight:700,color:"#00008b"}}>{v||`JV/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</span>},
           {key:"description",lbl:"Description"},{key:"gl_account",lbl:"GL Account",w:155,render:(v:string)=><span style={{fontSize:9}}>{v||"—"}</span>},
           {key:"debit",lbl:"Debit",w:105,render:(v:number)=><span style={{fontWeight:700,color:v?"#155724":"#888"}}>{v?fmtK(v):"—"}</span>},
           {key:"credit",lbl:"Credit",w:105,render:(v:number)=><span style={{fontWeight:700,color:v?"#004085":"#888"}}>{v?fmtK(v):"—"}</span>},

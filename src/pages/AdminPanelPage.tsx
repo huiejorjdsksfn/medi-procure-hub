@@ -147,29 +147,6 @@ export default function AdminPanelPage() {
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const [broadcasting, setBroadcasting] = useState(false);
   const [botStats, setBotStats] = useState<any>(null);
-  const [ipEnabled, setIpEnabled]   = useState<boolean | null>(null);
-  const [ipToggling, setIpToggling] = useState(false);
-
-  /* IP restriction toggle */
-  useEffect(() => {
-    db.from("system_settings").select("value").eq("key","ip_restriction_enabled").maybeSingle()
-      .then(({ data }: any) => setIpEnabled(data?.value === "true"));
-  }, []);
-
-  const toggleIpAccess = async () => {
-    setIpToggling(true);
-    const next = !ipEnabled;
-    try {
-      await db.from("system_settings").upsert(
-        { key:"ip_restriction_enabled", value:String(next), category:"security" },
-        { onConflict:"key" }
-      );
-      setIpEnabled(next);
-      await db.from("audit_log").insert({ action: next ? "IP_RESTRICTION_ENABLED" : "IP_RESTRICTION_DISABLED", module:"Admin", details:`IP Access Control turned ${next?"ON":"OFF"}` });
-      toast({ title: next ? "✅ IP Restriction ENABLED" : "🔓 IP Restriction DISABLED", description: next ? "Only whitelisted IPs allowed." : "All IPs are now permitted." });
-    } catch(e) { console.error(e); }
-    setIpToggling(false);
-  };
   const [botLoading, setBotLoading] = useState(false);
   const [botRunning, setBotRunning] = useState(false);
   const [botRuns, setBotRuns] = useState<any[]>([]);
@@ -404,11 +381,8 @@ export default function AdminPanelPage() {
                       : "Restriction is OFF — all IP addresses are permitted to connect."}
                   </p>
                   <div style={{display:"flex",gap:8,flexShrink:0}}>
-                    <button
-                      onClick={toggleIpAccess}
-                      disabled={ipToggling||ipEnabled===null}
-                      style={{...S.btn(ipEnabled?`${T.error}14`:`${T.success}14`,ipEnabled?T.error:T.success),padding:"6px 18px",fontSize:12,fontWeight:700,opacity:ipToggling?0.6:1}}
-                    >
+                    <button onClick={toggleIpAccess} disabled={ipToggling||ipEnabled===null}
+                      style={{...S.btn(ipEnabled?`${T.error}14`:`${T.success}14`,ipEnabled?T.error:T.success),padding:"6px 18px",fontSize:12,fontWeight:700,opacity:ipToggling?0.6:1}}>
                       {ipToggling?"Saving…":ipEnabled?"Turn OFF":"Turn ON"}
                     </button>
                     <button onClick={()=>nav("/admin/users-ip-audit")} style={{...S.btn(T.bg2,T.fgMuted),padding:"6px 12px",fontSize:11}}>
@@ -448,6 +422,7 @@ export default function AdminPanelPage() {
                     {l:"Test Twilio SMS",   p:"",                  col:T.inventory,cb:()=>setSec("twilio")},
                     {l:"System Broadcast",  p:"",                  col:T.warning,  cb:()=>setSec("broadcast")},
                     {l:"AI Agent Hub",      p:"/ai-agent",         col:"#7c3aed"},
+                    {l:"DB Monitor",        p:"/admin/db-test",    col:T.quality},
                     {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
                     {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
                     {l:"IP Access Control", p:"/admin/users-ip-audit",  col:T.error},
@@ -586,7 +561,7 @@ export default function AdminPanelPage() {
                           <td style={{padding:"6px 12px",color:T.fgDim,fontSize:10,whiteSpace:"nowrap"}}>{new Date(l.created_at).toLocaleString("en-KE",{timeZone:"Africa/Nairobi",hour:"2-digit",minute:"2-digit"})}</td>
                           <td style={{padding:"6px 12px"}}><code style={{fontFamily:"monospace",fontSize:11,color:T.fg}}>{l.ip_address||"-"}</code></td>
                           <td style={{padding:"6px 12px"}}><span style={{fontSize:9,fontWeight:700,color:classIP(l.ip_address||"")==="public"?T.primary:T.inventory}}>{classIP(l.ip_address||"")}</span></td>
-                          <td style={{padding:"6px 12px",fontSize:11,color:T.fg,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.user_id?.slice(0,8)||"-"}</td>
+                          <td style={{padding:"6px 12px",fontSize:11,color:T.fg,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(()=>{const u=users.find((u:any)=>u.id===l.user_id);return u?(u.full_name||u.email||"Auth. User"):(l.user_id?"User":"Guest");})()}</td>
                           <td style={{padding:"6px 12px",fontSize:11,color:T.fgMuted}}>{l.action||"-"}</td>
                           <td style={{padding:"6px 12px"}}><span style={{padding:"2px 7px",borderRadius:T.r,fontSize:10,fontWeight:600,background:l.status==="blocked"?T.errorBg:T.successBg,color:l.status==="blocked"?T.error:T.success}}>{l.status||"ok"}</span></td>
                         </tr>
@@ -924,7 +899,7 @@ export default function AdminPanelPage() {
                     ["Chrome Web Kiosk","chrome --kiosk --incognito https://procurbosse.edgeone.app (run as limited OS user)"],
                     ["Touch Screens","All buttons are ≥44px tap targets. Use hardware-appropriate screen resolution."],
                     ["Auto-Logout","Enforced at app level via 5-minute idle timer. Pairs with Supabase session expiry."],
-                    ["Security","Combine kiosk mode with IP whitelist (/admin/ip-access) for maximum security."],
+                    ["Security","Combine kiosk mode with IP whitelist (/admin/users-ip-audit) for maximum security."],
                   ].map(([title,note],i)=>(
                     <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<4?`1px solid ${T.border}14`:"none",fontSize:12}}>
                       <span style={{color:"#6366f1",fontWeight:700,minWidth:130,flexShrink:0}}>{title}</span>
@@ -1168,9 +1143,11 @@ export default function AdminPanelPage() {
                 <div style={S.cardHd(T.quality)}><Activity size={14} color={T.quality}/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Quick Links</span></div>
                 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}>
                   {[
+                    {l:"DB Monitor",   p:"/admin/db-test"},
                     {l:"IP Access",    p:"/admin/users-ip-audit"},
                     {l:"Audit Log",    p:"/audit-log"},
                     {l:"Webmaster",    p:"/webmaster"},
+                    {l:"Backup",       p:"/backup"},
                     {l:"Superadmin",   p:"/superadmin"},
                   ].map(({l,p})=>(
                     <button key={p} onClick={()=>nav(p)} style={{...S.btn(T.bg,T.fgMuted),justifyContent:"space-between",fontSize:12}}>

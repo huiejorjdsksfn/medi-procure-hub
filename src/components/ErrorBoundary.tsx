@@ -115,7 +115,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
 
           <div style={{ fontSize: 11, color: T.fgDim, marginTop: 16 }}>
-            EL5 MediProcure · ProcurBosse v9.0
+            EL5 MediProcure · ProcurBosse
             {this.state.retryCount > 0 && ` · Retry ${this.state.retryCount}`}
           </div>
         </div>

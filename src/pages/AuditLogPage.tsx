@@ -170,7 +170,7 @@ export default function AuditLogPage() {
                         <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,textTransform:"capitalize",background:st.bg,color:st.color}}>{l.action||"-"}</span>
                       </td>
                       <td style={{padding:"8px 12px",color:"rgba(255,255,255,0.6)",textTransform:"capitalize"}}>{l.module||"-"}</td>
-                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_id?l.record_id.slice(0,12)+"...":"-"}</td>
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.record_number||l.record_name||l.ref_number||(l.record_id?"—Ref—":"-")}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>{l.ip_address||"-"}</td>
                       <td style={{padding:"8px 12px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"rgba(255,255,255,0.35)"}}>
                         {l.details?JSON.stringify(l.details).slice(0,60):"-"}

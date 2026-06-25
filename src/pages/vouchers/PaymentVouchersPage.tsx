@@ -412,7 +412,7 @@ export default function PaymentVouchersPage() {
                     </td>
                     <td style={{ ...erpStyles.gridTd, color:"#2255cc", fontWeight:700, cursor:"pointer" }}
                       onClick={()=>setViewVoucher(v)}>
-                      {v.voucher_number||`PV/EL5H/${new Date(v.created_at).getFullYear()}${String(new Date(v.created_at).getMonth()+1).padStart(2,"0")}/${v.id.slice(-4)}`}
+                      {v.voucher_number||`PV/EL5H/${new Date(v.created_at).getFullYear()}${String(new Date(v.created_at).getMonth()+1).padStart(2,"0")}-AUTO`}
                     </td>
                     <td style={erpStyles.gridTd}>{v.payee||"—"}</td>
                     <td style={erpStyles.gridTd}>{v.payment_method ? v.payment_method.charAt(0).toUpperCase()+v.payment_method.slice(1).replace("_"," ") : "Cheque"}</td>

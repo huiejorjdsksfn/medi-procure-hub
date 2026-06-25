@@ -204,7 +204,7 @@ export default function JournalVouchersPage() {
                 {filtered.map((e,i)=>(
                   <tr key={e.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={x=>(x.currentTarget.style.background="#dce9ff")} onMouseLeave={x=>(x.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
                     <td style={{...erpStyles.gridTd,textAlign:"center"}}><input type="checkbox" checked={selected.includes(e.id)} onChange={x=>setSelected(s=>x.target.checked?[...s,e.id]:s.filter(v=>v!==e.id))}/></td>
-                    <td style={{...erpStyles.gridTd,fontFamily:"monospace",fontWeight:700,color:"#00008b"}}>{e.reference||`JV-${e.id.slice(-6)}`}</td>
+                    <td style={{...erpStyles.gridTd,fontFamily:"monospace",fontWeight:700,color:"#00008b"}}>{e.reference||`JV/${new Date(e.created_at||Date.now()).getFullYear()}-AUTO`}</td>
                     <td style={erpStyles.gridTd}>{e.description||"—"}</td>
                     <td style={{...erpStyles.gridTd,fontSize:10,color:"#555"}}>{e.gl_account||"—"}</td>
                     <td style={{...erpStyles.gridTd,fontWeight:700,color:e.debit?"#155724":"#888"}}>{e.debit?fmtK(e.debit):"—"}</td>

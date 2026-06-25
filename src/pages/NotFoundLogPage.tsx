@@ -108,7 +108,7 @@ export default function NotFoundLogPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ background: "#f3f5f8", textAlign: "left" }}>
-              {["When", "Path", "Source", "Role", "User", "IP", "Referrer"].map(h => (
+              {["When", "Path", "Source", "Role", "Visitor", "IP", "Referrer"].map(h => (
                 <th key={h} style={th}>{h}</th>
               ))}
             </tr>
@@ -128,7 +128,7 @@ export default function NotFoundLogPage() {
                     color: r.source === "server" ? "#166534" : "#1e40af" }}>{r.source}</span>
                 </td>
                 <td style={td}>{r.user_role || "—"}</td>
-                <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{r.user_id ? r.user_id.slice(0, 8) + "…" : "anon"}</td>
+                <td style={td}>{r.user_id ? <span style={{padding:"2px 8px",borderRadius:4,background:"#dcfce7",color:"#166534",fontSize:10,fontWeight:700}}>Auth</span> : <span style={{padding:"2px 8px",borderRadius:4,background:"#f1f5f9",color:"#64748b",fontSize:10,fontWeight:600}}>Visitor</span>}</td>
                 <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{r.ip || "—"}</td>
                 <td style={{ ...td, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.referrer || ""}>{r.referrer || "—"}</td>
               </tr>
