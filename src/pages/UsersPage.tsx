@@ -78,14 +78,15 @@ interface UserRow {
 }
 
 /* ── Ribbon button ── */
-const RBtn = ({ icon:Icon, label, onClick, color="inherit", disabled=false }:{ icon:any;label:string;onClick?:()=>void;color?:string;disabled?:boolean }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"6px 12px",border:"none",background:"transparent",cursor:disabled?"not-allowed":"pointer",color:disabled?"rgba(255,255,255,.35)":color,borderRadius:6,transition:"background .12s",fontSize:10,fontWeight:600,opacity:disabled?.5:1 }}
-    onMouseEnter={e=>!disabled&&((e.currentTarget as any).style.background="rgba(255,255,255,.12)")}
-    onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}>
-    <Icon size={18} style={{flexShrink:0}}/>
+const RBtn = ({ icon:Icon, label, onClick, color, disabled=false }:{ icon:any;label:string;onClick?:()=>void;color?:string;disabled?:boolean }) => (
+  <button onClick={onClick} disabled={disabled} title={label} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 10px",border:`1px solid ${T.border}`,background:T.card,cursor:disabled?"not-allowed":"pointer",color:disabled?T.fgDim:(color||T.fg),borderRadius:4,transition:"background .1s",fontSize:12,fontWeight:600,opacity:disabled?.5:1,whiteSpace:"nowrap" }}
+    onMouseEnter={e=>!disabled&&((e.currentTarget as any).style.background=T.bg)}
+    onMouseLeave={e=>((e.currentTarget as any).style.background=T.card)}>
+    <Icon size={14} style={{flexShrink:0}}/>
     {label}
   </button>
 );
+const TSep = () => <div style={{ width:1, height:22, background:T.border, margin:"0 2px" }}/>;
 
 /* ── Role chip ── */
 const RoleChip = ({ role, onRemove }: { role:string; onRemove?:()=>void }) => {
@@ -118,6 +119,8 @@ export default function UsersPage() {
   const [activity, setActivity] = useState<any[]>([]);
   const [actLoading, setActLoading] = useState(false);
   const [ipLogs, setIpLogs]     = useState<any[]>([]);
+  const [expanded, setExpanded] = useState<Record<string,boolean>>({});
+  const [activeLeaf, setActiveLeaf] = useState<"profile"|"roles"|"security"|"activity">("profile");
 
   /* ── Load all users ── */
   const load = useCallback(async () => {
@@ -308,30 +311,25 @@ export default function UsersPage() {
       <AdminBreadcrumb />
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
 
-      {/* ── RIBBON ── */}
-      <div style={{ background:`linear-gradient(135deg,#0a2558,#1d4ed8)`, padding:"0 16px", boxShadow:"0 2px 8px rgba(0,0,0,.3)" }}>
-        <div style={{ display:"flex", gap:0 }}>
-          {["Home","Security","Import","View"].map((t,i) => (
-            <div key={t} style={{ padding:"6px 16px", fontSize:12, fontWeight:600, color:i===0?"#fff":"rgba(255,255,255,.6)", background:i===0?"rgba(255,255,255,.15)":"transparent", cursor:"pointer", borderBottom:i===0?"2px solid #fff":"none" }}>{t}</div>
-          ))}
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:2, padding:"4px 0 8px" }}>
-          <div style={{ display:"flex", borderRight:"1px solid rgba(255,255,255,.2)", paddingRight:8, marginRight:8, gap:2 }}>
-            <RBtn icon={Plus}     label="New User"   onClick={() => { setForm({ is_active:true, role:"requisitioner" }); setSelected(null); setModal("create"); }} color="#fff"/>
-            <RBtn icon={Edit3}    label="Edit"       onClick={() => selected && (setForm({...selected}),setModal("edit"))} color="#fff" disabled={!selected}/>
-            <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color="#fff" disabled={!selected||!isAdmin}/>
-          </div>
-          <div style={{ display:"flex", borderRight:"1px solid rgba(255,255,255,.2)", paddingRight:8, marginRight:8, gap:2 }}>
-            <RBtn icon={Key}      label="Reset Pwd"  onClick={() => selected && (setForm({...selected,newPw:""}),setModal("password"))} color="#fff" disabled={!selected||!isAdmin}/>
-            <RBtn icon={Eye}      label="View Pwd"   onClick={() => selected && setRevealedPws(p=>({...p,[selected.id]:!p[selected.id]}))} color="#fff" disabled={!selected}/>
-            <RBtn icon={Activity} label="Activity"   onClick={() => selected && loadActivity(selected.id)} color="#fff" disabled={!selected}/>
-          </div>
-          <div style={{ display:"flex", gap:2 }}>
-            <RBtn icon={RefreshCw} label="Refresh"   onClick={load}  color="#fff"/>
-            <RBtn icon={Unlock}    label="Unlock"    onClick={() => selected && selected.is_locked && unlockUser(selected)} color="#fff" disabled={!selected?.is_locked}/>
-            <RBtn icon={selected?.is_active!==false?Lock:Unlock} label={selected?.is_active!==false?"Deactivate":"Activate"}
-              onClick={() => selected && toggleActive(selected)} color="#fff" disabled={!selected}/>
-          </div>
+      {/* ── TOOLBAR (SSMS-style) ── */}
+      <div style={{ background:T.card, borderBottom:`1px solid ${T.border}`, padding:"6px 10px", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+        <RBtn icon={Plus}     label="New User"   onClick={() => { setForm({ is_active:true, role:"requisitioner" }); setSelected(null); setModal("create"); }}/>
+        <TSep/>
+        <RBtn icon={Edit3}    label="Edit"       onClick={() => selected && (setForm({...selected}),setModal("edit"))} disabled={!selected}/>
+        <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color={T.error} disabled={!selected||!isAdmin}/>
+        <TSep/>
+        <RBtn icon={Key}      label="Reset Pwd"  onClick={() => selected && (setForm({...selected,newPw:""}),setModal("password"))} disabled={!selected||!isAdmin}/>
+        <RBtn icon={Eye}      label="View Pwd"   onClick={() => selected && setRevealedPws(p=>({...p,[selected.id]:!p[selected.id]}))} disabled={!selected}/>
+        <RBtn icon={Activity} label="Activity"   onClick={() => selected && loadActivity(selected.id)} disabled={!selected}/>
+        <TSep/>
+        <RBtn icon={RefreshCw} label="Refresh"   onClick={load}/>
+        <RBtn icon={Unlock}    label="Unlock"    onClick={() => selected && selected.is_locked && unlockUser(selected)} disabled={!selected?.is_locked}/>
+        <RBtn icon={selected?.is_active!==false?Lock:Unlock} label={selected?.is_active!==false?"Deactivate":"Activate"}
+          onClick={() => selected && toggleActive(selected)} disabled={!selected}/>
+        <div style={{ flex:1 }}/>
+        <div style={{ position:"relative", width:240 }}>
+          <Search size={13} color={T.fgDim} style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)" }}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, IP..." style={{ ...inp, paddingLeft:28, fontSize:12, height:28 }}/>
         </div>
       </div>
 
@@ -353,57 +351,77 @@ export default function UsersPage() {
 
       <div style={{ display:"flex", height:"calc(100vh - 148px)" }}>
 
-        {/* ── LEFT: user list ── */}
+        {/* ── LEFT: Object Explorer ── */}
         <div style={{ width:320, flexShrink:0, background:T.card, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
-          <div style={{ padding:"10px 12px", borderBottom:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:6 }}>
-            <div style={{ position:"relative" }}>
-              <Search size={13} color={T.fgDim} style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)" }}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, IP..." style={{ ...inp, paddingLeft:28, fontSize:12 }}/>
-            </div>
-            <div style={{ display:"flex", gap:6 }}>
-              <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{ ...inp, flex:1, fontSize:11 }}>
-                <option value="all">All Roles</option>
-                {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label||r}</option>)}
-              </select>
-              <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{ ...inp, width:100, fontSize:11 }}>
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="locked">Locked</option>
-              </select>
-            </div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderBottom:`1px solid ${T.border}` }}>
+            <span style={{ fontSize:11, fontWeight:700, color:T.fgDim, textTransform:"uppercase", letterSpacing:".06em" }}>Object Explorer</span>
+            <RefreshCw size={13} color={T.fgDim} style={{ cursor:"pointer" }} onClick={load}/>
+          </div>
+          <div style={{ padding:"8px 10px", borderBottom:`1px solid ${T.border}`, display:"flex", gap:6 }}>
+            <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{ ...inp, flex:1, fontSize:11, height:26 }}>
+              <option value="all">All Roles</option>
+              {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label||r}</option>)}
+            </select>
+            <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{ ...inp, width:90, fontSize:11, height:26 }}>
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="locked">Locked</option>
+            </select>
           </div>
 
           <div style={{ flex:1, overflowY:"auto" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 10px", fontSize:12.5, fontWeight:700, color:T.fg }}>
+              <Users size={13}/> EL5-MediProcure / Users ({filtered.length})
+            </div>
+
             {loading ? (
-              <div style={{ padding:24, textAlign:"center", color:T.fgDim }}>Loading users...</div>
+              <div style={{ padding:24, textAlign:"center", color:T.fgDim, fontSize:12 }}>Loading users...</div>
             ) : filtered.length===0 ? (
               <div style={{ padding:32, textAlign:"center", color:T.fgDim, fontSize:12 }}>No users found</div>
             ) : filtered.map(u => {
-              const isSel = selected?.id===u.id;
+              const isOpen = !!expanded[u.id];
+              const isSelUser = selected?.id===u.id;
               const isOnline = u.last_seen && (Date.now()-new Date(u.last_seen).getTime())<5*60_000;
+              const primaryRole = u.roles[0];
+              const rm = primaryRole ? (ROLE_META[primaryRole]||{color:T.fgDim,bg:T.bg,label:primaryRole}) : null;
+              const leaves: { key:"profile"|"roles"|"security"|"activity"; label:string; icon:any }[] = [
+                { key:"profile",  label:"Profile",            icon:UserCheck },
+                { key:"roles",    label:"Roles & Permissions", icon:Shield   },
+                { key:"security", label:"Security",            icon:Key      },
+                { key:"activity", label:"Activity & Sessions", icon:Activity },
+              ];
               return (
-                <div key={u.id} onClick={() => setSelected(u)}
-                  style={{ padding:"10px 12px", cursor:"pointer", borderBottom:`1px solid ${T.border}`, background:isSel?`${T.primary}12`:T.card, borderLeft:`3px solid ${isSel?T.primary:"transparent"}`, transition:"all .1s" }}
-                  onMouseEnter={e=>!isSel&&((e.currentTarget as any).style.background=T.bg)}
-                  onMouseLeave={e=>!isSel&&((e.currentTarget as any).style.background=T.card)}>
-                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-                    <div style={{ width:36, height:36, borderRadius:"50%", background:`${T.primary}18`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`2px solid ${isSel?T.primary:T.border}`, position:"relative", overflow:"hidden" }}>
-                      {u.avatar_url
-                        ? <img src={u.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
-                        : <span style={{ fontSize:14, fontWeight:700, color:T.primary }}>{u.full_name?.[0]||"?"}</span>}
-                      {isOnline && <span style={{ position:"absolute", bottom:0, right:0, width:10, height:10, borderRadius:"50%", background:T.success, border:`2px solid ${T.card}` }}/>}
-                    </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:T.fg, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{u.full_name||"—"}</div>
-                      <div style={{ fontSize:10, color:T.fgDim, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{u.email}</div>
-                      <div style={{ display:"flex", gap:4, marginTop:3, flexWrap:"wrap" }}>
-                        {u.roles.slice(0,2).map(r => { const rm=ROLE_META[r]||{color:T.fgDim,bg:T.bg,label:r}; return <span key={r} style={{ fontSize:9, fontWeight:700, padding:"1px 5px", borderRadius:3, background:rm.bg, color:rm.color }}>{rm.label}</span>; })}
-                        {u.is_locked && <span style={chip(T.error)}>🔒</span>}
-                        {u.is_active===false && <span style={{ fontSize:9, fontWeight:700, padding:"1px 5px", borderRadius:3, background:T.errorBg, color:T.error }}>INACTIVE</span>}
-                      </div>
-                    </div>
+                <div key={u.id}>
+                  <div
+                    onClick={() => { setSelected(u); setActiveLeaf("profile"); if (!isOpen) setExpanded(p=>({...p,[u.id]:true})); }}
+                    style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 16px", cursor:"pointer", fontSize:12.5, background:isSelUser&&activeLeaf==="profile"?`${T.primary}14`:"transparent" }}
+                    onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background=T.bg)}
+                    onMouseLeave={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="transparent")}
+                  >
+                    <span onClick={e=>{ e.stopPropagation(); setExpanded(p=>({...p,[u.id]:!isOpen})); }} style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>
+                      {isOpen?"-":"+"}
+                    </span>
+                    <span style={{ width:7, height:7, borderRadius:7, flexShrink:0, background:u.is_locked?T.error:u.is_active!==false?(isOnline?T.success:T.fgDim):T.fgDim }}/>
+                    <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:u.is_active===false?T.fgDim:T.fg, fontWeight:isSelUser?700:400 }}>
+                      {u.full_name||"—"}
+                    </span>
+                    {rm && <span style={{ fontSize:9, fontWeight:700, padding:"1px 5px", borderRadius:3, background:rm.bg, color:rm.color, flexShrink:0 }}>{rm.label}</span>}
                   </div>
+                  {isOpen && leaves.map(({ key, label, icon:LeafIcon }) => {
+                    const isSelLeaf = isSelUser && activeLeaf===key;
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => { setSelected(u); setActiveLeaf(key); }}
+                        style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 38px", cursor:"pointer", fontSize:12, color:isSelLeaf?T.primary:T.fgMuted, background:isSelLeaf?`${T.primary}10`:"transparent" }}
+                        onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background=T.bg)}
+                        onMouseLeave={e=>!isSelLeaf&&((e.currentTarget as any).style.background="transparent")}
+                      >
+                        <LeafIcon size={12} style={{ flexShrink:0 }}/> {label}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -445,8 +463,14 @@ export default function UsersPage() {
                 </div>
               </div>
 
+              <div style={{ fontSize:11, color:T.fgDim, marginBottom:10, textTransform:"uppercase", letterSpacing:".06em", fontWeight:700 }}>
+                Users / {selected.full_name} / {({profile:"Profile",roles:"Roles & Permissions",security:"Security",activity:"Activity & Sessions"} as const)[activeLeaf]}
+              </div>
+
+              {(activeLeaf==="profile"||activeLeaf==="security"||activeLeaf==="roles") && (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
                 {/* Profile info */}
+                {activeLeaf==="profile" && (
                 <div style={card}>
                   <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, letterSpacing:".08em", marginBottom:12, textTransform:"uppercase" }}>Profile Information</div>
                   {[
@@ -467,8 +491,10 @@ export default function UsersPage() {
                     </div>
                   ))}
                 </div>
+                )}
 
                 {/* Security */}
+                {activeLeaf==="security" && (
                 <div style={card}>
                   <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, letterSpacing:".08em", marginBottom:12, textTransform:"uppercase" }}>Security & Access</div>
 
@@ -496,7 +522,18 @@ export default function UsersPage() {
                     </button>
                   </div>
 
-                  {/* Roles */}
+                  {/* Account info */}
+                  <div style={{ fontSize:10, color:T.fgDim }}>
+                    <span style={{ fontWeight:700 }}>Department: </span>
+                    <span>{selected.department||selected.job_title||"Staff Member"}</span>
+                  </div>
+                </div>
+                )}
+
+                {/* Roles & Permissions */}
+                {activeLeaf==="roles" && (
+                <div style={card}>
+                  <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, letterSpacing:".08em", marginBottom:12, textTransform:"uppercase" }}>Roles & Permissions</div>
                   <div style={{ marginBottom:12 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, marginBottom:8, textTransform:"uppercase", letterSpacing:".06em" }}>Assigned Roles</div>
                     <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:8 }}>
@@ -513,18 +550,21 @@ export default function UsersPage() {
                       </select>
                     )}
                   </div>
-
-                  {/* Account info */}
                   <div style={{ fontSize:10, color:T.fgDim }}>
-                    <span style={{ fontWeight:700 }}>Department: </span>
-                    <span>{selected.department||selected.job_title||"Staff Member"}</span>
+                    Roles determine module access across procurement, inventory, finance, and admin areas of EL5 MediProcure.
                   </div>
                 </div>
+                )}
               </div>
+              )}
 
               {/* IP Access History */}
+              {activeLeaf==="activity" && (
               <div style={{ ...card, marginBottom:14 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, letterSpacing:".08em", marginBottom:12, textTransform:"uppercase" }}>IP Access History</div>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, letterSpacing:".08em", textTransform:"uppercase" }}>IP Access History</div>
+                  <button onClick={() => loadActivity(selected.id)} style={btn(T.bg,T.border)}><Activity size={12}/> Full activity log</button>
+                </div>
                 {ipLogs.filter(l=>l.user_id===selected.id).length===0 ? (
                   <div style={{ fontSize:12, color:T.fgDim }}>No IP logs for this user</div>
                 ) : (
@@ -547,13 +587,14 @@ export default function UsersPage() {
                   </table>
                 )}
               </div>
+              )}
 
             </div>
           ) : (
             <div style={{ height:"100%", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:12, color:T.fgDim }}>
               <Users size={52} color={T.border}/>
-              <div style={{ fontSize:15, fontWeight:700, color:T.fgMuted }}>Select a user to view details</div>
-              <div style={{ fontSize:12 }}>Or create a new user from the ribbon above</div>
+              <div style={{ fontSize:15, fontWeight:700, color:T.fgMuted }}>Select a user folder to view details</div>
+              <div style={{ fontSize:12 }}>Or create a new user from the toolbar above</div>
             </div>
           )}
         </div>
