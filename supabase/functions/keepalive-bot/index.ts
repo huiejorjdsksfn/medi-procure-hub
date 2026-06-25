@@ -139,8 +139,8 @@ async function insertHeartbeat(latency_ms: number, status: string) {
 async function pingFrontend(): Promise<{ url: string; ok: boolean; latency_ms: number }[]> {
   const results = [];
   const targets = FRONTEND_URLS.length ? FRONTEND_URLS : [
-    `${SUPABASE_URL}/functions/v1/health`,
-    "https://medi-procure-hub.vercel.app/api/health",
+    `${SUPABASE_URL}/functions/v1/health-api`,
+    "https://procurbosse.edgeone.app",
   ];
   for (const url of targets.slice(0, 3)) {
     const t0 = Date.now();
