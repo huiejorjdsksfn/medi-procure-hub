@@ -8,6 +8,7 @@ import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2 } from
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printGenericVoucher } from "@/lib/printDocument";
+import { DocumentStamp } from "@/components/DocumentStamp";
 
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
 const genNo = () => `SV-EL5H-${new Date().getFullYear()}-${String(Math.floor(1000+Math.random()*9000))}`;
