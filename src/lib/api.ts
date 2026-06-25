@@ -842,7 +842,8 @@ export const realtimeApi = {
     callback: (payload: any) => void,
     filter?: { column: string; value: string }
   ) => {
-    let channel = db.channel(`realtime:${table}`).on(
+    const instanceId = Math.random().toString(36).slice(2, 8);
+    let channel = db.channel(`realtime:${table}:${instanceId}`).on(
       "postgres_changes",
       { event: "*", schema: "public", table, ...(filter ? { filter: `${filter.column}=eq.${filter.value}` } : {}) },
       callback
@@ -851,26 +852,30 @@ export const realtimeApi = {
     return () => db.removeChannel(channel);
   },
   subscribeToNotifications: (userId: string, callback: (payload: any) => void) => {
-    const channel = db.channel(`notifications:${userId}`)
+    const instanceId = Math.random().toString(36).slice(2, 8);
+    const channel = db.channel(`notifications:${userId}:${instanceId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications",
         filter: `user_id=eq.${userId}` }, callback)
       .subscribe();
     return () => db.removeChannel(channel);
   },
   subscribeToRequisitions: (callback: (payload: any) => void) => {
-    const channel = db.channel("requisitions:all")
+    const instanceId = Math.random().toString(36).slice(2, 8);
+    const channel = db.channel(`requisitions:all:${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "requisitions" }, callback)
       .subscribe();
     return () => db.removeChannel(channel);
   },
   subscribeToPurchaseOrders: (callback: (payload: any) => void) => {
-    const channel = db.channel("pos:all")
+    const instanceId = Math.random().toString(36).slice(2, 8);
+    const channel = db.channel(`pos:all:${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "purchase_orders" }, callback)
       .subscribe();
     return () => db.removeChannel(channel);
   },
   subscribeToStock: (callback: (payload: any) => void) => {
-    const channel = db.channel("stock:movements")
+    const instanceId = Math.random().toString(36).slice(2, 8);
+    const channel = db.channel(`stock:movements:${instanceId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stock_movements" }, callback)
       .subscribe();
     return () => db.removeChannel(channel);

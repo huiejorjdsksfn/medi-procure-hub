@@ -3,7 +3,7 @@
  * Tracks locally dirty fields, watches remote updates, surfaces a conflict
  * banner with Keep mine / Merge / Use remote actions.
  */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ConflictChoice = "mine" | "merge" | "remote";
@@ -28,6 +28,12 @@ export function useConflictResolver<T extends Record<string, any>>(opts: {
   const clearDirty = useCallback(() => { dirty.current.clear(); setConflict([]); }, []);
   const setBaseline = useCallback((v: T) => { baseline.current = structuredCloneSafe(v); }, []);
 
+  // Per-mount instance id: this hook is explicitly meant to support more than
+  // one open view of the same record at once, so a deterministic channel name
+  // (`conflict-${table}-${id}`) would mean the second view's `.on()` call
+  // crashes against the first view's already-`subscribe()`d channel.
+  const instanceId = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+
   useEffect(() => {
     if (!id) {
       baseline.current = null;
@@ -38,7 +44,7 @@ export function useConflictResolver<T extends Record<string, any>>(opts: {
     }
 
     const ch = (supabase as any)
-      .channel(`conflict-${table}-${id}`)
+      .channel(`conflict-${table}-${id}-${instanceId}`)
       .on("postgres_changes",
         { event: "UPDATE", schema: "public", table, filter: `id=eq.${id}` },
         (payload: any) => {
@@ -73,7 +79,7 @@ export function useConflictResolver<T extends Record<string, any>>(opts: {
       .subscribe();
 
     return () => { (supabase as any).removeChannel(ch); };
-  }, [table, id, setLocal, setBaseline]);
+  }, [table, id, instanceId, setLocal, setBaseline]);
 
   const resolve = useCallback((choice: ConflictChoice) => {
     const current = localRef.current;

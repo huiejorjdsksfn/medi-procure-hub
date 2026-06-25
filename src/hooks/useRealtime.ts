@@ -36,7 +36,7 @@ export function useRealtime(config: RealtimeConfig, callback: () => void): void 
 
   useEffect(() => {
     const { tables, events = "*", schema = "public" } = config;
-    const chName = `rt_${tables.join("_")}_${Date.now()}`;
+    const chName = `rt_${tables.join("_")}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     let ch = (supabase as any).channel(chName);
     for (const table of tables) {

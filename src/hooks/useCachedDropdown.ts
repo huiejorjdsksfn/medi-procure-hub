@@ -96,16 +96,25 @@ export function useCachedDropdown(opts: {
 
   useEffect(() => { loadPage(0); }, [loadPage]);
 
+  // Each mount gets its own channel even when cacheKey matches another mounted
+  // instance (e.g. two components calling useDepartments()/useSuppliers() at
+  // once) — two channels sharing the deterministic `cacheKey` name would mean
+  // the second mount's `.on()` lands on an already-`subscribe()`d channel and
+  // throws "cannot add `postgres_changes` callbacks ... after `subscribe()`."
+  // The data CACHE above is still correctly shared/deduped by cacheKey; only
+  // the realtime channel itself needs per-instance uniqueness.
+  const instanceId = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+
   useEffect(() => {
     const ch = (supabase as any)
-      .channel(`dd-cache-${table}-${cacheKey}`)
+      .channel(`dd-cache-${table}-${cacheKey}-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, () => {
         CACHE.delete(cacheKey);
         loadPage(0, true);
       })
       .subscribe();
     return () => (supabase as any).removeChannel(ch);
-  }, [table, cacheKey, loadPage]);
+  }, [table, cacheKey, instanceId, loadPage]);
 
   return {
     rows,

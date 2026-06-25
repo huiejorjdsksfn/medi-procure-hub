@@ -18,10 +18,24 @@ export interface BroadcastPayload {
 }
 
 /**
+ * Module-level reference to the long-lived listener channel created by
+ * `subscribeToBroadcasts` (SystemBroadcastBanner mounts this once, globally,
+ * inside AppLayout). The sender and listener must share the exact topic name
+ * "system-broadcast" — that's how Supabase Realtime broadcast delivers a
+ * message to listening clients — but `supabase.channel()` returns that SAME
+ * shared channel object to the sender too, since it's already registered for
+ * this topic. Without this tracking, `broadcastToAll` would unconditionally
+ * `removeChannel()` the banner's own listener after every send, silently
+ * killing the admin's broadcast reception until their next page reload.
+ */
+let _listenerChannel: any = null;
+
+/**
  * Send a live broadcast to all connected users via Supabase Realtime
  */
 export async function broadcastToAll(payload: BroadcastPayload): Promise<void> {
-  const channel = (supabase as any).channel("system-broadcast");
+  const ownedTemporaryChannel = !_listenerChannel;
+  const channel = _listenerChannel || (supabase as any).channel("system-broadcast");
   await channel.send({
     type: "broadcast",
     event: "system_alert",
@@ -31,7 +45,9 @@ export async function broadcastToAll(payload: BroadcastPayload): Promise<void> {
       expiresIn: payload.expiresIn ?? 30,
     },
   });
-  await (supabase as any).removeChannel(channel);
+  // Only tear down the channel if we created it just for this send — if a
+  // listener (e.g. SystemBroadcastBanner) already owns it, leave it alone.
+  if (ownedTemporaryChannel) await (supabase as any).removeChannel(channel);
 }
 
 /**
@@ -92,5 +108,9 @@ export function subscribeToBroadcasts(
       callback(payload);
     })
     .subscribe();
-  return () => (supabase as any).removeChannel(channel);
+  _listenerChannel = channel;
+  return () => {
+    if (_listenerChannel === channel) _listenerChannel = null;
+    (supabase as any).removeChannel(channel);
+  };
 }
