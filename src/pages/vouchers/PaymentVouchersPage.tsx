@@ -9,7 +9,8 @@ import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { pageCache } from "@/lib/pageCache";
 import { useVoteHeads } from "@/hooks/useVoteHeads";
-import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { useChartOfAccounts, usePurchaseOrders } from "@/hooks/useDropdownData";
+import { genDocNumber } from "@/lib/docNumber";
 import { useAuth } from "@/contexts/AuthContext";
 import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
 import { DocumentStamp } from "@/components/DocumentStamp";
@@ -55,6 +56,7 @@ export default function PaymentVouchersPage() {
   });
   const { voteHeads, defaultFor } = useVoteHeads();
   const { accounts: glAccounts } = useChartOfAccounts();
+  const { purchaseOrders } = usePurchaseOrders();
   const { isAdminTier } = useAuth();
   const [showVoteHeadManager, setShowVoteHeadManager] = useState(false);
 
@@ -95,7 +97,7 @@ export default function PaymentVouchersPage() {
   async function createVoucher() {
     if(!form.payee||!form.total_amount){ toast({title:"Payee and amount required",variant:"destructive"}); return; }
     setSaving(true);
-    const vNum = `PV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+    const vNum = genDocNumber("PV");
     const amt = parseFloat(form.total_amount);
     const { error } = await db.from("payment_vouchers").insert({
       voucher_number:vNum, payee:form.payee, payee_name:form.payee,
@@ -270,7 +272,6 @@ export default function PaymentVouchersPage() {
               { label:"Amount (KES) *", key:"total_amount", type:"number", placeholder:"0.00" },
               { label:"Bank Name", key:"bank_name", type:"text", placeholder:"" },
               { label:"Account No.", key:"payee_account", type:"text", placeholder:"" },
-              { label:"PO Reference", key:"po_reference", type:"text", placeholder:"" },
               { label:"Invoice Reference", key:"invoice_reference", type:"text", placeholder:"" },
               { label:"Due Date", key:"due_date", type:"date", placeholder:"" },
             ].map(f=>(
@@ -293,6 +294,13 @@ export default function PaymentVouchersPage() {
               <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>Payment Method</label>
               <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))} style={inp}>
                 {METHODS.map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1).replace("_"," ")}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>PO Reference</label>
+              <select value={form.po_reference} onChange={e=>setForm(p=>({...p,po_reference:e.target.value}))} style={inp}>
+                <option value="">— None —</option>
+                {purchaseOrders.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||"Supplier"}</option>)}
               </select>
             </div>
             <div>
@@ -417,7 +425,7 @@ export default function PaymentVouchersPage() {
                     </td>
                     <td style={{ ...erpStyles.gridTd, color:"#2255cc", fontWeight:700, cursor:"pointer" }}
                       onClick={()=>setViewVoucher(v)}>
-                      {v.voucher_number||`PV/EL5H/${new Date(v.created_at).getFullYear()}${String(new Date(v.created_at).getMonth()+1).padStart(2,"0")}-AUTO`}
+                      {v.voucher_number||genDocNumber("PV")}
                     </td>
                     <td style={erpStyles.gridTd}>{v.payee||"—"}</td>
                     <td style={erpStyles.gridTd}>{v.payment_method ? v.payment_method.charAt(0).toUpperCase()+v.payment_method.slice(1).replace("_"," ") : "Cheque"}</td>

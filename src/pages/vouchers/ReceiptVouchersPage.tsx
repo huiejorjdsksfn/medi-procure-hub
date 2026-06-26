@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { genDocNumber } from "@/lib/docNumber";
 import { DocumentStamp } from "@/components/DocumentStamp";
 
 const db = supabase as any;
@@ -65,7 +66,7 @@ export default function ReceiptVouchersPage() {
   async function create() {
     if(!form.received_from||!form.total_amount){toast({title:"Payer and amount required",variant:"destructive"});return;}
     setSaving(true);
-    const rNum=`RV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+    const rNum=genDocNumber("RV");
     const amt = parseFloat(form.total_amount);
     const {error}=await db.from("receipt_vouchers").insert({
       receipt_number:rNum, received_from:form.received_from,
@@ -246,7 +247,7 @@ export default function ReceiptVouchersPage() {
                 {filtered.map((r,i)=>(
                   <tr key={r.id} style={{background:i%2===0?"#fff":"#f7f7f7"}} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
                     <td style={{...erpStyles.gridTd,textAlign:"center"}}><input type="checkbox" checked={selected.includes(r.id)} onChange={e=>setSelected(s=>e.target.checked?[...s,r.id]:s.filter(x=>x!==r.id))}/></td>
-                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700,cursor:"pointer"}} onClick={()=>setDetail(r)}>{r.receipt_number||`RV/EL5H/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</td>
+                    <td style={{...erpStyles.gridTd,color:"#00008b",fontWeight:700,cursor:"pointer"}} onClick={()=>setDetail(r)}>{r.receipt_number||genDocNumber("RV")}</td>
                     <td style={erpStyles.gridTd}>{r.received_from||"—"}</td>
                     <td style={erpStyles.gridTd}>{r.payment_method?.replace(/_/g," ")||"—"}</td>
                     <td style={{...erpStyles.gridTd,fontSize:10,color:"#555"}}>{r.gl_account||"—"}</td>
