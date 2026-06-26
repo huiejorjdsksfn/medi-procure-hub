@@ -240,7 +240,7 @@ export default function ODBCPage() {
     };
 
     for (const t of tables) {
-      const {data:cols} = await db.rpc("exec_sql",{sql:`SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_name='${t}' AND table_schema='public'`}).catch(()=>({data:null}));
+      const {data:cols} = await db.rpc("exec_sql",{query:`SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_name='${t}' AND table_schema='public'`}).catch(()=>({data:null}));
       if (!cols) {
         sql += `-- Skipped: ${t} (could not retrieve schema)\n\n`;
         continue;
@@ -297,7 +297,7 @@ export default function ODBCPage() {
       setQueryError(e.message);
       /* Fallback: run against Supabase */
       try {
-        const {data} = await db.rpc("exec_sql",{sql:querySQL});
+        const {data} = await db.rpc("exec_sql",{query:querySQL});
         setQueryResult(Array.isArray(data)?data:[data]);
         setQueryError("");
         toast({title:"Ran on Supabase (MySQL unavailable)"});
