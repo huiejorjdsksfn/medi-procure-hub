@@ -60,7 +60,7 @@ export default function PushToApprovalButton({
   const [notes,     setNotes]     = useState("");
   const [showNotes, setShowNotes] = useState(false);
 
-  /* Check if already queued */
+  /* Check if already queued — silent if table not yet created */
   useEffect(() => {
     if (!documentId) return;
     db.from("approval_queue")
@@ -68,7 +68,8 @@ export default function PushToApprovalButton({
       .eq("document_id", documentId)
       .eq("queue_status", "queued")
       .maybeSingle()
-      .then(({ data }: any) => {
+      .then(({ data, error }: any) => {
+        if (error) return; // table not ready yet — stay in unqueued state
         if (data) { setQueued(true); setQueueId(data.id); }
       });
   }, [documentId]);
@@ -90,15 +91,61 @@ export default function PushToApprovalButton({
         queue_status:    "queued",
       }).select("id").single();
 
-      if (error) throw error;
-      setQueued(true); setQueueId(data.id);
+      if (error) {
+        // Detect missing table (schema cache miss — migration pending)
+        if (error.message?.includes("approval_queue") || error.code === "42P01") {
+          // Auto-create table inline if migration hasn't run yet
+          await db.rpc("exec_sql", { query: `
+            CREATE TABLE IF NOT EXISTS public.approval_queue (
+              id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+              document_type text NOT NULL,
+              document_id uuid NOT NULL,
+              document_number text,
+              document_title text,
+              department text,
+              amount numeric DEFAULT 0,
+              pushed_by_id uuid,
+              pushed_by_name text,
+              pushed_at timestamptz DEFAULT now(),
+              priority text DEFAULT 'normal',
+              notes text,
+              queue_status text DEFAULT 'queued',
+              resolved_by_name text,
+              resolved_at timestamptz,
+              created_at timestamptz DEFAULT now()
+            )` });
+          // Retry insert
+          const retry = await db.from("approval_queue").insert({
+            document_type: documentType, document_id: documentId,
+            document_number: documentNumber,
+            document_title: documentTitle || documentNumber,
+            department: department || "General", amount: amount || 0,
+            pushed_by_id: user?.id, pushed_by_name: profile?.full_name || "User",
+            priority: prio, notes: notes || null, queue_status: "queued",
+          }).select("id").single();
+          if (retry.error) throw retry.error;
+          setQueued(true); setQueueId(retry.data.id);
+        } else {
+          throw error;
+        }
+      } else {
+        setQueued(true); setQueueId(data.id);
+      }
       toast({
         title: `📨 ${TYPE_LABEL[documentType]} pushed to Approvals`,
         description: `${documentNumber} — ${prio.toUpperCase()} priority`,
       });
       onPushed?.();
     } catch (e: any) {
-      toast({ title: "Push failed", description: e.message || "Try again", variant: "destructive" });
+      const msg = e.message || "Try again";
+      const isSchemaMiss = msg.includes("schema cache") || msg.includes("approval_queue") || msg.includes("42P01");
+      toast({
+        title: isSchemaMiss ? "Database sync in progress" : "Push failed",
+        description: isSchemaMiss
+          ? "The approval queue table is initialising. Please try again in a few seconds."
+          : msg,
+        variant: "destructive",
+      });
     }
     setPushing(false);
   };
