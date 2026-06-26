@@ -4,6 +4,7 @@
  * ProcurBosse - Embu Level 5 Hospital
  */
 import { useState, useEffect } from "react";
+import { invokeFunctionWithRetry } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SmtpConfig {
@@ -98,7 +99,7 @@ export default function SmtpSettingsPanel() {
   async function testEmail() {
     setTesting(true); setTestResult(null);
     try {
-      const { data, error } = await (supabase as any).functions.invoke("send-email", {
+      const { data, error } = await invokeFunctionWithRetry("send-email", {
         body: {
           to: config.email_test_address,
           subject: "- EL5 MediProcure v5.8 - SMTP Test",
@@ -242,8 +243,8 @@ export default function SmtpSettingsPanel() {
               <input value={config.email_test_address} onChange={e => set("email_test_address", e.target.value)} style={INP} placeholder="admin@embu.go.ke" />
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
-              <div style={{ padding: "6px 14px", borderRadius: 8, background: config.smtp_enabled === "true" ? "#f0fdf4" : "#fef9c3", border: `1px solid ${config.smtp_enabled === "true" ? "#bbf7d0" : "#fde68a"}`, fontSize: 12, fontWeight: 700, color: config.smtp_enabled === "true" ? "#059669" : "#d97706" }}>
-                {config.smtp_enabled === "true" ? "- SMTP Enabled" : "- SMTP Disabled"}
+              <div style={{ padding: "6px 14px", borderRadius: 8, background: config.smtp_enabled === "true" ? "#f0fdf4" : "#eff6ff", border: `1px solid ${config.smtp_enabled === "true" ? "#bbf7d0" : "#bfdbfe"}`, fontSize: 12, fontWeight: 700, color: config.smtp_enabled === "true" ? "#059669" : "#1d4ed8" }}>
+                {config.smtp_enabled === "true" ? "- SMTP Enabled" : "ℹ︎ Emails stored internally (SMTP off)"}
               </div>
               <button onClick={() => set("smtp_enabled", config.smtp_enabled === "true" ? "false" : "true")} style={{ padding: "8px 14px", background: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                 Toggle

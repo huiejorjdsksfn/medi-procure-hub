@@ -7,14 +7,16 @@ import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement } from "@/lib/notify";
 import { Plus, Search, RefreshCw, Eye, CheckCircle, Gavel, X, Save, Download, Mail } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DocumentStamp } from "@/components/DocumentStamp";
+import { genDocNumber } from "@/lib/docNumber";
 
-const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;
+const genNo = () => genDocNumber("TND");
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
 const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}) : "-";
 
@@ -357,6 +359,17 @@ export default function TendersPage() {
               {detail.evaluation_criteria&&<div><div style={{fontSize:12,fontWeight:700,color:"#9ca3af",marginBottom:5,textTransform:"uppercase"}}>Evaluation Criteria</div>
                 <p style={{fontSize:14,color:"#374151",lineHeight:1.7,margin:0}}>{detail.evaluation_criteria}</p>
               </div>}
+              <div style={{marginBottom:8}}><PushToApprovalButton
+                documentType="tender"
+                documentId={detail.id}
+                documentNumber={detail.tender_number||detail.reference||"TENDER"}
+                documentTitle={detail.title||"Tender"}
+                department={detail.department||"Procurement"}
+                amount={Number(detail.estimated_value||0)}
+                currentStatus={detail.status}
+                size="sm"
+                onPushed={()=>{setDetail(null);load();}}
+              /></div>
               {canManage&&detail.status==="draft"&&<button onClick={()=>{publish(detail);setDetail(null);}} style={{width:"100%",padding:"11px",background:"#15803d",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                 <CheckCircle style={{width:14,height:14}}/> Publish Tender
               </button>}

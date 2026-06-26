@@ -406,6 +406,11 @@ export default function AdminPanelPage() {
                 <div style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <QuickStampButton label="Stamp Documents" size="md" variant="primary" />
                   <QuickStampButton label="Quick Stamp (Outline)" size="md" variant="outline" />
+                  <button
+                    onClick={() => { import("react-router-dom").then(({useNavigate}) => {}); window.location.hash = "/admin/stamp-design"; }}
+                    style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", background:"transparent", color:"#0d4f1c", border:"2px solid #0d4f1c", borderRadius:6, fontWeight:700, fontSize:12, cursor:"pointer", marginTop:4 }}>
+                    🎨 Open Stamp Design Studio
+                  </button>
                   <span style={{fontSize:11,color:T.fgMuted,flex:1}}>
                     Apply official circular approval stamps to requisitions, purchase orders and GRNs.
                   </span>

@@ -65,6 +65,30 @@ Every minute (pg_cron trigger):
 | `activity_logs` | Bot activity | ✅ |
 | `keepalive_records` | Primary dump table | ✅ |
 
+## Three-Layer Architecture (v3.1)
+
+Uptime is now covered by three independent layers, so no single point of
+failure can take the system fully offline:
+
+| Layer | Where it runs | Covers | Fails if |
+|-------|---------------|--------|----------|
+| **Browser bot** — `KeepAliveBot.tsx` | Inside any open browser tab | Frontend + backend ping | No tab is open |
+| **pg_cron** — `el5-keepalive-bot` | Inside the Supabase project | Backend + database | Supabase project itself is paused (free-tier auto-pause after ~7 days idle) |
+| **GitHub Actions** — `.github/workflows/uptime-keeper.yml` | GitHub's infrastructure | Frontend + backend + database | Practically never — independent of both the browser and the Supabase project |
+
+The GitHub Actions workflow is the critical addition: it is the only layer
+that keeps making external requests to the Supabase project even if every
+browser tab is closed and pg_cron itself has gone quiet, which is exactly
+the condition that causes free-tier Supabase projects to pause. It runs:
+
+- **Every 10 minutes** — pings the frontend (`procurbosse.edgeone.app`),
+  triggers the full `keepalive-bot` loop, then confirms via `?action=status`.
+- **Once daily (03:15 UTC)** — runs `db-daily-sanity` for a full insert →
+  read-back → cleanup pass against the database.
+
+It can also be triggered manually from the Actions tab via
+`workflow_dispatch` to force an immediate wake-up.
+
 ## Setup
 
 ### 1. Run Database Migration

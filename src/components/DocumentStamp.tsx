@@ -274,12 +274,13 @@ export function QuickStampButton({
   size    = 'md',
   variant = 'primary',
 }: QuickStampButtonProps) {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen]         = useState(false);
   const [tab, setTab]           = useState<'req'|'po'|'grn'>('req');
   const [docs, setDocs]         = useState<any[]>([]);
   const [loading, setLoading]   = useState(false);
   const [stamping, setStamping] = useState<string|null>(null);
+  const [error, setError]       = useState<string|null>(null);
 
   const pad: Record<string, string> = {
     sm:  '5px 12px', md: '8px 18px', lg: '10px 24px',
@@ -307,15 +308,18 @@ export function QuickStampButton({
   };
 
   const load = async (t: 'req'|'po'|'grn') => {
-    setLoading(true); setDocs([]);
+    setLoading(true); setDocs([]); setError(null);
     try {
-      const { data } = await db.from(tableMap[t])
+      const { data, error: qErr } = await db.from(tableMap[t])
         .select('id,status,created_at,' + numCol[t] + ',stamped,stamped_by_name')
         .in('status', statusMap[t])
         .order('created_at', { ascending: false })
         .limit(30);
+      if (qErr) throw qErr;
       setDocs(data || []);
-    } catch {}
+    } catch (e: any) {
+      setError(e?.message || 'Could not load documents');
+    }
     setLoading(false);
   };
 
@@ -331,19 +335,33 @@ export function QuickStampButton({
 
   const applyStamp = async (id: string, docStatus: string) => {
     setStamping(id);
+    setError(null);
     const now    = new Date().toISOString();
     const stamper = profile?.full_name || 'Admin';
     try {
-      await db.from(tableMap[tab]).update({
+      const { error: updErr } = await db.from(tableMap[tab]).update({
         stamped: true, stamped_by_name: stamper,
         stamped_at: now, stamp_label: docStatus.toUpperCase(),
       }).eq('id', id);
-      await db.from('audit_log').insert({
-        action: 'STAMP_APPLIED', module: 'Stamps',
-        details: `${docStatus.toUpperCase()} stamp applied by ${stamper}`,
-      });
+      if (updErr) throw updErr;
+
+      // Audit logging is best-effort only — it must never block the stamp
+      // from showing as applied, since a schema mismatch here previously
+      // caused the whole action to silently appear to do nothing.
+      try {
+        await db.from('audit_log').insert({
+          user_id: user?.id ?? null,
+          action: 'STAMP_APPLIED',
+          entity_type: tableMap[tab],
+          entity_id: id,
+          details: { stamp: docStatus.toUpperCase(), stamped_by: stamper },
+        });
+      } catch { /* non-critical */ }
+
       await load(tab);
-    } catch {}
+    } catch (e: any) {
+      setError(e?.message || 'Could not apply stamp');
+    }
     setStamping(null);
   };
 
@@ -412,6 +430,12 @@ export function QuickStampButton({
 
             {/* body */}
             <div style={{ overflowY:'auto', padding:20, flex:1 }}>
+              {error && (
+                <div style={{ background:'#fee2e2', color:'#991b1b', borderRadius:8, padding:'10px 14px',
+                  fontSize:12, fontWeight:600, marginBottom:14 }}>
+                  {error}
+                </div>
+              )}
               {loading ? (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'#9ca3af' }}>Loading…</div>
               ) : docs.length === 0 ? (

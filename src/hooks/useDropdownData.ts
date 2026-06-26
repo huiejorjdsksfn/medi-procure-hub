@@ -24,3 +24,8 @@ export function useChartOfAccounts() {
   const dd = useCachedDropdown({ table: "chart_of_accounts", select: "id,account_code,account_name,account_type,category", order: "account_code", pageSize: 200, searchColumns: ["account_code", "account_name"] });
   return { accounts: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
 }
+
+export function usePurchaseOrders() {
+  const dd = useCachedDropdown({ table: "purchase_orders", select: "id,po_number,supplier_name,status,total_amount", order: "created_at", pageSize: 200, searchColumns: ["po_number", "supplier_name"] });
+  return { purchaseOrders: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
+}

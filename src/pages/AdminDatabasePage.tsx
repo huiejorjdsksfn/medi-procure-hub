@@ -13,7 +13,7 @@ import { safeFetch } from "@/lib/safeFetch";
 import {
   Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
-  ChevronRight, ChevronDown, Filter, Copy, AlertTriangle,
+  ChevronRight, ChevronDown, Filter, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings
 } from "lucide-react";
@@ -119,8 +119,27 @@ ORDER BY t.table_name;`);
   ]);
   const [queryName, setQueryName] = useState("");
   const [selectedSaved, setSelectedSaved] = useState<string>("");
+  const [profileNames, setProfileNames] = useState<Record<string,string>>({});
+  const [itemNames, setItemNames] = useState<Record<string,string>>({});
   const sqlRef = useRef<HTMLTextAreaElement>(null);
   const rtChannel = useRef<any>(null);
+
+  // - Load id -> name lookups so the grid never has to show raw uuids -
+  useEffect(() => {
+    (async () => {
+      const [{ data: profiles }, { data: items }] = await Promise.all([
+        (supabase as any).from("profiles").select("id,full_name").limit(2000),
+        (supabase as any).from("items").select("id,name").limit(2000),
+      ]);
+      setProfileNames(Object.fromEntries((profiles||[]).map((p:any)=>[p.id,p.full_name])));
+      setItemNames(Object.fromEntries((items||[]).map((it:any)=>[it.id,it.name])));
+    })();
+  }, []);
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const resolveName = useCallback((v:any) => {
+    if (typeof v !== "string" || !UUID_RE.test(v)) return null;
+    return profileNames[v] || itemNames[v] || null;
+  }, [profileNames, itemNames]);
 
   // - Load table data -
   const loadTable = useCallback(async () => {
@@ -189,24 +208,40 @@ ORDER BY t.table_name;`);
     setSqlRunning(true); setSqlError(null); setSqlResult([]);
     const t0 = Date.now();
     try {
-      const { data, error } = await (supabase as any).rpc("exec_sql", { query: sql });
-      if (error) throw error;
+      // Split on semicolons, filter blanks/comments, run sequentially
+      const statements = sql
+        .split(/;(?=(?:[^']*'[^']*')*[^']*$)/)   // split on ; outside quotes
+        .map(s => s.trim())
+        .filter(s => s && !s.startsWith("--") && !s.startsWith("/*"));
+
+      let lastData: any = [];
+      let totalRows = 0;
+
+      for (const stmt of statements) {
+        const { data, error } = await (supabase as any).rpc("exec_sql", { query: stmt });
+        if (error) throw error;
+        lastData = Array.isArray(data) ? data : [{ result: data }];
+        totalRows += lastData.length;
+      }
+
       const ms = Date.now() - t0;
       setSqlMs(ms);
-      setSqlResult(Array.isArray(data) ? data : [{ result: data }]);
-      // Log query
-      await (supabase as any).from("query_log").insert({
-        query_text: sql.slice(0,500),
-        query_type: sql.trim().slice(0,6).toUpperCase(),
-        rows_affected: Array.isArray(data) ? data.length : 0,
-        execution_ms: ms,
-        executed_by: user?.id
-      });
-      toast({ title: `- Query executed (${ms}ms, ${Array.isArray(data) ? data.length : 0} rows)` });
+      setSqlResult(lastData);
+      // Log query (best-effort, don't throw if query_log missing)
+      try {
+        await (supabase as any).from("query_log").insert({
+          query_text: sql.slice(0,500),
+          query_type: sql.trim().slice(0,6).toUpperCase(),
+          rows_affected: totalRows,
+          execution_ms: ms,
+          executed_by: user?.id
+        });
+      } catch { /* query_log table may not exist — safe to ignore */ }
+      toast({ title: `✓ Query executed (${ms}ms, ${totalRows} rows)` });
     } catch (e: any) {
       setSqlError(e.message);
       setSqlMs(Date.now() - t0);
-      toast({ title:"SQL Error: " + e.message, variant:"destructive" });
+      toast({ title: "SQL Error: " + e.message, variant: "destructive" });
     }
     setSqlRunning(false);
   }
@@ -433,7 +468,7 @@ ORDER BY t.table_name;`);
                   <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
                     <tr>
                       <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
-                      {tableColumns.map(col => (
+                      {tableColumns.filter(col=>col!=="id").map(col => (
                         <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
                           style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
                           {col}{sortCol===col?(sortAsc?" -":" -"):""}
@@ -454,13 +489,10 @@ ORDER BY t.table_name;`);
                             <button title="Delete" onClick={() => setDeleteConfirm(row.id)} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
                               <Trash2 style={{ width:12,height:12,color:"#cc0000" }} />
                             </button>
-                            <button title="Copy ID" onClick={() => { navigator.clipboard.writeText(row.id||""); toast({title:"ID copied"}); }} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
-                              <Copy style={{ width:11,height:11,color:"#666" }} />
-                            </button>
                           </div>
                         </td>
-                        {tableColumns.map(col => (
-                          <td key={col} style={CELL} title={String(row[col]??"")} >
+                        {tableColumns.filter(col=>col!=="id").map(col => (
+                          <td key={col} style={CELL} title={resolveName(row[col]) || String(row[col]??"")} >
                             {editingRow?.id === row.id
                               ? <input value={editingRow[col]??""} onChange={e=>setEditingRow((p:any)=>({...p,[col]:e.target.value}))}
                                   style={{ border:`1px solid #003087`,padding:"1px 4px",fontSize:11,fontFamily:S.font,width:"100%",minWidth:80 }} />
@@ -468,6 +500,9 @@ ORDER BY t.table_name;`);
                                   const v = row[col];
                                   if (v === null || v === undefined) return <span style={{ color:"#999" }}>null</span>;
                                   if (typeof v === "boolean") return <span style={{ color:v?"#006600":"#cc0000",fontWeight:700 }}>{v?"true":"false"}</span>;
+                                  const name = resolveName(v);
+                                  if (name) return <span style={{ color:"#003087",fontWeight:600 }}>{name}</span>;
+                                  if (typeof v === "string" && UUID_RE.test(v)) return <span style={{ color:"#94a3b8",fontStyle:"italic" as const }}>linked record</span>;
                                   const sv = String(v);
                                   if (sv.includes("T") && sv.includes(":") && sv.length > 16) return sv.slice(0,16).replace("T"," ");
                                   if (typeof v === "object") return <span style={{ color:"#555",fontStyle:"italic" as const }}>[JSON]</span>;
@@ -503,7 +538,7 @@ ORDER BY t.table_name;`);
                     <button onClick={()=>setEditingRow(null)} style={{ background:"none",border:"none",cursor:"pointer" }}><X style={{ width:16,height:16 }} /></button>
                   </div>
                   <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
-                    {Object.keys(editingRow).map(k => (
+                    {Object.keys(editingRow).filter(k=>k!=="id").map(k => (
                       <div key={k}>
                         <label style={{ fontSize:10,fontWeight:700,color:"#333",fontFamily:S.font,display:"block",marginBottom:2 }}>{k}</label>
                         <input value={editingRow[k]??""} onChange={e=>setEditingRow((p:any)=>({...p,[k]:e.target.value}))}
@@ -525,7 +560,7 @@ ORDER BY t.table_name;`);
               <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}>
                 <div style={{ background:"#1e293b",border:`2px solid #ef4444`,padding:24,maxWidth:400,fontFamily:S.font }}>
                   <div style={{ fontSize:14,fontWeight:700,color:"#cc0000",marginBottom:12 }}>Confirm Delete</div>
-                  <p style={{ fontSize:12,marginBottom:16 }}>Delete row ID: <code style={{ fontFamily:S.mono }}>{deleteConfirm.slice(0,20)}-</code>?<br/>This cannot be undone.</p>
+                  <p style={{ fontSize:12,marginBottom:16 }}>Delete this row from <strong>{selectedTable}</strong>?<br/>This cannot be undone.</p>
                   <div style={{ display:"flex",gap:8,justifyContent:"flex-end" }}>
                     <button onClick={()=>deleteRow(deleteConfirm)} style={{ background:"#cc0000",color:"#fff",border:"none",padding:"6px 16px",cursor:"pointer",fontFamily:S.font,fontWeight:700 }}>Delete</button>
                     <button onClick={()=>setDeleteConfirm(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"6px 14px",cursor:"pointer",fontFamily:S.font }}>Cancel</button>

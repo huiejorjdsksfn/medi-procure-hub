@@ -5,6 +5,7 @@ import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
 import { Package, Plus, RefreshCw, Search, Eye, Printer, X, Save, CheckCircle, Trash2 } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -69,7 +70,7 @@ export default function GoodsReceivedPage() {
     return ()=>{(supabase as any).removeChannel(ch);};
   },[]);
 
-  const genGrn = ()=>`GRN/EL5H/${new Date().getFullYear()}/${String(Math.floor(1000+Math.random()*9000))}`;
+
 
   const printGrn = (g:any) => {
     (printGRN as any)(g, [], null, {
@@ -109,7 +110,7 @@ export default function GoodsReceivedPage() {
     const badQty = validItems2.find((it:any)=>Number(it.quantity_received)<0);
     if(badQty){toast({title:`Quantity received cannot be negative for: ${badQty.item_name}`,variant:"destructive"});return;}
     setSaving(true);
-    const num = form.grn_number||genGrn();
+    const num = form.grn_number||generateGRNNumber();
     const supp = suppliers.find(s=>s.id===form.supplier_id);
     const{data,error}=await(supabase as any).from("goods_received").insert({
       ...form, grn_number:num, supplier_name:supp?.name||form.supplier_name,
@@ -213,6 +214,17 @@ export default function GoodsReceivedPage() {
                 <td style={{padding:"10px 14px"}}><div style={{display:"flex",gap:4}}>
                   <button onClick={()=>setViewGrn(g)} title="View" style={{padding:"4px 8px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:6,cursor:"pointer",lineHeight:0}}><Eye style={{width:12,height:12,color:"#15803d"}}/></button>
                   <button onClick={()=>printGrn(g)} title="Print GRN" style={{padding:"4px 8px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:6,cursor:"pointer",lineHeight:0}}><Printer style={{width:12,height:12,color:"#0369a1"}}/></button>
+                  <PushToApprovalButton
+                    documentType="grn"
+                    documentId={g.id}
+                    documentNumber={g.grn_number||`GRN/${g.supplier_name||"Received"}`}
+                    documentTitle={g.supplier_name||"Goods Received"}
+                    department="Store"
+                    amount={Number(g.total_value||0)}
+                    currentStatus={g.status}
+                    size="sm"
+                    onPushed={load}
+                  />
                 </div></td>
               </tr>);
             })}

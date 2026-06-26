@@ -1,0 +1,89 @@
+name: "Uptime Keeper — Frontend, Backend & Database"
+
+# Independent, server-side keep-alive layer for EL5 MediProcure / ProcurBosse.
+#
+# Why this exists alongside the in-app KeepAliveBot (src/components/KeepAliveBot.tsx)
+# and the pg_cron job inside Supabase (el5-keepalive-bot):
+#   - KeepAliveBot.tsx only runs while someone has a browser tab open.
+#   - pg_cron only runs while the Supabase project itself is awake — on the free
+#     tier, a project that gets zero external API traffic for ~7 days pauses,
+#     which also stops pg_cron from firing. Nothing inside the project can wake
+#     the project back up.
+#   - GitHub Actions runs on GitHub's infrastructure, completely outside Supabase
+#     and outside any user's browser, so it is the one layer that keeps hitting
+#     the project's public API on a fixed schedule no matter what.
+#
+# Together these three layers (browser bot + pg_cron + this workflow) give
+# 24/7, multi-layer coverage for frontend, backend, and database uptime.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 min — frontend ping + backend/db keepalive loop
+    - cron: "15 3 * * *"     # once daily (03:15 UTC) — full DB write/read sanity check
+  workflow_dispatch: {}
+
+env:
+  SUPABASE_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  # Public anon key — same one already shipped in the client bundle
+  # (src/components/KeepAliveBot.tsx), safe to use here since RLS protects data.
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc"
+  FRONTEND_URL: "https://procurbosse.edgeone.app"
+
+jobs:
+  keepalive:
+    name: Frontend + Backend + DB heartbeat
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/10 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping frontend (EdgeOne)
+        continue-on-error: true
+        run: |
+          echo "Pinging frontend keeper..."
+          curl -fsS -o /dev/null -w "frontend: HTTP %{http_code} in %{time_total}s\n" \
+            --max-time 15 "${FRONTEND_URL}/manifest.json" \
+            || echo "::warning::Frontend ping failed — site may be cold or down"
+
+      - name: Ping backend keeper (keepalive-bot full loop)
+        continue-on-error: true
+        run: |
+          echo "Running backend + database keepalive loop..."
+          curl -fsS -X POST \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            --max-time 70 \
+            -w "\nbackend: HTTP %{http_code} in %{time_total}s\n" \
+            "${SUPABASE_URL}/functions/v1/keepalive-bot" \
+            || echo "::warning::Backend keepalive loop failed — Supabase project may need manual wake-up"
+
+      - name: Verify status + report
+        continue-on-error: true
+        run: |
+          curl -fsS \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            --max-time 15 \
+            "${SUPABASE_URL}/functions/v1/keepalive-bot?action=status" \
+            | tee status.json || echo "::warning::Status check failed"
+
+      - name: Upload status artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uptime-status
+          path: status.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  daily-sanity:
+    name: Full database sanity check
+    if: github.event.schedule == '15 3 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run db-daily-sanity (insert, read back, cleanup)
+        run: |
+          curl -fsS -X POST \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            --max-time 30 \
+            -w "\nsanity: HTTP %{http_code} in %{time_total}s\n" \
+            "${SUPABASE_URL}/functions/v1/db-daily-sanity"
