@@ -4,6 +4,7 @@ import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
 import { notifyProcurement } from "@/lib/notify";
 import { useNavigate } from "react-router-dom";
@@ -209,6 +210,17 @@ export default function VouchersPage() {
                   <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap" as const}}>
                       <button onClick={()=>setPrint(r)} title="Print" style={{padding:"4px 8px",background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:5,cursor:"pointer",lineHeight:0}}><Printer style={{width:11,height:11,color:"#6b7280"}}/></button>
+                      <PushToApprovalButton
+                        documentType="voucher"
+                        documentId={r.id}
+                        documentNumber={r.voucher_number||"VOUCH"}
+                        documentTitle={r.purpose||r.voucher_type||"Voucher"}
+                        department={r.departments?.name||r.department_name||"Finance"}
+                        amount={Number(r.total_value||0)}
+                        currentStatus={r.status}
+                        size="sm"
+                        onPushed={load}
+                      />
                       {canApprove&&r.status==="pending"&&<>
                         <button onClick={()=>approve(r)} style={{padding:"4px 8px",background:"#dcfce7",border:"1px solid #bbf7d0",borderRadius:5,cursor:"pointer",lineHeight:0}}><CheckCircle style={{width:11,height:11,color:"#15803d"}}/></button>
                         <button onClick={()=>reject_(r)} style={{padding:"4px 8px",background:"#fee2e2",border:"1px solid #fecaca",borderRadius:5,cursor:"pointer",lineHeight:0}}><XCircle style={{width:11,height:11,color:"#dc2626"}}/></button>
