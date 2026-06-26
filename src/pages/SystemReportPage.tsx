@@ -15,7 +15,7 @@ import {
   Building2, Database, Calendar, CheckCircle2, AlertTriangle,
   Download, RefreshCw, Search, Settings, Bell,
   TrendingUp, TrendingDown, Minus, Activity, PieChart,
-  FileSpreadsheet, ArrowRight, Printer,
+  FileSpreadsheet, ArrowRight,
 } from "lucide-react";
 
 const db = supabase as any;

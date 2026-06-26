@@ -4,12 +4,11 @@
  * EL5 MediProcure, Embu Level 5 Hospital
  */
 import { useEffect, useState, useCallback } from "react";
-import { PrintEngine } from "@/engines/print/PrintEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { RefreshCw, Printer, FileSpreadsheet, Search, X, Calendar,
+import { RefreshCw, FileSpreadsheet, Search, X, Calendar,
   BarChart3, TrendingUp, Package, ShoppingCart, DollarSign, FileText,
   Truck, Shield, Activity, BookOpen, Gavel, ClipboardList, ChevronRight,
   Filter, Download } from "lucide-react";
@@ -53,6 +52,19 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [kpi, setKpi] = useState({total:0,pending:0,approved:0,value:0});
   const [summaries, setSummaries] = useState<{label:string;value:number|string;color:string;icon:any}[]>([]);
+  const [profileNames, setProfileNames] = useState<Record<string,string>>({});
+  const [itemNames, setItemNames] = useState<Record<string,string>>({});
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: profiles }, { data: items }] = await Promise.all([
+        db.from("profiles").select("id,full_name").limit(2000),
+        db.from("items").select("id,name").limit(2000),
+      ]);
+      setProfileNames(Object.fromEntries((profiles||[]).map((p:any)=>[p.id,p.full_name])));
+      setItemNames(Object.fromEntries((items||[]).map((it:any)=>[it.id,it.name])));
+    })();
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,38 +110,6 @@ export default function ReportsPage() {
     XLSX.writeFile(wb,`${sysName}-${(activeRpt.label||activeRpt.name||activeRpt.id).replace(/\s+/g,"-")}-${startDate}-${endDate}.xlsx`);
   };
 
-  const printReport = () => {
-    const cols = rows.length ? Object.keys(rows[0]).filter(k=>!k.includes("_id")&&k!=="id") : [];
-    const w = window.open("","_blank");
-    if(!w)return;
-    w.document.write(`<html><head><title>${activeRpt.label} Report</title><style>
-      body{font-family:'Segoe UI',sans-serif;margin:24px;color:#1a1a2e}
-      h1{font-size:20px;margin-bottom:4px}
-      .sub{font-size:13px;color:#666;margin-bottom:16px}
-      table{width:100%;border-collapse:collapse;font-size:12px}
-      th{background:#0078d4;color:#fff;padding:8px 10px;text-align:left;font-weight:600}
-      td{padding:7px 10px;border-bottom:1px solid #e8ecf1}
-      tr:nth-child(even)td{background:#f8f9fb}
-      .kpi{display:flex;gap:24px;margin-bottom:20px;padding:16px;background:#f3f5f8;border-radius:8px}
-      .kv{text-align:center}.kn{font-size:22px;font-weight:800;color:#0078d4}.kl{font-size:11px;color:#666}
-    </style></head><body>
-    <h1>${hospitalName} - ${activeRpt.label} Report</h1>
-    <div class="sub">${sysName} - Period: ${startDate} to ${endDate} - Generated: ${new Date().toLocaleString("en-KE")}</div>
-    <div class="kpi">
-      <div class="kv"><div class="kn">${kpi.total}</div><div class="kl">Total Records</div></div>
-      <div class="kv"><div class="kn">${kpi.pending}</div><div class="kl">Pending</div></div>
-      <div class="kv"><div class="kn">${kpi.approved}</div><div class="kl">Approved</div></div>
-      <div class="kv"><div class="kn">${fmtKES(kpi.value)}</div><div class="kl">Total Value</div></div>
-    </div>
-    <table><thead><tr>${cols.map(c=>`<th>${c.replace(/_/g," ").toUpperCase()}</th>`).join("")}</tr></thead>
-    <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??""}</td>`).join("")}</tr>`).join("")}</tbody></table>
-    <div style="margin-top:20px;font-size:10px;color:#999;text-align:center">
-      ${hospitalName} - ${sysName} ProcurBosse v6.0 - Embu County Government
-    </div></body></html>`);
-    w.document.close();
-    w.print();
-  };
-
   const cols = rows.length ? Object.keys(rows[0]).filter(k=>k!=="id"&&!["__v"].includes(k)).slice(0,10) : [];
 
   return (
@@ -147,9 +127,6 @@ export default function ReportsPage() {
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#107c10",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
             <FileSpreadsheet size={13}/> Export Excel
-          </button>
-          <button onClick={printReport} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:T.primary,border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
-            <Printer size={13}/> Print
           </button>
         </div>
       </div>
@@ -257,12 +234,16 @@ export default function ReportsPage() {
                           const v=row[c];
                           const isStatus=c==="status";
                           const statusColor=isStatus?(v==="approved"||v==="active"||v==="completed"?T.success:v==="pending"||v==="submitted"?T.warning:v==="rejected"||v==="cancelled"?T.error:T.fgMuted):"";
+                          const isUuid = typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+                          const resolvedName = isUuid ? (profileNames[v] || itemNames[v]) : null;
                           return(
                             <td key={c} style={{padding:"7px 14px",color:isStatus?statusColor:T.fg,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                               {isStatus&&v?(
                                 <span style={{padding:"2px 8px",borderRadius:4,background:statusColor+"14",color:statusColor,fontSize:10,fontWeight:700}}>
                                   {String(v).toUpperCase()}
                                 </span>
+                              ):isUuid?(
+                                resolvedName || <span style={{color:T.fgDim,fontStyle:"italic"}}>-</span>
                               ):c.includes("date")||c.includes("_at")?
                                 (v?new Date(v).toLocaleDateString("en-KE"):"-")
                               :c.includes("amount")||c.includes("value")||c.includes("price")||c.includes("cost")?
