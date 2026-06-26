@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
+import { genDocNumber } from "@/lib/docNumber";
 import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
   CheckCircle, XCircle, Clock, ClipboardList, Send, AlertTriangle,
@@ -162,7 +163,7 @@ export default function RequisitionsPage() {
   async function save(){
     if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}
     setSaving(true);
-    const num = editReq?.requisition_number||`RQQ/EL5H/${new Date().getFullYear()}/${String(reqs.length+1).padStart(4,"0")}`;
+    const num = editReq?.requisition_number||genDocNumber("RQQ");
     const payload={...form,requisition_number:num,status:editReq?.status||"draft",requested_by:user?.id,requester_name:profile?.full_name};
     let error:any;
     if(editReq){

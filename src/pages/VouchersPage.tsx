@@ -12,8 +12,9 @@ import { Plus, Search, RefreshCw, Eye, Printer, Download, FileText, DollarSign, 
 import logo from "@/assets/embu-county-logo.jpg";
 import * as XLSX from "@e965/xlsx";
 import { DocumentStamp } from "@/components/DocumentStamp";
+import { genDocNumber } from "@/lib/docNumber";
 
-const genNo = () => { const d=new Date(); return `SRV/EL5H/${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}/${Math.floor(1000+Math.random()*9000)}`; };
+const genNo = () => genDocNumber("SIV");
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2})}`;
 
 const S_CFG:Record<string,{bg:string;color:string;label:string}> = {
@@ -156,7 +157,7 @@ export default function VouchersPage() {
             <button key={l.path} onClick={()=>navigate(l.path)} style={{padding:"7px 12px",background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0369a1"}}>{l.label} Vouchers -</button>
           ))}
           <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 14px",background:"#f3f4f6",border:"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}><Download style={{width:13,height:13}}/> Export</button>
-          <button onClick={()=>setShowNew(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(92,45,145,0.3)"}}>
+          <button onClick={()=>{setForm(p=>({...p,voucher_number:genNo()}));setShowNew(true);}} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 18px",background:"linear-gradient(135deg,#5C2D91,#7c3aed)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 2px 8px rgba(92,45,145,0.3)"}}>
             <Plus style={{width:14,height:14}}/> New Voucher
           </button>
         </div>
@@ -336,7 +337,10 @@ export default function VouchersPage() {
             </div>
             <div style={{padding:20,display:"flex",flexDirection:"column",gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-                <div><LBL>Voucher No</LBL>{INP(form.voucher_number,v=>setForm(p=>({...p,voucher_number:v})),"Auto-generated")}</div>
+                <div><LBL>Voucher No</LBL>
+                  <input value={form.voucher_number} readOnly placeholder="Auto-generated"
+                    style={{width:"100%",padding:"8px 11px",fontSize:13,border:"1.5px solid #e5e7eb",borderRadius:7,outline:"none",background:"#f3f4f6",color:"#6b7280",cursor:"not-allowed",boxSizing:"border-box"}}/>
+                </div>
                 <div><LBL>Requested By</LBL>{INP(form.requested_by,v=>setForm(p=>({...p,requested_by:v})),profile?.full_name||"")}</div>
                 <div><LBL>Date</LBL>{INP(form.date,v=>setForm(p=>({...p,date:v})),"","date")}</div>
                 <div style={{gridColumn:"span 2"}}><LBL>Department</LBL>
