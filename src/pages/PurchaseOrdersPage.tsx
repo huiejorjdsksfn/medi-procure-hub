@@ -8,6 +8,7 @@ import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
 import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
@@ -418,6 +419,17 @@ export default function PurchaseOrdersPage() {
                         {canApprove&&["draft","pending"].includes(po.status)&&(
                           <button onClick={()=>cancelPO(po.id)} title="Cancel" style={{padding:5,borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/></button>
                         )}
+                      <PushToApprovalButton
+                        documentType="purchase_order"
+                        documentId={po.id}
+                        documentNumber={po.po_number||`PO/${po.supplier_name||"Supplier"}`}
+                        documentTitle={po.suppliers?.name||po.supplier_name||"Purchase Order"}
+                        department={po.department}
+                        amount={Number(po.total_amount||0)}
+                        currentStatus={po.status}
+                        size="sm"
+                        onPushed={load}
+                      />
                       </div>
                     </td>
                   </tr>
