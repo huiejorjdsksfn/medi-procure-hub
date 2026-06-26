@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDefaultRoute } from "@/lib/sessionCookie";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const db = supabase as any;
 
@@ -42,6 +43,8 @@ interface Tile {
 export default function DashboardPage() {
   const { user, profile, roles, primaryRole, signOut } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile(768);
+  const isTablet = useIsMobile(1024) && !isMobile;
   const [time, setTime] = useState(new Date());
   const [startOpen, setStartOpen] = useState(false);
   const [kpi, setKpi] = useState({
@@ -147,7 +150,8 @@ export default function DashboardPage() {
           zIndex:0,pointerEvents:"none"}} />
       )}
 
-      {/* Desktop icons (left column) */}
+      {/* Desktop icons (left column) — hidden on phone */}
+      {!isMobile && (
       <div style={{position:"absolute" as const,top:12,left:10,display:"flex",flexDirection:"column" as const,gap:4,zIndex:10}}>
         {[
           {icon:"💰",label:"Finance Desktop",path:"/finance-dashboard",roles:["admin","finance_manager","finance_officer","accountant"]},
@@ -171,10 +175,15 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Main window */}
-      <div style={{position:"absolute" as const,top:10,left:90,right:10,bottom:46,
-        background:XP.windowBg,border:"2px solid #0054e3",borderRadius:6,
+      <div style={{position:"absolute" as const,
+        top:isMobile?4:10,
+        left:isMobile?4:90,
+        right:isMobile?4:10,
+        bottom:isMobile?44:46,
+        background:XP.windowBg,border:"2px solid #0054e3",borderRadius:isMobile?4:6,
         boxShadow:"4px 4px 18px rgba(0,0,0,.6)",display:"flex",flexDirection:"column" as const,overflow:"hidden"}}>
 
         {/* Title bar */}
@@ -272,7 +281,7 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI tiles grid */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:8,marginBottom:12}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(175px,1fr))",gap:isMobile?6:8,marginBottom:12}}>
               {visibleTiles.map(tile=>(
                 <button key={tile.path} onClick={()=>navigate(tile.path)}
                   style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",
@@ -294,7 +303,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Bottom row: Activity + Quick actions */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:10}}>
               {/* Recent activity */}
               <div style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",border:`1px solid ${XP.btnBorder}`,borderRadius:4,padding:"8px 12px"}}>
                 <div style={{fontWeight:700,fontSize:11,marginBottom:6,borderBottom:`1px solid ${XP.btnBorder}`,paddingBottom:4}}>🕐 Recent Activity</div>
