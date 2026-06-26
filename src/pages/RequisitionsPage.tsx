@@ -10,6 +10,7 @@ import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
 import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
@@ -395,6 +396,18 @@ export default function RequisitionsPage() {
                         <button title="Print" onClick={()=>(printRequisition as any)(r, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                           <Printer style={{width:13,height:13,color:"#ca8a04"}}/>
                         </button>
+
+                        <PushToApprovalButton
+                          documentType="requisition"
+                          documentId={r.id}
+                          documentNumber={r.requisition_number||`REQ/${r.department||"General"}`}
+                          documentTitle={r.title}
+                          department={r.department}
+                          amount={Number(r.total_amount||0)}
+                          currentStatus={r.status}
+                          size="sm"
+                          onPushed={load}
+                        />
                       </div>
                     </td>
                   </tr>
