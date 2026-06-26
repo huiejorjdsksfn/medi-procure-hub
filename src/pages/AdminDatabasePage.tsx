@@ -208,11 +208,20 @@ ORDER BY t.table_name;`);
     setSqlRunning(true); setSqlError(null); setSqlResult([]);
     const t0 = Date.now();
     try {
-      // Split on semicolons, filter blanks/comments, run sequentially
+      // Split on semicolons, strip comment-only lines and blanks, run sequentially.
+      // (Filtering by `statement.startsWith("--")` would drop this page's own
+      // default query entirely — it starts with three header comment lines
+      // followed by a real SELECT, so the whole multi-line chunk "starts with"
+      // a comment even though it isn't one. Strip comment-only lines instead.)
       const statements = sql
         .split(/;(?=(?:[^']*'[^']*')*[^']*$)/)   // split on ; outside quotes
-        .map(s => s.trim())
-        .filter(s => s && !s.startsWith("--") && !s.startsWith("/*"));
+        .map(s => s
+          .split("\n")
+          .filter(line => !line.trim().startsWith("--") && !line.trim().startsWith("/*"))
+          .join("\n")
+          .trim()
+        )
+        .filter(s => s.length > 0);
 
       let lastData: any = [];
       let totalRows = 0;

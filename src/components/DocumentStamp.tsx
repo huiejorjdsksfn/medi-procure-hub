@@ -4,6 +4,7 @@
  * curved top/bottom text, day/month/year date block, and optional
  * worn-ink texture. Used across all procurement documents.
  */
+import { useStampOverrides } from "@/hooks/useStampOverrides";
 
 export type StampStatus =
   | 'approved' | 'rejected' | 'pending' | 'submitted' | 'received'
@@ -99,10 +100,12 @@ export function DocumentStamp({
   worn    = true,
   approvedBy,
 }: DocumentStampProps) {
-  const cfg = CFG[status.toLowerCase()] ?? {
+  const overrides = useStampOverrides();
+  const base = CFG[status.toLowerCase()] ?? {
     ink: '#3d3d3d', label: status.toUpperCase(),
     topArc: 'EMBU LEVEL 5 HOSPITAL', botArc: 'OFFICIAL', star: false,
   };
+  const cfg = { ...base, ...(overrides[status.toLowerCase()] || {}) };
   const { ink, label, topArc, botArc, star } = cfg;
 
   /* geometry */
@@ -260,6 +263,7 @@ export function DocumentStamp({
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { sendNotification } from '@/lib/notify';
 
 const db = supabase as any;
 
@@ -311,7 +315,7 @@ export function QuickStampButton({
     setLoading(true); setDocs([]); setError(null);
     try {
       const { data, error: qErr } = await db.from(tableMap[t])
-        .select('id,status,created_at,' + numCol[t] + ',stamped,stamped_by_name')
+        .select('id,status,created_at,created_by,' + numCol[t] + ',stamped,stamped_by_name')
         .in('status', statusMap[t])
         .order('created_at', { ascending: false })
         .limit(30);
@@ -333,7 +337,11 @@ export function QuickStampButton({
     await load(t);
   };
 
-  const applyStamp = async (id: string, docStatus: string) => {
+  const moduleMap: Record<string, string> = { req: 'procurement', po: 'procurement', grn: 'inventory' };
+  const labelMap:  Record<string, string> = { req: 'Requisition', po: 'Purchase Order', grn: 'Goods Received Note' };
+
+  const applyStamp = async (doc: any) => {
+    const { id, status: docStatus } = doc;
     setStamping(id);
     setError(null);
     const now    = new Date().toISOString();
@@ -357,6 +365,24 @@ export function QuickStampButton({
           details: { stamp: docStatus.toUpperCase(), stamped_by: stamper },
         });
       } catch { /* non-critical */ }
+
+      // Notify the document's owner that it's been officially stamped —
+      // applying a stamp doesn't touch `status`, so none of the existing
+      // status-change notification triggers (triggerRequisitionEvent etc.)
+      // would otherwise fire for this action.
+      if (doc.created_by && doc.created_by !== user?.id) {
+        const docNum = doc[numCol[tab]] || id.slice(0, 8);
+        try {
+          await sendNotification({
+            userId: doc.created_by,
+            title: `${labelMap[tab]} Stamped`,
+            message: `${docNum} has been officially stamped "${docStatus.toUpperCase()}" by ${stamper}.`,
+            type: 'success',
+            module: moduleMap[tab],
+            senderId: user?.id,
+          });
+        } catch { /* non-critical — the stamp itself already succeeded */ }
+      }
 
       await load(tab);
     } catch (e: any) {
@@ -482,7 +508,7 @@ export function QuickStampButton({
 
                         <button
                           disabled={!!stamping || alreadyStamped}
-                          onClick={() => applyStamp(doc.id, doc.status)}
+                          onClick={() => applyStamp(doc)}
                           style={{ padding:'7px 14px', borderRadius:6, border:'none',
                             background: alreadyStamped?'#d1fae5':'#0d4f1c',
                             color: alreadyStamped?'#059669':'#fff',
