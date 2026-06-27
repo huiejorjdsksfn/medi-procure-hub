@@ -214,7 +214,7 @@ export default function ReportsPage() {
                 <div style={{fontSize:11,color:T.fgDim,marginTop:4}}>Try adjusting your date range or search filter</div>
               </div>
             ):(
-              <div style={{overflowX:"auto"}}>
+              <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr style={{background:activeRpt.color,position:"sticky",top:0,zIndex:1}}>

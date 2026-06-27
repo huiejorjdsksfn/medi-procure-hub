@@ -143,7 +143,7 @@ export default function AuditLogPage() {
             <p style={{color:"rgba(255,255,255,0.4)",fontSize:12}}>Loading audit trail...</p>
           </div>
         ):(
-          <div style={{overflowX:"auto"}}>
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
               <thead>
                 <tr style={{background:"rgba(10,25,70,0.9)"}}>

@@ -1,399 +1,438 @@
 /**
- * EL5 MediProcure — ResponsiveBot v2.0
- * Auto-fits every page, table, modal, XP window, sidebar, KPI grid,
- * and form to phones (320-767px), tablets (768-1023px), laptops (1024-1439px), desktops (1440px+)
+ * EL5 MediProcure — ResponsiveBot v3.0 (Portrait-First)
+ * Wires every ERP page, table, modal, form, grid to fully fit
+ * portrait-mode phones (320–430px) and tablets (768–1023px).
  *
- * Strategy:
- *  1. Injects a <style> tag with breakpoint-aware CSS overrides
- *  2. Watches window resize and orientation change via ResizeObserver
- *  3. Injects CSS custom properties onto :root for each breakpoint
- *  4. DOM-patches scroll containers, overflow guards, and XP windows
- *  5. MutationObserver re-patches on new elements
+ * KEY FEATURES:
+ *  1. CSS injection per breakpoint (phone / tablet / laptop / desktop)
+ *  2. Auto card-view for ALL <table> elements on phone portrait
+ *     – Reads thead th labels → adds data-label to every td
+ *     – Adds .m-card class for CSS-driven card layout
+ *  3. Fixes overflow:hidden parents that block table scroll
+ *  4. DOM-patches large minWidth dialogs and XP windows
+ *  5. ResizeObserver + MutationObserver for dynamic content
  */
 
 import { useEffect, useRef, useCallback } from "react";
 
 const BP = { phone: 767, tablet: 1023, laptop: 1439 };
 
-function getDevice(w: number): "phone" | "tablet" | "laptop" | "desktop" {
+function device(w: number) {
   if (w <= BP.phone)  return "phone";
   if (w <= BP.tablet) return "tablet";
   if (w <= BP.laptop) return "laptop";
   return "desktop";
 }
 
-// ── CSS injected per device ──────────────────────────────────────────────────
-function buildCSS(device: string, w: number): string {
-  // Always applied (all breakpoints)
-  const BASE = `
-    /* ResponsiveBot BASE */
-    *, *::before, *::after { box-sizing: border-box !important; }
-    body { overflow-x: hidden !important; }
+// ── CSS for each breakpoint ────────────────────────────────────────────────
+const BASE_CSS = `
+/* ─── RESET & BASE ─── */
+*,*::before,*::after{box-sizing:border-box!important}
+body{overflow-x:hidden!important}
+img{max-width:100%!important;height:auto!important}
+button{cursor:pointer!important}
 
-    /* Touch-scrollable containers */
-    div[style*="overflow: auto"], div[style*="overflow:auto"],
-    div[style*="overflow-x: auto"], div[style*="overflow-x:auto"] {
-      -webkit-overflow-scrolling: touch !important;
-      overscroll-behavior-x: contain !important;
-    }
-
-    /* Prevent images overflowing */
-    img { max-width: 100% !important; }
-
-    /* Buttons always pointer */
-    button { cursor: pointer !important; }
-
-    /* XP window / modal: never wider than viewport */
-    div[style*="position: fixed"], div[style*="position:fixed"] {
-      max-width: 100vw !important;
-    }
-  `;
-
-  /* ═══════════════════════════════════════════════════════
-     PHONE  ≤ 767px
-     ═══════════════════════════════════════════════════════ */
-  if (device === "phone") {
-    return BASE + `
-    :root {
-      --font-size-base: 13px !important;
-      --font-size-sm:   12px !important;
-      --font-size-lg:   14px !important;
-      --content-padding: 8px !important;
-      --border-radius: 6px !important;
-      --topbar-height: 48px !important;
-    }
-
-    /* ── Tables ─────────────────────────────────────────── */
-    table {
-      display: block !important;
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      font-size: 11px !important;
-      max-width: 100% !important;
-    }
-    table thead, table tbody, table tfoot {
-      display: table !important; width: 100% !important; table-layout: auto !important;
-    }
-    table tr { display: table-row !important; }
-    th, td { padding: 4px 6px !important; font-size: 11px !important; white-space: nowrap !important; }
-
-    /* ── Inputs ─────────────────────────────────────────── */
-    input, select, textarea {
-      font-size: 16px !important; /* prevents iOS zoom */
-      min-height: 40px !important;
-      max-width: 100% !important;
-    }
-
-    /* ── Touch targets ──────────────────────────────────── */
-    button, [role="button"] { min-height: 40px !important; min-width: 36px !important; }
-
-    /* ── Flex toolbars: wrap ────────────────────────────── */
-    [style*="display: flex"][style*="gap"],
-    [style*="display:flex"][style*="gap"] { flex-wrap: wrap !important; }
-    [style*="flex-wrap: nowrap"],
-    [style*="flexWrap:\"nowrap\""] { flex-wrap: nowrap !important; }
-
-    /* ── Grids: collapse ────────────────────────────────── */
-    [style*="grid-template-columns:repeat(4"],
-    [style*="grid-template-columns: repeat(4"],
-    [style*="grid-template-columns:repeat(5"],
-    [style*="grid-template-columns: repeat(5"],
-    [style*="grid-template-columns:repeat(6"],
-    [style*="grid-template-columns: repeat(6"],
-    [style*="grid-template-columns:repeat(7"],
-    [style*="grid-template-columns: repeat(7"],
-    [style*="grid-template-columns:repeat(8"],
-    [style*="grid-template-columns: repeat(8"] { grid-template-columns: repeat(2,1fr) !important; }
-
-    [style*="grid-template-columns:repeat(3"],
-    [style*="grid-template-columns: repeat(3"] { grid-template-columns: 1fr 1fr !important; }
-
-    [style*="grid-template-columns:repeat(2"],
-    [style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
-
-    /* auto-fill minmax: shrink min */
-    [style*="minmax(175px"], [style*="minmax(180px"],
-    [style*="minmax(200px"], [style*="minmax(220px"],
-    [style*="minmax(240px"], [style*="minmax(250px"],
-    [style*="minmax(260px"], [style*="minmax(280px"] {
-      grid-template-columns: repeat(auto-fill,minmax(140px,1fr)) !important;
-    }
-
-    /* ── Modals: fill viewport ──────────────────────────── */
-    [style*="position: fixed"][style*="width: 3"],
-    [style*="position: fixed"][style*="width: 4"],
-    [style*="position: fixed"][style*="width: 5"],
-    [style*="position: fixed"][style*="width: 6"],
-    [style*="position: fixed"][style*="width: 7"],
-    [style*="position: fixed"][style*="width: 8"] {
-      width: 95vw !important; max-width: 95vw !important; min-width: 0 !important;
-    }
-    [style*="minWidth: 56"], [style*="minWidth: 60"], [style*="minWidth: 64"],
-    [style*="minWidth: 70"], [style*="minWidth: 80"],
-    [style*="minWidth:56"], [style*="minWidth:60"], [style*="minWidth:64"] {
-      min-width: 95vw !important; max-width: 95vw !important;
-    }
-    [style*="position: fixed"][style*="inset: 0"],
-    [style*="position: fixed"][style*="inset:0"] { overflow-y: auto !important; }
-
-    /* ── Page padding: shrink ───────────────────────────── */
-    div[style*="padding: 20px"], div[style*="padding: 24px"],
-    div[style*="padding:20px"], div[style*="padding:24px"] { padding: 10px 8px !important; }
-    div[style*="padding: 16px"], div[style*="padding:16px"] { padding: 8px 6px !important; }
-
-    /* ── XP dashboard window ────────────────────────────── */
-    div[style*="border: 2px solid #0054e3"],
-    div[style*="border:2px solid #0054e3"] { max-width: 100vw !important; }
-
-    /* XP taskbar buttons */
-    div[style*="height: 36px"] button,
-    div[style*="height:36px"] button { min-height: 30px !important; font-size: 9px !important; }
-
-    /* ── Sidebar detail panel → bottom sheet ───────────── */
-    div[style*="position: absolute"][style*="right: 0"][style*="width: 2"],
-    div[style*="position: absolute"][style*="right: 0"][style*="width: 3"],
-    div[style*="position:absolute"][style*="right:0"][style*="width:2"],
-    div[style*="position:absolute"][style*="right:0"][style*="width:3"] {
-      position: fixed !important; left: 0 !important; right: 0 !important;
-      bottom: 0 !important; top: auto !important; width: 100% !important;
-      height: 58vh !important; border-radius: 12px 12px 0 0 !important;
-      z-index: 8500 !important; overflow-y: auto !important;
-    }
-
-    /* ── ERP Wheel ──────────────────────────────────────── */
-    svg[viewBox="0 0 480 480"] {
-      width: 88vw !important; height: 88vw !important;
-      max-width: 340px !important; max-height: 340px !important;
-    }
-
-    /* ── Tabs scrollable ────────────────────────────────── */
-    .ribbon-tabs, .sub-nav-bar, .admin-quick-bar {
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-    }
-
-    /* ── Status bar: horizontal scroll ─────────────────── */
-    div[style*="borderTop"][style*="fontSize: 10"],
-    div[style*="borderTop"][style*="font-size: 10"] {
-      overflow-x: auto !important; font-size: 9px !important;
-    }
-
-    /* ── KPI stat tiles ─────────────────────────────────── */
-    div[style*="minWidth: 130"],
-    div[style*="minWidth:130"] {
-      min-width: calc(50vw - 20px) !important;
-      flex: 0 0 calc(50vw - 20px) !important;
-    }
-
-    /* ── Date inputs ────────────────────────────────────── */
-    input[type="date"] { min-width: 0 !important; width: 100% !important; }
-
-    /* ── Selects ────────────────────────────────────────── */
-    select { width: 100% !important; }
-
-    /* ── 1fr 1fr report grids → single col ─────────────── */
-    [style*="gridTemplateColumns: \"1fr 1fr\""],
-    [style*="gridTemplateColumns:\"1fr 1fr\""] { grid-template-columns: 1fr !important; }
-
-    /* ── Admin quick bar: smaller font ─────────────────── */
-    .admin-quick-bar { padding: 2px 6px !important; }
-    .admin-quick-bar button { padding: 1px 4px !important; font-size: 9px !important; }
-    `;
-  }
-
-  /* ═══════════════════════════════════════════════════════
-     TABLET  768–1023px
-     ═══════════════════════════════════════════════════════ */
-  if (device === "tablet") {
-    return BASE + `
-    :root {
-      --font-size-base: 14px !important;
-      --font-size-sm:   13px !important;
-      --content-padding: 12px !important;
-    }
-
-    /* Tables: scrollable */
-    table {
-      display: block !important; overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      max-width: 100% !important;
-    }
-    table thead, table tbody { display: table !important; width: 100% !important; table-layout: auto !important; }
-    th, td { padding: 5px 8px !important; font-size: 12px !important; }
-
-    /* Inputs */
-    input, select, textarea { min-height: 36px !important; }
-    button, [role="button"]  { min-height: 36px !important; }
-
-    /* Grids */
-    [style*="grid-template-columns:repeat(6"],
-    [style*="grid-template-columns: repeat(6"],
-    [style*="grid-template-columns:repeat(7"],
-    [style*="grid-template-columns: repeat(7"],
-    [style*="grid-template-columns:repeat(8"],
-    [style*="grid-template-columns: repeat(8"] { grid-template-columns: repeat(3,1fr) !important; }
-
-    [style*="grid-template-columns:repeat(5"],
-    [style*="grid-template-columns: repeat(5"],
-    [style*="grid-template-columns:repeat(4"],
-    [style*="grid-template-columns: repeat(4"] { grid-template-columns: repeat(2,1fr) !important; }
-
-    [style*="minmax(200px"], [style*="minmax(220px"],
-    [style*="minmax(240px"], [style*="minmax(250px"] {
-      grid-template-columns: repeat(auto-fill,minmax(160px,1fr)) !important;
-    }
-
-    /* Modals: 90vw */
-    [style*="position: fixed"][style*="width: 7"],
-    [style*="position: fixed"][style*="width: 8"] {
-      width: 90vw !important; max-width: 90vw !important;
-    }
-    [style*="minWidth: 56"], [style*="minWidth: 60"] {
-      min-width: min(600px,90vw) !important;
-    }
-
-    /* Page padding */
-    div[style*="padding: 24px"], div[style*="padding:24px"] { padding: 14px 12px !important; }
-    div[style*="padding: 20px"], div[style*="padding:20px"] { padding: 12px 10px !important; }
-
-    /* Detail side panel: narrower */
-    div[style*="position: absolute"][style*="right: 0"][style*="width: 2"] { width: 240px !important; }
-    div[style*="position: absolute"][style*="right: 0"][style*="width: 3"] { width: 280px !important; }
-
-    /* KPI tiles */
-    div[style*="minWidth: 130"], div[style*="minWidth:130"] {
-      min-width: calc(33% - 8px) !important;
-      flex: 1 1 calc(33% - 8px) !important;
-    }
-
-    /* Tab strips scrollable */
-    .ribbon-tabs, .sub-nav-bar { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
-
-    /* Admin bar */
-    .admin-quick-bar { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
-    `;
-  }
-
-  /* ═══════════════════════════════════════════════════════
-     LAPTOP  1024–1439px
-     ═══════════════════════════════════════════════════════ */
-  if (device === "laptop") {
-    return BASE + `
-    /* Modest adjustments only */
-    th, td { padding: 5px 10px !important; }
-    [style*="position: fixed"][style*="width: 8"] { max-width: 85vw !important; }
-    `;
-  }
-
-  // Desktop ≥ 1440px — just the base
-  return BASE;
+/* ─── SCROLLABLE CONTAINERS ─── */
+div[style*="overflow: auto"],div[style*="overflow:auto"],
+div[style*="overflow-x: auto"],div[style*="overflow-x:auto"]{
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-x:contain!important;
 }
 
-const STYLE_ID = "el5-responsive-bot";
+/* ─── PARENTS OF TABLES: override overflow:hidden ─── */
+div:has(>table),div:has(>div>table){
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
 
-function injectStyle(css: string) {
+/* ─── ALL TABLES: base scroll ─── */
+table{max-width:100%!important;-webkit-overflow-scrolling:touch!important}
+`;
+
+const PHONE_CSS = `
+/* ═══ PHONE ≤767px (portrait-first) ═══════════════════════════ */
+:root{
+  --font-size-base:13px!important;
+  --font-size-sm:12px!important;
+  --font-size-lg:14px!important;
+  --content-padding:8px!important;
+}
+
+/* ─── KPI TILES: 5-col → 2-col ─── */
+.kpi-tiles-row,
+[style*="grid-template-columns:repeat(5,1fr)"],
+[style*="grid-template-columns: repeat(5, 1fr)"],
+[style*="grid-template-columns:repeat(5, 1fr)"]{
+  grid-template-columns:repeat(2,1fr)!important;
+}
+[style*="grid-template-columns:repeat(4"],
+[style*="grid-template-columns: repeat(4"]{
+  grid-template-columns:repeat(2,1fr)!important;
+}
+[style*="grid-template-columns:repeat(6"],
+[style*="grid-template-columns: repeat(6"],
+[style*="grid-template-columns:repeat(7"],
+[style*="grid-template-columns: repeat(7"],
+[style*="grid-template-columns:repeat(8"],
+[style*="grid-template-columns: repeat(8"]{
+  grid-template-columns:repeat(2,1fr)!important;
+}
+[style*="grid-template-columns:repeat(3"],
+[style*="grid-template-columns: repeat(3"]{
+  grid-template-columns:1fr 1fr!important;
+}
+[style*="grid-template-columns:repeat(2"],
+[style*="grid-template-columns: repeat(2"],
+[style*="gridTemplateColumns:\"1fr 1fr\""],
+[style*='gridTemplateColumns:"1fr 1fr"']{
+  grid-template-columns:1fr!important;
+}
+[style*="minmax(175px"],[style*="minmax(180px"],
+[style*="minmax(200px"],[style*="minmax(220px"],
+[style*="minmax(240px"],[style*="minmax(250px"],
+[style*="minmax(260px"],[style*="minmax(280px"]{
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;
+}
+
+/* ─── FLEX WRAP ─── */
+[style*="display: flex"][style*="gap"],
+[style*="display:flex"][style*="gap"]{flex-wrap:wrap!important}
+[style*="flex-wrap: nowrap"],[style*='flexWrap:"nowrap"']{flex-wrap:nowrap!important}
+
+/* ─── TOUCH TARGETS ─── */
+button,[role="button"]{min-height:40px!important;min-width:36px!important}
+input,select,textarea{
+  min-height:40px!important;
+  font-size:16px!important; /* prevents iOS zoom */
+  max-width:100%!important;
+}
+select{width:100%!important}
+input[type="date"]{min-width:0!important;width:100%!important}
+
+/* ─── MODALS ─── */
+[style*="position: fixed"][style*="width: 3"],
+[style*="position: fixed"][style*="width: 4"],
+[style*="position: fixed"][style*="width: 5"],
+[style*="position: fixed"][style*="width: 6"],
+[style*="position: fixed"][style*="width: 7"],
+[style*="position: fixed"][style*="width: 8"]{
+  width:95vw!important;max-width:95vw!important;min-width:0!important;
+}
+[style*="minWidth: 56"],[style*="minWidth: 60"],[style*="minWidth: 64"],
+[style*="minWidth: 70"],[style*="minWidth: 80"],[style*="minWidth: 90"],
+[style*="minWidth:56"],[style*="minWidth:60"],[style*="minWidth:64"]{
+  min-width:95vw!important;max-width:95vw!important;
+}
+[style*="position: fixed"][style*="inset: 0"],
+[style*="position: fixed"][style*="inset:0"]{overflow-y:auto!important}
+
+/* ─── PAGE PADDING ─── */
+div[style*="padding: 20px"],div[style*="padding:20px"],
+div[style*="padding: 24px"],div[style*="padding:24px"]{padding:10px 8px!important}
+div[style*="padding: 16px"],div[style*="padding:16px"]{padding:8px 6px!important}
+
+/* ─── TABLE: auto mobile card view ─── */
+table.m-card{
+  display:block!important;
+  width:100%!important;
+  font-size:0!important; /* hide table layout */
+}
+table.m-card thead{display:none!important}
+table.m-card tbody{display:block!important;width:100%!important}
+table.m-card tr{
+  display:block!important;
+  background:#fff!important;
+  border:1px solid #e5e7eb!important;
+  border-radius:8px!important;
+  margin-bottom:8px!important;
+  overflow:hidden!important;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06)!important;
+  font-size:13px!important;
+}
+table.m-card tr:nth-child(even){background:#fafafa!important}
+table.m-card td{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:flex-start!important;
+  padding:7px 10px!important;
+  border-bottom:1px solid #f3f4f6!important;
+  font-size:12px!important;
+  color:#111827!important;
+  min-height:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  white-space:normal!important;
+  word-break:break-word!important;
+}
+table.m-card td:last-child{border-bottom:none!important}
+table.m-card td::before{
+  content:attr(data-label);
+  font-size:10px!important;
+  font-weight:700!important;
+  color:#6b7280!important;
+  text-transform:uppercase!important;
+  letter-spacing:0.05em!important;
+  min-width:90px!important;
+  max-width:110px!important;
+  padding-right:8px!important;
+  flex-shrink:0!important;
+  line-height:1.5!important;
+  padding-top:1px!important;
+}
+table.m-card td:first-child{
+  background:#f0f4ff!important;
+  font-weight:700!important;
+  font-size:13px!important;
+  color:#1e3a8a!important;
+}
+table.m-card td > *{
+  text-align:right!important;
+  max-width:65%!important;
+  word-break:break-word!important;
+  flex:1!important;
+}
+/* Non-card tables: ensure scroll */
+table:not(.m-card){
+  display:block!important;
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  width:100%!important;
+}
+table:not(.m-card) thead,
+table:not(.m-card) tbody{
+  display:table!important;
+  width:100%!important;
+  table-layout:auto!important;
+}
+
+/* ─── SIDE PANEL → BOTTOM SHEET on phone ─── */
+div[style*="position: fixed"][style*="justify-content: flex-end"]>div,
+div[style*="position:fixed"][style*="justifyContent:\"flex-end\""]>div{
+  width:100%!important;
+  max-width:100%!important;
+  border-radius:12px 12px 0 0!important;
+  position:fixed!important;
+  bottom:0!important;
+  top:auto!important;
+  max-height:72vh!important;
+  height:72vh!important;
+}
+
+/* ─── FORM GRIDS: 2-col → 1-col ─── */
+[style*="display: grid"][style*="gap"][style*="1fr 1fr"],
+[style*="gridTemplateColumns: \"1fr 1fr\""],
+[style*='gridTemplateColumns:"1fr 1fr"']{
+  grid-template-columns:1fr!important;
+}
+
+/* ─── XP WINDOW ─── */
+div[style*="border: 2px solid #0054e3"],
+div[style*="border:2px solid #0054e3"]{
+  max-width:100vw!important;
+}
+
+/* ─── ERP WHEEL ─── */
+svg[viewBox="0 0 480 480"]{
+  width:88vw!important;height:88vw!important;
+  max-width:340px!important;max-height:340px!important;
+}
+
+/* ─── SAFE AREA ─── */
+.app-page-content{
+  padding-bottom:env(safe-area-inset-bottom,0px)!important;
+}
+`;
+
+const TABLET_CSS = `
+/* ═══ TABLET 768–1023px ════════════════════════════════════════ */
+:root{--font-size-base:14px!important;--content-padding:12px!important;}
+
+/* Tables: horizontal scroll */
+table{
+  display:block!important;
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+table thead,table tbody{display:table!important;width:100%!important;table-layout:auto!important;}
+th,td{padding:5px 8px!important;font-size:12px!important;}
+
+/* Grids */
+[style*="grid-template-columns:repeat(6"],[style*="grid-template-columns: repeat(6"],
+[style*="grid-template-columns:repeat(7"],[style*="grid-template-columns: repeat(7"],
+[style*="grid-template-columns:repeat(8"],[style*="grid-template-columns: repeat(8"]{
+  grid-template-columns:repeat(3,1fr)!important;
+}
+[style*="grid-template-columns:repeat(5"],[style*="grid-template-columns: repeat(5"],
+[style*="grid-template-columns:repeat(4"],[style*="grid-template-columns: repeat(4"]{
+  grid-template-columns:repeat(2,1fr)!important;
+}
+.kpi-tiles-row,[style*="grid-template-columns:repeat(5,1fr)"]{
+  grid-template-columns:repeat(3,1fr)!important;
+}
+
+/* Touch targets */
+button,[role="button"]{min-height:36px!important}
+input,select,textarea{min-height:36px!important}
+
+/* Modals */
+[style*="position: fixed"][style*="width: 7"],
+[style*="position: fixed"][style*="width: 8"]{
+  width:90vw!important;max-width:90vw!important;
+}
+[style*="minWidth: 56"],[style*="minWidth: 60"]{
+  min-width:min(600px,90vw)!important;
+}
+
+/* Page padding */
+div[style*="padding: 24px"],div[style*="padding:24px"]{padding:14px 12px!important}
+div[style*="padding: 20px"],div[style*="padding:20px"]{padding:12px 10px!important}
+
+/* Tab scrolling */
+.ribbon-tabs,.sub-nav-bar,.admin-quick-bar{
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+`;
+
+const LAPTOP_CSS = `
+/* ═══ LAPTOP 1024–1439px ══════════════════════════════════════ */
+th,td{padding:5px 10px!important;}
+[style*="position: fixed"][style*="width: 9"]{max-width:85vw!important;}
+`;
+
+function buildCSS(dev: string): string {
+  if (dev === "phone")  return BASE_CSS + PHONE_CSS;
+  if (dev === "tablet") return BASE_CSS + TABLET_CSS;
+  if (dev === "laptop") return BASE_CSS + LAPTOP_CSS;
+  return BASE_CSS;
+}
+
+// ── CSS injection ──────────────────────────────────────────────────────────
+const STYLE_ID = "el5-rbot-v3";
+
+function injectCSS(css: string) {
   let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!el) {
     el = document.createElement("style");
     el.id = STYLE_ID;
-    // Insert before any other styles so specificity is correct
-    const first = document.head.firstChild;
-    if (first) document.head.insertBefore(el, first);
-    else document.head.appendChild(el);
+    document.head.insertBefore(el, document.head.firstChild);
   }
-  el.textContent = css;
+  if (el.textContent !== css) el.textContent = css;
 }
 
-function injectRootVars(device: string) {
+function injectRoot(dev: string) {
   const root = document.documentElement;
-  root.setAttribute("data-device", device);
+  root.setAttribute("data-device", dev);
   const dvh = window.innerHeight * 0.01;
   root.style.setProperty("--dvh", `${dvh}px`);
   root.style.setProperty("--100dvh", `${window.innerHeight}px`);
 }
 
-function patchDOM(device: string) {
-  // 1. Make all scroll containers touch-friendly
-  document.querySelectorAll<HTMLElement>("div[style]").forEach(el => {
-    const s = el.style;
-    if (s.overflow === "auto" || s.overflowX === "auto") {
-      el.style.webkitOverflowScrolling = "touch";
-      if (device === "phone" || device === "tablet") el.style.maxWidth = "100%";
-    }
-  });
+// ── Table card-view patcher ───────────────────────────────────────────────
+function patchTables(dev: string) {
+  const isPhone = dev === "phone";
 
-  // 2. XP window: don't exceed viewport
-  if (device === "phone" || device === "tablet") {
-    document.querySelectorAll<HTMLElement>(
-      'div[style*="border: 2px solid #0054e3"], div[style*="border:2px solid #0054e3"]'
-    ).forEach(el => {
-      el.style.maxWidth = "100vw";
-      el.style.maxHeight = `${window.innerHeight}px`;
-    });
-
-    // 3. Fixed modals with inset:0 — allow scroll
-    document.querySelectorAll<HTMLElement>("div[style]").forEach(el => {
-      if (el.style.position === "fixed") {
-        if (el.style.inset === "0" || el.style.inset === "0px" ||
-            (el.style.top === "0" && el.style.left === "0" &&
-             el.style.right === "0" && el.style.bottom === "0")) {
-          el.style.overflowY = "auto";
-        }
+  document.querySelectorAll<HTMLTableElement>("table").forEach(table => {
+    // Fix: parent has overflow:hidden → make it scrollable
+    const parent = table.parentElement;
+    if (parent) {
+      const cs = window.getComputedStyle(parent);
+      if (cs.overflow === "hidden" || cs.overflowX === "hidden") {
+        parent.style.overflowX = "auto";
+        parent.style.webkitOverflowScrolling = "touch";
       }
+    }
+
+    if (!isPhone) {
+      // On tablet/desktop: just ensure horizontal scroll
+      table.classList.remove("m-card");
+      if (table.style.display !== "block") {
+        table.style.overflowX = "auto";
+        (table.style as any).webkitOverflowScrolling = "touch";
+      }
+      return;
+    }
+
+    // Phone: card view
+    if (table.classList.contains("m-card") && table.hasAttribute("data-rbot-done")) return;
+
+    // Read header labels
+    const headers: string[] = [];
+    table.querySelectorAll("thead th").forEach(th => {
+      headers.push((th as HTMLElement).innerText?.trim() || "");
     });
 
-    // 4. Any hardcoded large minWidth on dialogs
+    if (headers.length === 0) return; // no thead — skip
+
+    // Add data-label to every td
+    table.querySelectorAll("tbody tr").forEach(tr => {
+      const cells = tr.querySelectorAll("td");
+      cells.forEach((td, i) => {
+        const label = headers[i] || "";
+        if (label) td.setAttribute("data-label", label);
+      });
+    });
+
+    table.classList.add("m-card");
+    table.setAttribute("data-rbot-done", "1");
+  });
+}
+
+// ── DOM patcher: fix large minWidth dialogs ───────────────────────────────
+function patchDOM(dev: string) {
+  patchTables(dev);
+
+  if (dev === "phone" || dev === "tablet") {
+    const maxW = dev === "phone" ? 0.95 : 0.92;
     document.querySelectorAll<HTMLElement>("div[style]").forEach(el => {
       const mw = parseInt(el.style.minWidth || "0", 10);
-      if (mw > 480 && el.style.position !== "fixed") {
-        if (device === "phone") {
-          el.style.minWidth = "calc(95vw)";
-          el.style.maxWidth = "95vw";
-        } else {
-          el.style.minWidth = "min(" + mw + "px, 92vw)";
-          el.style.maxWidth = "92vw";
-        }
+      if (mw > 450 && el.style.position !== "fixed") {
+        el.style.minWidth = `min(${mw}px,${Math.round(maxW*100)}vw)`;
+        el.style.maxWidth = `${Math.round(maxW*100)}vw`;
+      }
+      // overflow:hidden scroll fix (fallback to JS for browsers without :has())
+      if (el.querySelector("table") && (el.style.overflow === "hidden" || el.style.overflowX === "hidden")) {
+        el.style.overflowX = "auto";
+        (el.style as any).webkitOverflowScrolling = "touch";
       }
     });
   }
 }
 
-const STYLE_ID_INJECTED = "el5-rbot-injected";
-
+// ── Main hook ─────────────────────────────────────────────────────────────
 export function useResponsiveBot() {
-  const deviceRef = useRef<string>("desktop");
+  const devRef = useRef<string>("desktop");
 
-  const applyResponsive = useCallback(() => {
-    const w = window.innerWidth;
-    const device = getDevice(w);
-    deviceRef.current = device;
-    injectRootVars(device);
-    injectStyle(buildCSS(device, w));
-    requestAnimationFrame(() => patchDOM(device));
+  const run = useCallback(() => {
+    const w   = window.innerWidth;
+    const dev = device(w);
+    devRef.current = dev;
+    injectRoot(dev);
+    injectCSS(buildCSS(dev));
+    requestAnimationFrame(() => patchDOM(dev));
   }, []);
 
   useEffect(() => {
-    applyResponsive();
+    run();
 
-    const ro = new ResizeObserver(applyResponsive);
+    const ro = new ResizeObserver(run);
     ro.observe(document.documentElement);
-    window.addEventListener("orientationchange", applyResponsive);
-    window.addEventListener("resize", applyResponsive);
+    window.addEventListener("orientationchange", run);
+    window.addEventListener("resize", run);
 
+    // Re-patch whenever new DOM nodes appear (async table renders)
     const mo = new MutationObserver(() => {
-      requestAnimationFrame(() => patchDOM(deviceRef.current));
+      requestAnimationFrame(() => patchTables(devRef.current));
     });
     mo.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       ro.disconnect();
       mo.disconnect();
-      window.removeEventListener("orientationchange", applyResponsive);
-      window.removeEventListener("resize", applyResponsive);
+      window.removeEventListener("orientationchange", run);
+      window.removeEventListener("resize", run);
     };
-  }, [applyResponsive]);
-
-  return deviceRef.current;
+  }, [run]);
 }
 
 export default function ResponsiveBot() {

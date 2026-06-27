@@ -301,7 +301,7 @@ export default function RequisitionsPage() {
       {/* - TABLE - */}
       <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:700}}>
             <thead>
               <tr style={{borderBottom:"2px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)"}}>
                 {[

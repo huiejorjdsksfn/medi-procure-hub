@@ -258,8 +258,8 @@ export default function SuppliersPage() {
 
       {/* Table */}
       <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+          <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:"#1a3a6b"}}>
                 {["#","Name","Contact","Email","Phone","Category","Status","Rating","Actions"].map(h=>(

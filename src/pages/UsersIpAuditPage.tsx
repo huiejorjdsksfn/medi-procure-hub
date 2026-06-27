@@ -369,8 +369,8 @@ export default function UsersIpAuditPage() {
               <span style={{fontSize:13,fontWeight:700,color:D.text}}>All Users</span>
               <span style={{fontSize:11,color:D.textMt}}>{filteredUsers.length} users</span>
             </div>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+              <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:D.bg}}>
                   {["Status","Name","Email","Role","Department","Last IP","Last Seen","IPs Used","Access Events"].map(h=>(
                     <th key={h} style={{padding:"7px 12px",textAlign:"left",fontWeight:700,color:D.textSub,fontSize:11,whiteSpace:"nowrap",borderBottom:`1px solid ${D.border}`}}>{h}</th>
@@ -423,7 +423,7 @@ export default function UsersIpAuditPage() {
                 </button>
               </div>
             </div>
-            <div style={{overflowX:"auto"}}>
+            <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:D.bg}}>
                   {["Risk","IP Address","Total","Allowed","Blocked","Users","City","Country","Browser","Last Seen"].map(h=>(
@@ -464,7 +464,7 @@ export default function UsersIpAuditPage() {
               <span style={{fontSize:13,fontWeight:700,color:D.text}}>System Audit Log</span>
               <span style={{fontSize:11,color:D.textMt}}>{filteredAudit.length} events</span>
             </div>
-            <div style={{overflowX:"auto"}}>
+            <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:D.bg}}>
                   {["Action","User","Module","IP Address","Time"].map(h=>(
@@ -590,7 +590,7 @@ export default function UsersIpAuditPage() {
                   </button>
                 </div>
               </div>
-              <div style={{overflowX:"auto"}}>
+              <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead><tr style={{background:D.bg}}>
                     {["User","OS","Browser","Device","Screen","Timezone","Language","Touch","City","Country","Last Seen"].map(h=>(
@@ -650,7 +650,7 @@ export default function UsersIpAuditPage() {
                   </button>
                 </div>
               </div>
-              <div style={{overflowX:"auto"}}>
+              <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead><tr style={{background:D.bg}}>
                     {["Storage","User / Key","Page / State","Size","Saved","Del"].map(h=>(

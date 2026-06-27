@@ -605,7 +605,7 @@ export default function UsersPage() {
       {/* Create / Edit */}
       {(modal==="create"||modal==="edit") && (
         <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setModal(null)}>
-          <div style={{ background:T.card,borderRadius:T.rXl,width:540,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
+          <div style={{ background:T.card,borderRadius:T.rXl,width:"min(540px,96vw)" as any,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
             <div style={{ background:"linear-gradient(135deg,#0a2558,#1d4ed8)",padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderRadius:`${T.rXl}px ${T.rXl}px 0 0` }}>
               <span style={{ color:"#fff",fontWeight:800,fontSize:15 }}>{modal==="create"?"New User":"Edit User"}</span>
               <button onClick={()=>setModal(null)} style={{ background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)" }}><X size={16}/></button>

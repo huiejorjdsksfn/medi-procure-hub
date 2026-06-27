@@ -192,7 +192,8 @@ export default function GoodsReceivedPage() {
         </div>
       </div>
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+        <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:560}}>
           <thead><tr style={{background:"linear-gradient(90deg,#065f46,#047857)"}}>
             {["GRN Number","PO Reference","Supplier","Received Date","Items","Status","Actions"].map(h=>(
               <th key={h} style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
@@ -230,6 +231,7 @@ export default function GoodsReceivedPage() {
             })}
           </tbody>
         </table>
+        </div>{/* /scroll-wrap */}
       </div>
       {viewGrn&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:50,display:"flex",justifyContent:"flex-end"}} onClick={()=>setViewGrn(null)}>

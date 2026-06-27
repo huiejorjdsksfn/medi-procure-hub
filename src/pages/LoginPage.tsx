@@ -73,7 +73,7 @@ export default function LoginPage() {
             filter:"brightness(0.72) saturate(1.25) contrast(1.05)" },
     ov:   { position:"absolute", inset:0, background: BG_OVERLAY },
     wrap: { position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
-    card: { background:"rgba(255,255,255,.975)", borderRadius:10, width:"100%", maxWidth:400,
+    card: { background:"rgba(255,255,255,.975)", borderRadius:10, width:"100%", maxWidth:"min(400px,95vw)" as any,
             padding:"40px 36px 32px",
             boxShadow:"0 28px 80px rgba(0,0,0,.45),0 4px 20px rgba(0,0,0,.2)",
             opacity: ready?1:0, transform: ready?"translateY(0) scale(1)":"translateY(24px) scale(.96)",

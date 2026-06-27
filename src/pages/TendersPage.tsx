@@ -238,7 +238,7 @@ export default function TendersPage() {
 
       {/* Table */}
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
               {["Tender No","Title","Category","Type","Est. Value","Opening","Closing","Status","Actions"].map(h=>(

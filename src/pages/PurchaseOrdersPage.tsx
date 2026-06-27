@@ -375,8 +375,8 @@ export default function PurchaseOrdersPage() {
 
       {/* - TABLE - */}
       <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+          <table data-mobile-card="true" style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#92400e"}}>
                 {["#","PO Number","Supplier","Department","Status","Total","Delivery","Actions"].map(h=>(

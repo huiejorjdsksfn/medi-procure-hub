@@ -264,7 +264,7 @@ export default function PrintEnginePage() {
                 </div>
               </div>
               <div style={S.card}>
-                <div style={{overflowX:"auto"}}>
+                <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
                     <thead><tr>{cols.map(k=><th key={k} style={S.th}>{allCols.find(c=>c.key===k)?.label||k}</th>)}</tr></thead>
                     <tbody>

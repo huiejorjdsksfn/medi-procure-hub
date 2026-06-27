@@ -178,7 +178,8 @@ export default function VouchersPage() {
       </div>
 
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+        <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
           <thead>
             <tr style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)"}}>
               {["Voucher No","Purpose","Requested By","Department","Total","Date","Status","Actions"].map(h=>(
@@ -233,6 +234,7 @@ export default function VouchersPage() {
             })}
           </tbody>
         </table>
+        </div>{/* /scroll-wrap */}
       </div>
 
       {/* New Voucher Modal */}
