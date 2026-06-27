@@ -428,6 +428,9 @@ export default function PurchaseOrdersPage() {
                         department={po.department}
                         amount={Number(po.total_amount||0)}
                         currentStatus={po.status}
+                        stamped={!!po.stamped}
+                        stampedByName={po.stamped_by_name}
+                        stampLabel={po.stamp_label}
                         size="sm"
                         onPushed={load}
                       />

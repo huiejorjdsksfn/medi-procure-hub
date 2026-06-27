@@ -406,6 +406,9 @@ export default function RequisitionsPage() {
                           department={r.department}
                           amount={Number(r.total_amount||0)}
                           currentStatus={r.status}
+                          stamped={!!r.stamped}
+                          stampedByName={r.stamped_by_name}
+                          stampLabel={r.stamp_label}
                           size="sm"
                           onPushed={load}
                         />

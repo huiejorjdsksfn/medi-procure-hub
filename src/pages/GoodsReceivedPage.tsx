@@ -223,6 +223,9 @@ export default function GoodsReceivedPage() {
                     department="Store"
                     amount={Number(g.total_value||0)}
                     currentStatus={g.status}
+                    stamped={!!g.stamped}
+                    stampedByName={g.stamped_by_name}
+                    stampLabel={g.stamp_label}
                     size="sm"
                     onPushed={load}
                   />

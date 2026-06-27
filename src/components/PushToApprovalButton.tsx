@@ -24,6 +24,14 @@ interface Props {
   department?:    string;
   amount?:        number;
   currentStatus?: string;
+  /** True once a manager/admin has applied the Official Stamp to this
+   *  document (requisitions/purchase_orders/goods_received only, via
+   *  the `stamped` column). Takes priority over the push/queue states
+   *  below — a stamped document is a closed matter. */
+  stamped?:        boolean;
+  stampedByName?:  string;
+  /** e.g. "Approved" / "Issued" / "Received" — defaults to "Approved" */
+  stampLabel?:     string;
   size?:          "sm" | "md";
   onPushed?:      () => void;
 }
@@ -47,6 +55,7 @@ const PRIORITY_OPTS = [
 export default function PushToApprovalButton({
   documentType, documentId, documentNumber,
   documentTitle, department, amount = 0, currentStatus,
+  stamped = false, stampedByName, stampLabel,
   size = "md", onPushed,
 }: Props) {
   const { user, profile } = useAuth();
@@ -164,6 +173,22 @@ export default function PushToApprovalButton({
   const pad  = sm ? "3px 8px"  : "5px 12px";
   const fz   = sm ? 10         : 12;
   const iconSz = sm ? 10 : 12;
+
+  /* A manager/admin has officially stamped this document — closed matter,
+     takes priority over the push/queue states below */
+  if (stamped) {
+    return (
+      <div title={stampedByName ? `${stampLabel || "Approved"} by ${stampedByName}` : (stampLabel || "Approved")}
+        style={{
+          display: "flex", alignItems: "center", gap: 4,
+          padding: pad, background: "#f0fdf4", border: "1px solid #86efac",
+          borderRadius: 4, fontSize: fz, fontWeight: 700, color: "#15803d",
+          whiteSpace: "nowrap",
+        }}>
+        <CheckCircle2 size={iconSz} /> {(stampLabel || "Approved").toUpperCase()}
+      </div>
+    );
+  }
 
   /* Already in queue — show badge + withdraw option */
   if (queued) {
