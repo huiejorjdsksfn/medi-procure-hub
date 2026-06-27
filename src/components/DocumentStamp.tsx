@@ -13,11 +13,14 @@ export type StampStatus =
   | 'expired'  | 'verified' | 'official' | 'confidential' | 'urgent';
 
 interface StampCfg {
-  ink:      string;   // main ink colour
-  label:    string;   // big centre word
-  topArc:   string;   // text curved along top ring
-  botArc:   string;   // text curved along bottom ring
-  star?:    boolean;  // show ★ decorators
+  ink:         string;   // main ink colour (kept for the drop-shadow glow tint)
+  label:       string;   // big centre word
+  topArc:      string;   // text curved along top ring
+  botArc:      string;   // text curved along bottom ring
+  star?:       boolean;  // show ★ decorators
+  ringColor?:  string;   // outer ring + institution-name arc colour (default: brand blue)
+  labelColor?: string;   // centre label + date block colour (default: brand red)
+  imageUrl?:   string;   // admin-uploaded stamp image — replaces the vector stamp entirely when set
 }
 
 /* Two-tone official stamp ink — outer ring/institution name in blue,
@@ -94,6 +97,10 @@ interface DocumentStampProps {
   opacity?: number;
   worn?:    boolean;   // ink-distress texture
   approvedBy?: string;
+  /** Used only by the Stamp Design Studio's own live-editing preview to
+   *  show unsaved changes — takes precedence over CFG and saved overrides.
+   *  Every other call site across the app should leave this unset. */
+  previewOverride?: Partial<StampCfg>;
 }
 
 export function DocumentStamp({
@@ -104,19 +111,22 @@ export function DocumentStamp({
   opacity = 1,
   worn    = true,
   approvedBy,
+  previewOverride,
 }: DocumentStampProps) {
   const overrides = useStampOverrides();
   const base = CFG[status.toLowerCase()] ?? {
     ink: '#3d3d3d', label: status.toUpperCase(),
     topArc: 'EMBU LEVEL 5 HOSPITAL', botArc: 'OFFICIAL', star: false,
   };
-  const cfg = { ...base, ...(overrides[status.toLowerCase()] || {}) };
-  // Note: label/topArc/botArc/star overrides from the Stamp Design Studio
-  // still apply in full. `ink` is intentionally no longer used to draw the
-  // rings/label/date below — every stamp now uses the fixed institutional
-  // blue/red two-tone (STAMP_BLUE/STAMP_RED) regardless of status, per
-  // explicit design direction. `ink` is kept only for the drop-shadow tint.
-  const { ink, label, topArc, botArc, star } = cfg;
+  const cfg = { ...base, ...(overrides[status.toLowerCase()] || {}), ...(previewOverride || {}) };
+  // label/topArc/botArc/star/ringColor/labelColor/imageUrl are all fully
+  // customizable from the Stamp Design Studio (or live, while editing,
+  // via previewOverride). `ink` itself only feeds the drop-shadow glow —
+  // the rings/label/date below use ringColor/labelColor, which default to
+  // the brand blue/red two-tone when not explicitly overridden.
+  const { ink, label, topArc, botArc, star, imageUrl } = cfg;
+  const ringColor  = cfg.ringColor  || STAMP_BLUE;
+  const labelColor = cfg.labelColor || STAMP_RED;
 
   /* geometry */
   const cx   = size / 2;
@@ -142,6 +152,25 @@ export function DocumentStamp({
   /* arc angles: top text 210°→-30° (upper half), bottom text 30°→150° (lower half) */
   const topStart = -210, topEnd = -30;   // upper arc  (-210 to -30 in screen coords)
   const botStart =   30, botEnd = 150;   // lower arc  (30 to 150)
+
+  /* Admin-uploaded custom stamp image — bypasses the generated vector
+     stamp entirely when set, both here and at print time. */
+  if (imageUrl) {
+    return (
+      <div style={{
+        display: 'inline-block',
+        transform: `rotate(${rotate}deg)`,
+        opacity,
+        userSelect: 'none',
+        pointerEvents: 'none',
+        filter: `drop-shadow(0 3px 12px ${ink}55)`,
+      }}>
+        <img src={imageUrl} alt={`${label} stamp`}
+          width={size} height={size}
+          style={{ width: size, height: size, objectFit: 'contain' }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -172,21 +201,21 @@ export function DocumentStamp({
         <g filter={worn ? `url(#${filterId})` : undefined}>
 
           {/* ── Outer double ring (blue) ── */}
-          <circle cx={cx} cy={cy} r={rOut}  fill="none" stroke={STAMP_BLUE} strokeWidth={size * 0.026} />
-          <circle cx={cx} cy={cy} r={rOut - size * 0.038} fill="none" stroke={STAMP_BLUE} strokeWidth={size * 0.012} />
+          <circle cx={cx} cy={cy} r={rOut}  fill="none" stroke={ringColor} strokeWidth={size * 0.026} />
+          <circle cx={cx} cy={cy} r={rOut - size * 0.038} fill="none" stroke={ringColor} strokeWidth={size * 0.012} />
 
           {/* ── Inner ring (red) ── */}
-          <circle cx={cx} cy={cy} r={rIn2}  fill="none" stroke={STAMP_RED} strokeWidth={size * 0.012} />
+          <circle cx={cx} cy={cy} r={rIn2}  fill="none" stroke={labelColor} strokeWidth={size * 0.012} />
 
           {/* ── Top arc text (blue) ── */}
           <ArcText text={topArc} cx={cx} cy={cy} r={rMid}
             startDeg={topStart} endDeg={topEnd}
-            fontSize={fs} ink={STAMP_BLUE} bold />
+            fontSize={fs} ink={ringColor} bold />
 
           {/* ── Bottom arc text (blue) ── */}
           <ArcText text={botArc} cx={cx} cy={cy} r={rMid}
             startDeg={botStart} endDeg={botEnd} flip
-            fontSize={fs} ink={STAMP_BLUE} bold />
+            fontSize={fs} ink={ringColor} bold />
 
           {/* ── Stars at sides (blue) ── */}
           {star && (
@@ -195,7 +224,7 @@ export function DocumentStamp({
                 const sx = cx + side * (rMid);
                 return (
                   <text key={side} x={sx} y={cy} textAnchor="middle"
-                    dominantBaseline="middle" fill={STAMP_BLUE}
+                    dominantBaseline="middle" fill={ringColor}
                     fontSize={fs * 1.1} fontWeight="900"
                     fontFamily="Arial, sans-serif">★</text>
                 );
@@ -206,7 +235,7 @@ export function DocumentStamp({
           {/* ── Main label (red) ── */}
           <text x={cx} y={cy - size * 0.13}
             textAnchor="middle" dominantBaseline="middle"
-            fill={STAMP_RED} fontSize={fsLabel} fontWeight="900"
+            fill={labelColor} fontSize={fsLabel} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif"
             letterSpacing={size * 0.004}>
             {label}
@@ -215,24 +244,24 @@ export function DocumentStamp({
           {/* ── Divider lines (red) ── */}
           <line x1={cx - rIn2 * 0.72} y1={cy - size * 0.028}
                 x2={cx + rIn2 * 0.72} y2={cy - size * 0.028}
-                stroke={STAMP_RED} strokeWidth={lineW} />
+                stroke={labelColor} strokeWidth={lineW} />
           <line x1={cx - rIn2 * 0.72} y1={cy + size * 0.13}
                 x2={cx + rIn2 * 0.72} y2={cy + size * 0.13}
-                stroke={STAMP_RED} strokeWidth={lineW} />
+                stroke={labelColor} strokeWidth={lineW} />
 
           {/* ── Date block: DAY  |  MON  |  YEAR (red) ── */}
           {/* vertical separators */}
           <line x1={cx - size * 0.055} y1={cy - size * 0.025}
                 x2={cx - size * 0.055} y2={cy + size * 0.125}
-                stroke={STAMP_RED} strokeWidth={lineW * 0.8} />
+                stroke={labelColor} strokeWidth={lineW * 0.8} />
           <line x1={cx + size * 0.055} y1={cy - size * 0.025}
                 x2={cx + size * 0.055} y2={cy + size * 0.125}
-                stroke={STAMP_RED} strokeWidth={lineW * 0.8} />
+                stroke={labelColor} strokeWidth={lineW * 0.8} />
 
           {/* DAY */}
           <text x={cx - size * 0.165} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={STAMP_RED} fontSize={fsDate} fontWeight="900"
+            fill={labelColor} fontSize={fsDate} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {DAY}
           </text>
@@ -240,7 +269,7 @@ export function DocumentStamp({
           {/* MON */}
           <text x={cx} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={STAMP_RED} fontSize={fsMon} fontWeight="900"
+            fill={labelColor} fontSize={fsMon} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {MON}
           </text>
@@ -248,7 +277,7 @@ export function DocumentStamp({
           {/* YEAR */}
           <text x={cx + size * 0.165} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={STAMP_RED} fontSize={fsDate * 0.82} fontWeight="900"
+            fill={labelColor} fontSize={fsDate * 0.82} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {YEAR}
           </text>
@@ -257,7 +286,7 @@ export function DocumentStamp({
           {approvedBy && (
             <text x={cx} y={cy + size * 0.185}
               textAnchor="middle" dominantBaseline="middle"
-              fill={STAMP_RED} fontSize={size * 0.058} fontWeight="700"
+              fill={labelColor} fontSize={size * 0.058} fontWeight="700"
               fontFamily="Arial,sans-serif" opacity={0.85}>
               {approvedBy.substring(0, 18).toUpperCase()}
             </text>

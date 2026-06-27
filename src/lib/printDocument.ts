@@ -7,6 +7,24 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import embuLogoUrl from "@/assets/embu-county-logo.jpg";
 import logoUrl from "@/assets/logo.png";
+import { supabase } from "@/integrations/supabase/client";
+
+/** Fetch a saved stamp override (from the Stamp Design Studio) for a given
+ *  status, e.g. 'approved' / 'received' / 'issued'. Returns null fields
+ *  when nothing has been customized, so callers can fall back to the
+ *  brand blue/red defaults. */
+async function fetchStampOverride(status: string): Promise<{ ringColor?: string; labelColor?: string; imageUrl?: string }> {
+  try {
+    const { data } = await (supabase as any)
+      .from("system_settings")
+      .select("value")
+      .eq("key", `stamp_cfg_${status.toLowerCase()}`)
+      .maybeSingle();
+    if (!data?.value) return {};
+    const parsed = JSON.parse(data.value);
+    return { ringColor: parsed.ringColor, labelColor: parsed.labelColor, imageUrl: parsed.imageUrl };
+  } catch { return {}; }
+}
 
 const HOSPITAL = {
   name:     "EMBU LEVEL 5 HOSPITAL",
@@ -106,11 +124,43 @@ function drawOfficialStamp(
   doc: jsPDF,
   cx: number,
   cy: number,
-  opts: { label: string; subLabel?: string; radius?: number },
+  opts: { label: string; subLabel?: string; radius?: number; ringColor?: string; labelColor?: string; imageUrl?: string },
 ): void {
   const r = opts.radius ?? 17;
-  const blueR = 10, blueG = 61,  blueB = 143; // ring / institution name
-  const redR  = 200, redG = 30,  redB  = 44;  // centre label / date
+
+  // Admin-uploaded custom stamp image — draw it in place of the vector
+  // stamp entirely, same position/size, matching the on-screen behaviour.
+  if (opts.imageUrl) {
+    try {
+      doc.saveGraphicsState?.();
+      try {
+        // @ts-ignore
+        if (doc.setGState && (doc as any).GState) {
+          // @ts-ignore
+          doc.setGState(new (doc as any).GState({ opacity: 0.9 }));
+        }
+      } catch { /* opacity not supported in this jsPDF build */ }
+      const size = r * 2;
+      const fmt = opts.imageUrl.includes("image/png") ? "PNG"
+                : opts.imageUrl.includes("image/webp") ? "WEBP"
+                : "JPEG";
+      doc.addImage(opts.imageUrl, fmt, cx - r, cy - r, size, size);
+      try {
+        // @ts-ignore
+        if (doc.setGState && (doc as any).GState) {
+          // @ts-ignore
+          doc.setGState(new (doc as any).GState({ opacity: 1 }));
+        }
+      } catch { /* no-op */ }
+      doc.restoreGraphicsState?.();
+    } catch { /* if the uploaded image fails to embed, fall through silently rather than break the PDF */ }
+    return;
+  }
+
+  const blueHex = opts.ringColor  || "#0a3d8f";
+  const redHex  = opts.labelColor || "#c81e2c";
+  const [blueR, blueG, blueB] = hexToRgb(blueHex);
+  const [redR,  redG,  redB ] = hexToRgb(redHex);
 
   doc.saveGraphicsState?.();
   try {
@@ -124,7 +174,7 @@ function drawOfficialStamp(
   // Slight rotation for a hand-stamped, authentic feel
   const angle = -6;
 
-  // Outer + inner ring (blue)
+  // Outer + inner ring (blue, or the admin's custom ring colour)
   doc.setDrawColor(blueR, blueG, blueB);
   doc.setLineWidth(0.7);
   doc.circle(cx, cy, r, "S");
@@ -150,7 +200,7 @@ function drawOfficialStamp(
     doc.text(rimText[i], tx, ty, { align: "center", angle: glyphAngle });
   }
 
-  // Centre label (APPROVED / PAID / POSTED / etc.) — red
+  // Centre label (APPROVED / PAID / POSTED / etc.) — red, or the admin's custom label colour
   doc.setTextColor(redR, redG, redB);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.2);
@@ -177,6 +227,12 @@ function drawOfficialStamp(
   doc.setDrawColor(0, 0, 0);
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
+  if (!m) return [0, 0, 0];
+  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+}
+
 /** Add footer to each page */
 export function addFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   const W = doc.internal.pageSize.getWidth();
@@ -197,8 +253,10 @@ export async function printDocument(config: {
   content:  (doc: jsPDF, startY: number) => void | Promise<void>;
   filename: string;
   /** Optional formal circular stamp drawn on the last page (e.g. when a
-   *  voucher/document has been approved, paid, or posted) */
-  stamp?: { label: string; subLabel?: string } | null;
+   *  voucher/document has been approved, paid, or posted). `status` should
+   *  match a Stamp Design Studio key (e.g. 'approved', 'received', 'issued')
+   *  so any custom colours/uploaded image saved there are picked up here too. */
+  stamp?: { label: string; subLabel?: string; status?: string } | null;
 }): Promise<void> {
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
   const startY = await addLetterhead(doc, config.title, config.docNo);
@@ -216,7 +274,8 @@ export async function printDocument(config: {
     doc.setPage(total);
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
-    drawOfficialStamp(doc, W - 38, H - 38, config.stamp);
+    const override = await fetchStampOverride(config.stamp.status || config.stamp.label);
+    drawOfficialStamp(doc, W - 38, H - 38, { ...config.stamp, ...override });
   }
 
   doc.save(config.filename + ".pdf");
@@ -230,6 +289,7 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
     filename: `REQ-${req.requisition_number || req.id?.slice(0,8)}`,
     stamp: req.stamped ? {
       label: req.stamp_label || "Approved",
+      status: (req.stamp_label || "approved").toLowerCase(),
       subLabel: [req.stamped_by_name, req.stamped_at ? new Date(req.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
     } : null,
     content: async (doc, startY) => {
@@ -293,6 +353,7 @@ export async function printPurchaseOrder(po: any, items: any[], supplier: any): 
     filename: `LPO-${po.po_number || po.id?.slice(0,8)}`,
     stamp: po.stamped ? {
       label: po.stamp_label || (status==="issued"?"Issued":"Approved"),
+      status: (po.stamp_label || (status==="issued"?"issued":"approved")).toLowerCase(),
       subLabel: [po.stamped_by_name, po.stamped_at ? new Date(po.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
     } : null,
     content: async (doc, startY) => {
@@ -353,6 +414,7 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
     filename: `GRN-${grn.grn_number || grn.id?.slice(0,8)}`,
     stamp: grn.stamped ? {
       label: grn.stamp_label || "Received",
+      status: (grn.stamp_label || "received").toLowerCase(),
       subLabel: [grn.stamped_by_name, grn.stamped_at ? new Date(grn.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
     } : null,
     content: async (doc, startY) => {
@@ -403,7 +465,7 @@ export const printJournalVoucher = async (voucher: any, lines: any[]) => {
     title: "JOURNAL VOUCHER",
     docNo: voucher.voucher_number || voucher.id?.slice(0,8).toUpperCase(),
     filename: `JV-${voucher.voucher_number || voucher.id?.slice(0,8)}`,
-    stamp: isPosted ? { label: "Posted", subLabel: voucher.created_at ? new Date(voucher.created_at).toLocaleDateString("en-KE") : "" } : null,
+    stamp: isPosted ? { label: "Posted", status: "posted", subLabel: voucher.created_at ? new Date(voucher.created_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,
@@ -438,7 +500,7 @@ export const printGenericVoucher = async (voucher: any, type: string) => {
     title: `${type.toUpperCase()} VOUCHER`,
     docNo: voucher.voucher_number || voucher.id?.slice(0,8).toUpperCase(),
     filename: `${type.slice(0,3).toUpperCase()}-${voucher.voucher_number || voucher.id?.slice(0,8)}`,
-    stamp: isFinal ? { label: status==="paid"?"Paid":"Approved", subLabel: voucher.paid_at||voucher.approved_at ? new Date(voucher.paid_at||voucher.approved_at).toLocaleDateString("en-KE") : "" } : null,
+    stamp: isFinal ? { label: status==="paid"?"Paid":"Approved", status: status==="paid"?"paid":"approved", subLabel: voucher.paid_at||voucher.approved_at ? new Date(voucher.paid_at||voucher.approved_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
       autoTable(doc, {
         startY,

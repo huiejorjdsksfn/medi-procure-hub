@@ -18,11 +18,19 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StampOverride {
-  ink?:    string;
-  label?:  string;
-  topArc?: string;
-  botArc?: string;
-  star?:   boolean;
+  ink?:        string;
+  label?:      string;
+  topArc?:     string;
+  botArc?:     string;
+  star?:       boolean;
+  /** Outer ring + institution-name arc text colour (defaults to brand blue) */
+  ringColor?:  string;
+  /** Centre label + date block colour (defaults to brand red) */
+  labelColor?: string;
+  /** Base64 data URL (or external URL) of an admin-uploaded stamp image.
+   *  When set, this image is drawn in place of the generated vector stamp,
+   *  both on screen and in print. */
+  imageUrl?:   string;
 }
 
 export type StampOverrides = Record<string, StampOverride>;

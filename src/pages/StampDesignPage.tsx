@@ -16,7 +16,7 @@ import { broadcastToAll } from "@/lib/broadcast";
 import {
   Search, RefreshCw, Download, Upload, RotateCcw,
   Save, Eye, Palette, Settings, Home, ChevronRight, X,
-  Printer, Star, Type, CircleOff, CheckCircle2,
+  Printer, Star, Type, CircleOff, CheckCircle2, Image as ImageIcon, Trash2,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -45,7 +45,12 @@ const DEFAULT_CFG: Record<string, StampDef> = {
   urgent:       { ink:"#8b2800", label:"URGENT",       topArc:"EMBU LEVEL 5 HOSPITAL", botArc:"IMMEDIATE ACTION",      star:false },
 };
 
-interface StampDef { ink:string; label:string; topArc:string; botArc:string; star:boolean; }
+interface StampDef {
+  ink:    string; label: string; topArc: string; botArc: string; star: boolean;
+  ringColor?:  string;   // outer ring + institution-name arc colour
+  labelColor?: string;   // centre label + date block colour
+  imageUrl?:   string;   // admin-uploaded image, replaces the vector stamp entirely
+}
 
 /* ── O365 design tokens ─────────────────────────────────────────────── */
 const O = {
@@ -101,6 +106,25 @@ export default function StampDesignPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /* handle a custom stamp image upload — read as base64, size-guarded */
+  const MAX_UPLOAD_BYTES = 250 * 1024; // 250KB raw — keeps the base64 string reasonable for a text column
+  const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please choose an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast({ title: "Image too large", description: "Please use an image under 250KB (try cropping/compressing it first).", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft(d => d ? { ...d, imageUrl: reader.result as string } : d);
+    };
+    reader.onerror = () => toast({ title: "Could not read that image", variant: "destructive" });
+    reader.readAsDataURL(file);
+  };
 
   /* open editor for a stamp */
   const openEditor = (status: string) => {
@@ -359,12 +383,12 @@ export default function StampDesignPage() {
                 </button>
               </div>
 
-              {/* Live preview */}
+              {/* Live preview — reflects unsaved edits via previewOverride */}
               <div style={{ padding:"18px 0 10px", display:"flex", justifyContent:"center", background:`${draft.ink}08`, borderBottom:`1px solid ${O.border}` }}>
                 <DocumentStamp
                   status={selected}
                   size={130} rotate={-12} worn date={new Date().toISOString()}
-                  // Pass modified config via key to force re-render
+                  previewOverride={draft}
                   key={JSON.stringify(draft)}
                 />
               </div>
@@ -373,10 +397,80 @@ export default function StampDesignPage() {
               {/* Fields */}
               <div style={{ padding:"14px 16px", display:"flex", flexDirection:"column", gap:12 }}>
 
-                {/* Ink color */}
-                <div>
+                {/* Custom stamp image upload */}
+                <div style={{ padding:10, border:`1px dashed ${draft.imageUrl?O.blue:O.border}`, borderRadius:5, background: draft.imageUrl?`${O.blue}08`:"transparent" }}>
+                  <label style={{ fontSize:11, fontWeight:700, color:O.textSub, display:"flex", alignItems:"center", gap:5, marginBottom:8 }}>
+                    <ImageIcon size={12}/> Upload Your Own Stamp Image
+                  </label>
+                  {draft.imageUrl ? (
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <img src={draft.imageUrl} alt="Custom stamp" style={{ width:56, height:56, objectFit:"contain", border:`1px solid ${O.border}`, borderRadius:4, background:"#fff" }}/>
+                      <div style={{ flex:1, fontSize:11, color:O.textMt }}>
+                        Using your uploaded image. The fields below (label, arc text, star, colours) are ignored while this is set.
+                      </div>
+                      <button onClick={()=>setDraft(d=>d?{...d,imageUrl:undefined}:d)}
+                        title="Remove uploaded image"
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"6px 10px", background:"#fff", border:`1px solid ${O.border}`, borderRadius:4, cursor:"pointer", color:"#a4262c", fontSize:11, fontWeight:700, flexShrink:0 }}>
+                        <Trash2 size={12}/> Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", border:`1px solid ${O.border}`, borderRadius:4, cursor:"pointer", fontSize:12, fontWeight:600, color:O.textSub, background:"#fff" }}>
+                      <Upload size={13}/> Choose image (PNG/JPG, under 250KB)
+                      <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style={{ display:"none" }}
+                        onChange={e=>{ const f=e.target.files?.[0]; if(f) handleImageUpload(f); e.target.value=""; }}/>
+                    </label>
+                  )}
+                </div>
+
+                {/* Ring & institution-text colour */}
+                <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color:O.textSub, display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
-                    <Palette size={12}/> Ink Colour
+                    <Palette size={12}/> Ring &amp; Institution Text Colour
+                  </label>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <input type="color" value={draft.ringColor||"#0a3d8f"}
+                      onChange={e=>setDraft(d=>d?{...d,ringColor:e.target.value}:d)}
+                      style={{ width:44, height:32, border:"1px solid #e5e7eb", borderRadius:3, cursor:"pointer", padding:2 }}/>
+                    <input type="text" value={draft.ringColor||"#0a3d8f"}
+                      onChange={e=>/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)&&setDraft(d=>d?{...d,ringColor:e.target.value}:d)}
+                      style={{ flex:1, padding:"7px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
+                  </div>
+                  <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
+                    {["#0a3d8f","#003366","#1a006b","#004a5c","#0c2d6b","#1e3a8a"].map(c=>(
+                      <button key={c} onClick={()=>setDraft(d=>d?{...d,ringColor:c}:d)}
+                        style={{ width:22, height:22, background:c, border: draft.ringColor===c?"3px solid #111":"1px solid rgba(0,0,0,.15)", borderRadius:2, cursor:"pointer" }}
+                        title={c}/>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Label & date colour */}
+                <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
+                  <label style={{ fontSize:11, fontWeight:700, color:O.textSub, display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
+                    <Palette size={12}/> Label &amp; Date Colour
+                  </label>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <input type="color" value={draft.labelColor||"#c81e2c"}
+                      onChange={e=>setDraft(d=>d?{...d,labelColor:e.target.value}:d)}
+                      style={{ width:44, height:32, border:"1px solid #e5e7eb", borderRadius:3, cursor:"pointer", padding:2 }}/>
+                    <input type="text" value={draft.labelColor||"#c81e2c"}
+                      onChange={e=>/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)&&setDraft(d=>d?{...d,labelColor:e.target.value}:d)}
+                      style={{ flex:1, padding:"7px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
+                  </div>
+                  <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
+                    {["#c81e2c","#8b0000","#a4262c","#7a0c1e","#9a1b1b","#b91c1c"].map(c=>(
+                      <button key={c} onClick={()=>setDraft(d=>d?{...d,labelColor:c}:d)}
+                        style={{ width:22, height:22, background:c, border: draft.labelColor===c?"3px solid #111":"1px solid rgba(0,0,0,.15)", borderRadius:2, cursor:"pointer" }}
+                        title={c}/>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Glow tint (legacy "ink" field — only affects the drop-shadow behind the stamp) */}
+                <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
+                  <label style={{ fontSize:11, fontWeight:700, color:O.textSub, display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
+                    <Palette size={12}/> Glow Tint <span style={{fontWeight:400,color:O.textMt}}>(behind the stamp only)</span>
                   </label>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <input type="color" value={draft.ink}
@@ -397,7 +491,7 @@ export default function StampDesignPage() {
                 </div>
 
                 {/* Label */}
-                <div>
+                <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color:O.textSub, display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
                     <Type size={12}/> Centre Label
                   </label>
@@ -408,21 +502,21 @@ export default function StampDesignPage() {
                 </div>
 
                 {/* Top arc */}
-                <div>
+                <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color:O.textSub, marginBottom:5, display:"block" }}>Top Arc Text</label>
                   <input value={draft.topArc} onChange={e=>setDraft(d=>d?{...d,topArc:e.target.value.toUpperCase().slice(0,30)}:d)}
                     style={{ width:"100%", padding:"8px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, outline:"none", boxSizing:"border-box" }}/>
                 </div>
 
                 {/* Bottom arc */}
-                <div>
+                <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color:O.textSub, marginBottom:5, display:"block" }}>Bottom Arc Text</label>
                   <input value={draft.botArc} onChange={e=>setDraft(d=>d?{...d,botArc:e.target.value.toUpperCase().slice(0,30)}:d)}
                     style={{ width:"100%", padding:"8px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, outline:"none", boxSizing:"border-box" }}/>
                 </div>
 
                 {/* Star toggle */}
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", background:O.bg, borderRadius:3 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", background:O.bg, borderRadius:3, opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:12, fontWeight:600, color:O.text, display:"flex", alignItems:"center", gap:6 }}>
                     <Star size={13} color={draft.ink}/> Show ★ star decorators
                   </label>
