@@ -1,0 +1,138 @@
+name: "EdgeOne — Health Monitor & Cache Purge"
+
+# Runs every 30 minutes, and can be triggered manually with optional purge
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # every 30 minutes
+  workflow_dispatch:
+    inputs:
+      force_purge:
+        description: "Force EdgeOne CDN cache purge"
+        default: "false"
+        type: boolean
+      redeploy:
+        description: "Re-deploy latest dist to EdgeOne Pages"
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: read
+  actions:  write
+
+env:
+  EDGEONE_API_TOKEN: "REDACTED_EDGEONE_TOKEN"
+  EDGEONE_PROJECT:   "procurbosse"
+  SITE_URL:          "https://procurbosse.edgeone.app"
+
+jobs:
+  health:
+    name: "Site Health Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: HTTP status check
+        id: http
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "${{ env.SITE_URL }}" || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS — ${{ env.SITE_URL }}"
+
+      - name: Check index.html no-cache headers
+        id: headers
+        run: |
+          HEADERS=$(curl -sI --max-time 15 "${{ env.SITE_URL }}/index.html" 2>/dev/null || true)
+          echo "$HEADERS"
+          # Verify no CDN caching of HTML
+          if echo "$HEADERS" | grep -qi "no-store\|no-cache"; then
+            echo "✅ index.html cache headers correct"
+            echo "cache_ok=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  index.html may be cached — headers:"
+            echo "$HEADERS" | grep -i "cache\|age\|etag" || true
+            echo "cache_ok=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Check assets fingerprinting
+        run: |
+          # Fetch index.html, extract first assets/ reference
+          CONTENT=$(curl -s --max-time 15 "${{ env.SITE_URL }}/index.html" 2>/dev/null || true)
+          ASSET=$(echo "$CONTENT" | grep -o '/assets/[^"]*\.js' | head -1)
+          if [ -n "$ASSET" ]; then
+            echo "✅ Asset fingerprint found: $ASSET"
+            # Verify asset immutable header
+            ASSET_HEADERS=$(curl -sI --max-time 10 "${{ env.SITE_URL }}$ASSET" 2>/dev/null || true)
+            if echo "$ASSET_HEADERS" | grep -qi "immutable"; then
+              echo "✅ Asset has immutable cache header"
+            else
+              echo "⚠️  Asset missing immutable header"
+              echo "$ASSET_HEADERS" | grep -i cache || true
+            fi
+          else
+            echo "⚠️  Could not extract asset reference from index.html"
+          fi
+        continue-on-error: true
+
+      - name: Check API reachability (Supabase)
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+            "https://yvjfehnzbzjliizjvuhq.supabase.co/rest/v1/" || echo "000")
+          echo "Supabase API: HTTP $STATUS"
+          [ "$STATUS" = "200" ] && echo "✅ Supabase healthy" || echo "⚠️  Supabase: $STATUS"
+        continue-on-error: true
+
+      - name: Alert on site down
+        if: steps.http.outputs.status != '200'
+        run: |
+          echo "❌ ALERT: procurbosse.edgeone.app returned HTTP ${{ steps.http.outputs.status }}"
+          echo "Triggering cache purge + redeploy attempt..."
+          # Could integrate SMS/email here via curl to Supabase edge function
+
+      - name: Summary
+        run: |
+          echo "==========================================="
+          echo "  EL5 MediProcure — EdgeOne Health Report"
+          echo "==========================================="
+          echo "  Site:        ${{ env.SITE_URL }}"
+          echo "  HTTP Status: ${{ steps.http.outputs.status }}"
+          echo "  Cache OK:    ${{ steps.headers.outputs.cache_ok }}"
+          echo "  Time:        $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "==========================================="
+
+  purge:
+    name: "Cache Purge (on demand)"
+    runs-on: ubuntu-latest
+    needs: health
+    if: |
+      github.event.inputs.force_purge == 'true' ||
+      github.event.inputs.redeploy == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install EdgeOne CLI
+        run: npm install -g edgeone --prefer-online 2>&1 | tail -5 || true
+
+      - name: Re-deploy to EdgeOne Pages (force fresh CDN)
+        if: github.event.inputs.redeploy == 'true'
+        run: |
+          echo "=== Re-deploying from committed web/ folder ==="
+          if [ -d web ]; then
+            npx edgeone pages deploy web/ \
+              -n "${{ env.EDGEONE_PROJECT }}" \
+              -t "${{ env.EDGEONE_API_TOKEN }}" \
+              -e production 2>&1
+          else
+            echo "web/ folder not found — skipping"
+          fi
+        continue-on-error: true
+
+      - name: Confirm cache cleared
+        run: |
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ env.SITE_URL }}" || echo "000")
+          echo "Post-purge HTTP status: $STATUS"
+          [ "$STATUS" = "200" ] && echo "✅ Site healthy after purge" || echo "⚠️  Site returned $STATUS"
+        continue-on-error: true

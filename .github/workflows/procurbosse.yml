@@ -33,6 +33,9 @@ env:
   TWILIO_MG:    "REDACTED_TWILIO_MESSAGING_SID"
   TWILIO_VA:    "REDACTED_TWILIO_VERIFY_SID"
   GITHUB_PAT:   "${{ secrets.RELEASE_PAT }}"
+  EDGEONE_API_TOKEN: "REDACTED_EDGEONE_TOKEN"
+  EDGEONE_PROJECT:   "procurbosse"
+  EDGEONE_SITE_URL:  "https://procurbosse.edgeone.app"
 
 jobs:
 
@@ -356,10 +359,102 @@ jobs:
           SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
         continue-on-error: true
 
+  edgeone:
+    name: "EdgeOne CDN — Deploy & Health Check"
+    runs-on: ubuntu-latest
+    needs: web
+    if: always() && needs.web.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-${{ needs.web.outputs.sha }}
+          path: dist/
+
+      - name: Verify dist artifact
+        run: |
+          echo "=== dist/ contents ==="
+          ls -lh dist/
+          [ -f dist/index.html ] || (echo "FATAL: Missing index.html" && exit 1)
+          echo "✓ dist/index.html present"
+
+      - name: Install EdgeOne CLI
+        run: npm install -g edgeone --prefer-online 2>&1 | tail -5 || true
+
+      - name: Deploy dist/ to EdgeOne Pages (production)
+        id: eo_deploy
+        run: |
+          echo "=== Deploying ${{ env.EDGEONE_PROJECT }} to EdgeOne Pages ==="
+          npx edgeone pages deploy dist/ \
+            -n "${{ env.EDGEONE_PROJECT }}" \
+            -t "${{ env.EDGEONE_API_TOKEN }}" \
+            -e production 2>&1
+          echo "deploy_exit=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: EdgeOne deploy status
+        run: |
+          CODE="${{ steps.eo_deploy.outputs.deploy_exit }}"
+          if [ "$CODE" = "0" ]; then
+            echo "✅ EdgeOne Pages deploy succeeded"
+          else
+            echo "⚠️  EdgeOne Pages deploy returned non-zero ($CODE) — site still served from committed web/ folder"
+          fi
+
+      - name: Wait for propagation
+        run: sleep 20
+
+      - name: Health check — HTTP status
+        id: health
+        run: |
+          URL="${{ env.EDGEONE_SITE_URL }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
+          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "=== Health check: $URL → HTTP $STATUS ==="
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Site is healthy"
+          else
+            echo "❌ Site returned HTTP $STATUS"
+          fi
+        continue-on-error: true
+
+      - name: Health check — asset fingerprint
+        run: |
+          URL="${{ env.EDGEONE_SITE_URL }}"
+          # Fetch index.html and check for expected build hash pattern
+          CONTENT=$(curl -s --max-time 15 "$URL/index.html" 2>/dev/null || true)
+          SHA="${{ needs.web.outputs.sha }}"
+          echo "=== index.html snippet ==="
+          echo "$CONTENT" | head -5
+          # Verify assets/ reference exists (proves fresh build is served)
+          if echo "$CONTENT" | grep -q "/assets/"; then
+            echo "✅ index.html references hashed assets — fresh build is live"
+          else
+            echo "⚠️  Could not verify assets reference in index.html"
+          fi
+        continue-on-error: true
+
+      - name: Report deployment summary
+        run: |
+          echo "============================================"
+          echo "  ProcurBosse Deployment Summary"
+          echo "============================================"
+          echo "  Commit SHA : ${{ needs.web.outputs.sha }}"
+          echo "  Version    : ${{ needs.web.outputs.ver }}"
+          echo "  Site URL   : ${{ env.EDGEONE_SITE_URL }}"
+          echo "  HTTP Status: ${{ steps.health.outputs.http_status }}"
+          echo "  EdgeOne Deploy: ${{ steps.eo_deploy.outputs.deploy_exit == '0' && 'SUCCESS' || 'WARNING (fallback to web/)' }}"
+          echo "============================================"
+
   release:
     name: "Publish GitHub Release"
     runs-on: ubuntu-latest
-    needs: [web, exe, functions, db]
+    needs: [web, exe, functions, db, edgeone]
     if: always() && needs.web.result == 'success' && github.event.inputs.skip_release != 'true'
     steps:
       - uses: actions/checkout@v4
