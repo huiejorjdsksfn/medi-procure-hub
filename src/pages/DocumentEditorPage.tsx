@@ -541,7 +541,10 @@ export default function DocumentEditorPage() {
   const [docName, setDocName]     = useState("Untitled Document");
   const [docCat, setDocCat]       = useState("General");
   const [docIsTemplate, setDocIT] = useState(false);
-  const [docId, setDocId]         = useState<string|null>(null);
+  const [docId, setDocId]           = useState<string|null>(null);
+  const [docPublished, setDocPub]   = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [showSigPicker, setShowSigPicker] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
@@ -612,6 +615,7 @@ export default function DocumentEditorPage() {
     if (!data) return;
     setDocId(data.id); setDocName(data.name); setDocCat(data.category||"General");
     setDocIT(data.is_template||false);
+    setDocPub(data.is_published||false);
     if (editorRef.current && data.template_html) editorRef.current.innerHTML = data.template_html;
     updateCounts();
   };
@@ -969,6 +973,15 @@ ${html}
           <button onClick={saveDoc} disabled={saving} style={{ ...S.btn(false), background:C.green3, color:C.green, border:"1px solid #166534", fontWeight:700 }}>
             {saving?"⏳ Saving…":"💾 Save"}
           </button>
+          <button onClick={publishDoc} disabled={publishing||saving}
+            style={{ ...S.btn(false), background:docPublished?"#1e40af":"#0078d4", color:"#fff", border:"1px solid #1e3a8a", fontWeight:700, display:"flex", alignItems:"center", gap:5 }}>
+            {publishing?"🚀 Publishing…": docPublished?"✅ Published":"🚀 Publish"}
+          </button>
+          {docPublished && (
+            <span style={{ fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:99, background:"#dcfce7", color:"#15803d", border:"1px solid #86efac", display:"flex", alignItems:"center", gap:4 }}>
+              ● Published
+            </span>
+          )}
           <button onClick={printDoc} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>🖨 Print</button>
           <button onClick={exportPDF} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>📤 PDF</button>
           <button onClick={()=>navigate("/documents")} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>✕ Close</button>
@@ -1068,6 +1081,60 @@ ${html}
                 onKeyUp={updateCounts}
                 style={{ outline:"none", minHeight:"240mm", fontFamily:fontFamily, fontSize:fontSize+"pt", lineHeight:1.6, color:"#111" }}
               />
+
+              {/* ── Floating Add Signature button ──────────────────── */}
+              <div style={{ position:"absolute", bottom:16, right:16, zIndex:50 }}>
+                {showSigPicker && (
+                  <div style={{ position:"absolute", bottom:"calc(100% + 8px)", right:0, width:260, background:"#fff", border:"1px solid #e5e7eb", borderRadius:8, boxShadow:"0 8px 24px rgba(0,0,0,.15)", padding:12, zIndex:100 }}
+                    onClick={e=>e.stopPropagation()}>
+                    <div style={{ fontSize:11, fontWeight:700, color:"#374151", marginBottom:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span>✍ Insert Signature</span>
+                      <button onClick={()=>setShowSigPicker(false)} style={{ background:"none", border:"none", cursor:"pointer", color:"#9ca3af", fontSize:16, lineHeight:1 }}>×</button>
+                    </div>
+                    {savedSigs.length === 0 ? (
+                      <div style={{ fontSize:11, color:"#9ca3af", textAlign:"center", padding:"12px 0" }}>
+                        No saved signatures.<br/>
+                        <button onClick={()=>{setShowSigPicker(false);setTab("signatures");}} style={{ marginTop:6, fontSize:11, color:"#0078d4", background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>Go to Signatures tab →</button>
+                      </div>
+                    ) : (
+                      <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:200, overflowY:"auto" }}>
+                        {savedSigs.map((sig:any) => (
+                          <button key={sig.id}
+                            onClick={() => {
+                              editorRef.current?.focus();
+                              document.execCommand("insertHTML", false,
+                                `<img src="${sig.image_data}" alt="${sig.label||"Signature"}" style="height:48px;vertical-align:middle;margin:4px 8px;border-bottom:1px solid #999" title="${sig.label||"Signature"}" />&nbsp;`);
+                              setShowSigPicker(false);
+                              toast({ title: `✍ Signature inserted` });
+                            }}
+                            style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 8px", background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:5, cursor:"pointer", textAlign:"left" }}>
+                            <img src={sig.image_data} alt="sig" style={{ height:28, maxWidth:80, objectFit:"contain" }}/>
+                            <div style={{ fontSize:11, color:"#374151", fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{sig.label||"Signature"}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ borderTop:"1px solid #f3f4f6", marginTop:8, paddingTop:8 }}>
+                      <button onClick={()=>{
+                        const ph = `<div style="display:inline-flex;flex-direction:column;align-items:center;margin:8px 16px;gap:2px">`+
+                          `<div style="width:160px;height:2px;background:#333"></div>`+
+                          `<div style="font-size:9pt;color:#555">Signature &amp; Date</div></div>`;
+                        editorRef.current?.focus();
+                        document.execCommand("insertHTML", false, ph);
+                        setShowSigPicker(false);
+                      }}
+                        style={{ width:"100%", padding:"6px", background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:4, fontSize:11, color:"#0369a1", fontWeight:600, cursor:"pointer" }}>
+                        + Insert Signature Line
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={()=>{ if (savedSigs.length===0) loadSigData(); setShowSigPicker(p=>!p); }}
+                  style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", background:showSigPicker?"#1d4ed8":"#0078d4", color:"#fff", border:"none", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 4px 12px rgba(0,120,212,.4)", transition:"background .15s" }}>
+                  ✍ Add Signature
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1077,7 +1144,8 @@ ${html}
             <span>Characters: <strong>{charCount}</strong></span>
             <span>Document: <strong>{docName}</strong></span>
             <span>Category: <strong>{docCat}</strong></span>
-            {docId && <span>ID: <strong>{docId.slice(0,8)}…</strong></span>}
+            {docId && <span style={{color:"#16a34a",fontWeight:700}}>✓ Saved</span>}
+            {docPublished && <span style={{color:"#0078d4",fontWeight:700}}>● Published</span>}
             <span style={{ marginLeft:"auto" }}>{new Date().toLocaleString("en-KE")}</span>
           </div>
         </div>
