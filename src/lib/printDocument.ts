@@ -240,7 +240,7 @@ export function addFooter(doc: jsPDF, pageNum: number, totalPages: number): void
   doc.setDrawColor(0, 45, 100); doc.setLineWidth(0.3);
   doc.line(12, H-14, W-12, H-14);
   doc.setFontSize(6); doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100);
-  doc.text(`${HOSPITAL.name} | EL5 MediProcure v5.9 | Generated: ${new Date().toLocaleString("en-KE",{timeZone:"Africa/Nairobi"})}`, 12, H-10);
+  doc.text(`${HOSPITAL.name} | Generated: ${new Date().toLocaleString("en-KE",{timeZone:"Africa/Nairobi"})}`, 12, H-10);
   doc.text(`Page ${pageNum} of ${totalPages}`, W-12, H-10, { align:"right" });
   doc.setFontSize(5); doc.setTextColor(150,150,150);
   doc.text(HOSPITAL.iso, W/2, H-6, { align:"center" });

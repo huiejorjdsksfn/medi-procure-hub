@@ -144,7 +144,7 @@ export default function PaymentVouchersPage() {
       .sig{border-top:1px solid #555;padding-top:6px;font-size:10px;color:#666;margin-top:40px}
     </style></head><body>
     <div class="hdr">
-      <div><h2>EL5 MediProcure</h2><div style="font-size:10px;opacity:.8">Embu Level 5 Hospital — Financial Management System</div></div>
+      <div><h2>Embu Level 5 Hospital</h2><div style="font-size:10px;opacity:.8">Financial Management — Payment Voucher</div></div>
       <div style="text-align:right"><strong>PAYMENT VOUCHER</strong><br/><span style="font-size:14px">${v.voucher_number||""}</span></div>
     </div>
     <table>
@@ -161,7 +161,7 @@ export default function PaymentVouchersPage() {
       <div><div class="sig">Approved By / Date</div></div>
       <div><div class="sig">Finance Officer / Date</div></div>
     </div>
-    <div style="margin-top:20px;font-size:9px;color:#aaa;text-align:center">Embu County Government · Embu Level 5 Hospital · ProcurBosse ERP v10</div>
+    <div style="margin-top:20px;font-size:9px;color:#aaa;text-align:center">Embu County Government · Embu Level 5 Hospital</div>
     </body></html>`);
     w.document.close(); setTimeout(()=>w.print(), 400);
   }
@@ -463,7 +463,7 @@ export default function PaymentVouchersPage() {
           <span>Pending: {vouchers.filter(v=>v.status==="pending").length}</span>
           <span>|</span>
           <span>Total: {fmtK(totalFiltered)}</span>
-          <span style={{ marginLeft:"auto" }}>EL5 MediProcure v10 · Payment Vouchers</span>
+          <span style={{ marginLeft:"auto" }}>Payment Vouchers</span>
         </div>
       </div>
       {showVoteHeadManager && <VoteHeadManagerModal onClose={()=>setShowVoteHeadManager(false)} />}

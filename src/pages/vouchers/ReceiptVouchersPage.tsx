@@ -109,7 +109,7 @@ export default function ReceiptVouchersPage() {
     .sig{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:40px}
     .sl{border-top:1px solid #555;padding-top:4px;font-size:9px;color:#666;margin-top:42px;text-align:center}
     </style></head><body>
-    <div class="hdr"><div><h2>🏥 EL5 MediProcure</h2><div style="font-size:9px;opacity:.75">Embu Level 5 Hospital · Official Receipt</div></div>
+    <div class="hdr"><div><h2>Embu Level 5 Hospital</h2><div style="font-size:9px;opacity:.75">Official Receipt</div></div>
     <div style="text-align:right"><div style="font-size:9px;opacity:.8">RECEIPT VOUCHER</div><div style="font-size:15px;font-weight:900">${r.receipt_number||""}</div></div></div>
     <table>
       <tr><td class="lbl">Received From</td><td><strong>${r.received_from||""}</strong></td><td class="lbl">Date</td><td>${fmtDate(r.created_at)}</td></tr>
@@ -120,7 +120,7 @@ export default function ReceiptVouchersPage() {
       <tr><td class="lbl">AMOUNT RECEIVED</td><td colspan="3" class="tot">KES ${(r.total_amount||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</td></tr>
     </table>
     <div class="sig"><div><div class="sl">Received By / Date</div></div><div><div class="sl">Finance Officer / Date</div></div></div>
-    <div style="margin-top:20px;font-size:8px;color:#aaa;text-align:center">EL5 MediProcure v12 · ${new Date().toLocaleString()}</div>
+    <div style="margin-top:20px;font-size:8px;color:#aaa;text-align:center">Embu County Government · Embu Level 5 Hospital</div>
     </body></html>`);
     w.document.close(); setTimeout(()=>w.print(),400);
   }
@@ -302,7 +302,7 @@ export default function ReceiptVouchersPage() {
         <span>Records: {filtered.length}</span><span>|</span>
         <span>Posted: {receipts.filter(r=>r.status==="posted"||r.status==="received").length}</span><span>|</span>
         <span>Total: {fmtK(filtered.reduce((s,r)=>s+(r.total_amount||0),0))}</span>
-        <span style={{marginLeft:"auto"}}>EL5 MediProcure v12 · Receipt Vouchers</span>
+        <span style={{marginLeft:"auto"}}>Receipt Vouchers</span>
       </div>
     </div>
   );

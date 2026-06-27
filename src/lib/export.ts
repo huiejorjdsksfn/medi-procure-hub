@@ -96,7 +96,7 @@ const addFooter = (doc: jsPDF) => {
     doc.setPage(i);
     doc.setFontSize(6);
     doc.setTextColor(120);
-    doc.text(`${HOSPITAL_HEADER.name} - MediProcure ERP`, 14, 290);
+    doc.text(HOSPITAL_HEADER.name, 14, 290);
     doc.text(`Page ${i} of ${pages}`, 196, 290, { align: "right" });
     doc.setTextColor(0);
   }

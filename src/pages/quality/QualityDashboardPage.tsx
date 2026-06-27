@@ -443,7 +443,7 @@ export default function QualityDashboardPage() {
         <span>Pass Rate: {passRate}%</span>
         <span>|</span>
         <span>Open NCRs: {openNCRs}</span>
-        <span style={{ marginLeft:"auto" }}>EL5 MediProcure v10 · Quality Dashboard</span>
+        <span style={{ marginLeft:"auto" }}>Quality Dashboard</span>
       </div>
     </div>
   );

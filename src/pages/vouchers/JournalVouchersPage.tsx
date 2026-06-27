@@ -102,7 +102,7 @@ export default function JournalVouchersPage() {
     const rows=filtered.map(e=>`<tr><td>${e.reference||"JV-"+e.id.slice(-6)}</td><td>${e.description||""}</td><td>${e.gl_account||""}</td><td style="text-align:right">${e.debit?fmtK(e.debit):""}</td><td style="text-align:right">${e.credit?fmtK(e.credit):""}</td><td>${e.status||""}</td><td>${fmtDate(e.created_at)}</td></tr>`).join("");
     const w=window.open("","_blank","width=1000,height=700");
     if(!w)return;
-    w.document.write(`<!DOCTYPE html><html><head><title>Journal Entries</title><style>body{font-family:Tahoma,sans-serif;padding:20px;font-size:10px}.hdr{background:linear-gradient(135deg,#1a3580,#2a5fc3);color:#fff;padding:10px 16px;margin:-20px -20px 16px;display:flex;justify-content:space-between}table{width:100%;border-collapse:collapse}th{background:#dbd9c9;padding:4px 8px;border:1px solid #ccc;text-align:left}td{padding:3px 8px;border:1px solid #ccc}tr:nth-child(even){background:#f5f4ea}</style></head><body><div class="hdr"><strong>EL5 MediProcure — Journal Entries</strong><div>Total: ${filtered.length} entries · ${new Date().toLocaleDateString()}</div></div><table><thead><tr><th>Reference</th><th>Description</th><th>GL Account</th><th>Debit</th><th>Credit</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><title>Journal Entries</title><style>body{font-family:Tahoma,sans-serif;padding:20px;font-size:10px}.hdr{background:linear-gradient(135deg,#1a3580,#2a5fc3);color:#fff;padding:10px 16px;margin:-20px -20px 16px;display:flex;justify-content:space-between}table{width:100%;border-collapse:collapse}th{background:#dbd9c9;padding:4px 8px;border:1px solid #ccc;text-align:left}td{padding:3px 8px;border:1px solid #ccc}tr:nth-child(even){background:#f5f4ea}</style></head><body><div class="hdr"><strong>Embu Level 5 Hospital — Journal Entries</strong><div>Total: ${filtered.length} entries · ${new Date().toLocaleDateString()}</div></div><table><thead><tr><th>Reference</th><th>Description</th><th>GL Account</th><th>Debit</th><th>Credit</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
     w.document.close();setTimeout(()=>w.print(),400);
   }
 
@@ -268,7 +268,7 @@ export default function JournalVouchersPage() {
         <span>Debits: {fmtK(totalDebit)}</span><span>|</span>
         <span>Credits: {fmtK(totalCredit)}</span><span>|</span>
         <span style={{color:Math.abs(totalDebit-totalCredit)<1?"#155724":"#856404"}}>{Math.abs(totalDebit-totalCredit)<1?"✓ Balanced":"⚠ Unbalanced"}</span>
-        <span style={{marginLeft:"auto"}}>EL5 MediProcure v12 · Journal Vouchers</span>
+        <span style={{marginLeft:"auto"}}>Journal Vouchers</span>
       </div>
     </div>
   );

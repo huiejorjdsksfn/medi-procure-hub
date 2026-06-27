@@ -701,7 +701,7 @@ export default function AccountantWorkspacePage() {
     .sig{border-top:1px solid #555;padding-top:4px;font-size:9px;color:#666;margin-top:42px;text-align:center}
     </style></head><body>
     <div class="hdr">
-      <div><h2>🏥 EL5 MediProcure</h2><div style="font-size:9px;opacity:.75">Embu Level 5 Hospital · Financial Management System</div></div>
+      <div><h2>Embu Level 5 Hospital</h2><div style="font-size:9px;opacity:.75">Financial Management — Payment Voucher</div></div>
       <div style="text-align:right"><div style="font-size:9px;opacity:.8">PAYMENT VOUCHER</div><div style="font-size:15px;font-weight:900">${v.voucher_number ?? ""}</div></div>
     </div>
     <table>
@@ -718,7 +718,7 @@ export default function AccountantWorkspacePage() {
       <div><div class="sig">Approved By / Date</div></div>
       <div><div class="sig">Finance Officer / Date</div></div>
     </div>
-    <div style="margin-top:20px;font-size:8px;color:#aaa;text-align:center">Embu County Government · Embu Level 5 Hospital · EL5 MediProcure v12</div>
+    <div style="margin-top:20px;font-size:8px;color:#aaa;text-align:center">Embu County Government · Embu Level 5 Hospital</div>
     </body></html>`);
     w.document.close(); setTimeout(() => w.print(), 400);
   }
@@ -736,10 +736,10 @@ export default function AccountantWorkspacePage() {
     .hdr{background:linear-gradient(135deg,#1a3580,#2a5fc3);color:#fff;padding:10px 16px;margin:-20px -20px 16px;display:flex;justify-content:space-between}
     table{width:100%;border-collapse:collapse}th{background:#dbd9c9;padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px}
     td{padding:3px 8px;border:1px solid #ccc;font-size:10px}tr:nth-child(even){background:#f5f4ea}</style>
-    </head><body><div class="hdr"><div><strong>EL5 MediProcure — Payment Vouchers Report</strong><br/><small>Embu Level 5 Hospital · ${new Date().toLocaleDateString()}</small></div><div>Total: ${pv.length} vouchers</div></div>
+    </head><body><div class="hdr"><div><strong>Embu Level 5 Hospital — Payment Vouchers Report</strong><br/><small>${new Date().toLocaleDateString()}</small></div><div>Total: ${pv.length} vouchers</div></div>
     <table><thead><tr><th>Voucher No.</th><th>Payee</th><th>Method</th><th>GL Account</th><th>Status</th><th>Amount</th><th>Date</th><th>Approved By</th></tr></thead>
     <tbody>${rows}</tbody></table>
-    <div style="margin-top:12px;font-size:9px;color:#aaa;text-align:center">EL5 MediProcure v12 · ${new Date().toLocaleString()}</div>
+    <div style="margin-top:12px;font-size:9px;color:#aaa;text-align:center">Generated ${new Date().toLocaleString()}</div>
     </body></html>`);
     w.document.close(); setTimeout(() => w.print(), 400);
   }
