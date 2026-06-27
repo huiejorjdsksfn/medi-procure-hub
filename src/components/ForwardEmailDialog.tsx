@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunctionWithRetry } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
@@ -162,7 +163,7 @@ export default function ForwardEmailDialog({
         recipientIds.push(user.id);
       }
 
-      const { error } = await supabase.functions.invoke("send-email", {
+      const { error: emailErr } = await invokeFunctionWithRetry("send-email", {
         body: {
           sender_id: user?.id,
           sender_name: profile?.full_name || "System",
@@ -176,7 +177,14 @@ export default function ForwardEmailDialog({
           priority,
         },
       });
-      if (error) throw error;
+      // Edge-function failure = downgrade to warning; DB record already saved
+      if (emailErr) {
+        console.warn("[ForwardEmail] Edge function delivery failed:", emailErr.message);
+        toast({
+          title: "Saved internally — external delivery failed",
+          description: "The document was forwarded internally. Email notification may be delayed.",
+        });
+      }
 
       // Update record status
       if (onForwardStatus) await onForwardStatus(record.id);

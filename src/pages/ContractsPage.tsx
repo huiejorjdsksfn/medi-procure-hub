@@ -13,8 +13,9 @@ import { Plus, Search, RefreshCw, Eye, FileText, X, Save, Download, AlertTriangl
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DocumentStamp } from "@/components/DocumentStamp";
+import { genDocNumber } from "@/lib/docNumber";
 
-const genNo = () => `CNT/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+const genNo = () => genDocNumber("CNT");
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
 const fmtDate = (d:string) => d?new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}):"-";
 

@@ -46,9 +46,10 @@ const lbl: React.CSSProperties = {
   letterSpacing:"0.05em", color:"#6b7280", marginBottom:4,
 };
 
+import { genDocNumber } from "@/lib/docNumber";
+
 function genPONumber() {
-  const d = new Date();
-  return `PO-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(Math.floor(Math.random()*9000)+1000)}`;
+  return genDocNumber("PO");
 }
 
 export default function PurchaseOrdersPage() {
@@ -471,10 +472,10 @@ export default function PurchaseOrdersPage() {
             <div style={{overflowY:"auto",flex:1,padding:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
 
-                {/* PO Number */}
+                {/* PO Number — auto-generated, not user-editable */}
                 <div>
-                  <label style={lbl}>PO Number *</label>
-                  <input value={form.po_number} onChange={e=>updateFormField("po_number", e.target.value)} style={{...inp,borderColor:errors.po_number?"#dc2626":"#e5e7eb"}}/>
+                  <label style={lbl}>PO Number <span style={{fontWeight:400,color:"#9ca3af"}}>(auto-generated)</span></label>
+                  <input value={form.po_number} readOnly style={{...inp,borderColor:"#e5e7eb",background:"#f3f4f6",color:"#6b7280",cursor:"not-allowed"}}/>
                   <ErrMsg field="po_number"/>
                 </div>
 

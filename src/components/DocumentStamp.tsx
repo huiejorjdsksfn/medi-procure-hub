@@ -4,6 +4,7 @@
  * curved top/bottom text, day/month/year date block, and optional
  * worn-ink texture. Used across all procurement documents.
  */
+import { useStampOverrides } from "@/hooks/useStampOverrides";
 
 export type StampStatus =
   | 'approved' | 'rejected' | 'pending' | 'submitted' | 'received'
@@ -18,6 +19,11 @@ interface StampCfg {
   botArc:   string;   // text curved along bottom ring
   star?:    boolean;  // show ★ decorators
 }
+
+/* Two-tone official stamp ink — outer ring/institution name in blue,
+   centre label/date in red, matching a classic notary/embassy seal. */
+const STAMP_BLUE = '#0a3d8f';
+const STAMP_RED  = '#c81e2c';
 
 const CFG: Record<string, StampCfg> = {
   approved:     { ink:'#0d4f1c', label:'APPROVED',     topArc:'EMBU LEVEL 5 HOSPITAL',  botArc:'PROCUREMENT AUTHORITY', star:true  },
@@ -99,10 +105,17 @@ export function DocumentStamp({
   worn    = true,
   approvedBy,
 }: DocumentStampProps) {
-  const cfg = CFG[status.toLowerCase()] ?? {
+  const overrides = useStampOverrides();
+  const base = CFG[status.toLowerCase()] ?? {
     ink: '#3d3d3d', label: status.toUpperCase(),
     topArc: 'EMBU LEVEL 5 HOSPITAL', botArc: 'OFFICIAL', star: false,
   };
+  const cfg = { ...base, ...(overrides[status.toLowerCase()] || {}) };
+  // Note: label/topArc/botArc/star overrides from the Stamp Design Studio
+  // still apply in full. `ink` is intentionally no longer used to draw the
+  // rings/label/date below — every stamp now uses the fixed institutional
+  // blue/red two-tone (STAMP_BLUE/STAMP_RED) regardless of status, per
+  // explicit design direction. `ink` is kept only for the drop-shadow tint.
   const { ink, label, topArc, botArc, star } = cfg;
 
   /* geometry */
@@ -158,31 +171,31 @@ export function DocumentStamp({
 
         <g filter={worn ? `url(#${filterId})` : undefined}>
 
-          {/* ── Outer double ring ── */}
-          <circle cx={cx} cy={cy} r={rOut}  fill="none" stroke={ink} strokeWidth={size * 0.026} />
-          <circle cx={cx} cy={cy} r={rOut - size * 0.038} fill="none" stroke={ink} strokeWidth={size * 0.012} />
+          {/* ── Outer double ring (blue) ── */}
+          <circle cx={cx} cy={cy} r={rOut}  fill="none" stroke={STAMP_BLUE} strokeWidth={size * 0.026} />
+          <circle cx={cx} cy={cy} r={rOut - size * 0.038} fill="none" stroke={STAMP_BLUE} strokeWidth={size * 0.012} />
 
-          {/* ── Inner ring ── */}
-          <circle cx={cx} cy={cy} r={rIn2}  fill="none" stroke={ink} strokeWidth={size * 0.012} />
+          {/* ── Inner ring (red) ── */}
+          <circle cx={cx} cy={cy} r={rIn2}  fill="none" stroke={STAMP_RED} strokeWidth={size * 0.012} />
 
-          {/* ── Top arc text ── */}
+          {/* ── Top arc text (blue) ── */}
           <ArcText text={topArc} cx={cx} cy={cy} r={rMid}
             startDeg={topStart} endDeg={topEnd}
-            fontSize={fs} ink={ink} bold />
+            fontSize={fs} ink={STAMP_BLUE} bold />
 
-          {/* ── Bottom arc text ── */}
+          {/* ── Bottom arc text (blue) ── */}
           <ArcText text={botArc} cx={cx} cy={cy} r={rMid}
             startDeg={botStart} endDeg={botEnd} flip
-            fontSize={fs} ink={ink} bold />
+            fontSize={fs} ink={STAMP_BLUE} bold />
 
-          {/* ── Stars at sides ── */}
+          {/* ── Stars at sides (blue) ── */}
           {star && (
             <>
               {[-1, 1].map(side => {
                 const sx = cx + side * (rMid);
                 return (
                   <text key={side} x={sx} y={cy} textAnchor="middle"
-                    dominantBaseline="middle" fill={ink}
+                    dominantBaseline="middle" fill={STAMP_BLUE}
                     fontSize={fs * 1.1} fontWeight="900"
                     fontFamily="Arial, sans-serif">★</text>
                 );
@@ -190,36 +203,36 @@ export function DocumentStamp({
             </>
           )}
 
-          {/* ── Main label ── */}
+          {/* ── Main label (red) ── */}
           <text x={cx} y={cy - size * 0.13}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsLabel} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsLabel} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif"
             letterSpacing={size * 0.004}>
             {label}
           </text>
 
-          {/* ── Divider lines ── */}
+          {/* ── Divider lines (red) ── */}
           <line x1={cx - rIn2 * 0.72} y1={cy - size * 0.028}
                 x2={cx + rIn2 * 0.72} y2={cy - size * 0.028}
-                stroke={ink} strokeWidth={lineW} />
+                stroke={STAMP_RED} strokeWidth={lineW} />
           <line x1={cx - rIn2 * 0.72} y1={cy + size * 0.13}
                 x2={cx + rIn2 * 0.72} y2={cy + size * 0.13}
-                stroke={ink} strokeWidth={lineW} />
+                stroke={STAMP_RED} strokeWidth={lineW} />
 
-          {/* ── Date block: DAY  |  MON  |  YEAR ── */}
+          {/* ── Date block: DAY  |  MON  |  YEAR (red) ── */}
           {/* vertical separators */}
           <line x1={cx - size * 0.055} y1={cy - size * 0.025}
                 x2={cx - size * 0.055} y2={cy + size * 0.125}
-                stroke={ink} strokeWidth={lineW * 0.8} />
+                stroke={STAMP_RED} strokeWidth={lineW * 0.8} />
           <line x1={cx + size * 0.055} y1={cy - size * 0.025}
                 x2={cx + size * 0.055} y2={cy + size * 0.125}
-                stroke={ink} strokeWidth={lineW * 0.8} />
+                stroke={STAMP_RED} strokeWidth={lineW * 0.8} />
 
           {/* DAY */}
           <text x={cx - size * 0.165} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsDate} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsDate} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {DAY}
           </text>
@@ -227,7 +240,7 @@ export function DocumentStamp({
           {/* MON */}
           <text x={cx} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsMon} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsMon} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {MON}
           </text>
@@ -235,16 +248,16 @@ export function DocumentStamp({
           {/* YEAR */}
           <text x={cx + size * 0.165} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsDate * 0.82} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsDate * 0.82} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {YEAR}
           </text>
 
-          {/* ── Approved-by (small, below date) ── */}
+          {/* ── Approved-by (small, below date, red) ── */}
           {approvedBy && (
             <text x={cx} y={cy + size * 0.185}
               textAnchor="middle" dominantBaseline="middle"
-              fill={ink} fontSize={size * 0.058} fontWeight="700"
+              fill={STAMP_RED} fontSize={size * 0.058} fontWeight="700"
               fontFamily="Arial,sans-serif" opacity={0.85}>
               {approvedBy.substring(0, 18).toUpperCase()}
             </text>
@@ -260,6 +273,7 @@ export function DocumentStamp({
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { sendNotification } from '@/lib/notify';
 
 const db = supabase as any;
 
@@ -274,12 +288,13 @@ export function QuickStampButton({
   size    = 'md',
   variant = 'primary',
 }: QuickStampButtonProps) {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen]         = useState(false);
   const [tab, setTab]           = useState<'req'|'po'|'grn'>('req');
   const [docs, setDocs]         = useState<any[]>([]);
   const [loading, setLoading]   = useState(false);
   const [stamping, setStamping] = useState<string|null>(null);
+  const [error, setError]       = useState<string|null>(null);
 
   const pad: Record<string, string> = {
     sm:  '5px 12px', md: '8px 18px', lg: '10px 24px',
@@ -307,15 +322,18 @@ export function QuickStampButton({
   };
 
   const load = async (t: 'req'|'po'|'grn') => {
-    setLoading(true); setDocs([]);
+    setLoading(true); setDocs([]); setError(null);
     try {
-      const { data } = await db.from(tableMap[t])
-        .select('id,status,created_at,' + numCol[t] + ',stamped,stamped_by_name')
+      const { data, error: qErr } = await db.from(tableMap[t])
+        .select('id,status,created_at,created_by,' + numCol[t] + ',stamped,stamped_by_name')
         .in('status', statusMap[t])
         .order('created_at', { ascending: false })
         .limit(30);
+      if (qErr) throw qErr;
       setDocs(data || []);
-    } catch {}
+    } catch (e: any) {
+      setError(e?.message || 'Could not load documents');
+    }
     setLoading(false);
   };
 
@@ -329,21 +347,57 @@ export function QuickStampButton({
     await load(t);
   };
 
-  const applyStamp = async (id: string, docStatus: string) => {
+  const moduleMap: Record<string, string> = { req: 'procurement', po: 'procurement', grn: 'inventory' };
+  const labelMap:  Record<string, string> = { req: 'Requisition', po: 'Purchase Order', grn: 'Goods Received Note' };
+
+  const applyStamp = async (doc: any) => {
+    const { id, status: docStatus } = doc;
     setStamping(id);
+    setError(null);
     const now    = new Date().toISOString();
     const stamper = profile?.full_name || 'Admin';
     try {
-      await db.from(tableMap[tab]).update({
+      const { error: updErr } = await db.from(tableMap[tab]).update({
         stamped: true, stamped_by_name: stamper,
         stamped_at: now, stamp_label: docStatus.toUpperCase(),
       }).eq('id', id);
-      await db.from('audit_log').insert({
-        action: 'STAMP_APPLIED', module: 'Stamps',
-        details: `${docStatus.toUpperCase()} stamp applied by ${stamper}`,
-      });
+      if (updErr) throw updErr;
+
+      // Audit logging is best-effort only — it must never block the stamp
+      // from showing as applied, since a schema mismatch here previously
+      // caused the whole action to silently appear to do nothing.
+      try {
+        await db.from('audit_log').insert({
+          user_id: user?.id ?? null,
+          action: 'STAMP_APPLIED',
+          entity_type: tableMap[tab],
+          entity_id: id,
+          details: { stamp: docStatus.toUpperCase(), stamped_by: stamper },
+        });
+      } catch { /* non-critical */ }
+
+      // Notify the document's owner that it's been officially stamped —
+      // applying a stamp doesn't touch `status`, so none of the existing
+      // status-change notification triggers (triggerRequisitionEvent etc.)
+      // would otherwise fire for this action.
+      if (doc.created_by && doc.created_by !== user?.id) {
+        const docNum = doc[numCol[tab]] || id.slice(0, 8);
+        try {
+          await sendNotification({
+            userId: doc.created_by,
+            title: `${labelMap[tab]} Stamped`,
+            message: `${docNum} has been officially stamped "${docStatus.toUpperCase()}" by ${stamper}.`,
+            type: 'success',
+            module: moduleMap[tab],
+            senderId: user?.id,
+          });
+        } catch { /* non-critical — the stamp itself already succeeded */ }
+      }
+
       await load(tab);
-    } catch {}
+    } catch (e: any) {
+      setError(e?.message || 'Could not apply stamp');
+    }
     setStamping(null);
   };
 
@@ -412,6 +466,12 @@ export function QuickStampButton({
 
             {/* body */}
             <div style={{ overflowY:'auto', padding:20, flex:1 }}>
+              {error && (
+                <div style={{ background:'#fee2e2', color:'#991b1b', borderRadius:8, padding:'10px 14px',
+                  fontSize:12, fontWeight:600, marginBottom:14 }}>
+                  {error}
+                </div>
+              )}
               {loading ? (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'#9ca3af' }}>Loading…</div>
               ) : docs.length === 0 ? (
@@ -458,7 +518,7 @@ export function QuickStampButton({
 
                         <button
                           disabled={!!stamping || alreadyStamped}
-                          onClick={() => applyStamp(doc.id, doc.status)}
+                          onClick={() => applyStamp(doc)}
                           style={{ padding:'7px 14px', borderRadius:6, border:'none',
                             background: alreadyStamped?'#d1fae5':'#0d4f1c',
                             color: alreadyStamped?'#059669':'#fff',

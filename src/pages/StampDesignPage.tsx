@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp } from "@/components/DocumentStamp";
+import { broadcastToAll } from "@/lib/broadcast";
 import {
   Search, RefreshCw, Download, Upload, RotateCcw,
   Save, Eye, Palette, Settings, Home, ChevronRight, X,
@@ -118,6 +119,11 @@ export default function StampDesignPage() {
       );
       setConfigs(prev => ({ ...prev, [selected]: { ...draft } }));
       toast({ title: `✓ ${selected.toUpperCase()} stamp saved` });
+      broadcastToAll({
+        title: "Stamp Design Updated",
+        message: `${selected.toUpperCase()} stamp was customized by ${profile?.full_name || "Admin"}.`,
+        type: "info",
+      }).catch(() => { /* non-critical — the save itself already succeeded */ });
     } catch {
       toast({ title: "Failed to save", variant: "destructive" });
     }
@@ -147,6 +153,11 @@ export default function StampDesignPage() {
       setConfigs({ ...DEFAULT_CFG });
       setDraft(null); setSelected(null);
       toast({ title: "✓ All stamps reset to defaults" });
+      broadcastToAll({
+        title: "Stamp Designs Reset",
+        message: `All stamp designs were reset to factory defaults by ${profile?.full_name || "Admin"}.`,
+        type: "warning",
+      }).catch(() => {});
     } catch {}
     setSaving(false);
   };

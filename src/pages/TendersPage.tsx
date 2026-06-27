@@ -14,8 +14,9 @@ import { Plus, Search, RefreshCw, Eye, CheckCircle, Gavel, X, Save, Download, Ma
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DocumentStamp } from "@/components/DocumentStamp";
+import { genDocNumber } from "@/lib/docNumber";
 
-const genNo = () => `T/EL5H/${new Date().getFullYear()}/${Math.floor(100+Math.random()*900)}`;
+const genNo = () => genDocNumber("TND");
 const fmtKES = (n:number) => `KES ${Number(n||0).toLocaleString("en-KE")}`;
 const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{dateStyle:"medium"}) : "-";
 

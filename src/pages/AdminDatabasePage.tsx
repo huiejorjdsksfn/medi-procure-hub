@@ -208,24 +208,49 @@ ORDER BY t.table_name;`);
     setSqlRunning(true); setSqlError(null); setSqlResult([]);
     const t0 = Date.now();
     try {
-      const { data, error } = await (supabase as any).rpc("exec_sql", { query: sql });
-      if (error) throw error;
+      // Split on semicolons, strip comment-only lines and blanks, run sequentially.
+      // (Filtering by `statement.startsWith("--")` would drop this page's own
+      // default query entirely — it starts with three header comment lines
+      // followed by a real SELECT, so the whole multi-line chunk "starts with"
+      // a comment even though it isn't one. Strip comment-only lines instead.)
+      const statements = sql
+        .split(/;(?=(?:[^']*'[^']*')*[^']*$)/)   // split on ; outside quotes
+        .map(s => s
+          .split("\n")
+          .filter(line => !line.trim().startsWith("--") && !line.trim().startsWith("/*"))
+          .join("\n")
+          .trim()
+        )
+        .filter(s => s.length > 0);
+
+      let lastData: any = [];
+      let totalRows = 0;
+
+      for (const stmt of statements) {
+        const { data, error } = await (supabase as any).rpc("exec_sql", { query: stmt });
+        if (error) throw error;
+        lastData = Array.isArray(data) ? data : [{ result: data }];
+        totalRows += lastData.length;
+      }
+
       const ms = Date.now() - t0;
       setSqlMs(ms);
-      setSqlResult(Array.isArray(data) ? data : [{ result: data }]);
-      // Log query
-      await (supabase as any).from("query_log").insert({
-        query_text: sql.slice(0,500),
-        query_type: sql.trim().slice(0,6).toUpperCase(),
-        rows_affected: Array.isArray(data) ? data.length : 0,
-        execution_ms: ms,
-        executed_by: user?.id
-      });
-      toast({ title: `- Query executed (${ms}ms, ${Array.isArray(data) ? data.length : 0} rows)` });
+      setSqlResult(lastData);
+      // Log query (best-effort, don't throw if query_log missing)
+      try {
+        await (supabase as any).from("query_log").insert({
+          query_text: sql.slice(0,500),
+          query_type: sql.trim().slice(0,6).toUpperCase(),
+          rows_affected: totalRows,
+          execution_ms: ms,
+          executed_by: user?.id
+        });
+      } catch { /* query_log table may not exist — safe to ignore */ }
+      toast({ title: `✓ Query executed (${ms}ms, ${totalRows} rows)` });
     } catch (e: any) {
       setSqlError(e.message);
       setSqlMs(Date.now() - t0);
-      toast({ title:"SQL Error: " + e.message, variant:"destructive" });
+      toast({ title: "SQL Error: " + e.message, variant: "destructive" });
     }
     setSqlRunning(false);
   }

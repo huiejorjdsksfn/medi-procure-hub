@@ -70,7 +70,7 @@ export default function GoodsReceivedPage() {
     return ()=>{(supabase as any).removeChannel(ch);};
   },[]);
 
-  const genGrn = ()=>`GRN/EL5H/${new Date().getFullYear()}/${String(Math.floor(1000+Math.random()*9000))}`;
+
 
   const printGrn = (g:any) => {
     (printGRN as any)(g, [], null, {
@@ -110,7 +110,7 @@ export default function GoodsReceivedPage() {
     const badQty = validItems2.find((it:any)=>Number(it.quantity_received)<0);
     if(badQty){toast({title:`Quantity received cannot be negative for: ${badQty.item_name}`,variant:"destructive"});return;}
     setSaving(true);
-    const num = form.grn_number||genGrn();
+    const num = form.grn_number||generateGRNNumber();
     const supp = suppliers.find(s=>s.id===form.supplier_id);
     const{data,error}=await(supabase as any).from("goods_received").insert({
       ...form, grn_number:num, supplier_name:supp?.name||form.supplier_name,

@@ -3,6 +3,7 @@
  * Goods Received Note lifecycle management
  * EL5 MediProcure - Embu Level 5 Hospital
  */
+import { genDocNumber } from "@/lib/docNumber";
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/audit';
 import { notifyProcurement, notifyAccountants, triggerGrnEvent } from '@/lib/notify';
@@ -102,9 +103,8 @@ export async function executeGRNAction(
   return { success: true, newStatus };
 }
 
-export function generateGRNNumber(prefix = 'GRN/EL5H'): string {
-  const d = new Date();
-  return `${prefix}/${d.getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`;
+export function generateGRNNumber(): string {
+  return genDocNumber("GRN");
 }
 
 export const GRN_STATUS_CONFIG: Record<GRNStatus, { label: string; bg: string; color: string }> = {
