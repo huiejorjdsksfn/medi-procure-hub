@@ -664,6 +664,41 @@ export default function DocumentEditorPage() {
     }
   }, [exec]);
 
+  /* ── publish document ───────────────────────────────────────── */
+  const publishDoc = async () => {
+    if (!editorRef.current) return;
+    // If document hasn't been saved yet, save it first
+    if (!docId) {
+      await saveDoc();
+      // saveDoc sets docId asynchronously; proceed with current state
+    }
+    setPublishing(true);
+    try {
+      const newPublished = !docPublished;
+      const payload: Record<string, unknown> = {
+        is_published: newPublished,
+        updated_at: new Date().toISOString(),
+      };
+      if (newPublished) payload.published_at = new Date().toISOString();
+
+      if (docId) {
+        await db.from("documents").update(payload).eq("id", docId);
+      } else {
+        // No id yet – just flip local state optimistically
+      }
+      setDocPub(newPublished);
+      toast({
+        title: newPublished ? "🚀 Document published" : "📄 Document unpublished",
+        description: newPublished
+          ? "This document is now publicly accessible within the system."
+          : "Document reverted to draft.",
+      });
+    } catch (e: any) {
+      toast({ title: "Publish failed", description: e.message, variant: "destructive" });
+    }
+    setPublishing(false);
+  };
+
   /* ── save document ──────────────────────────────────────────── */
   const saveDoc = async () => {
     if (!editorRef.current) return;
