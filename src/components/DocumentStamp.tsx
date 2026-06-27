@@ -20,6 +20,11 @@ interface StampCfg {
   star?:    boolean;  // show ★ decorators
 }
 
+/* Two-tone official stamp ink — outer ring/institution name in blue,
+   centre label/date in red, matching a classic notary/embassy seal. */
+const STAMP_BLUE = '#0a3d8f';
+const STAMP_RED  = '#c81e2c';
+
 const CFG: Record<string, StampCfg> = {
   approved:     { ink:'#0d4f1c', label:'APPROVED',     topArc:'EMBU LEVEL 5 HOSPITAL',  botArc:'PROCUREMENT AUTHORITY', star:true  },
   rejected:     { ink:'#8b0000', label:'REJECTED',     topArc:'EMBU LEVEL 5 HOSPITAL',  botArc:'NOT APPROVED',          star:false },
@@ -106,6 +111,11 @@ export function DocumentStamp({
     topArc: 'EMBU LEVEL 5 HOSPITAL', botArc: 'OFFICIAL', star: false,
   };
   const cfg = { ...base, ...(overrides[status.toLowerCase()] || {}) };
+  // Note: label/topArc/botArc/star overrides from the Stamp Design Studio
+  // still apply in full. `ink` is intentionally no longer used to draw the
+  // rings/label/date below — every stamp now uses the fixed institutional
+  // blue/red two-tone (STAMP_BLUE/STAMP_RED) regardless of status, per
+  // explicit design direction. `ink` is kept only for the drop-shadow tint.
   const { ink, label, topArc, botArc, star } = cfg;
 
   /* geometry */
@@ -161,31 +171,31 @@ export function DocumentStamp({
 
         <g filter={worn ? `url(#${filterId})` : undefined}>
 
-          {/* ── Outer double ring ── */}
-          <circle cx={cx} cy={cy} r={rOut}  fill="none" stroke={ink} strokeWidth={size * 0.026} />
-          <circle cx={cx} cy={cy} r={rOut - size * 0.038} fill="none" stroke={ink} strokeWidth={size * 0.012} />
+          {/* ── Outer double ring (blue) ── */}
+          <circle cx={cx} cy={cy} r={rOut}  fill="none" stroke={STAMP_BLUE} strokeWidth={size * 0.026} />
+          <circle cx={cx} cy={cy} r={rOut - size * 0.038} fill="none" stroke={STAMP_BLUE} strokeWidth={size * 0.012} />
 
-          {/* ── Inner ring ── */}
-          <circle cx={cx} cy={cy} r={rIn2}  fill="none" stroke={ink} strokeWidth={size * 0.012} />
+          {/* ── Inner ring (red) ── */}
+          <circle cx={cx} cy={cy} r={rIn2}  fill="none" stroke={STAMP_RED} strokeWidth={size * 0.012} />
 
-          {/* ── Top arc text ── */}
+          {/* ── Top arc text (blue) ── */}
           <ArcText text={topArc} cx={cx} cy={cy} r={rMid}
             startDeg={topStart} endDeg={topEnd}
-            fontSize={fs} ink={ink} bold />
+            fontSize={fs} ink={STAMP_BLUE} bold />
 
-          {/* ── Bottom arc text ── */}
+          {/* ── Bottom arc text (blue) ── */}
           <ArcText text={botArc} cx={cx} cy={cy} r={rMid}
             startDeg={botStart} endDeg={botEnd} flip
-            fontSize={fs} ink={ink} bold />
+            fontSize={fs} ink={STAMP_BLUE} bold />
 
-          {/* ── Stars at sides ── */}
+          {/* ── Stars at sides (blue) ── */}
           {star && (
             <>
               {[-1, 1].map(side => {
                 const sx = cx + side * (rMid);
                 return (
                   <text key={side} x={sx} y={cy} textAnchor="middle"
-                    dominantBaseline="middle" fill={ink}
+                    dominantBaseline="middle" fill={STAMP_BLUE}
                     fontSize={fs * 1.1} fontWeight="900"
                     fontFamily="Arial, sans-serif">★</text>
                 );
@@ -193,36 +203,36 @@ export function DocumentStamp({
             </>
           )}
 
-          {/* ── Main label ── */}
+          {/* ── Main label (red) ── */}
           <text x={cx} y={cy - size * 0.13}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsLabel} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsLabel} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif"
             letterSpacing={size * 0.004}>
             {label}
           </text>
 
-          {/* ── Divider lines ── */}
+          {/* ── Divider lines (red) ── */}
           <line x1={cx - rIn2 * 0.72} y1={cy - size * 0.028}
                 x2={cx + rIn2 * 0.72} y2={cy - size * 0.028}
-                stroke={ink} strokeWidth={lineW} />
+                stroke={STAMP_RED} strokeWidth={lineW} />
           <line x1={cx - rIn2 * 0.72} y1={cy + size * 0.13}
                 x2={cx + rIn2 * 0.72} y2={cy + size * 0.13}
-                stroke={ink} strokeWidth={lineW} />
+                stroke={STAMP_RED} strokeWidth={lineW} />
 
-          {/* ── Date block: DAY  |  MON  |  YEAR ── */}
+          {/* ── Date block: DAY  |  MON  |  YEAR (red) ── */}
           {/* vertical separators */}
           <line x1={cx - size * 0.055} y1={cy - size * 0.025}
                 x2={cx - size * 0.055} y2={cy + size * 0.125}
-                stroke={ink} strokeWidth={lineW * 0.8} />
+                stroke={STAMP_RED} strokeWidth={lineW * 0.8} />
           <line x1={cx + size * 0.055} y1={cy - size * 0.025}
                 x2={cx + size * 0.055} y2={cy + size * 0.125}
-                stroke={ink} strokeWidth={lineW * 0.8} />
+                stroke={STAMP_RED} strokeWidth={lineW * 0.8} />
 
           {/* DAY */}
           <text x={cx - size * 0.165} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsDate} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsDate} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {DAY}
           </text>
@@ -230,7 +240,7 @@ export function DocumentStamp({
           {/* MON */}
           <text x={cx} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsMon} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsMon} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {MON}
           </text>
@@ -238,16 +248,16 @@ export function DocumentStamp({
           {/* YEAR */}
           <text x={cx + size * 0.165} y={cy + size * 0.052}
             textAnchor="middle" dominantBaseline="middle"
-            fill={ink} fontSize={fsDate * 0.82} fontWeight="900"
+            fill={STAMP_RED} fontSize={fsDate * 0.82} fontWeight="900"
             fontFamily="'Arial Black',Arial,sans-serif">
             {YEAR}
           </text>
 
-          {/* ── Approved-by (small, below date) ── */}
+          {/* ── Approved-by (small, below date, red) ── */}
           {approvedBy && (
             <text x={cx} y={cy + size * 0.185}
               textAnchor="middle" dominantBaseline="middle"
-              fill={ink} fontSize={size * 0.058} fontWeight="700"
+              fill={STAMP_RED} fontSize={size * 0.058} fontWeight="700"
               fontFamily="Arial,sans-serif" opacity={0.85}>
               {approvedBy.substring(0, 18).toUpperCase()}
             </text>

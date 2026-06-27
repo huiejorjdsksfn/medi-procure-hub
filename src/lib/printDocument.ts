@@ -97,8 +97,10 @@ export async function addLetterhead(doc: jsPDF, title: string, docNo: string): P
  * Draws a formal, circular official document stamp — double ring border,
  * the hospital name curved along the inner rim (classic notary/seal
  * styling), and a bold centre label (e.g. APPROVED / PAID / POSTED) with
- * the county name and a date line beneath it. Rendered in translucent
- * navy ink so it reads as a genuine stamp rather than printed text.
+ * the county name and a date line beneath it. Two-tone ink to match the
+ * on-screen stamp: the ring + institution name in blue, the centre
+ * label/date in red, so it reads as a genuine official seal rather than
+ * printed text.
  */
 function drawOfficialStamp(
   doc: jsPDF,
@@ -107,7 +109,8 @@ function drawOfficialStamp(
   opts: { label: string; subLabel?: string; radius?: number },
 ): void {
   const r = opts.radius ?? 17;
-  const inkR = 0, inkG = 51, inkB = 102; // formal navy ink
+  const blueR = 10, blueG = 61,  blueB = 143; // ring / institution name
+  const redR  = 200, redG = 30,  redB  = 44;  // centre label / date
 
   doc.saveGraphicsState?.();
   try {
@@ -120,16 +123,16 @@ function drawOfficialStamp(
 
   // Slight rotation for a hand-stamped, authentic feel
   const angle = -6;
-  doc.setDrawColor(inkR, inkG, inkB);
-  doc.setTextColor(inkR, inkG, inkB);
 
-  // Outer + inner ring
+  // Outer + inner ring (blue)
+  doc.setDrawColor(blueR, blueG, blueB);
   doc.setLineWidth(0.7);
   doc.circle(cx, cy, r, "S");
   doc.setLineWidth(0.35);
   doc.circle(cx, cy, r - 2.2, "S");
 
-  // Curved hospital name along the inner-top rim, letter by letter
+  // Curved hospital name along the inner-top rim, letter by letter (blue)
+  doc.setTextColor(blueR, blueG, blueB);
   const rimText = `* ${HOSPITAL.name} * EMBU COUNTY *`;
   const textRadius = r - 4.2;
   doc.setFont("helvetica", "bold");
@@ -147,12 +150,13 @@ function drawOfficialStamp(
     doc.text(rimText[i], tx, ty, { align: "center", angle: glyphAngle });
   }
 
-  // Centre label (APPROVED / PAID / POSTED / etc.)
+  // Centre label (APPROVED / PAID / POSTED / etc.) — red
+  doc.setTextColor(redR, redG, redB);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.2);
   doc.text(opts.label.toUpperCase(), cx, cy + 1.5, { align: "center", angle });
 
-  // Sub-label (county / date) beneath the centre label, along the bottom rim
+  // Sub-label (county / date) beneath the centre label, along the bottom rim — red
   if (opts.subLabel) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(4.4);
