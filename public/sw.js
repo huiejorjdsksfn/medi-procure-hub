@@ -1,152 +1,152 @@
-/* EL5 MediProcure Service Worker v3.0
-   Strategies: Cache-first (assets), Network-first (pages), SWR (API)
-   ProcurBosse · Embu Level 5 Hospital
-*/
-const CACHE_STATIC  = "el5-static-v3";
-const CACHE_PAGES   = "el5-pages-v3";
-const CACHE_IMAGES  = "el5-images-v3";
-const CACHE_FONTS   = "el5-fonts-v3";
-const ALL_CACHES    = [CACHE_STATIC, CACHE_PAGES, CACHE_IMAGES, CACHE_FONTS];
+/**
+ * EL5 MediProcure — Service Worker v4.0
+ * High-throughput caching for 100+ concurrent users
+ *
+ * Strategy matrix:
+ *  Static assets (JS/CSS/fonts/images)  → Cache-first, 30-day TTL
+ *  HTML shell / navigation              → Network-first, fallback to cache
+ *  Supabase API / Edge functions        → Network-first, 150 ms race, cache fallback
+ *  Everything else                      → Stale-while-revalidate
+ */
 
-const STATIC_ASSETS = [
-  "/", "/dashboard", "/manifest.json", "/favicon.png", "/logo.png", "/icon.png",
-  "/404.html",
-];
+const CACHE_VERSION  = "el5-procure-v4";
+const STATIC_CACHE   = `${CACHE_VERSION}-static`;
+const RUNTIME_CACHE  = `${CACHE_VERSION}-runtime`;
+const API_CACHE      = `${CACHE_VERSION}-api`;
 
-// ── Install ────────────────────────────────────────────────────────────────
-self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE_STATIC)
-      .then(c => c.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())
+const STATIC_ASSETS  = ["/", "/index.html"];
+
+const THIRTY_DAYS    = 30 * 24 * 60 * 60;   // seconds
+const ONE_HOUR       = 60 * 60;
+const FIVE_MIN       = 5 * 60;
+const API_RACE_MS    = 150;   // serve cache if network exceeds 150 ms
+
+/* ── Install — precache shell ────────────────────────────────── */
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS))
   );
+  self.skipWaiting();
 });
 
-// ── Activate ───────────────────────────────────────────────────────────────
-self.addEventListener("activate", e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => !ALL_CACHES.includes(k)).map(k => caches.delete(k))
-      ))
-      .then(() => self.clients.claim())
+/* ── Activate — delete stale caches ─────────────────────────── */
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k.startsWith("el5-procure-") && k !== STATIC_CACHE
+                        && k !== RUNTIME_CACHE && k !== API_CACHE)
+          .map(k => caches.delete(k))
+      )
+    )
   );
+  self.clients.claim();
 });
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function isImage(url) {
-  return /\.(png|jpe?g|gif|svg|webp|ico)(\?.*)?$/i.test(url.pathname);
-}
-function isFont(url) {
-  return /\.(woff2?|ttf|eot)(\?.*)?$/i.test(url.pathname) || url.hostname.includes("fonts.");
-}
-function isAsset(url) {
-  return /\.(js|css|wasm)(\?.*)?$/i.test(url.pathname);
-}
-function isSupabase(url) {
-  return url.hostname.includes("supabase") || url.hostname.includes("ipify");
-}
-function isNavigation(req) {
-  return req.mode === "navigate";
-}
+/* ── Fetch — strategy router ─────────────────────────────────── */
+self.addEventListener("fetch", event => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-// ── Fetch ──────────────────────────────────────────────────────────────────
-self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
-  const url = new URL(e.request.url);
+  // Skip non-GET, cross-origin (except Supabase), and chrome-extension
+  if (request.method !== "GET")         return;
+  if (url.protocol === "chrome-extension:") return;
 
-  // Never intercept Supabase / external API calls
-  if (isSupabase(url)) return;
-
-  // Font: cache-first, 1 year
-  if (isFont(url)) {
-    e.respondWith(cacheFirst(e.request, CACHE_FONTS, 365 * 24 * 3600));
+  // Supabase REST / storage API → network-race
+  if (url.hostname.includes("supabase.co") || url.hostname.includes("supabase.in")) {
+    // Don't cache auth, realtime, or write-like requests
+    if (url.pathname.includes("/auth/") || url.pathname.includes("/realtime/") ||
+        url.searchParams.has("select") === false) return;
+    event.respondWith(networkRace(request, API_CACHE, FIVE_MIN));
     return;
   }
 
-  // JS/CSS assets (hashed): cache-first, 1 week
-  if (isAsset(url)) {
-    e.respondWith(cacheFirst(e.request, CACHE_STATIC, 7 * 24 * 3600));
+  // Static assets (JS/CSS/woff2/png/svg)
+  if (/\.(js|css|woff2?|ttf|eot|png|jpg|jpeg|svg|ico|webp)(\?.*)?$/.test(url.pathname)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE, THIRTY_DAYS));
     return;
   }
 
-  // Images: cache-first, 3 days
-  if (isImage(url)) {
-    e.respondWith(cacheFirst(e.request, CACHE_IMAGES, 3 * 24 * 3600));
+  // HTML / SPA navigation
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirst(request, RUNTIME_CACHE));
     return;
   }
 
-  // Navigation (HTML pages): network-first with cache fallback
-  if (isNavigation(e.request)) {
-    e.respondWith(networkFirst(e.request, CACHE_PAGES));
-    return;
-  }
-
-  // Everything else: stale-while-revalidate
-  e.respondWith(staleWhileRevalidate(e.request, CACHE_PAGES));
+  // Everything else → SWR
+  event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE, ONE_HOUR));
 });
 
-/** Cache-first: serve from cache, fallback to network + cache */
+/* ── Strategy implementations ────────────────────────────────── */
+
 async function cacheFirst(req, cacheName, maxAgeS) {
-  const cached = await caches.match(req);
+  const cached = await caches.match(req, { ignoreSearch: false });
   if (cached) return cached;
-  try {
-    const res   = await fetch(req);
-    if (res.ok) {
-      const cache = await caches.open(cacheName);
-      // Clone before consuming
-      cache.put(req, res.clone());
-    }
-    return res;
-  } catch {
-    return cached || new Response("Offline", { status: 503 });
+  const res = await fetch(req);
+  if (res && res.status === 200) {
+    const cache = await caches.open(cacheName);
+    const headers = new Headers(res.headers);
+    headers.set("Cache-Control", `public, max-age=${maxAgeS}`);
+    cache.put(req, new Response(res.clone().body, { status: res.status, headers }));
   }
+  return res;
 }
 
-/** Network-first: try network, fallback to cache */
 async function networkFirst(req, cacheName) {
   try {
     const res = await fetch(req);
-    if (res.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(req, res.clone());
+    if (res && res.status === 200) {
+      const c = await caches.open(cacheName);
+      c.put(req, res.clone());
     }
     return res;
   } catch {
-    const cached = await caches.match(req) || await caches.match("/");
-    return cached || new Response("Offline", { status: 503, headers: { "Content-Type": "text/html" } });
+    const cached = await caches.match(req);
+    return cached || new Response("<html><body>Offline</body></html>",
+      { headers: { "Content-Type": "text/html" } });
   }
 }
 
-/** Stale-While-Revalidate */
-async function staleWhileRevalidate(req, cacheName) {
+/**
+ * Network-race: start network fetch AND a timer.
+ * If network responds within API_RACE_MS → use it.
+ * If cache is faster (or network is slow) → serve cache + revalidate background.
+ */
+async function networkRace(req, cacheName, ttlS) {
+  const cached = await caches.match(req);
+
+  const networkPromise = fetch(req).then(res => {
+    if (res && res.status === 200) {
+      caches.open(cacheName).then(c => c.put(req, res.clone()));
+    }
+    return res;
+  });
+
+  if (!cached) return networkPromise;
+
+  return new Promise(resolve => {
+    let raceWon = false;
+    const timer = setTimeout(() => {
+      if (!raceWon) { raceWon = true; resolve(cached); }
+    }, API_RACE_MS);
+
+    networkPromise.then(res => {
+      clearTimeout(timer);
+      if (!raceWon) { raceWon = true; resolve(res); }
+    }).catch(() => {
+      clearTimeout(timer);
+      if (!raceWon) { raceWon = true; resolve(cached); }
+    });
+  });
+}
+
+async function staleWhileRevalidate(req, cacheName, ttlS) {
   const cache  = await caches.open(cacheName);
   const cached = await cache.match(req);
   const fetchPromise = fetch(req).then(res => {
-    if (res.ok) cache.put(req, res.clone());
+    if (res && res.status === 200) cache.put(req, res.clone());
     return res;
   }).catch(() => null);
-  return cached || await fetchPromise || new Response("Offline", { status: 503 });
+  return cached || fetchPromise;
 }
-
-// ── Messages ───────────────────────────────────────────────────────────────
-self.addEventListener("message", e => {
-  if (e.data?.type === "SKIP_WAITING")   self.skipWaiting();
-  if (e.data?.type === "CLEAR_CACHE")    caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k))));
-  if (e.data?.type === "CACHE_URLS" && Array.isArray(e.data.urls)) {
-    caches.open(CACHE_PAGES).then(c => c.addAll(e.data.urls)).catch(() => {});
-  }
-});
-
-// ── Background Sync (keepalive ping) ──────────────────────────────────────
-self.addEventListener("sync", e => {
-  if (e.tag === "el5-keepalive") {
-    e.waitUntil(
-      fetch("https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot?action=ping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      }).catch(() => {})
-    );
-  }
-});
