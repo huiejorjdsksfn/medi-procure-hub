@@ -21,31 +21,66 @@ export default function ResetPasswordPage() {
   useEffect(() => { setTimeout(() => setMounted(true), 80); }, []);
 
   useEffect(() => {
-    // auth-callback.html preserves Supabase tokens as search params: ?access_token=...&type=recovery
-    // Also handle direct hash tokens for backwards compatibility
-    const search     = window.location.search;  // "?access_token=...&type=recovery"
-    const fullHash   = window.location.hash;    // "#/reset-password" or legacy "#access_token=..."
-    
-    const hasTokens =
-      search.includes("type=recovery")    ||
-      search.includes("access_token")     ||
-      fullHash.includes("type=recovery")  ||
-      fullHash.includes("access_token");
+    let resolved = false;
+    const finish = (s: Stage, msg?: string) => {
+      if (resolved) return;
+      resolved = true;
+      if (msg !== undefined) setErrMsg(msg);
+      setStage(s);
+    };
 
-    if (hasTokens) {
-      // If tokens are in search params, Supabase needs them as hash fragment
-      // Move ?access_token=...&type=recovery → set as hash so supabase.auth.getSession() picks them up
-      if (search.includes("access_token") || search.includes("type=recovery")) {
-        const tokens = search.slice(1); // strip leading ?
-        try {
-          // Supabase detectSessionFromUrl reads from window.location.hash
-          window.history.replaceState(null, "", window.location.pathname + "#" + tokens);
-          // Re-run Supabase session detection
-          (window as any).__supabase_auth_token = tokens;
-        } catch {}
+    // Supabase fires this distinctly (not a generic SIGNED_IN) when it auto-detects
+    // recovery params from the URL itself — catches the case where its own
+    // detectSessionInUrl beats our manual parsing below.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        window.history.replaceState(null, "", `${window.location.pathname}#/reset-password`);
+        finish("update");
       }
-      setStage("update");
-    }
+    });
+
+    (async () => {
+      // With HashRouter, Supabase's redirect params can land either as a real
+      // query string (?code=...) or embedded inside the hash after the route
+      // path (e.g. "#/reset-password?code=...&type=recovery"), since everything
+      // after the first "#" belongs to the fragment as far as the browser is
+      // concerned. Collect params from both places.
+      const realQuery = window.location.search.replace(/^\?/, "");
+      const hashPart  = window.location.hash.replace(/^#/, "");
+      const hashQuery = hashPart.includes("?") ? hashPart.split("?")[1] : "";
+      const params = new URLSearchParams([realQuery, hashQuery].filter(Boolean).join("&"));
+
+      const errorDescription = params.get("error_description") || params.get("error");
+      const code = params.get("code");
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+
+      if (errorDescription) {
+        finish("error", decodeURIComponent(errorDescription.replace(/\+/g, " ")));
+        return;
+      }
+      if (resolved) return; // PASSWORD_RECOVERY listener above already handled it
+
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (error) throw error;
+        } else {
+          return; // no recovery params at all — plain visit to /reset-password, show the request form
+        }
+        if (resolved) return;
+        // Strip the token/code out of the address bar so it isn't left in history.
+        window.history.replaceState(null, "", `${window.location.pathname}#/reset-password`);
+        finish("update");
+      } catch (e: any) {
+        finish("error", e?.message || "This reset link is invalid or has expired.");
+      }
+    })();
+
+    return () => { sub.subscription.unsubscribe(); };
   }, []);
 
   function calcStrength(p: string) {
@@ -62,7 +97,7 @@ export default function ResetPasswordPage() {
     if (!email.trim()) { setErrMsg("Please enter your email address."); return; }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth-callback`,
+      redirectTo: `${window.location.origin}/#/reset-password`,
     });
     setLoading(false);
     if (error) { setErrMsg(error.message); return; }
@@ -127,11 +162,13 @@ export default function ResetPasswordPage() {
           </div>
 
           {/* Stage icon */}
-          <div style={{ width: 64, height: 64, borderRadius: 16, background: stage === "done" ? "linear-gradient(135deg,#22c55e,#16a34a)" : `linear-gradient(135deg,${TEAL},#1d4ed8)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 12px 32px ${stage === "done" ? "rgba(34,197,94,0.4)" : "rgba(14,116,144,0.4)"}` }}>
+          <div style={{ width: 64, height: 64, borderRadius: 16, background: stage === "done" ? "linear-gradient(135deg,#22c55e,#16a34a)" : stage === "error" ? "linear-gradient(135deg,#ef4444,#b91c1c)" : `linear-gradient(135deg,${TEAL},#1d4ed8)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 12px 32px ${stage === "done" ? "rgba(34,197,94,0.4)" : stage === "error" ? "rgba(239,68,68,0.4)" : "rgba(14,116,144,0.4)"}` }}>
             {stage === "done"
               ? <svg width="30" height="30" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
               : stage === "sent"
               ? <svg width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              : stage === "error"
+              ? <svg width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               : <svg width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             }
           </div>
@@ -141,17 +178,19 @@ export default function ResetPasswordPage() {
             {stage === "sent" && "Email Sent!"}
             {stage === "update" && "Set New Password"}
             {stage === "done" && "Password Updated!"}
+            {stage === "error" && "Link Problem"}
           </div>
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13 }}>
             {stage === "request" && "We'll send a secure reset link to your email"}
             {stage === "sent" && `Check ${email || "your inbox"} for the reset link`}
             {stage === "update" && "Create a strong new password for your account"}
             {stage === "done" && "You'll be redirected to login shortly"}
+            {stage === "error" && "We couldn't verify that link"}
           </div>
         </div>
 
         {/* Error */}
-        {errMsg && (
+        {errMsg && stage !== "error" && (
           <div style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "12px 16px", color: "#fca5a5", fontSize: 13, marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 8 }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>-</span>
             <span>{errMsg}</span>
@@ -292,6 +331,30 @@ export default function ResetPasswordPage() {
             <Link to="/login" style={{ display: "block", width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
               Go to Login Now
             </Link>
+          </>
+        )}
+
+        {/* ERROR */}
+        {stage === "error" && (
+          <>
+            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 14, padding: "28px", textAlign: "center", marginBottom: 24 }}>
+              <svg width="36" height="36" fill="none" stroke="#fca5a5" strokeWidth="2" viewBox="0 0 24 24" style={{ margin: "0 auto 12px" }}>
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div style={{ color: "#fca5a5", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Link Expired or Invalid</div>
+              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 1.7 }}>
+                {errMsg || "This reset link is no longer valid."}<br/>
+                Reset links can only be used once and expire after a short time.
+              </div>
+            </div>
+            <button
+              onClick={() => { setErrMsg(""); setStage("request"); }}
+              style={{ width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
+              Request a New Link
+            </button>
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <Link to="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>- Back to Login</Link>
+            </div>
           </>
         )}
 
