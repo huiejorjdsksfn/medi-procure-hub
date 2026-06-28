@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import embuLogo from "@/assets/embu-county-logo.jpg";
 
 type Stage = "request" | "sent" | "update" | "done" | "error";
 
 export default function ResetPasswordPage() {
+  const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("request");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,7 +78,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
     if (error) { setErrMsg(error.message); return; }
     setStage("done");
-    setTimeout(() => { window.location.href = "/#/login"; }, 3500);
+    setTimeout(() => { navigate("/login"); }, 3500);
   }
 
   const strengthColors = ["#ef4444","#f97316","#eab308","#22c55e"];
@@ -176,7 +178,7 @@ export default function ResetPasswordPage() {
               {loading ? "Sending Reset Link-" : "Send Reset Link -"}
             </button>
             <div style={{ textAlign: "center", marginTop: 20 }}>
-              <a href="/#/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>- Back to Login</a>
+              <Link to="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>- Back to Login</Link>
             </div>
           </>
         )}
@@ -197,9 +199,9 @@ export default function ResetPasswordPage() {
               Didn't receive it? Check spam, or{" "}
               <span style={{ color: "#60a5fa", cursor: "pointer", textDecoration: "underline" }} onClick={() => setStage("request")}>try again</span>.
             </div>
-            <a href="/#/login" style={{ display: "block", width: "100%", padding: "13px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.35)" }}>
+            <Link to="/login" style={{ display: "block", width: "100%", padding: "13px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.35)" }}>
               Back to Login
-            </a>
+            </Link>
           </>
         )}
 
@@ -287,9 +289,9 @@ export default function ResetPasswordPage() {
                 Redirecting you to login in a moment-
               </div>
             </div>
-            <a href="/#/login" style={{ display: "block", width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
+            <Link to="/login" style={{ display: "block", width: "100%", padding: "14px", background: `linear-gradient(135deg, ${TEAL}, #0c6380)`, border: "none", borderRadius: 10, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 8px 24px rgba(14,116,144,0.4)" }}>
               Go to Login Now
-            </a>
+            </Link>
           </>
         )}
 
