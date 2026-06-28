@@ -28,7 +28,7 @@ import procurementBg from "@/assets/procurement-bg.jpg";
 
 const db = supabase as any;
 
-type Tab = "devices" | "geo" | "sessions" | "realtime" | "access_log" | "cache";
+type Tab = "devices" | "geo" | "sessions" | "realtime" | "access_log" | "cache" | "edgeone";
 
 function fmtDT(s: string) {
   if (!s) return "—";
@@ -79,6 +79,7 @@ const TABS: { id: Tab; label: string; icon: string; col: string }[] = [
   { id: "realtime",   label: "Real-Time Feed",   icon: "📡", col: "#0369a1" },
   { id: "access_log", label: "Access Log",       icon: "📋", col: "#c2410c" },
   { id: "cache",      label: "Session Cache",    icon: "💾", col: "#0891b2" },
+  { id: "edgeone",    label: "EdgeOne CDN",      icon: "🌐", col: "#7c3aed" },
 ];
 
 export default function AdminTrackerPage() {
@@ -98,6 +99,56 @@ export default function AdminTrackerPage() {
   const rtChan = useRef<any>(null);
   const inp: React.CSSProperties = { ...erpStyles.inp, fontSize: 11 };
 
+  /* ── EdgeOne CDN state ──────────────────────────────────────── */
+  const [eoData,       setEoData]       = useState<any>(null);
+  const [eoLoading,    setEoLoading]    = useState(false);
+  const [eoPurging,    setEoPurging]    = useState(false);
+  const [eoLastFetch,  setEoLastFetch]  = useState<string|null>(null);
+
+  const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  ?? "";
+  const SUPA_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+
+  const loadEdgeOne = useCallback(async () => {
+    setEoLoading(true);
+    try {
+      const res = await fetch(`${SUPA_URL}/functions/v1/edgeone-stats?action=overview`, {
+        headers: { Authorization: `Bearer ${SUPA_ANON}`, "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEoData(data);
+        setEoLastFetch(new Date().toLocaleString("en-KE"));
+      } else {
+        const err = await res.text();
+        setEoData({ error: `HTTP ${res.status}: ${err.slice(0, 200)}` });
+      }
+    } catch (e: any) {
+      setEoData({ error: e.message });
+    }
+    setEoLoading(false);
+  }, [SUPA_URL, SUPA_ANON]);
+
+  const triggerPurge = async () => {
+    if (!window.confirm("Trigger EdgeOne CDN cache purge + redeploy? This will push the latest build live.")) return;
+    setEoPurging(true);
+    try {
+      const res = await fetch(`${SUPA_URL}/functions/v1/edgeone-stats?action=purge`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SUPA_ANON}`, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.triggered) {
+        toast({ title: "🚀 EdgeOne cache purge triggered", description: `Deployment ID: ${data.deployment_id}` });
+      } else {
+        toast({ title: "⚠️ Purge result", description: JSON.stringify(data).slice(0, 120), variant: "destructive" });
+      }
+      await loadEdgeOne();
+    } catch (e: any) {
+      toast({ title: "Purge failed", description: e.message, variant: "destructive" });
+    }
+    setEoPurging(false);
+  };
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     const [devRes, sessRes, logRes] = await Promise.allSettled([
@@ -113,6 +164,9 @@ export default function AdminTrackerPage() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Load EdgeOne stats when that tab is opened
+  useEffect(() => { if (tab === "edgeone" && !eoData) loadEdgeOne(); }, [tab, eoData, loadEdgeOne]);
 
   // Auto-refresh
   useEffect(() => {
@@ -214,11 +268,12 @@ export default function AdminTrackerPage() {
   const uniqueISPs      = [...new Set(devices.map(d => d.geo?.isp).filter(Boolean))];
 
   const KPIs = [
-    { label: "DEVICES SEEN",  val: devices.length,          col: "#1d4ed8", icon: "🖥" },
-    { label: "COUNTRIES",     val: uniqueCountries.length,  col: "#059669", icon: "🌍" },
-    { label: "ACTIVE SESSIONS",val: activeSessions.length, col: "#16a34a", icon: "🟢" },
-    { label: "DENIED ATTEMPTS",val: deniedLogs.length,     col: "#cc0000", icon: "🚫" },
-    { label: "AUDIT EVENTS",  val: accessLog.length,        col: "#c2410c", icon: "📋" },
+    { label: "DEVICES SEEN",   val: devices.length,          col: "#1d4ed8", icon: "🖥" },
+    { label: "COUNTRIES",      val: uniqueCountries.length,  col: "#059669", icon: "🌍" },
+    { label: "ACTIVE SESSIONS",val: activeSessions.length,   col: "#16a34a", icon: "🟢" },
+    { label: "DENIED ATTEMPTS",val: deniedLogs.length,       col: "#cc0000", icon: "🚫" },
+    { label: "AUDIT EVENTS",   val: accessLog.length,        col: "#c2410c", icon: "📋" },
+    { label: "CDN STATUS",     val: eoData?.health?.ok ? "UP" : eoData ? "?" : "—", col: eoData?.health?.ok ? "#7c3aed" : "#6b7280", icon: "🌐" },
   ];
 
   return (
@@ -509,6 +564,151 @@ export default function AdminTrackerPage() {
           </div>
         )}
 
+        {/* ══════ EDGEONE CDN ══════ */}
+        {tab === "edgeone" && (() => {
+          const health  = eoData?.health ?? null;
+          const stats   = eoData?.stats  ?? null;
+          const project = eoData?.project ?? null;
+          const deploys: any[] = eoData?.deployments ?? [];
+          const statusColor = (s: string) =>
+            s === "success" || s === "active" || s === "published" ? "#4ade80"
+            : s === "failed" || s === "error" ? "#f87171"
+            : s === "building" || s === "deploying" ? "#fbbf24"
+            : "#94a3b8";
+
+          return (
+            <div>
+              {/* Toolbar */}
+              <div style={{ background: "#1a0040", border: "1px solid #7c3aed44", padding: "8px 12px", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderRadius: 4 }}>
+                <span style={{ fontSize: 12, color: "#c4b5fd", fontWeight: 700 }}>🌐 EdgeOne CDN — procurbosse.edgeone.app</span>
+                <span style={{ fontSize: 10, color: "#7c3aed", marginLeft: 4 }}>
+                  {eoLastFetch ? `Updated: ${eoLastFetch}` : "Not loaded"}
+                </span>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                  <button onClick={loadEdgeOne} disabled={eoLoading} style={{ padding: "3px 10px", background: "#7c3aed22", border: "1px solid #7c3aed", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer", opacity: eoLoading ? 0.5 : 1 }}>
+                    {eoLoading ? "⏳ Loading…" : "↻ Refresh"}
+                  </button>
+                  <button onClick={triggerPurge} disabled={eoPurging || eoLoading} style={{ padding: "3px 10px", background: "#7c3aed", border: "1px solid #a78bfa", borderRadius: 4, color: "#fff", fontSize: 10, cursor: "pointer", fontWeight: 700, opacity: eoPurging ? 0.6 : 1 }}>
+                    {eoPurging ? "🚀 Purging…" : "🚀 Purge Cache"}
+                  </button>
+                  <a href="https://procurbosse.edgeone.app" target="_blank" rel="noreferrer" style={{ padding: "3px 10px", background: "#ffffff11", border: "1px solid #7c3aed44", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer", textDecoration: "none" }}>↗ Open Site</a>
+                </div>
+              </div>
+
+              {eoData?.error && (
+                <div style={{ background: "#3b0000", border: "1px solid #ef4444", borderRadius: 4, padding: "10px 14px", marginBottom: 8, color: "#fca5a5", fontSize: 11 }}>
+                  ❌ EdgeOne API Error: {eoData.error}
+                </div>
+              )}
+
+              {eoLoading && !eoData && (
+                <div style={{ textAlign: "center", padding: 40, color: "#7c3aed" }}>⏳ Fetching EdgeOne data…</div>
+              )}
+
+              {eoData && !eoData.error && (
+                <>
+                  {/* Health + Stats KPIs */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)", gap: 8, marginBottom: 10 }}>
+                    {[
+                      { icon: "🟢", label: "SITE STATUS",      val: health?.ok ? "ONLINE" : "⚠️ DOWN", col: health?.ok ? "#4ade80" : "#f87171" },
+                      { icon: "⚡", label: "LATENCY",          val: health?.latency_ms != null ? `${health.latency_ms} ms` : "—", col: health?.latency_ms < 300 ? "#4ade80" : health?.latency_ms < 800 ? "#fbbf24" : "#f87171" },
+                      { icon: "📦", label: "TOTAL DEPLOYS",    val: stats?.total ?? 0,    col: "#c4b5fd" },
+                      { icon: "✅", label: "SUCCESSFUL",       val: stats?.success ?? 0,  col: "#4ade80" },
+                      { icon: "❌", label: "FAILED DEPLOYS",   val: stats?.failed ?? 0,   col: stats?.failed > 0 ? "#f87171" : "#6b7280" },
+                    ].map((k, i) => (
+                      <div key={i} style={{ background: "#1e0050", border: "1px solid #7c3aed44", padding: "10px 14px", borderRadius: 4 }}>
+                        <div style={{ fontSize: 16 }}>{k.icon}</div>
+                        <div style={{ fontWeight: 800, fontSize: isMobile ? 16 : 20, color: k.col, marginTop: 2 }}>{String(k.val)}</div>
+                        <div style={{ fontSize: 9, color: "#a78bfa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 3 }}>{k.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Health Details */}
+                  {health && (
+                    <div style={{ background: "#0d0020", border: "1px solid #7c3aed44", borderRadius: 4, padding: "10px 14px", marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", marginBottom: 8 }}>🩺 Live Health Check — {health.url}</div>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 8 }}>
+                        {[
+                          { label: "HTTP Status",   val: health.status ?? "—",          col: health.status === 200 ? "#4ade80" : "#f87171" },
+                          { label: "Response Time", val: health.latency_ms != null ? `${health.latency_ms}ms` : "—", col: "#c4b5fd" },
+                          { label: "Cache-Control", val: health.cache_control ?? "not set", col: health.cache_control?.includes("no-store") ? "#4ade80" : "#fbbf24" },
+                          { label: "CDN Cache",     val: health.cf_cache ?? "—",         col: "#94a3b8" },
+                          { label: "Server",        val: health.server ?? "—",            col: "#94a3b8" },
+                          { label: "Age",           val: health.age != null ? `${health.age}s` : "—", col: Number(health.age) > 0 ? "#fbbf24" : "#4ade80" },
+                          { label: "Via",           val: health.via ?? "—",               col: "#94a3b8" },
+                          { label: "Checked At",    val: health.checked_at ? new Date(health.checked_at).toLocaleTimeString("en-KE") : "—", col: "#6b7280" },
+                        ].map((r, i) => (
+                          <div key={i} style={{ background: "#1a0040", borderRadius: 3, padding: "6px 10px" }}>
+                            <div style={{ fontSize: 9, color: "#7c3aed", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>{r.label}</div>
+                            <div style={{ fontSize: 11, color: r.col, fontWeight: 600, wordBreak: "break-all" }}>{r.val}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {health.error && <div style={{ marginTop: 8, color: "#f87171", fontSize: 11 }}>❌ Error: {health.error}</div>}
+                    </div>
+                  )}
+
+                  {/* Project Info */}
+                  {project && (
+                    <div style={{ background: "#0d0020", border: "1px solid #7c3aed44", borderRadius: 4, padding: "10px 14px", marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", marginBottom: 8 }}>📁 Project Details</div>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 6 }}>
+                        {Object.entries(project).filter(([, v]) => typeof v !== "object").slice(0, 9).map(([k, v]) => (
+                          <div key={k} style={{ background: "#1a0040", borderRadius: 3, padding: "5px 10px" }}>
+                            <div style={{ fontSize: 9, color: "#7c3aed", fontWeight: 700, textTransform: "uppercase" }}>{k.replace(/_/g, " ")}</div>
+                            <div style={{ fontSize: 11, color: "#c4b5fd", marginTop: 1, wordBreak: "break-all" }}>{String(v ?? "—")}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Deployments List */}
+                  <div style={{ background: "#0d0020", border: "1px solid #7c3aed44", borderRadius: 4, padding: "10px 14px", marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+                      <span>🚀 Recent Deployments ({deploys.length})</span>
+                      {stats?.latest_at && <span style={{ fontSize: 10, color: "#7c3aed" }}>Latest: {new Date(stats.latest_at).toLocaleString("en-KE")}</span>}
+                    </div>
+                    {deploys.length === 0 && (
+                      <div style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: "16px 0" }}>
+                        No deployments found — deploy via GitHub Actions or EdgeOne CLI
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 320, overflowY: "auto" }}>
+                      {deploys.map((d: any, i: number) => (
+                        <div key={d.id ?? i} style={{ background: i === 0 ? "#2d0060" : "#1a0040", border: `1px solid ${i === 0 ? "#7c3aed" : "#3a0080"}`, borderRadius: 3, padding: "7px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          {i === 0 && <span style={{ fontSize: 9, fontWeight: 800, background: "#7c3aed", color: "#fff", padding: "1px 6px", borderRadius: 10, flexShrink: 0 }}>LATEST</span>}
+                          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7c3aed", flexShrink: 0 }}>#{(d.id ?? "").slice(-8) || `${i + 1}`}</span>
+                          <span style={{ fontWeight: 700, fontSize: 11, color: statusColor(d.status ?? ""), flexShrink: 0 }}>
+                            {d.status === "success" || d.status === "active" || d.status === "published" ? "✅"
+                              : d.status === "failed" || d.status === "error" ? "❌"
+                              : d.status === "building" || d.status === "deploying" ? "⏳" : "❓"} {d.status ?? "unknown"}
+                          </span>
+                          {d.commit_message && <span style={{ fontSize: 10, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.commit_message}</span>}
+                          {d.branch && <span style={{ fontSize: 9, color: "#7c3aed", background: "#3a0080", padding: "1px 6px", borderRadius: 4 }}>⎇ {d.branch}</span>}
+                          {d.url && <a href={d.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: "#c4b5fd", textDecoration: "none" }}>↗ View</a>}
+                          <span style={{ fontSize: 9, color: "#4b5563", marginLeft: "auto", flexShrink: 0 }}>
+                            {d.created_at ? new Date(d.created_at).toLocaleString("en-KE") : d.updated_at ? new Date(d.updated_at).toLocaleString("en-KE") : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Raw API response toggle */}
+                  <details style={{ background: "#0a0018", border: "1px solid #3a0080", borderRadius: 4, padding: "6px 10px" }}>
+                    <summary style={{ fontSize: 10, color: "#7c3aed", cursor: "pointer", userSelect: "none" }}>🔍 Raw EdgeOne API response</summary>
+                    <pre style={{ fontSize: 9, color: "#6b7280", overflowX: "auto", marginTop: 6, maxHeight: 200, overflowY: "auto" }}>
+                      {JSON.stringify(eoData, null, 2).slice(0, 3000)}
+                    </pre>
+                  </details>
+                </>
+              )}
+            </div>
+          );
+        })()}
+
       </div>
 
       {/* Status Bar */}
@@ -518,6 +718,7 @@ export default function AdminTrackerPage() {
         <span>|</span><span>🟢 {activeSessions.length} active</span>
         <span>|</span><span>🚫 {deniedLogs.length} denied</span>
         <span>|</span><span>💾 {cacheEntries.length} cache</span>
+        <span>|</span><span style={{ color: eoData?.health?.ok ? "#a78bfa" : "#6b7280" }}>🌐 CDN {eoData?.health?.ok ? `✅ ${eoData.health.latency_ms}ms` : eoData ? "⚠️" : "—"}</span>
         {rtActive && <><span>|</span><span style={{ color: "#7dd3fc", fontWeight: 700 }}>📡 LIVE</span></>}
         {autoRefresh && <><span>|</span><span style={{ color: "#22c55e", fontWeight: 700 }}>🔴 AUTO 15s</span></>}
         <span style={{ marginLeft: "auto" }}>EL5 Admin Tracker v2.1 · RESTRICTED · {new Date().toLocaleTimeString("en-KE")}</span>
