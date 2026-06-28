@@ -231,9 +231,9 @@ function SettingsInner() {
               {[
                 {k:"smtp_host",      l:"SMTP Host",    p:"smtp.gmail.com"},
                 {k:"smtp_port",      l:"SMTP Port",    p:"587"},
-                {k:"smtp_user",      l:"Username",     p:"noreply@embu.go.ke"},
+                {k:"smtp_user",      l:"Username",     p:"hpdeskg9@gmail.com"},
                 {k:"smtp_from_name", l:"From Name",    p:"EL5 MediProcure"},
-                {k:"smtp_from_email",l:"From Email",   p:"noreply@embu.go.ke"},
+                {k:"smtp_from_email",l:"From Email",   p:"hpdeskg9@gmail.com"},
               ].map(f => (
                 <FR key={f.k} label={f.l} color="#059669">
                   <input value={get(f.k)} onChange={e=>set(f.k,e.target.value)} style={{...inp,width:260}} placeholder={f.p} />
