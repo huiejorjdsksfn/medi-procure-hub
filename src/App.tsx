@@ -33,6 +33,7 @@ import PurchaseOrdersPage from "@/pages/PurchaseOrdersPage";
 import SuppliersPage from "@/pages/SuppliersPage";
 import GoodsReceivedPage from "@/pages/GoodsReceivedPage";
 import DepartmentsPage from "@/pages/DepartmentsPage";
+import FacilitiesPage  from "@/pages/FacilitiesPage";
 import ReportsPage from "@/pages/ReportsPage";
 import AboutPage from "@/pages/AboutPage";
 import ContractsPage from "@/pages/ContractsPage";
@@ -163,6 +164,7 @@ const App = () => {
             <Route path="/items" element={<P><ItemsPage /></P>} />
             <Route path="/categories" element={<P><CategoriesPage /></P>} />
             <Route path="/departments" element={<P><DepartmentsPage /></P>} />
+            <Route path="/facilities"  element={<P><FacilitiesPage  /></P>} />
             <Route path="/scanner" element={<P><ScannerPage /></P>} />
 
             {/* Vouchers - finance roles added */}

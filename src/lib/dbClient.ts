@@ -78,7 +78,6 @@ class UnifiedDBClient {
 
   /** MySQL queries via Supabase edge function proxy */
   private mysqlProxy(table: string) {
-    const self = this;
     /* Returns a chainable object that mirrors supabase-js query builder */
     const q: any = {
       _table: table, _select: "*", _filters: [] as any[], _order: null as any,
@@ -93,13 +92,13 @@ class UnifiedDBClient {
       limit(n: number) { q._limit=n; return q; },
       single() { q._single=true; return q; },
       maybeSingle() { q._single=true; return q; },
-      insert(data: any) { return self.mysqlMutate("INSERT", table, data); },
-      update(data: any) { const uq={...q,_data:data}; return self.mysqlMutate("UPDATE", table, data, q._filters); },
-      delete() { return self.mysqlMutate("DELETE", table, null, q._filters); },
-      upsert(data: any, opts?: any) { return self.mysqlMutate("UPSERT", table, data, q._filters, opts); },
+      insert: (data: any) => this.mysqlMutate("INSERT", table, data),
+      update: (data: any) => { const uq={...q,_data:data}; return this.mysqlMutate("UPDATE", table, data, q._filters); },
+      delete: () => this.mysqlMutate("DELETE", table, null, q._filters),
+      upsert: (data: any, opts?: any) => this.mysqlMutate("UPSERT", table, data, q._filters, opts),
 
-      then(resolve: any, reject: any) {
-        return self.mysqlExec(q).then(resolve, reject);
+      then: (resolve: any, reject: any) => {
+        return this.mysqlExec(q).then(resolve, reject);
       }
     };
     return q;

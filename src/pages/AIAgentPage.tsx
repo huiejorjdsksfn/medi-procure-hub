@@ -375,8 +375,8 @@ export default function AIAgentPage() {
     for (const ch of channels) {
       if ((ch==="sms"||ch==="whatsapp") && apvPhone) {
         const r = await sendSms({ to:apvPhone, message:apvMsg, channel:ch as any, module:"ai_approval", recipientName:"Approver", department:apvDept });
-        r.ok ? (sent++, addLog("success","Approval Agent",ch,`Sent to ${apvPhone}`,apvRef))
-              : (failed++, addLog("error","Approval Agent",ch,`Failed: ${r.error}`,apvRef));
+        if (r.ok) { sent++;   addLog("success","Approval Agent",ch,`Sent to ${apvPhone}`,apvRef); }
+        else       { failed++; addLog("error",  "Approval Agent",ch,`Failed: ${r.error}`,apvRef); }
       }
       if (ch==="email" && apvEmail) {
         try {

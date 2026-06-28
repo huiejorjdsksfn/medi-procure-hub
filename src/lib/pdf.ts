@@ -20,7 +20,7 @@ export function printDocument(title: string, content: string) {
       @media print{body{margin:0}.no-print{display:none}}
     </style>
   </head><body>${content}
-  <script>window.onload=()=>{window.print();}<\/script>
+  <script>window.onload=()=>{window.print();}</script>
   </body></html>`);
   win.document.close();
 }

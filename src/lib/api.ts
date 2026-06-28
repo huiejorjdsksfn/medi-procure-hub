@@ -852,7 +852,7 @@ export const realtimeApi = {
     filter?: { column: string; value: string }
   ) => {
     const instanceId = Math.random().toString(36).slice(2, 8);
-    let channel = db.channel(`realtime:${table}:${instanceId}`).on(
+    const channel = db.channel(`realtime:${table}:${instanceId}`).on(
       "postgres_changes",
       { event: "*", schema: "public", table, ...(filter ? { filter: `${filter.column}=eq.${filter.value}` } : {}) },
       callback

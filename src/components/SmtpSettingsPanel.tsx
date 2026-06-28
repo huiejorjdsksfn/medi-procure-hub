@@ -139,7 +139,7 @@ export default function SmtpSettingsPanel() {
       if (error) throw new Error(error.message);
       const result = data?.results?.[0];
       if (data?.ok) {
-        showToast(`✓ SMS sent successfully to ${testTo}`, true), true);
+        showToast(`✓ SMS sent successfully to ${testTo}`, true);
       } else {
         showToast(`✗ SMS failed: ${result?.error || "Unknown error"}`, false);
       }
