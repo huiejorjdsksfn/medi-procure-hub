@@ -34,7 +34,7 @@ const DEFAULT: SmtpConfig = {
   smtp_secure: "true",
   smtp_user: "resend",
   smtp_pass: "",
-  smtp_from_email: "noreply@embu.go.ke",
+  smtp_from_email: "hpdeskg9@gmail.com",
   smtp_from_name: "EL5 MediProcure - ProcurBosse",
   smtp_enabled: "true",
   resend_api_key: "",
@@ -232,7 +232,7 @@ export default function SmtpSettingsPanel() {
             </div>
             <div>
               <label style={LABEL}>From Email</label>
-              <input value={config.smtp_from_email} onChange={e => set("smtp_from_email", e.target.value)} style={INP} placeholder="noreply@embu.go.ke" />
+              <input value={config.smtp_from_email} onChange={e => set("smtp_from_email", e.target.value)} style={INP} placeholder="hpdeskg9@gmail.com" />
             </div>
             <div>
               <label style={LABEL}>From Name</label>
@@ -385,7 +385,7 @@ export default function SmtpSettingsPanel() {
               <strong>3.</strong> SMTP Host: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>smtp.resend.com</code><br/>
               <strong>4.</strong> Port: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>465</code> - User: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>resend</code><br/>
               <strong>5.</strong> Password: Your Resend API key (re_xxxx-)<br/>
-              <strong>6.</strong> Sender: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>EL5 MediProcure &lt;noreply@embu.go.ke&gt;</code>
+              <strong>6.</strong> Sender: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>EL5 MediProcure &lt;hpdeskg9@gmail.com&gt;</code>
             </div>
           </div>
 
