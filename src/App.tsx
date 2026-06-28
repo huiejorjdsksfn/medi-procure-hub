@@ -88,6 +88,8 @@ import SystemReportPage from "@/pages/SystemReportPage";
 import TrackingApprovalPage from "@/pages/TrackingApprovalPage";
 import PrintEnginePage from "@/pages/PrintEnginePage";
 import ReleasesPage from "@/pages/ReleasesPage";
+import DeploymentsPage from "@/pages/DeploymentsPage";
+import CompanyOnboardingPage from "@/pages/CompanyOnboardingPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000, gcTime: 300000, refetchOnWindowFocus: false, refetchOnReconnect: "always" } }
@@ -203,6 +205,9 @@ const App = () => {
             <Route path="/audit-log" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager"]}><AuditLogPage /></RoleGuard></P>} />
             <Route path="/admin/database" element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
             <Route path="/admin/panel" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><AdminPanelPage /></RoleGuard></P>} />
+            <Route path="/admin/deployments" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><DeploymentsPage /></RoleGuard></P>} />
+            <Route path="/admin/deployments/new" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><CompanyOnboardingPage /></RoleGuard></P>} />
+            <Route path="/admin/deployments/:id" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><CompanyOnboardingPage /></RoleGuard></P>} />
             <Route path="/superadmin" element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/webmaster" element={<P><RoleGuard allowed={["admin","superadmin","webmaster"]}><WebmasterPage /></RoleGuard></P>} />
             <Route path="/admin/ip-access" element={<Navigate to="/admin/users-ip-audit" replace />} />

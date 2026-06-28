@@ -21,6 +21,8 @@ const ADMIN_CRUMBS: Record<string, { section: string; label: string }> = {
   "/gui-editor":               { section: "System",     label: "GUI Editor" },
   "/notifications":            { section: "System",     label: "Notifications" },
   "/admin/database":           { section: "Database",   label: "Database Admin" },
+  "/admin/deployments":        { section: "Database",   label: "Deployment Center" },
+  "/admin/deployments/new":    { section: "Database",   label: "New Company Onboarding" },
   "/webmaster":                { section: "Developer",  label: "Webmaster" },
   "/superadmin":               { section: "Developer",  label: "Superadmin" },
   "/reports/system-utilization":{ section: "Developer", label: "System Report" },

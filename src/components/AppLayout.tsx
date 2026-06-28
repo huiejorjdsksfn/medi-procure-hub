@@ -140,6 +140,7 @@ const MODS = [
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},
+     {l:"Deployments",        p:"/admin/deployments",     I:Server},
      {l:"Not-Found Log",      p:"/admin/not-found-log",   I:AlertTriangle},
      {l:"Webmaster",          p:"/webmaster",             I:Globe},
      {l:"Superadmin",         p:"/superadmin",            I:Radio},
