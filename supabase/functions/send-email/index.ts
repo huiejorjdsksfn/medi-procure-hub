@@ -46,12 +46,12 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
       port: cfg.smtp_port || "2525",
       user: cfg.smtp_user || "",
       pass: cfg.smtp_pass || "",
-      from_email: cfg.smtp_from_email || "noreply@embu.go.ke",
+      from_email: cfg.smtp_from_email || "hpdeskg9@gmail.com",
       from_name: cfg.smtp_from_name || "EL5 MediProcure",
       enabled: cfg.smtp_enabled === "true",
     };
   } catch {
-    return { host: "", port: "2525", user: "", pass: "", from_email: "noreply@embu.go.ke", from_name: "EL5 MediProcure", enabled: false };
+    return { host: "", port: "2525", user: "", pass: "", from_email: "hpdeskg9@gmail.com", from_name: "EL5 MediProcure", enabled: false };
   }
 }
 
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     }
 
     const smtpSettings = await getSmtpSettings();
-    const fromEmail = smtpSettings.from_email || "noreply@embu.go.ke";
+    const fromEmail = smtpSettings.from_email || "hpdeskg9@gmail.com";
     const fromName = smtpSettings.from_name || "EL5 MediProcure";
 
     let finalBody = body || "";
