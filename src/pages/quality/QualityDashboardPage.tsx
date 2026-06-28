@@ -17,7 +17,7 @@ interface Inspection {
   notes?: string; created_at: string;
 }
 interface NCR {
-  id: string; ncr_number?: string; title?: string; status: string;
+  id: string; nc_number?: string; title?: string; status: string;
   severity?: string; department?: string; reported_by?: string;
   assigned_to?: string; due_date?: string; created_at: string; resolved_at?: string;
 }
@@ -57,8 +57,8 @@ export default function QualityDashboardPage() {
     setLoading(true);
     try {
       const [insRes, ncrRes] = await Promise.allSettled([
-        db.from("quality_inspections").select("*").order("created_at",{ascending:false}).limit(100),
-        db.from("non_conformance_reports").select("*").order("created_at",{ascending:false}).limit(100),
+        db.from("inspections").select("*").order("created_at",{ascending:false}).limit(100),
+        db.from("non_conformances").select("*").order("created_at",{ascending:false}).limit(100),
       ]);
       setInspections(insRes.status==="fulfilled" ? (insRes.value.data||[]) : []);
       setNcrs(ncrRes.status==="fulfilled" ? (ncrRes.value.data||[]) : []);
@@ -71,8 +71,8 @@ export default function QualityDashboardPage() {
   async function createNCR() {
     if(!ncrForm.title){ toast({title:"Title required",variant:"destructive"}); return; }
     const num = `NCR-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
-    const { error } = await db.from("non_conformance_reports").insert({
-      ncr_number:num, title:ncrForm.title, severity:ncrForm.severity,
+    const { error } = await db.from("non_conformances").insert({
+      nc_number:num, title:ncrForm.title, severity:ncrForm.severity,
       department:ncrForm.department, notes:ncrForm.notes, due_date:ncrForm.due_date||null,
       status:"open",
     });
@@ -85,7 +85,7 @@ export default function QualityDashboardPage() {
 
   async function createInspection() {
     if(!inspForm.item_name){ toast({title:"Item name required",variant:"destructive"}); return; }
-    const { error } = await db.from("quality_inspections").insert({
+    const { error } = await db.from("inspections").insert({
       item_name:inspForm.item_name, supplier_name:inspForm.supplier_name,
       batch_number:inspForm.batch_number, quantity_inspected:parseInt(inspForm.quantity_inspected)||0,
       result:inspForm.result, notes:inspForm.notes,
@@ -100,7 +100,7 @@ export default function QualityDashboardPage() {
   }
 
   async function resolveNCR(id: string) {
-    const { error } = await db.from("non_conformance_reports").update({status:"resolved",resolved_at:new Date().toISOString()}).eq("id",id);
+    const { error } = await db.from("non_conformances").update({status:"resolved",resolved_at:new Date().toISOString()}).eq("id",id);
     if(!error){ toast({title:"✓ NCR resolved"}); fetchAll(); }
   }
 
@@ -371,7 +371,7 @@ export default function QualityDashboardPage() {
                   {loading ? <tr><td colSpan={9} style={{ padding:30, textAlign:"center" }}>Loading...</td></tr> :
                   ncrs.map((n,i)=>(
                     <tr key={n.id} style={{ background:i%2===0?"#fff":"#f7f7f7" }} onMouseEnter={e=>(e.currentTarget.style.background="#dce9ff")} onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f7f7f7")}>
-                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontSize:11, fontWeight:700, color:"#2255cc" }}>{n.ncr_number||`NCR/${new Date(n.created_at||Date.now()).getFullYear()}-AUTO`}</td>
+                      <td style={{ ...erpStyles.gridTd, fontFamily:"monospace", fontSize:11, fontWeight:700, color:"#2255cc" }}>{n.nc_number||`NCR/${new Date(n.created_at||Date.now()).getFullYear()}-AUTO`}</td>
                       <td style={erpStyles.gridTd}>{n.title||"—"}</td>
                       <td style={erpStyles.gridTd}><StatusChip status={n.severity||"medium"}/></td>
                       <td style={erpStyles.gridTd}>{n.department||"—"}</td>

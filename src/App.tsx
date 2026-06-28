@@ -41,7 +41,6 @@ import BidEvaluationsPage from "@/pages/BidEvaluationsPage";
 import ProcurementPlanningPage from "@/pages/ProcurementPlanningPage";
 import ScannerPage from "@/pages/ScannerPage";
 
-import VouchersPage from "@/pages/VouchersPage";
 import PaymentVouchersPage from "@/pages/vouchers/PaymentVouchersPage";
 import ReceiptVouchersPage from "@/pages/vouchers/ReceiptVouchersPage";
 import JournalVouchersPage from "@/pages/vouchers/JournalVouchersPage";
@@ -167,7 +166,7 @@ const App = () => {
             <Route path="/scanner" element={<P><ScannerPage /></P>} />
 
             {/* Vouchers - finance roles added */}
-            <Route path="/vouchers" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]}><VouchersPage /></RoleGuard></P>} />
+            <Route path="/vouchers" element={<Navigate to="/requisitions" replace />} />
             <Route path="/vouchers/payment" element={<P><RoleGuard allowed={["admin","procurement_manager","procurement_officer","accountant","finance_manager","finance_officer"]}><PaymentVouchersPage /></RoleGuard></P>} />
             <Route path="/vouchers/receipt" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager","finance_officer"]}><ReceiptVouchersPage /></RoleGuard></P>} />
             <Route path="/vouchers/journal" element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager","finance_officer"]}><JournalVouchersPage /></RoleGuard></P>} />
