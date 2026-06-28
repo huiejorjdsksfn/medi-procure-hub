@@ -119,7 +119,7 @@ export default function EmailPage() {
       const notifs:Msg[]=(nr.data||[]).map((n:any,i:number)=>({
         id:`n-${n.id||i}`,dbId:n.id||"",source:"notification" as const,
         type:n.type||"info",subject:n.title||"Notification",body:n.message||"",
-        from_name:"System",from_email:"system@el5h.go.ke",
+        from_name:"System",from_email:"hpdeskg9@gmail.com",
         priority:"normal",status:n.is_read?"read":"unread",
         is_read:!!n.is_read,is_starred:false,module:n.module||n.category,
         created_at:n.created_at||new Date().toISOString(),
