@@ -43,7 +43,7 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
     (data || []).forEach((r: any) => { if (r.key) cfg[r.key] = r.value || ""; });
     return {
       host: cfg.smtp_host || "",
-      port: cfg.smtp_port || "2525",
+      port: cfg.smtp_port || "587",
       user: cfg.smtp_user || "",
       pass: cfg.smtp_pass || "",
       from_email: cfg.smtp_from_email || "hpdeskg9@gmail.com",
@@ -51,7 +51,7 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
       enabled: cfg.smtp_enabled === "true",
     };
   } catch {
-    return { host: "", port: "2525", user: "", pass: "", from_email: "hpdeskg9@gmail.com", from_name: "EL5 MediProcure", enabled: false };
+    return { host: "", port: "587", user: "", pass: "", from_email: "hpdeskg9@gmail.com", from_name: "EL5 MediProcure", enabled: false };
   }
 }
 
