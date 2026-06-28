@@ -407,7 +407,7 @@ export default function AdminPanelPage() {
                   <QuickStampButton label="Stamp Documents" size="md" variant="primary" />
                   <QuickStampButton label="Quick Stamp (Outline)" size="md" variant="outline" />
                   <button
-                    onClick={() => { import("react-router-dom").then(({useNavigate}) => {}); window.location.hash = "/admin/stamp-design"; }}
+                    onClick={() => nav("/admin/stamp-design")}
                     style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", background:"transparent", color:"#0d4f1c", border:"2px solid #0d4f1c", borderRadius:6, fontWeight:700, fontSize:12, cursor:"pointer", marginTop:4 }}>
                     🎨 Open Stamp Design Studio
                   </button>

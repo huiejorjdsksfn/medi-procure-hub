@@ -23,7 +23,7 @@ import {
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
   BarChart2, Code2, Radio, Users, RefreshCw, PenLine,
-  CheckCircle, Printer, UserCheck, AlertTriangle, Menu, X as XIcon
+  CheckCircle, Printer, UserCheck, AlertTriangle, Menu, X as XIcon, Palette
 } from "lucide-react";
 
 const db = supabase as any;
@@ -115,6 +115,7 @@ const MODS = [
      {l:"Print Engine",p:"/reports/print-engine",I:Printer},
      {l:"Documents",  p:"/documents",      I:FileText},
      {l:"Document Studio",p:"/documents/editor",I:PenLine},
+     {l:"Stamp Studio",   p:"/admin/stamp-design",I:Palette},
      {l:"Audit Log",  p:"/audit-log",      I:Activity},
    ]},
   {id:"comms",label:"Communications",col:T.comms,roles:[],
