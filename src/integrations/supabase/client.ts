@@ -10,10 +10,65 @@ const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc";
 
 // Custom fetch with 15s timeout
-const timedFetch: typeof fetch = (url, options) => {
+const RAW_TIMEOUT_MS = 15000;
+function fetchWithTimeout(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const ctrl = new AbortController();
-  const id   = setTimeout(() => ctrl.abort(), 15000);
+  const id = setTimeout(() => ctrl.abort(), RAW_TIMEOUT_MS);
   return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id));
+}
+
+/**
+ * Self-heal for PostgREST's "Could not find the 'X' column of 'Y' in the
+ * schema cache" failure (PGRST204, or PGRST205 for a whole table). This has
+ * repeatedly hit production for a specific, well-understood reason: a
+ * migration adds a column, but PostgREST's own cached introspection of the
+ * schema doesn't refresh until something tells it to (NOTIFY pgrst, 'reload
+ * schema'). The column is genuinely there in Postgres the whole time — every
+ * save just fails until the cache happens to refresh on its own.
+ *
+ * This intercepts every Supabase request at the network layer (one place,
+ * covers every page in the app — none of the 40+ files calling
+ * `supabase.from(...)` directly need to change). On a response that matches
+ * this exact signature, it calls the `reload_schema_cache()` RPC (which just
+ * issues that NOTIFY) and retries the identical request once. A genuinely
+ * missing column fails the retry the same way it failed the first time, so
+ * this never masks a real problem — it only recovers the transient one.
+ */
+let lastSchemaReload = 0;
+async function looksLikeSchemaCacheMiss(res: Response): Promise<boolean> {
+  if (res.status < 400) return false;
+  try {
+    const text = await res.clone().text();
+    return /PGRST204|PGRST205|schema cache/i.test(text);
+  } catch {
+    return false;
+  }
+}
+async function reloadSchemaCache(originalUrl: RequestInfo | URL, options?: RequestInit): Promise<void> {
+  if (Date.now() - lastSchemaReload < 5000) return; // debounce a burst of failures
+  lastSchemaReload = Date.now();
+  try {
+    const u = new URL(typeof originalUrl === "string" ? originalUrl : originalUrl.toString());
+    await fetch(`${u.origin}/rest/v1/rpc/reload_schema_cache`, {
+      method: "POST",
+      headers: { ...(options?.headers as Record<string, string> | undefined), "Content-Type": "application/json" },
+      body: "{}",
+    });
+    // Give PostgREST a moment to actually pick up the NOTIFY before retrying.
+    await new Promise(r => setTimeout(r, 700));
+  } catch {
+    // Best-effort — if this fails, the retry below just reproduces the
+    // original error, which is the safe fallback.
+  }
+}
+
+const timedFetch: typeof fetch = async (url, options) => {
+  const res = await fetchWithTimeout(url, options);
+  if (await looksLikeSchemaCacheMiss(res)) {
+    await reloadSchemaCache(url, options);
+    return fetchWithTimeout(url, options);
+  }
+  return res;
 };
 
 export const supabase = createClient<Database>(URL, ANON, {
