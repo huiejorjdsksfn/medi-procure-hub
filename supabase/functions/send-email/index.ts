@@ -10,7 +10,6 @@
  * 
  * EL5 MediProcure · Embu Level 5 Hospital · Kenya
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS = {
@@ -155,7 +154,7 @@ async function logEmail(to: string, subject: string, status: string, provider: s
   } catch {}
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const url = new URL(req.url);

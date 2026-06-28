@@ -6,7 +6,6 @@
  * Channels: SMS + Email + In-App
  * EL5 MediProcure · Embu Level 5 Hospital
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const cors = {
@@ -220,7 +219,7 @@ async function handleQualityFail(body: any) {
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {

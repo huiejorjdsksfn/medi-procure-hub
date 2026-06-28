@@ -4,7 +4,6 @@
  * Sends OTP to verify a user's phone for role changes/sensitive actions
  * EL5 MediProcure · Embu Level 5 Hospital
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS = {
@@ -67,7 +66,7 @@ async function checkOTP(phone: string, code: string): Promise<{ ok: boolean; val
   return { ok: true, valid: d.status === "approved" };
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   try {
