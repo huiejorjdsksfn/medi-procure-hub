@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import { checkTwilioStatus, sendSms, makeCall } from "@/lib/sms";
 import { QuickStampButton } from "@/components/DocumentStamp";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
   LayoutDashboard, Users, Shield, Phone, Globe, Activity, Database,
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
@@ -23,6 +24,15 @@ import {
   Download, Upload, Cpu, MemoryStick, HardDriveDownload, Cloud, Terminal,
   AlertCircle, CheckCircle2, RefreshCw as Reload, ExternalLink, Link
 } from "lucide-react";
+
+/* — O365 / Tracking-Portal style tokens (matches TrackingApprovalPage / Dashboard) — */
+const O = {
+  hero:"#107C73", topBar:"#0a5a52", white:"#ffffff",
+  bg:"#f3f2f1", card:"#ffffff", border:"#edebe9",
+  text:"#323130", textSub:"#605e5c", textMt:"#a19f9d",
+  blue:"#0078d4", shadow:"0 1.6px 3.6px rgba(0,0,0,.13)",
+  font:"'Segoe UI','Segoe UI Web','Arial',sans-serif",
+};
 
 const db = supabase as any;
 
@@ -121,7 +131,7 @@ function AuditLogFeed() {
 
 export default function AdminPanelPage() {
   const nav = useNavigate();
-  const {user,roles} = useAuth();
+  const {user,roles,profile} = useAuth();
   const settings = useSystemSettings();
   const [sec, setSec] = useState("overview");
   const [kpi, setKpi] = useState<any>({});
@@ -150,6 +160,21 @@ export default function AdminPanelPage() {
   const [botLoading, setBotLoading] = useState(false);
   const [botRunning, setBotRunning] = useState(false);
   const [botRuns, setBotRuns] = useState<any[]>([]);
+  const [ipToggling, setIpToggling] = useState(false);
+
+  const ipEnabled = settings.loading ? null : settings.bool("ip_restriction_enabled");
+  const toggleIpAccess = async () => {
+    if (ipEnabled === null) return;
+    setIpToggling(true);
+    try {
+      await settings.save("ip_restriction_enabled", ipEnabled ? "false" : "true");
+      toast({ title: ipEnabled ? "IP restriction disabled" : "IP restriction enabled" });
+    } catch (e: any) {
+      toast({ title: "Failed to update IP access", description: e.message, variant: "destructive" });
+    }
+    setIpToggling(false);
+  };
+  const greeting = (() => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; })();
 
   /* Load KPIs */
   const loadKpi = useCallback(async()=>{
@@ -306,34 +331,84 @@ export default function AdminPanelPage() {
   const fmtAgo=(s:string)=>{const d=Date.now()-new Date(s).getTime();return d<60000?`${Math.floor(d/1000)}s`:d<3600000?`${Math.floor(d/60000)}m`:`${Math.floor(d/3600000)}h`;};
 
   return (
-    <div style={S.page}>
+    <div style={{ background:O.bg, minHeight:"100vh", fontFamily:O.font, color:O.text }}>
       <AdminBreadcrumb />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      {/* D365-style page header */}
-      <div style={S.header}>
-        <div style={{width:36,height:36,borderRadius:T.r,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}><LayoutDashboard size={18} color={T.primary}/></div>
-        <div>
-          <h1 style={{margin:0,fontSize:18,fontWeight:700,color:T.fg}}>Administration</h1>
-          <div style={{fontSize:12,color:T.fgMuted}}>System control - Live IP monitor - User management - Twilio configuration</div>
+      {/* Top bar */}
+      <div style={{ background:O.topBar, height:44, display:"flex", alignItems:"center", padding:"0 24px", gap:8 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,5px)", gap:2 }}>
+          {Array(9).fill(0).map((_,i)=><div key={i} style={{ width:5,height:5,background:"rgba(255,255,255,.7)",borderRadius:1 }}/>)}
         </div>
-        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
-          <button onClick={()=>{loadKpi();loadUsers();loadIPData();}} style={S.btn(T.bg2,T.fg)}><RefreshCw size={13}/> Refresh</button>
-          <button onClick={()=>nav("/users")} style={S.btn(T.primary)}><Users size={13}/> Manage Users</button>
+        <span style={{ color:O.white, fontWeight:700, fontSize:14, marginLeft:6 }}>EL5 MediProcure</span>
+        <div style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center" }}>
+          <button onClick={()=>nav("/notifications")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex" }}><Bell size={16}/></button>
+          <button onClick={()=>nav("/settings")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex" }}><Settings size={16}/></button>
+          <div style={{ width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+            <span style={{ color:O.white,fontWeight:700,fontSize:11 }}>{(profile?.full_name||"A").charAt(0).toUpperCase()}</span>
+          </div>
         </div>
       </div>
 
-      <div style={S.body}>
-        {/* - D365 LEFT SIDEBAR - */}
-        <div style={S.sidebar}>
+      {/* Teal hero */}
+      <div style={{ background:O.hero, padding:"28px 24px 34px" }}>
+        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom:16 }}>
+          <div>
+            <h1 style={{ color:O.white, fontSize:24, fontWeight:300, margin:"0 0 4px", letterSpacing:"-.02em" }}>
+              {greeting}, {profile?.full_name?.split(" ")[0]||"Administrator"}
+            </h1>
+            <div style={{ color:"rgba(255,255,255,.7)", fontSize:12 }}>
+              Administration · System control · Live IP monitor · User management
+            </div>
+          </div>
+          <QuickStampButton label="Official Stamp" size="md" variant="outline"/>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={()=>{loadKpi();loadUsers();loadIPData();}}
+            style={{ padding:"8px 12px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:O.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
+            <RefreshCw size={11}/> Refresh
+          </button>
+          <button onClick={()=>nav("/users")}
+            style={{ padding:"8px 12px",background:O.white,border:"none",borderRadius:2,color:O.hero,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
+            <Users size={11}/> Manage Users
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding:"0 24px 32px" }}>
+
+        {/* KPI strip */}
+        <div style={{ display:"flex", gap:10, marginTop:16, marginBottom:20, flexWrap:"wrap" }}>
+          {[
+            { label:"Users",         val:kpi.users,    color:T.primary },
+            { label:"Pending Reqs",  val:kpi.reqs,     color:T.warning },
+            { label:"Open POs",      val:kpi.pos,      color:"#7719aa" },
+            { label:"Suppliers",     val:kpi.suppliers,color:T.inventory },
+            { label:"Items",        val:kpi.items,    color:T.quality },
+            { label:"Notifications",val:kpi.unread,   color:T.error },
+          ].map(b=>(
+            <div key={b.label} style={{ background:O.card, border:`1px solid ${O.border}`, borderTop:`3px solid ${b.color}`, borderRadius:2, padding:"10px 16px", boxShadow:O.shadow, minWidth:120 }}>
+              <div style={{ fontSize:22, fontWeight:800, color:b.color }}>{b.val??0}</div>
+              <div style={{ fontSize:10, color:O.textSub, fontWeight:600, textTransform:"uppercase", letterSpacing:".04em" }}>{b.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick access tile grid — replaces the old left sidebar */}
+        <p style={{ fontSize:12, color:O.textSub, margin:"0 0 10px" }}>Quick access</p>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:20 }}>
           {NAVS.map(n=>(
-            <button key={n.id} onClick={()=>setSec(n.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 16px",background:sec===n.id?`${n.col}12`:"transparent",border:"none",borderLeft:`3px solid ${sec===n.id?n.col:"transparent"}`,color:sec===n.id?n.col:T.fgMuted,fontSize:13,fontWeight:sec===n.id?600:400,cursor:"pointer",transition:"all .12s"}}
-              onMouseEnter={e=>{(e.currentTarget as any).style.background=`${n.col}0a`;}}
-              onMouseLeave={e=>{(e.currentTarget as any).style.background=sec===n.id?`${n.col}12`:"transparent";}}>
-              <n.icon size={15} style={{flexShrink:0}}/>{n.label}
+            <button key={n.id} onClick={()=>setSec(n.id)}
+              style={{ width:82,height:82,background:n.col,border:sec===n.id?`2px solid ${O.text}`:"none",borderRadius:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",boxShadow:O.shadow,transition:"opacity .15s,transform .15s",opacity:sec===n.id?1:.92 }}
+              onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.opacity="1"; el.style.transform="translateY(-2px)"; }}
+              onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.opacity=sec===n.id?"1":".92"; el.style.transform="none"; }}>
+              <n.icon size={20} color={O.white} strokeWidth={1.5}/>
+              <span style={{ color:O.white,fontSize:9,fontWeight:700,textAlign:"center",lineHeight:1.2,padding:"0 3px" }}>{n.label}</span>
             </button>
           ))}
         </div>
+
+        <div style={{ borderTop:`1px solid ${O.border}`, marginBottom:16 }}/>
 
         {/* - MAIN CONTENT AREA - */}
         <div style={S.main}>
