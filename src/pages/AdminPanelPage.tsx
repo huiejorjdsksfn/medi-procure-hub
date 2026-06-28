@@ -110,6 +110,16 @@ function AuditLogFeed() {
   };
   const getColor = (action: string) =>
     Object.entries(actionColor).find(([k]) => action?.toLowerCase().includes(k.toLowerCase()))?.[1] ?? "#64748b";
+  const renderDetails = (d: any): string => {
+    if (d == null) return "—";
+    if (typeof d === "string") return d || "—";
+    if (typeof d === "object") {
+      const keys = Object.keys(d);
+      if (keys.length === 0) return "—";
+      try { return JSON.stringify(d); } catch { return "—"; }
+    }
+    return String(d);
+  };
   if (rows.length === 0) return <div style={{padding:"16px",fontSize:12,color:"#94a3b8",textAlign:"center"}}>No audit entries yet</div>;
   return (
     <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
@@ -120,7 +130,7 @@ function AuditLogFeed() {
             <td style={{padding:"7px 14px"}}>
               <span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:`${getColor(r.action)}18`,color:getColor(r.action),fontWeight:600,whiteSpace:"nowrap"}}>{r.action?.replace(/_/g," ")?.slice(0,22)}</span>
             </td>
-            <td style={{padding:"7px 14px",color:"#374151",fontSize:11,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.details||"—"}</td>
+            <td style={{padding:"7px 14px",color:"#374151",fontSize:11,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{renderDetails(r.details)}</td>
             <td style={{padding:"7px 14px",color:"#9ca3af",fontSize:11,whiteSpace:"nowrap"}}>{r.created_at ? new Date(r.created_at).toLocaleString("en-KE",{dateStyle:"short",timeStyle:"short"}) : "—"}</td>
           </tr>
         ))}
@@ -504,6 +514,7 @@ export default function AdminPanelPage() {
                     {l:"AI Agent Hub",      p:"/ai-agent",         col:"#7c3aed"},
                     {l:"DB Monitor",        p:"/admin/db-test",    col:T.quality},
                     {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
+                    {l:"Deployment Center", p:"/admin/deployments",col:"#0078d4"},
                     {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
                     {l:"IP Access Control", p:"/admin/users-ip-audit",  col:T.error},
                   ].map(a=>(
