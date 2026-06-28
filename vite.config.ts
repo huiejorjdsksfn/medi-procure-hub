@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks,
         // Preload critical chunks immediately
-        experimentalMinChunkSize: 10_000,
+        // experimentalMinChunkSize: 10_000, // removed for Rollup compat
       },
     },
     chunkSizeWarningLimit: 1_000,
