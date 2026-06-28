@@ -131,7 +131,7 @@ div[style*="padding: 20px"],div[style*="padding:20px"],
 div[style*="padding: 24px"],div[style*="padding:24px"]{padding:10px 8px!important}
 div[style*="padding: 16px"],div[style*="padding:16px"]{padding:8px 6px!important}
 
-/* ─── TABLE: auto mobile card view ─── */
+/* ─── TABLE: auto mobile card view (theme-aware) ─── */
 table.m-card{
   display:block!important;
   width:100%!important;
@@ -141,23 +141,17 @@ table.m-card thead{display:none!important}
 table.m-card tbody{display:block!important;width:100%!important}
 table.m-card tr{
   display:block!important;
-  background:#fff!important;
-  border:1px solid #e5e7eb!important;
   border-radius:8px!important;
   margin-bottom:8px!important;
   overflow:hidden!important;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06)!important;
   font-size:13px!important;
 }
-table.m-card tr:nth-child(even){background:#fafafa!important}
 table.m-card td{
   display:flex!important;
   justify-content:space-between!important;
   align-items:flex-start!important;
   padding:7px 10px!important;
-  border-bottom:1px solid #f3f4f6!important;
   font-size:12px!important;
-  color:#111827!important;
   min-height:0!important;
   width:100%!important;
   max-width:100%!important;
@@ -169,7 +163,6 @@ table.m-card td::before{
   content:attr(data-label);
   font-size:10px!important;
   font-weight:700!important;
-  color:#6b7280!important;
   text-transform:uppercase!important;
   letter-spacing:0.05em!important;
   min-width:90px!important;
@@ -179,18 +172,55 @@ table.m-card td::before{
   line-height:1.5!important;
   padding-top:1px!important;
 }
-table.m-card td:first-child{
-  background:#f0f4ff!important;
-  font-weight:700!important;
-  font-size:13px!important;
-  color:#1e3a8a!important;
-}
 table.m-card td > *{
   text-align:right!important;
   max-width:65%!important;
   word-break:break-word!important;
   flex:1!important;
 }
+
+/* Light-themed tables (dark text authored for a white row) — render a clean white card.
+   This is the default for any table ResponsiveBot hasn't classified yet. */
+table.m-card[data-rbot-theme="light"] tr,
+table.m-card:not([data-rbot-theme]) tr{
+  background:#fff!important;
+  border:1px solid #e5e7eb!important;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06)!important;
+}
+table.m-card[data-rbot-theme="light"] tr:nth-child(even),
+table.m-card:not([data-rbot-theme]) tr:nth-child(even){background:#fafafa!important}
+table.m-card[data-rbot-theme="light"] td,
+table.m-card:not([data-rbot-theme]) td{
+  color:#111827!important;
+  border-bottom:1px solid #f3f4f6!important;
+}
+table.m-card[data-rbot-theme="light"] td::before,
+table.m-card:not([data-rbot-theme]) td::before{color:#6b7280!important}
+table.m-card[data-rbot-theme="light"] td:first-child,
+table.m-card:not([data-rbot-theme]) td:first-child{
+  background:#f0f4ff!important;
+  font-weight:700!important;
+  font-size:13px!important;
+  color:#1e3a8a!important;
+}
+
+/* Dark-glass tables (light text authored for a translucent dark row) — keep a dark card
+   instead of forcing a white background under text that was never meant to sit on white. */
+table.m-card[data-rbot-theme="dark"] tr{
+  background:rgba(15,23,42,0.55)!important;
+  border:1px solid rgba(255,255,255,0.12)!important;
+  box-shadow:0 2px 10px rgba(0,0,0,0.35)!important;
+}
+table.m-card[data-rbot-theme="dark"] tr:nth-child(even){background:rgba(15,23,42,0.72)!important}
+table.m-card[data-rbot-theme="dark"] td{
+  color:#e2e8f0!important;
+  border-bottom:1px solid rgba(255,255,255,0.08)!important;
+}
+/* Force readable text on any plain text wrapper, but leave badges/pills/buttons
+   that carry their own background colour untouched so status colour-coding survives. */
+table.m-card[data-rbot-theme="dark"] td *:not([style*="background"]){color:#e2e8f0!important}
+table.m-card[data-rbot-theme="dark"] td::before{color:rgba(226,232,240,0.6)!important}
+table.m-card[data-rbot-theme="dark"] td:first-child{background:rgba(255,255,255,0.06)!important}
 /* Non-card tables: ensure scroll */
 table:not(.m-card){
   display:block!important;
@@ -328,6 +358,41 @@ function injectRoot(dev: string) {
   root.style.setProperty("--100dvh", `${window.innerHeight}px`);
 }
 
+// ── Theme detection: is this table's text authored for a light or dark row? ─
+function relLuminance(channels: number[]): number {
+  const [r, g, b] = channels.slice(0, 3).map(c => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function parseRGBChannels(str: string | null | undefined): number[] | null {
+  const m = str && str.match(/rgba?\(([^)]+)\)/);
+  if (!m) return null;
+  const parts = m[1].split(",").map(s => parseFloat(s));
+  if (parts.length < 3 || parts.some(isNaN)) return null;
+  return parts;
+}
+
+// Samples the authored text colour of the first data row. If the text is
+// mostly light (high luminance) it was written for a dark/glass background,
+// so we must not force a white card under it or the text becomes invisible.
+function detectTableTheme(table: HTMLTableElement): "light" | "dark" {
+  const row = table.querySelector("tbody tr");
+  if (!row) return "light";
+  const cells = Array.from(row.querySelectorAll("td")).slice(0, 3);
+  const lums: number[] = [];
+  cells.forEach(td => {
+    const target = (td.querySelector("div,span") || td) as HTMLElement;
+    const ch = parseRGBChannels(window.getComputedStyle(target).color);
+    if (ch) lums.push(relLuminance(ch));
+  });
+  if (!lums.length) return "light";
+  const avg = lums.reduce((a, b) => a + b, 0) / lums.length;
+  return avg > 0.55 ? "dark" : "light";
+}
+
 // ── Table card-view patcher ───────────────────────────────────────────────
 function patchTables(dev: string) {
   const isPhone = dev === "phone";
@@ -355,6 +420,10 @@ function patchTables(dev: string) {
 
     // Phone: card view
     if (table.classList.contains("m-card") && table.hasAttribute("data-rbot-done")) return;
+
+    if (!table.hasAttribute("data-rbot-theme")) {
+      table.setAttribute("data-rbot-theme", detectTableTheme(table));
+    }
 
     // Read header labels
     const headers: string[] = [];
