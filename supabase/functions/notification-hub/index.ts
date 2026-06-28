@@ -29,7 +29,7 @@ const SMTP_HOST = Deno.env.get("SMTP_HOST") || "";
 const SMTP_PORT = Deno.env.get("SMTP_PORT") || "587";
 const SMTP_USER = Deno.env.get("SMTP_USER") || "";
 const SMTP_PASS = Deno.env.get("SMTP_PASS") || "";
-const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "noreply@embu.go.ke";
+const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "hpdeskg9@gmail.com";
 const SENDER_NAME = Deno.env.get("SENDER_NAME") || "EL5 MediProcure";
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
