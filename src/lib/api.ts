@@ -1,5 +1,5 @@
 /**
- * ProcurBosse - Unified API Layer v5.8
+ * ProcurBosse - Unified API Layer v6.0 (singleflight + SWR cache)
  * Wraps Supabase with caching, error handling, audit trails, and security
  * Embu Level 5 Hospital - EL5 MediProcure
  */
@@ -51,7 +51,7 @@ export interface ApiResult<T> {
   cached?: boolean;
 }
 
-// - Generic fetch wrapper -
+// - Generic fetch wrapper (backed by singleflight + SWR) -
 async function apiFetch<T>(
   cacheKey: string | null,
   fetcher: () => Promise<{ data: any; error: any }>,
@@ -59,15 +59,24 @@ async function apiFetch<T>(
 ): Promise<ApiResult<T>> {
   try {
     if (cacheKey) {
-      const hit = cache.get<T>(cacheKey);
-      if (hit !== null) return { data: hit, error: null, cached: true };
+      // cache.fetch deduplicates concurrent misses and applies SWR
+      const data = await cache.fetch<T>(
+        cacheKey,
+        async () => {
+          const { data: d, error } = await fetcher();
+          if (error) throw error;
+          return d;
+        },
+        ttl,
+        true, // useSWR
+      );
+      return { data, error: null, cached: cache.has(cacheKey) };
     }
+    // No caching for write operations / uncacheable queries
     const { data, error } = await fetcher();
     if (error) throw error;
-    if (cacheKey && data) cache.set(cacheKey, data, ttl);
     return { data, error: null };
   } catch (err: any) {
-    console.error(`[API] Error:`, err);
     return { data: null, error: err?.message || "Unknown error" };
   }
 }

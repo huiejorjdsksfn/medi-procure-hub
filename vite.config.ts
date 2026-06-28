@@ -1,4 +1,5 @@
-// ProcurBosse v11.12.0 — Vite 8 Config — EL5 MediProcure
+// ProcurBosse v11.13.0 — Vite Config — EL5 MediProcure
+// Tuned for 100+ concurrent users: granular vendor chunks + 8 KB asset inlining
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -8,8 +9,8 @@ const CHUNK_MAP: Record<string, string> = {
   "react-dom":               "react-vendor",
   "react-router-dom":        "react-vendor",
   "@supabase/supabase-js":   "supabase-vendor",
-  "lucide-react":            "ui-vendor",
-  "@radix-ui":               "ui-vendor",
+  "lucide-react":            "ui-icons",         // split from radix — icon-only pages stay lean
+  "@radix-ui":               "ui-radix",
   "recharts":                "chart-vendor",
   "@e965/xlsx":              "xlsx-vendor",
   "react-hook-form":         "form-vendor",
@@ -40,7 +41,7 @@ export default defineConfig(({ mode }) => ({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   define: {
-    __APP_VERSION__: JSON.stringify("11.12.0"),
+    __APP_VERSION__: JSON.stringify("11.13.0"),
     __BUILD_DATE__:  JSON.stringify(new Date().toISOString().slice(0, 10)),
     __HOSPITAL__:    JSON.stringify("Embu Level 5 Hospital"),
     __SYSTEM__:      JSON.stringify("EL5 MediProcure"),
@@ -48,6 +49,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: false,
     target:    "es2017",
+    assetsInlineLimit: 8_192,   // inline assets < 8 KB → fewer HTTP round-trips
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === "CIRCULAR_DEPENDENCY") return;
@@ -55,7 +57,7 @@ export default defineConfig(({ mode }) => ({
       },
       output: { manualChunks },
     },
-    chunkSizeWarningLimit: 900,
+    chunkSizeWarningLimit: 1_000,
   },
   envPrefix: ["VITE_"],
 }));
