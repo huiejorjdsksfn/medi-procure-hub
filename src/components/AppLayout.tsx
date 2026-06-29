@@ -1,5 +1,5 @@
 /**
- * ProcurBosse - AppLayout v7.1 Microsoft Dynamics 365 Style
+ * ProcurBosse - AppLayout v8.0 Microsoft Dynamics 365 Style
  * White top bar - Blue ribbon tabs - Sub-command bar - Live badge counts
  * v7.1: Full mobile/tablet responsiveness — 3-bar hamburger, drawer nav,
  *       ribbon hidden on phone (drawer covers all), compact topbar
@@ -15,6 +15,8 @@ import { T } from "@/lib/theme";
 import FacilitySwitcher from "@/components/FacilitySwitcher";
 import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
 import NotificationPopup from "@/components/NotificationPopup";
+import GlobalSearchBar from "@/components/GlobalSearchBar";
+import SystemHealthWidget from "@/components/SystemHealthWidget";
 import logoImg from "@/assets/logo.png";
 import {
   Package, FileText, ShoppingCart, Truck, BarChart3, Settings, LogOut,
@@ -256,7 +258,9 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         </div>
 
         {!isPhone && <div style={{marginLeft:10}}><FacilitySwitcher/></div>}
-        <div style={{flex:1}}/>
+        {!isPhone && <div style={{marginLeft:12,flex:1}}><GlobalSearchBar /></div>}
+        {isPhone && <div style={{flex:1}}/>}
+        {!isPhone && <div style={{marginRight:6}}><SystemHealthWidget /></div>}
 
         {totalAlerts>0 && (
           <div style={{padding:"2px 8px",borderRadius:T.r,background:"rgba(255,255,255,.15)",
