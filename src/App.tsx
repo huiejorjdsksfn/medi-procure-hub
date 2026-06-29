@@ -61,7 +61,6 @@ const ReceiptVouchersPage    = lazy(() => import("@/pages/vouchers/ReceiptVouche
 const JournalVouchersPage    = lazy(() => import("@/pages/vouchers/JournalVouchersPage"));
 const PurchaseVouchersPage   = lazy(() => import("@/pages/vouchers/PurchaseVouchersPage"));
 const SalesVouchersPage      = lazy(() => import("@/pages/vouchers/SalesVouchersPage"));
-const VouchersPage           = lazy(() => import("@/pages/VouchersPage"));
 
 // Financials
 const FinancialDashboardPage = lazy(() => import("@/pages/financials/FinancialDashboardPage"));
@@ -211,7 +210,7 @@ const App = () => {
               <Route path="/scanner"     element={<P><ScannerPage /></P>} />
 
               {/* Vouchers */}
-              <Route path="/vouchers"          element={<P><VouchersPage /></P>} />
+              <Route path="/vouchers"          element={<Navigate to="/requisitions" replace />} />
               <Route path="/vouchers/payment"  element={<P><RoleGuard allowed={[...PROCURE,...FINANCE]}><PaymentVouchersPage /></RoleGuard></P>} />
               <Route path="/vouchers/receipt"  element={<P><RoleGuard allowed={["admin","procurement_manager",...FINANCE]}><ReceiptVouchersPage /></RoleGuard></P>} />
               <Route path="/vouchers/journal"  element={<P><RoleGuard allowed={["admin","procurement_manager",...FINANCE]}><JournalVouchersPage /></RoleGuard></P>} />

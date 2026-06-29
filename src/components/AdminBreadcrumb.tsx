@@ -65,7 +65,7 @@ const SECTION_SIBLINGS: Record<string, { l: string; p: string }[]> = {
   "Developer": [
     { l: "Webmaster",      p: "/webmaster" },
     { l: "Superadmin",     p: "/superadmin" },
-    { l: "Changelog",      p: "/changelog" },
+    { l: "Changelog",      p: "/releases" },
     { l: "System Report",  p: "/reports/system-utilization" },
     { l: "Print Engine",   p: "/reports/print-engine" },
   ],
