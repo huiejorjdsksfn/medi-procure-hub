@@ -1,152 +1,185 @@
 /**
- * EL5 MediProcure — Service Worker v4.0
- * High-throughput caching for 100+ concurrent users
- *
- * Strategy matrix:
- *  Static assets (JS/CSS/fonts/images)  → Cache-first, 30-day TTL
- *  HTML shell / navigation              → Network-first, fallback to cache
- *  Supabase API / Edge functions        → Network-first, 150 ms race, cache fallback
- *  Everything else                      → Stale-while-revalidate
+ * EL5 MediProcure — Service Worker v5.0
+ * ProcurBosse v12.0.0 · Embu Level 5 Hospital
+ * Strategy: Cache-first static, Network-first API/data, SWR for pages
  */
 
-const CACHE_VERSION  = "el5-procure-v4";
+const APP_VERSION    = "12.0.0";
+const CACHE_VERSION  = "el5-procure-v5";
 const STATIC_CACHE   = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE  = `${CACHE_VERSION}-runtime`;
 const API_CACHE      = `${CACHE_VERSION}-api`;
+const IMAGE_CACHE    = `${CACHE_VERSION}-images`;
 
-const STATIC_ASSETS  = ["/", "/index.html"];
+const MAX_RUNTIME_ENTRIES = 120;
+const MAX_IMAGE_ENTRIES   = 60;
+const API_CACHE_TTL_MS    = 30_000;   // 30 s — stale-while-revalidate window
 
-const THIRTY_DAYS    = 30 * 24 * 60 * 60;   // seconds
-const ONE_HOUR       = 60 * 60;
-const FIVE_MIN       = 5 * 60;
-const API_RACE_MS    = 150;   // serve cache if network exceeds 150 ms
+// Static shell — always cache-first
+const STATIC_ASSETS = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/favicon.ico",
+  "/icon.png",
+  "/logo.png",
+];
 
-/* ── Install — precache shell ────────────────────────────────── */
-self.addEventListener("install", event => {
+// ── Install ───────────────────────────────────────────────────────────────────
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS))
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-/* ── Activate — delete stale caches ─────────────────────────── */
-self.addEventListener("activate", event => {
+// ── Activate — prune old caches ───────────────────────────────────────────────
+self.addEventListener("activate", (event) => {
+  const keep = new Set([STATIC_CACHE, RUNTIME_CACHE, API_CACHE, IMAGE_CACHE]);
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(k => k.startsWith("el5-procure-") && k !== STATIC_CACHE
-                        && k !== RUNTIME_CACHE && k !== API_CACHE)
-          .map(k => caches.delete(k))
-      )
-    )
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => !keep.has(k)).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-/* ── Fetch — strategy router ─────────────────────────────────── */
-self.addEventListener("fetch", event => {
+// ── Fetch ─────────────────────────────────────────────────────────────────────
+self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET, cross-origin (except Supabase), and chrome-extension
-  if (request.method !== "GET")         return;
+  // Never intercept non-GET, chrome-extension, or Supabase auth calls
+  if (request.method !== "GET") return;
   if (url.protocol === "chrome-extension:") return;
+  if (url.hostname.includes("supabase.co") && url.pathname.includes("/auth/")) return;
 
-  // Supabase REST / storage API → network-race
-  if (url.hostname.includes("supabase.co") || url.hostname.includes("supabase.in")) {
-    // Don't cache auth, realtime, or write-like requests
-    if (url.pathname.includes("/auth/") || url.pathname.includes("/realtime/") ||
-        url.searchParams.has("select") === false) return;
-    event.respondWith(networkRace(request, API_CACHE, FIVE_MIN));
-    return;
-  }
-
-  // Static assets (JS/CSS/woff2/png/svg)
-  if (/\.(js|css|woff2?|ttf|eot|png|jpg|jpeg|svg|ico|webp)(\?.*)?$/.test(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE, THIRTY_DAYS));
-    return;
-  }
-
-  // HTML / SPA navigation
+  // Navigate requests — SPA shell
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, RUNTIME_CACHE));
+    event.respondWith(networkFirstWithShellFallback(request));
     return;
   }
 
-  // Everything else → SWR
-  event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE, ONE_HOUR));
+  // Supabase API / edge functions — network-first, short cache
+  if (url.hostname.includes("supabase.co") || url.hostname.includes("functions.supabase")) {
+    event.respondWith(networkFirstAPI(request));
+    return;
+  }
+
+  // Images — cache-first with LRU eviction
+  if (request.destination === "image") {
+    event.respondWith(cacheFirstImage(request));
+    return;
+  }
+
+  // JS/CSS/fonts — stale-while-revalidate
+  if (["script", "style", "font"].includes(request.destination)) {
+    event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE, MAX_RUNTIME_ENTRIES));
+    return;
+  }
+
+  // Default — network with runtime cache fallback
+  event.respondWith(networkFirstRuntime(request));
 });
 
-/* ── Strategy implementations ────────────────────────────────── */
+// ── Strategies ────────────────────────────────────────────────────────────────
 
-async function cacheFirst(req, cacheName, maxAgeS) {
-  const cached = await caches.match(req, { ignoreSearch: false });
-  if (cached) return cached;
-  const res = await fetch(req);
-  if (res && res.status === 200) {
-    const cache = await caches.open(cacheName);
-    const headers = new Headers(res.headers);
-    headers.set("Cache-Control", `public, max-age=${maxAgeS}`);
-    cache.put(req, new Response(res.clone().body, { status: res.status, headers }));
-  }
-  return res;
-}
-
-async function networkFirst(req, cacheName) {
+async function networkFirstWithShellFallback(request) {
   try {
-    const res = await fetch(req);
-    if (res && res.status === 200) {
-      const c = await caches.open(cacheName);
-      c.put(req, res.clone());
+    const net = await fetch(request, { signal: AbortSignal.timeout(4000) });
+    if (net.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      cache.put(request, net.clone());
     }
-    return res;
+    return net;
   } catch {
-    const cached = await caches.match(req);
-    return cached || new Response("<html><body>Offline</body></html>",
-      { headers: { "Content-Type": "text/html" } });
+    const cached = await caches.match(request) || await caches.match("/index.html");
+    return cached || new Response("Offline", { status: 503 });
   }
 }
 
-/**
- * Network-race: start network fetch AND a timer.
- * If network responds within API_RACE_MS → use it.
- * If cache is faster (or network is slow) → serve cache + revalidate background.
- */
-async function networkRace(req, cacheName, ttlS) {
-  const cached = await caches.match(req);
-
-  const networkPromise = fetch(req).then(res => {
-    if (res && res.status === 200) {
-      caches.open(cacheName).then(c => c.put(req, res.clone()));
+async function networkFirstAPI(request) {
+  const cacheKey = new Request(request.url);
+  try {
+    const net = await fetch(request, { signal: AbortSignal.timeout(8000) });
+    if (net.ok) {
+      const cache = await caches.open(API_CACHE);
+      // Store with timestamp header for TTL check
+      const headers = new Headers(net.headers);
+      headers.set("x-sw-cached-at", Date.now().toString());
+      const stored = new Response(await net.clone().blob(), { headers });
+      cache.put(cacheKey, stored);
     }
-    return res;
-  });
-
-  if (!cached) return networkPromise;
-
-  return new Promise(resolve => {
-    let raceWon = false;
-    const timer = setTimeout(() => {
-      if (!raceWon) { raceWon = true; resolve(cached); }
-    }, API_RACE_MS);
-
-    networkPromise.then(res => {
-      clearTimeout(timer);
-      if (!raceWon) { raceWon = true; resolve(res); }
-    }).catch(() => {
-      clearTimeout(timer);
-      if (!raceWon) { raceWon = true; resolve(cached); }
+    return net;
+  } catch {
+    const cached = await caches.match(cacheKey, { cacheName: API_CACHE });
+    if (cached) {
+      const cachedAt = parseInt(cached.headers.get("x-sw-cached-at") || "0");
+      if (Date.now() - cachedAt < API_CACHE_TTL_MS) return cached;
+    }
+    return new Response(JSON.stringify({ error: "offline" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
     });
-  });
+  }
 }
 
-async function staleWhileRevalidate(req, cacheName, ttlS) {
-  const cache  = await caches.open(cacheName);
-  const cached = await cache.match(req);
-  const fetchPromise = fetch(req).then(res => {
-    if (res && res.status === 200) cache.put(req, res.clone());
-    return res;
-  }).catch(() => null);
+async function cacheFirstImage(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  try {
+    const net = await fetch(request);
+    if (net.ok) {
+      const cache = await caches.open(IMAGE_CACHE);
+      await evictLRU(cache, MAX_IMAGE_ENTRIES);
+      cache.put(request, net.clone());
+    }
+    return net;
+  } catch {
+    return new Response("", { status: 503 });
+  }
+}
+
+async function staleWhileRevalidate(request, cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request).then(async (net) => {
+    if (net.ok) {
+      await evictLRU(cache, maxEntries);
+      cache.put(request, net.clone());
+    }
+    return net;
+  }).catch(() => cached);
   return cached || fetchPromise;
 }
+
+async function networkFirstRuntime(request) {
+  try {
+    const net = await fetch(request, { signal: AbortSignal.timeout(5000) });
+    if (net.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      await evictLRU(cache, MAX_RUNTIME_ENTRIES);
+      cache.put(request, net.clone());
+    }
+    return net;
+  } catch {
+    return (await caches.match(request)) || new Response("Offline", { status: 503 });
+  }
+}
+
+async function evictLRU(cache, maxEntries) {
+  const keys = await cache.keys();
+  if (keys.length >= maxEntries) {
+    await cache.delete(keys[0]);
+  }
+}
+
+// ── Message handler — skip waiting, clear cache ───────────────────────────────
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "CLEAR_CACHE") {
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+  }
+  if (event.data?.type === "GET_VERSION") {
+    event.source?.postMessage({ type: "VERSION", version: APP_VERSION, cache: CACHE_VERSION });
+  }
+});
