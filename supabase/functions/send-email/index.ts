@@ -10,7 +10,6 @@
  * 
  * EL5 MediProcure · Embu Level 5 Hospital · Kenya
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS = {
@@ -44,15 +43,15 @@ async function getSmtpSettings(): Promise<SmtpSettings> {
     (data || []).forEach((r: any) => { if (r.key) cfg[r.key] = r.value || ""; });
     return {
       host: cfg.smtp_host || "",
-      port: cfg.smtp_port || "2525",
+      port: cfg.smtp_port || "587",
       user: cfg.smtp_user || "",
       pass: cfg.smtp_pass || "",
-      from_email: cfg.smtp_from_email || "noreply@embu.go.ke",
+      from_email: cfg.smtp_from_email || "hpdeskg9@gmail.com",
       from_name: cfg.smtp_from_name || "EL5 MediProcure",
       enabled: cfg.smtp_enabled === "true",
     };
   } catch {
-    return { host: "", port: "2525", user: "", pass: "", from_email: "noreply@embu.go.ke", from_name: "EL5 MediProcure", enabled: false };
+    return { host: "", port: "587", user: "", pass: "", from_email: "hpdeskg9@gmail.com", from_name: "EL5 MediProcure", enabled: false };
   }
 }
 
@@ -155,7 +154,7 @@ async function logEmail(to: string, subject: string, status: string, provider: s
   } catch {}
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const url = new URL(req.url);
@@ -207,7 +206,7 @@ serve(async (req) => {
     }
 
     const smtpSettings = await getSmtpSettings();
-    const fromEmail = smtpSettings.from_email || "noreply@embu.go.ke";
+    const fromEmail = smtpSettings.from_email || "hpdeskg9@gmail.com";
     const fromName = smtpSettings.from_name || "EL5 MediProcure";
 
     let finalBody = body || "";

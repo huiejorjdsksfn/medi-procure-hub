@@ -28,13 +28,13 @@ interface SmtpConfig {
 }
 
 const DEFAULT: SmtpConfig = {
-  smtp_provider: "supabase",
-  smtp_host: "smtp.resend.com",
-  smtp_port: "465",
-  smtp_secure: "true",
-  smtp_user: "resend",
+  smtp_provider: "gmail",
+  smtp_host: "smtp.gmail.com",
+  smtp_port: "587",
+  smtp_secure: "STARTTLS",
+  smtp_user: "hpdeskg9@gmail.com",
   smtp_pass: "",
-  smtp_from_email: "noreply@embu.go.ke",
+  smtp_from_email: "hpdeskg9@gmail.com",
   smtp_from_name: "EL5 MediProcure - ProcurBosse",
   smtp_enabled: "true",
   resend_api_key: "",
@@ -139,7 +139,7 @@ export default function SmtpSettingsPanel() {
       if (error) throw new Error(error.message);
       const result = data?.results?.[0];
       if (data?.ok) {
-        showToast(`✓ SMS sent successfully to ${testTo}`, true), true);
+        showToast(`✓ SMS sent successfully to ${testTo}`, true);
       } else {
         showToast(`✗ SMS failed: ${result?.error || "Unknown error"}`, false);
       }
@@ -154,13 +154,13 @@ export default function SmtpSettingsPanel() {
     await (supabase as any).from("system_settings").upsert([
       { key: "supabase_smtp_active", value: "true" },
       { key: "smtp_enabled", value: "true" },
-      { key: "smtp_provider", value: "supabase" },
-      { key: "smtp_host", value: "smtp.resend.com" },
-      { key: "smtp_port", value: "465" },
+      { key: "smtp_provider", value: "gmail" },
+      { key: "smtp_host", value: "smtp.gmail.com" },
+      { key: "smtp_port", value: "587" },
       { key: "smtp_from_email", value: config.smtp_from_email },
       { key: "smtp_from_name", value: config.smtp_from_name },
     ], { onConflict: "key" });
-    setConfig(c => ({ ...c, supabase_smtp_active: "true", smtp_enabled: "true", smtp_provider: "supabase" }));
+    setConfig(c => ({ ...c, supabase_smtp_active: "true", smtp_enabled: "true", smtp_provider: "gmail" }));
     setSaving(false);
     showToast("- Supabase SMTP activated via Resend!");
   }
@@ -204,7 +204,7 @@ export default function SmtpSettingsPanel() {
             <div>
               <label style={LABEL}>Provider</label>
               <select value={config.smtp_provider} onChange={e => set("smtp_provider", e.target.value)} style={INP}>
-                <option value="supabase">Supabase (Resend)</option>
+                <option value="gmail">Supabase (Resend)</option>
                 <option value="resend">Resend Direct</option>
                 <option value="smtp">Custom SMTP</option>
                 <option value="sendgrid">SendGrid</option>
@@ -212,15 +212,15 @@ export default function SmtpSettingsPanel() {
             </div>
             <div>
               <label style={LABEL}>SMTP Host</label>
-              <input value={config.smtp_host} onChange={e => set("smtp_host", e.target.value)} style={INP} placeholder="smtp.resend.com" />
+              <input value={config.smtp_host} onChange={e => set("smtp_host", e.target.value)} style={INP} placeholder="smtp.gmail.com" />
             </div>
             <div>
               <label style={LABEL}>SMTP Port</label>
-              <input value={config.smtp_port} onChange={e => set("smtp_port", e.target.value)} style={INP} placeholder="465" />
+              <input value={config.smtp_port} onChange={e => set("smtp_port", e.target.value)} style={INP} placeholder="587" />
             </div>
             <div>
               <label style={LABEL}>SMTP User</label>
-              <input value={config.smtp_user} onChange={e => set("smtp_user", e.target.value)} style={INP} placeholder="resend" />
+              <input value={config.smtp_user} onChange={e => set("smtp_user", e.target.value)} style={INP} placeholder="hpdeskg9@gmail.com" />
             </div>
             <div>
               <label style={LABEL}>SMTP Password / API Key</label>
@@ -232,7 +232,7 @@ export default function SmtpSettingsPanel() {
             </div>
             <div>
               <label style={LABEL}>From Email</label>
-              <input value={config.smtp_from_email} onChange={e => set("smtp_from_email", e.target.value)} style={INP} placeholder="noreply@embu.go.ke" />
+              <input value={config.smtp_from_email} onChange={e => set("smtp_from_email", e.target.value)} style={INP} placeholder="hpdeskg9@gmail.com" />
             </div>
             <div>
               <label style={LABEL}>From Name</label>
@@ -364,8 +364,8 @@ export default function SmtpSettingsPanel() {
               {[
                 { label: "Project URL", value: "https://yvjfehnzbzjliizjvuhq.supabase.co" },
                 { label: "SMTP Provider", value: "Resend (via Supabase)" },
-                { label: "SMTP Host", value: "smtp.resend.com" },
-                { label: "SMTP Port", value: "465 (SSL)" },
+                { label: "SMTP Host", value: "smtp.gmail.com" },
+                { label: "SMTP Port", value: "587 (TLS/STARTTLS)" },
                 { label: "Edge Function", value: "send-email (v4)" },
                 { label: "Status", value: config.supabase_smtp_active === "true" ? "- Active" : "- Inactive" },
               ].map((r, i) => (
@@ -382,10 +382,10 @@ export default function SmtpSettingsPanel() {
             <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.9 }}>
               <strong>1.</strong> Go to: <a href="https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq/settings/auth" target="_blank" rel="noopener noreferrer" style={{ color: "#0369a1" }}>Supabase Dashboard - Auth Settings</a><br/>
               <strong>2.</strong> Enable "Custom SMTP" under Email section<br/>
-              <strong>3.</strong> SMTP Host: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>smtp.resend.com</code><br/>
-              <strong>4.</strong> Port: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>465</code> - User: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>resend</code><br/>
+              <strong>3.</strong> SMTP Host: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>smtp.gmail.com</code><br/>
+              <strong>4.</strong> Port: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>587</code> - User: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>hpdeskg9@gmail.com</code><br/>
               <strong>5.</strong> Password: Your Resend API key (re_xxxx-)<br/>
-              <strong>6.</strong> Sender: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>EL5 MediProcure &lt;noreply@embu.go.ke&gt;</code>
+              <strong>6.</strong> Sender: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>EL5 MediProcure &lt;hpdeskg9@gmail.com&gt;</code>
             </div>
           </div>
 

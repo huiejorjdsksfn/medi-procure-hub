@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+/**
+ * useDebounce — ProcurBosse v12.0.0
+ * Generic debounce hook — reduces API calls on fast typing
+ */
+import { useState, useEffect } from "react";
 
-export function useDebounce<T>(value: T, delay: number = 300): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
+export function useDebounce<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState<T>(value);
   useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
   }, [value, delay]);
-
-  return debouncedValue;
+  return debounced;
 }

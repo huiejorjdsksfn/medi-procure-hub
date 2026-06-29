@@ -115,7 +115,7 @@ function printDoc(html: string) {
     <div class="footer">
       ${PRINT_CONFIG.LETTERHEAD.hospital} - ${PRINT_CONFIG.LETTERHEAD.address} - EL5 MediProcure v2.0
     </div>
-    <script>window.onload=()=>{window.print();}<\/script>
+    <script>window.onload=()=>{window.print();}</script>
   </body></html>`);
   win.document.close();
 }

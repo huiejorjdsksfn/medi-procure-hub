@@ -3,7 +3,6 @@
  * Routes queries to MySQL server with Supabase as fallback
  * EL5 MediProcure · Embu Level 5 Hospital
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const cors = {
@@ -66,7 +65,7 @@ async function execMySQL(config: any, sql: string, params?: any[]): Promise<any>
   }
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {

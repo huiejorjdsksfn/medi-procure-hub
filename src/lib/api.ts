@@ -44,6 +44,40 @@ function checkRateLimit(key: string, maxPerMinute = 60): boolean {
   return hits.length <= maxPerMinute;
 }
 
+/**
+ * Detects PostgREST's "Could not find the 'X' column of 'Y' in the schema
+ * cache" failure (error code PGRST204, sometimes PGRST205 for whole tables).
+ * This fires both when a column genuinely doesn't exist AND — just as often
+ * in this app's history — when a migration added the column moments ago but
+ * PostgREST's cached introspection hasn't refreshed yet. There's no way to
+ * tell the two apart from the client, so we always attempt one self-heal:
+ * ask Postgres to re-notify PostgREST, then retry the exact same call once.
+ * If the column truly doesn't exist, the retry fails the same way and the
+ * caller sees the same error message as before — this never hides a real
+ * problem, it only recovers the transient one without the user having to
+ * do anything.
+ */
+function isSchemaCacheMiss(error: any): boolean {
+  const code = error?.code;
+  const msg = String(error?.message || "");
+  return code === "PGRST204" || code === "PGRST205" || /schema cache/i.test(msg);
+}
+
+let lastSchemaReload = 0;
+async function reloadSchemaCacheOnce(): Promise<void> {
+  // Debounce: never hammer the RPC if several calls fail in the same burst.
+  if (Date.now() - lastSchemaReload < 5000) return;
+  lastSchemaReload = Date.now();
+  try {
+    await supabase.rpc("reload_schema_cache" as any);
+    // Give PostgREST a moment to actually pick up the NOTIFY before retrying.
+    await new Promise(r => setTimeout(r, 700));
+  } catch {
+    // If the RPC itself isn't reachable, fall through — the retry below will
+    // just fail the same way the original call did, which is a safe no-op.
+  }
+}
+
 // - Base API response type -
 export interface ApiResult<T> {
   data: T | null;
@@ -63,7 +97,11 @@ async function apiFetch<T>(
       const data = await cache.fetch<T>(
         cacheKey,
         async () => {
-          const { data: d, error } = await fetcher();
+          let { data: d, error } = await fetcher();
+          if (error && isSchemaCacheMiss(error)) {
+            await reloadSchemaCacheOnce();
+            ({ data: d, error } = await fetcher());
+          }
           if (error) throw error;
           return d;
         },
@@ -73,7 +111,11 @@ async function apiFetch<T>(
       return { data, error: null, cached: cache.has(cacheKey) };
     }
     // No caching for write operations / uncacheable queries
-    const { data, error } = await fetcher();
+    let { data, error } = await fetcher();
+    if (error && isSchemaCacheMiss(error)) {
+      await reloadSchemaCacheOnce();
+      ({ data, error } = await fetcher());
+    }
     if (error) throw error;
     return { data, error: null };
   } catch (err: any) {
@@ -852,7 +894,7 @@ export const realtimeApi = {
     filter?: { column: string; value: string }
   ) => {
     const instanceId = Math.random().toString(36).slice(2, 8);
-    let channel = db.channel(`realtime:${table}:${instanceId}`).on(
+    const channel = db.channel(`realtime:${table}:${instanceId}`).on(
       "postgres_changes",
       { event: "*", schema: "public", table, ...(filter ? { filter: `${filter.column}=eq.${filter.value}` } : {}) },
       callback

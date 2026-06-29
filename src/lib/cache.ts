@@ -245,9 +245,9 @@ export function createBatcher<K, V>(
   batchFn: (keys: K[]) => Promise<Map<K, V>>,
   delayMs = 8,
 ): (key: K) => Promise<V> {
-  let queue:  K[]  = [];
-  let res:    Array<(v: V)     => void> = [];
-  let rej:    Array<(e: any)   => void> = [];
+  const queue:  K[]  = [];
+  const res:    Array<(v: V)     => void> = [];
+  const rej:    Array<(e: any)   => void> = [];
   let timer:  ReturnType<typeof setTimeout> | null = null;
 
   const flush = () => {

@@ -24,6 +24,44 @@ export default tseslint.config(
       // Supabase dynamic queries and ERP data layers require 'any' extensively
       "@typescript-eslint/no-explicit-any": "off",
 
+      // ── React Hooks (v7) — disable React Compiler rules ────────────────
+      // react-hooks v7 ships React Compiler rules by default. This codebase
+      // does NOT use the React Compiler, so these rules produce false positives.
+      // Keep only the two core rules that matter for all React code.
+      "react-hooks/rules-of-hooks":              "error",  // KEEP — prevents hook order bugs
+      "react-hooks/exhaustive-deps":             "warn",   // KEEP as warning — useful guidance
+      "react-hooks/static-components":           "off",    // RC: no inline components (false +ve)
+      "react-hooks/use-memo":                    "off",    // RC: memoization enforcement
+      "react-hooks/preserve-manual-memoization": "off",    // RC: memoization
+      "react-hooks/incompatible-library":        "off",    // RC: library compat
+      "react-hooks/immutability":                "off",    // RC: immutable refs/props
+      "react-hooks/globals":                     "off",    // RC: global mutations
+      "react-hooks/refs":                        "off",    // RC: ref access timing
+      "react-hooks/set-state-in-effect":         "off",    // RC: setState in effects (valid pattern)
+      "react-hooks/set-state-in-render":         "off",    // RC: setState during render
+      "react-hooks/error-boundaries":            "off",    // RC: error boundary patterns
+      "react-hooks/purity":                      "off",    // RC: render purity
+      "react-hooks/unsupported-syntax":          "off",    // RC: syntax restrictions
+      "react-hooks/config":                      "off",    // RC: compiler config
+      "react-hooks/gating":                      "off",    // RC: feature gating
+
+      // ── General code quality ────────────────────────────────────────────
+      // Allow empty catch blocks — common in ERP for best-effort operations
+      // (geolocation, session storage, optional feature detection)
+      "no-empty": ["error", { "allowEmptyCatch": true }],
+      // Allow short-circuit (x && fn()) and ternary (x ? a : b) expressions
+      "@typescript-eslint/no-unused-expressions": ["error", {
+        "allowShortCircuit": true,
+        "allowTernary":      true,
+        "allowTaggedTemplates": true
+      }],
+      // Use @ts-expect-error instead of @ts-ignore
+      "@typescript-eslint/ban-ts-comment": ["error", {
+        "ts-expect-error": "allow-with-description",
+        "ts-ignore":       false,
+        "ts-nocheck":      false
+      }],
+
       // ── Navigation safety: never use window.location for SPA routing ─────
       // Use navigate() from useNavigate(), or <Link to="..."> instead.
       // Allowed exceptions: ErrorBoundary (class component), NetworkGuard,

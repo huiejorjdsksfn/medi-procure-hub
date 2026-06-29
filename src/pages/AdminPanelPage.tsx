@@ -14,6 +14,7 @@ import { T } from "@/lib/theme";
 import { checkTwilioStatus, sendSms, makeCall } from "@/lib/sms";
 import { QuickStampButton } from "@/components/DocumentStamp";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   LayoutDashboard, Users, Shield, Phone, Globe, Activity, Database,
   Settings, RefreshCw, Save, Eye, EyeOff, Copy, Check, X, Send,
@@ -421,7 +422,11 @@ export default function AdminPanelPage() {
         <div style={{ borderTop:`1px solid ${O.border}`, marginBottom:16 }}/>
 
         {/* - MAIN CONTENT AREA - */}
+        {/* key={sec} remounts this boundary on every tab switch, so a crash on
+            one tab clears itself the moment the person clicks a different
+            quick-access tile instead of leaving the whole Admin Panel stuck. */}
         <div style={S.main}>
+        <ErrorBoundary pageName="Admin Panel section" key={sec}>
 
           {/* - OVERVIEW - */}
           {sec==="overview"&&(
@@ -1546,6 +1551,7 @@ export default function AdminPanelPage() {
               </div>
             </div>
           )}
+        </ErrorBoundary>
         </div>
       </div>
     </div>

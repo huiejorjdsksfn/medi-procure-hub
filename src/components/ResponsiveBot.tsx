@@ -83,7 +83,6 @@ const PHONE_CSS = `
 }
 [style*="grid-template-columns:repeat(2"],
 [style*="grid-template-columns: repeat(2"],
-[style*="gridTemplateColumns:\"1fr 1fr\""],
 [style*='gridTemplateColumns:"1fr 1fr"']{
   grid-template-columns:1fr!important;
 }
@@ -237,7 +236,7 @@ table:not(.m-card) tbody{
 
 /* ─── SIDE PANEL → BOTTOM SHEET on phone ─── */
 div[style*="position: fixed"][style*="justify-content: flex-end"]>div,
-div[style*="position:fixed"][style*="justifyContent:\"flex-end\""]>div{
+div[style*="position:fixed"][style*="justifyContent:flex-end"]>div{
   width:100%!important;
   max-width:100%!important;
   border-radius:12px 12px 0 0!important;
@@ -250,7 +249,6 @@ div[style*="position:fixed"][style*="justifyContent:\"flex-end\""]>div{
 
 /* ─── FORM GRIDS: 2-col → 1-col ─── */
 [style*="display: grid"][style*="gap"][style*="1fr 1fr"],
-[style*="gridTemplateColumns: \"1fr 1fr\""],
 [style*='gridTemplateColumns:"1fr 1fr"']{
   grid-template-columns:1fr!important;
 }

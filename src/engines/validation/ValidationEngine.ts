@@ -7,7 +7,7 @@ export type VResult = { valid: boolean; errors: Record<string,string>; };
 function req(v:any, label:string):string|null { return (!v&&v!==0) ? `${label} is required` : null; }
 function minLen(v:string,n:number,label:string):string|null { return v&&v.length<n?`${label} must be at least ${n} characters`:null; }
 function isEmail(v:string):boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-function isPhone(v:string):boolean { return /^(\+?\d[\d\s\-]{7,15})$/.test(v); }
+function isPhone(v:string):boolean { return /^(\+?\d[\d\s-]{7,15})$/.test(v); }
 function isPositive(v:any):boolean { return !isNaN(v)&&Number(v)>0; }
 
 function validate(rules: Array<string|null>): VResult {
