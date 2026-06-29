@@ -1,78 +1,90 @@
-name: "ProcurBosse — Mobile App Builds (iOS & Android)"
+name: "ProcurBosse — Mobile Builds & Store Publishing"
 
 on:
   push:
     branches: [main]
-    tags:
-      - 'v*'
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
-      skip_ios:
-        description: "Skip iOS build"
-        default: "false"
-        type: boolean
       skip_android:
         description: "Skip Android build"
         default: "false"
         type: boolean
-
-env:
-  NODE_VER: "22"
-  APP_VER: "11.12.0"
-  SUPA_URL: "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  SUPA_ANON: "${{ secrets.SUPABASE_ANON_KEY }}"
-  GITHUB_PAT: "${{ secrets.RELEASE_PAT }}"
+      skip_ios:
+        description: "Skip iOS build"
+        default: "false"
+        type: boolean
+      publish_play_store:
+        description: "Publish to Google Play Store (requires PLAY_STORE_JSON_KEY secret)"
+        default: "false"
+        type: boolean
+      publish_app_store:
+        description: "Publish to Apple App Store (requires ASC_* secrets)"
+        default: "false"
+        type: boolean
+      play_track:
+        description: "Play Store track"
+        default: "internal"
+        type: choice
+        options: [internal, alpha, beta, production]
 
 permissions:
   contents: write
-  actions: write
-  packages: write
+  actions:  write
 
+env:
+  NODE_VER:  "22"
+  APP_ID:    "ke.go.embu.mediprocure.procurbosse"
+  APP_NAME:  "ProcurBosse"
+  SUPA_URL:  "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_ANON: "${{ secrets.SUPABASE_ANON_KEY }}"
+
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
 
-  # ─── Build Web (required for mobile) ───────────────────────────────────────
+  # ── 1. Build web bundle ───────────────────────────────────────────────────
   web:
     name: "Web Build"
     runs-on: ubuntu-latest
     outputs:
-      sha: ${{ steps.meta.outputs.sha }}
-      ver: ${{ steps.meta.outputs.ver }}
+      sha:      ${{ steps.meta.outputs.sha }}
+      ver:      ${{ steps.meta.outputs.ver }}
+      ver_code: ${{ steps.meta.outputs.ver_code }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
       - id: meta
         run: |
           SHA=$(git rev-parse --short HEAD)
           VER=$(node -p "require('./package.json').version")
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "ver=$VER" >> $GITHUB_OUTPUT
+          # versionCode = major*10000 + minor*100 + patch  (e.g. 11.12.0 → 111200)
+          MAJOR=$(echo $VER | cut -d. -f1)
+          MINOR=$(echo $VER | cut -d. -f2)
+          PATCH=$(echo $VER | cut -d. -f3)
+          VER_CODE=$(( MAJOR*10000 + MINOR*100 + PATCH ))
+          echo "sha=$SHA"           >> $GITHUB_OUTPUT
+          echo "ver=$VER"           >> $GITHUB_OUTPUT
+          echo "ver_code=$VER_CODE" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
+        with: { node-version: "22", cache: npm }
 
-      - name: Install deps
-        run: npm ci --no-audit --legacy-peer-deps
+      - run: npm ci --no-audit --legacy-peer-deps
 
       - name: Write .env
         run: |
-          cat > .env << ENVEOF
+          cat > .env << EOF
           VITE_SUPABASE_URL=${{ env.SUPA_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ env.SUPA_ANON }}
           VITE_SUPABASE_PROJECT_ID=yvjfehnzbzjliizjvuhq
-          VITE_APP_VERSION=${{ env.APP_VER }}
+          VITE_APP_VERSION=${{ steps.meta.outputs.ver }}
           VITE_HOSPITAL_NAME=Embu Level 5 Hospital
           VITE_SYSTEM_NAME=EL5 MediProcure
-          ENVEOF
+          EOF
 
-      - name: Build web
-        run: npm run build
-        env:
-          CI: "false"
-          NODE_OPTIONS: "--max-old-space-size=4096"
+      - run: npm run build
+        env: { CI: "false", NODE_OPTIONS: "--max-old-space-size=4096" }
 
       - uses: actions/upload-artifact@v4
         with:
@@ -80,9 +92,9 @@ jobs:
           path: dist/
           retention-days: 7
 
-  # ─── Android Build ───────────────────────────────────────────────────────────
+  # ── 2. Android APK / AAB ─────────────────────────────────────────────────
   android:
-    name: "Android APK Build"
+    name: "Android Build"
     runs-on: ubuntu-latest
     needs: web
     if: github.event.inputs.skip_android != 'true'
@@ -90,244 +102,269 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+        with: { distribution: zulu, java-version: "17" }
 
       - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
+        with: { node-version: "22", cache: npm }
 
-      - name: Download web build
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: web-dist-${{ needs.web.outputs.sha }}
           path: dist/
 
-      - name: Install Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+      - name: Install deps + Capacitor
+        run: npm ci --no-audit --legacy-peer-deps
 
-      - name: Initialize Capacitor
-        run: npx cap init ProcurBosse "ke.go.embu.mediprocure.procurbosse" --web-dir=dist
-        continue-on-error: true
-
-      - name: Sync Capacitor Android
+      - name: Capacitor sync
         run: npx cap sync android
         continue-on-error: true
 
-      - name: Copy Google Services (if exists)
+      - name: Bump versionCode / versionName in build.gradle
         run: |
-          if [ -f google-services.json ]; then
-            cp google-services.json android/app/
-          fi
-          if [ -f android/app/google-services.json ]; then
-            echo "Google Services found"
+          sed -i "s/versionCode .*/versionCode ${{ needs.web.outputs.ver_code }}/" android/app/build.gradle
+          sed -i "s/versionName .*/versionName \"${{ needs.web.outputs.ver }}\"/" android/app/build.gradle
+          grep "versionCode\|versionName" android/app/build.gradle
+
+      - name: Set up Android keystore (signed release)
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/procurbosse.jks
+            cat >> android/app/build.gradle << 'SIGEOF'
+
+          android.signingConfigs.create("release") {
+            storeFile     file("procurbosse.jks")
+            storePassword System.getenv("KEYSTORE_PASS")
+            keyAlias      System.getenv("KEY_ALIAS")
+            keyPassword   System.getenv("KEY_PASS")
+          }
+          android.buildTypes.release.signingConfig android.signingConfigs.release
+          SIGEOF
+            echo "✅ Signing configured"
           else
-            echo "No Google Services - using default config"
-          fi
-        continue-on-error: true
-
-      - name: Build Android APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1 | tail -50
-        continue-on-error: true
-
-      - name: Build Release APK
-        run: |
-          cd android
-          ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
-        continue-on-error: true
-
-      - name: Find APK files
-        run: |
-          find android -name "*.apk" -type f 2>/dev/null
-          ls -la android/app/build/outputs/apk/debug/ 2>/dev/null || echo "No debug APK"
-          ls -la android/app/build/outputs/apk/release/ 2>/dev/null || echo "No release APK"
-
-      - name: Upload APK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk-${{ needs.web.outputs.sha }}
-          path: |
-            android/app/build/outputs/apk/**/*.apk
-            android/app/build/outputs/bundle/**/*.aab
-          retention-days: 7
-        continue-on-error: true
-
-      - name: Upload to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-        run: |
-          APK_PATH=$(find android -name "*.apk" -type f | head -1)
-          if [ -n "$APB_PATH" ] && [ -f "$APK_PATH" ]; then
-            echo "Uploading $APK_PATH to release"
-            gh release upload ${{ github.ref_name }} "$APK_PATH" --clobber 2>&1 || echo "Upload failed"
+            echo "⚠️  No keystore — building unsigned release"
           fi
         env:
-          GH_TOKEN: ${{ env.GITHUB_PAT }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS:     ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS:      ${{ secrets.ANDROID_KEY_PASSWORD }}
+        continue-on-error: true
 
-  # ─── iOS Build ───────────────────────────────────────────────────────────────
+      - name: Build Debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon 2>&1 | tail -20
+
+      - name: Build Release APK + AAB
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon 2>&1 | tail -20
+          ./gradlew bundleRelease   --no-daemon 2>&1 | tail -20
+        env:
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS:     ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS:      ${{ secrets.ANDROID_KEY_PASSWORD }}
+        continue-on-error: true
+
+      - name: Rename artifacts
+        run: |
+          VER="${{ needs.web.outputs.ver }}"
+          mkdir -p dist-android
+          find android -name "*.apk" -exec cp {} dist-android/ProcurBosse-${VER}-debug.apk \; 2>/dev/null || true
+          find android -name "*release*.apk" -exec cp {} dist-android/ProcurBosse-${VER}-release.apk \; 2>/dev/null || true
+          find android -name "*.aab" -exec cp {} dist-android/ProcurBosse-${VER}.aab \; 2>/dev/null || true
+          ls -lh dist-android/ || echo "No artifacts found"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ needs.web.outputs.sha }}
+          path: dist-android/
+          retention-days: 30
+
+      # ── Publish to Google Play Store ───────────────────────────────────
+      - name: Publish to Google Play Store
+        if: |
+          github.event.inputs.publish_play_store == 'true' &&
+          secrets.PLAY_STORE_JSON_KEY != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName:     ${{ env.APP_ID }}
+          releaseFiles:    dist-android/*.aab
+          track:           ${{ github.event.inputs.play_track || 'internal' }}
+          status:          completed
+          inAppUpdatePriority: 2
+          changesNotSentForReview: false
+          whatsNewDirectory: android/whatsnew/
+        continue-on-error: true
+
+      - name: Play Store result
+        if: github.event.inputs.publish_play_store == 'true'
+        run: echo "✅ Submitted to Play Store track:${{ github.event.inputs.play_track || 'internal' }}"
+
+  # ── 3. iOS IPA ───────────────────────────────────────────────────────────
   ios:
-    name: "iOS App Build"
+    name: "iOS Build"
     runs-on: macos-latest
     needs: web
-    if: github.event.inputs.skip_ios != 'true' && github.event_name != 'pull_request'
+    if: github.event.inputs.skip_ios != 'true'
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
+        with: { node-version: "22", cache: npm }
 
-      - name: Download web build
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: web-dist-${{ needs.web.outputs.sha }}
           path: dist/
 
-      - name: Install Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/ios --legacy-peer-deps
+      - run: npm ci --no-audit --legacy-peer-deps
 
-      - name: Initialize Capacitor
-        run: npx cap init ProcurBosse "ke.go.embu.mediprocure.procurbosse" --web-dir=dist
-        continue-on-error: true
-
-      - name: Sync Capacitor iOS
+      - name: Capacitor sync iOS
         run: npx cap sync ios
         continue-on-error: true
 
-      - name: Install iOS dependencies
+      - name: Install CocoaPods
         run: |
           cd ios/App
-          pod install 2>&1 | tail -30
+          pod install --repo-update 2>&1 | tail -20
         continue-on-error: true
 
-      - name: Set up code signing
+      - name: Import Apple certificates
+        if: secrets.CERTIFICATES_P12 != ''
         run: |
-          mkdir -p ~/Certificates/ci
-          if [ -n "$CERTIFICATES_P12" ]; then
-            echo "$CERTIFICATES_P12" | base64 -d > ~/Certificates/ci/cert.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app.keychain-db
+          security create-keychain -p "ci" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "ci" $KEYCHAIN_PATH
+          echo "${{ secrets.CERTIFICATES_P12 }}" | base64 -d > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -P "${{ secrets.CERTIFICATES_P12_PASSWORD }}" \
+            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          # Provisioning profile
+          if [ -n "${{ secrets.PROVISIONING_PROFILE_BASE64 }}" ]; then
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            echo "${{ secrets.PROVISIONING_PROFILE_BASE64 }}" | base64 -d \
+              > ~/Library/MobileDevice/Provisioning\ Profiles/procurbosse.mobileprovision
           fi
-          if [ -n "$PROVISIONING_PROFILE" ]; then
-            echo "$PROVISIONING_PROFILE" | base64 -d > ~/Certificates/ci/profile.mobileprovision
-          fi
-          if [ -f ~/Certificates/ci/cert.p12 ]; then
-            security create-keychain -p "" ~/Certificates/ci/keychain.keychain-db
-            security unlock-keychain -p "" ~/Certificates/ci/keychain.keychain-db
-            security import ~/Certificates/ci/cert.p12 -P "" -A -t cert -f pkcs12 -k ~/Certificates/ci/keychain.keychain-db
-            security list-keychain -d user -s ~/Certificates/ci/keychain.keychain-db
-          fi
-        env:
-          CERTIFICATES_P12: ${{ secrets.CERTIFICATES_P12 }}
-          PROVISIONING_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
         continue-on-error: true
 
-      - name: Build iOS (Simulator)
+      - name: Build iOS archive
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -destination "platform=iOS Simulator,name=iPhone 15" -allowProvisioningUpdates build CODE_SIGNING_ALLOWED=NO 2>&1 | tail -50
+          # Update version
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ needs.web.outputs.ver }}" App/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ needs.web.outputs.ver_code }}" App/Info.plist 2>/dev/null || true
+
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/ProcurBosse.xcarchive \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="${{ secrets.APPLE_SIGNING_IDENTITY || '' }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME || '' }}" \
+            CODE_SIGNING_ALLOWED="${{ secrets.CERTIFICATES_P12 != '' && 'YES' || 'NO' }}" \
+            archive 2>&1 | tail -30
         continue-on-error: true
 
-      - name: Create IPA for testing
+      - name: Export IPA
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath build/App.xcarchive -allowProvisioningUpdates -exportArchive -exportOptionsPlist ../exportOptions.plist CODE_SIGNING_ALLOWED=NO 2>&1 | tail -30
-        env:
-          CODE_SIGNING_REQUIRED: "NO"
+          if [ -d build/ProcurBosse.xcarchive ]; then
+            xcodebuild -exportArchive \
+              -archivePath build/ProcurBosse.xcarchive \
+              -exportPath build/ipa/ \
+              -exportOptionsPlist ../../ios/exportOptions.plist \
+              -allowProvisioningUpdates 2>&1 | tail -20 || true
+          fi
         continue-on-error: true
 
-      - name: Find iOS build artifacts
+      - name: Collect iOS artifacts
         run: |
-          find ios -name "*.app" -type d 2>/dev/null | head -5
-          find ios -name "*.ipa" -type f 2>/dev/null
-          ls -la ios/App/build/ 2>/dev/null || echo "No build dir"
+          VER="${{ needs.web.outputs.ver }}"
+          mkdir -p dist-ios
+          find ios -name "*.ipa" -exec cp {} dist-ios/ProcurBosse-${VER}.ipa \; 2>/dev/null || true
+          ls -lh dist-ios/ || echo "No IPA built"
 
-      - name: Upload iOS artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ios-app-${{ needs.web.outputs.sha }}
-          path: |
-            ios/App/build/**/*.app
-            ios/App/build/**/*.ipa
-          retention-days: 7
+          name: ios-${{ needs.web.outputs.sha }}
+          path: dist-ios/
+          retention-days: 30
+
+      # ── Publish to App Store Connect ──────────────────────────────────
+      - name: Upload to App Store Connect
+        if: |
+          github.event.inputs.publish_app_store == 'true' &&
+          secrets.ASC_API_KEY_BASE64 != ''
+        run: |
+          # Decode App Store Connect API key
+          mkdir -p ~/.private_keys
+          echo "${{ secrets.ASC_API_KEY_BASE64 }}" | base64 -d \
+            > ~/.private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+
+          IPA_PATH=$(find dist-ios -name "*.ipa" | head -1)
+          if [ -n "$IPA_PATH" ]; then
+            xcrun altool --upload-app \
+              --type ios \
+              --file "$IPA_PATH" \
+              --apiKey  "${{ secrets.ASC_API_KEY_ID }}" \
+              --apiIssuer "${{ secrets.ASC_ISSUER_ID }}" \
+              2>&1 || true
+            echo "✅ Uploaded to App Store Connect"
+          else
+            echo "⚠️  No IPA found to upload"
+          fi
         continue-on-error: true
 
-  # ─── Release Publication ─────────────────────────────────────────────────────
+  # ── 4. GitHub Release (on tag push) ────────────────────────────────────
   release:
-    name: "Create Mobile Release"
+    name: "GitHub Release"
     runs-on: ubuntu-latest
     needs: [web, android, ios]
-    if: startsWith(github.ref, 'refs/tags/') && github.event.inputs.skip_release != 'true'
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-artifacts/
+      - uses: actions/download-artifact@v4
+        with: { path: release-artifacts/ }
 
       - name: List artifacts
-        run: |
-          echo "=== Release Artifacts ==="
-          find release-artifacts -type f | while read f; do
-            echo "$f ($(du -h "$f" | cut -f1))"
-          done
+        run: find release-artifacts -type f -exec ls -lh {} \;
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "ProcurBosse ${{ github.ref_name }} — Mobile + Desktop"
-          draft: false
+          tag_name:   ${{ github.ref_name }}
+          name:       "ProcurBosse ${{ github.ref_name }}"
+          token:      ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          draft:      false
           prerelease: false
-          token: ${{ env.GITHUB_PAT }}
           body: |
-            # ProcurBosse ${{ github.ref_name }} — Mobile & Desktop Release
-            **Embu Level 5 Hospital · Embu County Government · Kenya**
+            # ProcurBosse ${{ github.ref_name }}
+            **EL5 MediProcure · Embu Level 5 Hospital · Kenya**
 
             ## Downloads
 
-            ### Desktop Apps
-            | Platform | Architecture | Download |
-            |----------|--------------|----------|
-            | Windows | x64 | `.zip` file in `exe-*` artifact |
-            | Windows | x86 | `.zip` file in `exe-*` artifact |
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | 🤖 Android (install directly) | `.apk` | Enable "Unknown sources" |
+            | 🤖 Android (Play Store upload) | `.aab` | Android App Bundle |
+            | 🍎 iOS | `.ipa` | Requires signing or AltStore |
+            | 🌐 Web | Live at [procurbosse.edgeone.app](https://procurbosse.edgeone.app) | |
 
-            ### Mobile Apps
-            | Platform | Download | Notes |
-            |----------|----------|-------|
-            | Android | `.apk` file in `android-apk-*` artifact | Install directly on Android |
-            | iOS | `.ipa` file in `ios-app-*` artifact | Sideload for testing |
-
-            ### Web
-            | Type | Description |
-            |------|-------------|
-            | Web Bundle | Self-hosted web app |
-
-            ## Installation Instructions
-
-            ### Android
-            1. Download the `.apk` file
-            2. Enable "Install from Unknown Sources" in Settings
-            3. Open the APK file to install
-
-            ### iOS (Sideloading for Testing)
-            1. Download the `.ipa` file
-            2. Use a tool like AltStore or Cydia Impactor
-            3. Sign with your Apple Developer account
-
-            ### App Store Submission
-            For App Store and Google Play Store submission, use the `.aab` (Android) and `.xcarchive` (iOS) artifacts.
-
-            ## Features
-            - ✅ Full EL5 MediProcure ERP functionality
-            - ✅ Offline-capable with local data
-            - ✅ Push notifications
-            - ✅ Auto-update support
-            - ✅ Works on mobile and desktop
+            ## Secrets needed for store publishing
+            | Secret | Purpose |
+            |--------|---------|
+            | `PLAY_STORE_JSON_KEY` | Google Play service account JSON |
+            | `ANDROID_KEYSTORE_BASE64` | Base64-encoded `.jks` keystore |
+            | `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+            | `ANDROID_KEY_ALIAS` | Key alias |
+            | `ANDROID_KEY_PASSWORD` | Key password |
+            | `CERTIFICATES_P12` | Apple distribution cert (base64) |
+            | `CERTIFICATES_P12_PASSWORD` | Cert password |
+            | `PROVISIONING_PROFILE_BASE64` | iOS provisioning profile |
+            | `ASC_API_KEY_BASE64` | App Store Connect API key |
+            | `ASC_API_KEY_ID` | ASC API Key ID |
+            | `ASC_ISSUER_ID` | ASC Issuer ID |
           files: |
             release-artifacts/**/*.apk
             release-artifacts/**/*.aab

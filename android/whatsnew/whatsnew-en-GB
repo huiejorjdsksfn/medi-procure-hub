@@ -1,0 +1,9 @@
+EL5 MediProcure v11.12.0 — Health Procurement ERP for Embu Level 5 Hospital
+
+• Scanner: barcode scan now syncs directly to item catalog with correct stock movement tracking
+• Facilities management: full CRUD for multi-facility registry
+• EdgeOne CDN integration with live health monitoring in Admin Tracker
+• 17 new database tables completing the full ERP schema
+• Zero ESLint errors — complete code quality pass
+• Stamp Studio and Document Studio accessible from navigation
+• All navigation bugs fixed; bot infrastructure verified healthy

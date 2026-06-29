@@ -154,26 +154,41 @@ export default function ScannerPage() {
     }
   }, [categories]);
 
-  const saveItem = async() => {
-    if(!addForm.name.trim()){ toast({title:"Enter item name",variant:"destructive"}); return; }
+  const saveItem = async () => {
+    if (!addForm.name.trim()) { toast({ title: "Enter item name", variant: "destructive" }); return; }
     setSaving(true);
-    const{error}=await(supabase as any).from("items").insert({
-      name:addForm.name, barcode:addForm.barcode||barcode,
-      category_id:addForm.category_id||null, department_id:addForm.department_id||null,
-      unit_of_measure:addForm.unit_of_measure, unit_price:Number(addForm.unit_price)||0,
-      quantity_in_stock:Number(addForm.quantity_in_stock)||0,
-      reorder_level:Number(addForm.reorder_level)||10,
-      item_type:addForm.item_type, batch_number:addForm.batch_number||null,
-      expiry_date:addForm.expiry_date||null, description:addForm.description||null,
-      location:addForm.location||null, added_by:user?.id, status:"active",
+    const { data: newItem, error } = await (supabase as any).from("items").insert({
+      name: addForm.name, barcode: addForm.barcode || barcode,
+      category_id: addForm.category_id || null, department_id: addForm.department_id || null,
+      unit_of_measure: addForm.unit_of_measure, unit_price: Number(addForm.unit_price) || 0,
+      quantity_in_stock: Number(addForm.quantity_in_stock) || 0,
+      reorder_level: Number(addForm.reorder_level) || 10,
+      item_type: addForm.item_type, batch_number: addForm.batch_number || null,
+      expiry_date: addForm.expiry_date || null, description: addForm.description || null,
+      location: addForm.location || null, added_by: user?.id, status: "active",
+    }).select("id").single();
+
+    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); setSaving(false); return; }
+
+    // Log stock movement with the real new item id
+    const newItemId = newItem?.id ?? null;
+    await (supabase as any).from("stock_movements").insert({
+      item_id: newItemId,
+      movement_type: "initial_stock",
+      quantity: Number(addForm.quantity_in_stock) || 0,
+      notes: `Added via scanner: ${addForm.barcode || barcode}`,
+      performed_by: user?.id,
     });
-    if(error){ toast({title:"Save failed",description:error.message,variant:"destructive"}); setSaving(false); return; }
-    toast({title:"Item saved -",description:addForm.name});
-    setShowAdd(false); setAddForm({name:"",barcode:"",category_id:"",department_id:"",unit_of_measure:"piece",unit_price:"",quantity_in_stock:"1",reorder_level:"10",item_type:"consumable",batch_number:"",expiry_date:"",description:"",location:""});
+    await (supabase as any).from("audit_log").insert({
+      user_id: user?.id, action: "item_added_via_scanner", table_name: "items",
+      details: JSON.stringify({ id: newItemId, name: addForm.name, barcode: addForm.barcode || barcode }),
+    });
+
+    toast({ title: `✅ "${addForm.name}" added to catalog`, description: `Barcode: ${addForm.barcode || barcode}` });
+    setShowAdd(false);
+    setFoundItem({ ...addForm, id: newItemId, barcode: addForm.barcode || barcode });
+    setAddForm({ name: "", barcode: "", category_id: "", department_id: "", unit_of_measure: "piece", unit_price: "", quantity_in_stock: "1", reorder_level: "10", item_type: "consumable", batch_number: "", expiry_date: "", description: "", location: "" });
     setOnlineInfo(null); setSaving(false);
-    // Log movement
-    await(supabase as any).from("stock_movements").insert({item_id:null,movement_type:"initial_stock",quantity:Number(addForm.quantity_in_stock)||0,notes:`Added via scanner: ${addForm.barcode||barcode}`,performed_by:user?.id});
-    await(supabase as any).from("audit_log").insert({user_id:user?.id,action:"item_added_via_scanner",table_name:"items",details:JSON.stringify({name:addForm.name,barcode:addForm.barcode||barcode})});
     fetchAllItems(); fetchHistory();
   };
 
