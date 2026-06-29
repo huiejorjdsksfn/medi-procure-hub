@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => ({
     target:    "es2017",
     assetsInlineLimit: 8_192,
     cssCodeSplit: true,
+    minify: "esbuild",
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === "CIRCULAR_DEPENDENCY") return;
