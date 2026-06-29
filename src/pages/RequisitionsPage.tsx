@@ -436,11 +436,11 @@ export default function RequisitionsPage() {
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div>
-                <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>Embu Level 5 Hospital - {editReq?.requisition_number||"New"}</div>
+                <div style={{fontSize:16,fontWeight:800,color:"#0f172a"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
+                <div style={{fontSize:11,color:"#64748b"}}>Embu Level 5 Hospital - {editReq?.requisition_number||"New"}</div>
               </div>
               <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
+                <X style={{width:16,height:16,color:"#64748b"}}/>
               </button>
             </div>
             <ConflictResolutionBanner fields={conflictResolver.conflict} onResolve={conflictResolver.resolve} remoteLabel="requisition" />
@@ -477,7 +477,7 @@ export default function RequisitionsPage() {
               ))}
             </div>
             <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
               <button onClick={()=>save()} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                 {saving?"Saving-":editReq?"Update Requisition":"Create Requisition"}
               </button>
@@ -500,15 +500,15 @@ export default function RequisitionsPage() {
                 <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
               </div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>{viewReq.requisition_number}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>{viewReq.title}</div>
+                <div style={{fontSize:15,fontWeight:800,color:"#0f172a"}}>{viewReq.requisition_number}</div>
+                <div style={{fontSize:11,color:"#64748b"}}>{viewReq.title}</div>
               </div>
               <span className="status-chip" style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
                   <DocumentStamp status={viewReq.status} date={viewReq.created_at} size={100} rotate={-12} />
                 {STATUS_CFG[viewReq.status]?.label||viewReq.status}
               </span>
               <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"rgba(255,255,255,0.45)"}}/>
+                <X style={{width:16,height:16,color:"#64748b"}}/>
               </button>
             </div>
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -529,7 +529,7 @@ export default function RequisitionsPage() {
                 {l:"Notes",v:viewReq.notes||"-",span:2},
                 ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"-",span:2,warn:true}]:[]),
               ].map((row:any,i:number)=>(
-                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"rgba(239,68,68,0.15)":"rgba(255,255,255,0.05)",borderRadius:8,border: `1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
+                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"rgba(239,68,68,0.15)":"#f8fafc",borderRadius:8,border: `1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
                   <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
                   <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
                 </div>
@@ -545,8 +545,8 @@ export default function RequisitionsPage() {
               {viewReq.status==="draft"&&(
                 <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Submit for Approval</button>
               )}
-              <button onClick={()=>(printRequisition as any)(viewReq, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>- Print</button>
-              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>Close</button>
+              <button onClick={()=>(printRequisition as any)(viewReq, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>- Print</button>
+              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>Close</button>
             </div>
           </div>
         </div>
@@ -558,11 +558,11 @@ export default function RequisitionsPage() {
           <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:440,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
               <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
-              <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9"}}>Reject Requisition</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#0f172a"}}>Reject Requisition</div>
             </div>
             <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)-" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:13,fontWeight:600,color:"#e2e8f0"}}>Cancel</button>
+              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
               <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
             </div>
           </div>
