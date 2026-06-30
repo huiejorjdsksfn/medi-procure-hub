@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  EDGEONE_API_TOKEN: "REDACTED_EDGEONE_TOKEN"
+  EDGEONE_API_TOKEN: "${{ secrets.EDGEONE_API_TOKEN }}"
   EDGEONE_PROJECT:   "procurbosse"
   SITE_URL:          "https://procurbosse.edgeone.app"
 

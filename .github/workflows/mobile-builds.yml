@@ -132,26 +132,17 @@ jobs:
       - name: Set up Android keystore (signed release)
         run: |
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/procurbosse.jks
-            cat >> android/app/build.gradle << 'SIGEOF'
-
-          android.signingConfigs.create("release") {
-            storeFile     file("procurbosse.jks")
-            storePassword System.getenv("KEYSTORE_PASS")
-            keyAlias      System.getenv("KEY_ALIAS")
-            keyPassword   System.getenv("KEY_PASS")
-          }
-          android.buildTypes.release.signingConfig android.signingConfigs.release
-          SIGEOF
-            echo "✅ Signing configured"
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/procurbosse-release.keystore
+            cat > android/app/keystore.properties << EOF
+          storeFile=procurbosse-release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+            echo "✅ Signing configured (keystore.properties written, build.gradle already wired to read it)"
           else
             echo "⚠️  No keystore — building unsigned release"
           fi
-        env:
-          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS:     ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASS:      ${{ secrets.ANDROID_KEY_PASSWORD }}
-        continue-on-error: true
 
       - name: Build Debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon 2>&1 | tail -20
@@ -161,10 +152,6 @@ jobs:
           cd android
           ./gradlew assembleRelease --no-daemon 2>&1 | tail -20
           ./gradlew bundleRelease   --no-daemon 2>&1 | tail -20
-        env:
-          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS:     ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASS:      ${{ secrets.ANDROID_KEY_PASSWORD }}
         continue-on-error: true
 
       - name: Rename artifacts
@@ -242,6 +229,7 @@ jobs:
           echo "${{ secrets.CERTIFICATES_P12 }}" | base64 -d > $RUNNER_TEMP/cert.p12
           security import $RUNNER_TEMP/cert.p12 -P "${{ secrets.CERTIFICATES_P12_PASSWORD }}" \
             -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "ci" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
           # Provisioning profile
           if [ -n "${{ secrets.PROVISIONING_PROFILE_BASE64 }}" ]; then
@@ -249,7 +237,12 @@ jobs:
             echo "${{ secrets.PROVISIONING_PROFILE_BASE64 }}" | base64 -d \
               > ~/Library/MobileDevice/Provisioning\ Profiles/procurbosse.mobileprovision
           fi
-        continue-on-error: true
+          # App Store Connect API key — xcodebuild looks for it specifically here
+          if [ -n "${{ secrets.ASC_API_KEY_BASE64 }}" ]; then
+            mkdir -p ~/.appstoreconnect/private_keys
+            echo "${{ secrets.ASC_API_KEY_BASE64 }}" | base64 -d \
+              > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+          fi
 
       - name: Build iOS archive
         run: |
@@ -263,23 +256,25 @@ jobs:
             -configuration Release \
             -archivePath build/ProcurBosse.xcarchive \
             -allowProvisioningUpdates \
-            CODE_SIGN_IDENTITY="${{ secrets.APPLE_SIGNING_IDENTITY || '' }}" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            CODE_SIGN_IDENTITY="${{ secrets.APPLE_SIGNING_IDENTITY || 'Apple Distribution' }}" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME || '' }}" \
             CODE_SIGNING_ALLOWED="${{ secrets.CERTIFICATES_P12 != '' && 'YES' || 'NO' }}" \
-            archive 2>&1 | tail -30
-        continue-on-error: true
+            archive 2>&1 | tee xcodebuild-archive.log
+          test -d build/ProcurBosse.xcarchive
 
-      - name: Export IPA
+      - name: Export IPA (uploads to TestFlight automatically via App Store Connect API key)
         run: |
           cd ios/App
-          if [ -d build/ProcurBosse.xcarchive ]; then
-            xcodebuild -exportArchive \
-              -archivePath build/ProcurBosse.xcarchive \
-              -exportPath build/ipa/ \
-              -exportOptionsPlist ../../ios/exportOptions.plist \
-              -allowProvisioningUpdates 2>&1 | tail -20 || true
-          fi
-        continue-on-error: true
+          sed "s/TEAM_ID_PLACEHOLDER/${{ secrets.APPLE_TEAM_ID }}/" ../exportOptions.plist > /tmp/exportOptions.plist
+          xcodebuild -exportArchive \
+            -archivePath build/ProcurBosse.xcarchive \
+            -exportPath build/ipa/ \
+            -exportOptionsPlist /tmp/exportOptions.plist \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
+            -authenticationKeyID "${{ secrets.ASC_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
+            -allowProvisioningUpdates 2>&1 | tee xcodebuild-export.log
 
       - name: Collect iOS artifacts
         run: |
@@ -294,30 +289,18 @@ jobs:
           path: dist-ios/
           retention-days: 30
 
-      # ── Publish to App Store Connect ──────────────────────────────────
-      - name: Upload to App Store Connect
-        if: |
-          github.event.inputs.publish_app_store == 'true' &&
-          secrets.ASC_API_KEY_BASE64 != ''
+      # TestFlight upload happens automatically during "Export IPA" above
+      # (exportOptions.plist destination=upload + ASC API key auth).
+      # This step is now just a status message, not a second upload attempt —
+      # xcrun altool was deprecated by Apple in Nov 2023.
+      - name: TestFlight upload result
+        if: github.event.inputs.publish_app_store == 'true'
         run: |
-          # Decode App Store Connect API key
-          mkdir -p ~/.private_keys
-          echo "${{ secrets.ASC_API_KEY_BASE64 }}" | base64 -d \
-            > ~/.private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
-
-          IPA_PATH=$(find dist-ios -name "*.ipa" | head -1)
-          if [ -n "$IPA_PATH" ]; then
-            xcrun altool --upload-app \
-              --type ios \
-              --file "$IPA_PATH" \
-              --apiKey  "${{ secrets.ASC_API_KEY_ID }}" \
-              --apiIssuer "${{ secrets.ASC_ISSUER_ID }}" \
-              2>&1 || true
-            echo "✅ Uploaded to App Store Connect"
+          if [ -f ios/App/build/ipa/*.ipa ] 2>/dev/null || ls ios/App/build/ipa/*.ipa >/dev/null 2>&1; then
+            echo "✅ Build exported and uploaded to TestFlight (see 'Export IPA' step log for upload confirmation)"
           else
-            echo "⚠️  No IPA found to upload"
+            echo "⚠️  No IPA found — export step likely failed, check 'Export IPA' step above"
           fi
-        continue-on-error: true
 
   # ── 4. GitHub Release (on tag push) ────────────────────────────────────
   release:
