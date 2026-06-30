@@ -1,7 +1,8 @@
 /**
- * GlobalSearchBar — ProcurBosse v12.0.0
- * System-wide search: requisitions, POs, suppliers, items, users, vouchers
- * Keyboard shortcut: Ctrl+K / Cmd+K
+ * GlobalSearchBar — ProcurBosse v12.1.0
+ * System-wide search: requisitions, POs, suppliers, items
+ * Ctrl+K / Cmd+K to open. Results deep-link via ?focus=<id> which each
+ * target page reads to auto-open the matching record's view modal.
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,8 +22,6 @@ const TYPE_COLORS: Record<string, string> = {
   purchase_order: "#8b5cf6",
   supplier:       "#22c55e",
   item:           "#f59e0b",
-  user:           "#06b6d4",
-  voucher:        "#ec4899",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -30,8 +29,6 @@ const TYPE_LABELS: Record<string, string> = {
   purchase_order: "Purchase Order",
   supplier:       "Supplier",
   item:           "Item",
-  user:           "User",
-  voucher:        "Voucher",
 };
 
 export default function GlobalSearchBar() {
@@ -39,14 +36,15 @@ export default function GlobalSearchBar() {
   const [query, setQuery]     = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errored, setErrored] = useState(false);
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
 
-  // Ctrl+K / Cmd+K to open
+  // Ctrl+K / Cmd+K to open, Esc to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen(true);
         setTimeout(() => inputRef.current?.focus(), 80);
@@ -58,58 +56,74 @@ export default function GlobalSearchBar() {
   }, []);
 
   const search = useCallback(async (q: string) => {
-    if (q.length < 2) { setResults([]); return; }
+    if (q.trim().length < 2) { setResults([]); setErrored(false); return; }
     setLoading(true);
-    const like = `%${q}%`;
+    setErrored(false);
+    const like = `%${q.trim()}%`;
     try {
       const [reqs, pos, sups, items] = await Promise.allSettled([
-        supabase.from("requisitions").select("id,title,status,requisition_number")
-          .or(`title.ilike.${like},requisition_number.ilike.${like}`).limit(4),
-        supabase.from("purchase_orders").select("id,order_number,supplier_name,status")
-          .or(`order_number.ilike.${like},supplier_name.ilike.${like}`).limit(4),
-        supabase.from("suppliers").select("id,name,contact_email,status")
-          .ilike("name", like).limit(4),
-        supabase.from("items").select("id,name,code,category")
-          .or(`name.ilike.${like},code.ilike.${like}`).limit(4),
+        supabase.from("requisitions")
+          .select("id,title,status,requisition_number")
+          .or(`title.ilike.${like},requisition_number.ilike.${like}`)
+          .limit(5),
+        supabase.from("purchase_orders")
+          .select("id,po_number,supplier_name,status")
+          .or(`po_number.ilike.${like},supplier_name.ilike.${like}`)
+          .limit(5),
+        supabase.from("suppliers")
+          .select("id,name,email,status")
+          .ilike("name", like)
+          .limit(5),
+        supabase.from("items")
+          .select("id,name,sku,category")
+          .or(`name.ilike.${like},sku.ilike.${like}`)
+          .limit(5),
       ]);
 
       const out: SearchResult[] = [];
+      let anyOk = false;
 
-      if (reqs.status === "fulfilled" && reqs.value.data) {
-        reqs.value.data.forEach(r => out.push({
+      if (reqs.status === "fulfilled" && !reqs.value.error && reqs.value.data) {
+        anyOk = true;
+        reqs.value.data.forEach((r: any) => out.push({
           id: r.id, type: "requisition",
           label: r.title || r.requisition_number || r.id,
-          subtitle: `Requisition · ${r.status || "Draft"}`,
-          url: "/requisitions", icon: "📋",
+          subtitle: `${r.requisition_number || ""} · ${r.status || "Draft"}`,
+          url: `/requisitions?focus=${r.id}`, icon: "📋",
         }));
       }
-      if (pos.status === "fulfilled" && pos.value.data) {
-        pos.value.data.forEach(r => out.push({
+      if (pos.status === "fulfilled" && !pos.value.error && pos.value.data) {
+        anyOk = true;
+        pos.value.data.forEach((r: any) => out.push({
           id: r.id, type: "purchase_order",
-          label: r.order_number || r.id,
-          subtitle: `PO · ${r.supplier_name || ""} · ${r.status || ""}`,
-          url: "/purchase-orders", icon: "🛒",
+          label: r.po_number || r.id,
+          subtitle: `${r.supplier_name || "PO"} · ${r.status || ""}`,
+          url: `/purchase-orders?focus=${r.id}`, icon: "🛒",
         }));
       }
-      if (sups.status === "fulfilled" && sups.value.data) {
-        sups.value.data.forEach(r => out.push({
+      if (sups.status === "fulfilled" && !sups.value.error && sups.value.data) {
+        anyOk = true;
+        sups.value.data.forEach((r: any) => out.push({
           id: r.id, type: "supplier",
           label: r.name,
-          subtitle: `Supplier · ${r.contact_email || r.status || ""}`,
-          url: "/suppliers", icon: "🏢",
+          subtitle: `Supplier · ${r.email || r.status || ""}`,
+          url: `/suppliers?focus=${r.id}`, icon: "🏢",
         }));
       }
-      if (items.status === "fulfilled" && items.value.data) {
-        items.value.data.forEach(r => out.push({
+      if (items.status === "fulfilled" && !items.value.error && items.value.data) {
+        anyOk = true;
+        items.value.data.forEach((r: any) => out.push({
           id: r.id, type: "item",
           label: r.name,
-          subtitle: `Item · ${r.code || ""} · ${r.category || ""}`,
-          url: "/items", icon: "📦",
+          subtitle: `${r.sku || "Item"} · ${r.category || ""}`,
+          url: `/items?focus=${r.id}`, icon: "📦",
         }));
       }
 
       setResults(out);
       setSelected(0);
+      // If literally every query failed (network/RLS issue), surface it
+      setErrored(!anyOk && [reqs, pos, sups, items].every(p => p.status === "rejected"));
     } finally {
       setLoading(false);
     }
@@ -163,19 +177,19 @@ export default function GlobalSearchBar() {
 
         {/* Results */}
         {results.length > 0 && (
-          <div style={{ maxHeight:360, overflowY:"auto" }}>
+          <div style={{ maxHeight:380, overflowY:"auto" }}>
             {results.map((r, i) => (
-              <div key={r.id} onClick={() => go(r)}
+              <div key={`${r.type}-${r.id}`} onClick={() => go(r)}
                 style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 20px", cursor:"pointer",
                   background: i === selected ? "#f0f7ff" : "transparent",
                   borderLeft: i === selected ? "3px solid #0078d4" : "3px solid transparent" }}>
                 <span style={{ fontSize:20 }}>{r.icon}</span>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, fontWeight:600, color:"#0f172a", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{r.label}</div>
-                  <div style={{ fontSize:12, color:"#64748b", marginTop:2 }}>{r.subtitle}</div>
+                  <div style={{ fontSize:12, color:"#64748b", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{r.subtitle}</div>
                 </div>
                 <span style={{ fontSize:11, fontWeight:700, color:TYPE_COLORS[r.type] || "#64748b",
-                  background: (TYPE_COLORS[r.type] || "#64748b") + "18", padding:"2px 8px", borderRadius:99 }}>
+                  background: (TYPE_COLORS[r.type] || "#64748b") + "18", padding:"2px 8px", borderRadius:99, whiteSpace:"nowrap" }}>
                   {TYPE_LABELS[r.type] || r.type}
                 </span>
               </div>
@@ -183,16 +197,22 @@ export default function GlobalSearchBar() {
           </div>
         )}
 
-        {query.length >= 2 && !loading && results.length === 0 && (
+        {query.trim().length >= 2 && !loading && results.length === 0 && !errored && (
           <div style={{ padding:"32px 20px", textAlign:"center", color:"#94a3b8", fontSize:14 }}>
             No results for "<strong>{query}</strong>"
+          </div>
+        )}
+
+        {errored && (
+          <div style={{ padding:"32px 20px", textAlign:"center", color:"#dc2626", fontSize:13 }}>
+            ⚠ Search is temporarily unavailable. Check your connection and try again.
           </div>
         )}
 
         {/* Footer */}
         <div style={{ padding:"10px 20px", borderTop:"1px solid #f1f5f9", display:"flex", gap:16, fontSize:11, color:"#94a3b8" }}>
           <span>↑↓ Navigate</span><span>↵ Open</span><span>ESC Close</span>
-          <span style={{ marginLeft:"auto" }}>EL5 MediProcure v12.0.0</span>
+          <span style={{ marginLeft:"auto" }}>EL5 MediProcure v12.1.0</span>
         </div>
       </div>
     </div>
