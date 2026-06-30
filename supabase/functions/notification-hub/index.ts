@@ -12,6 +12,7 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -24,15 +25,37 @@ const TWILIO_WA = Deno.env.get("TWILIO_WA_NUMBER") || Deno.env.get("TWILIO_WA") 
 const TWILIO_MG_SID = Deno.env.get("TWILIO_MESSAGING_SERVICE_SID") || "";
 const TWILIO_VA_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID") || "";
 
-// Email Configuration
-const SMTP_HOST = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
-const SMTP_PORT = Deno.env.get("SMTP_PORT") || "587"; // Gmail TLS
-const SMTP_USER = Deno.env.get("SMTP_USER") || "hpdeskg9@gmail.com";
-const SMTP_PASS = Deno.env.get("SMTP_PASS") || "";
+// Email Configuration — env vars are a fallback; the real source of truth is
+// system_settings (smtp_host/smtp_user/smtp_pass), set via Settings → SMTP.
+const SMTP_HOST_ENV = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
+const SMTP_PORT_ENV = Deno.env.get("SMTP_PORT") || "587"; // Gmail TLS
+const SMTP_USER_ENV = Deno.env.get("SMTP_USER") || "hpdeskg9@gmail.com";
+const SMTP_PASS_ENV = Deno.env.get("SMTP_PASS") || "";
 const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "hpdeskg9@gmail.com";
 const SENDER_NAME = Deno.env.get("SENDER_NAME") || "EL5 MediProcure";
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
+
+let _smtpCache: { host: string; port: string; user: string; pass: string; enabled: boolean } | null = null;
+async function getDbSmtp() {
+  if (_smtpCache) return _smtpCache;
+  try {
+    const { data } = await db.from("system_settings").select("key,value")
+      .in("key", ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_enabled"]);
+    const m: Record<string, string> = {};
+    (data || []).forEach((r: any) => { if (r.key) m[r.key] = r.value || ""; });
+    _smtpCache = {
+      host: m.smtp_host || SMTP_HOST_ENV,
+      port: m.smtp_port || SMTP_PORT_ENV,
+      user: m.smtp_user || SMTP_USER_ENV,
+      pass: m.smtp_pass || SMTP_PASS_ENV,
+      enabled: m.smtp_enabled === "true",
+    };
+  } catch {
+    _smtpCache = { host: SMTP_HOST_ENV, port: SMTP_PORT_ENV, user: SMTP_USER_ENV, pass: SMTP_PASS_ENV, enabled: false };
+  }
+  return _smtpCache;
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -158,10 +181,42 @@ async function makeVoiceCall(to: string, message: string): Promise<{ ok: boolean
   }
 }
 
-// ── Email via SendGrid ───────────────────────────────────────────────────────
+// ── Email via Gmail SMTP (primary) → SendGrid (fallback) → audit log ─────────
 async function sendEmail(to: string, subject: string, body: string, html?: string): Promise<{ ok: boolean; error?: string }> {
+  const smtp = await getDbSmtp();
+
+  // 1. Real Gmail SMTP — the system's configured primary provider
+  if (smtp.enabled && smtp.host && smtp.user && smtp.pass) {
+    let client: SMTPClient | null = null;
+    try {
+      const port = Number(smtp.port) || 587;
+      client = new SMTPClient({
+        connection: {
+          hostname: smtp.host,
+          port,
+          tls: port === 465,
+          auth: { username: smtp.user, password: smtp.pass },
+        },
+      });
+      await client.send({
+        from: `${SENDER_NAME} <${smtp.user}>`,
+        to: [to],
+        subject,
+        content: body.slice(0, 10000),
+        html: html || undefined,
+      });
+      return { ok: true };
+    } catch (e: any) {
+      // fall through to SendGrid / audit-log fallback below
+      console.error("[notification-hub] Gmail SMTP send failed:", e?.message);
+    } finally {
+      try { await client?.close(); } catch { /* already closed */ }
+    }
+  }
+
+  // 2. SendGrid fallback, if configured
   const SENDGRID_KEY = Deno.env.get("SENDGRID_API_KEY") || "";
-  
+
   if (SENDGRID_KEY) {
     try {
       const r = await fetch("https://api.sendgrid.com/v3/mail/send", {
@@ -338,6 +393,7 @@ Deno.serve(async (req) => {
     }
     
     if (action === "status") {
+      const smtp = await getDbSmtp();
       return new Response(JSON.stringify({
         ok: true,
         version: "v2.0",
@@ -345,7 +401,7 @@ Deno.serve(async (req) => {
           sms: !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE),
           whatsapp: !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_WA),
           call: !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE),
-          email: !!(SMTP_USER || Deno.env.get("SENDGRID_API_KEY")),
+          email: !!((smtp.enabled && smtp.host && smtp.user && smtp.pass) || Deno.env.get("SENDGRID_API_KEY")),
         },
         senderEmail: SENDER_EMAIL,
       }), { headers: CORS });
