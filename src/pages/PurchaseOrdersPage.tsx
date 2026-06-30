@@ -1,5 +1,6 @@
 import { DocumentStamp } from "@/components/DocumentStamp";
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ERPCache } from "@/lib/erp-cache";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
@@ -66,6 +67,7 @@ export default function PurchaseOrdersPage() {
   const [search, setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewPO, setViewPO]       = useState<any>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showForm, setShowForm]   = useState(false);
   const [editing, setEditing]     = useState<any>(null);
   const [saving, setSaving]       = useState(false);
@@ -118,6 +120,19 @@ export default function PurchaseOrdersPage() {
   },[]);
 
   useEffect(()=>{ load(); },[load]);
+
+  // Deep-link: auto-open record from GlobalSearchBar (?focus=<id>)
+  useEffect(() => {
+    const focusId = searchParams.get("focus");
+    if (focusId && orders.length > 0) {
+      const match = orders.find(o => o.id === focusId);
+      if (match) {
+        setViewPO(match);
+        searchParams.delete("focus");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [orders, searchParams, setSearchParams]);
 
   useEffect(()=>{
     const ch=(supabase as any).channel("pos-rt")
