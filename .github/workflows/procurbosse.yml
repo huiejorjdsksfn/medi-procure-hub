@@ -190,12 +190,19 @@ jobs:
         run: |
           echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -8
           set +e
+          if [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ]; then
+            echo "::warning::SUPABASE_DB_PASSWORD secret is not set. 'supabase db push' requires a direct Postgres connection password (separate from SUPABASE_ACCESS_TOKEN, which only authenticates Management API calls like edge function deploys). Add it in Settings → Secrets → Actions, using your project's database password from Supabase Dashboard → Project Settings → Database → Connection string."
+            echo "status=no_password" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           # --include-all: the live DB has baseline tables (profiles, items, etc.)
           # created outside migration tracking (Lovable/dashboard bootstrap before
           # migrations began), so the remote migration history and local files can
           # legitimately diverge on old entries. --include-all pushes any migration
           # not yet recorded as applied, regardless of that historical gap.
-          OUTPUT=$(supabase db push --project-ref ${{ env.SUPA_REF }} --include-all --yes 2>&1)
+          OUTPUT=$(supabase db push --project-ref ${{ env.SUPA_REF }} \
+            --password "${{ secrets.SUPABASE_DB_PASSWORD }}" \
+            --include-all --yes 2>&1)
           CODE=$?
           echo "$OUTPUT"
           echo "exit_code=$CODE" >> $GITHUB_OUTPUT
@@ -215,6 +222,7 @@ jobs:
           case "${{ steps.db_push.outputs.status }}" in
             success)    echo "✅ supabase db push applied new migrations successfully (exit ${{ steps.db_push.outputs.exit_code }})" ;;
             up_to_date) echo "✅ Remote database already up to date — nothing new to push" ;;
+            no_password) echo "⏭️  Skipped — SUPABASE_DB_PASSWORD secret not configured (see warning above)" ;;
             *)          echo "::warning::supabase db push reported a non-zero exit (${{ steps.db_push.outputs.exit_code }}). Check the 'Push migrations' step output above for the specific failing statement and migration file." ;;
           esac
         continue-on-error: true
