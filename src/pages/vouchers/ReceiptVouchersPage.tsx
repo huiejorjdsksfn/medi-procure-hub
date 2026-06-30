@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
-import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { useChartOfAccounts, useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
 import { genDocNumber } from "@/lib/docNumber";
 import { DocumentStamp } from "@/components/DocumentStamp";
 
@@ -53,6 +53,8 @@ export default function ReceiptVouchersPage() {
   const [detail, setDetail] = useState<any>(null);
   const [form, setForm] = useState({received_from:"",total_amount:"",payment_method:"bank_transfer",gl_account:"",description:"",reference:"",bank_name:""});
   const { accounts: glAccounts } = useChartOfAccounts();
+  const { requisitions } = useRequisitions();
+  const { purchaseOrders } = usePurchaseOrders();
 
   const fetch = useCallback(async()=>{
     setLoading(true);
@@ -202,10 +204,30 @@ export default function ReceiptVouchersPage() {
         <div style={{background:"#f5f4ea",borderBottom:`1px solid #ccc`,padding:"10px 14px"}}>
           <div style={{fontWeight:700,fontSize:11,color:"#155724",marginBottom:8}}>🧾 New Receipt Voucher</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-            {[{l:"Received From *",k:"received_from"},{l:"Amount (KES) *",k:"total_amount",t:"number"},{l:"Reference",k:"reference"},{l:"Bank Name",k:"bank_name"},{l:"Description",k:"description"}].map(f=>(
+            {[{l:"Received From *",k:"received_from"},{l:"Amount (KES) *",k:"total_amount",t:"number"},{l:"Bank Name",k:"bank_name"},{l:"Description",k:"description"}].map(f=>(
               <div key={f.k}><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>{f.l}</label>
               <input type={f.t||"text"} value={(form as any)[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} style={inp}/></div>
             ))}
+            <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Reference</label>
+            <select value={form.reference} onChange={e=>{
+              const val = e.target.value;
+              const req = requisitions.find((r:any)=>r.requisition_number===val);
+              const po  = purchaseOrders.find((p:any)=>p.po_number===val);
+              setForm(p=>({
+                ...p,
+                reference: val,
+                received_from: !p.received_from ? (req?.requester_name || po?.supplier_name || p.received_from) : p.received_from,
+                total_amount: !p.total_amount ? String(req?.total_amount || po?.total_amount || p.total_amount) : p.total_amount,
+              }));
+            }} style={inp}>
+              <option value="">— None —</option>
+              <optgroup label="Requisitions">
+                {requisitions.map((r:any)=><option key={r.id} value={r.requisition_number}>{r.requisition_number} — {r.title||r.department||""}</option>)}
+              </optgroup>
+              <optgroup label="Purchase Orders">
+                {purchaseOrders.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||""}</option>)}
+              </optgroup>
+            </select></div>
             <div><label style={{fontSize:10,fontWeight:700,color:"#555",display:"block",marginBottom:2}}>Method</label>
             <select value={form.payment_method} onChange={e=>setForm(p=>({...p,payment_method:e.target.value}))} style={inp}>
               {["bank_transfer","cheque","cash","mpesa","nhif","moh_grant"].map(m=><option key={m} value={m}>{m.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}</option>)}
