@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { PrintEngine } from "@/engines/print/PrintEngine";
 import { pageCache } from "@/lib/pageCache";
@@ -36,6 +37,7 @@ export default function SuppliersPage() {
   const [showForm,     setShowForm]     = useState(false);
   const [editing,      setEditing]      = useState<any>(null);
   const [viewSupplier, setViewSupplier] = useState<any>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [saving,       setSaving]       = useState(false);
   const [colSearch,    setColSearch]    = useState<Record<string,string>>({});
   const [page,         setPage]         = useState(1);
@@ -59,6 +61,19 @@ export default function SuppliersPage() {
   },[]);
 
   useEffect(()=>{ load(); },[load]);
+
+  // Deep-link: auto-open record from GlobalSearchBar (?focus=<id>)
+  useEffect(() => {
+    const focusId = searchParams.get("focus");
+    if (focusId && suppliers.length > 0) {
+      const match = suppliers.find(s => s.id === focusId);
+      if (match) {
+        setViewSupplier(match);
+        searchParams.delete("focus");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [suppliers, searchParams, setSearchParams]);
   useEffect(()=>{
     const ch=supabase.channel("supp-rt").on("postgres_changes",{event:"*",schema:"public",table:"suppliers"},()=>load()).subscribe();
     return ()=>{supabase.removeChannel(ch);};
