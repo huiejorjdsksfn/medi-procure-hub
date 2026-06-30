@@ -26,6 +26,7 @@ import { liveDbEngine }                   from "@/engines/db/LiveDatabaseEngine"
 // Auth (eagerly pre-warmed so login feels instant)
 const LoginPage              = lazy(() => import("@/pages/LoginPage"));
 const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
+const PublicFormPage         = lazy(() => import("@/pages/PublicFormPage"));
 
 // Core
 const DashboardPage          = lazy(() => import("@/pages/DashboardPage"));
@@ -170,6 +171,7 @@ const App = () => {
               {/* Public */}
               <Route path="/login"          element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/forms/:formId"  element={<PublicFormPage />} />
               <Route path="/"               element={<Navigate to="/dashboard" replace />} />
               <Route path="/index"          element={<Navigate to="/dashboard" replace />} />
 
