@@ -162,7 +162,7 @@ export default function SmtpSettingsPanel() {
     ], { onConflict: "key" });
     setConfig(c => ({ ...c, supabase_smtp_active: "true", smtp_enabled: "true", smtp_provider: "gmail" }));
     setSaving(false);
-    showToast("- Supabase SMTP activated via Resend!");
+    showToast("- Gmail SMTP activated!");
   }
 
   const tabs: { id: "email"|"twilio"|"supabase"; label: string; icon: string }[] = [
@@ -204,8 +204,8 @@ export default function SmtpSettingsPanel() {
             <div>
               <label style={LABEL}>Provider</label>
               <select value={config.smtp_provider} onChange={e => set("smtp_provider", e.target.value)} style={INP}>
-                <option value="gmail">Supabase (Resend)</option>
-                <option value="resend">Resend Direct</option>
+                <option value="gmail">Gmail SMTP (recommended)</option>
+                <option value="resend">Resend (requires Edge Function secret)</option>
                 <option value="smtp">Custom SMTP</option>
                 <option value="sendgrid">SendGrid</option>
               </select>
@@ -223,11 +223,11 @@ export default function SmtpSettingsPanel() {
               <input value={config.smtp_user} onChange={e => set("smtp_user", e.target.value)} style={INP} placeholder="hpdeskg9@gmail.com" />
             </div>
             <div>
-              <label style={LABEL}>SMTP Password / API Key</label>
-              <input type="password" value={config.smtp_pass} onChange={e => set("smtp_pass", e.target.value)} style={INP} placeholder="re_xxxx- or your SMTP password" />
+              <label style={LABEL}>Gmail App Password</label>
+              <input type="password" value={config.smtp_pass} onChange={e => set("smtp_pass", e.target.value)} style={INP} placeholder="16-character app password (not your Google login password)" />
             </div>
             <div>
-              <label style={LABEL}>Resend API Key</label>
+              <label style={LABEL}>Resend API Key <span style={{fontWeight:400,textTransform:"none",color:"#9ca3af"}}>(optional fallback — must also be set as a Supabase Edge Function secret to take effect)</span></label>
               <input type="password" value={config.resend_api_key} onChange={e => set("resend_api_key", e.target.value)} style={INP} placeholder="re_xxxxxxxxxxxxxxxx" />
             </div>
             <div>
@@ -384,7 +384,7 @@ export default function SmtpSettingsPanel() {
               <strong>2.</strong> Enable "Custom SMTP" under Email section<br/>
               <strong>3.</strong> SMTP Host: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>smtp.gmail.com</code><br/>
               <strong>4.</strong> Port: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>587</code> - User: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>hpdeskg9@gmail.com</code><br/>
-              <strong>5.</strong> Password: Your Resend API key (re_xxxx-)<br/>
+              <strong>5.</strong> Password: Your Gmail App Password (16 characters, generate at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: "#0369a1" }}>myaccount.google.com/apppasswords</a>)<br/>
               <strong>6.</strong> Sender: <code style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: 4 }}>EL5 MediProcure &lt;hpdeskg9@gmail.com&gt;</code>
             </div>
           </div>
@@ -395,17 +395,17 @@ export default function SmtpSettingsPanel() {
             </div>
             <div style={{ fontSize: 12, color: "#374151" }}>
               {config.supabase_smtp_active === "true"
-                ? "All password reset emails, notifications and system emails route through Supabase + Resend."
-                : "Click 'Activate Supabase SMTP' to enable email routing through Resend."}
+                ? "All password reset emails, notifications and system emails route through Gmail SMTP."
+                : "Click 'Activate Gmail SMTP' to enable email routing through smtp.gmail.com."}
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={activateSupabaseSMTP} disabled={saving} style={BTN("linear-gradient(135deg,#059669,#047857)", saving)}>
-              {saving ? "Activating-" : "- Activate Supabase SMTP"}
+              {saving ? "Activating-" : "- Activate Gmail SMTP"}
             </button>
             <button onClick={testEmail} disabled={testing} style={BTN("linear-gradient(135deg,#0369a1,#0284c7)", testing)}>
-              {testing ? "Testing-" : "- Test via Supabase SMTP"}
+              {testing ? "Testing-" : "- Test via Gmail SMTP"}
             </button>
             <a href="https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq/functions" target="_blank" rel="noopener noreferrer"
               style={{ ...BTN("#6366f1"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
