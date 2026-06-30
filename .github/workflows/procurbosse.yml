@@ -190,7 +190,12 @@ jobs:
         run: |
           echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -8
           set +e
-          OUTPUT=$(supabase db push --project-ref ${{ env.SUPA_REF }} --yes 2>&1)
+          # --include-all: the live DB has baseline tables (profiles, items, etc.)
+          # created outside migration tracking (Lovable/dashboard bootstrap before
+          # migrations began), so the remote migration history and local files can
+          # legitimately diverge on old entries. --include-all pushes any migration
+          # not yet recorded as applied, regardless of that historical gap.
+          OUTPUT=$(supabase db push --project-ref ${{ env.SUPA_REF }} --include-all --yes 2>&1)
           CODE=$?
           echo "$OUTPUT"
           echo "exit_code=$CODE" >> $GITHUB_OUTPUT
