@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useVoteHeads } from "@/hooks/useVoteHeads";
-import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { useChartOfAccounts, usePurchaseOrders } from "@/hooks/useDropdownData";
 import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
 
 // ── XP Luna palette ──────────────────────────────────────────────────────────
@@ -320,6 +320,7 @@ function VoucherForm({ onSave, onCancel, saving, initial, coa, voteHeads, onMana
     due_date: initial?.due_date ?? "",
     currency: initial?.currency ?? "KES",
   });
+  const { purchaseOrders } = usePurchaseOrders();
   const inp: React.CSSProperties = {
     padding: "2px 5px", border: `1px solid ${XP.btnBorder}`, borderRadius: 2,
     fontSize: 11, fontFamily: XP.font, background: "#fff", color: "#1a1a1a",
@@ -386,7 +387,19 @@ function VoucherForm({ onSave, onCancel, saving, initial, coa, voteHeads, onMana
         </div>
         <div>
           {label("PO Reference")}
-          <input value={f.po_reference} onChange={e => setF(p => ({ ...p, po_reference: e.target.value }))} style={inp} />
+          <select value={f.po_reference} onChange={e => {
+            const poNum = e.target.value;
+            const matched = purchaseOrders.find((po: any) => po.po_number === poNum);
+            setF(p => ({
+              ...p,
+              po_reference: poNum,
+              payee: matched && !p.payee ? (matched.supplier_name || p.payee) : p.payee,
+              total_amount: matched && !p.total_amount ? String(matched.total_amount || p.total_amount) : p.total_amount,
+            }));
+          }} style={inp}>
+            <option value="">— None —</option>
+            {purchaseOrders.map((po: any) => <option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name || "Supplier"}</option>)}
+          </select>
         </div>
         <div>
           {label("Invoice Reference")}

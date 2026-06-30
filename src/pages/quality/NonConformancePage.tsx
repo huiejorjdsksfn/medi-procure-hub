@@ -24,19 +24,25 @@ export default function NonConformancePage() {
   const isAdminRole = isAdminTier || hasRole("admin") || hasRole("superadmin") || hasRole("webmaster");
   const canCreate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
   const [rows, setRows]         = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [grns, setGrns]         = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showNew, setShowNew]   = useState(false);
   const [detail, setDetail]     = useState<any>(null);
   const [saving, setSaving]     = useState(false);
-  const [form, setForm] = useState({ncr_date:new Date().toISOString().slice(0,10),title:"",description:"",severity:"minor",source:"Inspection",supplier_name:"",item_name:"",grn_reference:"",root_cause:"",corrective_action:"",preventive_action:"",responsible_person:"",target_date:"",status:"open"});
+  const [form, setForm] = useState({ncr_date:new Date().toISOString().slice(0,10),title:"",description:"",severity:"minor",source:"Inspection",supplier_id:"",supplier_name:"",item_name:"",grn_reference:"",root_cause:"",corrective_action:"",preventive_action:"",responsible_person:"",target_date:"",status:"open"});
 
   const load = async()=>{
     setLoading(true);
     try {
-    const{data}=await(supabase as any).from("non_conformance").select("*").order("created_at",{ascending:false});
-    const rows=data||[]; setRows(rows); pageCache.set("non_conformances",rows);
+    const [{data},{data:s},{data:g}] = await Promise.all([
+      (supabase as any).from("non_conformance").select("*").order("created_at",{ascending:false}),
+      (supabase as any).from("suppliers").select("id,name").order("name"),
+      (supabase as any).from("goods_received").select("id,grn_number,supplier_id,supplier_name,line_items").order("created_at",{ascending:false}),
+    ]);
+    const rows=data||[]; setRows(rows); setSuppliers(s||[]); setGrns(g||[]); pageCache.set("non_conformances",rows);
     } catch(e:any) {
       const cached=pageCache.get<any[]>("non_conformances"); if(cached) setRows(cached);
       console.error("[NonConformance]",e);
@@ -46,14 +52,18 @@ export default function NonConformancePage() {
 
   /* - Real-time subscription - */
   useEffect(()=>{
-    const ch=(supabase as any).channel("ncr-rt").on("postgres_changes",{event:"*",schema:"public",table:"non_conformance"},()=>load()).subscribe();
+    const ch=(supabase as any).channel("ncr-rt")
+      .on("postgres_changes",{event:"*",schema:"public",table:"non_conformance"},()=>load())
+      .on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load())
+      .subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
   },[]);
 
   const save = async()=>{
     if(!form.title){toast({title:"Title required",variant:"destructive"});return;}
     setSaving(true);
-    const payload={...form,ncr_number:genNo(),issue_description:form.title||form.description||"",target_date:form.target_date||null,created_by:user?.id,created_by_name:profile?.full_name};
+    const supp = suppliers.find(s=>s.id===form.supplier_id);
+    const payload={...form,ncr_number:genNo(),supplier_id:form.supplier_id||null,supplier_name:supp?.name||form.supplier_name,issue_description:form.title||form.description||"",target_date:form.target_date||null,created_by:user?.id,created_by_name:profile?.full_name};
     const{data,error}=await(supabase as any).from("non_conformance").insert(payload).select().single();
     if(error){toast({title:"Save failed",description:error.message||"Database error - please try again",variant:"destructive"});}
     else{logAudit(user?.id,profile?.full_name,"create","non_conformance",data?.id,{title:form.title});toast({title:"NCR created -"});setShowNew(false);load();}
@@ -172,11 +182,35 @@ export default function NonConformancePage() {
             </div>
             <div style={{padding:18,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{gridColumn:"span 2"}}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Title *</label><input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} style={inp}/></div>
-              {[["NCR Date","ncr_date","date"],["Source","source","text"],["Supplier Name","supplier_name","text"],["Item Name","item_name","text"],["GRN Reference","grn_reference","text"],["Responsible Person","responsible_person","text"],["Target Date","target_date","date"]].map(([l,k,t])=>(
+              {[["NCR Date","ncr_date","date"],["Source","source","text"],["Responsible Person","responsible_person","text"],["Target Date","target_date","date"]].map(([l,k,t])=>(
                 <div key={k}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label>
                   {t==="date"?<input type="date" value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>:<input value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/>}
                 </div>
               ))}
+              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Supplier</label>
+                <select value={form.supplier_id} onChange={e=>setForm(p=>({...p,supplier_id:e.target.value,supplier_name:suppliers.find(s=>s.id===e.target.value)?.name||""}))} style={inp}>
+                  <option value="">Select supplier...</option>
+                  {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Item Name</label><input value={form.item_name} onChange={e=>setForm(p=>({...p,item_name:e.target.value}))} style={inp}/></div>
+              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>GRN Reference</label>
+                <select value={form.grn_reference} onChange={e=>{
+                  const num = e.target.value;
+                  const matched = grns.find((g:any)=>g.grn_number===num);
+                  const firstItem = Array.isArray(matched?.line_items) ? matched.line_items[0] : null;
+                  setForm(p=>({
+                    ...p,
+                    grn_reference: num,
+                    supplier_id: matched && !p.supplier_id ? (matched.supplier_id||p.supplier_id) : p.supplier_id,
+                    supplier_name: matched && !p.supplier_name ? (matched.supplier_name||p.supplier_name) : p.supplier_name,
+                    item_name: matched && !p.item_name ? (firstItem?.item_name||firstItem?.description||p.item_name) : p.item_name,
+                  }));
+                }} style={inp}>
+                  <option value="">— None —</option>
+                  {grns.map((g:any)=><option key={g.id} value={g.grn_number}>{g.grn_number} — {g.supplier_name||"Supplier"}</option>)}
+                </select>
+              </div>
               <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Severity</label>
                 <select value={form.severity} onChange={e=>setForm(p=>({...p,severity:e.target.value}))} style={inp}>
                   {["minor","major","critical"].map(v=><option key={v} value={v}>{v}</option>)}

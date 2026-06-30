@@ -2,6 +2,7 @@ import type React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { usePurchaseOrders } from "@/hooks/useDropdownData";
 
 /* ═══════════════════════════════════════════════════════════════
    Windows XP Luna Blue design system
@@ -166,6 +167,7 @@ export default function FinancialDashboardPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo]     = useState("");
+  const { purchaseOrders: fdPOs } = usePurchaseOrders();
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -870,7 +872,21 @@ export default function FinancialDashboardPage() {
               {flds.map(f => (
                 <div key={f.key} style={{ gridColumn: f.key==="description"||f.key==="narration"?"span 2":"" }}>
                   <label style={{ fontSize:10, fontWeight:700, display:"block", marginBottom:2 }}>{f.label}</label>
-                  {f.options ? (
+                  {f.key==="po_reference" ? (
+                    <select value={modalData?.[f.key]||""} onChange={e=>{
+                      const poNum = e.target.value;
+                      const matched = fdPOs.find((po:any)=>po.po_number===poNum);
+                      setModalData((p:any)=>({
+                        ...p,
+                        po_reference: poNum,
+                        payee: matched && !p?.payee ? (matched.supplier_name||p?.payee) : p?.payee,
+                        total_amount: matched && !p?.total_amount ? (matched.total_amount||p?.total_amount) : p?.total_amount,
+                      }));
+                    }} style={{ ...xpInp, width:"100%", boxSizing:"border-box" }}>
+                      <option value="">— None —</option>
+                      {fdPOs.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||"Supplier"}</option>)}
+                    </select>
+                  ) : f.options ? (
                     <select value={modalData?.[f.key]||""} onChange={e=>setModalData((p:any)=>({...p,[f.key]:e.target.value}))}
                       style={{ ...xpInp, width:"100%", boxSizing:"border-box" }}>
                       <option value="">—</option>

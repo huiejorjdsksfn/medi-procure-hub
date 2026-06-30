@@ -346,6 +346,7 @@ function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) 
   const [f,setF] = useState({payee:"",total_amount:"",payment_method:"cheque",
     gl_account:"",vote_head:"",description:"",
     po_reference:"",invoice_reference:"",bank_name:"",payee_account:"",due_date:"",currency:"KES"});
+  const { purchaseOrders: pvPOs } = usePurchaseOrders();
 
   const openNew = () => { setEditRow(null); setF({payee:"",total_amount:"",payment_method:"cheque",gl_account:"",vote_head:"",description:"",po_reference:"",invoice_reference:"",bank_name:"",payee_account:"",due_date:"",currency:"KES"}); setShowForm(true); };
   const openEdit = (r:any) => { setEditRow(r); setF({payee:r.payee||"",total_amount:r.total_amount?.toString()||"",payment_method:r.payment_method||"cheque",gl_account:r.gl_account||"",vote_head:r.vote_head||"",description:r.description||"",po_reference:r.po_reference||"",invoice_reference:r.invoice_reference||"",bank_name:r.bank_name||"",payee_account:r.payee_account||"",due_date:r.due_date||"",currency:r.currency||"KES"}); setShowForm(true); };
@@ -473,7 +474,19 @@ function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) 
                 <div><FieldRow label="Bank Name"><input value={f.bank_name} onChange={e=>setF(p=>({...p,bank_name:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Account No."><input value={f.payee_account} onChange={e=>setF(p=>({...p,payee_account:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Due Date"><input type="date" value={f.due_date} onChange={e=>setF(p=>({...p,due_date:e.target.value}))} style={inp}/></FieldRow></div>
-                <div><FieldRow label="PO Reference"><input value={f.po_reference} onChange={e=>setF(p=>({...p,po_reference:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="PO Reference"><select value={f.po_reference} onChange={e=>{
+                  const poNum = e.target.value;
+                  const matched = pvPOs.find((po:any)=>po.po_number===poNum);
+                  setF(p=>({
+                    ...p,
+                    po_reference: poNum,
+                    payee: matched && !p.payee ? (matched.supplier_name||p.payee) : p.payee,
+                    total_amount: matched && !p.total_amount ? String(matched.total_amount||p.total_amount) : p.total_amount,
+                  }));
+                }} style={sel}>
+                  <option value="">— None —</option>
+                  {pvPOs.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||"Supplier"}</option>)}
+                </select></FieldRow></div>
                 <div><FieldRow label="Invoice Reference"><input value={f.invoice_reference} onChange={e=>setF(p=>({...p,invoice_reference:e.target.value}))} style={inp}/></FieldRow></div>
                 <div style={{gridColumn:"span 3"}}><FieldRow label="Description"><input value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} style={inp}/></FieldRow></div>
               </div>

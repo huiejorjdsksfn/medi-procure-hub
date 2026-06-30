@@ -20,6 +20,7 @@ export default function InspectionsPage() {
   const canCreate = isAdminRole||hasRole("procurement_manager")||hasRole("procurement_officer")||hasRole("warehouse_officer");
   const [rows, setRows]         = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [grns, setGrns]         = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [resultFilter, setResultFilter] = useState("all");
@@ -31,11 +32,12 @@ export default function InspectionsPage() {
   const load = async()=>{
     setLoading(true);
     try {
-    const [{data:i},{data:s}] = await Promise.all([
+    const [{data:i},{data:s},{data:g}] = await Promise.all([
       (supabase as any).from("inspections").select("*").order("created_at",{ascending:false}),
       (supabase as any).from("suppliers").select("id,name").order("name"),
+      (supabase as any).from("goods_received").select("id,grn_number,supplier_id,supplier_name,line_items").order("created_at",{ascending:false}),
     ]);
-    const rows=i||[]; setRows(rows); setSuppliers(s||[]);
+    const rows=i||[]; setRows(rows); setSuppliers(s||[]); setGrns(g||[]);
       pageCache.set("inspections",rows);
     } catch(e:any) {
       const cached=pageCache.get<any[]>("inspections"); if(cached) setRows(cached);
@@ -46,7 +48,10 @@ export default function InspectionsPage() {
 
   /* - Real-time subscription - */
   useEffect(()=>{
-    const ch=(supabase as any).channel("ins-rt").on("postgres_changes",{event:"*",schema:"public",table:"inspections"},()=>load()).subscribe();
+    const ch=(supabase as any).channel("ins-rt")
+      .on("postgres_changes",{event:"*",schema:"public",table:"inspections"},()=>load())
+      .on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load())
+      .subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
   },[]);
 
@@ -179,7 +184,24 @@ export default function InspectionsPage() {
                   {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              {[["Item Name *","item_name"],["GRN Reference","grn_reference"],["Inspector Name","inspector_name"]].map(([l,k])=>(
+              <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>GRN Reference</label>
+                <select value={form.grn_reference} onChange={e=>{
+                  const num = e.target.value;
+                  const matched = grns.find((g:any)=>g.grn_number===num);
+                  const firstItem = Array.isArray(matched?.line_items) ? matched.line_items[0] : null;
+                  setForm(p=>({
+                    ...p,
+                    grn_reference: num,
+                    supplier_id: matched && !p.supplier_id ? (matched.supplier_id||p.supplier_id) : p.supplier_id,
+                    supplier_name: matched && !p.supplier_name ? (matched.supplier_name||p.supplier_name) : p.supplier_name,
+                    item_name: matched && !p.item_name ? (firstItem?.item_name||firstItem?.description||p.item_name) : p.item_name,
+                  }));
+                }} style={inp}>
+                  <option value="">— None —</option>
+                  {grns.map((g:any)=><option key={g.id} value={g.grn_number}>{g.grn_number} — {g.supplier_name||"Supplier"}</option>)}
+                </select>
+              </div>
+              {[["Item Name *","item_name"],["Inspector Name","inspector_name"]].map(([l,k])=>(
                 <div key={k}><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>{l}</label><input value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={inp}/></div>
               ))}
               {[["Qty Inspected","quantity_inspected"],["Qty Accepted","quantity_accepted"],["Qty Rejected","quantity_rejected"]].map(([l,k])=>(
