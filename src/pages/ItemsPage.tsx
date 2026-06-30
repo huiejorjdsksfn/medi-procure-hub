@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PrintEngine } from "@/engines/print/PrintEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ export default function ItemsPage() {
   const [showForm,    setShowForm]    = useState(false);
   const [editing,     setEditing]     = useState<any>(null);
   const [viewItem,    setViewItem]    = useState<any>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [saving,      setSaving]      = useState(false);
   const [colSearch,   setColSearch]   = useState<Record<string,string>>({});
   const [page,        setPage]        = useState(1);
@@ -71,6 +73,19 @@ export default function ItemsPage() {
   },[]);
 
   useEffect(()=>{ load(); },[load]);
+
+  // Deep-link: auto-open record from GlobalSearchBar (?focus=<id>)
+  useEffect(() => {
+    const focusId = searchParams.get("focus");
+    if (focusId && items.length > 0) {
+      const match = items.find(it => it.id === focusId);
+      if (match) {
+        setViewItem(match);
+        searchParams.delete("focus");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [items, searchParams, setSearchParams]);
   useEffect(()=>{
     const ch=supabase.channel("items-rt").on("postgres_changes",{event:"*",schema:"public",table:"items"},()=>load()).subscribe();
     return ()=>{supabase.removeChannel(ch);};
