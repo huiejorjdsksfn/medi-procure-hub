@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { sendSms } from "@/lib/sms";
+import { useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
 import type React from "react";
 
 const db = supabase as any;
@@ -277,6 +278,8 @@ export default function AIAgentPage() {
   const [apvAmt,   setApvAmt]   = useState("125000");
   const [apvDept,  setApvDept]  = useState("Pharmacy");
   const [apvCh,    setApvCh]    = useState<"sms"|"email"|"whatsapp"|"all">("all");
+  const { requisitions: apvReqs } = useRequisitions();
+  const { purchaseOrders: apvPOs } = usePurchaseOrders();
   const [apvMsg,   setApvMsg]   = useState("");
   const [aiComposing, setAiComposing] = useState(false);
 
@@ -628,7 +631,26 @@ export default function AIAgentPage() {
                   </div>
                   <div>
                     <label style={{fontSize:11,color:C.muted,display:"block",marginBottom:4}}>Reference No.</label>
-                    <input style={inp} value={apvRef} onChange={e=>setApvRef(e.target.value)} placeholder="REQ-2026-001" />
+                    <select style={inp} value={apvRef} onChange={e=>{
+                      const val = e.target.value;
+                      const req = apvReqs.find((r:any)=>r.requisition_number===val);
+                      const po  = apvPOs.find((p:any)=>p.po_number===val);
+                      setApvRef(val);
+                      if (req) {
+                        if (req.total_amount) setApvAmt(String(req.total_amount));
+                        if (req.department) setApvDept(req.department);
+                      } else if (po) {
+                        if (po.total_amount) setApvAmt(String(po.total_amount));
+                      }
+                    }}>
+                      <option value="">— Select Reference —</option>
+                      <optgroup label="Requisitions">
+                        {apvReqs.map((r:any)=><option key={r.id} value={r.requisition_number}>{r.requisition_number} — {r.title||r.department||""}</option>)}
+                      </optgroup>
+                      <optgroup label="Purchase Orders">
+                        {apvPOs.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||""}</option>)}
+                      </optgroup>
+                    </select>
                   </div>
                   <div>
                     <label style={{fontSize:11,color:C.muted,display:"block",marginBottom:4}}>Amount (KES)</label>
