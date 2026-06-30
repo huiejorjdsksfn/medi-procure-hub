@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { useChartOfAccounts } from "@/hooks/useDropdownData";
+import { useChartOfAccounts, useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
 
 const db = supabase as any;
 
@@ -495,6 +495,8 @@ function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) 
   const [editRow, setEditRow] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [f, setF] = useState({payer:"",amount:"",payment_method:"cash",gl_account:"",description:"",reference_number:""});
+  const { requisitions } = useRequisitions();
+  const { purchaseOrders } = usePurchaseOrders();
 
   const rows = useMemo(()=>data.filter((v:any)=>!search||[v.receipt_number,v.payer,v.description].some((x:any)=>x?.toLowerCase().includes(search.toLowerCase()))),[data,search]);
 
@@ -558,7 +560,25 @@ function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) 
                 <div><FieldRow label="Amount (KES) *"><input type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} style={inp}/></FieldRow></div>
                 <div><FieldRow label="Method"><select value={f.payment_method} onChange={e=>setF(p=>({...p,payment_method:e.target.value}))} style={sel}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</select></FieldRow></div>
                 <div style={{gridColumn:"span 2"}}><FieldRow label="GL Account"><select value={f.gl_account} onChange={e=>setF(p=>({...p,gl_account:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.filter(a=>a.type==="inc"||a.type==="ass").map(a=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
-                <div><FieldRow label="Reference No."><input value={f.reference_number} onChange={e=>setF(p=>({...p,reference_number:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Reference No."><select value={f.reference_number} onChange={e=>{
+                  const val = e.target.value;
+                  const req = requisitions.find((r:any)=>r.requisition_number===val);
+                  const po  = purchaseOrders.find((p:any)=>p.po_number===val);
+                  setF(p=>({
+                    ...p,
+                    reference_number: val,
+                    payer: !p.payer ? (req?.requester_name || po?.supplier_name || p.payer) : p.payer,
+                    amount: !p.amount ? String(req?.total_amount || po?.total_amount || p.amount) : p.amount,
+                  }));
+                }} style={inp}>
+                  <option value="">— None —</option>
+                  <optgroup label="Requisitions">
+                    {requisitions.map((r:any)=><option key={r.id} value={r.requisition_number}>{r.requisition_number} — {r.title||r.department||""}</option>)}
+                  </optgroup>
+                  <optgroup label="Purchase Orders">
+                    {purchaseOrders.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||""}</option>)}
+                  </optgroup>
+                </select></FieldRow></div>
                 <div style={{gridColumn:"span 3"}}><FieldRow label="Description"><input value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} style={inp}/></FieldRow></div>
               </div>
               <div style={{marginTop:10,display:"flex",gap:6}}>
