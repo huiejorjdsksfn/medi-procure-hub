@@ -163,6 +163,144 @@ export default function AdminPanelPage() {
   const [tempPwds, setTempPwds] = useState<Record<string,string>>({});
   const [saving, setSaving]   = useState(false);
   const [activeIPs, setActiveIPs] = useState<Map<string,any>>(new Map());
+
+  // Forms Builder
+  type FBQuestion = { q:string; t:string; opts?:string; req?:boolean };
+  const FB_DEFAULT_QUESTIONS: FBQuestion[] = [
+    { q:"Full Name", t:"text", req:true },
+    { q:"Department", t:"select", opts:"Pharmacy,Theatre,Lab,Finance,HR", req:true },
+    { q:"Contact Email", t:"email", req:true },
+  ];
+  const [forms, setForms] = useState<any[]>([]);
+  const [formsLoading, setFormsLoading] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState<string|null>(null);
+  const [fbTitle, setFbTitle] = useState("");
+  const [fbCategory, setFbCategory] = useState("General");
+  const [fbDesc, setFbDesc] = useState("");
+  const [fbQuestions, setFbQuestions] = useState<FBQuestion[]>(FB_DEFAULT_QUESTIONS);
+  const [fbSaving, setFbSaving] = useState(false);
+  const [fbResponses, setFbResponses] = useState<any[]>([]);
+  const [fbViewResponse, setFbViewResponse] = useState<any|null>(null);
+  const [fbCopied, setFbCopied] = useState(false);
+
+  const selectedForm = forms.find((f:any)=>f.form_id===selectedFormId) || null;
+  const fbPublicUrl = selectedFormId ? `${window.location.origin}/#/forms/${selectedFormId}` : "";
+
+  const loadForms = useCallback(async()=>{
+    setFormsLoading(true);
+    try {
+      const { data, error } = await db.from("google_forms").select("*").order("created_at",{ascending:false});
+      if (error) throw error;
+      setForms(data||[]);
+    } catch(e:any) { console.error("[FormsBuilder] load error:",e); }
+    setFormsLoading(false);
+  },[]);
+
+  const loadFbResponses = useCallback(async(formId:string)=>{
+    try {
+      const { data, error } = await db.from("form_responses").select("*").eq("form_id",formId).order("submitted_at",{ascending:false}).limit(20);
+      if (error) throw error;
+      setFbResponses(data||[]);
+    } catch(e:any) { console.error("[FormsBuilder] responses error:",e); setFbResponses([]); }
+  },[]);
+
+  const fbResetDraft = ()=>{
+    setSelectedFormId(null);
+    setFbTitle(""); setFbCategory("General"); setFbDesc("");
+    setFbQuestions(FB_DEFAULT_QUESTIONS);
+    setFbResponses([]);
+  };
+
+  const fbSelectForm = (f:any)=>{
+    setSelectedFormId(f.form_id);
+    setFbTitle(f.title||"");
+    const fd = f.field_definitions || {};
+    setFbCategory(fd.category||"General");
+    setFbDesc(f.description||"");
+    setFbQuestions(Array.isArray(fd.questions)&&fd.questions.length ? fd.questions : FB_DEFAULT_QUESTIONS);
+    loadFbResponses(f.form_id);
+  };
+
+  const fbGenFormId = ()=>{
+    const d = new Date();
+    const dt = d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+    const rand = Math.floor(10000+Math.random()*90000);
+    return `EL5-FORM-${dt}-${rand}`;
+  };
+
+  const fbSaveForm = async()=>{
+    if (!fbTitle.trim()) { toast({title:"Form name is required",variant:"destructive"}); return; }
+    setFbSaving(true);
+    try {
+      const field_definitions = { category:fbCategory, questions:fbQuestions };
+      if (selectedFormId) {
+        const { error } = await db.from("google_forms").update({
+          title:fbTitle, description:fbDesc, field_definitions,
+        }).eq("form_id",selectedFormId);
+        if (error) throw error;
+        toast({title:"✓ Form updated"});
+      } else {
+        const newId = fbGenFormId();
+        const { error } = await db.from("google_forms").insert({
+          form_id:newId, title:fbTitle, description:fbDesc, field_definitions,
+          fields: fbQuestions.map(q=>q.q).join(", "),
+          method:"internal", sender_email:"hpdeskg9@gmail.com",
+          status:"draft", is_active:false, response_count:0,
+        });
+        if (error) throw error;
+        setSelectedFormId(newId);
+        toast({title:"✓ Form created", description:newId});
+      }
+      await loadForms();
+    } catch(e:any) {
+      toast({title:"Save failed", description:e.message, variant:"destructive"});
+    }
+    setFbSaving(false);
+  };
+
+  const fbTogglePublish = async()=>{
+    if (!selectedFormId || !selectedForm) return;
+    const nowPublishing = selectedForm.status!=="published";
+    setFbSaving(true);
+    try {
+      const { error } = await db.from("google_forms").update({
+        status: nowPublishing ? "published" : "draft",
+        is_active: nowPublishing,
+        published_at: nowPublishing ? new Date().toISOString() : selectedForm.published_at,
+      }).eq("form_id",selectedFormId);
+      if (error) throw error;
+      toast({title: nowPublishing ? "✓ Form published" : "Form unpublished"});
+      await loadForms();
+    } catch(e:any) {
+      toast({title:"Update failed", description:e.message, variant:"destructive"});
+    }
+    setFbSaving(false);
+  };
+
+  const fbDeleteForm = async()=>{
+    if (!selectedFormId) return;
+    if (!confirm(`Delete form "${fbTitle}"? This cannot be undone.`)) return;
+    try {
+      const { error } = await db.from("google_forms").delete().eq("form_id",selectedFormId);
+      if (error) throw error;
+      toast({title:"✓ Form deleted"});
+      fbResetDraft();
+      await loadForms();
+    } catch(e:any) {
+      toast({title:"Delete failed", description:e.message, variant:"destructive"});
+    }
+  };
+
+  const fbCopyLink = async()=>{
+    try {
+      await navigator.clipboard.writeText(fbPublicUrl);
+      setFbCopied(true);
+      setTimeout(()=>setFbCopied(false),2000);
+    } catch { toast({title:"Copy failed — select and copy manually",variant:"destructive"}); }
+  };
+
+  useEffect(()=>{ if (sec==="formbuilder") loadForms(); },[sec,loadForms]);
+
   const [blockedIPs, setBlockedIPs] = useState<Set<string>>(new Set());
   const [moduleCfg, setModuleCfg] = useState<Record<string,string>>({});
   const [broadcastMsg, setBroadcastMsg] = useState("");
@@ -1417,17 +1555,27 @@ export default function AdminPanelPage() {
           {sec==="formbuilder"&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <div style={S.card}>
-                <div style={S.cardHd("#f59e0b")}><ClipboardList size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Forms Builder</span>
-                  <button style={{...S.btn("#f59e0b"),marginLeft:"auto",padding:"5px 12px",fontSize:11}}><Plus size={12}/>New Form</button>
+                <div style={S.cardHd("#f59e0b")}><ClipboardList size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>
+                  {selectedFormId ? `Editing: ${fbTitle||"Untitled"}` : "New Form"}
+                </span>
+                  <select value={selectedFormId||""} onChange={e=>{
+                    if (!e.target.value) { fbResetDraft(); return; }
+                    const f = forms.find((x:any)=>x.form_id===e.target.value);
+                    if (f) fbSelectForm(f);
+                  }} style={{...S.inp,width:220,marginLeft:"auto",fontSize:11}}>
+                    <option value="">— New Form —</option>
+                    {forms.map((f:any)=><option key={f.form_id} value={f.form_id}>{f.title||f.form_id} ({f.status||"draft"})</option>)}
+                  </select>
+                  <button onClick={fbResetDraft} style={{...S.btn("#f59e0b"),padding:"5px 12px",fontSize:11}}><Plus size={12}/>New Form</button>
                 </div>
                 <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
                   <div>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Name</label>
-                    <input placeholder="e.g., Patient Feedback Survey" style={S.inp}/>
+                    <input value={fbTitle} onChange={e=>setFbTitle(e.target.value)} placeholder="e.g., Patient Feedback Survey" style={S.inp}/>
                   </div>
                   <div>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Category</label>
-                    <select style={S.inp}>
+                    <select value={fbCategory} onChange={e=>setFbCategory(e.target.value)} style={S.inp}>
                       <option>General</option>
                       <option>HR / Staff</option>
                       <option>Patient Feedback</option>
@@ -1438,7 +1586,13 @@ export default function AdminPanelPage() {
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Description</label>
-                    <textarea placeholder="Describe the purpose of this form..." style={{...S.inp,minHeight:60,resize:"vertical" as const}}/>
+                    <textarea value={fbDesc} onChange={e=>setFbDesc(e.target.value)} placeholder="Describe the purpose of this form..." style={{...S.inp,minHeight:60,resize:"vertical" as const}}/>
+                  </div>
+                  <div style={{gridColumn:"1/-1",display:"flex",gap:8}}>
+                    <button onClick={fbSaveForm} disabled={fbSaving} style={{...S.btn("#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
+                      <Save size={14}/>{fbSaving?"Saving…":selectedFormId?"Save Changes":"Create Form"}
+                    </button>
+                    {selectedFormId && <button onClick={fbDeleteForm} style={{...S.btn("#dc2626"),fontSize:12}}><Trash2 size={14}/>Delete</button>}
                   </div>
                 </div>
               </div>
@@ -1446,20 +1600,11 @@ export default function AdminPanelPage() {
               <div style={S.card}>
                 <div style={S.cardHd("#f59e0b")}><Plus size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Add Questions</span></div>
                 <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
-                  {[
-                    {q:"Full Name",t:"text",req:true},
-                    {q:"Department",t:"select",opts:"Pharmacy,Theatre,Lab,Finance,HR",req:true},
-                    {q:"Contact Email",t:"email",req:true},
-                    {q:"Contact Phone",t:"tel",req:false},
-                    {q:"Issue Description",t:"textarea",req:true},
-                    {q:"Priority Level",t:"select",opts:"Low,Medium,High,Critical",req:true},
-                    {q:"Attach Screenshot",t:"file",req:false},
-                    {q:"Date of Issue",t:"date",req:true},
-                  ].map(({q,t,opts,req},i)=>(
-                    <div key={i} style={{display:"grid",gridTemplateColumns:"24px 1fr 100px 80px 60px",gap:8,alignItems:"center",padding:"8px",background:"#f8fafc",borderRadius:6}}>
+                  {fbQuestions.map((fq,i)=>(
+                    <div key={i} style={{display:"grid",gridTemplateColumns:"24px 1fr 100px 1fr 60px 28px",gap:8,alignItems:"center",padding:"8px",background:"#f8fafc",borderRadius:6}}>
                       <span style={{fontSize:11,color:T.fgMuted}}>{i+1}</span>
-                      <input defaultValue={q} style={{...S.inp,padding:"5px 8px",fontSize:12}}/>
-                      <select defaultValue={t} style={{...S.inp,padding:"5px 8px",fontSize:12}}>
+                      <input value={fq.q} onChange={e=>setFbQuestions(p=>p.map((x,j)=>j===i?{...x,q:e.target.value}:x))} style={{...S.inp,padding:"5px 8px",fontSize:12}}/>
+                      <select value={fq.t} onChange={e=>setFbQuestions(p=>p.map((x,j)=>j===i?{...x,t:e.target.value}:x))} style={{...S.inp,padding:"5px 8px",fontSize:12}}>
                         <option value="text">Text</option>
                         <option value="email">Email</option>
                         <option value="tel">Phone</option>
@@ -1470,49 +1615,58 @@ export default function AdminPanelPage() {
                         <option value="checkbox">Checkbox</option>
                         <option value="radio">Radio</option>
                       </select>
-                      <input defaultValue={opts||""} placeholder="Options..." style={{...S.inp,padding:"5px 8px",fontSize:11}}/>
-                      <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:req?"#dc2626":"#64748b"}}>
-                        <input type="checkbox" defaultChecked={req}/>Req
+                      <input value={fq.opts||""} onChange={e=>setFbQuestions(p=>p.map((x,j)=>j===i?{...x,opts:e.target.value}:x))} placeholder={["select","radio"].includes(fq.t)?"Option1,Option2,Option3":"Options... (n/a)"} disabled={!["select","radio"].includes(fq.t)} style={{...S.inp,padding:"5px 8px",fontSize:11,opacity:["select","radio"].includes(fq.t)?1:0.5}}/>
+                      <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:fq.req?"#dc2626":"#64748b"}}>
+                        <input type="checkbox" checked={!!fq.req} onChange={e=>setFbQuestions(p=>p.map((x,j)=>j===i?{...x,req:e.target.checked}:x))}/>Req
                       </label>
+                      <button onClick={()=>setFbQuestions(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",display:"flex",justifyContent:"center"}}><X size={14}/></button>
                     </div>
                   ))}
-                  <button style={{...S.btn("#f59e0b"),marginTop:8,fontSize:12}}><Plus size={14}/>Add Question</button>
+                  <button onClick={()=>setFbQuestions(p=>[...p,{q:"New Question",t:"text",req:false}])} style={{...S.btn("#f59e0b"),marginTop:8,fontSize:12}}><Plus size={14}/>Add Question</button>
+                  <button onClick={fbSaveForm} disabled={fbSaving} style={{...S.btn("#10b981"),fontSize:12,alignSelf:"flex-start",opacity:fbSaving?0.6:1}}><Save size={14}/>Save Questions</button>
                 </div>
               </div>
 
+              {selectedFormId && (
               <div style={S.card}>
-                <div style={S.cardHd("#10b981")}><ExternalLink size={14} color="#10b981"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Form Link & Publishing</span></div>
+                <div style={S.cardHd("#10b981")}><ExternalLink size={14} color="#10b981"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Form Link &amp; Publishing</span></div>
                 <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
                   <div>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Public Form URL</label>
                     <div style={{display:"flex",gap:8}}>
-                      <input readOnly value="https://forms.mediprocure.embu.go.ke/f/pKJ8m2nQ" style={{...S.inp,background:"#f8fafc",flex:1}}/>
-                      <button style={{...S.btn("#3b82f6"),fontSize:12}}><Copy size={14}/>Copy</button>
-                      <button style={{...S.btn("#10b981"),fontSize:12}}><ExternalLink size={14}/>Open</button>
+                      <input readOnly value={fbPublicUrl} style={{...S.inp,background:"#f8fafc",flex:1,fontSize:11}}/>
+                      <button onClick={fbCopyLink} style={{...S.btn(fbCopied?"#10b981":"#3b82f6"),fontSize:12}}>{fbCopied?<Check size={14}/>:<Copy size={14}/>}{fbCopied?"Copied":"Copy"}</button>
+                      <button onClick={()=>window.open(fbPublicUrl,"_blank")} style={{...S.btn("#10b981"),fontSize:12}}><ExternalLink size={14}/>Open</button>
                     </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
                     <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:12}}>
                       <div style={{fontSize:11,color:"#166534",fontWeight:600}}>Responses</div>
-                      <div style={{fontSize:28,fontWeight:700,color:"#15803d"}}>47</div>
+                      <div style={{fontSize:28,fontWeight:700,color:"#15803d"}}>{selectedForm?.response_count||0}</div>
                     </div>
                     <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:12}}>
                       <div style={{fontSize:11,color:"#1e40af",fontWeight:600}}>Today</div>
-                      <div style={{fontSize:28,fontWeight:700,color:"#2563eb"}}>12</div>
+                      <div style={{fontSize:28,fontWeight:700,color:"#2563eb"}}>
+                        {fbResponses.filter((r:any)=>r.submitted_at && new Date(r.submitted_at).toDateString()===new Date().toDateString()).length}
+                      </div>
                     </div>
-                    <div style={{background:"#faf5ff",border:"1px solid #e9d5ff",borderRadius:8,padding:12}}>
-                      <div style={{fontSize:11,color:"#6b21a8",fontWeight:600}}>Status</div>
-                      <div style={{fontSize:16,fontWeight:700,color:"#7c3aed"}}>Active</div>
+                    <div style={{background: selectedForm?.status==="published"?"#faf5ff":"#fef2f2",border:`1px solid ${selectedForm?.status==="published"?"#e9d5ff":"#fecaca"}`,borderRadius:8,padding:12}}>
+                      <div style={{fontSize:11,color: selectedForm?.status==="published"?"#6b21a8":"#991b1b",fontWeight:600}}>Status</div>
+                      <div style={{fontSize:16,fontWeight:700,color: selectedForm?.status==="published"?"#7c3aed":"#dc2626"}}>{selectedForm?.status==="published"?"Published":"Draft"}</div>
                     </div>
                   </div>
                   <div style={{display:"flex",gap:10}}>
-                    <button style={{...S.btn("#10b981"),fontSize:12}}><Play size={14}/>Publish Form</button>
-                    <button style={{...S.btn("#64748b"),fontSize:12}}><Eye size={14}/>Preview</button>
-                    <button style={{...S.btn("#3b82f6"),fontSize:12}}><FileText size={14}/>View Responses</button>
+                    <button onClick={fbTogglePublish} disabled={fbSaving} style={{...S.btn(selectedForm?.status==="published"?"#64748b":"#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
+                      {selectedForm?.status==="published" ? <><Pause size={14}/>Unpublish</> : <><Play size={14}/>Publish Form</>}
+                    </button>
+                    <button onClick={()=>window.open(fbPublicUrl,"_blank")} style={{...S.btn("#64748b"),fontSize:12}}><Eye size={14}/>Preview</button>
+                    <button onClick={()=>loadFbResponses(selectedFormId)} style={{...S.btn("#3b82f6"),fontSize:12}}><RefreshCw size={14}/>Refresh Responses</button>
                   </div>
                 </div>
               </div>
+              )}
 
+              {selectedFormId && (
               <div style={S.card}>
                 <div style={S.cardHd("#6366f1")}><FileText size={14} color="#6366f1"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Recent Responses</span></div>
                 <div style={{padding:0}}>
@@ -1521,34 +1675,50 @@ export default function AdminPanelPage() {
                       <tr style={{background:"#f8fafc",borderBottom:`1px solid ${T.border}`}}>
                         <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Date</th>
                         <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Submitter</th>
-                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Department</th>
-                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Status</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Email</th>
                         <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        {d:"Today 10:15",n:"Jane Wanjiku",dept:"Pharmacy",s:"New"},
-                        {d:"Today 09:30",n:"John Kariuki",dept:"Lab",s:"Reviewed"},
-                        {d:"Yesterday 16:45",n:"Mary Njeri",dept:"Finance",s:"Resolved"},
-                        {d:"Yesterday 14:20",n:"Peter Ochieng",dept:"Theatre",s:"In Progress"},
-                      ].map(({d,n,dept,s},i)=>(
-                        <tr key={i} style={{borderBottom:`1px solid ${T.border}18`}}>
-                          <td style={{padding:"8px 12px",color:T.fgMuted}}>{d}</td>
-                          <td style={{padding:"8px 12px",fontWeight:500}}>{n}</td>
-                          <td style={{padding:"8px 12px"}}>{dept}</td>
+                      {fbResponses.length===0 ? (
+                        <tr><td colSpan={4} style={{padding:"20px 12px",textAlign:"center",color:T.fgMuted}}>No responses yet</td></tr>
+                      ) : fbResponses.map((r:any)=>{
+                        const ans = r.responses||{};
+                        const nameKey = Object.keys(ans).find(k=>/name/i.test(k));
+                        return (
+                        <tr key={r.id} style={{borderBottom:`1px solid ${T.border}18`}}>
+                          <td style={{padding:"8px 12px",color:T.fgMuted}}>{r.submitted_at?new Date(r.submitted_at).toLocaleString():"—"}</td>
+                          <td style={{padding:"8px 12px",fontWeight:500}}>{nameKey?ans[nameKey]:"—"}</td>
+                          <td style={{padding:"8px 12px"}}>{r.respondent_email||"—"}</td>
                           <td style={{padding:"8px 12px"}}>
-                            <span style={{padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:600,background:s==="New"?"#dbeafe":"#f0fdf4",color:s==="New"?"#1e40af":"#166534"}}>{s}</span>
-                          </td>
-                          <td style={{padding:"8px 12px"}}>
-                            <button style={{...S.btn("#64748b"),padding:"4px 8px",fontSize:10}}><Eye size={12}/>View</button>
+                            <button onClick={()=>setFbViewResponse(r)} style={{...S.btn("#64748b"),padding:"4px 8px",fontSize:10}}><Eye size={12}/>View</button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
+              )}
+
+              {fbViewResponse && (
+                <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setFbViewResponse(null)}>
+                  <div style={{background:"#fff",borderRadius:12,width:"min(480px,92%)",maxHeight:"80vh",overflow:"auto",padding:20}} onClick={e=>e.stopPropagation()}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                      <span style={{fontWeight:800,fontSize:14,color:"#0f172a"}}>Response Detail</span>
+                      <button onClick={()=>setFbViewResponse(null)} style={{background:"none",border:"none",cursor:"pointer"}}><X size={18}/></button>
+                    </div>
+                    <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>Submitted {fbViewResponse.submitted_at?new Date(fbViewResponse.submitted_at).toLocaleString():"—"}</div>
+                    {Object.entries(fbViewResponse.responses||{}).map(([k,v]:[string,any])=>(
+                      <div key={k} style={{marginBottom:10,paddingBottom:10,borderBottom:"1px solid #f1f5f9"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k}</div>
+                        <div style={{fontSize:13,color:"#0f172a",marginTop:2}}>{String(v)||"—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </ErrorBoundary>
