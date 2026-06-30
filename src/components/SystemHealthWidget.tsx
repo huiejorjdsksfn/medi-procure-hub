@@ -49,6 +49,8 @@ export default function SystemHealthWidget() {
   }, [ping]);
 
   const { bg, text, dot } = STATUS_COLORS[stats.status];
+  // Pill UI hidden from the header per request; the ping above keeps running in the background.
+  if (true) return null;
   const label = stats.status === "checking" ? "Checking…" :
                 stats.status === "healthy"  ? `${stats.dbLatency}ms` :
                 stats.status === "degraded" ? "Slow" : "Offline";

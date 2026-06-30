@@ -31,6 +31,8 @@ export default function GoodsReceivedPage() {
   const canReceive = roles.includes("admin")||roles.includes("procurement_manager")||roles.includes("warehouse_officer")||roles.includes("inventory_manager");
   const [grns, setGrns]           = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [manualPO, setManualPO]   = useState(false);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [stFilter, setStFilter]   = useState("all");
@@ -49,13 +51,14 @@ export default function GoodsReceivedPage() {
   const load = async()=>{
     setLoading(true);
     try {
-      const [{data:g,error:ge},{data:s}] = await Promise.all([
+      const [{data:g,error:ge},{data:s},{data:po}] = await Promise.all([
         (supabase as any).from("goods_received").select("*,goods_received_items(*)").order("created_at",{ascending:false}),
         (supabase as any).from("suppliers").select("id,name").order("name"),
+        (supabase as any).from("purchase_orders").select("id,po_number,supplier_id,supplier_name,status,line_items").order("created_at",{ascending:false}),
       ]);
       if(ge) throw ge;
-      const rows=g||[]; setGrns(rows); setSuppliers(s||[]);
-      pageCache.set("goods_received",rows); pageCache.set("suppliers_lite",s||[]);
+      const rows=g||[]; setGrns(rows); setSuppliers(s||[]); setPurchaseOrders(po||[]);
+      pageCache.set("goods_received",rows); pageCache.set("suppliers_lite",s||[]); pageCache.set("purchase_orders_lite",po||[]);
     } catch(e:any) {
       const cached=pageCache.get<any[]>("goods_received");
       if(cached) setGrns(cached);
@@ -66,7 +69,10 @@ export default function GoodsReceivedPage() {
 
   /* - Real-time subscription - */
   useEffect(()=>{
-    const ch=(supabase as any).channel("grn-rt").on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load()).subscribe();
+    const ch=(supabase as any).channel("grn-rt")
+      .on("postgres_changes",{event:"*",schema:"public",table:"goods_received"},()=>load())
+      .on("postgres_changes",{event:"*",schema:"public",table:"purchase_orders"},()=>load())
+      .subscribe();
     return ()=>{(supabase as any).removeChannel(ch);};
   },[]);
 
@@ -100,6 +106,24 @@ export default function GoodsReceivedPage() {
     inspection_done:false, remarks:"", status:"received"
   });
     setGrnItems([{...EMPTY_ITEM}]);
+    setManualPO(false);
+  };
+
+  const applyPO = (poId:string) => {
+    const po = purchaseOrders.find(p=>p.id===poId);
+    if(!po) return;
+    setForm(p=>({...p, po_reference:po.po_number, supplier_id:po.supplier_id||"", supplier_name:po.supplier_name||p.supplier_name}));
+    const lines = Array.isArray(po.line_items) ? po.line_items : [];
+    if(lines.length){
+      setGrnItems(lines.map((li:any)=>({
+        item_name: li.item_name || li.description || "",
+        description: li.description || "",
+        unit_of_measure: li.unit || li.unit_of_measure || "pcs",
+        quantity_ordered: String(li.quantity ?? ""),
+        quantity_received: String(li.quantity ?? ""),
+        unit_price: String(li.unit_price ?? ""),
+      })));
+    }
   };
 
   const save = async()=>{
@@ -294,7 +318,19 @@ export default function GoodsReceivedPage() {
                     {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                   </select></div>
                 <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Supplier Name (manual)</label><input value={form.supplier_name} onChange={e=>setForm(p=>({...p,supplier_name:e.target.value}))} placeholder="Or type supplier name..." style={inp}/></div>
-                <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>PO Reference</label><input value={form.po_reference} onChange={e=>setForm(p=>({...p,po_reference:e.target.value}))} placeholder="PO/EL5H/..." style={inp}/></div>
+                <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>PO Reference</label>
+                  {manualPO ? (
+                    <div style={{display:"flex",gap:4}}>
+                      <input value={form.po_reference} onChange={e=>setForm(p=>({...p,po_reference:e.target.value}))} placeholder="PO/EL5H/..." style={inp}/>
+                      <button type="button" onClick={()=>setManualPO(false)} title="Pick from list" style={{border:`1px solid #d1d5db`,background:"#f9fafb",borderRadius:6,padding:"0 8px",cursor:"pointer",fontSize:10,color:"#374151"}}>List</button>
+                    </div>
+                  ) : (
+                    <select value={purchaseOrders.find(p=>p.po_number===form.po_reference)?.id||""} onChange={e=>{ if(e.target.value==="__manual__"){setManualPO(true);return;} applyPO(e.target.value); }} style={inp}>
+                      <option value="">- Select PO -</option>
+                      {purchaseOrders.map(p=><option key={p.id} value={p.id}>{p.po_number} — {p.supplier_name||"No supplier"}</option>)}
+                      <option value="__manual__">Other / type manually…</option>
+                    </select>
+                  )}</div>
                 <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Received Date *</label><input type="date" value={form.received_date} onChange={e=>setForm(p=>({...p,received_date:e.target.value}))} style={inp}/></div>
                 <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Delivery Note No.</label><input value={form.delivery_note_number} onChange={e=>setForm(p=>({...p,delivery_note_number:e.target.value}))} style={inp}/></div>
                 <div><label style={{display:"block",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Carrier / Driver Name</label><input value={form.carrier_name} onChange={e=>setForm(p=>({...p,carrier_name:e.target.value}))} style={inp}/></div>
