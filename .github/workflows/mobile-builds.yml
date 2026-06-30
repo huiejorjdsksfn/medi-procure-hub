@@ -32,6 +32,10 @@ permissions:
   contents: write
   actions:  write
 
+concurrency:
+  group: mobile-builds-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VER:  "22"
   APP_ID:    "ke.go.embu.mediprocure.procurbosse"

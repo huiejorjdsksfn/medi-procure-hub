@@ -1,0 +1,1 @@
+import{n as s}from"./client-BXIRvVnA.js";var n=async(r,e,o,t,l,a)=>{try{await s.from("audit_log").insert({user_id:r||null,user_name:e||"System",action:o,module:t,record_id:l||null,details:a||null})}catch(i){console.error("Audit log error:",i)}};export{n as t};

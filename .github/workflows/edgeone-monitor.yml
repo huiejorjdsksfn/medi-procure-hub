@@ -19,6 +19,10 @@ permissions:
   contents: read
   actions:  write
 
+concurrency:
+  group: edgeone-monitor
+  cancel-in-progress: false
+
 env:
   EDGEONE_API_TOKEN: "REDACTED_EDGEONE_TOKEN"
   EDGEONE_PROJECT:   "procurbosse"

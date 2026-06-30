@@ -1,31 +1,37 @@
-name: "ProcurBosse — Build, Publish & Release"
+name: "ProcurBosse — Build, Deploy & Release"
 
 on:
   push:
     branches: [main]
+    tags:     ["v*"]
   workflow_dispatch:
     inputs:
-      skip_exe:
-        description: "Skip EXE build"
+      build_exe:
+        description: "Build Windows EXE"
         default: "false"
         type: boolean
-      skip_release:
-        description: "Skip release"
+      publish_release:
+        description: "Publish GitHub Release"
         default: "false"
         type: boolean
+
+# Cancel any in-progress run for the same branch/ref so pushes don't stack
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
-  actions: write
+  actions:  write
   packages: write
 
 env:
-  NODE_VER:     "22"
-  APP_VER:      "11.12.0"
-  SUPA_URL:     "https://yvjfehnzbzjliizjvuhq.supabase.co"
-  SUPA_ANON:    "${{ secrets.SUPABASE_ANON_KEY }}"
-  SUPA_REF:     "yvjfehnzbzjliizjvuhq"
-  SUPA_PAT:     "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
+  NODE_VER:   "22"
+  APP_VER:    "11.12.0"
+  SUPA_URL:   "https://yvjfehnzbzjliizjvuhq.supabase.co"
+  SUPA_ANON:  "${{ secrets.SUPABASE_ANON_KEY }}"
+  SUPA_REF:   "yvjfehnzbzjliizjvuhq"
+  SUPA_PAT:   "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
   TWILIO_ACCT:  "REDACTED_TWILIO_ACCOUNT_SID"
   TWILIO_TOKEN: "REDACTED_TWILIO_AUTH_TOKEN"
   TWILIO_SMS:   "+16812972643"
@@ -39,40 +45,35 @@ env:
 
 jobs:
 
+  # ── 1. Web build — runs on every push to main ──────────────────────────────
   web:
-    name: "Web Build — Vite"
+    name: "Web Build"
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.meta.outputs.sha }}
       ver: ${{ steps.meta.outputs.ver }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
       - id: meta
         run: |
-          SHA=$(git rev-parse --short HEAD)
-          VER=$(node -p "require('./package.json').version")
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
+        with: { node-version: "22", cache: npm }
 
       - name: Sync lock version
         run: |
           P=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs');const l=JSON.parse(fs.readFileSync('package-lock.json'));l.version='$P';if(l.packages&&l.packages[''])l.packages[''].version='$P';fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));"
 
-      - name: Install
-        run: npm ci --no-audit --legacy-peer-deps
+      - run: npm ci --no-audit --legacy-peer-deps
 
       - name: Write .env
         run: |
-          cat > .env << ENVEOF
+          cat > .env << EOF
           VITE_SUPABASE_URL=${{ env.SUPA_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ env.SUPA_ANON }}
           VITE_SUPABASE_PROJECT_ID=${{ env.SUPA_REF }}
@@ -82,25 +83,18 @@ jobs:
           VITE_TWILIO_PHONE=${{ env.TWILIO_SMS }}
           VITE_WHATSAPP_NUMBER=${{ env.TWILIO_WA }}
           VITE_TWILIO_MG_SID=${{ env.TWILIO_MG }}
-          ENVEOF
+          EOF
 
       - run: npx tsc --noEmit --skipLibCheck 2>&1 | head -30 || true
         continue-on-error: true
 
-      - name: Build web (dist)
+      - name: Build
         run: npm run build
         env:
           CI: "false"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - run: "[ -f dist/index.html ] || (echo 'FATAL: Missing dist/index.html' && exit 1)"
-
-      - name: Build web (EdgeOne /web dir)
-        run: npx vite build --outDir web
-        env:
-          CI: "false"
-          NODE_OPTIONS: "--max-old-space-size=4096"
-        continue-on-error: true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -109,18 +103,140 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # ── 2. Edge functions — runs on every push ─────────────────────────────────
+  functions:
+    name: "Edge Functions"
+    runs-on: ubuntu-latest
+    needs: web
+    if: always() && needs.web.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin supabase 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Set secrets
+        run: |
+          supabase secrets set \
+            TWILIO_ACCOUNT_SID="${{ env.TWILIO_ACCT }}" \
+            TWILIO_AUTH_TOKEN="${{ env.TWILIO_TOKEN }}" \
+            TWILIO_PHONE_NUMBER="${{ env.TWILIO_SMS }}" \
+            TWILIO_MESSAGING_SERVICE_SID="${{ env.TWILIO_MG }}" \
+            TWILIO_VERIFY_SERVICE_SID="${{ env.TWILIO_VA }}" \
+            TWILIO_WA_NUMBER="${{ env.TWILIO_WA }}" \
+            EDGEONE_API_TOKEN="${{ env.EDGEONE_API_TOKEN }}" \
+            --project-ref ${{ env.SUPA_REF }} 2>&1 || true
+        env:
+          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
+        continue-on-error: true
+
+      - name: Deploy edge functions
+        run: |
+          for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook \
+                    ai-agent verify-role notify-requisition make-call twilio-engine \
+                    notify-api google-forms-api github-releases notification-hub edgeone-stats; do
+            [ -d "supabase/functions/$fn" ] || continue
+            echo "→ Deploying $fn"
+            supabase functions deploy $fn \
+              --project-ref ${{ env.SUPA_REF }} \
+              --no-verify-jwt 2>&1 | tail -3 || echo "  warn: $fn deploy attempted"
+          done
+        env:
+          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
+        continue-on-error: true
+
+      - name: Smoke test
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ env.SUPA_ANON }}" \
+            -H "Content-Type: application/json" \
+            -d '{"to":"+254116647894","message":"ProcurBosse v11.12.0 deployed.","module":"ci_deploy"}' \
+            "${{ env.SUPA_URL }}/functions/v1/send-sms" | python3 -m json.tool || true
+        continue-on-error: true
+
+  # ── 3. DB migrations — runs on every push ──────────────────────────────────
+  db:
+    name: "DB Migrations"
+    runs-on: ubuntu-latest
+    needs: web
+    if: always() && needs.web.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin supabase 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Push migrations
+        run: |
+          echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -5
+          supabase db push --project-ref ${{ env.SUPA_REF }} 2>&1 | tail -20 || true
+        env:
+          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
+        continue-on-error: true
+
+  # ── 4. EdgeOne CDN deploy — runs on every push ─────────────────────────────
+  edgeone:
+    name: "EdgeOne CDN Deploy"
+    runs-on: ubuntu-latest
+    needs: web
+    if: always() && needs.web.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-${{ needs.web.outputs.sha }}
+          path: dist/
+
+      - run: "[ -f dist/index.html ] || (echo 'FATAL: Missing index.html' && exit 1)"
+
+      - name: Install EdgeOne CLI
+        run: npm install -g edgeone --prefer-online 2>&1 | tail -3 || true
+
+      - name: Deploy to EdgeOne Pages
+        id: eo_deploy
+        run: |
+          npx edgeone pages deploy dist/ \
+            -n "${{ env.EDGEONE_PROJECT }}" \
+            -t "${{ env.EDGEONE_API_TOKEN }}" \
+            -e production 2>&1
+          echo "deploy_exit=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Wait + health check
+        run: |
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ env.EDGEONE_SITE_URL }}" || echo "000")
+          echo "HTTP $STATUS — ${{ env.EDGEONE_SITE_URL }}"
+          [ "$STATUS" = "200" ] && echo "✅ Site healthy" || echo "⚠️ HTTP $STATUS"
+        continue-on-error: true
+
+      - name: Summary
+        run: |
+          echo "SHA=${{ needs.web.outputs.sha }} VER=${{ needs.web.outputs.ver }}"
+          echo "Deploy exit=${{ steps.eo_deploy.outputs.deploy_exit }}"
+
+  # ── 5. Windows EXE — only on tags OR explicit workflow_dispatch ────────────
   exe:
-    name: "Windows EXE — Electron"
+    name: "Windows EXE"
     runs-on: windows-latest
     needs: web
-    if: github.event.inputs.skip_exe != 'true'
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.build_exe == 'true')
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
+        with: { node-version: "22", cache: npm }
 
       - uses: actions/download-artifact@v4
         with:
@@ -133,10 +249,9 @@ jobs:
           P=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs');const l=JSON.parse(fs.readFileSync('package-lock.json'));l.version='$P';if(l.packages&&l.packages[''])l.packages[''].version='$P';fs.writeFileSync('package-lock.json',JSON.stringify(l,null,2));"
 
-      - name: Install deps
-        run: npm ci --no-audit --legacy-peer-deps
+      - run: npm ci --no-audit --legacy-peer-deps
 
-      - name: Install electron + packager
+      - name: Install electron-packager
         shell: bash
         run: npm install --no-save @electron/packager --legacy-peer-deps
 
@@ -144,7 +259,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p electron build dist-electron
-          cat > electron/main.js << 'MAINJS'
+          cat > electron/main.js << 'MAINEOF'
           const{app,BrowserWindow,ipcMain,shell}=require("electron");
           const path=require("path");
           app.disableHardwareAcceleration();
@@ -166,14 +281,14 @@ jobs:
           app.whenReady().then(create);
           app.on("window-all-closed",()=>{if(process.platform!=="darwin")app.quit();});
           ipcMain.handle("app-version",()=>app.getVersion());
-          MAINJS
-          cat > electron/preload.js << 'PREJS'
+          MAINEOF
+          cat > electron/preload.js << 'PREEOF'
           const{contextBridge,ipcRenderer}=require("electron");
           contextBridge.exposeInMainWorld("electronAPI",{
             getVersion:()=>ipcRenderer.invoke("app-version"),
             platform:process.platform
           });
-          PREJS
+          PREEOF
           node -e "const b=Buffer.alloc(1406);b.writeUInt16LE(0,0);b.writeUInt16LE(1,2);b.writeUInt16LE(1,4);require('fs').writeFileSync('build/icon.ico',b);"
 
       - name: Package x64 + ia32
@@ -181,101 +296,33 @@ jobs:
         run: |
           VER=$(node -p "require('./package.json').version")
           COMMON="--platform=win32 --out=dist-electron --app-version=$VER --overwrite --prune --no-asar"
-          IGNORE='--ignore=\.github --ignore=supabase --ignore=^/src --ignore=^/web --ignore=kiosk-app --ignore=admin-app --ignore=test --ignore=e2e --ignore=docs'
-          
-          echo "=== Building x64 ==="
-          npx electron-packager . "ProcurBosse" $COMMON --arch=x64 $IGNORE 2>&1 | tail -20
-          echo "x64 exit: $?"
-          
-          echo "=== Building ia32 ==="
-          npx electron-packager . "ProcurBosse" $COMMON --arch=ia32 $IGNORE 2>&1 | tail -20
-          echo "ia32 exit: $?"
-          
-          echo "=== dist-electron contents ==="
-          ls -la dist-electron/ 2>/dev/null || echo "MISSING dist-electron"
-          find dist-electron -name "ProcurBosse.exe" 2>/dev/null | head -5
+          IGNORE='--ignore=\.github --ignore=supabase --ignore=^/src --ignore=^/web --ignore=android --ignore=ios --ignore=test --ignore=docs'
+          npx electron-packager . "ProcurBosse" $COMMON --arch=x64  $IGNORE 2>&1 | tail -10
+          npx electron-packager . "ProcurBosse" $COMMON --arch=ia32 $IGNORE 2>&1 | tail -10
+          find dist-electron -name "ProcurBosse.exe" 2>/dev/null | head -5 || true
         continue-on-error: true
 
-      - name: Zip portable archives
+      - name: Zip archives
         shell: pwsh
         run: |
           $VER = (node -p "require('./package.json').version")
-          $out = "dist-electron"
-          New-Item -Force -ItemType Directory -Path $out | Out-Null
-          Write-Host "=== dist-electron dirs ==="
-          Get-ChildItem $out -Directory | ForEach-Object { Write-Host $_.FullName }
-          foreach ($dir in (Get-ChildItem $out -Directory)) {
+          foreach ($dir in (Get-ChildItem dist-electron -Directory -ErrorAction SilentlyContinue)) {
             $arch = if ($dir.Name -match "ia32") { "ia32" } else { "x64" }
-            $zip  = Join-Path $out "ProcurBosse-v$VER-win-$arch.zip"
-            Compress-Archive -Path (Join-Path $dir.FullName "*") -DestinationPath $zip -Force
-            $mb = [math]::Round((Get-Item $zip).Length / 1MB, 1)
-            Write-Host "Created: $zip ($mb MB)"
+            $zip  = "dist-electron\ProcurBosse-v$VER-win-$arch.zip"
+            Compress-Archive -Path "$($dir.FullName)\*" -DestinationPath $zip -Force
+            Write-Host "Created $zip ($([math]::Round((Get-Item $zip).Length/1MB,1)) MB)"
           }
+          Set-Content -Path "dist-electron\launch.bat" -Encoding ASCII -Value "@echo off`r`nstart `"`" `"https://procurbosse.edgeone.app`""
         continue-on-error: true
-
-      - name: Create .bat launchers
-        shell: pwsh
-        run: |
-          $out = "dist-electron"
-          New-Item -Force -ItemType Directory -Path $out | Out-Null
-
-          Set-Content -Path "$out\launch.bat" -Encoding ASCII -Value (@'
-          @echo off
-          title EL5 MediProcure v11.4.0 - ProcurBosse
-          echo.
-          echo   ProcurBosse v11.4.0 - EL5 MediProcure
-          echo   Embu Level 5 Hospital
-          echo.
-          echo   [1] Run x64 (64-bit)
-          echo   [2] Run ia32 (32-bit)
-          echo   [3] Open Web App
-          echo   [4] Exit
-          echo.
-          set /p c="Choice (1-4): "
-          if "%c%"=="1" for /r "%~dp0" %%e in (ProcurBosse-win32-x64\ProcurBosse.exe) do start "" "%%e"
-          if "%c%"=="2" for /r "%~dp0" %%e in (ProcurBosse-win32-ia32\ProcurBosse.exe) do start "" "%%e"
-          if "%c%"=="3" start "" "https://procurbosse.edgeone.app"
-          '@)
-
-          Set-Content -Path "$out\open-web.bat" -Encoding ASCII -Value (@'
-          @echo off
-          start "" "https://procurbosse.edgeone.app"
-          '@)
-
-          Set-Content -Path "$out\run-x64.bat" -Encoding ASCII -Value (@'
-          @echo off
-          for /r "%~dp0" %%e in (ProcurBosse-win32-x64\ProcurBosse.exe) do start "" "%%e"
-          '@)
-
-          Set-Content -Path "$out\run-ia32.bat" -Encoding ASCII -Value (@'
-          @echo off
-          for /r "%~dp0" %%e in (ProcurBosse-win32-ia32\ProcurBosse.exe) do start "" "%%e"
-          '@)
-
-          foreach ($bat in Get-ChildItem $out -Filter "*.bat") {
-            Copy-Item $bat.FullName (Join-Path $out ($bat.BaseName + ".cmd")) -Force
-          }
-
-          Write-Host "=== Launcher files created ==="
-          Get-ChildItem $out -Include "*.bat","*.cmd" -File
 
       - name: Checksums
         shell: pwsh
         run: |
-          $out = "dist-electron"
-          $sums = @()
-          Get-ChildItem $out -Recurse -Include "*.exe","*.zip" | ForEach-Object {
-            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-            $sums += "$h  $($_.Name)"
-          }
-          if ($sums.Count -gt 0) {
-            $sums | Out-File -Encoding ASCII "$out\SHA256SUMS.txt"
-          } else {
-            "No binaries produced" | Out-File -Encoding ASCII "$out\SHA256SUMS.txt"
-          }
-          Get-Content "$out\SHA256SUMS.txt"
-          Write-Host "=== Final dist-electron ==="
-          Get-ChildItem $out | Select-Object Name, @{N="Size";E={[math]::Round($_.Length/1KB)+"KB"}} | Format-Table
+          $sums = Get-ChildItem dist-electron -Recurse -Include "*.exe","*.zip" |
+            ForEach-Object { "$($(Get-FileHash $_.FullName -Algorithm SHA256).Hash)  $($_.Name)" }
+          ($sums -join "`n") | Out-File -Encoding ASCII "dist-electron\SHA256SUMS.txt"
+          Get-Content "dist-electron\SHA256SUMS.txt"
+        continue-on-error: true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -283,179 +330,22 @@ jobs:
           path: |
             dist-electron/*.zip
             dist-electron/*.bat
-            dist-electron/*.cmd
             dist-electron/*.txt
-          retention-days: 7
+          retention-days: 14
           if-no-files-found: warn
 
-  functions:
-    name: "Edge Functions + Secrets"
-    runs-on: ubuntu-latest
-    needs: web
-    if: always() && needs.web.result == 'success'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Supabase CLI
-        run: |
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
-            | tar -xz -C /usr/local/bin supabase 2>/dev/null
-          chmod +x /usr/local/bin/supabase
-          /usr/local/bin/supabase --version || echo "CLI install check completed"
-        continue-on-error: true
-
-      - name: Set secrets
-        run: |
-          supabase secrets set \
-            TWILIO_ACCOUNT_SID="${{ env.TWILIO_ACCT }}" \
-            TWILIO_AUTH_TOKEN="${{ env.TWILIO_TOKEN }}" \
-            TWILIO_PHONE_NUMBER="${{ env.TWILIO_SMS }}" \
-            TWILIO_MESSAGING_SERVICE_SID="${{ env.TWILIO_MG }}" \
-            TWILIO_VERIFY_SERVICE_SID="${{ env.TWILIO_VA }}" \
-            TWILIO_WA_NUMBER="${{ env.TWILIO_WA }}" \
-            --project-ref ${{ env.SUPA_REF }} 2>&1 || true
-        env:
-          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
-        continue-on-error: true
-
-      - name: Deploy edge functions
-        run: |
-          for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook ai-agent verify-role notify-requisition make-call twilio-engine notify-api google-forms-api github-releases notification-hub edgeone-stats; do
-            [ -d "supabase/functions/$fn" ] || continue
-            echo "Deploying $fn..."
-            /usr/local/bin/supabase functions deploy $fn \
-              --project-ref ${{ env.SUPA_REF }} \
-              --no-verify-jwt 2>&1 || echo "warn: $fn deploy attempted"
-          done
-        env:
-          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
-        continue-on-error: true
-
-      - name: Smoke test SMS
-        run: |
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ env.SUPA_ANON }}" \
-            -H "Content-Type: application/json" \
-            -d '{"to":"+254116647894","message":"ProcurBosse v11.12.0 deployed. WhatsApp Hub live.","module":"ci_deploy"}' \
-            "${{ env.SUPA_URL }}/functions/v1/send-sms" | python3 -m json.tool || true
-        continue-on-error: true
-
-  db:
-    name: "DB Migrations"
-    runs-on: ubuntu-latest
-    needs: web
-    if: always() && needs.web.result == 'success'
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
-            | tar -xz -C /usr/local/bin supabase 2>/dev/null || \
-          npm install -g supabase --legacy-peer-deps 2>/dev/null || true
-        continue-on-error: true
-      - run: |
-          echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -10
-          supabase db push --project-ref ${{ env.SUPA_REF }} 2>&1 || true
-        env:
-          SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
-        continue-on-error: true
-
-  edgeone:
-    name: "EdgeOne CDN — Deploy & Health Check"
-    runs-on: ubuntu-latest
-    needs: web
-    if: always() && needs.web.result == 'success'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist-${{ needs.web.outputs.sha }}
-          path: dist/
-
-      - name: Verify dist artifact
-        run: |
-          echo "=== dist/ contents ==="
-          ls -lh dist/
-          [ -f dist/index.html ] || (echo "FATAL: Missing index.html" && exit 1)
-          echo "✓ dist/index.html present"
-
-      - name: Install EdgeOne CLI
-        run: npm install -g edgeone --prefer-online 2>&1 | tail -5 || true
-
-      - name: Deploy dist/ to EdgeOne Pages (production)
-        id: eo_deploy
-        run: |
-          echo "=== Deploying ${{ env.EDGEONE_PROJECT }} to EdgeOne Pages ==="
-          npx edgeone pages deploy dist/ \
-            -n "${{ env.EDGEONE_PROJECT }}" \
-            -t "${{ env.EDGEONE_API_TOKEN }}" \
-            -e production 2>&1
-          echo "deploy_exit=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: EdgeOne deploy status
-        run: |
-          CODE="${{ steps.eo_deploy.outputs.deploy_exit }}"
-          if [ "$CODE" = "0" ]; then
-            echo "✅ EdgeOne Pages deploy succeeded"
-          else
-            echo "⚠️  EdgeOne Pages deploy returned non-zero ($CODE) — site still served from committed web/ folder"
-          fi
-
-      - name: Wait for propagation
-        run: sleep 20
-
-      - name: Health check — HTTP status
-        id: health
-        run: |
-          URL="${{ env.EDGEONE_SITE_URL }}"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
-          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
-          echo "=== Health check: $URL → HTTP $STATUS ==="
-          if [ "$STATUS" = "200" ]; then
-            echo "✅ Site is healthy"
-          else
-            echo "❌ Site returned HTTP $STATUS"
-          fi
-        continue-on-error: true
-
-      - name: Health check — asset fingerprint
-        run: |
-          URL="${{ env.EDGEONE_SITE_URL }}"
-          # Fetch index.html and check for expected build hash pattern
-          CONTENT=$(curl -s --max-time 15 "$URL/index.html" 2>/dev/null || true)
-          SHA="${{ needs.web.outputs.sha }}"
-          echo "=== index.html snippet ==="
-          echo "$CONTENT" | head -5
-          # Verify assets/ reference exists (proves fresh build is served)
-          if echo "$CONTENT" | grep -q "/assets/"; then
-            echo "✅ index.html references hashed assets — fresh build is live"
-          else
-            echo "⚠️  Could not verify assets reference in index.html"
-          fi
-        continue-on-error: true
-
-      - name: Report deployment summary
-        run: |
-          echo "============================================"
-          echo "  ProcurBosse Deployment Summary"
-          echo "============================================"
-          echo "  Commit SHA : ${{ needs.web.outputs.sha }}"
-          echo "  Version    : ${{ needs.web.outputs.ver }}"
-          echo "  Site URL   : ${{ env.EDGEONE_SITE_URL }}"
-          echo "  HTTP Status: ${{ steps.health.outputs.http_status }}"
-          echo "  EdgeOne Deploy: ${{ steps.eo_deploy.outputs.deploy_exit == '0' && 'SUCCESS' || 'WARNING (fallback to web/)' }}"
-          echo "============================================"
-
+  # ── 6. GitHub Release — only on tags OR explicit dispatch ──────────────────
   release:
-    name: "Publish GitHub Release"
+    name: "GitHub Release"
     runs-on: ubuntu-latest
-    needs: [web, exe, functions, db, edgeone]
-    if: always() && needs.web.result == 'success' && github.event.inputs.skip_release != 'true'
+    needs: [web, functions, db, edgeone]
+    if: |
+      always() &&
+      needs.web.result == 'success' &&
+      (
+        startsWith(github.ref, 'refs/tags/v') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_release == 'true')
+      )
     steps:
       - uses: actions/checkout@v4
 
@@ -474,55 +364,40 @@ jobs:
       - name: Package web zip
         run: |
           if [ -d release-web ]; then
-            VER=${{ needs.web.outputs.ver }}
-            cd release-web && zip -r ../ProcurBosse-v${VER}-Web.zip . && cd ..
+            cd release-web && zip -r ../ProcurBosse-v${{ needs.web.outputs.ver }}-Web.zip . && cd ..
+            echo "Web zip: $(du -h ProcurBosse-v${{ needs.web.outputs.ver }}-Web.zip | cut -f1)"
           fi
-        continue-on-error: true
-
-      - name: List release artifacts
-        run: |
-          echo "=== Web ===" && ls -lh release-web/ 2>/dev/null || echo "(none)"
-          echo "=== EXE ===" && ls -lh release-exe/ 2>/dev/null || echo "(none)"
         continue-on-error: true
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ needs.web.outputs.ver }}"
-          name: "ProcurBosse v${{ needs.web.outputs.ver }} — Production Release"
-          draft: false
+          tag_name:   "v${{ needs.web.outputs.ver }}"
+          name:       "ProcurBosse v${{ needs.web.outputs.ver }}"
+          draft:      false
           prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token:      ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          make_latest: true
           body: |
-            # ProcurBosse v${{ needs.web.outputs.ver }} — Production Release
-            **Embu Level 5 Hospital · Embu County Government · Kenya**
+            # ProcurBosse v${{ needs.web.outputs.ver }}
+            **EL5 MediProcure · Embu Level 5 Hospital · Embu County · Kenya**
 
-            ## WhatsApp Business Workflow Hub (NEW)
-            8-tab full integration: Sessions · Compose · Broadcast · Templates · Approvals · Workflows · History · Settings
-
-            Reply-based approvals: text **APPROVE** or **REJECT reason** on WhatsApp to update ERP status automatically.
-
-            Webhook: `https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/whatsapp-webhook`
-            Join sandbox: send `join bad-machine` to `+1 415 523 8886`
+            🌐 Live: https://procurbosse.edgeone.app
+            📦 Commit: `${{ needs.web.outputs.sha }}`
 
             ## Downloads
             | File | Description |
             |---|---|
             | `ProcurBosse-v${{ needs.web.outputs.ver }}-Web.zip` | Web build |
-            | `ProcurBosse-v${{ needs.web.outputs.ver }}-win-x64.zip` | Windows 64-bit portable |
-            | `ProcurBosse-v${{ needs.web.outputs.ver }}-win-ia32.zip` | Windows 32-bit portable |
-            | `launch.bat` / `launch.cmd` | Interactive launcher menu |
-            | `run-x64.bat` / `run-x64.cmd` | Run x64 directly |
-            | `run-ia32.bat` / `run-ia32.cmd` | Run ia32 directly |
-            | `open-web.bat` / `open-web.cmd` | Open web app |
-            | `SHA256SUMS.txt` | Integrity checksums |
+            | `ProcurBosse-v${{ needs.web.outputs.ver }}-win-x64.zip` | Windows 64-bit |
+            | `ProcurBosse-v${{ needs.web.outputs.ver }}-win-ia32.zip` | Windows 32-bit |
+            | `SHA256SUMS.txt` | Checksums |
 
-            ## Login
-            URL: https://procurbosse.edgeone.app  
+            ## Demo login
+            URL: https://procurbosse.edgeone.app
             Email: `samwise@gmail.com` · Password: `samwise@gmail.com`
           files: |
             ProcurBosse-v${{ needs.web.outputs.ver }}-Web.zip
             release-exe/*.zip
             release-exe/*.bat
-            release-exe/*.cmd
             release-exe/*.txt
         continue-on-error: true
