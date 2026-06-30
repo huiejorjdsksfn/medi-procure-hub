@@ -158,14 +158,30 @@ ALTER TABLE public.payment_vouchers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 
 -- Authenticated users can read/write (role-based filtering done in app)
-CREATE POLICY IF NOT EXISTS "auth_all_gl_entries" ON public.gl_entries FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_all_erp_sync" ON public.erp_sync_queue FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_all_invoice_matching" ON public.invoice_matching FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_all_budget_alerts" ON public.budget_alerts FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_all_quotations" ON public.quotations FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_all_payment_vouchers" ON public.payment_vouchers FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_read_settings" ON public.system_settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY IF NOT EXISTS "admin_write_settings" ON public.system_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "auth_all_gl_entries" ON public.gl_entries FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "auth_all_erp_sync" ON public.erp_sync_queue FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "auth_all_invoice_matching" ON public.invoice_matching FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "auth_all_budget_alerts" ON public.budget_alerts FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "auth_all_quotations" ON public.quotations FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "auth_all_payment_vouchers" ON public.payment_vouchers FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "auth_read_settings" ON public.system_settings FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "admin_write_settings" ON public.system_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── Profiles: ensure role column exists ──────────────────────────────────────
 DO $$

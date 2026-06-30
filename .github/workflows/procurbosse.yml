@@ -112,11 +112,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+
       - name: Install Supabase CLI
-        run: |
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
-            | tar -xz -C /usr/local/bin supabase 2>/dev/null || true
-        continue-on-error: true
+        run: npm install -g supabase --force 2>&1 | tail -5
+        # npm install is reliable in CI; the GitHub-release tarball download
+        # redirects through release-assets.githubusercontent.com which can be
+        # blocked by some network egress policies — npm avoids that entirely.
 
       - name: Set secrets
         run: |
@@ -134,16 +137,26 @@ jobs:
         continue-on-error: true
 
       - name: Deploy edge functions
+        id: fn_deploy
         run: |
+          ok=0; fail=0; failed_list=""
           for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook \
                     ai-agent verify-role notify-requisition make-call twilio-engine \
                     notify-api google-forms-api github-releases notification-hub edgeone-stats; do
             [ -d "supabase/functions/$fn" ] || continue
             echo "→ Deploying $fn"
-            supabase functions deploy $fn \
-              --project-ref ${{ env.SUPA_REF }} \
-              --no-verify-jwt 2>&1 | tail -3 || echo "  warn: $fn deploy attempted"
+            if supabase functions deploy $fn --project-ref ${{ env.SUPA_REF }} --no-verify-jwt 2>&1 | tail -5; then
+              ok=$((ok+1))
+            else
+              fail=$((fail+1)); failed_list="$failed_list $fn"
+            fi
           done
+          echo "deployed_ok=$ok"   >> $GITHUB_OUTPUT
+          echo "deployed_fail=$fail" >> $GITHUB_OUTPUT
+          echo "failed_list=$failed_list" >> $GITHUB_OUTPUT
+          echo ""
+          echo "=== Summary: $ok succeeded, $fail failed ==="
+          [ -n "$failed_list" ] && echo "::warning::Edge functions failed to deploy:$failed_list"
         env:
           SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
         continue-on-error: true
@@ -166,18 +179,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+
       - name: Install Supabase CLI
-        run: |
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
-            | tar -xz -C /usr/local/bin supabase 2>/dev/null || true
-        continue-on-error: true
+        run: npm install -g supabase --force 2>&1 | tail -5
 
       - name: Push migrations
+        id: db_push
         run: |
-          echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -5
-          supabase db push --project-ref ${{ env.SUPA_REF }} 2>&1 | tail -20 || true
+          echo "=== Latest migrations ===" && ls supabase/migrations/ | tail -8
+          set +e
+          OUTPUT=$(supabase db push --project-ref ${{ env.SUPA_REF }} --yes 2>&1)
+          CODE=$?
+          echo "$OUTPUT"
+          echo "exit_code=$CODE" >> $GITHUB_OUTPUT
+          if echo "$OUTPUT" | grep -qi "Remote database is up to date\|No migrations\|migration history is clean"; then
+            echo "status=up_to_date" >> $GITHUB_OUTPUT
+          elif [ $CODE -eq 0 ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+          fi
+          exit 0
         env:
           SUPABASE_ACCESS_TOKEN: "${{ env.SUPA_PAT }}"
+
+      - name: Migration push summary
+        run: |
+          case "${{ steps.db_push.outputs.status }}" in
+            success)    echo "✅ supabase db push applied new migrations successfully (exit ${{ steps.db_push.outputs.exit_code }})" ;;
+            up_to_date) echo "✅ Remote database already up to date — nothing new to push" ;;
+            *)          echo "::warning::supabase db push reported a non-zero exit (${{ steps.db_push.outputs.exit_code }}). Check the 'Push migrations' step output above for the specific failing statement and migration file." ;;
+          esac
         continue-on-error: true
 
   # ── 4. EdgeOne CDN deploy — runs on every push ─────────────────────────────

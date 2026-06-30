@@ -31,6 +31,11 @@
 -- uses FORMAT JSON; SHOW captures its single-row/column result directly.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- Drop first: Postgres rejects CREATE OR REPLACE if the parameter name differs
+-- from the existing function signature (param was 'sql' in an older migration,
+-- renamed to 'query' here).
+DROP FUNCTION IF EXISTS public.exec_sql(text);
+
 CREATE OR REPLACE FUNCTION public.exec_sql(query text)
 RETURNS jsonb
 LANGUAGE plpgsql

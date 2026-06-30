@@ -83,6 +83,10 @@ END;
 $$;
 
 -- 5. Create RPC function for health stats (if not exists)
+-- Drop first: an earlier version of this function may have a different
+-- RETURNS TABLE shape; CREATE OR REPLACE cannot change a function's return type.
+DROP FUNCTION IF EXISTS get_db_health_stats();
+
 CREATE OR REPLACE FUNCTION get_db_health_stats()
 RETURNS TABLE (
     db_version text,

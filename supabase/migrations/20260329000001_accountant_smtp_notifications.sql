@@ -18,9 +18,13 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   created_at timestamptz DEFAULT now()
 );
 ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "role_permissions_select" ON role_permissions FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "role_permissions_admin" ON role_permissions FOR ALL
+DO $$ BEGIN
+  CREATE POLICY "role_permissions_select" ON role_permissions FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "role_permissions_admin" ON role_permissions FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','webmaster')));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Accountant permissions
 INSERT INTO role_permissions (role, module, can_view, can_create, can_edit, can_delete, can_approve, can_export, can_sync)
@@ -72,18 +76,26 @@ CREATE TABLE IF NOT EXISTS quotation_items (
 );
 ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quotation_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "quotations_select" ON quotations FOR SELECT USING (
+DO $$ BEGIN
+  CREATE POLICY "quotations_select" ON quotations FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','webmaster','accountant','procurement_manager','procurement_officer'))
 );
-CREATE POLICY IF NOT EXISTS "quotations_insert" ON quotations FOR INSERT WITH CHECK (
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "quotations_insert" ON quotations FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','webmaster','accountant','procurement_manager','procurement_officer'))
 );
-CREATE POLICY IF NOT EXISTS "quotations_update" ON quotations FOR UPDATE USING (
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "quotations_update" ON quotations FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','webmaster','accountant','procurement_manager'))
 );
-CREATE POLICY IF NOT EXISTS "quotation_items_all" ON quotation_items FOR ALL USING (
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "quotation_items_all" ON quotation_items FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','webmaster','accountant','procurement_manager','procurement_officer'))
 );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- 3. Budget alerts & ERP sync enhancements
 ALTER TABLE budget_alerts ADD COLUMN IF NOT EXISTS acknowledged_by uuid REFERENCES profiles(id);
@@ -134,8 +146,10 @@ CREATE TABLE IF NOT EXISTS password_reset_log (
   status text DEFAULT 'pending' CHECK (status IN ('pending','completed','expired','failed'))
 );
 ALTER TABLE password_reset_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "password_reset_log_admin" ON password_reset_log FOR ALL
+DO $$ BEGIN
+  CREATE POLICY "password_reset_log_admin" ON password_reset_log FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','webmaster')));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- 7. Realtime
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE notifications; EXCEPTION WHEN duplicate_object THEN NULL; END $$;

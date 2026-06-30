@@ -31,14 +31,17 @@ CREATE TABLE IF NOT EXISTS module_settings (
 ALTER TABLE system_broadcasts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE module_settings   ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Admins manage broadcasts"
-  ON system_broadcasts FOR ALL USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "Admins manage broadcasts" ON system_broadcasts FOR ALL USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY IF NOT EXISTS "All read module settings"
-  ON module_settings FOR SELECT USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "All read module settings" ON module_settings FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY IF NOT EXISTS "Admins update module settings"
-  ON module_settings FOR ALL USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "Admins update module settings" ON module_settings FOR ALL USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Add missing columns to profiles (if not present)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active   BOOLEAN DEFAULT TRUE;

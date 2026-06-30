@@ -51,6 +51,11 @@ ALTER TABLE public.user_sessions
 
 CREATE UNIQUE INDEX IF NOT EXISTS user_sessions_token_idx ON public.user_sessions(token) WHERE token IS NOT NULL;
 
+-- Drop first: an earlier migration may have defined this with parameter
+-- defaults that differ from this signature; CREATE OR REPLACE cannot
+-- remove/alter defaults on an existing function.
+DROP FUNCTION IF EXISTS public.upsert_session(text,text,text,text,text);
+
 CREATE OR REPLACE FUNCTION public.upsert_session(
   p_token text, p_page text, p_module text, p_ip text, p_user_agent text
 ) RETURNS uuid

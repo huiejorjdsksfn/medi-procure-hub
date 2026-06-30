@@ -84,8 +84,9 @@ ALTER TABLE IF EXISTS email_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS email_drafts ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for email_drafts
-CREATE POLICY IF NOT EXISTS "Users can manage their own drafts"
-  ON email_drafts FOR ALL USING (auth.uid() = user_id);
+DO $$ BEGIN
+  CREATE POLICY "Users can manage their own drafts" ON email_drafts FOR ALL USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Index for performance
 CREATE INDEX IF NOT EXISTS idx_inbox_items_to_user_status ON inbox_items(to_user_id, status);

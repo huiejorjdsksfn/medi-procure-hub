@@ -117,28 +117,37 @@ ALTER TABLE email_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE smtp_configs     ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies — admins + procurement managers see all
-CREATE POLICY IF NOT EXISTS "Authenticated users can read email logs"
-  ON email_logs FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY IF NOT EXISTS "Authenticated users insert email logs"
-  ON email_logs FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY IF NOT EXISTS "Authenticated users update own email logs"
-  ON email_logs FOR UPDATE USING (auth.uid() = sender_user_id);
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users can read email logs" ON email_logs FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users insert email logs" ON email_logs FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users update own email logs" ON email_logs FOR UPDATE USING (auth.uid() = sender_user_id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY IF NOT EXISTS "All users can read email contacts"
-  ON email_contacts FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY IF NOT EXISTS "Authenticated users manage email contacts"
-  ON email_contacts FOR ALL USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "All users can read email contacts" ON email_contacts FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users manage email contacts" ON email_contacts FOR ALL USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY IF NOT EXISTS "All users can read templates"
-  ON email_templates FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY IF NOT EXISTS "Authenticated users manage templates"
-  ON email_templates FOR ALL USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "All users can read templates" ON email_templates FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users manage templates" ON email_templates FOR ALL USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY IF NOT EXISTS "Authenticated users manage attachments"
-  ON email_attachments FOR ALL USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users manage attachments" ON email_attachments FOR ALL USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY IF NOT EXISTS "Admins manage SMTP configs"
-  ON smtp_configs FOR ALL USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  CREATE POLICY "Admins manage SMTP configs" ON smtp_configs FOR ALL USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_email_logs_status     ON email_logs(status);
