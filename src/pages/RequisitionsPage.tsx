@@ -4,6 +4,7 @@
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
 import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
 import { pageCache } from "@/lib/pageCache";
@@ -66,6 +67,7 @@ export default function RequisitionsPage() {
   const [statusTab,  setStatusTab]  = useState("all");
   const [priority,   setPriority]   = useState("all");
   const [viewReq,    setViewReq]    = useState<any>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showForm,   setShowForm]   = useState(false);
   const [editReq,    setEditReq]    = useState<any>(null);
   const [saving,     setSaving]     = useState(false);
@@ -132,6 +134,19 @@ export default function RequisitionsPage() {
   },[sortCol,sortAsc]);
 
   useEffect(()=>{load();},[load]);
+
+  // Deep-link: auto-open record from GlobalSearchBar (?focus=<id>)
+  useEffect(() => {
+    const focusId = searchParams.get("focus");
+    if (focusId && reqs.length > 0) {
+      const match = reqs.find(r => r.id === focusId);
+      if (match) {
+        setViewReq(match);
+        searchParams.delete("focus");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [reqs, searchParams, setSearchParams]);
 
   // Real-time
   useEffect(()=>{
