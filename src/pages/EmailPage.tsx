@@ -82,12 +82,12 @@ export default function EmailPage() {
   /* - SMTP status - */
   useEffect(()=>{
     (supabase as any).from("system_settings").select("key,value")
-      .in("key",["smtp_enabled","smtp_host","smtp_user","smtp_password","email_mode","resend_api_key","sendgrid_api_key","mailgun_api_key"])
+      .in("key",["smtp_enabled","smtp_host","smtp_user","smtp_pass","email_mode","resend_api_key","sendgrid_api_key","mailgun_api_key"])
       .then(({data}:any)=>{
         const m:Record<string,string>={};
         (data||[]).forEach((r:any)=>{ if(r.key) m[r.key]=r.value||""; });
         const mode = m.email_mode||"internal";
-        const hasSmtp = m.smtp_enabled==="true"&&!!m.smtp_host&&!!m.smtp_user&&!!m.smtp_password;
+        const hasSmtp = m.smtp_enabled==="true"&&!!m.smtp_host&&!!m.smtp_user&&!!m.smtp_pass;
         const hasApi = !!(m.resend_api_key||m.sendgrid_api_key||m.mailgun_api_key);
         const provider = m.resend_api_key?"Resend":m.sendgrid_api_key?"SendGrid":m.mailgun_api_key?"Mailgun":hasSmtp?"SMTP":"Internal";
         setSmtpStatus({ mode, provider, ready: hasSmtp||hasApi });
@@ -232,7 +232,7 @@ export default function EmailPage() {
       if(mode==="external"||mode==="both") {
         try {
           const smtpRows = await (supabase as any).from("system_settings").select("key,value")
-            .in("key",["smtp_host","smtp_port","smtp_user","smtp_password","smtp_from_email","smtp_from_name","smtp_enabled","smtp_security","resend_api_key","sendgrid_api_key","mailgun_api_key","mailgun_domain"]);
+            .in("key",["smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from_email","smtp_from_name","smtp_enabled","smtp_security","resend_api_key","sendgrid_api_key","mailgun_api_key","mailgun_domain"]);
           const smtp:Record<string,string>={};
           (smtpRows.data||[]).forEach((r:any)=>{ if(r.key) smtp[r.key]=r.value||""; });
 
@@ -246,7 +246,7 @@ export default function EmailPage() {
               from_name: smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
               smtp: smtp.smtp_enabled==="true"&&smtp.smtp_host ? {
                 host:smtp.smtp_host, port:Number(smtp.smtp_port)||587,
-                username:smtp.smtp_user, password:smtp.smtp_password,
+                username:smtp.smtp_user, password:smtp.smtp_pass,
                 from_email:smtp.smtp_from_email||smtp.smtp_user,
                 from_name:smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
                 encryption:smtp.smtp_security||"tls",
