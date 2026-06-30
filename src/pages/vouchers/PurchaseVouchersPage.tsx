@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { Plus, Search, RefreshCw, Printer, Download, X, Save, Eye, Trash2, CheckCircle } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { usePurchaseOrders } from "@/hooks/useDropdownData";
 import { printGenericVoucher } from "@/lib/printDocument";
 import { DocumentStamp } from "@/components/DocumentStamp";
 
@@ -31,6 +32,7 @@ export default function PurchaseVouchersPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({supplier_id:"",supplier_name:"",invoice_number:"",voucher_date:new Date().toISOString().slice(0,10),due_date:"",po_reference:"",description:"",expense_account:"",tax_rate:"16"});
   const [items, setItems] = useState<{description:string;qty:string;rate:string;amount:string}[]>([{description:"",qty:"1",rate:"",amount:""}]);
+  const { purchaseOrders } = usePurchaseOrders();
   // hospitalName now from useSystemSettings
 
   const load = async () => {
@@ -200,10 +202,25 @@ export default function PurchaseVouchersPage() {
                   <option value="">- Select -</option>
                   {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select></div>
-              {[["Invoice No.","invoice_number"],["Date","voucher_date","date"],["Due Date","due_date","date"],["PO Reference","po_reference"],["Expense Account","expense_account"],["Tax Rate (%)","tax_rate","number"]].map(([l,k,t])=>(
+              {[["Invoice No.","invoice_number"],["Date","voucher_date","date"],["Due Date","due_date","date"],["Expense Account","expense_account"],["Tax Rate (%)","tax_rate","number"]].map(([l,k,t])=>(
                 <div key={k}><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>{l}</label>
                   <input type={t||"text"} value={(form as any)[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
               ))}
+              <div><label style={{display:"block",marginBottom:4,fontSize:12,fontWeight:600,color:"#6b7280"}}>PO Reference</label>
+                <select value={form.po_reference} onChange={e=>{
+                  const poNum = e.target.value;
+                  const matched = purchaseOrders.find((po:any)=>po.po_number===poNum);
+                  const matchedSupplier = matched ? suppliers.find(s=>s.name===matched.supplier_name) : null;
+                  setForm(p=>({
+                    ...p,
+                    po_reference: poNum,
+                    supplier_id: matchedSupplier && !p.supplier_id ? matchedSupplier.id : p.supplier_id,
+                    supplier_name: matched && !p.supplier_name ? (matched.supplier_name||p.supplier_name) : p.supplier_name,
+                  }));
+                }} style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}>
+                  <option value="">— None —</option>
+                  {purchaseOrders.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||"Supplier"}</option>)}
+                </select></div>
             </div>
             {/* Line items */}
             <div>
