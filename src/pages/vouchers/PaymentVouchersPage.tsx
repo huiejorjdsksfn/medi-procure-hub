@@ -298,7 +298,16 @@ export default function PaymentVouchersPage() {
             </div>
             <div>
               <label style={{ fontSize:10, fontWeight:700, color:"#555", display:"block", marginBottom:3 }}>PO Reference</label>
-              <select value={form.po_reference} onChange={e=>setForm(p=>({...p,po_reference:e.target.value}))} style={inp}>
+              <select value={form.po_reference} onChange={e=>{
+                const poNum = e.target.value;
+                const matched = purchaseOrders.find((po:any)=>po.po_number===poNum);
+                setForm(p=>({
+                  ...p,
+                  po_reference: poNum,
+                  payee: matched && !p.payee ? (matched.supplier_name||p.payee) : p.payee,
+                  total_amount: matched && !p.total_amount ? String(matched.total_amount||p.total_amount) : p.total_amount,
+                }));
+              }} style={inp}>
                 <option value="">— None —</option>
                 {purchaseOrders.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||"Supplier"}</option>)}
               </select>
