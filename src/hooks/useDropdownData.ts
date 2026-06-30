@@ -29,3 +29,8 @@ export function usePurchaseOrders() {
   const dd = useCachedDropdown({ table: "purchase_orders", select: "id,po_number,supplier_name,status,total_amount", order: "created_at", pageSize: 200, searchColumns: ["po_number", "supplier_name"] });
   return { purchaseOrders: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
 }
+
+export function useRequisitions() {
+  const dd = useCachedDropdown({ table: "requisitions", select: "id,requisition_number,title,department,status,total_amount,requester_name", order: "created_at", pageSize: 200, searchColumns: ["requisition_number", "title", "department"] });
+  return { requisitions: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
+}
