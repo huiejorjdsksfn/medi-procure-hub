@@ -113,6 +113,7 @@
     "cross-env": "^10.1.0",
     "electron": "^42.5.0",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
     "eslint": "^10.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
@@ -131,7 +132,7 @@
     "workbox-window": "^7.4.1"
   },
   "productName": "ProcurBosse - EL5 MediProcure",
-  "description": "EL5 MediProcure \u2014 Health Procurement ERP for Embu Level 5 Hospital. ProcurBosse v9.6",
+  "description": "EL5 MediProcure — Health Procurement ERP for Embu Level 5 Hospital. ProcurBosse v9.6",
   "author": {
     "name": "Embu County Government",
     "email": "it@embu.health.go.ke"
