@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { netEngine } from "@/lib/networkEngine";
 import {
   Mail, MessageSquare, Send, Phone, Video, PhoneCall, PhoneIncoming, PhoneOutgoing,
   MailOpen, Bell, Settings, RefreshCw, Users, Search, Plus, CheckCircle2,
@@ -233,18 +234,24 @@ export default function CommunicationsHubPage() {
     }
     setSendingEmail(true);
     try {
-      // Call Supabase edge function to send email via external SMTP
-      const { error } = await (supabase.functions as any).invoke('send-email', {
-        body: {
-          to: emailDraft.to,
-          cc: emailDraft.cc,
-          subject: emailDraft.subject,
-          body: emailDraft.body,
-          from: profile?.email || user?.email,
-          fromName: profile?.full_name,
-          priority: emailDraft.priority,
-        }
-      });
+      // Call Supabase edge function to send email via external SMTP.
+      // retries: 0 — never auto-retry a send action, that could double-send.
+      // Still gets circuit breaking (fast-fail if SMTP is down) + adaptive timeout.
+      const { error } = await netEngine.request(
+        "comm:send-email",
+        () => (supabase.functions as any).invoke('send-email', {
+          body: {
+            to: emailDraft.to,
+            cc: emailDraft.cc,
+            subject: emailDraft.subject,
+            body: emailDraft.body,
+            from: profile?.email || user?.email,
+            fromName: profile?.full_name,
+            priority: emailDraft.priority,
+          }
+        }),
+        { priority: "critical", retries: 0, label: "send email" }
+      );
       
       if (error) throw error;
       
@@ -278,15 +285,19 @@ export default function CommunicationsHubPage() {
     
     setSendingSMS(true);
     try {
-      // Call Supabase edge function to send SMS via Twilio
-      const { error } = await (supabase.functions as any).invoke('send-sms', {
-        body: {
-          to: normalizedPhone,
-          message: smsDraft.message,
-          channel: smsDraft.channel,
-          contactName: 'Unknown Contact',
-        }
-      });
+      // Call Supabase edge function to send SMS via Twilio (retries:0, same reasoning)
+      const { error } = await netEngine.request(
+        "comm:send-sms",
+        () => (supabase.functions as any).invoke('send-sms', {
+          body: {
+            to: normalizedPhone,
+            message: smsDraft.message,
+            channel: smsDraft.channel,
+            contactName: 'Unknown Contact',
+          }
+        }),
+        { priority: "critical", retries: 0, label: "send SMS" }
+      );
       
       if (error) throw error;
       
@@ -306,10 +317,12 @@ export default function CommunicationsHubPage() {
     setActiveCall({ number: dialNumber, status: 'calling' });
     
     try {
-      // Call Supabase edge function to initiate call via Twilio
-      const { error } = await (supabase.functions as any).invoke('make-call', {
-        body: { to: dialNumber }
-      });
+      // Call Supabase edge function to initiate call via Twilio (retries:0 — never auto-redial)
+      const { error } = await netEngine.request(
+        "comm:make-call",
+        () => (supabase.functions as any).invoke('make-call', { body: { to: dialNumber } }),
+        { priority: "critical", retries: 0, label: "make call" }
+      );
       
       if (error) throw error;
       
