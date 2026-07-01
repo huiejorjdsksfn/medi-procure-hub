@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { netEngine } from "@/lib/networkEngine";
 
 interface SearchResult {
   id: string;
@@ -61,58 +62,79 @@ export default function GlobalSearchBar() {
     setErrored(false);
     const like = `%${q.trim()}%`;
     try {
-      const [reqs, pos, sups, items] = await Promise.allSettled([
-        supabase.from("requisitions")
-          .select("id,title,status,requisition_number")
-          .or(`title.ilike.${like},requisition_number.ilike.${like}`)
-          .limit(5),
-        supabase.from("purchase_orders")
-          .select("id,po_number,supplier_name,status")
-          .or(`po_number.ilike.${like},supplier_name.ilike.${like}`)
-          .limit(5),
-        supabase.from("suppliers")
-          .select("id,name,email,status")
-          .ilike("name", like)
-          .limit(5),
-        supabase.from("items")
-          .select("id,name,sku,category")
-          .or(`name.ilike.${like},sku.ilike.${like}`)
-          .limit(5),
+      // Routed through netEngine: each table gets its own circuit breaker
+      // (a failing table fast-fails after 4 misses instead of eating a
+      // timeout on every keystroke), "critical" priority jumps the
+      // request queue ahead of background/prefetch work, and timeouts
+      // adapt to real connection quality instead of a fixed value.
+      const [reqs, pos, sups, items] = await Promise.all([
+        netEngine.request(
+          "search:requisitions",
+          () => supabase.from("requisitions")
+            .select("id,title,status,requisition_number")
+            .or(`title.ilike.${like},requisition_number.ilike.${like}`)
+            .limit(5),
+          { priority: "critical", label: "search requisitions" }
+        ),
+        netEngine.request(
+          "search:purchase_orders",
+          () => supabase.from("purchase_orders")
+            .select("id,po_number,supplier_name,status")
+            .or(`po_number.ilike.${like},supplier_name.ilike.${like}`)
+            .limit(5),
+          { priority: "critical", label: "search purchase orders" }
+        ),
+        netEngine.request(
+          "search:suppliers",
+          () => supabase.from("suppliers")
+            .select("id,name,email,status")
+            .ilike("name", like)
+            .limit(5),
+          { priority: "critical", label: "search suppliers" }
+        ),
+        netEngine.request(
+          "search:items",
+          () => supabase.from("items")
+            .select("id,name,sku,category")
+            .or(`name.ilike.${like},sku.ilike.${like}`)
+            .limit(5),
+          { priority: "critical", label: "search items" }
+        ),
       ]);
 
       const out: SearchResult[] = [];
       let anyOk = false;
 
-      if (reqs.status === "fulfilled" && !reqs.value.error && reqs.value.data) {
+      if (!reqs.error && reqs.data) {
         anyOk = true;
-        reqs.value.data.forEach((r: any) => out.push({
+        (reqs.data as any[]).forEach((r: any) => out.push({
           id: r.id, type: "requisition",
           label: r.title || r.requisition_number || r.id,
           subtitle: `${r.requisition_number || ""} · ${r.status || "Draft"}`,
           url: `/requisitions?focus=${r.id}`, icon: "📋",
         }));
       }
-      if (pos.status === "fulfilled" && !pos.value.error && pos.value.data) {
+      if (!pos.error && pos.data) {
         anyOk = true;
-        pos.value.data.forEach((r: any) => out.push({
+        (pos.data as any[]).forEach((r: any) => out.push({
           id: r.id, type: "purchase_order",
           label: r.po_number || r.id,
           subtitle: `${r.supplier_name || "PO"} · ${r.status || ""}`,
           url: `/purchase-orders?focus=${r.id}`, icon: "🛒",
         }));
       }
-      if (sups.status === "fulfilled" && !sups.value.error && sups.value.data) {
+      if (!sups.error && sups.data) {
         anyOk = true;
-        sups.value.data.forEach((r: any) => out.push({
+        (sups.data as any[]).forEach((r: any) => out.push({
           id: r.id, type: "supplier",
           label: r.name,
           subtitle: `Supplier · ${r.email || r.status || ""}`,
           url: `/suppliers?focus=${r.id}`, icon: "🏢",
         }));
       }
-      if (items.status === "fulfilled" && !items.value.error && items.value.data) {
+      if (!items.error && items.data) {
         anyOk = true;
-        items.value.data.forEach((r: any) => out.push({
+        (items.data as any[]).forEach((r: any) => out.push({
           id: r.id, type: "item",
           label: r.name,
           subtitle: `${r.sku || "Item"} · ${r.category || ""}`,
@@ -122,8 +144,8 @@ export default function GlobalSearchBar() {
 
       setResults(out);
       setSelected(0);
-      // If literally every query failed (network/RLS issue), surface it
-      setErrored(!anyOk && [reqs, pos, sups, items].every(p => p.status === "rejected"));
+      // If literally every query failed (network/RLS/circuit-open), surface it
+      setErrored(!anyOk && [reqs, pos, sups, items].every(r => !!r.error));
     } finally {
       setLoading(false);
     }
