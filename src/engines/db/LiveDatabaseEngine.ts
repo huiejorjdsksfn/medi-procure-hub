@@ -5,6 +5,8 @@
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { supabase } from "@/integrations/supabase/client";
+import { connectionMonitor, circuitBreaker } from "@/lib/networkEngine";
+import { OfflineEngine } from "@/lib/erp-cache/offlineEngine";
 
 const db = supabase as any;
 
@@ -97,6 +99,7 @@ class LiveDatabaseEngine {
   private realtimeConnected = false;
   private running = false;
   private intervalMs = 60_000;
+  private wasHealthy = true; // tracks Supabase reachability across cycles for auto-replay-on-recovery
 
   start(intervalMs = 60_000) {
     if (this.running) return;
@@ -151,6 +154,26 @@ class LiveDatabaseEngine {
     const pingT = performance.now();
     const { error: pingErr } = await db.from("system_settings").select("key").limit(1);
     const dbLatency = Math.round(performance.now() - pingT);
+
+    // Feed this real Supabase round-trip into netEngine's connection monitor
+    // so timeout/concurrency decisions across the app reflect actual DB
+    // reachability, not just generic browser online/offline state. Also
+    // updates the shared "supabase:ping" circuit breaker.
+    connectionMonitor.recordRTT(dbLatency);
+    if (pingErr) {
+      circuitBreaker.recordFailure("supabase:ping");
+    } else {
+      circuitBreaker.recordSuccess("supabase:ping");
+    }
+    const isHealthyNow = !pingErr;
+    if (isHealthyNow && !this.wasHealthy) {
+      // Recovered from an outage the browser's navigator.onLine may never
+      // have flagged (e.g. Supabase-side issue while LAN stayed up) —
+      // flush anything queued while it was down.
+      console.info("[LiveDB] Supabase reachable again — replaying offline queue...");
+      OfflineEngine.replayQueue(db).catch(() => {});
+    }
+    this.wasHealthy = isHealthyNow;
 
     const tables = await this.runAllTableTests();
     const twilioStatus = await this.checkTwilio();
