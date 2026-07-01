@@ -19,6 +19,7 @@ import { connectionMonitor, type NetSnapshot } from "./connectionMonitor";
 import { circuitBreaker, CircuitOpenError } from "./circuitBreaker";
 import { requestQueue, type Priority } from "./requestQueue";
 import { batchLookup, batchStats } from "./batcher";
+import * as securityGuard from "./securityGuard";
 
 export interface NetRequestOptions {
   priority?: Priority;
@@ -135,5 +136,5 @@ class NetworkEngine {
 }
 
 export const netEngine = new NetworkEngine();
-export { connectionMonitor, circuitBreaker, requestQueue, batchLookup };
+export { connectionMonitor, circuitBreaker, requestQueue, batchLookup, securityGuard };
 export type { NetSnapshot, Priority };
