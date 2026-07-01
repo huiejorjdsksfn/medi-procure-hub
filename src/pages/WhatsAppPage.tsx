@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { sendSms } from "@/lib/sms";
 import { TWILIO_WA, WA_CODE } from "@/lib/version";
+import { netEngine } from "@/lib/networkEngine";
 import type React from "react";
 
 const db = supabase as any;
@@ -118,10 +119,14 @@ export default function WhatsAppPage() {
   const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await db.from("sms_conversations")
-        .select("id,phone_number,last_message,last_message_at,status,metadata")
-        .order("last_message_at",{ ascending:false })
-        .limit(50);
+      const { data } = await netEngine.request(
+        "whatsapp:sessions",
+        () => db.from("sms_conversations")
+          .select("id,phone_number,last_message,last_message_at,status,metadata")
+          .order("last_message_at",{ ascending:false })
+          .limit(50),
+        { priority: "critical", label: "WhatsApp sessions" }
+      );
       const rows = (data||[]).map((c:any) => {
         const hrs = (Date.now() - new Date(c.last_message_at||0).getTime()) / 3_600_000;
         return { ...c, active: hrs < 72, joinRequired: hrs >= 72 };
@@ -134,11 +139,15 @@ export default function WhatsAppPage() {
 
   const loadHistory = useCallback(async () => {
     try {
-      const { data } = await db.from("sms_messages")
-        .select("id,to_number,message_body,status,channel,sent_at,error_message,sid")
-        .eq("channel","whatsapp")
-        .order("sent_at",{ ascending:false })
-        .limit(100);
+      const { data } = await netEngine.request(
+        "whatsapp:history",
+        () => db.from("sms_messages")
+          .select("id,to_number,message_body,status,channel,sent_at,error_message,sid")
+          .eq("channel","whatsapp")
+          .order("sent_at",{ ascending:false })
+          .limit(100),
+        { priority: "normal", label: "WhatsApp history" }
+      );
       const rows = data||[];
       setHistory(Array.isArray(rows)?rows:[]);
       setStats(s => ({
@@ -152,12 +161,16 @@ export default function WhatsAppPage() {
 
   const loadApprovals = useCallback(async () => {
     try {
-      const { data } = await db.from("sms_messages")
-        .select("id,to_number,metadata,status,sent_at")
-        .eq("channel","whatsapp")
-        .not("metadata->approval_ref","is",null)
-        .order("sent_at",{ ascending:false })
-        .limit(30);
+      const { data } = await netEngine.request(
+        "whatsapp:approvals",
+        () => db.from("sms_messages")
+          .select("id,to_number,metadata,status,sent_at")
+          .eq("channel","whatsapp")
+          .not("metadata->approval_ref","is",null)
+          .order("sent_at",{ ascending:false })
+          .limit(30),
+        { priority: "normal", label: "WhatsApp approvals" }
+      );
       setApprovals(Array.isArray(data) ? data.map((r:any) => ({
         id:          r.id,
         ref:         r.metadata?.approval_ref || "—",
