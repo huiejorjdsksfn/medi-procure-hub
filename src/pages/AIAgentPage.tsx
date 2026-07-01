@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { sendSms } from "@/lib/sms";
 import { useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
+import { netEngine } from "@/lib/networkEngine";
 import type React from "react";
 
 const db = supabase as any;
@@ -211,18 +212,21 @@ interface FormRecord {
 }
 
 async function callAIAgent(prompt: string, context?: Record<string,any>): Promise<string> {
-  try {
-    const r = await fetch(`${SUPA_URL}/functions/v1/ai-agent`, {
-      method:"POST",
-      headers:{ "Authorization":`Bearer ${SUPA_ANON}`, "Content-Type":"application/json" },
-      body: JSON.stringify({ prompt, context }),
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    return d.message || d.text || d.content || "Agent completed.";
-  } catch {
-    return generateFallbackMessage(prompt, context);
-  }
+  const { data, error } = await netEngine.request(
+    "ai-agent:call",
+    async () => {
+      const r = await fetch(`${SUPA_URL}/functions/v1/ai-agent`, {
+        method:"POST",
+        headers:{ "Authorization":`Bearer ${SUPA_ANON}`, "Content-Type":"application/json" },
+        body: JSON.stringify({ prompt, context }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return { data: await r.json(), error: null };
+    },
+    { priority: "critical", retries: 1, label: "AI agent" }
+  );
+  if (error || !data) return generateFallbackMessage(prompt, context);
+  return data.message || data.text || data.content || "Agent completed.";
 }
 
 function generateFallbackMessage(prompt: string, ctx?: Record<string,any>): string {
@@ -242,18 +246,25 @@ function generateFallbackMessage(prompt: string, ctx?: Record<string,any>): stri
 async function buildGoogleFormViaAPI(
   title: string, desc: string, fields: string[], formId: string, senderEmail: string
 ): Promise<{url: string; directUrl: string; previewUrl: string}> {
-  // Call the google-forms-api edge function
-  try {
-    const r = await fetch(`${SUPA_URL}/functions/v1/google-forms-api`, {
-      method:"POST",
-      headers:{ "Authorization":`Bearer ${SUPA_ANON}`, "Content-Type":"application/json" },
-      body: JSON.stringify({ action:"create_form", title, description:desc, fields, formId, senderEmail }),
-    });
-    if (r.ok) {
-      const d = await r.json();
-      if (d.ok && d.formUrl) return { url: d.formUrl, directUrl: d.editUrl||d.formUrl, previewUrl: d.previewUrl||d.formUrl };
-    }
-  } catch {}
+  // Call the google-forms-api edge function. retries:0 — this creates a form,
+  // retrying could create duplicates. Circuit breaker still protects against
+  // hammering a down endpoint across repeated form-builder uses.
+  const { data } = await netEngine.request(
+    "ai-agent:google-forms",
+    async () => {
+      const r = await fetch(`${SUPA_URL}/functions/v1/google-forms-api`, {
+        method:"POST",
+        headers:{ "Authorization":`Bearer ${SUPA_ANON}`, "Content-Type":"application/json" },
+        body: JSON.stringify({ action:"create_form", title, description:desc, fields, formId, senderEmail }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return { data: await r.json(), error: null };
+    },
+    { priority: "critical", retries: 0, label: "Google Forms builder" }
+  );
+  if (data?.ok && data?.formUrl) {
+    return { url: data.formUrl, directUrl: data.editUrl||data.formUrl, previewUrl: data.previewUrl||data.formUrl };
+  }
   // Fallback: generate a Google Forms create URL
   const encodedTitle = encodeURIComponent(`[${formId}] ${title} — ${HOSPITAL_NAME}`);
   const createUrl = `https://docs.google.com/forms/create?title=${encodedTitle}`;
