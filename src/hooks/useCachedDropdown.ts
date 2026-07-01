@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { netEngine } from "@/lib/networkEngine";
 
 type CacheEntry = { ts: number; rows: any[]; hasMore: boolean };
 type FilterValue = string | number | boolean | null | undefined;
@@ -75,7 +76,14 @@ export function useCachedDropdown(opts: {
     setLoading(true);
     const from = nextPage * pageSize;
     const to = from + pageSize - 1;
-    const { data, error } = await buildQuery(from, to);
+    // Per-table circuit breaker (one flaky table won't stall every dropdown
+    // that references it) + adaptive timeout; first page is UI-blocking so
+    // it jumps the queue, "load more" pagination stays background priority.
+    const { data, error } = await netEngine.request(
+      `dropdown:${table}`,
+      () => buildQuery(from, to),
+      { priority: nextPage === 0 ? "critical" : "background", label: `dropdown:${table}` }
+    );
     if (error) {
       const fallback = existing?.rows || [];
       setRows(fallback);
