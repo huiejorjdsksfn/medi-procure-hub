@@ -4,6 +4,7 @@
  * EL5 MediProcure — Embu Level 5 Hospital
  */
 import ERPCache from "./index";
+import { circuitBreaker } from "@/lib/networkEngine";
 
 export type MutationType = "INSERT"|"UPDATE"|"DELETE"|"UPSERT";
 
@@ -34,6 +35,13 @@ export const OfflineEngine = {
     const q  = loadQueue();
     q.push({ id, table, type, payload, timestamp: Date.now(), retries: 0 });
     saveQueue(q);
+    // Ask the Service Worker's Background Sync to wake the app and replay
+    // this even if the tab gets closed before connectivity returns.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready
+        .then((reg: any) => reg.sync?.register("el5-offline-mutations"))
+        .catch(() => { /* Background Sync unsupported — foreground online listener still covers it */ });
+    }
     return id;
   },
 
@@ -47,24 +55,28 @@ export const OfflineEngine = {
   },
 
   /** Replay queue against Supabase when back online */
-  async replayQueue(supabase: any): Promise<{ replayed: number; failed: number }> {
+  async replayQueue(supabase: any): Promise<{ replayed: number; failed: number; skipped: number }> {
     const q = loadQueue();
-    if (!q.length) return { replayed: 0, failed: 0 };
-    let replayed = 0, failed = 0;
+    if (!q.length) return { replayed: 0, failed: 0, skipped: 0 };
+    let replayed = 0, failed = 0, skipped = 0;
     for (const mut of q) {
+      // If this table's circuit breaker is open (repeated recent failures),
+      // don't burn another attempt on it right now — leave it queued.
+      const breakerKey = `offline-replay:${mut.table}`;
+      if (!circuitBreaker.canRequest(breakerKey)) { skipped++; continue; }
       try {
         let res: any;
         if      (mut.type === "INSERT") res = await supabase.from(mut.table).insert(mut.payload);
         else if (mut.type === "UPDATE") res = await supabase.from(mut.table).update(mut.payload.data).eq("id", mut.payload.id);
         else if (mut.type === "DELETE") res = await supabase.from(mut.table).delete().eq("id", mut.payload.id);
         else if (mut.type === "UPSERT") res = await supabase.from(mut.table).upsert(mut.payload);
-        if (!res?.error) { this.dequeue(mut.id); replayed++; }
-        else { mut.retries++; failed++; }
-      } catch { mut.retries++; failed++; }
+        if (!res?.error) { this.dequeue(mut.id); replayed++; circuitBreaker.recordSuccess(breakerKey); }
+        else { mut.retries++; failed++; circuitBreaker.recordFailure(breakerKey); }
+      } catch { mut.retries++; failed++; circuitBreaker.recordFailure(breakerKey); }
     }
     // Update retries in queue
     saveQueue(loadQueue().map(m => { const updated = q.find(x=>x.id===m.id); return updated||m; }));
-    return { replayed, failed };
+    return { replayed, failed, skipped };
   },
 
   /** Register online/offline listeners */
