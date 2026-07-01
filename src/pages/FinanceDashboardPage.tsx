@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useChartOfAccounts, useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
+import { netEngine } from "@/lib/networkEngine";
 
 const db = supabase as any;
 
@@ -954,14 +955,27 @@ export default function FinanceDashboardPage() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [pR,rcR,glR,bR,aR] = await Promise.allSettled([
-      db.from("payment_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
-      db.from("receipt_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
-      db.from("gl_entries").select("*").order("created_at",{ascending:false}).limit(400),
-      db.from("budgets").select("*").order("created_at",{ascending:false}).limit(100),
-      db.from("fixed_assets").select("*").order("created_at",{ascending:false}).limit(200),
+    // Each ledger gets its own circuit breaker so a stuck fixed_assets query
+    // (say) can't stall payments/receipts/GL too, and "critical" priority
+    // keeps this dashboard load ahead of any background prefetching.
+    const [pR,rcR,glR,bR,aR] = await Promise.all([
+      netEngine.request("finance:payment_vouchers",
+        () => db.from("payment_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
+        { priority: "critical", label: "payment vouchers" }),
+      netEngine.request("finance:receipt_vouchers",
+        () => db.from("receipt_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
+        { priority: "critical", label: "receipt vouchers" }),
+      netEngine.request("finance:gl_entries",
+        () => db.from("gl_entries").select("*").order("created_at",{ascending:false}).limit(400),
+        { priority: "critical", label: "GL entries" }),
+      netEngine.request("finance:budgets",
+        () => db.from("budgets").select("*").order("created_at",{ascending:false}).limit(100),
+        { priority: "critical", label: "budgets" }),
+      netEngine.request("finance:fixed_assets",
+        () => db.from("fixed_assets").select("*").order("created_at",{ascending:false}).limit(200),
+        { priority: "critical", label: "fixed assets" }),
     ]);
-    setPayments(pR.status==="fulfilled"?pR.value.data??[]:[]); setReceipts(rcR.status==="fulfilled"?rcR.value.data??[]:[]); setGlEntries(glR.status==="fulfilled"?glR.value.data??[]:[]); setBudgets(bR.status==="fulfilled"?bR.value.data??[]:[]); setAssets(aR.status==="fulfilled"?aR.value.data??[]:[]); setLoading(false);
+    setPayments(pR.data??[]); setReceipts(rcR.data??[]); setGlEntries(glR.data??[]); setBudgets(bR.data??[]); setAssets(aR.data??[]); setLoading(false);
   }, []);
 
   useEffect(()=>{fetchAll();},[fetchAll]);
