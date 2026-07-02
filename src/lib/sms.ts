@@ -5,7 +5,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { TWILIO_SMS, TWILIO_WA, TWILIO_MG, WA_CODE } from "@/lib/version";
-import { netEngine } from "@/lib/networkEngine";
+import { netEngine, securityGuard } from "@/lib/networkEngine";
 
 export const TWILIO = {
   SMS_NUMBER:  TWILIO_SMS,
@@ -43,6 +43,7 @@ export async function sendSms(opts: SmsOpts): Promise<SmsResult> {
   const { data, error } = await netEngine.request(
     "twilio:send-sms",
     () => (supabase as any).functions.invoke("send-sms", {
+      headers: securityGuard.signRequest(),
       body: {
         to:             opts.to,
         message:        opts.message,
@@ -103,7 +104,7 @@ export async function checkTwilioStatus(): Promise<{ok:boolean; version?:string;
 export async function makeCall(opts: { to: string; message: string }): Promise<{ok:boolean; sid?:string; error?:string}> {
   const { data, error } = await netEngine.request(
     "twilio:make-call",
-    () => (supabase as any).functions.invoke("make-call", { body: opts }),
+    () => (supabase as any).functions.invoke("make-call", { headers: securityGuard.signRequest(), body: opts }),
     { priority: "critical", retries: 0, label: "make call" } // never auto-redial
   );
   if (error) return { ok:false, error: error.message || String(error) };
