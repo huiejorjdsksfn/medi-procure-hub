@@ -2,38 +2,23 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
-import { liveDbEngine } from './engines/db/LiveDatabaseEngine';
 import { ERPCache } from './lib/erp-cache/index';
 import { OfflineEngine } from './lib/erp-cache/offlineEngine';
 import { supabase } from './integrations/supabase/client';
-import { ERPEngine } from './engines/index';
-import { WorkflowEngine } from './engines/workflow/WorkflowEngine';
-import { PrintEngine } from './engines/print/PrintEngine';
-import { ValidationEngine } from './engines/validation/ValidationEngine';
-import { default as createFormEngine } from './engines/forms/FormEngine';
-import { useRealIP as _useRealIP } from './hooks/useRealIP';
 import { netEngine } from './lib/networkEngine';
 
-// Expose all engines globally for debugging + prevent tree-shaking
-(window as any).__EL5 = {
-  Engine: ERPEngine,
-  Workflow: WorkflowEngine,
-  Print: PrintEngine,
-  Validate: ValidationEngine,
-  Form: createFormEngine,
-  realIP: _useRealIP,
-};
-
-// ── Start LiveDatabaseEngine ──────────────────────────────────────────────────
-if (typeof window !== 'undefined') {
-  window.addEventListener('load', () => {
-    setTimeout(() => liveDbEngine.start(60_000), 3000);
-  });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) liveDbEngine.stop();
-    else if (!liveDbEngine.isRunning()) liveDbEngine.start(60_000);
-  });
-}
+// ── Mount React FIRST — nothing below this line blocks first paint. ───────────
+// Previously this file eagerly imported ERPEngine, WorkflowEngine, PrintEngine,
+// ValidationEngine, and FormEngine at the top purely to expose them on
+// window.__EL5 for console debugging — meaning the browser had to download,
+// parse, and execute every one of those (and their transitive deps) BEFORE
+// React ever rendered anything. None of that is needed for first paint, so
+// it's now deferred to an idle callback after the app is already on screen.
+createRoot(document.getElementById('root')!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
 
 // ── Warm up connections to Supabase before the first request needs them ───────
 if (typeof window !== 'undefined') {
@@ -80,8 +65,52 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
+// ── Deferred: debug-only engine globals (window.__EL5) ─────────────────────────
+// Loaded once the browser is idle post-first-paint instead of blocking it.
+function loadDebugEngines() {
+  Promise.all([
+    import('./engines/index'),
+    import('./engines/workflow/WorkflowEngine'),
+    import('./engines/print/PrintEngine'),
+    import('./engines/validation/ValidationEngine'),
+    import('./engines/forms/FormEngine'),
+    import('./hooks/useRealIP'),
+  ]).then(([erp, workflow, print, validation, formMod, ipMod]) => {
+    (window as any).__EL5 = {
+      Engine: (erp as any).ERPEngine,
+      Workflow: (workflow as any).WorkflowEngine,
+      Print: (print as any).PrintEngine,
+      Validate: (validation as any).ValidationEngine,
+      Form: (formMod as any).default,
+      realIP: (ipMod as any).useRealIP,
+    };
+  }).catch((e) => console.warn('[ERP] Debug engine preload skipped:', e));
+}
+
+// ── Deferred: LiveDatabaseEngine health monitor ────────────────────────────────
+// Not needed for the very first render — the app works fine before its first
+// 60s heartbeat cycle. Deferring its (larger) module keeps it off the
+// critical path too.
+function startLiveDb() {
+  import('./engines/db/LiveDatabaseEngine').then(({ liveDbEngine }) => {
+    liveDbEngine.start(60_000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) liveDbEngine.stop();
+      else if (!liveDbEngine.isRunning()) liveDbEngine.start(60_000);
+    });
+  });
+}
+
+if (typeof window !== 'undefined') {
+  const runWhenIdle = (fn: () => void, timeout: number) => {
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(fn, { timeout });
+    } else {
+      setTimeout(fn, timeout);
+    }
+  };
+  window.addEventListener('load', () => {
+    runWhenIdle(loadDebugEngines, 3000);
+    setTimeout(startLiveDb, 3000);
+  });
+}
