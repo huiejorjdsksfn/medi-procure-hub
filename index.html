@@ -49,7 +49,12 @@
   <link rel="dns-prefetch" href="https://yvjfehnzbzjliizjvuhq.supabase.co" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="preconnect" href="https://fonts.bunny.net" />
-  <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet" />
+  <!-- Non-render-blocking font load: the body/--font-family stack already
+       puts 'Segoe UI'/system-ui ahead of Inter, so nothing visually depends
+       on this file — no reason to make the browser wait for it before
+       painting. Loads async via preload, swaps in once ready. -->
+  <link rel="preload" href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet" /></noscript>
   <title>EL5 MediProcure — ProcurBosse</title>
   <style>
     *{box-sizing:border-box}
