@@ -1,5 +1,6 @@
 /**
- * EL5 MediProcure — AI Agent Edge Function v1.0
+ * EL5 MediProcure — AI Agent Edge Function v1.1
+ * v1.1: Anti-replay guard (x-el5-nonce / x-el5-ts headers, optional).
  * Handles: approval message generation, email composition, Google Form creation
  * Uses Claude AI (Anthropic) with intelligent fallbacks
  */
@@ -19,11 +20,22 @@ const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-el5-nonce, x-el5-ts",
   "Content-Type": "application/json",
 };
 
-// ── Claude AI call ────────────────────────────────────────────────
+const REPLAY_SKEW_MS = 5 * 60 * 1000;
+async function checkReplay(req: Request): Promise<{ ok: boolean; error?: string }> {
+  const nonce = req.headers.get("x-el5-nonce");
+  const ts = req.headers.get("x-el5-ts");
+  if (!nonce || !ts) return { ok: true };
+  const tsNum = parseInt(ts, 10);
+  if (!tsNum || Math.abs(Date.now() - tsNum) > REPLAY_SKEW_MS) return { ok: false, error: "Request timestamp expired or invalid" };
+  const { error } = await db.from("security_nonces").insert({ nonce });
+  if (error) return { ok: false, error: "Duplicate request (replay detected)" };
+  return { ok: true };
+}
+
 async function callClaude(prompt: string, system: string, maxTokens = 500): Promise<string> {
   if (!ANTHROPIC_KEY) return fallbackMessage(prompt);
   try {
@@ -50,7 +62,6 @@ async function callClaude(prompt: string, system: string, maxTokens = 500): Prom
   }
 }
 
-// ── Fallback message generator ────────────────────────────────────
 function fallbackMessage(prompt: string): string {
   const p = prompt.toLowerCase();
   if (p.includes("approval") || p.includes("approve")) {
@@ -68,7 +79,6 @@ function fallbackMessage(prompt: string): string {
   return `🏥 EL5 MediProcure notification. Please log in to https://procurbosse.edgeone.app`;
 }
 
-// ── Enhanced Kenyan number formatter ───────────────────────────────
 function formatKenyanPhone(raw: string): string {
   if (!raw) return "";
   let n = String(raw).replace(/[^\d+]/g, "").trim();
@@ -88,17 +98,12 @@ function formatKenyanPhone(raw: string): string {
   return "";
 }
 
-// ── Twilio send helper ────────────────────────────────────────────
 async function twilioSend(to: string, body: string, whatsapp = false) {
   if (!TWILIO_ACCT || !TWILIO_AUTH) return { ok: false, error: "Twilio not configured" };
-
-  // Format number for Kenya
   const formattedNum = formatKenyanPhone(to);
   if (!formattedNum) return { ok: false, error: `Invalid phone number: ${to}` };
-
   const from = whatsapp ? `whatsapp:${TWILIO_WA}` : TWILIO_SMS;
   const toNum = whatsapp ? `whatsapp:${formattedNum}` : formattedNum;
-
   try {
     const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCT}/Messages.json`, {
       method: "POST",
@@ -114,7 +119,6 @@ async function twilioSend(to: string, body: string, whatsapp = false) {
   } catch (e: any) { return { ok: false, error: e.message }; }
 }
 
-// ── Log to DB ─────────────────────────────────────────────────────
 async function logMessage(to: string, body: string, channel: string, status: string, meta: Record<string, any> = {}) {
   await db.from("sms_messages").insert({
     to_number: to, message_body: body, channel, status,
@@ -124,29 +128,27 @@ async function logMessage(to: string, body: string, channel: string, status: str
   }).then(() => {});
 }
 
-// ── Google Form URL builder ───────────────────────────────────────
 function buildGoogleFormUrl(title: string, desc: string, fields: string[]): string {
-  // Build a Google Forms "create" link using the Forms API format
-  // This creates a shareable template-style URL
   const baseUrl = "https://docs.google.com/forms/create";
   const params = new URLSearchParams({
     title: `${title} — EL5 MediProcure`,
     description: `${desc}\n\nEmbu Level 5 Hospital Procurement System`,
   });
-  // Alternative: use a pre-filled Google Forms template
-  const viewUrl = "https://forms.gle/procurbosse-" + encodeURIComponent(title.toLowerCase().replace(/\s+/g, "-").slice(0, 20));
   return `${baseUrl}?${params.toString()}`;
 }
 
-// ── Main handler ──────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+
+  if (req.method === "POST") {
+    const replay = await checkReplay(req);
+    if (!replay.ok) return new Response(JSON.stringify({ ok: false, error: replay.error }), { status: 409, headers: CORS });
+  }
 
   try {
     const body = await req.json();
     const { action, prompt, context, form, approval, email } = body;
 
-    // ── 1. Compose message (AI) ──────────────────────────────────
     if (!action || action === "compose") {
       const system = `You are the AI agent for EL5 MediProcure, a hospital procurement system at Embu Level 5 Hospital, Kenya.
 Generate concise, professional procurement notifications.
@@ -154,52 +156,39 @@ For SMS/WhatsApp: under 160 chars, use *bold* for key info, start with 🏥.
 For email: formal, structured, include login URL https://procurbosse.edgeone.app.
 Context: ${JSON.stringify(context || {})}.
 Reply with ONLY the message text, no explanation.`;
-
       const message = await callClaude(prompt || "Generate an approval notification", system, 400);
       return new Response(JSON.stringify({ ok: true, message }), { headers: CORS });
     }
 
-    // ── 2. Send approval notification ───────────────────────────
     if (action === "send_approval") {
       const { ref, amount, department, phone, email: toEmail, channel = "sms", message: customMsg } = approval || {};
-
       const system = `You are the AI agent for EL5 MediProcure hospital procurement system at Embu Level 5 Hospital, Kenya.
 Generate a ${channel === "email" ? "formal email" : "concise SMS/WhatsApp"} approval notification.
 Be professional, clear, and include the reference and amount.
 For SMS/WhatsApp: under 160 chars. For email: full paragraph.
 Reply with ONLY the message text.`;
-
       const aiPrompt = `Generate a procurement approval notification for:
 - Reference: ${ref}
 - Amount: KES ${Number(amount || 0).toLocaleString()}
 - Department: ${department}
 - Channel: ${channel}
 - Action needed: Approve or reject this ${ref?.startsWith("PO") ? "purchase order" : ref?.startsWith("PV") ? "payment voucher" : "requisition"}`;
-
       const message = customMsg || await callClaude(aiPrompt, system, 300);
-
       const results: Record<string, any> = {};
 
-      // Send SMS
       if ((channel === "sms" || channel === "all") && phone) {
         const r = await twilioSend(phone, message, false);
         results.sms = r;
         await logMessage(phone, message, "sms", r.ok ? "sent" : "failed", { ref, amount, department, rule: "ai_approval" });
       }
-
-      // Send WhatsApp
       if ((channel === "whatsapp" || channel === "all") && phone) {
         const r = await twilioSend(phone, message, true);
         results.whatsapp = r;
         await logMessage(phone, message, "whatsapp", r.ok ? "sent" : "failed", { ref, amount, department, rule: "ai_approval" });
       }
-
-      // Send Email (via send-email function)
       if ((channel === "email" || channel === "all") && toEmail) {
         try {
-          const emailBody = channel === "email"
-            ? message
-            : `${message}\n\nLog in to action this: https://procurbosse.edgeone.app`;
+          const emailBody = channel === "email" ? message : `${message}\n\nLog in to action this: https://procurbosse.edgeone.app`;
           const r = await db.functions.invoke("send-email", {
             body: { to: toEmail, subject: `Approval Required: ${ref} — EL5 MediProcure`, body: emailBody, module: "ai_approval" }
           });
@@ -208,7 +197,6 @@ Reply with ONLY the message text.`;
         } catch (e: any) { results.email = { ok: false, error: e.message }; }
       }
 
-      // Log approval audit
       await db.from("audit_logs").insert({
         action: "ai_agent_approval_sent",
         details: `AI Agent sent approval for ${ref} (KES ${amount}) via ${channel}`,
@@ -219,42 +207,25 @@ Reply with ONLY the message text.`;
       return new Response(JSON.stringify({ ok: sent > 0, sent, results, message }), { headers: CORS });
     }
 
-    // ── 3. Create Google Form ────────────────────────────────────
     if (action === "create_form") {
       const { title, description, fields = [] } = form || {};
-
-      // Generate AI-enhanced form description
       const aiDesc = await callClaude(
         `Write a 1-sentence professional description for a Google Form titled "${title}" used in EL5 MediProcure hospital procurement system at Embu Level 5 Hospital, Kenya.`,
         "You write concise form descriptions for hospital procurement. Reply with ONLY the description sentence.",
         100
       );
-
       const formUrl = buildGoogleFormUrl(title, aiDesc || description, fields);
-
-      // Log form creation
       await db.from("audit_logs").insert({
         action: "ai_agent_form_created",
         details: `AI Agent created form: ${title} (${fields.length} fields)`,
         created_at: new Date().toISOString(),
       }).then(() => {});
-
-      return new Response(JSON.stringify({
-        ok: true,
-        formUrl,
-        formTitle: title,
-        formDescription: aiDesc || description,
-        fields,
-        shareableLink: formUrl,
-      }), { headers: CORS });
+      return new Response(JSON.stringify({ ok: true, formUrl, formTitle: title, formDescription: aiDesc || description, fields, shareableLink: formUrl }), { headers: CORS });
     }
 
-    // ── 4. Auto-process incoming webhook events ──────────────────
     if (action === "process_event") {
       const { table, event_type, record } = body;
-      // Match against automation rules and send notifications
       const notifs: any[] = [];
-
       if (table === "requisitions" && event_type === "INSERT") {
         const msg = await callClaude(
           `Notify the procurement manager that requisition ${record?.id || "REQ-NEW"} for KES ${Number(record?.total_amount || 0).toLocaleString()} from ${record?.department || "department"} needs approval.`,
@@ -263,11 +234,9 @@ Reply with ONLY the message text.`;
         );
         notifs.push({ type: "sms", trigger: "req_submit", message: msg });
       }
-
       return new Response(JSON.stringify({ ok: true, notifications: notifs }), { headers: CORS });
     }
 
-    // ── 5. Compose email body ────────────────────────────────────
     if (action === "compose_email") {
       const { subject, department } = email || {};
       const system = `You are an AI assistant for EL5 MediProcure, the hospital procurement system at Embu Level 5 Hospital, Kenya.
@@ -275,17 +244,14 @@ Write professional procurement emails. Always end with:
 Regards,
 EL5 MediProcure System
 Embu Level 5 Hospital | https://procurbosse.edgeone.app`;
-
       const body_text = await callClaude(
         `Write a professional email body for subject: "${subject}". Department: ${department || "Procurement"}.`,
         system, 400
       );
-
       return new Response(JSON.stringify({ ok: true, body: body_text }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ ok: false, error: "Unknown action" }), { status: 400, headers: CORS });
-
   } catch (e: any) {
     console.error("AI Agent error:", e);
     return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: CORS });
