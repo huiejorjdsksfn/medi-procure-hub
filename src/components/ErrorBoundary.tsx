@@ -28,6 +28,30 @@ export class ErrorBoundary extends Component<Props, State> {
       if (errLog.length > 20) errLog.shift();
       localStorage.setItem("el5_error_log", JSON.stringify(errLog));
     } catch {}
+
+    // Backup path for the "page switch after a deploy" bug: if the browser's
+    // vite:preloadError event doesn't fire for some reason (older browsers,
+    // a bare `import()` rejection rather than Vite's own preload wrapper),
+    // catch it here instead. A stale-chunk fetch failure can never be fixed
+    // by re-rendering — React.lazy caches the rejected promise for the
+    // component's lifetime — so this force-reloads once instead of leaving
+    // the person stuck on the generic error card.
+    const msg = error.message || "";
+    const isChunkError =
+      /Failed to fetch dynamically imported module/i.test(msg) ||
+      /Loading chunk [\w-]+ failed/i.test(msg) ||
+      /error loading dynamically imported module/i.test(msg) ||
+      /Importing a module script failed/i.test(msg);
+    if (isChunkError) {
+      const guardKey = "el5_chunk_reload_guard";
+      const guard = sessionStorage.getItem(guardKey);
+      const now = Date.now();
+      if (!guard || now - parseInt(guard, 10) > 10_000) {
+        sessionStorage.setItem(guardKey, String(now));
+        console.warn("[ProcurBosse ErrorBoundary] Stale chunk detected — reloading for the current build...");
+        window.location.reload();
+      }
+    }
   }
 
   handleRetry = () => {
@@ -50,6 +74,31 @@ export class ErrorBoundary extends Component<Props, State> {
     const errMsg = this.state.error?.message || "Unknown error";
     const isSchemaCache = errMsg.includes("schema cache") || errMsg.includes("column") || errMsg.includes("relation");
     const isNetwork = errMsg.includes("fetch") || errMsg.includes("network") || errMsg.includes("NetworkError");
+    const isChunkError =
+      /Failed to fetch dynamically imported module/i.test(errMsg) ||
+      /Loading chunk [\w-]+ failed/i.test(errMsg) ||
+      /error loading dynamically imported module/i.test(errMsg) ||
+      /Importing a module script failed/i.test(errMsg);
+
+    if (isChunkError) {
+      // componentDidCatch is already reloading the page — this only shows
+      // for the brief moment before that happens, so keep it calm and
+      // specific instead of the generic "something broke" card.
+      return (
+        <div style={{
+          minHeight: "calc(100vh - 120px)", display: "flex", alignItems: "center",
+          justifyContent: "center", padding: 24,
+          fontFamily: "var(--font-family,'Segoe UI',system-ui,sans-serif)",
+          background: "var(--color-page-bg,#f3f5f8)",
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🔄</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.fg }}>Updating to the latest version…</div>
+            <div style={{ fontSize: 12, color: T.fgMuted, marginTop: 4 }}>This page will reload automatically.</div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div style={{
