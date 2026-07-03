@@ -138,5 +138,15 @@ if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
     runWhenIdle(loadDebugEngines, 3000);
     setTimeout(startLiveDb, 3000);
+    // Prefetch the pages almost everyone visits right after logging in, so
+    // the chunk is already in cache by the time they click — turns a
+    // network-round-trip page switch into an instant one for the routes
+    // that matter most.
+    runWhenIdle(() => {
+      import('./pages/DashboardPage').catch(() => {});
+      import('./pages/RequisitionsPage').catch(() => {});
+      import('./pages/PurchaseOrdersPage').catch(() => {});
+      import('./pages/TrackingApprovalPage').catch(() => {});
+    }, 4000);
   });
 }
