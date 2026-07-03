@@ -20,6 +20,32 @@ createRoot(document.getElementById('root')!).render(
   </ErrorBoundary>
 );
 
+// ── Auto-recover from stale chunk / page-switch errors after a deploy ─────────
+// Every route is React.lazy() + content-hashed by Vite. If a user has the app
+// open across a deploy and then navigates to a route they haven't visited yet,
+// the browser tries to fetch the OLD hashed chunk filename, which no longer
+// exists on the server (a new deploy replaced it) — the import 404s, and
+// React.lazy caches that rejection forever for the lifetime of the tab. No
+// amount of clicking "Retry" fixes it; only a hard reload does, because that
+// re-fetches index.html pointing at the NEW hashes. This was the source of
+// blank/broken pages on route switches right after a release.
+if (typeof window !== 'undefined') {
+  const RELOAD_GUARD_KEY = 'el5_chunk_reload_guard';
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    // Guard against a reload loop if the deploy itself is broken
+    const guard = sessionStorage.getItem(RELOAD_GUARD_KEY);
+    const now = Date.now();
+    if (guard && now - parseInt(guard, 10) < 10_000) {
+      console.error('[ERP] Repeated chunk load failure — not auto-reloading again to avoid a loop.');
+      return;
+    }
+    sessionStorage.setItem(RELOAD_GUARD_KEY, String(now));
+    console.warn('[ERP] Stale page chunk detected (new version deployed) — reloading to fetch the current build...');
+    window.location.reload();
+  });
+}
+
 // ── Warm up connections to Supabase before the first request needs them ───────
 if (typeof window !== 'undefined') {
   const SUPA_URL = (supabase as any).supabaseUrl || 'https://yvjfehnzbzjliizjvuhq.supabase.co';
