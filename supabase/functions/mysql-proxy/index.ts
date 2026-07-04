@@ -4,6 +4,7 @@
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { guardedCall } from "../_shared/failover.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -48,7 +49,7 @@ function buildSelect(table: string, select: string, filters: any[], order: any, 
   return sql;
 }
 
-async function execMySQL(config: any, sql: string, params?: any[]): Promise<any> {
+async function execMySQLOnce(config: any, sql: string, params?: any[]): Promise<any> {
   // Use mysql2 via npm CDN (Deno compatible)
   const mysql = await import("https://esm.sh/mysql2@3.9.1/promise");
   const conn = await mysql.createConnection({
@@ -63,6 +64,15 @@ async function execMySQL(config: any, sql: string, params?: any[]): Promise<any>
   } finally {
     await conn.end().catch(()=>{});
   }
+}
+
+// Wrapped with retry (transient connection drops) + circuit breaker (so a
+// dead MySQL host fails fast instead of hanging every request for 5s+).
+async function execMySQL(config: any, sql: string, params?: any[]): Promise<any> {
+  return guardedCall(sb, "mysql-proxy", () => execMySQLOnce(config, sql, params), {
+    retry: { attempts: 3, baseDelayMs: 250, maxDelayMs: 3000, timeoutMs: 10000 },
+    breaker: { failureThreshold: 4, cooldownMs: 30000, halfOpenSuccesses: 1 },
+  });
 }
 
 Deno.serve(async (req: Request) => {

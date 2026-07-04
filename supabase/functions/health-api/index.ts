@@ -4,6 +4,7 @@
  * EL5 MediProcure | Embu Level 5 Hospital
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { allCircuitStatuses } from "../_shared/failover.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -20,20 +21,23 @@ Deno.serve(async (req: Request) => {
 
   const start = Date.now();
 
-  const [profilesRes, sessionsRes, modulesRes, metricsRes] = await Promise.allSettled([
+  const [profilesRes, sessionsRes, modulesRes, metricsRes, circuitsRes] = await Promise.allSettled([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("live_session_stats").select("*").maybeSingle(),
     supabase.from("system_modules").select("module_id,is_enabled"),
     supabase.from("latest_system_metrics").select("*"),
+    allCircuitStatuses(supabase),
   ]);
 
   const latencyMs = Date.now() - start;
   const sessions = sessionsRes.status === "fulfilled" ? sessionsRes.value.data : null;
   const metrics  = metricsRes.status === "fulfilled" ? metricsRes.value.data : [];
+  const circuits = circuitsRes.status === "fulfilled" ? circuitsRes.value : [];
+  const openCircuits = (circuits as any[]).filter((c) => c.state === "open");
 
   const health = {
-    status: latencyMs < 1000 ? "healthy" : latencyMs < 3000 ? "degraded" : "critical",
-    version: "8.0.0",
+    status: openCircuits.length > 0 ? "degraded" : latencyMs < 1000 ? "healthy" : latencyMs < 3000 ? "degraded" : "critical",
+    version: "9.0.0",
     latency_ms: latencyMs,
     database: {
       connected: profilesRes.status === "fulfilled",
@@ -55,6 +59,10 @@ Deno.serve(async (req: Request) => {
       disk_percent: m.disk_percent,
       reported_at: m.reported_at,
     })),
+    failover: {
+      open_circuits: openCircuits.length,
+      circuits,
+    },
     checked_at: new Date().toISOString(),
   };
 

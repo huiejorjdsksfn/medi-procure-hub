@@ -5,10 +5,23 @@
 // deployed at the client site and configured with ODBC_BRIDGE_URL / ODBC_BRIDGE_KEY
 // for this to do live work. If no bridge is configured, every action returns
 // bridge_not_configured so the UI can fall back to CSV/XLSX upload instead.
+//
+// v2.0: bridge calls now go through retry + a persisted circuit breaker
+// (see supabase/functions/_shared/failover.ts) so a flaky on-prem network
+// link doesn't fail an entire import on the first dropped packet, and a
+// genuinely dead bridge fails fast instead of hanging every request.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { guardedCall } from "../_shared/failover.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const sb = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+);
 
 interface ConnInfo {
   host: string;
@@ -20,11 +33,11 @@ interface ConnInfo {
   encrypt?: boolean;
 }
 
-async function callBridge(path: string, body: Record<string, unknown>, timeoutMs = 15000) {
+async function callBridgeOnce(path: string, body: Record<string, unknown>, timeoutMs: number) {
   const bridgeUrl = Deno.env.get("ODBC_BRIDGE_URL");
   const bridgeKey = Deno.env.get("ODBC_BRIDGE_KEY");
   if (!bridgeUrl || !bridgeKey) {
-    return { ok: false, error: "bridge_not_configured" as const };
+    return { ok: false, error: "bridge_not_configured" as const, _noRetry: true };
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -36,11 +49,27 @@ async function callBridge(path: string, body: Record<string, unknown>, timeoutMs
       signal: ctrl.signal,
     });
     const json = await r.json().catch(() => ({ ok: false, error: "bridge_bad_json" }));
+    if (!r.ok) throw new Error(json?.error || `bridge responded ${r.status}`);
     return json;
-  } catch (e: any) {
-    return { ok: false, error: e?.message || "bridge_unreachable" };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function callBridge(path: string, body: Record<string, unknown>, timeoutMs = 15000) {
+  const bridgeUrl = Deno.env.get("ODBC_BRIDGE_URL");
+  const bridgeKey = Deno.env.get("ODBC_BRIDGE_KEY");
+  if (!bridgeUrl || !bridgeKey) {
+    return { ok: false, error: "bridge_not_configured" as const };
+  }
+  try {
+    return await guardedCall(sb, "mssql-import:bridge", () => callBridgeOnce(path, body, timeoutMs), {
+      retry: { attempts: 3, baseDelayMs: 400, maxDelayMs: 4000, timeoutMs: timeoutMs + 2000 },
+      breaker: { failureThreshold: 4, cooldownMs: 30000 },
+    });
+  } catch (e: any) {
+    const circuitOpen = String(e?.message ?? "").startsWith("circuit_open:");
+    return { ok: false, error: circuitOpen ? "bridge_circuit_open" : (e?.message || "bridge_unreachable") };
   }
 }
 
