@@ -303,6 +303,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { sendNotification } from '@/lib/notify';
+import { T, d365Btn, statusBadge } from '@/lib/theme';
 
 const db = supabase as any;
 
@@ -331,14 +332,11 @@ export function QuickStampButton({
   const fs: Record<string, number> = { sm: 11, md: 13, lg: 14 };
 
   const btnStyle: React.CSSProperties = variant === 'primary'
-    ? { background:'#0d4f1c', color:'#fff', border:'none',
-        borderRadius:6, cursor:'pointer', fontWeight:700,
-        fontFamily:"'Segoe UI',Arial,sans-serif", display:'inline-flex',
-        alignItems:'center', gap:6, padding:pad[size], fontSize:fs[size] }
-    : { background:'transparent', color:'#0d4f1c', border:'2px solid #0d4f1c',
-        borderRadius:6, cursor:'pointer', fontWeight:700,
-        fontFamily:"'Segoe UI',Arial,sans-serif", display:'inline-flex',
-        alignItems:'center', gap:6, padding:pad[size], fontSize:fs[size] };
+    ? { ...d365Btn('primary'), fontFamily: "'Segoe UI','Inter',system-ui,sans-serif",
+        padding: pad[size], fontSize: fs[size] }
+    : { ...d365Btn('secondary'), border: `2px solid ${T.primary}`, color: T.primary,
+        fontFamily: "'Segoe UI','Inter',system-ui,sans-serif",
+        padding: pad[size], fontSize: fs[size] };
 
   const tableMap: Record<string, string> = {
     req: 'requisitions', po: 'purchase_orders', grn: 'goods_received',
@@ -439,12 +437,12 @@ export function QuickStampButton({
   const overlayStyle: React.CSSProperties = {
     position:'fixed', inset:0, background:'rgba(0,0,0,0.55)',
     zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center',
-    fontFamily:"'Segoe UI',Arial,sans-serif",
+    fontFamily:"'Segoe UI','Inter',system-ui,sans-serif",
   };
   const modalStyle: React.CSSProperties = {
-    background:'#fff', borderRadius:14, width:'min(780px,95vw)',
+    background: T.card, borderRadius: T.rXl, width:'min(780px,95vw)',
     maxHeight:'85vh', display:'flex', flexDirection:'column',
-    boxShadow:'0 24px 80px rgba(0,0,0,0.35)',
+    boxShadow: T.shadowLg,
   };
 
   return (
@@ -462,30 +460,30 @@ export function QuickStampButton({
           <div style={modalStyle}>
 
             {/* header */}
-            <div style={{ padding:'20px 24px 0', borderBottom:'1px solid #e5e7eb' }}>
+            <div style={{ padding:'20px 24px 0', borderBottom:`1px solid ${T.border}` }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:38, height:38, borderRadius:8, background:'#0d4f1c',
+                  <div style={{ width:38, height:38, borderRadius: T.r, background: T.success,
                     display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <svg width={18} height={18} viewBox="0 0 20 20" fill="white">
                       <path d="M10 1a4 4 0 014 4 4 4 0 01-1.07 2.72L14 9H6l1.07-1.28A4 4 0 016 5a4 4 0 014-4zM4 10h12v2H4v-2zM3 13h14v2H3v-2z"/>
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize:16, fontWeight:800, color:'#111' }}>Official Stamp</div>
-                    <div style={{ fontSize:11, color:'#6b7280' }}>Affix approval stamp to procurement documents</div>
+                    <div style={{ fontSize:16, fontWeight:800, color: T.fg }}>Official Stamp</div>
+                    <div style={{ fontSize:11, color: T.fgMuted }}>Affix approval stamp to procurement documents</div>
                   </div>
                 </div>
                 <button onClick={() => setOpen(false)} style={{ background:'none', border:'none',
-                  cursor:'pointer', color:'#6b7280', fontSize:22, lineHeight:1 }}>✕</button>
+                  cursor:'pointer', color: T.fgMuted, fontSize:22, lineHeight:1 }}>✕</button>
               </div>
 
               <div style={{ display:'flex', gap:0 }}>
                 {TABS.map(t => (
                   <button key={t.id} onClick={() => switchTab(t.id)}
                     style={{ padding:'10px 20px', background:'none', border:'none',
-                      borderBottom:`2.5px solid ${tab===t.id?'#0d4f1c':'transparent'}`,
-                      color: tab===t.id?'#0d4f1c':'#6b7280',
+                      borderBottom:`2.5px solid ${tab===t.id?T.primary:'transparent'}`,
+                      color: tab===t.id?T.primary:T.fgMuted,
                       fontWeight: tab===t.id?800:600, fontSize:13, cursor:'pointer' }}>
                     {t.label}
                   </button>
@@ -496,15 +494,15 @@ export function QuickStampButton({
             {/* body */}
             <div style={{ overflowY:'auto', padding:20, flex:1 }}>
               {error && (
-                <div style={{ background:'#fee2e2', color:'#991b1b', borderRadius:8, padding:'10px 14px',
+                <div style={{ background: T.errorBg, color: T.error, borderRadius: T.rMd, padding:'10px 14px',
                   fontSize:12, fontWeight:600, marginBottom:14 }}>
                   {error}
                 </div>
               )}
               {loading ? (
-                <div style={{ textAlign:'center', padding:'40px 0', color:'#9ca3af' }}>Loading…</div>
+                <div style={{ textAlign:'center', padding:'40px 0', color: T.fgDim }}>Loading…</div>
               ) : docs.length === 0 ? (
-                <div style={{ textAlign:'center', padding:'40px 0', color:'#9ca3af' }}>
+                <div style={{ textAlign:'center', padding:'40px 0', color: T.fgDim }}>
                   <div style={{ fontSize:32, marginBottom:8 }}>📄</div>
                   <div style={{ fontSize:14, fontWeight:600 }}>No documents awaiting stamp</div>
                 </div>
@@ -514,8 +512,8 @@ export function QuickStampButton({
                     const num   = doc[numCol[tab]] || doc.id.slice(0,8);
                     const alreadyStamped = !!doc.stamped;
                     return (
-                      <div key={doc.id} style={{ border:`1.5px solid ${alreadyStamped?'#d1fae5':'#e5e7eb'}`,
-                        borderRadius:10, padding:16, background: alreadyStamped?'#f0fdf4':'#fff',
+                      <div key={doc.id} style={{ border:`1.5px solid ${alreadyStamped?T.success:T.border}`,
+                        borderRadius: T.rLg, padding:16, background: alreadyStamped?T.successBg:T.card,
                         display:'flex', alignItems:'center', gap:14 }}>
 
                         <div style={{ flexShrink:0 }}>
@@ -524,22 +522,19 @@ export function QuickStampButton({
                         </div>
 
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:13, fontWeight:800, color:'#111',
+                          <div style={{ fontSize:13, fontWeight:800, color: T.fg,
                             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                             {num}
                           </div>
-                          <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>
+                          <div style={{ fontSize:11, color: T.fgMuted, marginTop:2 }}>
                             {new Date(doc.created_at).toLocaleDateString('en-KE',
                               {day:'2-digit', month:'short', year:'numeric'})}
                           </div>
-                          <div style={{ fontSize:11, fontWeight:700, marginTop:4,
-                            color: doc.status==='approved'?'#0d4f1c':
-                                   doc.status==='rejected'?'#8b0000':'#7a3e00',
-                            textTransform:'uppercase' }}>
-                            {doc.status}
+                          <div style={{ marginTop:4 }}>
+                            <span style={statusBadge(doc.status)}>{doc.status}</span>
                           </div>
                           {alreadyStamped && doc.stamped_by_name && (
-                            <div style={{ fontSize:10, color:'#059669', marginTop:3 }}>
+                            <div style={{ fontSize:10, color: T.success, marginTop:3 }}>
                               ✓ Stamped by {doc.stamped_by_name}
                             </div>
                           )}
@@ -548,9 +543,9 @@ export function QuickStampButton({
                         <button
                           disabled={!!stamping || alreadyStamped}
                           onClick={() => applyStamp(doc)}
-                          style={{ padding:'7px 14px', borderRadius:6, border:'none',
-                            background: alreadyStamped?'#d1fae5':'#0d4f1c',
-                            color: alreadyStamped?'#059669':'#fff',
+                          style={{ padding:'7px 14px', borderRadius: T.r, border:'none',
+                            background: alreadyStamped?T.successBg:T.success,
+                            color: alreadyStamped?T.success:'#fff',
                             fontWeight:700, fontSize:11, cursor: alreadyStamped?'default':'pointer',
                             flexShrink:0, opacity: stamping===doc.id?0.6:1 }}>
                           {stamping===doc.id ? '…' : alreadyStamped ? '✓ Done' : 'Stamp'}

@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp } from "@/components/DocumentStamp";
 import { broadcastToAll } from "@/lib/broadcast";
+import { T } from "@/lib/theme";
 import {
   Search, RefreshCw, Download, Upload, RotateCcw,
   Save, Eye, Palette, Settings, Home, ChevronRight, X,
@@ -52,15 +53,11 @@ interface StampDef {
   imageUrl?:   string;   // admin-uploaded image, replaces the vector stamp entirely
 }
 
-/* ── O365 design tokens ─────────────────────────────────────────────── */
-const O = {
-  hero:"#107C73", topBar:"#0a5a52", white:"#ffffff",
-  bg:"#f3f2f1", card:"#ffffff", border:"#edebe9",
-  text:"#323130", textSub:"#605e5c", textMt:"#a19f9d",
-  blue:"#0078d4", shadow:"0 1.6px 3.6px rgba(0,0,0,.13)",
-  shadowHov:"0 6.4px 14.4px rgba(0,0,0,.18)",
-  font:"'Segoe UI','Segoe UI Web','Arial',sans-serif",
-};
+/* Legacy comment: this page used to define its own ad-hoc "O365" teal
+   design tokens here. It now derives O from the shared D365/Power BI
+   theme (T, from src/lib/theme.ts) inside the component below, so this
+   page matches the rest of the app and stays reactive to the GUI Editor's
+   live colour changes instead of using a fixed one-off palette. */
 
 const QUICK_TILES = [
   { label:"Preview All",    I:Eye,       color:"#0078d4", action:"preview"  },
@@ -84,6 +81,17 @@ export default function StampDesignPage() {
   const [saving, setSaving]     = useState(false);
   const [loading, setLoading]   = useState(false);
   const [previewAll, setPreviewAll] = useState(false);
+
+  /* D365/Power BI-derived tokens for this page — recomputed each render so
+     live GUI Editor colour changes (T's getters read CSS vars) apply here
+     the same way they do everywhere else in the app. */
+  const O = {
+    hero: T.primary, topBar: T.primaryDark, white: "#ffffff",
+    bg: T.bg, card: T.card, border: T.border,
+    text: T.fg, textSub: T.fgMuted, textMt: T.fgDim,
+    blue: T.primary, shadow: T.shadow, shadowHov: T.shadowMd,
+    font: "'Segoe UI','Inter',system-ui,sans-serif",
+  };
 
   /* load custom overrides from system_settings */
   const load = useCallback(async () => {
@@ -404,18 +412,18 @@ export default function StampDesignPage() {
                   </label>
                   {draft.imageUrl ? (
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                      <img src={draft.imageUrl} alt="Custom stamp" style={{ width:56, height:56, objectFit:"contain", border:`1px solid ${O.border}`, borderRadius:4, background:"#fff" }}/>
+                      <img src={draft.imageUrl} alt="Custom stamp" style={{ width:56, height:56, objectFit:"contain", border:`1px solid ${O.border}`, borderRadius:4, background:O.white }}/>
                       <div style={{ flex:1, fontSize:11, color:O.textMt }}>
                         Using your uploaded image. The fields below (label, arc text, star, colours) are ignored while this is set.
                       </div>
                       <button onClick={()=>setDraft(d=>d?{...d,imageUrl:undefined}:d)}
                         title="Remove uploaded image"
-                        style={{ display:"flex", alignItems:"center", gap:4, padding:"6px 10px", background:"#fff", border:`1px solid ${O.border}`, borderRadius:4, cursor:"pointer", color:"#a4262c", fontSize:11, fontWeight:700, flexShrink:0 }}>
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"6px 10px", background:O.white, border:`1px solid ${O.border}`, borderRadius:4, cursor:"pointer", color:T.error, fontSize:11, fontWeight:700, flexShrink:0 }}>
                         <Trash2 size={12}/> Remove
                       </button>
                     </div>
                   ) : (
-                    <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", border:`1px solid ${O.border}`, borderRadius:4, cursor:"pointer", fontSize:12, fontWeight:600, color:O.textSub, background:"#fff" }}>
+                    <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", border:`1px solid ${O.border}`, borderRadius:4, cursor:"pointer", fontSize:12, fontWeight:600, color:O.textSub, background:O.white }}>
                       <Upload size={13}/> Choose image (PNG/JPG, under 250KB)
                       <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style={{ display:"none" }}
                         onChange={e=>{ const f=e.target.files?.[0]; if(f) handleImageUpload(f); e.target.value=""; }}/>
@@ -431,10 +439,10 @@ export default function StampDesignPage() {
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <input type="color" value={draft.ringColor||"#0a3d8f"}
                       onChange={e=>setDraft(d=>d?{...d,ringColor:e.target.value}:d)}
-                      style={{ width:44, height:32, border:"1px solid #e5e7eb", borderRadius:3, cursor:"pointer", padding:2 }}/>
+                      style={{ width:44, height:32, border:`1px solid ${O.border}`, borderRadius:3, cursor:"pointer", padding:2 }}/>
                     <input type="text" value={draft.ringColor||"#0a3d8f"}
                       onChange={e=>/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)&&setDraft(d=>d?{...d,ringColor:e.target.value}:d)}
-                      style={{ flex:1, padding:"7px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
+                      style={{ flex:1, padding:"7px 10px", border:`1px solid ${O.border}`, borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
                   </div>
                   <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
                     {["#0a3d8f","#003366","#1a006b","#004a5c","#0c2d6b","#1e3a8a"].map(c=>(
@@ -453,10 +461,10 @@ export default function StampDesignPage() {
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <input type="color" value={draft.labelColor||"#c81e2c"}
                       onChange={e=>setDraft(d=>d?{...d,labelColor:e.target.value}:d)}
-                      style={{ width:44, height:32, border:"1px solid #e5e7eb", borderRadius:3, cursor:"pointer", padding:2 }}/>
+                      style={{ width:44, height:32, border:`1px solid ${O.border}`, borderRadius:3, cursor:"pointer", padding:2 }}/>
                     <input type="text" value={draft.labelColor||"#c81e2c"}
                       onChange={e=>/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)&&setDraft(d=>d?{...d,labelColor:e.target.value}:d)}
-                      style={{ flex:1, padding:"7px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
+                      style={{ flex:1, padding:"7px 10px", border:`1px solid ${O.border}`, borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
                   </div>
                   <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
                     {["#c81e2c","#8b0000","#a4262c","#7a0c1e","#9a1b1b","#b91c1c"].map(c=>(
@@ -475,10 +483,10 @@ export default function StampDesignPage() {
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <input type="color" value={draft.ink}
                       onChange={e=>setDraft(d=>d?{...d,ink:e.target.value}:d)}
-                      style={{ width:44, height:32, border:"1px solid #e5e7eb", borderRadius:3, cursor:"pointer", padding:2 }}/>
+                      style={{ width:44, height:32, border:`1px solid ${O.border}`, borderRadius:3, cursor:"pointer", padding:2 }}/>
                     <input type="text" value={draft.ink}
                       onChange={e=>/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)&&setDraft(d=>d?{...d,ink:e.target.value}:d)}
-                      style={{ flex:1, padding:"7px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
+                      style={{ flex:1, padding:"7px 10px", border:`1px solid ${O.border}`, borderRadius:3, fontSize:12, fontFamily:"monospace", outline:"none" }}/>
                   </div>
                   {/* Preset swatches */}
                   <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
@@ -497,7 +505,7 @@ export default function StampDesignPage() {
                   </label>
                   <input value={draft.label} onChange={e=>setDraft(d=>d?{...d,label:e.target.value.toUpperCase().slice(0,14)}:d)}
                     placeholder="e.g. APPROVED"
-                    style={{ width:"100%", padding:"8px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:13, fontWeight:800, fontFamily:"'Arial Black',Arial", outline:"none", boxSizing:"border-box", color:draft.ink }}/>
+                    style={{ width:"100%", padding:"8px 10px", border:`1px solid ${O.border}`, borderRadius:3, fontSize:13, fontWeight:800, fontFamily:"'Arial Black',Arial", outline:"none", boxSizing:"border-box", color:draft.ink }}/>
                   <div style={{ fontSize:9, color:O.textMt, marginTop:3 }}>Max 14 characters · auto upper-case</div>
                 </div>
 
@@ -505,14 +513,14 @@ export default function StampDesignPage() {
                 <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color:O.textSub, marginBottom:5, display:"block" }}>Top Arc Text</label>
                   <input value={draft.topArc} onChange={e=>setDraft(d=>d?{...d,topArc:e.target.value.toUpperCase().slice(0,30)}:d)}
-                    style={{ width:"100%", padding:"8px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, outline:"none", boxSizing:"border-box" }}/>
+                    style={{ width:"100%", padding:"8px 10px", border:`1px solid ${O.border}`, borderRadius:3, fontSize:12, outline:"none", boxSizing:"border-box" }}/>
                 </div>
 
                 {/* Bottom arc */}
                 <div style={{ opacity: draft.imageUrl?0.4:1, pointerEvents: draft.imageUrl?"none":"auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color:O.textSub, marginBottom:5, display:"block" }}>Bottom Arc Text</label>
                   <input value={draft.botArc} onChange={e=>setDraft(d=>d?{...d,botArc:e.target.value.toUpperCase().slice(0,30)}:d)}
-                    style={{ width:"100%", padding:"8px 10px", border:"1px solid #e5e7eb", borderRadius:3, fontSize:12, outline:"none", boxSizing:"border-box" }}/>
+                    style={{ width:"100%", padding:"8px 10px", border:`1px solid ${O.border}`, borderRadius:3, fontSize:12, outline:"none", boxSizing:"border-box" }}/>
                 </div>
 
                 {/* Star toggle */}
@@ -522,7 +530,7 @@ export default function StampDesignPage() {
                   </label>
                   <button onClick={()=>setDraft(d=>d?{...d,star:!d.star}:d)}
                     style={{ width:44, height:24, borderRadius:12, border:"none", cursor:"pointer", position:"relative", transition:"background .2s",
-                      background: draft.star ? draft.ink : "#d1d5db" }}>
+                      background: draft.star ? draft.ink : O.border }}>
                     <div style={{ position:"absolute", top:2, left: draft.star ? 22 : 2, width:20, height:20, borderRadius:"50%", background:"#fff", transition:"left .2s", boxShadow:"0 1px 3px rgba(0,0,0,.3)" }}/>
                   </button>
                 </div>
@@ -540,8 +548,8 @@ export default function StampDesignPage() {
                 </div>
 
                 {isModified(selected) && (
-                  <div style={{ padding:"8px 10px", background:"#fef3c7", border:"1px solid #fcd34d", borderRadius:3, fontSize:11, color:"#92400e", display:"flex", alignItems:"center", gap:6 }}>
-                    <Star size={11} color="#92400e"/> This stamp has custom settings
+                  <div style={{ padding:"8px 10px", background:T.warningBg, border:`1px solid ${T.warning}`, borderRadius:3, fontSize:11, color:T.warning, display:"flex", alignItems:"center", gap:6 }}>
+                    <Star size={11} color={T.warning}/> This stamp has custom settings
                   </div>
                 )}
               </div>
@@ -585,7 +593,7 @@ export default function StampDesignPage() {
           </div>
           {Object.keys(DEFAULT_CFG).filter(isModified).length === 0 ? (
             <div style={{ textAlign:"center", padding:"24px 0", color:O.textMt, fontSize:12 }}>
-              <CheckCircle2 size={24} color="#107c10" style={{ opacity:.5 }}/>
+              <CheckCircle2 size={24} color={T.success} style={{ opacity:.5 }}/>
               <div style={{ marginTop:8 }}>All stamps using factory defaults</div>
             </div>
           ) : (
@@ -596,7 +604,7 @@ export default function StampDesignPage() {
                   <div key={s}
                     style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderBottom:i<arr.length-1?`1px solid ${O.border}`:"none", cursor:"pointer", transition:"background .1s" }}
                     onClick={()=>openEditor(s)}
-                    onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background="#f7f7f7"; }}
+                    onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background=O.bg; }}
                     onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background="transparent"; }}>
                     <div style={{ width:32, height:32, borderRadius:2, background:c.ink, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       <Palette size={15} color={O.white} strokeWidth={1.5}/>

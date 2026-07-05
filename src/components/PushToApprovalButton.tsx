@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Send, Clock, CheckCircle2, ChevronDown } from "lucide-react";
+import { T, d365Btn } from "@/lib/theme";
 
 const db = supabase as any;
 
@@ -46,10 +47,10 @@ const TYPE_LABEL: Record<DocType, string> = {
 };
 
 const PRIORITY_OPTS = [
-  { val: "urgent", label: "🔴 Urgent",  color: "#dc2626" },
-  { val: "high",   label: "🟠 High",    color: "#ea580c" },
-  { val: "normal", label: "🟢 Normal",  color: "#16a34a" },
-  { val: "low",    label: "🔵 Low",     color: "#2563eb" },
+  { val: "urgent", label: "🔴 Urgent",  get color() { return T.error; } },
+  { val: "high",   label: "🟠 High",    get color() { return T.warning; } },
+  { val: "normal", label: "🟢 Normal",  get color() { return T.success; } },
+  { val: "low",    label: "🔵 Low",     get color() { return T.primary; } },
 ];
 
 export default function PushToApprovalButton({
@@ -181,8 +182,8 @@ export default function PushToApprovalButton({
       <div title={stampedByName ? `${stampLabel || "Approved"} by ${stampedByName}` : (stampLabel || "Approved")}
         style={{
           display: "flex", alignItems: "center", gap: 4,
-          padding: pad, background: "#f0fdf4", border: "1px solid #86efac",
-          borderRadius: 4, fontSize: fz, fontWeight: 700, color: "#15803d",
+          padding: pad, background: T.successBg, border: `1px solid ${T.success}`,
+          borderRadius: T.r, fontSize: fz, fontWeight: 700, color: T.success,
           whiteSpace: "nowrap",
         }}>
         <CheckCircle2 size={iconSz} /> {(stampLabel || "Approved").toUpperCase()}
@@ -196,15 +197,15 @@ export default function PushToApprovalButton({
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 4,
-          padding: pad, background: "#f0fdf4", border: "1px solid #86efac",
-          borderRadius: 4, fontSize: fz, fontWeight: 700, color: "#15803d",
+          padding: pad, background: T.successBg, border: `1px solid ${T.success}`,
+          borderRadius: T.r, fontSize: fz, fontWeight: 700, color: T.success,
           whiteSpace: "nowrap",
         }}>
           <Clock size={iconSz} /> In Approval Queue
         </div>
         <button onClick={withdraw} disabled={pushing}
-          style={{ padding: "3px 7px", background: "#fef2f2", border: "1px solid #fecaca",
-            borderRadius: 4, fontSize: fz - 1, color: "#dc2626", cursor: "pointer",
+          style={{ padding: "3px 7px", background: T.errorBg, border: `1px solid ${T.error}`,
+            borderRadius: T.r, fontSize: fz - 1, color: T.error, cursor: "pointer",
             fontWeight: 600, whiteSpace: "nowrap" }}>
           Withdraw
         </button>
@@ -218,15 +219,15 @@ export default function PushToApprovalButton({
       {showNotes && (
         <div style={{
           position: "absolute", bottom: "calc(100% + 6px)", left: 0, zIndex: 200,
-          background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6,
-          boxShadow: "0 4px 16px rgba(0,0,0,.13)", padding: 10, width: 230,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rMd,
+          boxShadow: T.shadowMd, padding: 10, width: 230,
         }}>
           <textarea value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Optional note for approver…"
             rows={2}
-            style={{ width: "100%", padding: "6px 8px", border: "1px solid #e5e7eb",
-              borderRadius: 4, fontSize: 11, resize: "none", outline: "none",
-              fontFamily: "inherit", boxSizing: "border-box" }}/>
+            style={{ width: "100%", padding: "6px 8px", border: `1px solid ${T.border}`,
+              borderRadius: T.r, fontSize: 11, resize: "none", outline: "none",
+              fontFamily: "inherit", boxSizing: "border-box", color: T.fg, background: T.card }}/>
         </div>
       )}
 
@@ -234,11 +235,11 @@ export default function PushToApprovalButton({
       {showPrio && (
         <div style={{
           position: "absolute", bottom: "calc(100% + 4px)", left: 0, zIndex: 300,
-          background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6,
-          boxShadow: "0 4px 20px rgba(0,0,0,.15)", minWidth: 170, overflow: "hidden",
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rMd,
+          boxShadow: T.shadowMd, minWidth: 170, overflow: "hidden",
         }}>
-          <div style={{ padding: "6px 10px", fontSize: 10, fontWeight: 700, color: "#9ca3af",
-            textTransform: "uppercase", letterSpacing: ".06em", borderBottom: "1px solid #f3f4f6" }}>
+          <div style={{ padding: "6px 10px", fontSize: 10, fontWeight: 700, color: T.fgDim,
+            textTransform: "uppercase", letterSpacing: ".06em", borderBottom: `1px solid ${T.border}` }}>
             Select Priority
           </div>
           {PRIORITY_OPTS.map(p => (
@@ -247,15 +248,15 @@ export default function PushToApprovalButton({
                 background: "none", border: "none", cursor: "pointer",
                 textAlign: "left", fontSize: 12, fontWeight: 600, color: p.color,
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#f9fafb"; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.bg1; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "none"; }}>
               {p.label}
             </button>
           ))}
           <button onClick={() => setShowPrio(false)}
             style={{ display: "block", width: "100%", padding: "6px 12px",
-              background: "#f9fafb", border: "none", borderTop: "1px solid #f3f4f6",
-              cursor: "pointer", fontSize: 11, color: "#9ca3af" }}>
+              background: T.bg1, border: "none", borderTop: `1px solid ${T.border}`,
+              cursor: "pointer", fontSize: 11, color: T.fgDim }}>
             Cancel
           </button>
         </div>
@@ -268,21 +269,21 @@ export default function PushToApprovalButton({
         style={{
           display: "flex", alignItems: "center", gap: 5,
           padding: pad,
-          background: pushing ? "#6b9e8b" : "#0078d4",
-          color: "#fff", border: "none", borderRadius: "4px 0 0 4px",
+          background: pushing ? T.fgDim : T.primary,
+          color: "#fff", border: "none", borderRadius: `${T.r}px 0 0 ${T.r}px`,
           fontSize: fz, fontWeight: 700, cursor: pushing ? "default" : "pointer",
           whiteSpace: "nowrap", transition: "background .15s",
         }}
-        onMouseEnter={e => { if (!pushing) (e.currentTarget as HTMLElement).style.background = "#106ebe"; }}
-        onMouseLeave={e => { if (!pushing) (e.currentTarget as HTMLElement).style.background = "#0078d4"; }}>
+        onMouseEnter={e => { if (!pushing) (e.currentTarget as HTMLElement).style.background = T.primaryHov; }}
+        onMouseLeave={e => { if (!pushing) (e.currentTarget as HTMLElement).style.background = T.primary; }}>
         <Send size={iconSz} />
         {pushing ? "Pushing…" : "Push to Approvals"}
       </button>
 
       {/* Chevron to open priority */}
       <button onClick={() => setShowPrio(p => !p)} disabled={pushing}
-        style={{ padding: sm ? "3px 5px" : "5px 7px", background: "#005a9e",
-          color: "#fff", border: "none", borderRadius: "0 4px 4px 0",
+        style={{ padding: sm ? "3px 5px" : "5px 7px", background: T.primaryDark,
+          color: "#fff", border: "none", borderRadius: `0 ${T.r}px ${T.r}px 0`,
           cursor: "pointer", display: "flex", alignItems: "center" }}>
         <ChevronDown size={iconSz} />
       </button>

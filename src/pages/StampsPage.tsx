@@ -8,6 +8,7 @@ import { DocumentStamp, QuickStampButton, type StampStatus } from "@/components/
 import { useAuth } from "@/contexts/AuthContext";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { RefreshCw, Printer, Stamp } from "lucide-react";
+import { T, d365Btn, d365Card } from "@/lib/theme";
 
 const ALL_STAMPS: { status: StampStatus; name: string; roles: string[] }[] = [
   { status:"approved",     name:"Approved",       roles:["admin","procurement_manager","finance_manager"] },
@@ -106,23 +107,23 @@ export default function StampsPage() {
   );
 
   return (
-    <div style={{ minHeight:"100vh", background:"#f3f4f6", fontFamily:"'Segoe UI',Arial,sans-serif" }}>
+    <div style={{ minHeight:"100vh", background: T.bg, fontFamily:"'Segoe UI','Inter',system-ui,sans-serif" }}>
       <AdminBreadcrumb />
 
       {/* ── Header ── */}
-      <div style={{ background:"#fff", borderBottom:"1px solid #e5e7eb", padding:"20px 28px" }}>
+      <div style={{ background: T.card, borderBottom:`1px solid ${T.border}`, padding:"20px 28px" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <div style={{ width:44, height:44, borderRadius:10,
-              background:"linear-gradient(135deg,#0d4f1c,#1a006b)",
+            <div style={{ width:44, height:44, borderRadius: T.rMd,
+              background: `linear-gradient(135deg,${T.success},${T.primaryDark})`,
               display:"flex", alignItems:"center", justifyContent:"center" }}>
               <Stamp size={22} color="#fff" />
             </div>
             <div>
-              <h1 style={{ margin:0, fontSize:20, fontWeight:800, color:"#111" }}>
+              <h1 style={{ margin:0, fontSize:20, fontWeight:800, color: T.fg }}>
                 Official Stamps
               </h1>
-              <p style={{ margin:0, fontSize:12, color:"#6b7280" }}>
+              <p style={{ margin:0, fontSize:12, color: T.fgMuted }}>
                 {now.toLocaleDateString("en-KE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
               </p>
             </div>
@@ -130,10 +131,7 @@ export default function StampsPage() {
           <div style={{ display:"flex", gap:10, alignItems:"center" }}>
             <button
               onClick={() => setFilter(f => f==="all"?"mine":"all")}
-              style={{ padding:"8px 16px", borderRadius:6, border:"1.5px solid #e5e7eb",
-                background: filter==="mine"?"#0d4f1c":"#fff",
-                color: filter==="mine"?"#fff":"#374151",
-                fontWeight:700, fontSize:12, cursor:"pointer" }}>
+              style={{ ...d365Btn(filter==="mine" ? "primary" : "secondary"), fontSize:12 }}>
               {filter==="mine" ? "My Stamps Only" : "Show All"}
             </button>
             <QuickStampButton label="Apply Stamp" size="md" />
@@ -142,17 +140,17 @@ export default function StampsPage() {
       </div>
 
       {/* ── Stats row ── */}
-      <div style={{ padding:"16px 28px", background:"#fff", borderBottom:"1px solid #e5e7eb",
+      <div style={{ padding:"16px 28px", background: T.card, borderBottom:`1px solid ${T.border}`,
         display:"flex", gap:24, flexWrap:"wrap" }}>
         {[
-          { label:"Total Stamp Types", val: ALL_STAMPS.length, color:"#0d4f1c" },
-          { label:"Available to My Role", val: ALL_STAMPS.filter(s=>s.roles.some(r=>roles.includes(r))).length, color:"#003366" },
-          { label:"Approval Stamps",   val: ALL_STAMPS.filter(s=>["approved","verified","official"].includes(s.status)).length, color:"#1a006b" },
-          { label:"Rejection/Void",    val: ALL_STAMPS.filter(s=>["rejected","cancelled","expired"].includes(s.status)).length, color:"#8b0000" },
+          { label:"Total Stamp Types", val: ALL_STAMPS.length, color: T.success },
+          { label:"Available to My Role", val: ALL_STAMPS.filter(s=>s.roles.some(r=>roles.includes(r))).length, color: T.primary },
+          { label:"Approval Stamps",   val: ALL_STAMPS.filter(s=>["approved","verified","official"].includes(s.status)).length, color: T.primaryDark },
+          { label:"Rejection/Void",    val: ALL_STAMPS.filter(s=>["rejected","cancelled","expired"].includes(s.status)).length, color: T.error },
         ].map(s => (
           <div key={s.label} style={{ display:"flex", flexDirection:"column", gap:2 }}>
             <span style={{ fontSize:22, fontWeight:900, color:s.color }}>{s.val}</span>
-            <span style={{ fontSize:11, color:"#6b7280" }}>{s.label}</span>
+            <span style={{ fontSize:11, color: T.fgMuted }}>{s.label}</span>
           </div>
         ))}
       </div>
@@ -164,16 +162,16 @@ export default function StampsPage() {
           const ink     = INK[status] || "#333";
           const canUse  = stampRoles.some(r => roles.includes(r));
           return (
-            <div key={status} style={{ background:"#fff", borderRadius:14,
-              border:`2px solid ${canUse ? ink+"33" : "#e5e7eb"}`,
-              boxShadow:"0 2px 12px rgba(0,0,0,0.07)",
+            <div key={status} style={{ ...d365Card(), borderRadius: T.rXl,
+              border:`2px solid ${canUse ? ink+"33" : T.border}`,
+              boxShadow: T.shadow,
               overflow:"hidden", transition:"transform .15s, box-shadow .15s" }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 8px 28px ${ink}22`; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="none"; (e.currentTarget as HTMLElement).style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; }}>
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="none"; (e.currentTarget as HTMLElement).style.boxShadow=T.shadow; }}>
 
               {/* Stamp preview */}
               <div style={{ padding:"28px 0 12px", display:"flex", justifyContent:"center",
-                background: canUse ? `${ink}08` : "#fafafa" }}>
+                background: canUse ? `${ink}08` : T.bg1 }}>
                 <DocumentStamp
                   status={status}
                   size={150}
@@ -186,21 +184,21 @@ export default function StampsPage() {
               {/* Info */}
               <div style={{ padding:"12px 16px 16px" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-                  <span style={{ fontSize:14, fontWeight:800, color:"#111" }}>{name}</span>
+                  <span style={{ fontSize:14, fontWeight:800, color: T.fg }}>{name}</span>
                   {canUse && (
                     <span style={{ fontSize:9, fontWeight:800, padding:"2px 8px",
                       borderRadius:10, background:`${ink}18`, color:ink,
                       textTransform:"uppercase", letterSpacing:".05em" }}>Available</span>
                   )}
                 </div>
-                <div style={{ fontSize:11, color:"#6b7280", marginBottom:12, lineHeight:1.4 }}>
+                <div style={{ fontSize:11, color: T.fgMuted, marginBottom:12, lineHeight:1.4 }}>
                   Roles: {stampRoles.slice(0,2).map(r=>r.replace(/_/g," ")).join(", ")}
                   {stampRoles.length > 2 ? ` +${stampRoles.length-2}` : ""}
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
                   <button
                     onClick={() => printStamp(status, name)}
-                    style={{ flex:1, padding:"7px 0", borderRadius:6,
+                    style={{ flex:1, padding:"7px 0", borderRadius: T.r,
                       border:`1.5px solid ${ink}`, background:"transparent",
                       color:ink, fontWeight:700, fontSize:11, cursor:"pointer",
                       display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
