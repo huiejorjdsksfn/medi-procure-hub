@@ -383,7 +383,19 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
           const isAct=activeMod===mod.id;
           const modCnt=(mod.items as any[]).reduce<number>((a,i)=>a+(cnt[(i as any).b as string]||0),0);
           return(
-            <button key={mod.id} onClick={()=>setActiveMod(isAct?null:mod.id)}
+            <button key={mod.id} onClick={()=>{
+                // Previously this only toggled the sub-nav open/closed, so
+                // clicking a ribbon tab (e.g. "Finance") didn't take you
+                // anywhere — you had to click again on a sub-item for the
+                // page to actually open. Now the tab both expands the
+                // sub-nav AND navigates straight to the module's first
+                // (permission-filtered) page, matching how the Home tab
+                // already behaves.
+                if (isAct) { setActiveMod(null); return; }
+                setActiveMod(mod.id);
+                const first = filterItems(mod.items as any[])[0];
+                if (first) nav(first.p);
+              }}
               style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
                       color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,
                       fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",
@@ -472,7 +484,18 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             {/* Modules */}
             {MODS.filter(m => canSee(m.roles)).map(mod => (
               <div key={mod.id}>
-                <button onClick={() => setActiveMod(a => a === mod.id ? null : mod.id)}
+                <button onClick={() => {
+                    // Same fix as the desktop ribbon tabs: tapping a module
+                    // now navigates to its first page as well as expanding
+                    // the accordion, instead of requiring a second tap on a
+                    // sub-item before anything actually opens.
+                    const willOpen = activeMod !== mod.id;
+                    setActiveMod(a => a === mod.id ? null : mod.id);
+                    if (willOpen) {
+                      const first = filterItems(mod.items as any[])[0];
+                      if (first) { nav(first.p); setMobileNavOpen(false); }
+                    }
+                  }}
                   style={{display:"flex",alignItems:"center",gap:10,padding:"11px 16px",
                           color:"#fff",background:"transparent",border:"none",cursor:"pointer",
                           width:"100%",textAlign:"left",fontSize:13,
