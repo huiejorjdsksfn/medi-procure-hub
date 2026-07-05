@@ -158,7 +158,7 @@ const inp: React.CSSProperties = {padding:"2px 5px",border:`1px solid ${XP.btnBo
 const sel: React.CSSProperties = {...inp};
 
 // ══ WINDOW MANAGER ═══════════════════════════════════════════════
-type WinId = "overview"|"payments"|"receipts"|"journals"|"budgets"|"gl"|"assets"|"bank"|"reports"|"profile";
+type WinId = "overview"|"payments"|"receipts"|"journals"|"purchases"|"sales"|"budgets"|"gl"|"assets"|"bank"|"reports"|"profile";
 interface WinState { id:WinId; min:boolean; max:boolean; z:number; x:number; y:number; w:number; h:number; }
 
 const WIN_DEFS: { id:WinId; title:string; icon:string; w:number; h:number }[] = [
@@ -166,6 +166,8 @@ const WIN_DEFS: { id:WinId; title:string; icon:string; w:number; h:number }[] = 
   {id:"payments",  title:"Payment Vouchers",      icon:"💳", w:900, h:560},
   {id:"receipts",  title:"Receipt Vouchers",      icon:"🧾", w:860, h:520},
   {id:"journals",  title:"Journal Vouchers",      icon:"📓", w:840, h:500},
+  {id:"purchases", title:"Purchase Vouchers",     icon:"📦", w:880, h:540},
+  {id:"sales",     title:"Sales Vouchers",        icon:"🛒", w:880, h:540},
   {id:"budgets",   title:"Budget Control",        icon:"📊", w:800, h:500},
   {id:"gl",        title:"GL / Trial Balance",    icon:"📋", w:760, h:480},
   {id:"assets",    title:"Fixed Assets Register", icon:"🏗", w:880, h:520},
@@ -179,6 +181,8 @@ const DESKTOP_ICONS = [
   {id:"payments" as WinId,  icon:"💳", label:"Payment Vouchers"},
   {id:"receipts" as WinId,  icon:"🧾", label:"Receipt Vouchers"},
   {id:"journals" as WinId,  icon:"📓", label:"Journal Vouchers"},
+  {id:"purchases" as WinId, icon:"📦", label:"Purchase Vouchers"},
+  {id:"sales"    as WinId,  icon:"🛒", label:"Sales Vouchers"},
   {id:"budgets"  as WinId,  icon:"📊", label:"Budget Control"},
   {id:"gl"       as WinId,  icon:"📋", label:"GL Accounts"},
   {id:"assets"   as WinId,  icon:"🏗", label:"Fixed Assets"},
@@ -330,7 +334,7 @@ function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
 }
 
 function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) {
-  const [sel, setSel]         = useState<any>(null);
+  const [selRow, setSelRow] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [editRow, setEditRow]   = useState<any>(null);
   const [saving, setSaving]     = useState(false);
@@ -369,12 +373,12 @@ function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) 
 
   const upStatus = async (id:string,status:string) => {
     await db.from("payment_vouchers").update({status,approved_by:profile?.full_name||user?.email}).eq("id",id);
-    toast({title:`✓ → ${status}`}); refresh(); setSel(null);
+    toast({title:`✓ → ${status}`}); refresh(); setSelRow(null);
   };
   const del = async (id:string) => {
     if (!window.confirm("Delete this voucher?")) return;
     await db.from("payment_vouchers").delete().eq("id",id);
-    toast({title:"✓ Deleted"}); refresh(); setSel(null);
+    toast({title:"✓ Deleted"}); refresh(); setSelRow(null);
   };
   const bulkApprove = async () => {
     for (const id of checked) await db.from("payment_vouchers").update({status:"approved",approved_by:profile?.full_name||user?.email}).eq("id",id);
@@ -412,7 +416,7 @@ function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) 
         <Grid
           cols={[
             {key:"_chk",lbl:"",w:24,render:(_:any,r:any)=><input type="checkbox" checked={checked.includes(r.id)} onClick={e=>e.stopPropagation()} onChange={e=>setChecked(s=>e.target.checked?[...s,r.id]:s.filter(x=>x!==r.id))}/>},
-            {key:"voucher_number",lbl:"Voucher No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setSel(r);}}>{r.voucher_number||`PV/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</span>},
+            {key:"voucher_number",lbl:"Voucher No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setSelRow(r);}}>{r.voucher_number||`PV/${new Date(r.created_at||Date.now()).getFullYear()}-AUTO`}</span>},
             {key:"payee",lbl:"Payee",w:130},
             {key:"payment_method",lbl:"Method",w:75,render:(v:string)=>v?v.replace("_"," "):"—"},
             {key:"gl_account",lbl:"GL Account",w:160,render:(v:string)=><span style={{fontSize:9,color:"#555"}}>{v||"—"}</span>},
@@ -430,29 +434,29 @@ function PaymentsContent({ data, refresh, isManager, user, profile, coa }: any) 
               </div>
             )},
           ]}
-          rows={rows} selId={sel?.id} onSel={setSel} empty="No payment vouchers found"
+          rows={rows} selId={selRow?.id} onSel={setSelRow} empty="No payment vouchers found"
         />
         {/* Detail panel */}
-        {sel&&(
+        {selRow&&(
           <div style={{width:230,background:XP.windowBg,borderLeft:`1px solid ${XP.gridBorder}`,display:"flex",flexDirection:"column" as const,flexShrink:0,overflowY:"auto" as const}}>
             <div style={{background:"linear-gradient(180deg,#6f9fcf,#4a7fc4)",padding:"4px 8px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{color:"#fff",fontWeight:700,fontSize:10,fontFamily:XP.font}}>Voucher Detail</span>
-              <button onClick={()=>setSel(null)} style={{background:"none",border:"none",color:"#fff",cursor:"pointer",fontSize:13}}>✕</button>
+              <button onClick={()=>setSelRow(null)} style={{background:"none",border:"none",color:"#fff",cursor:"pointer",fontSize:13}}>✕</button>
             </div>
             <div style={{flex:1,padding:8,fontFamily:XP.font,fontSize:10}}>
-              {([["Voucher",sel.voucher_number||"—"],["Payee",sel.payee||"—"],["Amount",<span style={{fontWeight:800,color:"#155724",fontSize:13}}>{fmtFull(sel.total_amount)}</span>],["Method",sel.payment_method||"—"],["GL",sel.gl_account||"—"],["Status",<StatusPill s={sel.status}/>],["Approved By",sel.approved_by||"—"],["Date",fmtDate(sel.created_at)]] as [string,any][]).map(([k,v])=>(
+              {([["Voucher",selRow.voucher_number||"—"],["Payee",selRow.payee||"—"],["Amount",<span style={{fontWeight:800,color:"#155724",fontSize:13}}>{fmtFull(selRow.total_amount)}</span>],["Method",selRow.payment_method||"—"],["GL",selRow.gl_account||"—"],["Status",<StatusPill s={selRow.status}/>],["Approved By",selRow.approved_by||"—"],["Date",fmtDate(selRow.created_at)]] as [string,any][]).map(([k,v])=>(
                 <div key={k} style={{display:"flex",gap:5,padding:"3px 0",borderBottom:`1px solid ${XP.gridBorder}`,alignItems:"center"}}>
                   <span style={{color:"#555",width:65,flexShrink:0,fontSize:9}}>{k}</span>
                   <span style={{flex:1}}>{v}</span>
                 </div>
               ))}
-              {sel.description&&<div style={{marginTop:6,padding:5,background:"#fff",border:`1px solid ${XP.gridBorder}`,fontSize:9}}>{sel.description}</div>}
+              {selRow.description&&<div style={{marginTop:6,padding:5,background:"#fff",border:`1px solid ${XP.gridBorder}`,fontSize:9}}>{selRow.description}</div>}
             </div>
             <div style={{padding:6,borderTop:`1px solid ${XP.gridBorder}`,display:"flex",flexWrap:"wrap" as const,gap:3}}>
-              {sel.status==="pending"&&isManager&&<><Btn onClick={()=>upStatus(sel.id,"approved")} small primary>✓ Approve</Btn><Btn onClick={()=>upStatus(sel.id,"rejected")} small danger>✗ Reject</Btn></>}
-              {sel.status==="approved"&&<Btn onClick={()=>upStatus(sel.id,"paid")} small primary>💳 Paid</Btn>}
-              <Btn onClick={()=>openEdit(sel)} small>✏️ Edit</Btn>
-              <Btn onClick={()=>setSel(null)} small>Close</Btn>
+              {selRow.status==="pending"&&isManager&&<><Btn onClick={()=>upStatus(selRow.id,"approved")} small primary>✓ Approve</Btn><Btn onClick={()=>upStatus(selRow.id,"rejected")} small danger>✗ Reject</Btn></>}
+              {selRow.status==="approved"&&<Btn onClick={()=>upStatus(selRow.id,"paid")} small primary>💳 Paid</Btn>}
+              <Btn onClick={()=>openEdit(selRow)} small>✏️ Edit</Btn>
+              <Btn onClick={()=>setSelRow(null)} small>Close</Btn>
             </div>
           </div>
         )}
@@ -597,6 +601,220 @@ function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) 
               </div>
               <div style={{marginTop:10,display:"flex",gap:6}}>
                 <Btn onClick={save} disabled={saving} primary>{saving?"⏳ Saving…":"💾 Save"}</Btn>
+                <Btn onClick={()=>{setShowForm(false);setEditRow(null);}}>Cancel</Btn>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PurchaseVouchersContent({ data, refresh, isManager, user, profile, coa }: any) {
+  const [search, setSearch]     = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editRow, setEditRow]   = useState<any>(null);
+  const [saving, setSaving]     = useState(false);
+  const [selRow, setSelRow] = useState<any>(null);
+  const { purchaseOrders } = usePurchaseOrders();
+
+  const rows = useMemo(()=>data.filter((v:any)=>!search||[v.voucher_number,v.supplier_name,v.invoice_number,v.description].some((x:any)=>x?.toLowerCase?.().includes(search.toLowerCase()))),[data,search]);
+
+  const blankForm = {supplier_name:"",invoice_number:"",amount:"",po_reference:"",expense_account:"",description:"",due_date:"",currency:"KES"};
+  const [f, setF] = useState(blankForm);
+  const openNew  = () => { setEditRow(null); setF(blankForm); setShowForm(true); };
+  const openEdit = (r:any) => { setEditRow(r); setF({supplier_name:r.supplier_name||"",invoice_number:r.invoice_number||"",amount:r.amount?.toString()||"",po_reference:r.po_reference||"",expense_account:r.expense_account||"",description:r.description||"",due_date:r.due_date||"",currency:r.currency||"KES"}); setShowForm(true); };
+
+  const save = async () => {
+    if (!f.supplier_name||!f.amount) { toast({title:"Supplier and amount required",variant:"destructive"}); return; }
+    setSaving(true);
+    const amt = parseFloat(f.amount);
+    if (editRow) {
+      await db.from("purchase_vouchers").update({...f,amount:amt,updated_at:new Date().toISOString()}).eq("id",editRow.id);
+      toast({title:"✓ Purchase voucher updated"});
+    } else {
+      const vn = `PUR/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+      await db.from("purchase_vouchers").insert({...f,voucher_number:vn,amount:amt,line_items:[],status:"pending",created_by:user?.id,created_by_name:profile?.full_name||user?.email});
+      toast({title:`✓ ${vn} created`});
+    }
+    setSaving(false); setShowForm(false); setEditRow(null); refresh();
+  };
+  const upStatus = async (id:string, status:string) => {
+    await db.from("purchase_vouchers").update({status,approved_by:user?.id,approved_by_name:profile?.full_name||user?.email}).eq("id",id);
+    toast({title:`✓ → ${status}`}); refresh(); setSelRow(null);
+  };
+  const del = async (id:string) => {
+    if (!window.confirm("Delete this purchase voucher?")) return;
+    await db.from("purchase_vouchers").delete().eq("id",id);
+    toast({title:"✓ Deleted"}); refresh(); setSelRow(null);
+  };
+  const exportCSV = () => {
+    const h=["Voucher No","Supplier","Invoice No","Amount","Status","Date"];
+    const r=rows.map((v:any)=>`${v.voucher_number||""},${v.supplier_name||""},${v.invoice_number||""},${v.amount||0},${v.status},${fmtDate(v.created_at)}`);
+    const b=new Blob([[h.join(","),...r].join("\n")],{type:"text/csv"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="purchase_vouchers.csv"; a.click();
+    toast({title:"✓ Exported"});
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column" as const,flex:1,overflow:"hidden"}}>
+      <div style={{background:XP.windowBg,borderBottom:`1px solid ${XP.btnBorder}`,padding:"4px 8px",display:"flex",gap:4,flexWrap:"wrap" as const,flexShrink:0}}>
+        <Btn onClick={openNew} primary>+ New Purchase Voucher</Btn>
+        <Btn onClick={exportCSV}>⬇ CSV</Btn>
+        <div style={{flex:1}}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Filter..." style={{...inp,width:140}}/>
+      </div>
+      <Grid
+        cols={[
+          {key:"voucher_number",lbl:"Voucher No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setSelRow(r);}}>{r.voucher_number}</span>},
+          {key:"supplier_name",lbl:"Supplier",w:140},
+          {key:"invoice_number",lbl:"Invoice No.",w:100,render:(v:string)=>v||"—"},
+          {key:"expense_account",lbl:"Expense A/C",w:150,render:(v:string)=><span style={{fontSize:9,color:"#555"}}>{v||"—"}</span>},
+          {key:"status",lbl:"Status",w:65,render:(v:string)=><StatusPill s={v}/>},
+          {key:"amount",lbl:"Amount",w:95,render:(v:number)=><span style={{fontWeight:700}}>{fmtK(v)}</span>},
+          {key:"created_at",lbl:"Date",w:75,render:(v:string)=>fmtDate(v)},
+          {key:"_act",lbl:"",w:120,render:(_:any,r:any)=>(
+            <div style={{display:"flex",gap:2}} onClick={e=>e.stopPropagation()}>
+              {r.status==="pending"&&isManager&&<><Btn onClick={()=>upStatus(r.id,"approved")} small primary>✓</Btn><Btn onClick={()=>upStatus(r.id,"rejected")} small danger>✗</Btn></>}
+              {r.status==="approved"&&<Btn onClick={()=>upStatus(r.id,"paid")} small primary>💳 Paid</Btn>}
+              <Btn onClick={()=>openEdit(r)} small>✏️</Btn>
+              <Btn onClick={()=>del(r.id)} small danger>🗑</Btn>
+            </div>
+          )},
+        ]}
+        rows={rows} selId={selRow?.id} onSel={setSelRow} empty="No purchase vouchers found"
+      />
+      {showForm&&(
+        <div style={{position:"absolute" as const,inset:0,background:"rgba(0,0,0,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:XP.windowBg,border:"2px solid #0054e3",borderRadius:4,boxShadow:XP.shadow,width:"min(560px,95%)",maxHeight:"85%",display:"flex",flexDirection:"column" as const}}>
+            <div style={{background:XP.titleBar,padding:"3px 6px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:10,fontFamily:XP.font}}>📦 {editRow?"Edit":"New"} Purchase Voucher</span>
+              <button onClick={()=>{setShowForm(false);setEditRow(null);}} style={{background:"linear-gradient(180deg,#e85040,#b01818)",border:"1px solid #701010",borderRadius:3,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:900,width:21,height:21}}>✕</button>
+            </div>
+            <div style={{overflow:"auto",padding:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="Supplier *"><input value={f.supplier_name} onChange={e=>setF(p=>({...p,supplier_name:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Amount (KES) *"><input type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Invoice No."><input value={f.invoice_number} onChange={e=>setF(p=>({...p,invoice_number:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Currency"><select value={f.currency} onChange={e=>setF(p=>({...p,currency:e.target.value}))} style={sel}>{["KES","USD","EUR","GBP"].map(c=><option key={c}>{c}</option>)}</select></FieldRow></div>
+                <div><FieldRow label="Due Date"><input type="date" value={f.due_date} onChange={e=>setF(p=>({...p,due_date:e.target.value}))} style={inp}/></FieldRow></div>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="Expense Account"><select value={f.expense_account} onChange={e=>setF(p=>({...p,expense_account:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.filter((a:any)=>a.type==="exp").map((a:any)=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
+                <div><FieldRow label="PO Reference"><select value={f.po_reference} onChange={e=>{
+                  const poNum = e.target.value;
+                  const matched = purchaseOrders.find((po:any)=>po.po_number===poNum);
+                  setF(p=>({...p,po_reference:poNum,
+                    supplier_name: matched && !p.supplier_name ? (matched.supplier_name||p.supplier_name) : p.supplier_name,
+                    amount: matched && !p.amount ? String(matched.total_amount||p.amount) : p.amount}));
+                }} style={sel}>
+                  <option value="">— None —</option>
+                  {purchaseOrders.map((po:any)=><option key={po.id} value={po.po_number}>{po.po_number} — {po.supplier_name||"Supplier"}</option>)}
+                </select></FieldRow></div>
+                <div style={{gridColumn:"span 3"}}><FieldRow label="Description"><input value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} style={inp}/></FieldRow></div>
+              </div>
+              <div style={{marginTop:10,display:"flex",gap:6}}>
+                <Btn onClick={save} disabled={saving} primary>{saving?"⏳ Saving…":"💾 Save Voucher"}</Btn>
+                <Btn onClick={()=>{setShowForm(false);setEditRow(null);}}>Cancel</Btn>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SalesVouchersContent({ data, refresh, user, profile, coa }: any) {
+  const [search, setSearch]     = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editRow, setEditRow]   = useState<any>(null);
+  const [saving, setSaving]     = useState(false);
+  const [selRow, setSelRow] = useState<any>(null);
+
+  const rows = useMemo(()=>data.filter((v:any)=>!search||[v.voucher_number,v.customer_name,v.patient_number,v.description].some((x:any)=>x?.toLowerCase?.().includes(search.toLowerCase()))),[data,search]);
+
+  const blankForm = {customer_name:"",customer_type:"walk_in",patient_number:"",payment_method:"Cash",amount:"",income_account:"",description:"",due_date:"",currency:"KES"};
+  const [f, setF] = useState(blankForm);
+  const openNew  = () => { setEditRow(null); setF(blankForm); setShowForm(true); };
+  const openEdit = (r:any) => { setEditRow(r); setF({customer_name:r.customer_name||"",customer_type:r.customer_type||"walk_in",patient_number:r.patient_number||"",payment_method:r.payment_method||"Cash",amount:r.amount?.toString()||"",income_account:r.income_account||"",description:r.description||"",due_date:r.due_date||"",currency:r.currency||"KES"}); setShowForm(true); };
+
+  const save = async () => {
+    if (!f.customer_name||!f.amount) { toast({title:"Customer and amount required",variant:"destructive"}); return; }
+    setSaving(true);
+    const amt = parseFloat(f.amount);
+    if (editRow) {
+      await db.from("sales_vouchers").update({...f,amount:amt,updated_at:new Date().toISOString()}).eq("id",editRow.id);
+      toast({title:"✓ Sales voucher updated"});
+    } else {
+      const vn = `SV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
+      await db.from("sales_vouchers").insert({...f,voucher_number:vn,amount:amt,line_items:[],status:"confirmed",created_by:user?.id,created_by_name:profile?.full_name||user?.email});
+      toast({title:`✓ ${vn} created`});
+    }
+    setSaving(false); setShowForm(false); setEditRow(null); refresh();
+  };
+  const upStatus = async (id:string, status:string) => {
+    await db.from("sales_vouchers").update({status,approved_by:user?.id,approved_by_name:profile?.full_name||user?.email}).eq("id",id);
+    toast({title:`✓ → ${status}`}); refresh(); setSelRow(null);
+  };
+  const del = async (id:string) => {
+    if (!window.confirm("Delete this sales voucher?")) return;
+    await db.from("sales_vouchers").delete().eq("id",id);
+    toast({title:"✓ Deleted"}); refresh(); setSelRow(null);
+  };
+  const exportCSV = () => {
+    const h=["Voucher No","Customer","Type","Amount","Status","Date"];
+    const r=rows.map((v:any)=>`${v.voucher_number||""},${v.customer_name||""},${v.customer_type||""},${v.amount||0},${v.status},${fmtDate(v.created_at)}`);
+    const b=new Blob([[h.join(","),...r].join("\n")],{type:"text/csv"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="sales_vouchers.csv"; a.click();
+    toast({title:"✓ Exported"});
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column" as const,flex:1,overflow:"hidden"}}>
+      <div style={{background:XP.windowBg,borderBottom:`1px solid ${XP.btnBorder}`,padding:"4px 8px",display:"flex",gap:4,flexWrap:"wrap" as const,flexShrink:0}}>
+        <Btn onClick={openNew} primary>+ New Sales Voucher</Btn>
+        <Btn onClick={exportCSV}>⬇ CSV</Btn>
+        <div style={{flex:1}}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Filter..." style={{...inp,width:140}}/>
+      </div>
+      <Grid
+        cols={[
+          {key:"voucher_number",lbl:"Voucher No.",w:140,render:(_:any,r:any)=><span style={{color:"#00008b",fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setSelRow(r);}}>{r.voucher_number}</span>},
+          {key:"customer_name",lbl:"Customer",w:140},
+          {key:"customer_type",lbl:"Type",w:80,render:(v:string)=>v?v.replace("_"," "):"—"},
+          {key:"payment_method",lbl:"Method",w:75},
+          {key:"status",lbl:"Status",w:65,render:(v:string)=><StatusPill s={v}/>},
+          {key:"amount",lbl:"Amount",w:95,render:(v:number)=><span style={{fontWeight:700,color:"#155724"}}>{fmtK(v)}</span>},
+          {key:"created_at",lbl:"Date",w:75,render:(v:string)=>fmtDate(v)},
+          {key:"_act",lbl:"",w:110,render:(_:any,r:any)=>(
+            <div style={{display:"flex",gap:2}} onClick={e=>e.stopPropagation()}>
+              {r.status==="confirmed"&&<Btn onClick={()=>upStatus(r.id,"paid")} small primary>💳 Paid</Btn>}
+              {r.status!=="cancelled"&&r.status!=="paid"&&<Btn onClick={()=>upStatus(r.id,"cancelled")} small danger>✗</Btn>}
+              <Btn onClick={()=>openEdit(r)} small>✏️</Btn>
+              <Btn onClick={()=>del(r.id)} small danger>🗑</Btn>
+            </div>
+          )},
+        ]}
+        rows={rows} selId={selRow?.id} onSel={setSelRow} empty="No sales vouchers found"
+      />
+      {showForm&&(
+        <div style={{position:"absolute" as const,inset:0,background:"rgba(0,0,0,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:XP.windowBg,border:"2px solid #0054e3",borderRadius:4,boxShadow:XP.shadow,width:"min(560px,95%)",maxHeight:"85%",display:"flex",flexDirection:"column" as const}}>
+            <div style={{background:XP.titleBar,padding:"3px 6px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:10,fontFamily:XP.font}}>🛒 {editRow?"Edit":"New"} Sales Voucher</span>
+              <button onClick={()=>{setShowForm(false);setEditRow(null);}} style={{background:"linear-gradient(180deg,#e85040,#b01818)",border:"1px solid #701010",borderRadius:3,cursor:"pointer",color:"#fff",fontSize:11,fontWeight:900,width:21,height:21}}>✕</button>
+            </div>
+            <div style={{overflow:"auto",padding:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="Customer *"><input value={f.customer_name} onChange={e=>setF(p=>({...p,customer_name:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Amount (KES) *"><input type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Customer Type"><select value={f.customer_type} onChange={e=>setF(p=>({...p,customer_type:e.target.value}))} style={sel}>{["walk_in","patient","department","external"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}</select></FieldRow></div>
+                <div><FieldRow label="Patient No."><input value={f.patient_number} onChange={e=>setF(p=>({...p,patient_number:e.target.value}))} style={inp}/></FieldRow></div>
+                <div><FieldRow label="Payment Method"><select value={f.payment_method} onChange={e=>setF(p=>({...p,payment_method:e.target.value}))} style={sel}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</select></FieldRow></div>
+                <div><FieldRow label="Due Date"><input type="date" value={f.due_date} onChange={e=>setF(p=>({...p,due_date:e.target.value}))} style={inp}/></FieldRow></div>
+                <div style={{gridColumn:"span 2"}}><FieldRow label="Income Account"><select value={f.income_account} onChange={e=>setF(p=>({...p,income_account:e.target.value}))} style={sel}><option value="">— Select —</option>{coa.filter((a:any)=>a.type==="inc").map((a:any)=><option key={a.code} value={`${a.code} - ${a.name}`}>{a.code} – {a.name}</option>)}</select></FieldRow></div>
+                <div style={{gridColumn:"span 3"}}><FieldRow label="Description"><input value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} style={inp}/></FieldRow></div>
+              </div>
+              <div style={{marginTop:10,display:"flex",gap:6}}>
+                <Btn onClick={save} disabled={saving} primary>{saving?"⏳ Saving…":"💾 Save Voucher"}</Btn>
                 <Btn onClick={()=>{setShowForm(false);setEditRow(null);}}>Cancel</Btn>
               </div>
             </div>
@@ -951,6 +1169,8 @@ export default function FinanceDashboardPage() {
   const [glEntries, setGlEntries] = useState<any[]>([]);
   const [budgets,   setBudgets]   = useState<any[]>([]);
   const [assets,    setAssets]    = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [sales,     setSales]     = useState<any[]>([]);
   const [loading,   setLoading]   = useState(true);
 
   const fetchAll = useCallback(async () => {
@@ -958,7 +1178,7 @@ export default function FinanceDashboardPage() {
     // Each ledger gets its own circuit breaker so a stuck fixed_assets query
     // (say) can't stall payments/receipts/GL too, and "critical" priority
     // keeps this dashboard load ahead of any background prefetching.
-    const [pR,rcR,glR,bR,aR] = await Promise.all([
+    const [pR,rcR,glR,bR,aR,puR,svR] = await Promise.all([
       netEngine.request("finance:payment_vouchers",
         () => db.from("payment_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
         { priority: "critical", label: "payment vouchers" }),
@@ -974,14 +1194,21 @@ export default function FinanceDashboardPage() {
       netEngine.request("finance:fixed_assets",
         () => db.from("fixed_assets").select("*").order("created_at",{ascending:false}).limit(200),
         { priority: "critical", label: "fixed assets" }),
+      netEngine.request("finance:purchase_vouchers",
+        () => db.from("purchase_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
+        { priority: "critical", label: "purchase vouchers" }),
+      netEngine.request("finance:sales_vouchers",
+        () => db.from("sales_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
+        { priority: "critical", label: "sales vouchers" }),
     ]);
-    setPayments(pR.data??[]); setReceipts(rcR.data??[]); setGlEntries(glR.data??[]); setBudgets(bR.data??[]); setAssets(aR.data??[]); setLoading(false);
+    setPayments(pR.data??[]); setReceipts(rcR.data??[]); setGlEntries(glR.data??[]); setBudgets(bR.data??[]); setAssets(aR.data??[]);
+    setPurchases(puR.data??[]); setSales(svR.data??[]); setLoading(false);
   }, []);
 
   useEffect(()=>{fetchAll();},[fetchAll]);
 
   useEffect(()=>{
-    const ch=db.channel("fin_desk_v2").on("postgres_changes",{event:"*",schema:"public",table:"payment_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"gl_entries"},fetchAll).subscribe();
+    const ch=db.channel("fin_desk_v2").on("postgres_changes",{event:"*",schema:"public",table:"payment_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"gl_entries"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"purchase_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"sales_vouchers"},fetchAll).subscribe();
     return ()=>{supabase.removeChannel(ch);};
   },[fetchAll]);
 
@@ -1025,12 +1252,14 @@ export default function FinanceDashboardPage() {
   function focusWin(id:WinId){const z=++zTop.current;setActiveWin(id);setWins(p=>p.map(w=>w.id===id?{...w,z,min:false}:w));}
 
   function renderContent(id:WinId){
-    const props={payments,receipts,glEntries,budgets,assets,refresh:fetchAll,isManager,user,profile,coa};
+    const props={payments,receipts,glEntries,budgets,assets,purchases,sales,refresh:fetchAll,isManager,user,profile,coa};
     switch(id){
       case "overview":  return <OverviewContent {...props}/>;
       case "payments":  return <PaymentsContent {...props}/>;
       case "receipts":  return <ReceiptsContent {...props}/>;
       case "journals":  return <JournalsContent data={glEntries} refresh={fetchAll} coa={coa}/>;
+      case "purchases": return <PurchaseVouchersContent data={purchases} refresh={fetchAll} isManager={isManager} user={user} profile={profile} coa={coa}/>;
+      case "sales":     return <SalesVouchersContent data={sales} refresh={fetchAll} user={user} profile={profile} coa={coa}/>;
       case "budgets":   return <BudgetsContent data={budgets}/>;
       case "gl":        return <GLContent data={glEntries} coa={coa}/>;
       case "assets":    return <AssetsContent data={assets} refresh={fetchAll}/>;

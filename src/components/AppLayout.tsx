@@ -82,17 +82,14 @@ const MODS = [
   {id:"finance",label:"Finance",col:T.finance,
    roles:["admin","superadmin","webmaster","procurement_manager","accountant","finance_officer","finance_manager"],
    items:[
-     {l:"Finance Overview",   p:"/financials/dashboard",         I:TrendingUp},
-     {l:"Budgets",            p:"/financials/budgets",           I:PiggyBank},
+     // Finance Desktop is the consolidated multi-window "sub-apps" hub —
+     // Payments, Receipts, Journals, Purchase/Sales Vouchers, Budgets,
+     // GL/Trial Balance, Fixed Assets, Bank Reconciliation, and Reports
+     // all live inside it as draggable windows, so it's listed first as
+     // the primary way in instead of clicking through many separate pages.
+     {l:"Finance Desktop",    p:"/finance-dashboard",           I:DollarSign},
      {l:"Chart of Accounts",  p:"/financials/chart-of-accounts", I:BookOpen},
      {l:"Fixed Assets",       p:"/financials/fixed-assets",      I:Building2},
-     {l:"Payment Vouchers",   p:"/vouchers/payment",             I:DollarSign, b:"payment_vouchers"},
-     {l:"Receipt Vouchers",   p:"/vouchers/receipt",             I:Receipt},
-     {l:"Journal Vouchers",   p:"/vouchers/journal",             I:BookMarked},
-     {l:"Purchase Vouchers",  p:"/vouchers/purchase",            I:FileText},
-     {l:"Sales Vouchers",     p:"/vouchers/sales",               I:FileText},
-     {l:"Finance Desktop",    p:"/finance-dashboard",           I:DollarSign},
-     {l:"Finance Workspace",  p:"/finance-workspace",            I:DollarSign},
      {l:"Accountant Workspace",p:"/accountant-workspace",        I:BarChart2},
    ]},
   {id:"inventory",label:"Inventory",col:T.inventory,
