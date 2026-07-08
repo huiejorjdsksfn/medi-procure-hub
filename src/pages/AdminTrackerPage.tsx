@@ -634,10 +634,17 @@ export default function AdminTrackerPage() {
                   <button onClick={loadEdgeOne} disabled={eoLoading} style={{ padding: "3px 10px", background: "#7c3aed22", border: "1px solid #7c3aed", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer", opacity: eoLoading ? 0.5 : 1 }}>
                     {eoLoading ? "⏳ Loading…" : "↻ Refresh"}
                   </button>
+                  <button onClick={() => setEoAutoRefresh(v => !v)} style={{ padding: "3px 10px", background: eoAutoRefresh ? "#22c55e33" : "#7c3aed22", border: `1px solid ${eoAutoRefresh ? "#22c55e" : "#7c3aed"}`, borderRadius: 4, color: eoAutoRefresh ? "#86efac" : "#c4b5fd", fontSize: 10, cursor: "pointer", fontWeight: 700 }}>
+                    {eoAutoRefresh ? "🔴 Auto 20s" : "⏱ Auto"}
+                  </button>
+                  <button onClick={loadDomains} disabled={eoLoading} style={{ padding: "3px 10px", background: "#7c3aed22", border: "1px solid #7c3aed", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer" }}>
+                    🌐 Domains
+                  </button>
                   <button onClick={triggerPurge} disabled={eoPurging || eoLoading} style={{ padding: "3px 10px", background: "#7c3aed", border: "1px solid #a78bfa", borderRadius: 4, color: "#fff", fontSize: 10, cursor: "pointer", fontWeight: 700, opacity: eoPurging ? 0.6 : 1 }}>
-                    {eoPurging ? "🚀 Purging…" : "🚀 Purge Cache"}
+                    {eoPurging ? "🚀 Purging…" : "🚀 Purge & Redeploy"}
                   </button>
                   <a href="https://procurbosse.edgeone.app" target="_blank" rel="noreferrer" style={{ padding: "3px 10px", background: "#ffffff11", border: "1px solid #7c3aed44", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer", textDecoration: "none" }}>↗ Open Site</a>
+                  <a href="https://console.tencentcloud.com/edgeone/pages" target="_blank" rel="noreferrer" style={{ padding: "3px 10px", background: "#ffffff11", border: "1px solid #7c3aed44", borderRadius: 4, color: "#c4b5fd", fontSize: 10, cursor: "pointer", textDecoration: "none" }}>⚙ Console</a>
                 </div>
               </div>
 
@@ -734,6 +741,16 @@ export default function AdminTrackerPage() {
                           {d.commit_message && <span style={{ fontSize: 10, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.commit_message}</span>}
                           {d.branch && <span style={{ fontSize: 9, color: "#7c3aed", background: "#3a0080", padding: "1px 6px", borderRadius: 4 }}>⎇ {d.branch}</span>}
                           {d.url && <a href={d.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: "#c4b5fd", textDecoration: "none" }}>↗ View</a>}
+                          {i !== 0 && (d.status === "success" || d.status === "active" || d.status === "published") && (
+                            <button onClick={() => rollbackDeployment(d.id)} disabled={eoBusyId === d.id} style={{ padding: "2px 8px", background: "#7c3aed22", border: "1px solid #7c3aed", borderRadius: 3, color: "#c4b5fd", fontSize: 9, cursor: "pointer", fontWeight: 700, opacity: eoBusyId === d.id ? 0.5 : 1 }}>
+                              {eoBusyId === d.id ? "⏳" : "⤴ Rollback"}
+                            </button>
+                          )}
+                          {(d.status === "building" || d.status === "deploying" || d.status === "queued") && (
+                            <button onClick={() => cancelDeployment(d.id)} disabled={eoBusyId === d.id} style={{ padding: "2px 8px", background: "#ef444422", border: "1px solid #ef4444", borderRadius: 3, color: "#fca5a5", fontSize: 9, cursor: "pointer", fontWeight: 700, opacity: eoBusyId === d.id ? 0.5 : 1 }}>
+                              {eoBusyId === d.id ? "⏳" : "🛑 Cancel"}
+                            </button>
+                          )}
                           <span style={{ fontSize: 9, color: "#4b5563", marginLeft: "auto", flexShrink: 0 }}>
                             {d.created_at ? new Date(d.created_at).toLocaleString("en-KE") : d.updated_at ? new Date(d.updated_at).toLocaleString("en-KE") : "—"}
                           </span>
@@ -741,6 +758,23 @@ export default function AdminTrackerPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Domains */}
+                  {eoDomains.length > 0 && (
+                    <div style={{ background: "#0d0020", border: "1px solid #7c3aed44", borderRadius: 4, padding: "10px 14px", marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", marginBottom: 8 }}>🌐 Attached Domains ({eoDomains.length})</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {eoDomains.map((dom: any, i: number) => (
+                          <div key={dom.id ?? dom.domain ?? i} style={{ background: "#1a0040", border: "1px solid #3a0080", borderRadius: 3, padding: "6px 10px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 700 }}>{dom.domain || dom.name || dom.host || "—"}</span>
+                            {dom.status && <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 3, background: dom.status === "active" ? "#22c55e33" : "#fbbf2433", color: dom.status === "active" ? "#86efac" : "#fde68a" }}>{dom.status}</span>}
+                            {dom.ssl_status && <span style={{ fontSize: 9, color: "#a78bfa" }}>🔒 {dom.ssl_status}</span>}
+                            <a href={`https://${dom.domain || dom.name || dom.host}`} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", fontSize: 10, color: "#c4b5fd" }}>↗ Visit</a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Raw API response toggle */}
                   <details style={{ background: "#0a0018", border: "1px solid #3a0080", borderRadius: 4, padding: "6px 10px" }}>
