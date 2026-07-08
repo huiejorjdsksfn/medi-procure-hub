@@ -4,7 +4,7 @@
  * Upgrade: All 63 pages converted to React.lazy — zero-blocking initial load
  */
 import { Toaster }                          from "@/components/ui/toaster";
-import { useEffect, lazy, Suspense }        from "react";
+import { lazy, Suspense }        from "react";
 import { Toaster as Sonner }               from "@/components/ui/sonner";
 import { TooltipProvider }                 from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,7 +20,6 @@ import NetworkGuard                       from "@/components/NetworkGuard";
 import ResponsiveBot                      from "@/components/ResponsiveBot";
 import SessionBot                         from "@/components/SessionBot";
 import KeepAliveBot                       from "@/components/KeepAliveBot";
-import { liveDbEngine }                   from "@/engines/db/LiveDatabaseEngine";
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 // Auth (eagerly pre-warmed so login feels instant)
@@ -146,11 +145,6 @@ const PROCURE = ["admin","procurement_manager","procurement_officer"];
 const ADMINS  = ["admin","superadmin","webmaster"];
 
 const App = () => {
-  useEffect(() => {
-    liveDbEngine.start(60_000);
-    return () => liveDbEngine.stop();
-  }, []);
-
   return (
   <ErrorBoundary pageName="Application Root">
   <QueryClientProvider client={queryClient}>

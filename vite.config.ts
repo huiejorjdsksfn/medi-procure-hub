@@ -59,6 +59,10 @@ export default defineConfig(({ mode }) => ({
     assetsInlineLimit: 8_192,
     cssCodeSplit: true,
     minify: "esbuild",
+    modulePreload: {
+      resolveDependencies: (_filename, deps) =>
+        deps.filter((dep) => !dep.includes("pdf-vendor") && !dep.includes("pdfjs-vendor")),
+    },
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === "CIRCULAR_DEPENDENCY") return;

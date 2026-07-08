@@ -3,8 +3,24 @@
  * Adds Embu County + Hospital logos to all printed documents
  * EL5 MediProcure - Embu Level 5 Hospital
  */
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import type jsPDF from "jspdf";
+import type { UserOptions } from "jspdf-autotable";
+
+// jsPDF + jspdf-autotable are ~290KB gzipped combined — loaded on first use
+// instead of at module load, since only a handful of pages ever print/export.
+let _JsPDF: typeof jsPDF | null = null;
+let _autoTable: ((doc: any, options: UserOptions) => void) | null = null;
+async function ensurePdfLibs() {
+  if (!_JsPDF || !_autoTable) {
+    const [pdfMod, autoTableMod] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    _JsPDF = pdfMod.default;
+    _autoTable = autoTableMod.default;
+  }
+  return { JsPDF: _JsPDF!, autoTable: _autoTable! };
+}
 import embuLogoUrl from "@/assets/embu-county-logo.jpg";
 import logoUrl from "@/assets/logo.png";
 import { supabase } from "@/integrations/supabase/client";
@@ -258,7 +274,8 @@ export async function printDocument(config: {
    *  so any custom colours/uploaded image saved there are picked up here too. */
   stamp?: { label: string; subLabel?: string; status?: string } | null;
 }): Promise<void> {
-  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+  const { JsPDF } = await ensurePdfLibs();
+  const doc = new JsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
   const startY = await addLetterhead(doc, config.title, config.docNo);
   await config.content(doc, startY);
 
@@ -296,7 +313,7 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
       const W = doc.internal.pageSize.getWidth();
 
       // Info table
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY,
         head: [],
         body: [
@@ -312,7 +329,7 @@ export async function printRequisition(req: any, items: any[]): Promise<void> {
 
       const y2 = (doc as any).lastAutoTable.finalY + 5;
 
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY: y2,
         head: [["#","Item Description","Unit","Qty","Unit Price","Total"]],
         body: items.map((it,i) => [
@@ -357,7 +374,7 @@ export async function printPurchaseOrder(po: any, items: any[], supplier: any): 
       subLabel: [po.stamped_by_name, po.stamped_at ? new Date(po.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
     } : null,
     content: async (doc, startY) => {
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY,
         head: [],
         body: [
@@ -375,7 +392,7 @@ export async function printPurchaseOrder(po: any, items: any[], supplier: any): 
       const y2 = (doc as any).lastAutoTable.finalY + 5;
       const total = items.reduce((a,it)=>a+(it.total_price||0),0);
 
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY: y2,
         head: [["#","Description","Qty","Unit","Unit Price (KES)","Total (KES)"]],
         body: [
@@ -418,7 +435,7 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
       subLabel: [grn.stamped_by_name, grn.stamped_at ? new Date(grn.stamped_at).toLocaleDateString("en-KE") : ""].filter(Boolean).join(" · "),
     } : null,
     content: async (doc, startY) => {
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY,
         head: [],
         body: [
@@ -432,7 +449,7 @@ export const printGRN = async (grn: any, items: any[], supplier?: any) => {
         margin: { left: 12, right: 12 },
       });
       const y2 = (doc as any).lastAutoTable.finalY + 5;
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY: y2,
         head: [["#","Item Description","Unit","Ordered","Received","Variance","Condition"]],
         body: items.map((it,i) => [i+1, it.item_name||it.description||"-", it.unit_of_measure||"PCS", it.quantity_ordered||0, it.quantity_received||0, (it.quantity_ordered||0)-(it.quantity_received||0), it.condition||"Good"]),
@@ -467,7 +484,7 @@ export const printJournalVoucher = async (voucher: any, lines: any[]) => {
     filename: `JV-${voucher.voucher_number || voucher.id?.slice(0,8)}`,
     stamp: isPosted ? { label: "Posted", status: "posted", subLabel: voucher.created_at ? new Date(voucher.created_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY,
         head: [["Account Code","Description","Debit (KES)","Credit (KES)"]],
         body: (lines||[]).map(l => [l.account_code||"-", l.description||"-", l.debit_amount ? Number(l.debit_amount).toLocaleString() : "-", l.credit_amount ? Number(l.credit_amount).toLocaleString() : "-"]),
@@ -502,7 +519,7 @@ export const printGenericVoucher = async (voucher: any, type: string) => {
     filename: `${type.slice(0,3).toUpperCase()}-${voucher.voucher_number || voucher.id?.slice(0,8)}`,
     stamp: isFinal ? { label: status==="paid"?"Paid":"Approved", status: status==="paid"?"paid":"approved", subLabel: voucher.paid_at||voucher.approved_at ? new Date(voucher.paid_at||voucher.approved_at).toLocaleDateString("en-KE") : "" } : null,
     content: async (doc, startY) => {
-      autoTable(doc, {
+      _autoTable!(doc, {
         startY,
         head: [],
         body: [

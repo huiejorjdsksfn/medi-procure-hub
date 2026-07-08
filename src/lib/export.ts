@@ -1,3 +1,10 @@
+// NOTE: this file is currently unused (no importers anywhere in src/) and is
+// tree-shaken out of the build entirely. If you wire it up, convert the
+// jspdf/jspdf-autotable imports to dynamic imports first (see the
+// ensurePdfLibs() pattern in src/lib/printDocument.ts) — as static imports,
+// these pull ~290KB gzip into whatever page/chunk reaches this file, and
+// depending on how that chunk is referenced elsewhere, can end up forced
+// into the app's initial-load modulepreload list instead of loading on demand.
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "@e965/xlsx";
