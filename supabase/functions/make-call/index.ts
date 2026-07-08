@@ -32,7 +32,7 @@ async function checkReplay(req: Request, sb: any): Promise<{ ok: boolean; error?
 }
 
 function e164(raw: string): string {
-  const n = String(raw || "").replace(/[\s\-\(\)\.]/g, "").trim();
+  const n = String(raw || "").replace(/[\s\-().]/g, "").trim();
   if (!n) return n;
   if (n.startsWith("+")) return n;
   if (n.startsWith("07") || n.startsWith("01")) return "+254" + n.slice(1);

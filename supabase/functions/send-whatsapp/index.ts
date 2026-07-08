@@ -20,7 +20,7 @@ const SANDBOX_FROM = "whatsapp:+14155238886";
 const HOSPITAL = "EL5 MediProcure";
 
 function e164(raw: string): string {
-  const n = String(raw || "").replace(/[\s\-\(\)\.]/g, "").trim();
+  const n = String(raw || "").replace(/[\s\-().]/g, "").trim();
   if (!n) return n;
   if (n.startsWith("+")) return n;
   if (n.startsWith("07") || n.startsWith("01")) return "+254" + n.slice(1);

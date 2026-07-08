@@ -213,12 +213,6 @@ jobs:
         run: npx cap sync ios
         continue-on-error: true
 
-      - name: Install CocoaPods
-        run: |
-          cd ios/App
-          pod install --repo-update 2>&1 | tail -20
-        continue-on-error: true
-
       - name: Import Apple certificates
         if: secrets.CERTIFICATES_P12 != ''
         run: |
@@ -251,7 +245,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ needs.web.outputs.ver }}" App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ needs.web.outputs.ver_code }}" App/Info.plist 2>/dev/null || true
 
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath build/ProcurBosse.xcarchive \

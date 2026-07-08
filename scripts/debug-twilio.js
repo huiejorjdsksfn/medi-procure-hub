@@ -12,7 +12,7 @@ const TEST_RECIPIENT = "+254720425195";
 
 async function testDirectTwilio() {
   console.log("\n=== Testing Direct Twilio API ===");
-  console.log(`Account: ${<your_account_sid>}`);
+  console.log(`Account: ${process.env.TWILIO_ACCOUNT_SID || "(not set)"}`);
   console.log(`From: ${VERIFIED_NUMBER}`);
   console.log(`To: ${TEST_RECIPIENT}`);
   
@@ -84,7 +84,7 @@ async function testWithCorrectFrom() {
   // But we can document what needs to happen
   console.log("To fix this issue, the edge function needs to use:");
   console.log(`  FROM: ${VERIFIED_NUMBER} (not +18777804236)`);
-  console.log(`  Account: ${<your_account_sid>}`);
+  console.log(`  Account: ${process.env.TWILIO_ACCOUNT_SID || "(not set)"}`);
 }
 
 async function checkEdgeFunctionLogs() {
@@ -111,7 +111,7 @@ async function checkEdgeFunctionLogs() {
   console.log("\n=== Identified Problem ===");
   if (status.sms_from === "+18777804236") {
     console.log("✗ FROM number is +18777804236 (Twilio free trial number)");
-    console.log(`✗ This number does NOT belong to account ${<your_account_sid>}`);
+    console.log(`✗ This number does NOT belong to account ${process.env.TWILIO_ACCOUNT_SID || "(not set)"}`);
     console.log(`✓ Should be: ${VERIFIED_NUMBER}`);
   }
 }

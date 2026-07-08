@@ -70,7 +70,7 @@ async function sendSMS(to: string, message: string): Promise<{ ok: boolean; erro
   }
   
   // Format phone number
-  let phone = to.replace(/[\s\-\(\)]/g, "");
+  let phone = to.replace(/[\s\-()]/g, "");
   if (!phone.startsWith("+")) {
     phone = phone.startsWith("0") ? "+254" + phone.slice(1) : "+" + phone;
   }
@@ -111,7 +111,7 @@ async function sendWhatsApp(to: string, message: string): Promise<{ ok: boolean;
     return { ok: false, error: "Twilio credentials not configured" };
   }
   
-  let phone = to.replace(/[\s\-\(\)]/g, "");
+  let phone = to.replace(/[\s\-()]/g, "");
   if (!phone.startsWith("+")) {
     phone = phone.startsWith("0") ? "+254" + phone.slice(1) : "+" + phone;
   }
@@ -145,7 +145,7 @@ async function makeVoiceCall(to: string, message: string): Promise<{ ok: boolean
     return { ok: false, error: "Twilio credentials not configured" };
   }
   
-  let phone = to.replace(/[\s\-\(\)]/g, "");
+  let phone = to.replace(/[\s\-()]/g, "");
   if (!phone.startsWith("+")) {
     phone = phone.startsWith("0") ? "+254" + phone.slice(1) : "+" + phone;
   }

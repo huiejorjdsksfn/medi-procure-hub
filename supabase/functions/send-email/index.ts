@@ -175,7 +175,7 @@ serve(async (req) => {
     const fromEmail = smtpSettings.from_email || "hpdeskg9@gmail.com";
     const fromName = smtpSettings.from_name || "EL5 MediProcure";
 
-    let finalBody = body || "";
+    const finalBody = body || "";
     let htmlContent = html || buildHtml(subject, finalBody, action_url, action_label);
     const textContent = finalBody.replace(/<[^>]+>/g, "") || subject;
 

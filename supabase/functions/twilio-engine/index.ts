@@ -15,7 +15,7 @@ const FROM = "+16812972643";
 const VERIFIED_CALL_NUMBER = "+254116647894";
 
 function e164(raw: string): string {
-  const n = String(raw).replace(/[\s\-\(\)\.]/g, "").trim();
+  const n = String(raw).replace(/[\s\-().]/g, "").trim();
   if (!n) return n;
   if (n.startsWith("+")) return n;
   if (n.startsWith("07") || n.startsWith("01")) return "+254" + n.slice(1);
@@ -25,7 +25,7 @@ function e164(raw: string): string {
 }
 function escXml(s: string): string {
   return String(s).replace(/[<>&"']/g, (c: string) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "\'": "&apos;" }[c] || c));
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c] || c));
 }
 async function twilio(acct: string, auth: string, path: string, params?: Record<string,string>) {
   const url = `https://api.twilio.com/2010-04-01/Accounts/${acct}/${path}`;

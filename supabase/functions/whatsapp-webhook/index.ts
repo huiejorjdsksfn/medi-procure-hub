@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 
   const { ACCT, AUTH, WA_FROM } = await loadCreds();
 
-  let params: Record<string, string> = {};
+  const params: Record<string, string> = {};
   try {
     const text = await req.text();
     for (const pair of text.split("&")) {

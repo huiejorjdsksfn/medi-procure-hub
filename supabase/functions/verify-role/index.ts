@@ -22,7 +22,7 @@ const AUTH    = Deno.env.get("TWILIO_AUTH_TOKEN")          || "";
 const VA_SID  = Deno.env.get("TWILIO_VERIFY_SERVICE_SID")  || "";
 
 function e164(raw: string): string {
-  const n = String(raw || "").replace(/[\s\-\(\)\.]/g, "");
+  const n = String(raw || "").replace(/[\s\-().]/g, "");
   if (!n) return "";
   if (n.startsWith("07") || n.startsWith("01")) return "+254" + n.slice(1);
   if (n.startsWith("254") && !n.startsWith("+")) return "+" + n;

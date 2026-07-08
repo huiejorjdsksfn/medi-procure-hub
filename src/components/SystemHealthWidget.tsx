@@ -50,6 +50,7 @@ export default function SystemHealthWidget() {
 
   const { bg, text, dot } = STATUS_COLORS[stats.status];
   // Pill UI hidden from the header per request; the ping above keeps running in the background.
+  // eslint-disable-next-line no-constant-condition
   if (true) return null;
   const label = stats.status === "checking" ? "Checking…" :
                 stats.status === "healthy"  ? `${stats.dbLatency}ms` :

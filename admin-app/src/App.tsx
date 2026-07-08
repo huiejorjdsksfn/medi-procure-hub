@@ -147,7 +147,8 @@ export default function App() {
       const dbLatency = Date.now() - dt0;
 
       // GitHub last commit
-      let ghLastCommit = '', ghBranch = 'main', lastDeploy = '';
+      let ghLastCommit = '', lastDeploy = '';
+      const ghBranch = 'main';
       try {
         const ghRes = await fetch(`https://api.github.com/repos/${GH_REPO}/commits/main`);
         if (ghRes.ok) {
