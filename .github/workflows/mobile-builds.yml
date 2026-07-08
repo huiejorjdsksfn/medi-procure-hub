@@ -105,6 +105,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check Play Store secret
+        id: play_check
+        env:
+          HAS_KEY: ${{ secrets.PLAY_STORE_JSON_KEY != '' }}
+        run: echo "has_key=$HAS_KEY" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-java@v4
         with: { distribution: zulu, java-version: "17" }
 
@@ -173,7 +179,7 @@ jobs:
       - name: Publish to Google Play Store
         if: |
           github.event.inputs.publish_play_store == 'true' &&
-          secrets.PLAY_STORE_JSON_KEY != ''
+          steps.play_check.outputs.has_key == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
@@ -213,8 +219,14 @@ jobs:
         run: npx cap sync ios
         continue-on-error: true
 
+      - name: Check certificate secret
+        id: cert_check
+        env:
+          HAS_CERT: ${{ secrets.CERTIFICATES_P12 != '' }}
+        run: echo "has_cert=$HAS_CERT" >> "$GITHUB_OUTPUT"
+
       - name: Import Apple certificates
-        if: secrets.CERTIFICATES_P12 != ''
+        if: steps.cert_check.outputs.has_cert == 'true'
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/app.keychain-db
           security create-keychain -p "ci" $KEYCHAIN_PATH
