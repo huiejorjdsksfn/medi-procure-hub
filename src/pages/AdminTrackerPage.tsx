@@ -104,6 +104,9 @@ export default function AdminTrackerPage() {
   const [eoLoading,    setEoLoading]    = useState(false);
   const [eoPurging,    setEoPurging]    = useState(false);
   const [eoLastFetch,  setEoLastFetch]  = useState<string|null>(null);
+  const [eoDomains,    setEoDomains]    = useState<any[]>([]);
+  const [eoBusyId,     setEoBusyId]     = useState<string|null>(null);
+  const [eoAutoRefresh,setEoAutoRefresh]= useState(false);
 
   const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  ?? "";
   const SUPA_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
@@ -127,6 +130,40 @@ export default function AdminTrackerPage() {
     }
     setEoLoading(false);
   }, [SUPA_URL, SUPA_ANON]);
+
+  const eoCall = useCallback(async (action: string, method: "GET"|"POST" = "GET", id?: string) => {
+    const qs = id ? `&id=${encodeURIComponent(id)}` : "";
+    const res = await fetch(`${SUPA_URL}/functions/v1/edgeone-stats?action=${action}${qs}`, {
+      method,
+      headers: { Authorization: `Bearer ${SUPA_ANON}`, "Content-Type": "application/json" },
+    });
+    return { ok: res.ok, data: await res.json().catch(() => ({})) };
+  }, [SUPA_URL, SUPA_ANON]);
+
+  const loadDomains = useCallback(async () => {
+    const { ok, data } = await eoCall("domains");
+    if (ok) setEoDomains(data?.domains || []);
+  }, [eoCall]);
+
+  const rollbackDeployment = async (id: string) => {
+    if (!window.confirm(`Redeploy deployment ${id.slice(-8)} as the new live version?`)) return;
+    setEoBusyId(id);
+    const { data } = await eoCall("rollback", "POST", id);
+    if (data?.triggered) toast({ title: "✅ Rollback triggered", description: `Redeploying #${id.slice(-8)}` });
+    else toast({ title: "⚠️ Rollback failed", description: JSON.stringify(data).slice(0,140), variant: "destructive" });
+    setEoBusyId(null);
+    await loadEdgeOne();
+  };
+
+  const cancelDeployment = async (id: string) => {
+    if (!window.confirm(`Cancel in-progress deployment ${id.slice(-8)}?`)) return;
+    setEoBusyId(id);
+    const { data } = await eoCall("cancel", "POST", id);
+    if (data?.triggered) toast({ title: "🛑 Cancel requested", description: `#${id.slice(-8)}` });
+    else toast({ title: "⚠️ Cancel failed", description: JSON.stringify(data).slice(0,140), variant: "destructive" });
+    setEoBusyId(null);
+    await loadEdgeOne();
+  };
 
   const triggerPurge = async () => {
     if (!window.confirm("Trigger EdgeOne CDN cache purge + redeploy? This will push the latest build live.")) return;
@@ -166,7 +203,16 @@ export default function AdminTrackerPage() {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   // Load EdgeOne stats when that tab is opened
-  useEffect(() => { if (tab === "edgeone" && !eoData) loadEdgeOne(); }, [tab, eoData, loadEdgeOne]);
+  useEffect(() => {
+    if (tab === "edgeone" && !eoData) { loadEdgeOne(); loadDomains(); }
+  }, [tab, eoData, loadEdgeOne, loadDomains]);
+
+  // EdgeOne auto-refresh (every 20s while tab is open)
+  useEffect(() => {
+    if (tab !== "edgeone" || !eoAutoRefresh) return;
+    const id = setInterval(() => loadEdgeOne(), 20000);
+    return () => clearInterval(id);
+  }, [tab, eoAutoRefresh, loadEdgeOne]);
 
   // Auto-refresh
   useEffect(() => {
