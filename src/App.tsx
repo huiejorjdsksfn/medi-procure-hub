@@ -52,7 +52,6 @@ const StampDesignPage        = lazy(() => import("@/pages/StampDesignPage"));
 const ItemsPage              = lazy(() => import("@/pages/ItemsPage"));
 const CategoriesPage         = lazy(() => import("@/pages/CategoriesPage"));
 const DepartmentsPage        = lazy(() => import("@/pages/DepartmentsPage"));
-const FacilitiesPage         = lazy(() => import("@/pages/FacilitiesPage"));
 const ScannerPage            = lazy(() => import("@/pages/ScannerPage"));
 
 // Vouchers
@@ -202,7 +201,6 @@ const App = () => {
               <Route path="/items"       element={<P><ItemsPage /></P>} />
               <Route path="/categories"  element={<P><CategoriesPage /></P>} />
               <Route path="/departments" element={<P><DepartmentsPage /></P>} />
-              <Route path="/facilities"  element={<P><FacilitiesPage /></P>} />
               <Route path="/scanner"     element={<P><ScannerPage /></P>} />
 
               {/* Vouchers */}
