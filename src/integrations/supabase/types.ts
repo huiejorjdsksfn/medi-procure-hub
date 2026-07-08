@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          severity: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          severity?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          severity?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_inbox: {
         Row: {
           action_taken: string | null
@@ -134,11 +176,70 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_queue: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          department: string | null
+          document_id: string
+          document_number: string | null
+          document_title: string | null
+          document_type: string
+          id: string
+          notes: string | null
+          priority: string | null
+          pushed_at: string | null
+          pushed_by_id: string | null
+          pushed_by_name: string | null
+          queue_status: string | null
+          resolved_at: string | null
+          resolved_by_name: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          department?: string | null
+          document_id: string
+          document_number?: string | null
+          document_title?: string | null
+          document_type: string
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          pushed_at?: string | null
+          pushed_by_id?: string | null
+          pushed_by_name?: string | null
+          queue_status?: string | null
+          resolved_at?: string | null
+          resolved_by_name?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          department?: string | null
+          document_id?: string
+          document_number?: string | null
+          document_title?: string | null
+          document_type?: string
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          pushed_at?: string | null
+          pushed_by_id?: string | null
+          pushed_by_name?: string | null
+          queue_status?: string | null
+          resolved_at?: string | null
+          resolved_by_name?: string | null
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
           created_at: string
           details: Json | null
+          entity_id: string | null
+          entity_type: string | null
           id: string
           ip_address: string | null
           module: string
@@ -146,7 +247,11 @@ export type Database = {
           old_values: Json | null
           performed_by: string | null
           record_id: string | null
+          resource_id: string | null
+          resource_type: string | null
+          severity: string | null
           table_name: string | null
+          user_email: string | null
           user_id: string | null
           user_name: string | null
         }
@@ -154,6 +259,8 @@ export type Database = {
           action: string
           created_at?: string
           details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           ip_address?: string | null
           module: string
@@ -161,7 +268,11 @@ export type Database = {
           old_values?: Json | null
           performed_by?: string | null
           record_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: string | null
           table_name?: string | null
+          user_email?: string | null
           user_id?: string | null
           user_name?: string | null
         }
@@ -169,6 +280,8 @@ export type Database = {
           action?: string
           created_at?: string
           details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           ip_address?: string | null
           module?: string
@@ -176,7 +289,11 @@ export type Database = {
           old_values?: Json | null
           performed_by?: string | null
           record_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: string | null
           table_name?: string | null
+          user_email?: string | null
           user_id?: string | null
           user_name?: string | null
         }
@@ -194,7 +311,10 @@ export type Database = {
           module: string | null
           record_id: string | null
           ref: string | null
+          resource_id: string | null
+          resource_type: string | null
           table_name: string | null
+          user_agent: string | null
           user_email: string | null
           user_id: string | null
         }
@@ -209,7 +329,10 @@ export type Database = {
           module?: string | null
           record_id?: string | null
           ref?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
           table_name?: string | null
+          user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
@@ -224,7 +347,10 @@ export type Database = {
           module?: string | null
           record_id?: string | null
           ref?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
           table_name?: string | null
+          user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
@@ -234,6 +360,7 @@ export type Database = {
         Row: {
           backup_type: string | null
           completed_at: string | null
+          created_at: string | null
           error_msg: string | null
           file_size: number | null
           file_url: string | null
@@ -244,11 +371,14 @@ export type Database = {
           size_bytes: number | null
           started_at: string | null
           status: string | null
+          storage_path: string | null
+          tables: Json | null
           tables_json: Json | null
         }
         Insert: {
           backup_type?: string | null
           completed_at?: string | null
+          created_at?: string | null
           error_msg?: string | null
           file_size?: number | null
           file_url?: string | null
@@ -259,11 +389,14 @@ export type Database = {
           size_bytes?: number | null
           started_at?: string | null
           status?: string | null
+          storage_path?: string | null
+          tables?: Json | null
           tables_json?: Json | null
         }
         Update: {
           backup_type?: string | null
           completed_at?: string | null
+          created_at?: string | null
           error_msg?: string | null
           file_size?: number | null
           file_url?: string | null
@@ -274,6 +407,8 @@ export type Database = {
           size_bytes?: number | null
           started_at?: string | null
           status?: string | null
+          storage_path?: string | null
+          tables?: Json | null
           tables_json?: Json | null
         }
         Relationships: [
@@ -578,6 +713,36 @@ export type Database = {
           },
         ]
       }
+      call_queues: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          max_wait_seconds: number
+          name: string
+          strategy: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          max_wait_seconds?: number
+          name: string
+          strategy?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          max_wait_seconds?: number
+          name?: string
+          strategy?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           active: boolean | null
@@ -670,6 +835,75 @@ export type Database = {
         }
         Relationships: []
       }
+      company_deployments: {
+        Row: {
+          company_name: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          county: string | null
+          created_at: string
+          created_by: string | null
+          current_step: string
+          external_connection_id: string | null
+          facility_code: string | null
+          facility_id: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          county?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_step?: string
+          external_connection_id?: string | null
+          facility_code?: string | null
+          facility_id?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          county?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_step?: string
+          external_connection_id?: string | null
+          facility_code?: string | null
+          facility_id?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_deployments_external_connection_fk"
+            columns: ["external_connection_id"]
+            isOneToOne: false
+            referencedRelation: "external_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_deployments_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_milestones: {
         Row: {
           amount: number | null
@@ -721,6 +955,7 @@ export type Database = {
           contact_email: string | null
           contact_person: string | null
           contract_number: string
+          contract_type: string | null
           contract_value: number | null
           created_at: string | null
           created_by: string | null
@@ -762,6 +997,7 @@ export type Database = {
           contact_email?: string | null
           contact_person?: string | null
           contract_number?: string
+          contract_type?: string | null
           contract_value?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -803,6 +1039,7 @@ export type Database = {
           contact_email?: string | null
           contact_person?: string | null
           contract_number?: string
+          contract_type?: string | null
           contract_value?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -990,6 +1227,7 @@ export type Database = {
           budget: number | null
           code: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           head_email: string | null
           head_name: string | null
@@ -1002,6 +1240,7 @@ export type Database = {
           budget?: number | null
           code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           head_email?: string | null
           head_name?: string | null
@@ -1014,6 +1253,7 @@ export type Database = {
           budget?: number | null
           code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           head_email?: string | null
           head_name?: string | null
@@ -1023,6 +1263,65 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      deployment_import_jobs: {
+        Row: {
+          column_mapping: Json
+          completed_at: string | null
+          created_at: string
+          deployment_id: string
+          error_log: Json
+          failed_rows: number
+          id: string
+          imported_rows: number
+          method: string
+          source_label: string
+          started_at: string | null
+          status: string
+          target_table: string
+          total_rows: number
+        }
+        Insert: {
+          column_mapping?: Json
+          completed_at?: string | null
+          created_at?: string
+          deployment_id: string
+          error_log?: Json
+          failed_rows?: number
+          id?: string
+          imported_rows?: number
+          method?: string
+          source_label: string
+          started_at?: string | null
+          status?: string
+          target_table: string
+          total_rows?: number
+        }
+        Update: {
+          column_mapping?: Json
+          completed_at?: string | null
+          created_at?: string
+          deployment_id?: string
+          error_log?: Json
+          failed_rows?: number
+          id?: string
+          imported_rows?: number
+          method?: string
+          source_label?: string
+          started_at?: string | null
+          status?: string
+          target_table?: string
+          total_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_import_jobs_deployment_id_fkey"
+            columns: ["deployment_id"]
+            isOneToOne: false
+            referencedRelation: "company_deployments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_attachments: {
         Row: {
@@ -1070,6 +1369,7 @@ export type Database = {
           id: string
           import_type: string | null
           imported_by: string | null
+          mapped_records: Json | null
           mapped_to: string | null
           original_file: string | null
           parsed_tables: Json | null
@@ -1086,6 +1386,7 @@ export type Database = {
           id?: string
           import_type?: string | null
           imported_by?: string | null
+          mapped_records?: Json | null
           mapped_to?: string | null
           original_file?: string | null
           parsed_tables?: Json | null
@@ -1102,6 +1403,7 @@ export type Database = {
           id?: string
           import_type?: string | null
           imported_by?: string | null
+          mapped_records?: Json | null
           mapped_to?: string | null
           original_file?: string | null
           parsed_tables?: Json | null
@@ -1119,11 +1421,109 @@ export type Database = {
           },
         ]
       }
+      document_signees: {
+        Row: {
+          created_at: string | null
+          declined_at: string | null
+          document_id: string | null
+          due_date: string | null
+          email: string | null
+          id: string
+          ip_address: string | null
+          note: string | null
+          notes: string | null
+          placeholder_id: string
+          role_label: string
+          signature_id: string | null
+          signed_at: string | null
+          signee_email: string | null
+          signee_name: string | null
+          signee_order: number
+          signee_role: string | null
+          sort_order: number | null
+          stamp_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          declined_at?: string | null
+          document_id?: string | null
+          due_date?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          note?: string | null
+          notes?: string | null
+          placeholder_id: string
+          role_label: string
+          signature_id?: string | null
+          signed_at?: string | null
+          signee_email?: string | null
+          signee_name?: string | null
+          signee_order?: number
+          signee_role?: string | null
+          sort_order?: number | null
+          stamp_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          declined_at?: string | null
+          document_id?: string | null
+          due_date?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          note?: string | null
+          notes?: string | null
+          placeholder_id?: string
+          role_label?: string
+          signature_id?: string | null
+          signed_at?: string | null
+          signee_email?: string | null
+          signee_name?: string | null
+          signee_order?: number
+          signee_role?: string | null
+          sort_order?: number | null
+          stamp_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signees_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signees_signature_id_fkey"
+            columns: ["signature_id"]
+            isOneToOne: false
+            referencedRelation: "user_signatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signees_stamp_id_fkey"
+            columns: ["stamp_id"]
+            isOneToOne: false
+            referencedRelation: "org_stamps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string
           checksum: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           download_count: number | null
           file_extension: string | null
@@ -1136,6 +1536,7 @@ export type Database = {
           indexed_text: string | null
           is_locked: boolean | null
           is_parseable: boolean | null
+          is_published: boolean | null
           is_template: boolean | null
           last_accessed_at: string | null
           metadata: Json | null
@@ -1145,8 +1546,17 @@ export type Database = {
           parse_error: string | null
           parsed_content: string | null
           print_count: number | null
+          publish_note: string | null
+          published_at: string | null
+          published_by: string | null
+          published_by_name: string | null
           record_id: string | null
           record_type: string | null
+          requires_signature: boolean | null
+          sign_completed_at: string | null
+          sign_deadline: string | null
+          signature_status: string | null
+          signed_html: string | null
           source: string | null
           storage_path: string | null
           tags: string[] | null
@@ -1160,6 +1570,7 @@ export type Database = {
           category?: string
           checksum?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           download_count?: number | null
           file_extension?: string | null
@@ -1172,6 +1583,7 @@ export type Database = {
           indexed_text?: string | null
           is_locked?: boolean | null
           is_parseable?: boolean | null
+          is_published?: boolean | null
           is_template?: boolean | null
           last_accessed_at?: string | null
           metadata?: Json | null
@@ -1181,8 +1593,17 @@ export type Database = {
           parse_error?: string | null
           parsed_content?: string | null
           print_count?: number | null
+          publish_note?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          published_by_name?: string | null
           record_id?: string | null
           record_type?: string | null
+          requires_signature?: boolean | null
+          sign_completed_at?: string | null
+          sign_deadline?: string | null
+          signature_status?: string | null
+          signed_html?: string | null
           source?: string | null
           storage_path?: string | null
           tags?: string[] | null
@@ -1196,6 +1617,7 @@ export type Database = {
           category?: string
           checksum?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           download_count?: number | null
           file_extension?: string | null
@@ -1208,6 +1630,7 @@ export type Database = {
           indexed_text?: string | null
           is_locked?: boolean | null
           is_parseable?: boolean | null
+          is_published?: boolean | null
           is_template?: boolean | null
           last_accessed_at?: string | null
           metadata?: Json | null
@@ -1217,8 +1640,17 @@ export type Database = {
           parse_error?: string | null
           parsed_content?: string | null
           print_count?: number | null
+          publish_note?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          published_by_name?: string | null
           record_id?: string | null
           record_type?: string | null
+          requires_signature?: boolean | null
+          sign_completed_at?: string | null
+          sign_deadline?: string | null
+          signature_status?: string | null
+          signed_html?: string | null
           source?: string | null
           storage_path?: string | null
           tags?: string[] | null
@@ -1436,7 +1868,9 @@ export type Database = {
           error: string | null
           from_addr: string | null
           id: string
+          is_read: boolean | null
           module: string | null
+          read_at: string | null
           related_id: string | null
           sent_at: string | null
           status: string | null
@@ -1454,7 +1888,9 @@ export type Database = {
           error?: string | null
           from_addr?: string | null
           id?: string
+          is_read?: boolean | null
           module?: string | null
+          read_at?: string | null
           related_id?: string | null
           sent_at?: string | null
           status?: string | null
@@ -1472,7 +1908,9 @@ export type Database = {
           error?: string | null
           from_addr?: string | null
           id?: string
+          is_read?: boolean | null
           module?: string | null
+          read_at?: string | null
           related_id?: string | null
           sent_at?: string | null
           status?: string | null
@@ -1643,12 +2081,15 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           database_name: string | null
+          deployment_id: string | null
           description: string | null
           dsn: string | null
           error_message: string | null
           host: string | null
           id: string
+          last_error: string | null
           last_sync: string | null
+          last_tested_at: string | null
           metadata: Json | null
           name: string
           password: string | null
@@ -1666,12 +2107,15 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           database_name?: string | null
+          deployment_id?: string | null
           description?: string | null
           dsn?: string | null
           error_message?: string | null
           host?: string | null
           id?: string
+          last_error?: string | null
           last_sync?: string | null
+          last_tested_at?: string | null
           metadata?: Json | null
           name: string
           password?: string | null
@@ -1689,12 +2133,15 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           database_name?: string | null
+          deployment_id?: string | null
           description?: string | null
           dsn?: string | null
           error_message?: string | null
           host?: string | null
           id?: string
+          last_error?: string | null
           last_sync?: string | null
+          last_tested_at?: string | null
           metadata?: Json | null
           name?: string
           password?: string | null
@@ -1712,6 +2159,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_connections_deployment_id_fkey"
+            columns: ["deployment_id"]
+            isOneToOne: false
+            referencedRelation: "company_deployments"
             referencedColumns: ["id"]
           },
         ]
@@ -2044,16 +2498,45 @@ export type Database = {
           },
         ]
       }
+      form_responses: {
+        Row: {
+          form_id: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          respondent_email: string | null
+          responses: Json
+          submitted_at: string | null
+        }
+        Insert: {
+          form_id: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          respondent_email?: string | null
+          responses?: Json
+          submitted_at?: string | null
+        }
+        Update: {
+          form_id?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          respondent_email?: string | null
+          responses?: Json
+          submitted_at?: string | null
+        }
+        Relationships: []
+      }
       gl_entries: {
         Row: {
-          account_code: string | null
+          account_code: string
           account_name: string | null
           created_at: string | null
           credit: number | null
           debit: number | null
           description: string | null
-          entry_date: string | null
-          erp_sync_id: string | null
+          entry_date: string
           fiscal_year: string | null
           gl_account: string | null
           id: string
@@ -2066,17 +2549,15 @@ export type Database = {
           reference_type: string | null
           status: string | null
           updated_at: string | null
-          voucher_id: string | null
         }
         Insert: {
-          account_code?: string | null
+          account_code: string
           account_name?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
           description?: string | null
-          entry_date?: string | null
-          erp_sync_id?: string | null
+          entry_date?: string
           fiscal_year?: string | null
           gl_account?: string | null
           id?: string
@@ -2089,17 +2570,15 @@ export type Database = {
           reference_type?: string | null
           status?: string | null
           updated_at?: string | null
-          voucher_id?: string | null
         }
         Update: {
-          account_code?: string | null
+          account_code?: string
           account_name?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
           description?: string | null
-          entry_date?: string | null
-          erp_sync_id?: string | null
+          entry_date?: string
           fiscal_year?: string | null
           gl_account?: string | null
           id?: string
@@ -2112,7 +2591,6 @@ export type Database = {
           reference_type?: string | null
           status?: string | null
           updated_at?: string | null
-          voucher_id?: string | null
         }
         Relationships: []
       }
@@ -2266,6 +2744,11 @@ export type Database = {
           received_by_name: string | null
           received_date: string | null
           remarks: string | null
+          stamp_label: string | null
+          stamped: boolean | null
+          stamped_at: string | null
+          stamped_by: string | null
+          stamped_by_name: string | null
           status: string | null
           storage_location: string | null
           store_location: string | null
@@ -2311,6 +2794,11 @@ export type Database = {
           received_by_name?: string | null
           received_date?: string | null
           remarks?: string | null
+          stamp_label?: string | null
+          stamped?: boolean | null
+          stamped_at?: string | null
+          stamped_by?: string | null
+          stamped_by_name?: string | null
           status?: string | null
           storage_location?: string | null
           store_location?: string | null
@@ -2356,6 +2844,11 @@ export type Database = {
           received_by_name?: string | null
           received_date?: string | null
           remarks?: string | null
+          stamp_label?: string | null
+          stamped?: boolean | null
+          stamped_at?: string | null
+          stamped_by?: string | null
+          stamped_by_name?: string | null
           status?: string | null
           storage_location?: string | null
           store_location?: string | null
@@ -2465,6 +2958,63 @@ export type Database = {
           },
         ]
       }
+      google_forms: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          edit_url: string | null
+          field_definitions: Json | null
+          fields: string | null
+          form_api_id: string | null
+          form_id: string
+          form_url: string | null
+          id: string
+          is_active: boolean | null
+          method: string | null
+          published_at: string | null
+          response_count: number | null
+          sender_email: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          edit_url?: string | null
+          field_definitions?: Json | null
+          fields?: string | null
+          form_api_id?: string | null
+          form_id: string
+          form_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          method?: string | null
+          published_at?: string | null
+          response_count?: number | null
+          sender_email?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          edit_url?: string | null
+          field_definitions?: Json | null
+          fields?: string | null
+          form_api_id?: string | null
+          form_id?: string
+          form_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          method?: string | null
+          published_at?: string | null
+          response_count?: number | null
+          sender_email?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       grn_items: {
         Row: {
           condition: string | null
@@ -2535,7 +3085,10 @@ export type Database = {
         Row: {
           action_taken: string | null
           body: string | null
+          cc: string | null
           created_at: string | null
+          from_email: string | null
+          from_name: string | null
           from_user_id: string | null
           id: string
           is_archived: boolean | null
@@ -2550,13 +3103,18 @@ export type Database = {
           reply_body: string | null
           status: string | null
           subject: string
+          thread_id: string | null
+          to_email: string | null
           to_user_id: string | null
           type: string
         }
         Insert: {
           action_taken?: string | null
           body?: string | null
+          cc?: string | null
           created_at?: string | null
+          from_email?: string | null
+          from_name?: string | null
           from_user_id?: string | null
           id?: string
           is_archived?: boolean | null
@@ -2571,13 +3129,18 @@ export type Database = {
           reply_body?: string | null
           status?: string | null
           subject: string
+          thread_id?: string | null
+          to_email?: string | null
           to_user_id?: string | null
           type: string
         }
         Update: {
           action_taken?: string | null
           body?: string | null
+          cc?: string | null
           created_at?: string | null
+          from_email?: string | null
+          from_name?: string | null
           from_user_id?: string | null
           id?: string
           is_archived?: boolean | null
@@ -2592,6 +3155,8 @@ export type Database = {
           reply_body?: string | null
           status?: string | null
           subject?: string
+          thread_id?: string | null
+          to_email?: string | null
           to_user_id?: string | null
           type?: string
         }
@@ -2679,6 +3244,7 @@ export type Database = {
           rejection_reason: string | null
           result: string | null
           result_notes: string | null
+          status: string | null
           supplier_id: string | null
           supplier_name: string | null
           updated_at: string | null
@@ -2710,6 +3276,7 @@ export type Database = {
           rejection_reason?: string | null
           result?: string | null
           result_notes?: string | null
+          status?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           updated_at?: string | null
@@ -2741,6 +3308,7 @@ export type Database = {
           rejection_reason?: string | null
           result?: string | null
           result_notes?: string | null
+          status?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           updated_at?: string | null
@@ -3094,6 +3662,48 @@ export type Database = {
           },
         ]
       }
+      ip_access_rules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          hit_count: number | null
+          id: string
+          ip_address: string
+          is_active: boolean | null
+          last_seen: string | null
+          rule_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          ip_address: string
+          is_active?: boolean | null
+          last_seen?: string | null
+          rule_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          ip_address?: string
+          is_active?: boolean | null
+          last_seen?: string | null
+          rule_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       item_categories: {
         Row: {
           created_at: string | null
@@ -3129,6 +3739,7 @@ export type Database = {
       items: {
         Row: {
           added_by: string | null
+          adjustment_reason: string | null
           barcode: string | null
           batch_number: string | null
           category: string | null
@@ -3168,6 +3779,7 @@ export type Database = {
         }
         Insert: {
           added_by?: string | null
+          adjustment_reason?: string | null
           barcode?: string | null
           batch_number?: string | null
           category?: string | null
@@ -3207,6 +3819,7 @@ export type Database = {
         }
         Update: {
           added_by?: string | null
+          adjustment_reason?: string | null
           barcode?: string | null
           batch_number?: string | null
           category?: string | null
@@ -3268,6 +3881,83 @@ export type Database = {
           },
         ]
       }
+      ivr_menus: {
+        Row: {
+          created_at: string
+          fallback_action: string | null
+          greeting_text: string | null
+          id: string
+          is_active: boolean
+          max_retries: number
+          menu_key: string
+          name: string
+          sort_order: number
+          timeout_ms: number
+        }
+        Insert: {
+          created_at?: string
+          fallback_action?: string | null
+          greeting_text?: string | null
+          id?: string
+          is_active?: boolean
+          max_retries?: number
+          menu_key: string
+          name: string
+          sort_order?: number
+          timeout_ms?: number
+        }
+        Update: {
+          created_at?: string
+          fallback_action?: string | null
+          greeting_text?: string | null
+          id?: string
+          is_active?: boolean
+          max_retries?: number
+          menu_key?: string
+          name?: string
+          sort_order?: number
+          timeout_ms?: number
+        }
+        Relationships: []
+      }
+      ivr_options: {
+        Row: {
+          action: string | null
+          description: string | null
+          digit: string
+          id: string
+          menu_id: string | null
+          sort_order: number
+          target: string | null
+        }
+        Insert: {
+          action?: string | null
+          description?: string | null
+          digit: string
+          id?: string
+          menu_id?: string | null
+          sort_order?: number
+          target?: string | null
+        }
+        Update: {
+          action?: string | null
+          description?: string | null
+          digit?: string
+          id?: string
+          menu_id?: string | null
+          sort_order?: number
+          target?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ivr_options_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "ivr_menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_voucher_lines: {
         Row: {
           account_code: string | null
@@ -3316,14 +4006,21 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
+          credit_amount: number | null
+          debit_amount: number | null
           entries: Json | null
+          gl_credit_account: string | null
+          gl_debit_account: string | null
           id: string
           is_balanced: boolean | null
           journal_date: string
           journal_number: string
           narration: string | null
           period: string | null
+          posted_at: string | null
+          posted_by: string | null
           reference: string | null
+          reversed_at: string | null
           status: string | null
           total_credit: number | null
           total_debit: number | null
@@ -3335,14 +4032,21 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          credit_amount?: number | null
+          debit_amount?: number | null
           entries?: Json | null
+          gl_credit_account?: string | null
+          gl_debit_account?: string | null
           id?: string
           is_balanced?: boolean | null
           journal_date?: string
           journal_number?: string
           narration?: string | null
           period?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
           reference?: string | null
+          reversed_at?: string | null
           status?: string | null
           total_credit?: number | null
           total_debit?: number | null
@@ -3354,18 +4058,73 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          credit_amount?: number | null
+          debit_amount?: number | null
           entries?: Json | null
+          gl_credit_account?: string | null
+          gl_debit_account?: string | null
           id?: string
           is_balanced?: boolean | null
           journal_date?: string
           journal_number?: string
           narration?: string | null
           period?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
           reference?: string | null
+          reversed_at?: string | null
           status?: string | null
           total_credit?: number | null
           total_debit?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      keepalive_bot_control: {
+        Row: {
+          backoff_until: string | null
+          consecutive_trips: number
+          enabled: boolean
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          backoff_until?: string | null
+          consecutive_trips?: number
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          backoff_until?: string | null
+          consecutive_trips?: number
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      keepalive_incidents: {
+        Row: {
+          detail: Json | null
+          id: number
+          opened_at: string
+          reason: string
+          resolved_at: string | null
+        }
+        Insert: {
+          detail?: Json | null
+          id?: number
+          opened_at?: string
+          reason: string
+          resolved_at?: string | null
+        }
+        Update: {
+          detail?: Json | null
+          id?: number
+          opened_at?: string
+          reason?: string
+          resolved_at?: string | null
         }
         Relationships: []
       }
@@ -3456,6 +4215,7 @@ export type Database = {
       non_conformance: {
         Row: {
           closed_at: string | null
+          closed_by: string | null
           corrective_action: string | null
           cost_impact: number | null
           created_at: string | null
@@ -3488,6 +4248,7 @@ export type Database = {
         }
         Insert: {
           closed_at?: string | null
+          closed_by?: string | null
           corrective_action?: string | null
           cost_impact?: number | null
           created_at?: string | null
@@ -3520,6 +4281,7 @@ export type Database = {
         }
         Update: {
           closed_at?: string | null
+          closed_by?: string | null
           corrective_action?: string | null
           cost_impact?: number | null
           created_at?: string | null
@@ -3791,7 +4553,9 @@ export type Database = {
           category: string | null
           cc: string | null
           created_at: string | null
+          created_by: string | null
           dismissed_at: string | null
+          entity_id: string | null
           expires_at: string | null
           icon: string | null
           id: string
@@ -3801,6 +4565,7 @@ export type Database = {
           metadata: Json | null
           module: string
           priority: string | null
+          read_at: string | null
           recipient_id: string | null
           record_id: string | null
           record_number: string | null
@@ -3824,7 +4589,9 @@ export type Database = {
           category?: string | null
           cc?: string | null
           created_at?: string | null
+          created_by?: string | null
           dismissed_at?: string | null
+          entity_id?: string | null
           expires_at?: string | null
           icon?: string | null
           id?: string
@@ -3834,6 +4601,7 @@ export type Database = {
           metadata?: Json | null
           module?: string
           priority?: string | null
+          read_at?: string | null
           recipient_id?: string | null
           record_id?: string | null
           record_number?: string | null
@@ -3857,7 +4625,9 @@ export type Database = {
           category?: string | null
           cc?: string | null
           created_at?: string | null
+          created_by?: string | null
           dismissed_at?: string | null
+          entity_id?: string | null
           expires_at?: string | null
           icon?: string | null
           id?: string
@@ -3867,6 +4637,7 @@ export type Database = {
           metadata?: Json | null
           module?: string
           priority?: string | null
+          read_at?: string | null
           recipient_id?: string | null
           record_id?: string | null
           record_number?: string | null
@@ -3900,6 +4671,9 @@ export type Database = {
           description: string | null
           driver: string
           id: string
+          last_check_ok: boolean | null
+          last_checked_at: string | null
+          last_latency_ms: number | null
           last_sync: string | null
           name: string
           port: number | null
@@ -3916,6 +4690,9 @@ export type Database = {
           description?: string | null
           driver: string
           id?: string
+          last_check_ok?: boolean | null
+          last_checked_at?: string | null
+          last_latency_ms?: number | null
           last_sync?: string | null
           name: string
           port?: number | null
@@ -3932,6 +4709,9 @@ export type Database = {
           description?: string | null
           driver?: string
           id?: string
+          last_check_ok?: boolean | null
+          last_checked_at?: string | null
+          last_latency_ms?: number | null
           last_sync?: string | null
           name?: string
           port?: number | null
@@ -3950,6 +4730,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      org_stamps: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          department: string | null
+          id: string
+          image_base64: string | null
+          image_data: string | null
+          is_active: boolean | null
+          label: string
+          public_url: string | null
+          stamp_type: string | null
+          storage_path: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          image_base64?: string | null
+          image_data?: string | null
+          is_active?: boolean | null
+          label?: string
+          public_url?: string | null
+          stamp_type?: string | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          image_base64?: string | null
+          image_data?: string | null
+          is_active?: boolean | null
+          label?: string
+          public_url?: string | null
+          stamp_type?: string | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
       }
       password_reset_log: {
         Row: {
@@ -4111,7 +4936,7 @@ export type Database = {
           paid_at: string | null
           payee: string | null
           payee_account: string | null
-          payee_name: string | null
+          payee_name: string
           payee_pin: string | null
           payee_type: string | null
           payment_method: string | null
@@ -4127,7 +4952,7 @@ export type Database = {
           total_amount: number | null
           updated_at: string | null
           vote_head: string | null
-          voucher_date: string | null
+          voucher_date: string
           voucher_number: string
           withholding_tax: number | null
         }
@@ -4160,7 +4985,7 @@ export type Database = {
           paid_at?: string | null
           payee?: string | null
           payee_account?: string | null
-          payee_name?: string | null
+          payee_name: string
           payee_pin?: string | null
           payee_type?: string | null
           payment_method?: string | null
@@ -4176,7 +5001,7 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           vote_head?: string | null
-          voucher_date?: string | null
+          voucher_date?: string
           voucher_number?: string
           withholding_tax?: number | null
         }
@@ -4209,7 +5034,7 @@ export type Database = {
           paid_at?: string | null
           payee?: string | null
           payee_account?: string | null
-          payee_name?: string | null
+          payee_name?: string
           payee_pin?: string | null
           payee_type?: string | null
           payment_method?: string | null
@@ -4225,7 +5050,7 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           vote_head?: string | null
-          voucher_date?: string | null
+          voucher_date?: string
           voucher_number?: string
           withholding_tax?: number | null
         }
@@ -4285,6 +5110,99 @@ export type Database = {
           },
         ]
       }
+      phone_calls: {
+        Row: {
+          answer_time: string | null
+          callee_extension: string | null
+          callee_name: string | null
+          caller_extension: string | null
+          caller_name: string | null
+          department: string | null
+          direction: string
+          duration_seconds: number | null
+          end_time: string | null
+          id: string
+          ivr_path: Json | null
+          notes: string | null
+          recording_url: string | null
+          start_time: string
+          status: string
+          transferred_to: string | null
+        }
+        Insert: {
+          answer_time?: string | null
+          callee_extension?: string | null
+          callee_name?: string | null
+          caller_extension?: string | null
+          caller_name?: string | null
+          department?: string | null
+          direction: string
+          duration_seconds?: number | null
+          end_time?: string | null
+          id?: string
+          ivr_path?: Json | null
+          notes?: string | null
+          recording_url?: string | null
+          start_time?: string
+          status?: string
+          transferred_to?: string | null
+        }
+        Update: {
+          answer_time?: string | null
+          callee_extension?: string | null
+          callee_name?: string | null
+          caller_extension?: string | null
+          caller_name?: string | null
+          department?: string | null
+          direction?: string
+          duration_seconds?: number | null
+          end_time?: string | null
+          id?: string
+          ivr_path?: Json | null
+          notes?: string | null
+          recording_url?: string | null
+          start_time?: string
+          status?: string
+          transferred_to?: string | null
+        }
+        Relationships: []
+      }
+      phone_extensions: {
+        Row: {
+          created_at: string
+          department: string | null
+          display_name: string
+          extension_number: string
+          forward_to: string | null
+          id: string
+          last_seen: string | null
+          status: string
+          voicemail_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          display_name: string
+          extension_number: string
+          forward_to?: string | null
+          id?: string
+          last_seen?: string | null
+          status?: string
+          voicemail_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          display_name?: string
+          extension_number?: string
+          forward_to?: string | null
+          id?: string
+          last_seen?: string | null
+          status?: string
+          voicemail_enabled?: boolean
+        }
+        Relationships: []
+      }
       print_jobs: {
         Row: {
           copies: number | null
@@ -4333,6 +5251,33 @@ export type Database = {
           reference_number?: string | null
           status?: string | null
           template?: string | null
+        }
+        Relationships: []
+      }
+      print_log: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          page: string | null
+          printed_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          page?: string | null
+          printed_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          page?: string | null
+          printed_by?: string | null
         }
         Relationships: []
       }
@@ -4514,19 +5459,26 @@ export type Database = {
           department: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
+          facility_id: string | null
           failed_logins: number | null
           full_name: string
           id: string
           is_active: boolean | null
           is_locked: boolean | null
+          job_title: string | null
           last_ip: string | null
           last_login: string | null
           last_seen: string | null
+          national_id: string | null
           phone: string | null
           phone_number: string | null
           preferred_language: string | null
           role: string | null
+          signature_url: string | null
           sms_enabled: boolean | null
+          stamp_url: string | null
+          supervisor_id: string | null
           updated_at: string | null
           username: string | null
         }
@@ -4536,19 +5488,26 @@ export type Database = {
           department?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
+          facility_id?: string | null
           failed_logins?: number | null
           full_name: string
           id: string
           is_active?: boolean | null
           is_locked?: boolean | null
+          job_title?: string | null
           last_ip?: string | null
           last_login?: string | null
           last_seen?: string | null
+          national_id?: string | null
           phone?: string | null
           phone_number?: string | null
           preferred_language?: string | null
           role?: string | null
+          signature_url?: string | null
           sms_enabled?: boolean | null
+          stamp_url?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -4558,19 +5517,26 @@ export type Database = {
           department?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
+          facility_id?: string | null
           failed_logins?: number | null
           full_name?: string
           id?: string
           is_active?: boolean | null
           is_locked?: boolean | null
+          job_title?: string | null
           last_ip?: string | null
           last_login?: string | null
           last_seen?: string | null
+          national_id?: string | null
           phone?: string | null
           phone_number?: string | null
           preferred_language?: string | null
           role?: string | null
+          signature_url?: string | null
           sms_enabled?: boolean | null
+          stamp_url?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -4662,6 +5628,11 @@ export type Database = {
           po_number: string
           rejection_reason: string | null
           requisition_id: string | null
+          stamp_label: string | null
+          stamped: boolean | null
+          stamped_at: string | null
+          stamped_by: string | null
+          stamped_by_name: string | null
           status: string | null
           subtotal: number | null
           supplier_address: string | null
@@ -4706,6 +5677,11 @@ export type Database = {
           po_number?: string
           rejection_reason?: string | null
           requisition_id?: string | null
+          stamp_label?: string | null
+          stamped?: boolean | null
+          stamped_at?: string | null
+          stamped_by?: string | null
+          stamped_by_name?: string | null
           status?: string | null
           subtotal?: number | null
           supplier_address?: string | null
@@ -4750,6 +5726,11 @@ export type Database = {
           po_number?: string
           rejection_reason?: string | null
           requisition_id?: string | null
+          stamp_label?: string | null
+          stamped?: boolean | null
+          stamped_at?: string | null
+          stamped_by?: string | null
+          stamped_by_name?: string | null
           status?: string | null
           subtotal?: number | null
           supplier_address?: string | null
@@ -4851,6 +5832,7 @@ export type Database = {
       purchase_vouchers: {
         Row: {
           amount: number | null
+          approved_at: string | null
           approved_by: string | null
           approved_by_name: string | null
           created_at: string | null
@@ -4879,6 +5861,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          approved_at?: string | null
           approved_by?: string | null
           approved_by_name?: string | null
           created_at?: string | null
@@ -4907,6 +5890,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          approved_at?: string | null
           approved_by?: string | null
           approved_by_name?: string | null
           created_at?: string | null
@@ -4975,6 +5959,41 @@ export type Database = {
           rows_affected?: number | null
         }
         Relationships: []
+      }
+      queue_agents: {
+        Row: {
+          created_at: string
+          extension: string | null
+          id: string
+          queue_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          extension?: string | null
+          id?: string
+          queue_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          extension?: string | null
+          id?: string
+          queue_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_agents_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "call_queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotation_items: {
         Row: {
@@ -5046,6 +6065,7 @@ export type Database = {
           requisition_id: string | null
           status: string | null
           supplier_id: string | null
+          supplier_name: string | null
           total_amount: number | null
           updated_at: string | null
           valid_until: string | null
@@ -5068,6 +6088,7 @@ export type Database = {
           requisition_id?: string | null
           status?: string | null
           supplier_id?: string | null
+          supplier_name?: string | null
           total_amount?: number | null
           updated_at?: string | null
           valid_until?: string | null
@@ -5090,6 +6111,7 @@ export type Database = {
           requisition_id?: string | null
           status?: string | null
           supplier_id?: string | null
+          supplier_name?: string | null
           total_amount?: number | null
           updated_at?: string | null
           valid_until?: string | null
@@ -5125,29 +6147,49 @@ export type Database = {
           },
         ]
       }
+      rate_limit_log: {
+        Row: {
+          action: string
+          id: string
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       receipt_vouchers: {
         Row: {
           amount: number
-          approved_at: string | null
           approved_by: string | null
           bank_name: string | null
           bank_reference: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
+          department: string | null
           department_id: string | null
           description: string | null
-          fund_code: string | null
           gl_account: string | null
           id: string
           income_account: string | null
-          notes: string | null
           payment_method: string | null
-          period: string | null
-          receipt_date: string | null
-          receipt_number: string | null
+          receipt_date: string
+          receipt_number: string
           received_by: string | null
-          received_from: string | null
+          received_from: string
           reference: string | null
           status: string | null
           total_amount: number | null
@@ -5155,26 +6197,25 @@ export type Database = {
         }
         Insert: {
           amount?: number
-          approved_at?: string | null
           approved_by?: string | null
           bank_name?: string | null
           bank_reference?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          department?: string | null
           department_id?: string | null
           description?: string | null
-          fund_code?: string | null
           gl_account?: string | null
           id?: string
           income_account?: string | null
-          notes?: string | null
           payment_method?: string | null
-          period?: string | null
-          receipt_date?: string | null
-          receipt_number?: string | null
+          receipt_date?: string
+          receipt_number?: string
           received_by?: string | null
-          received_from?: string | null
+          received_from: string
           reference?: string | null
           status?: string | null
           total_amount?: number | null
@@ -5182,26 +6223,25 @@ export type Database = {
         }
         Update: {
           amount?: number
-          approved_at?: string | null
           approved_by?: string | null
           bank_name?: string | null
           bank_reference?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          department?: string | null
           department_id?: string | null
           description?: string | null
-          fund_code?: string | null
           gl_account?: string | null
           id?: string
           income_account?: string | null
-          notes?: string | null
           payment_method?: string | null
-          period?: string | null
-          receipt_date?: string | null
-          receipt_number?: string | null
+          receipt_date?: string
+          receipt_number?: string
           received_by?: string | null
-          received_from?: string | null
+          received_from?: string
           reference?: string | null
           status?: string | null
           total_amount?: number | null
@@ -5284,6 +6324,7 @@ export type Database = {
           received_by: string | null
           received_by_name: string | null
           staff_contacted: string | null
+          status: string | null
           twilio_call_sid: string | null
         }
         Insert: {
@@ -5301,6 +6342,7 @@ export type Database = {
           received_by?: string | null
           received_by_name?: string | null
           staff_contacted?: string | null
+          status?: string | null
           twilio_call_sid?: string | null
         }
         Update: {
@@ -5318,6 +6360,7 @@ export type Database = {
           received_by?: string | null
           received_by_name?: string | null
           staff_contacted?: string | null
+          status?: string | null
           twilio_call_sid?: string | null
         }
         Relationships: []
@@ -5382,6 +6425,8 @@ export type Database = {
       reception_visitors: {
         Row: {
           badge_number: string | null
+          check_in_time: string | null
+          check_out_time: string | null
           checked_in_at: string | null
           checked_out_at: string | null
           created_at: string | null
@@ -5398,10 +6443,13 @@ export type Database = {
           received_by: string | null
           received_by_name: string | null
           sms_sent: boolean | null
+          status: string | null
           visit_status: string | null
         }
         Insert: {
           badge_number?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
           checked_in_at?: string | null
           checked_out_at?: string | null
           created_at?: string | null
@@ -5418,10 +6466,13 @@ export type Database = {
           received_by?: string | null
           received_by_name?: string | null
           sms_sent?: boolean | null
+          status?: string | null
           visit_status?: string | null
         }
         Update: {
           badge_number?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
           checked_in_at?: string | null
           checked_out_at?: string | null
           created_at?: string | null
@@ -5438,6 +6489,7 @@ export type Database = {
           received_by?: string | null
           received_by_name?: string | null
           sms_sent?: boolean | null
+          status?: string | null
           visit_status?: string | null
         }
         Relationships: []
@@ -5475,6 +6527,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reference_data: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          metadata: Json | null
+          sort_order: number | null
+          type: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          metadata?: Json | null
+          sort_order?: number | null
+          type: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          metadata?: Json | null
+          sort_order?: number | null
+          type?: string
+          value?: string
+        }
+        Relationships: []
+      }
       report_schedules: {
         Row: {
           created_at: string
@@ -5483,6 +6568,7 @@ export type Database = {
           enabled: boolean | null
           format: string | null
           id: string
+          is_active: boolean | null
           last_run_at: string | null
           name: string
           next_run_at: string | null
@@ -5497,6 +6583,7 @@ export type Database = {
           enabled?: boolean | null
           format?: string | null
           id?: string
+          is_active?: boolean | null
           last_run_at?: string | null
           name: string
           next_run_at?: string | null
@@ -5511,6 +6598,7 @@ export type Database = {
           enabled?: boolean | null
           format?: string | null
           id?: string
+          is_active?: boolean | null
           last_run_at?: string | null
           name?: string
           next_run_at?: string | null
@@ -5528,6 +6616,7 @@ export type Database = {
           file_url: string | null
           filters: Json | null
           format: string | null
+          generated_at: string | null
           generated_by: string | null
           generated_by_name: string | null
           id: string
@@ -5544,6 +6633,7 @@ export type Database = {
           file_url?: string | null
           filters?: Json | null
           format?: string | null
+          generated_at?: string | null
           generated_by?: string | null
           generated_by_name?: string | null
           id?: string
@@ -5560,6 +6650,7 @@ export type Database = {
           file_url?: string | null
           filters?: Json | null
           format?: string | null
+          generated_at?: string | null
           generated_by?: string | null
           generated_by_name?: string | null
           id?: string
@@ -5674,6 +6765,11 @@ export type Database = {
           requester_name: string | null
           required_date: string | null
           requisition_number: string
+          stamp_label: string | null
+          stamped: boolean | null
+          stamped_at: string | null
+          stamped_by: string | null
+          stamped_by_name: string | null
           status: string | null
           submitted_at: string | null
           title: string | null
@@ -5723,6 +6819,11 @@ export type Database = {
           requester_name?: string | null
           required_date?: string | null
           requisition_number?: string
+          stamp_label?: string | null
+          stamped?: boolean | null
+          stamped_at?: string | null
+          stamped_by?: string | null
+          stamped_by_name?: string | null
           status?: string | null
           submitted_at?: string | null
           title?: string | null
@@ -5772,6 +6873,11 @@ export type Database = {
           requester_name?: string | null
           required_date?: string | null
           requisition_number?: string
+          stamp_label?: string | null
+          stamped?: boolean | null
+          stamped_at?: string | null
+          stamped_by?: string | null
+          stamped_by_name?: string | null
           status?: string | null
           submitted_at?: string | null
           title?: string | null
@@ -5795,6 +6901,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_assignment_log: {
+        Row: {
+          action: string
+          assigned_by: string | null
+          assigned_by_name: string | null
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          reason: string | null
+          roles_added: string[] | null
+          roles_after: string[] | null
+          roles_before: string[] | null
+          roles_removed: string[] | null
+          target_email: string | null
+          target_name: string | null
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          assigned_by?: string | null
+          assigned_by_name?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          reason?: string | null
+          roles_added?: string[] | null
+          roles_after?: string[] | null
+          roles_before?: string[] | null
+          roles_removed?: string[] | null
+          target_email?: string | null
+          target_name?: string | null
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          assigned_by?: string | null
+          assigned_by_name?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          reason?: string | null
+          roles_added?: string[] | null
+          roles_after?: string[] | null
+          roles_before?: string[] | null
+          roles_removed?: string[] | null
+          target_email?: string | null
+          target_name?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -6020,8 +7177,113 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_chain: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          hash: string
+          id: number
+          new_values: Json | null
+          old_values: Json | null
+          prev_hash: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          hash: string
+          id?: number
+          new_values?: Json | null
+          old_values?: Json | null
+          prev_hash?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          hash?: string
+          id?: number
+          new_values?: Json | null
+          old_values?: Json | null
+          prev_hash?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_nonces: {
+        Row: {
+          created_at: string
+          nonce: string
+        }
+        Insert: {
+          created_at?: string
+          nonce: string
+        }
+        Update: {
+          created_at?: string
+          nonce?: string
+        }
+        Relationships: []
+      }
+      sms_bulk_operations: {
+        Row: {
+          body: string
+          completed_at: string | null
+          created_at: string
+          failed_count: number
+          id: string
+          name: string | null
+          recipients_count: number
+          started_at: string | null
+          status: string
+          successful_count: number
+          template_id: string | null
+        }
+        Insert: {
+          body: string
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          name?: string | null
+          recipients_count?: number
+          started_at?: string | null
+          status?: string
+          successful_count?: number
+          template_id?: string | null
+        }
+        Update: {
+          body?: string
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          name?: string | null
+          recipients_count?: number
+          started_at?: string | null
+          status?: string
+          successful_count?: number
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_bulk_operations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_conversations: {
         Row: {
+          assigned_to: string | null
           contact_name: string | null
           created_at: string
           department: string | null
@@ -6033,6 +7295,7 @@ export type Database = {
           unread_count: number | null
         }
         Insert: {
+          assigned_to?: string | null
           contact_name?: string | null
           created_at?: string
           department?: string | null
@@ -6044,6 +7307,7 @@ export type Database = {
           unread_count?: number | null
         }
         Update: {
+          assigned_to?: string | null
           contact_name?: string | null
           created_at?: string
           department?: string | null
@@ -6110,6 +7374,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          use_count: number
+          variables: Json | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          use_count?: number
+          variables?: Json | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          use_count?: number
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           created_at: string | null
@@ -6120,9 +7417,11 @@ export type Database = {
           id: string
           item_id: string | null
           item_name: string | null
+          movement_date: string | null
           movement_number: string
           movement_type: string
           notes: string | null
+          performed_by: string | null
           quantity: number
           reference: string | null
           reference_type: string | null
@@ -6140,9 +7439,11 @@ export type Database = {
           id?: string
           item_id?: string | null
           item_name?: string | null
+          movement_date?: string | null
           movement_number: string
           movement_type: string
           notes?: string | null
+          performed_by?: string | null
           quantity: number
           reference?: string | null
           reference_type?: string | null
@@ -6160,9 +7461,11 @@ export type Database = {
           id?: string
           item_id?: string | null
           item_name?: string | null
+          movement_date?: string | null
           movement_number?: string
           movement_type?: string
           notes?: string | null
+          performed_by?: string | null
           quantity?: number
           reference?: string | null
           reference_type?: string | null
@@ -6192,6 +7495,7 @@ export type Database = {
         Row: {
           created_at: string
           delivery_score: number | null
+          evaluation_date: string | null
           id: string
           notes: string | null
           overall_score: number | null
@@ -6200,11 +7504,13 @@ export type Database = {
           quality_score: number | null
           service_score: number | null
           supplier_id: string | null
+          total_score: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           delivery_score?: number | null
+          evaluation_date?: string | null
           id?: string
           notes?: string | null
           overall_score?: number | null
@@ -6213,11 +7519,13 @@ export type Database = {
           quality_score?: number | null
           service_score?: number | null
           supplier_id?: string | null
+          total_score?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           delivery_score?: number | null
+          evaluation_date?: string | null
           id?: string
           notes?: string | null
           overall_score?: number | null
@@ -6226,6 +7534,7 @@ export type Database = {
           quality_score?: number | null
           service_score?: number | null
           supplier_id?: string | null
+          total_score?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -6340,8 +7649,10 @@ export type Database = {
       system_broadcasts: {
         Row: {
           action_url: string | null
+          created_at: string | null
           expires_in: number | null
           id: string
+          is_active: boolean | null
           message: string
           recipient_count: number | null
           sent_at: string | null
@@ -6351,8 +7662,10 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
+          created_at?: string | null
           expires_in?: number | null
           id?: string
+          is_active?: boolean | null
           message: string
           recipient_count?: number | null
           sent_at?: string | null
@@ -6362,14 +7675,40 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
+          created_at?: string | null
           expires_in?: number | null
           id?: string
+          is_active?: boolean | null
           message?: string
           recipient_count?: number | null
           sent_at?: string | null
           sent_by?: string | null
           title?: string
           type?: string | null
+        }
+        Relationships: []
+      }
+      system_circuit_breaker: {
+        Row: {
+          failure_count: number
+          opened_at: string | null
+          service_key: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          failure_count?: number
+          opened_at?: string | null
+          service_key: string
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          failure_count?: number
+          opened_at?: string | null
+          service_key?: string
+          state?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -6473,6 +7812,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_failover_log: {
+        Row: {
+          created_at: string
+          detail: string | null
+          event: string
+          id: number
+          service_key: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          event: string
+          id?: never
+          service_key: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          event?: string
+          id?: never
+          service_key?: string
+        }
+        Relationships: []
       }
       system_metrics: {
         Row: {
@@ -6695,6 +8058,117 @@ export type Database = {
           },
         ]
       }
+      user_action_log: {
+        Row: {
+          action: string | null
+          action_type: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          module: string | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          action_type?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          module?: string | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          action_type?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          module?: string | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_activity_log: {
+        Row: {
+          action: string
+          action_type: string
+          created_at: string | null
+          duration_ms: number | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          module: string
+          new_values: Json | null
+          old_values: Json | null
+          primary_role: string | null
+          roles_snapshot: string[] | null
+          session_id: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          action_type: string
+          created_at?: string | null
+          duration_ms?: number | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          module: string
+          new_values?: Json | null
+          old_values?: Json | null
+          primary_role?: string | null
+          roles_snapshot?: string[] | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          action_type?: string
+          created_at?: string | null
+          duration_ms?: number | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          module?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          primary_role?: string | null
+          roles_snapshot?: string[] | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       user_facilities: {
         Row: {
           created_at: string | null
@@ -6748,6 +8222,266 @@ export type Database = {
         }
         Relationships: []
       }
+      user_session_tokens: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: unknown
+          is_revoked: boolean | null
+          issued_at: string | null
+          last_used_at: string | null
+          profile: Json | null
+          roles: string[] | null
+          token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          is_revoked?: boolean | null
+          issued_at?: string | null
+          last_used_at?: string | null
+          profile?: Json | null
+          roles?: string[] | null
+          token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          is_revoked?: boolean | null
+          issued_at?: string | null
+          last_used_at?: string | null
+          profile?: Json | null
+          roles?: string[] | null
+          token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_activity: string | null
+          location: string | null
+          module: string | null
+          page: string | null
+          request_count: number | null
+          started_at: string | null
+          token: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          location?: string | null
+          module?: string | null
+          page?: string | null
+          request_count?: number | null
+          started_at?: string | null
+          token?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          location?: string | null
+          module?: string | null
+          page?: string | null
+          request_count?: number | null
+          started_at?: string | null
+          token?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_signatures: {
+        Row: {
+          created_at: string | null
+          height: number | null
+          id: string
+          image_base64: string | null
+          image_data: string | null
+          is_default: boolean | null
+          label: string
+          public_url: string | null
+          sig_type: string
+          storage_path: string | null
+          updated_at: string | null
+          user_id: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          height?: number | null
+          id?: string
+          image_base64?: string | null
+          image_data?: string | null
+          is_default?: boolean | null
+          label?: string
+          public_url?: string | null
+          sig_type?: string
+          storage_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          height?: number | null
+          id?: string
+          image_base64?: string | null
+          image_data?: string | null
+          is_default?: boolean | null
+          label?: string
+          public_url?: string | null
+          sig_type?: string
+          storage_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
+      voicemails: {
+        Row: {
+          audio_url: string | null
+          duration_seconds: number | null
+          for_extension: string
+          from_name: string | null
+          from_number: string | null
+          id: string
+          received_at: string
+          status: string
+          transcript: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          duration_seconds?: number | null
+          for_extension: string
+          from_name?: string | null
+          from_number?: string | null
+          id?: string
+          received_at?: string
+          status?: string
+          transcript?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          duration_seconds?: number | null
+          for_extension?: string
+          from_name?: string | null
+          from_number?: string | null
+          id?: string
+          received_at?: string
+          status?: string
+          transcript?: string | null
+        }
+        Relationships: []
+      }
+      vouchers: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_by_name: string | null
+          created_at: string | null
+          created_by: string | null
+          date: string | null
+          department_id: string | null
+          department_name: string | null
+          facility_id: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          items: Json | null
+          notes: string | null
+          purpose: string | null
+          requested_by: string | null
+          status: string | null
+          total_value: number | null
+          updated_at: string | null
+          voucher_number: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          facility_id?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          items?: Json | null
+          notes?: string | null
+          purpose?: string | null
+          requested_by?: string | null
+          status?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          voucher_number?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          facility_id?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          items?: Json | null
+          notes?: string | null
+          purpose?: string | null
+          requested_by?: string | null
+          status?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          voucher_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       db_stats: {
@@ -6798,6 +8532,16 @@ export type Database = {
               type: string
             }[]
           }
+      check_rate_limit: {
+        Args: { p_action: string; p_user_id: string }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          reset_at: string
+          tier: string
+        }[]
+      }
+      cleanup_old_session_tokens: { Args: never; Returns: undefined }
       dblink: { Args: { "": string }; Returns: Record<string, unknown>[] }
       dblink_cancel_query: { Args: { "": string }; Returns: string }
       dblink_close: { Args: { "": string }; Returns: string }
@@ -6838,6 +8582,20 @@ export type Database = {
       }
       exec_sql: { Args: { query: string }; Returns: Json }
       exec_sql_admin: { Args: { sql: string }; Returns: Json }
+      get_cron_job_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          failures_last_14d: number
+          jobid: number
+          jobname: string
+          last_run: string
+          last_status: string
+          runs_last_14d: number
+          schedule: string
+        }[]
+      }
+      get_database_stats: { Args: never; Returns: Json }
       get_db_health_stats: { Args: never; Returns: Json }
       get_full_schema: { Args: never; Returns: Json }
       has_any_role: { Args: { required_roles: string[] }; Returns: boolean }
@@ -6864,6 +8622,8 @@ export type Database = {
         Args: { instance: Json; schema: Json }
         Returns: string[]
       }
+      keepalive_circuit_ok: { Args: never; Returns: boolean }
+      keepalive_prune_heartbeat: { Args: never; Returns: undefined }
       log_ai_agent_action: {
         Args: {
           p_amount?: number
@@ -6875,6 +8635,31 @@ export type Database = {
           p_rule_id: string
           p_status?: string
           p_trigger: string
+        }
+        Returns: string
+      }
+      log_security_audit: {
+        Args: {
+          p_action: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_new_values?: Json
+          p_old_values?: Json
+        }
+        Returns: undefined
+      }
+      log_user_activity: {
+        Args: {
+          p_action: string
+          p_action_type: string
+          p_duration_ms?: number
+          p_entity_id?: string
+          p_entity_label?: string
+          p_entity_type?: string
+          p_metadata?: Json
+          p_module: string
+          p_new_values?: Json
+          p_old_values?: Json
         }
         Returns: string
       }
@@ -7149,7 +8934,9 @@ export type Database = {
               type: string
             }[]
           }
+      purge_expired_tokens: { Args: never; Returns: undefined }
       query_sql_admin: { Args: { sql: string }; Returns: Json }
+      reload_schema_cache: { Args: never; Returns: undefined }
       ssl_cipher: { Args: never; Returns: string }
       ssl_client_cert_present: { Args: never; Returns: boolean }
       ssl_client_dn: { Args: never; Returns: string }
@@ -7161,6 +8948,17 @@ export type Database = {
       ssl_issuer_field: { Args: { "": string }; Returns: string }
       ssl_version: { Args: never; Returns: string }
       trim_heartbeat: { Args: { keep?: number }; Returns: number }
+      upsert_session: {
+        Args: {
+          p_ip: string
+          p_module: string
+          p_page: string
+          p_token: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
+      verify_keepalive_secret: { Args: { input: string }; Returns: boolean }
     }
     Enums: {
       app_role:
@@ -7177,6 +8975,10 @@ export type Database = {
         | "inventory_manager"
         | "database_admin"
         | "webmaster"
+        | "superadmin"
+        | "accountant"
+        | "finance_officer"
+        | "finance_manager"
       content_type:
         | "video"
         | "document"
@@ -7329,6 +9131,10 @@ export const Constants = {
         "inventory_manager",
         "database_admin",
         "webmaster",
+        "superadmin",
+        "accountant",
+        "finance_officer",
+        "finance_manager",
       ],
       content_type: [
         "video",
