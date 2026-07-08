@@ -2,10 +2,14 @@
  * EL5 MediProcure — edgeone-stats edge function
  * Proxies EdgeOne Pages API so the API token stays server-side.
  *
- * GET /edgeone-stats                     → project info + latest deployments
- * GET /edgeone-stats?action=deployments  → list deployments (last 20)
- * GET /edgeone-stats?action=health       → live HTTP health check
- * POST /edgeone-stats?action=purge       → trigger CDN cache purge (redeploy)
+ * GET  /edgeone-stats                              → overview (project + deployments + live health)
+ * GET  /edgeone-stats?action=deployments           → list deployments (last 20)
+ * GET  /edgeone-stats?action=deployment&id=<id>    → single deployment detail
+ * GET  /edgeone-stats?action=domains               → domains attached to project
+ * GET  /edgeone-stats?action=health                → live HTTP health check
+ * POST /edgeone-stats?action=purge                 → CDN purge (redeploy latest)
+ * POST /edgeone-stats?action=rollback&id=<id>      → redeploy a specific deployment
+ * POST /edgeone-stats?action=cancel&id=<id>        → cancel an in-progress deployment
  *
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -16,7 +20,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
 };
 
-const EO_TOKEN   = Deno.env.get("EDGEONE_API_TOKEN") ?? "REDACTED_EDGEONE_TOKEN";
+const EO_TOKEN   = Deno.env.get("EDGEONE_API_TOKEN") ?? "";
 const EO_PROJECT = Deno.env.get("EDGEONE_PROJECT")   ?? "procurbosse";
 const EO_BASE    = "https://api.edgeone.ai/pages/v1";
 const SITE_URL   = "https://procurbosse.edgeone.app";
@@ -78,11 +82,46 @@ Deno.serve(async (req: Request) => {
   try {
     const url    = new URL(req.url);
     const action = url.searchParams.get("action") ?? "overview";
+    const id     = url.searchParams.get("id") ?? "";
+
+    if (!EO_TOKEN) {
+      return json({ error: "EDGEONE_API_TOKEN is not configured in edge function secrets" }, 500);
+    }
 
     /* ── health check ────────────────────────────────────────── */
     if (action === "health") {
       const h = await healthCheck();
       return json({ health: h });
+    }
+
+    /* ── single deployment detail ───────────────────────────── */
+    if (action === "deployment") {
+      if (!id) return json({ error: "Missing ?id=<deployment_id>" }, 400);
+      const res = await eoFetch(`/projects/${EO_PROJECT}/deployments/${id}`);
+      if (!res.ok) return json({ error: "EdgeOne API error", detail: res.data }, 502);
+      return json({ deployment: res.data });
+    }
+
+    /* ── domains list ───────────────────────────────────────── */
+    if (action === "domains") {
+      const res = await eoFetch(`/projects/${EO_PROJECT}/domains`);
+      if (!res.ok) return json({ error: "EdgeOne API error", detail: res.data }, 502);
+      const domains = res.data?.domains ?? res.data?.data ?? res.data ?? [];
+      return json({ domains, project: EO_PROJECT });
+    }
+
+    /* ── rollback: redeploy a specific deployment ID ────────── */
+    if (action === "rollback" && req.method === "POST") {
+      if (!id) return json({ error: "Missing ?id=<deployment_id>" }, 400);
+      const r = await eoFetch(`/projects/${EO_PROJECT}/deployments/${id}/retry`, "POST");
+      return json({ action: "rollback", triggered: r.ok, deployment_id: id, result: r.data });
+    }
+
+    /* ── cancel an in-progress deployment ───────────────────── */
+    if (action === "cancel" && req.method === "POST") {
+      if (!id) return json({ error: "Missing ?id=<deployment_id>" }, 400);
+      const r = await eoFetch(`/projects/${EO_PROJECT}/deployments/${id}/cancel`, "POST");
+      return json({ action: "cancel", triggered: r.ok, deployment_id: id, result: r.data });
     }
 
     /* ── trigger purge / redeploy ────────────────────────────── */
