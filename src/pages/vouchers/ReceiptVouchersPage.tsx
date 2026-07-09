@@ -146,7 +146,7 @@ export default function ReceiptVouchersPage() {
 
   const totalPosted=receipts.filter(r=>r.status==="posted"||r.status==="received").reduce((s,r)=>s+(r.total_amount||0),0);
 
-  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${ERP.btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
+  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${(ERP as any).btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
 
   return (
     <div style={{background:"#f0f0f0",minHeight:"100vh",fontFamily:ERP.fontFamily,fontSize:11}}>

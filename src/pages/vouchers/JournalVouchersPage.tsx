@@ -115,7 +115,7 @@ export default function JournalVouchersPage() {
 
   const totalDebit=filtered.reduce((s,e)=>s+(e.debit||0),0);
   const totalCredit=filtered.reduce((s,e)=>s+(e.credit||0),0);
-  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${ERP.btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
+  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${(ERP as any).btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
 
   return (
     <div style={{background:"#f0f0f0",minHeight:"100vh",fontFamily:ERP.fontFamily,fontSize:11}}>
@@ -257,7 +257,7 @@ export default function JournalVouchersPage() {
                   <span style={{fontSize:12,fontWeight:700,color:"#111827",textAlign:"right",maxWidth:240,overflow:"hidden",textOverflow:"ellipsis"}}>{v}</span>
                 </div>
               ))}
-              {detail.status!=="posted" && <button onClick={()=>{(async()=>{await(supabase as any).from("gl_entries").update({status:"posted"}).eq("id",detail.id);setDetail(null);fetchEntries();})();}} style={{marginTop:14,width:"100%",padding:"9px",background:"#ede9fe",border:"1px solid #ddd6fe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#7c3aed"}}>✓ Post Journal Entry</button>}
+              {detail.status!=="posted" && <button onClick={()=>{(async()=>{await(supabase as any).from("gl_entries").update({status:"posted"}).eq("id",detail.id);setDetail(null);fetch();})();}} style={{marginTop:14,width:"100%",padding:"9px",background:"#ede9fe",border:"1px solid #ddd6fe",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,color:"#7c3aed"}}>✓ Post Journal Entry</button>}
             </div>
           </div>
         </div>

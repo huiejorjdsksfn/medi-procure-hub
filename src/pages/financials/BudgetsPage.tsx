@@ -104,7 +104,7 @@ export default function BudgetsPage() {
   const totalBudget=filtered.reduce((s,b)=>s+(b.total_budget||0),0);
   const totalSpent=filtered.reduce((s,b)=>s+(b.spent||0),0);
   const totalRemaining=filtered.reduce((s,b)=>s+(b.remaining||0),0);
-  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${ERP.btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
+  const inp:React.CSSProperties={padding:"2px 5px",border:`1px solid ${(ERP as any).btnBorder||"#a29d7f"}`,borderRadius:2,fontSize:11,fontFamily:ERP.fontFamily,background:"#fff",outline:"none",width:"100%",boxSizing:"border-box" as const};
 
   return (
     <div style={{background:"#f0f0f0",minHeight:"100vh",fontFamily:ERP.fontFamily,fontSize:11}}>

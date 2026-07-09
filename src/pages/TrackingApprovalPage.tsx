@@ -311,7 +311,7 @@ export default function TrackingApprovalPage() {
               {["all","urgent","high","normal","low"].map(p=>(
                 <button key={p} onClick={()=>setQFilter(p)}
                   style={{ padding:"2px 8px", borderRadius:99, fontSize:10, fontWeight:700, border:"none", cursor:"pointer",
-                    background:qFilter===p?(PRIO_STYLE[p]?.bg||O.blueLt||"#deecf9"):"transparent",
+                    background:qFilter===p?(PRIO_STYLE[p]?.bg||(O as any).blueLt||"#deecf9"):"transparent",
                     color:qFilter===p?(PRIO_STYLE[p]?.color||O.blue):O.textMt }}>
                   {p==="all"?"All":p.charAt(0).toUpperCase()+p.slice(1)}
                 </button>

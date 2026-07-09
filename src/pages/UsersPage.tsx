@@ -525,7 +525,7 @@ export default function UsersPage() {
                   {/* Account info */}
                   <div style={{ fontSize:10, color:T.fgDim }}>
                     <span style={{ fontWeight:700 }}>Department: </span>
-                    <span>{selected.department||selected.job_title||"Staff Member"}</span>
+                    <span>{selected.department||(selected as any).job_title||"Staff Member"}</span>
                   </div>
                 </div>
                 )}
