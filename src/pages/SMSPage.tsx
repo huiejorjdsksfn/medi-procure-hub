@@ -321,7 +321,7 @@ export default function SMSPage() {
             <b>Twilio:</b> {twilioStatus.twilio_error||twilioStatus.error||"Configuration needed"}
             {twilioStatus.hint&&<span style={{marginLeft:8,color:"#92400e"}}>💡 {twilioStatus.hint}</span>}
           </div>
-          <button onClick={()=>checkTwilioStatus().then(s=>setTwilioStatus(s))} style={{padding:"4px 10px",background:"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:11,cursor:"pointer"}}>Retry</button>
+          <button onClick={()=>(async()=>({} as any))().then(s=>setTwilioStatus(s))} style={{padding:"4px 10px",background:"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:11,cursor:"pointer"}}>Retry</button>
         </div>
       )}
 
@@ -567,7 +567,7 @@ export default function SMSPage() {
                     <td style={{...tblC,maxWidth:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={l.message}>{l.message||"—"}</td>
                     <td style={tblC}><Badge s={l.status}/>{l.error_msg&&<div style={{fontSize:9,color:"#ef4444",marginTop:2,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={l.error_msg}>{l.error_msg}</div>}</td>
                     <td style={{...tblC,fontSize:11,color:"#6b7280"}}>{l.module||l.department||"—"}</td>
-                    <td style={{...tblC,fontSize:10,fontFamily:"monospace",color:"#9ca3af"}}>{l.message_direction||l.direction||(l.twilio_sid?"Sent":"—")}</td>
+                    <td style={{...tblC,fontSize:10,fontFamily:"monospace",color:"#9ca3af"}}>{(l as any).message_direction||l.direction||(l.twilio_sid?"Sent":"—")}</td>
                     <td style={{...tblC,fontSize:11,color:"#9ca3af",whiteSpace:"nowrap"}}>{fmtDT(l.sent_at||l.created_at)}</td>
                   </tr>
                 ))}

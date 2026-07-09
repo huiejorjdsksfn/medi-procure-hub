@@ -218,7 +218,7 @@ export default function ReleasesPage() {
         xhr.onprogress = (e) => {
           if (e.lengthComputable) {
             const progress = Math.round((e.loaded / e.total) * 100);
-            const speed = e.loaded / ((Date.now() - (xhr.upload?.startTime || Date.now())) / 1000);
+            const speed = e.loaded / ((Date.now() - ((xhr.upload as any)?.startTime || Date.now())) / 1000);
             setDownloadProgress(prev => ({
               ...prev,
               [progressKey]: {
@@ -264,7 +264,7 @@ export default function ReleasesPage() {
         };
         
         xhr.onerror = () => reject(new Error("Network error"));
-        xhr.upload.startTime = Date.now();
+        (xhr.upload as any).startTime = Date.now();
         xhr.send();
       });
     } catch (e: any) {
@@ -352,8 +352,8 @@ export default function ReleasesPage() {
 
   // ─── Check app readiness ────────────────────────────────────────────────────
   useEffect(() => {
-    if (typeof window !== "undefined" && window.electronAPI) {
-      window.electronAPI.getVersion?.().then(() => {
+    if (typeof window !== "undefined" && (window as any).electronAPI) {
+      (window as any).electronAPI.getVersion?.().then(() => {
         setInstallState(prev => ({ ...prev, appReady: true }));
       }).catch(() => {});
     }

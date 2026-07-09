@@ -108,16 +108,16 @@ export default function PrintEnginePage() {
 
   const printReport=()=>{
     const w=window.open("","_blank","width=1100,height=700");if(!w)return;
-    const thead=cols.map(k=>`<th>${allCols.find(c=>c.key===k)?.label||k}</th>`).join("");
+    const thead=cols.map(k=>`<th>${(allCols.find(c=>c.key===k) as any)?.label||k}</th>`).join("");
     const tbody=filtered.map(r=>`<tr>${cols.map(k=>`<td>${fmtV(r[k],k)}</td>`).join("")}</tr>`).join("");
     w.document.write(`<!DOCTYPE html><html><head><title>${rt.label} Report</title><style>body{font-family:Segoe UI,Arial;margin:30px;font-size:11px;}h2{color:#1e1e2e;}table{width:100%;border-collapse:collapse;margin-top:14px;}th{background:#1e1e2e;color:#fff;padding:7px 10px;text-align:left;font-size:10px;}td{padding:6px 10px;border-bottom:1px solid #eee;}tr:nth-child(even) td{background:#f8f9fb;}.meta{color:#666;font-size:10px;}.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #1e1e2e;padding-bottom:10px;margin-bottom:14px;}@media print{button{display:none}}</style></head><body><div class="hdr"><div><h2>${rt.label} Report</h2><div class="meta">${hospital}</div></div><div class="meta" style="text-align:right">Generated: ${new Date().toLocaleString("en-KE")}<br/>By: ${profile?.full_name||"System"}<br/>Period: ${startDate} to ${endDate}<br/>Records: ${filtered.length}</div></div><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table><br/><button onclick="window.print()">Print</button></body></html>`);
     w.document.close();setTimeout(()=>w.print(),400);
   };
 
   const exportExcel=()=>{
-    const data=filtered.map(r=>{const o:any={};cols.forEach(k=>{o[allCols.find(c=>c.key===k)?.label||k]=fmtV(r[k],k);});return o;});
+    const data=filtered.map(r=>{const o:any={};cols.forEach(k=>{o[(allCols.find(c=>c.key===k) as any)?.label||k]=fmtV(r[k],k);});return o;});
     const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,rt.label);
-    XLSX.writeFile(wb,`EL5-${(rt.label||rt.name||"report").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb,`EL5-${(rt.label||(rt as any).name||"report").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.xlsx`);
     toast({title:"Exported to Excel"});
   };
 
@@ -266,7 +266,7 @@ export default function PrintEnginePage() {
               <div style={S.card}>
                 <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr>{cols.map(k=><th key={k} style={S.th}>{allCols.find(c=>c.key===k)?.label||k}</th>)}</tr></thead>
+                    <thead><tr>{cols.map(k=><th key={k} style={S.th}>{(allCols.find(c=>c.key===k) as any)?.label||k}</th>)}</tr></thead>
                     <tbody>
                       {filtered.length===0?<tr><td colSpan={cols.length} style={{...S.td,textAlign:"center"as const,padding:30,color:T.fgDim}}>No records found. Run a report first.</td></tr>
                       :filtered.map((r,i)=>(

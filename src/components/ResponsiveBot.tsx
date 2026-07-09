@@ -402,7 +402,7 @@ function patchTables(dev: string) {
       const cs = window.getComputedStyle(parent);
       if (cs.overflow === "hidden" || cs.overflowX === "hidden") {
         parent.style.overflowX = "auto";
-        parent.style.webkitOverflowScrolling = "touch";
+        (parent.style as any).webkitOverflowScrolling = "touch";
       }
     }
 

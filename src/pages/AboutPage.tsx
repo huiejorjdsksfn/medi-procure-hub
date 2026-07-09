@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Building2, Users, Globe, Phone, Mail, MapPin, Calendar,
+  Building2, Users, Globe, Phone, Mail, MapPin, Calendar, ShoppingCart,
   Heart, Shield, Zap, BarChart3, MessageSquare, Package,
   FileText, CheckCircle2, Smartphone, Monitor,
 } from "lucide-react";
