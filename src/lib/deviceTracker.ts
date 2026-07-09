@@ -13,6 +13,17 @@ export interface DeviceInfo {
   screen_w: number; screen_h: number; viewport_w: number; viewport_h: number;
   timezone: string; language: string; platform: string; touch: boolean;
   user_agent: string; cookies_enabled: boolean; dnt: boolean;
+  cpu_cores?: number;
+  device_memory_gb?: number;
+  color_depth?: number;
+  pixel_ratio?: number;
+  connection?: string;
+  downlink_mbps?: number;
+  languages?: string[];
+  webgl_vendor?: string;
+  webgl_renderer?: string;
+  canvas_hash?: string;
+  storage_persistent?: boolean;
 }
 
 export interface GeoInfo {
@@ -64,6 +75,28 @@ export function getDeviceInfo(): DeviceInfo {
   const ua = navigator.userAgent;
   const { os, version: os_version } = parseOS(ua);
   const { browser, version: browser_version } = parseBrowser(ua);
+  const nav: any = navigator;
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+  let webgl_vendor = ""; let webgl_renderer = "";
+  try {
+    const gl = document.createElement("canvas").getContext("webgl") as any;
+    const dbg = gl?.getExtension("WEBGL_debug_renderer_info");
+    if (dbg) {
+      webgl_vendor = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) || "";
+      webgl_renderer = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || "";
+    }
+  } catch { /* noop */ }
+  let canvas_hash = "";
+  try {
+    const c = document.createElement("canvas"); c.width = 200; c.height = 40;
+    const ctx = c.getContext("2d")!;
+    ctx.textBaseline = "top"; ctx.font = "14px 'Arial'";
+    ctx.fillStyle = "#f60"; ctx.fillRect(0,0,100,40);
+    ctx.fillStyle = "#069"; ctx.fillText("EL5-FP-\u{1F512}", 4, 4);
+    const data = c.toDataURL();
+    let h = 0; for (let i=0;i<data.length;i++){ h = (h<<5)-h + data.charCodeAt(i); h |= 0; }
+    canvas_hash = h.toString(16);
+  } catch { /* noop */ }
   return {
     os, os_version, browser, browser_version,
     device_type: deviceType(ua),
@@ -76,6 +109,16 @@ export function getDeviceInfo(): DeviceInfo {
     user_agent: ua.slice(0, 400),
     cookies_enabled: navigator.cookieEnabled,
     dnt: !!navigator.doNotTrack,
+    cpu_cores: nav.hardwareConcurrency || undefined,
+    device_memory_gb: nav.deviceMemory || undefined,
+    color_depth: screen.colorDepth,
+    pixel_ratio: window.devicePixelRatio,
+    connection: conn?.effectiveType || undefined,
+    downlink_mbps: conn?.downlink || undefined,
+    languages: (navigator.languages || []).slice(0, 5),
+    webgl_vendor: webgl_vendor.slice(0, 120) || undefined,
+    webgl_renderer: webgl_renderer.slice(0, 120) || undefined,
+    canvas_hash: canvas_hash || undefined,
   };
 }
 
