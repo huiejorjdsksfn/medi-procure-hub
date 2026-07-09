@@ -314,7 +314,7 @@ export default function DashboardPage() {
                       <span style={{fontSize:14,flexShrink:0}}>📝</span>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:10,fontFamily:XP.font,color:"#1a1a1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{a.action||a.description||"System event"}</div>
-                        <div style={{fontSize:9,color:"#888",fontFamily:XP.font}}>{a.created_at?new Date(a.created_at).toLocaleString("en-KE",""):"—"}</div>
+                        <div style={{fontSize:9,color:"#888",fontFamily:XP.font}}>{a.created_at?new Date(a.created_at).toLocaleString("en-KE"):"—"}</div>
                       </div>
                     </div>
                   ))

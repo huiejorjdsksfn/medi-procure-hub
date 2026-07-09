@@ -367,7 +367,7 @@ export default function HMISSyncPage() {
                         <div style={{ display: "flex", gap: 16, fontSize: 11, color: T.fgDim, flexWrap: "wrap" }}>
                           {cfg.facility_code && <span>Facility: <strong>{cfg.facility_code}</strong></span>}
                           {cfg.org_unit      && <span>Org Unit: <strong>{cfg.org_unit}</strong></span>}
-                          {cfg.dataset_name  && <span>Dataset: <strong>{cfg.dataset_name}</strong></span>}{!cfg.dataset_name&&cfg.dataset_id&&<span>Dataset ID: <strong>{cfg.dataset_id}</strong></span>}
+                          {(cfg as any).dataset_name  && <span>Dataset: <strong>{(cfg as any).dataset_name}</strong></span>}{!(cfg as any).dataset_name&&cfg.dataset_id&&<span>Dataset ID: <strong>{cfg.dataset_id}</strong></span>}
                           <span>Sync every: <strong>{cfg.sync_interval_minutes}m</strong></span>
                           <span>Last sync: <strong>{fmtAgo(cfg.last_sync)}</strong></span>
                         </div>
