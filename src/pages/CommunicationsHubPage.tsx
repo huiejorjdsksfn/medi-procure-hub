@@ -638,7 +638,7 @@ export default function CommunicationsHubPage() {
                           </button>
                           <button onClick={() => setSmsDraft((d:any) => ({ ...d, channel: 'whatsapp' }))}
                             className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition ${
-                              smsDraft.channel === 'whatsapp' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              (smsDraft.channel as string) === 'whatsapp' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}>
                             <MessageCircle className="w-4 h-4 inline mr-2" />WhatsApp
                           </button>
