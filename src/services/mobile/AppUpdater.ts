@@ -21,6 +21,8 @@ interface Release {
   name: string;
   body: string;
   assets: ReleaseAsset[];
+  draft?: boolean;
+  prerelease?: boolean;
 }
 
 class AppUpdaterService {
