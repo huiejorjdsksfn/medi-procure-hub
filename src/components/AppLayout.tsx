@@ -138,6 +138,7 @@ const MODS = [
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},
+     {l:"Supabase Live Controls", p:"/admin/supabase-controls", I:Activity},
      {l:"Deployments",        p:"/admin/deployments",     I:Server},
      {l:"Not-Found Log",      p:"/admin/not-found-log",   I:AlertTriangle},
      {l:"Webmaster",          p:"/webmaster",             I:Globe},
