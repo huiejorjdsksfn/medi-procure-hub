@@ -660,6 +660,7 @@ export default function AdminPanelPage() {
                     {l:"Deployment Center", p:"/admin/deployments",col:"#0078d4"},
                     {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
                     {l:"IP Access Control", p:"/admin/users-ip-audit",  col:T.error},
+                    {l:"Supabase Live Controls", p:"/admin/supabase-controls", col:"#0f766e"},
                   ].map(a=>(
                     <button key={a.l} onClick={()=>{if(a.cb)a.cb();else if(a.p)nav(a.p);}} style={S.btn(`${a.col}14`,a.col)} onMouseEnter={e=>(e.currentTarget.style.background=`${a.col}22`)} onMouseLeave={e=>(e.currentTarget.style.background=`${a.col}14`)}>
                       <ChevronRight size={12}/>{a.l}
