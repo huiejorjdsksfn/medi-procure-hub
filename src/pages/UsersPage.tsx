@@ -212,6 +212,7 @@ export default function UsersPage() {
           full_name: form.full_name,
           phone: form.phone_number,
           department: form.department,
+          avatar_url: form.avatar_url || null,
           roles: form.roles?.length ? form.roles : [form.role||"requisitioner"],
         };
         let result: any = null;

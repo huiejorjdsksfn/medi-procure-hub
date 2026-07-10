@@ -17,6 +17,7 @@ export default function ResetPasswordPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [selfService, setSelfService] = useState(false);
 
   useEffect(() => { setTimeout(() => setMounted(true), 80); }, []);
 
@@ -69,7 +70,17 @@ export default function ResetPasswordPage() {
           const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
           if (error) throw error;
         } else {
-          return; // no recovery params at all — plain visit to /reset-password, show the request form
+          // No recovery params — but if the user is already logged in (e.g. they
+          // signed in with the original/temp password an admin gave them), let
+          // them set a new password directly instead of forcing the "forgot
+          // password" email-link flow.
+          const { data: sessData } = await supabase.auth.getSession();
+          if (sessData?.session) {
+            if (resolved) return;
+            setSelfService(true);
+            finish("update");
+          }
+          return; // no session and no recovery params — show the request form
         }
         if (resolved) return;
         // Strip the token/code out of the address bar so it isn't left in history.
@@ -113,7 +124,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
     if (error) { setErrMsg(error.message); return; }
     setStage("done");
-    setTimeout(() => { navigate("/login"); }, 3500);
+    setTimeout(() => { navigate(selfService ? "/dashboard" : "/login"); }, 3500);
   }
 
   const strengthColors = ["#ef4444","#f97316","#eab308","#22c55e"];
@@ -184,7 +195,7 @@ export default function ResetPasswordPage() {
             {stage === "request" && "We'll send a secure reset link to your email"}
             {stage === "sent" && `Check ${email || "your inbox"} for the reset link`}
             {stage === "update" && "Create a strong new password for your account"}
-            {stage === "done" && "You'll be redirected to login shortly"}
+            {stage === "done" && (selfService ? "Taking you back into EL5 MediProcure shortly" : "You'll be redirected to login shortly")}
             {stage === "error" && "We couldn't verify that link"}
           </div>
         </div>

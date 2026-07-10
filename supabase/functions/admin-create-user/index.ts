@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
     // ── Parse body ────────────────────────────────────────────────────────
     const body = await req.json().catch(() => ({}));
-    const { email, password, full_name, phone, department } = body;
+    const { email, password, full_name, phone, department, avatar_url } = body;
     if (!email || !password) return json({ error: "email and password are required" }, 400);
     if (password.length < 8)  return json({ error: "password must be 8+ characters" }, 400);
 
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true,           // instantly confirmed — no email needed
-      user_metadata: { full_name: name, department: department || null, phone: phone || null },
+      user_metadata: { full_name: name, department: department || null, phone: phone || null, avatar_url: avatar_url || null },
       app_metadata:  { roles, pages, is_active: true, created_by: callerId },
     });
 
@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
       full_name: name,
       phone_number: phone || null,
       department: department || null,
+      avatar_url: avatar_url || null,
       is_active: true,
       is_locked: false,
       failed_logins: 0,
