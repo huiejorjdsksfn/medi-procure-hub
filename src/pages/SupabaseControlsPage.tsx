@@ -13,10 +13,15 @@ import { logAudit } from "@/lib/audit";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Database, RefreshCw, HardDrive, Zap, ShieldCheck,
-  CloudUpload, Trash2, Activity, PlayCircle,
+  CloudUpload, Trash2, Activity, PlayCircle, HeartPulse,
 } from "lucide-react";
 
 const db = supabase as any;
+
+const ELIMU_STATUS_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot?action=status";
+const ELIMU_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc";
+const MAINSERV_STATUS_URL = "https://zcaxkxuqvffytapproeb.supabase.co/functions/v1/keepalive-bot?action=status";
+const MAINSERV_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjYXhreHVxdmZmeXRhcHByb2ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNDYyMTUsImV4cCI6MjA3MjcyMjIxNX0.xmIdsFnpLE-BMk0u1FPGGXHtawKSE2zADcPpRVls1yc";
 
 const S = {
   wrap:  { padding: 20, background: "#f8fafc", minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif" } as const,
@@ -37,6 +42,8 @@ export default function SupabaseControlsPage() {
   const [fnHealth, setFnHealth] = useState<Record<string, boolean>>({});
   const [tableCount, setTableCount] = useState<number | null>(null);
   const [lastLog, setLastLog] = useState<string>("");
+  const [botStats, setBotStats] = useState<Record<string, any>>({});
+  const [botError, setBotError] = useState<Record<string, string>>({});
 
   const run = useCallback(async <T,>(label: string, task: () => Promise<T>): Promise<T | null> => {
     setBusy(label);
@@ -71,10 +78,35 @@ export default function SupabaseControlsPage() {
     }
   }, []);
 
+  const pollBots = useCallback(async () => {
+    try {
+      const r = await fetch(ELIMU_STATUS_URL, { headers: { apikey: ELIMU_ANON_KEY } });
+      const d = await r.json();
+      setBotStats(s => ({ ...s, elimu: d }));
+      setBotError(s => ({ ...s, elimu: "" }));
+    } catch (e: any) {
+      setBotError(s => ({ ...s, elimu: e?.message || "unreachable" }));
+    }
+    try {
+      const r = await fetch(MAINSERV_STATUS_URL, { headers: { apikey: MAINSERV_ANON_KEY } });
+      const d = await r.json();
+      setBotStats(s => ({ ...s, mainserv: d }));
+      setBotError(s => ({ ...s, mainserv: "" }));
+    } catch (e: any) {
+      setBotError(s => ({ ...s, mainserv: e?.message || "unreachable" }));
+    }
+  }, []);
+
   useEffect(() => {
     run("load", async () => { await Promise.all([loadBuckets(), loadSchema()]); });
     ["session-validate","role-check","track-404","edgeone-stats"].forEach(pingFn);
   }, [run, loadBuckets, loadSchema, pingFn]);
+
+  useEffect(() => {
+    pollBots();
+    const id = setInterval(pollBots, 15000);
+    return () => clearInterval(id);
+  }, [pollBots]);
 
   return (
     <RoleGuard allowed={["admin", "database_admin"]}>
@@ -160,6 +192,44 @@ export default function SupabaseControlsPage() {
                 toast({ title: "Backup job queued" });
               })}>
               <PlayCircle size={14}/> Run now
+            </button>
+          </div>
+          <div style={S.card}>
+            <div style={S.title}><HeartPulse size={16}/> Keepalive bots</div>
+            <div style={S.sub}>elimu + mainserv · live, refreshes every 15s</div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+                <span style={{ fontWeight: 600 }}>elimu</span>
+                <span style={S.pill(!botError.elimu && botStats.elimu?.status === "ok")}>
+                  {botError.elimu ? "unreachable" : botStats.elimu?.status ?? "…"}
+                </span>
+              </div>
+              {botStats.elimu && !botError.elimu && (
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
+                  {botStats.elimu.projections?.ops_per_week?.toLocaleString() ?? "—"} ops/week ·{" "}
+                  {botStats.elimu.current_records?.heartbeats?.toLocaleString() ?? "—"} heartbeats
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+                <span style={{ fontWeight: 600 }}>mainserv</span>
+                <span style={S.pill(!botError.mainserv && botStats.mainserv?.status === "ok")}>
+                  {botError.mainserv ? "unreachable" : botStats.mainserv?.status ?? "…"}
+                </span>
+              </div>
+              {botStats.mainserv && !botError.mainserv && (
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
+                  {botStats.mainserv.current_records?.heartbeats?.toLocaleString() ?? "—"} heartbeats · breaker{" "}
+                  {botStats.mainserv.breaker_ok === true ? "closed" : botStats.mainserv.breaker_ok === false ? "open" : "unknown"}
+                </div>
+              )}
+            </div>
+
+            <button style={{ ...S.btn("#0f766e"), marginTop: 10 }} onClick={pollBots}>
+              <RefreshCw size={14}/> Refresh now
             </button>
           </div>
         </div>
