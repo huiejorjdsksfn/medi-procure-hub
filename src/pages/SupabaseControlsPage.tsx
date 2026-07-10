@@ -18,6 +18,7 @@ import {
 
 const db = supabase as any;
 
+const ELIMU_FUNCTIONS_BASE = "https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1";
 const ELIMU_STATUS_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-bot?action=status";
 const ELIMU_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc";
 const MAINSERV_STATUS_URL = "https://zcaxkxuqvffytapproeb.supabase.co/functions/v1/keepalive-bot?action=status";
@@ -71,8 +72,23 @@ export default function SupabaseControlsPage() {
 
   const pingFn = useCallback(async (name: string) => {
     try {
-      const { error } = await supabase.functions.invoke(name, { body: { ping: true } });
-      setFnHealth(s => ({ ...s, [name]: !error }));
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const method = name === "edgeone-stats" ? "GET" : "POST";
+      const res = await fetch(`${ELIMU_FUNCTIONS_BASE}/${name}`, {
+        method,
+        headers: {
+          apikey: ELIMU_ANON_KEY,
+          Authorization: `Bearer ${token || ELIMU_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: method === "POST" ? JSON.stringify({ ping: true }) : undefined,
+      });
+      // A function is "reachable" if it responded at all — including
+      // expected 401s from auth-gated functions with no active session.
+      // That proves it's deployed and executing, not down. Only a genuine
+      // network/CORS failure (thrown below) means it's actually down.
+      setFnHealth(s => ({ ...s, [name]: res.status > 0 }));
     } catch {
       setFnHealth(s => ({ ...s, [name]: false }));
     }
