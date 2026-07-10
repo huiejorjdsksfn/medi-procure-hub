@@ -1,4 +1,5 @@
 import { db } from "@/integrations/supabase/client";
+import { withCorrelation } from "@/lib/correlation";
 
 export const logAudit = async (
   userId: string | undefined,
@@ -15,7 +16,7 @@ export const logAudit = async (
       action,
       module,
       record_id: recordId || null,
-      details: details || null,
+      details: withCorrelation({ ...(details || {}) }),
     });
   } catch (e) {
     console.error("Audit log error:", e);
