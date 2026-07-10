@@ -97,6 +97,7 @@ const UsersPage              = lazy(() => import("@/pages/UsersPage"));
 const SettingsPage           = lazy(() => import("@/pages/SettingsPage"));
 const AuditLogPage           = lazy(() => import("@/pages/AuditLogPage"));
 const AdminDatabasePage      = lazy(() => import("@/pages/AdminDatabasePage"));
+const SupabaseControlsPage   = lazy(() => import("@/pages/SupabaseControlsPage"));
 const AdminPanelPage         = lazy(() => import("@/pages/AdminPanelPage"));
 const WebmasterPage          = lazy(() => import("@/pages/WebmasterPage"));
 const GuiEditorPage          = lazy(() => import("@/pages/GuiEditorPage"));
