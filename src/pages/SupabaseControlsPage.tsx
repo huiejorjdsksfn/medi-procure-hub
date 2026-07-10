@@ -77,7 +77,7 @@ export default function SupabaseControlsPage() {
   }, [run, loadBuckets, loadSchema, pingFn]);
 
   return (
-    <RoleGuard allowedRoles={["admin", "database_admin"]}>
+    <RoleGuard allowed={["admin", "database_admin"]}>
       <div style={S.wrap}>
         <AdminBreadcrumb />
         <h1 style={S.h}>Supabase Live Controls</h1>
