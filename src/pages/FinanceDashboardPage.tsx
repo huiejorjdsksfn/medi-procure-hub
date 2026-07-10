@@ -1255,8 +1255,8 @@ export default function FinanceDashboardPage() {
     const props={payments,receipts,glEntries,budgets,assets,purchases,sales,refresh:fetchAll,isManager,user,profile,coa};
     switch(id){
       case "overview":  return <OverviewContent {...props}/>;
-      case "payments":  return <PaymentsContent {...props}/>;
-      case "receipts":  return <ReceiptsContent {...props}/>;
+      case "payments":  return <PaymentsContent {...props} data={payments}/>;
+      case "receipts":  return <ReceiptsContent {...props} data={receipts}/>;
       case "journals":  return <JournalsContent data={glEntries} refresh={fetchAll} coa={coa}/>;
       case "purchases": return <PurchaseVouchersContent data={purchases} refresh={fetchAll} isManager={isManager} user={user} profile={profile} coa={coa}/>;
       case "sales":     return <SalesVouchersContent data={sales} refresh={fetchAll} user={user} profile={profile} coa={coa}/>;
