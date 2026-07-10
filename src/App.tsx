@@ -242,6 +242,7 @@ const App = () => {
               <Route path="/audit"                       element={<Navigate to="/audit-log" replace />} />
               <Route path="/audit-log"                   element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager"]}><AuditLogPage /></RoleGuard></P>} />
               <Route path="/admin/database"              element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
+              <Route path="/admin/supabase-controls"     element={<P><SupabaseControlsPage /></P>} />
               <Route path="/admin/panel"                 element={<P><RoleGuard allowed={ADMINS}><AdminPanelPage /></RoleGuard></P>} />
               <Route path="/admin/deployments"           element={<P><RoleGuard allowed={ADMINS}><DeploymentsPage /></RoleGuard></P>} />
               <Route path="/admin/deployments/new"       element={<P><RoleGuard allowed={ADMINS}><CompanyOnboardingPage /></RoleGuard></P>} />
