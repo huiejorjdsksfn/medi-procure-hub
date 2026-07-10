@@ -97,6 +97,7 @@ const UsersPage              = lazy(() => import("@/pages/UsersPage"));
 const SettingsPage           = lazy(() => import("@/pages/SettingsPage"));
 const AuditLogPage           = lazy(() => import("@/pages/AuditLogPage"));
 const AdminDatabasePage      = lazy(() => import("@/pages/AdminDatabasePage"));
+const SupabaseControlsPage   = lazy(() => import("@/pages/SupabaseControlsPage"));
 const AdminPanelPage         = lazy(() => import("@/pages/AdminPanelPage"));
 const WebmasterPage          = lazy(() => import("@/pages/WebmasterPage"));
 const GuiEditorPage          = lazy(() => import("@/pages/GuiEditorPage"));
@@ -241,6 +242,7 @@ const App = () => {
               <Route path="/audit"                       element={<Navigate to="/audit-log" replace />} />
               <Route path="/audit-log"                   element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager"]}><AuditLogPage /></RoleGuard></P>} />
               <Route path="/admin/database"              element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
+              <Route path="/admin/supabase-controls"     element={<P><SupabaseControlsPage /></P>} />
               <Route path="/admin/panel"                 element={<P><RoleGuard allowed={ADMINS}><AdminPanelPage /></RoleGuard></P>} />
               <Route path="/admin/deployments"           element={<P><RoleGuard allowed={ADMINS}><DeploymentsPage /></RoleGuard></P>} />
               <Route path="/admin/deployments/new"       element={<P><RoleGuard allowed={ADMINS}><CompanyOnboardingPage /></RoleGuard></P>} />
