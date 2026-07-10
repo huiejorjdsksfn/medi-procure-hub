@@ -1252,6 +1252,11 @@ ${html}
                 <span style={{ fontSize:14 }}>{m.icon}</span>{m.label}
               </button>
             ))}
+            <div style={{ padding:"10px 12px 4px", color:"rgba(255,255,255,0.6)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".08em", borderTop:"1px solid rgba(255,255,255,0.15)", marginTop:6 }}>System</div>
+            <a href="https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/keepalive-dashboard" target="_blank" rel="noopener noreferrer"
+              style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px", color:"#fff", fontSize:11, textDecoration:"none" }}>
+              <span style={{ fontSize:14 }}>💓</span>Keepalive bots status
+            </a>
           </div>
 
           {/* Report content */}
