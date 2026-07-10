@@ -43,6 +43,7 @@ export default function SupabaseControlsPage() {
   const [fnHealth, setFnHealth] = useState<Record<string, boolean>>({});
   const [tableCount, setTableCount] = useState<number | null>(null);
   const [lastLog, setLastLog] = useState<string>("");
+  const [backupLog, setBackupLog] = useState<string>("");
   const [botStats, setBotStats] = useState<Record<string, any>>({});
   const [botError, setBotError] = useState<Record<string, string>>({});
   const [eoData, setEoData] = useState<any>(null);
@@ -194,7 +195,7 @@ export default function SupabaseControlsPage() {
             <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
               <button style={S.btn()} disabled={!!busy}
                 onClick={() => run("reload_schema", async () => {
-                  await db.rpc("reload_schema_cache").catch(() => {});
+                  try { await db.rpc("reload_schema_cache"); } catch { /* best-effort */ }
                   await loadSchema();
                   toast({ title: "Schema reloaded" });
                 })}>
@@ -257,15 +258,34 @@ export default function SupabaseControlsPage() {
 
           <div style={S.card}>
             <div style={S.title}><CloudUpload size={16}/> Backups</div>
-            <div style={S.sub}>Trigger the daily sanity + backup edge function on demand.</div>
+            <div style={S.sub}>Trigger a real backup: 28 tables + storage files, gzipped to the backups bucket.</div>
             <button style={S.btn("#b45309")} disabled={!!busy}
               onClick={() => run("backup_now", async () => {
-                const { error } = await supabase.functions.invoke("db-daily-sanity", { body: { manual: true } });
-                if (error) throw error;
-                toast({ title: "Backup job queued" });
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData?.session?.access_token;
+                const res = await fetch(`${ELIMU_FUNCTIONS_BASE}/backup-runner`, {
+                  method: "POST",
+                  headers: {
+                    apikey: ELIMU_ANON_KEY,
+                    Authorization: `Bearer ${token || ELIMU_ANON_KEY}`,
+                    "Content-Type": "application/json",
+                    "x-triggered-by": "manual",
+                  },
+                });
+                const d = await res.json().catch(() => ({}));
+                if (!res.ok || d?.ok === false) {
+                  throw new Error(d?.error || d?.errors?.join(" | ") || `HTTP ${res.status}`);
+                }
+                const sizeKb = d?.tables?.size_bytes ? Math.round(d.tables.size_bytes / 1024) : null;
+                setBackupLog(JSON.stringify(d, null, 2));
+                toast({
+                  title: "Backup completed",
+                  description: `${sizeKb ?? "?"}KB, job ${d?.job_id ?? "—"}, ${d?.files?.copied ?? 0} files copied`,
+                });
               })}>
               <PlayCircle size={14}/> Run now
             </button>
+            {backupLog && <div style={S.code}>{backupLog}</div>}
           </div>
           <div style={S.card}>
             <div style={S.title}><HeartPulse size={16}/> Keepalive bots</div>
