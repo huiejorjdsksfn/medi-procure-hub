@@ -303,8 +303,8 @@ function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
         <div style={{fontWeight:700,fontSize:XP.fs,fontFamily:XP.font,marginBottom:6}}>⚡ Quick Actions</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
           <Btn primary onClick={()=>navigate("/goods-received")} title="Review incoming GRNs awaiting finance sign-off">📦 GRN Review</Btn>
-          <Btn primary onClick={()=>navigate("/purchase-vouchers")} title="Open supplier invoices for matching">🧾 Invoice View</Btn>
-          <Btn primary onClick={()=>navigate("/payment-vouchers?action=schedule")} title="Schedule the next batch of payments">💳 Schedule Payment</Btn>
+          <Btn primary onClick={()=>navigate("/vouchers/purchase")} title="Open supplier invoices for matching">🧾 Invoice View</Btn>
+          <Btn primary onClick={()=>navigate("/vouchers/payment?action=schedule")} title="Schedule the next batch of payments">💳 Schedule Payment</Btn>
           <Btn onClick={()=>navigate("/purchase-orders")} title="Purchase orders">📄 Purchase Orders</Btn>
           <Btn onClick={()=>navigate("/reports")} title="Finance reports">📊 Reports</Btn>
         </div>
