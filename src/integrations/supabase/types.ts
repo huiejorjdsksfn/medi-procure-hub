@@ -1092,6 +1092,60 @@ export type Database = {
           },
         ]
       }
+      crash_reports: {
+        Row: {
+          component_stack: string | null
+          correlation_id: string | null
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          page_name: string | null
+          path: string | null
+          resolved: boolean
+          session_id: string | null
+          stack: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          component_stack?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          page_name?: string | null
+          path?: string | null
+          resolved?: boolean
+          session_id?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          component_stack?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          page_name?: string | null
+          path?: string | null
+          resolved?: boolean
+          session_id?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       db_admin_log: {
         Row: {
           action: string
