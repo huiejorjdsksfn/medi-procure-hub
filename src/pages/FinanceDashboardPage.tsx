@@ -266,6 +266,7 @@ function XPWindow({ ws, onFocus, onClose, onMin, onMax, children, title, icon, a
 // ══ WINDOW CONTENT COMPONENTS ═════════════════════════════════════
 
 function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
+  const navigate = useNavigate();
   const paid   = payments.filter((v:any)=>["paid","approved"].includes(v.status)).reduce((s:number,v:any)=>s+(v.total_amount||0),0);
   const rcpd   = receipts.filter((v:any)=>v.status!=="rejected").reduce((s:number,v:any)=>s+(v.amount||0),0);
   const pend   = payments.filter((v:any)=>v.status==="pending").reduce((s:number,v:any)=>s+(v.total_amount||0),0);
