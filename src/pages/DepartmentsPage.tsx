@@ -20,7 +20,7 @@ export default function DepartmentsPage() {
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving]   = useState(false);
-  const [form, setForm]       = useState({name:"",code:"",description:"",head_of_department:"",phone:"",email:"",budget_center:""});
+  const [form, setForm]       = useState({name:"",code:"",description:"",head_name:"",head_phone:"",head_email:""});
 
   const load = useCallback(async()=>{
     setLoading(true);
@@ -60,8 +60,8 @@ export default function DepartmentsPage() {
   const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
 
   const FIELDS: [string,string,number][] = [
-    ["Department Name *","name",2],["Code","code",1],["Budget Center","budget_center",1],
-    ["Head of Department","head_of_department",2],["Phone","phone",1],["Email","email",1],["Description","description",2],
+    ["Department Name *","name",2],["Code","code",1],
+    ["Head of Department","head_name",2],["Phone","head_phone",1],["Email","head_email",1],["Description","description",2],
   ];
 
   return (
@@ -76,7 +76,7 @@ export default function DepartmentsPage() {
           <button onClick={exportExcel} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
             <Download style={{width:13,height:13}}/>Export
           </button>
-          {canManage&&<button onClick={()=>{setEditing(null);setForm({name:"",code:"",description:"",head_of_department:"",phone:"",email:"",budget_center:""});setShowNew(true);}}
+          {canManage&&<button onClick={()=>{setEditing(null);setForm({name:"",code:"",description:"",head_name:"",head_phone:"",head_email:""});setShowNew(true);}}
             style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"rgba(255,255,255,0.92)",color:"#4338ca",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>
             <Plus style={{width:13,height:13}}/>New Dept.
           </button>}
@@ -91,28 +91,27 @@ export default function DepartmentsPage() {
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead>
             <tr style={{background:"#4338ca"}}>
-              {["Code","Department Name","Head of Dept.","Phone","Email","Budget Center","Actions"].map(h=>(
+              {["Code","Department Name","Head of Dept.","Phone","Email","Actions"].map(h=>(
                 <th key={h} style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading?(<tr><td colSpan={7} style={{padding:24,textAlign:"center"}}>
+            {loading?(<tr><td colSpan={6} style={{padding:24,textAlign:"center"}}>
               <RefreshCw style={{width:16,height:16,color:"#d1d5db",animation:"spin 1s linear infinite",display:"block",margin:"0 auto"}}/>
-            </td></tr>):filtered.length===0?(<tr><td colSpan={7} style={{padding:32,textAlign:"center",color:"#9ca3af"}}>No departments found</td></tr>):
+            </td></tr>):filtered.length===0?(<tr><td colSpan={6} style={{padding:32,textAlign:"center",color:"#9ca3af"}}>No departments found</td></tr>):
             filtered.map((r,i)=>(
               <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#f5f3ff"}}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#eef2ff"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?"#fff":"#f5f3ff"}>
                 <td style={{padding:"9px 14px",fontFamily:"monospace",fontSize:10,color:"#6b7280"}}>{r.code||"-"}</td>
                 <td style={{padding:"9px 14px",fontWeight:700,color:"#1f2937"}}>{r.name}</td>
-                <td style={{padding:"9px 14px",color:"#374151"}}>{r.head_of_department||"-"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.phone||"-"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.email||"-"}</td>
-                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.budget_center||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#374151"}}>{r.head_name||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.head_phone||"-"}</td>
+                <td style={{padding:"9px 14px",color:"#6b7280"}}>{r.head_email||"-"}</td>
                 <td style={{padding:"9px 14px"}}>
                   <div style={{display:"flex",gap:6}}>
-                    {canManage&&<button onClick={()=>{setEditing(r);setForm({name:r.name,code:r.code||"",description:r.description||"",head_of_department:r.head_of_department||"",phone:r.phone||"",email:r.email||"",budget_center:r.budget_center||""});setShowNew(true);}}
+                    {canManage&&<button onClick={()=>{setEditing(r);setForm({name:r.name,code:r.code||"",description:r.description||"",head_name:r.head_name||"",head_phone:r.head_phone||"",head_email:r.head_email||""});setShowNew(true);}}
                       style={{padding:"4px 8px",background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:6,cursor:"pointer",lineHeight:0}}>
                       <Edit style={{width:12,height:12,color:"#4338ca"}}/>
                     </button>}
