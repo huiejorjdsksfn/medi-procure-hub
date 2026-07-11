@@ -6,6 +6,7 @@ import { ERPCache } from './lib/erp-cache/index';
 import { OfflineEngine } from './lib/erp-cache/offlineEngine';
 import { supabase } from './integrations/supabase/client';
 import { netEngine } from './lib/networkEngine';
+import { installGlobalCrashHandlers } from './lib/crashReporter';
 
 // ── Mount React FIRST — nothing below this line blocks first paint. ───────────
 // Previously this file eagerly imported ERPEngine, WorkflowEngine, PrintEngine,
@@ -19,6 +20,9 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </ErrorBoundary>
 );
+
+// Capture unhandled errors and promise rejections into crash_reports.
+installGlobalCrashHandlers();
 
 // ── Auto-recover from stale chunk / page-switch errors after a deploy ─────────
 // Every route is React.lazy() + content-hashed by Vite. If a user has the app

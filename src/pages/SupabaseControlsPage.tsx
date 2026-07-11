@@ -40,6 +40,8 @@ export default function SupabaseControlsPage() {
   const { user, profile } = useAuth();
   const [busy, setBusy] = useState<string | null>(null);
   const [buckets, setBuckets] = useState<any[]>([]);
+  const [bucketFiles, setBucketFiles] = useState<Record<string, { count: number; bytes: number; files: any[]; loading: boolean; error?: string }>>({});
+  const [expandedBucket, setExpandedBucket] = useState<string | null>(null);
   const [fnHealth, setFnHealth] = useState<Record<string, boolean>>({});
   const [tableCount, setTableCount] = useState<number | null>(null);
   const [lastLog, setLastLog] = useState<string>("");
@@ -66,6 +68,23 @@ export default function SupabaseControlsPage() {
     const { data, error } = await supabase.storage.listBuckets();
     if (error) throw error;
     setBuckets(data || []);
+    // Fetch file counts for each bucket in parallel (best-effort).
+    for (const b of data || []) {
+      setBucketFiles(s => ({ ...s, [b.name]: { count: 0, bytes: 0, files: [], loading: true } }));
+      supabase.storage.from(b.name).list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } })
+        .then(({ data: files, error: fe }) => {
+          if (fe) {
+            setBucketFiles(s => ({ ...s, [b.name]: { count: 0, bytes: 0, files: [], loading: false, error: fe.message } }));
+            return;
+          }
+          const list = files || [];
+          const bytes = list.reduce((sum, f: any) => sum + (f?.metadata?.size || 0), 0);
+          setBucketFiles(s => ({ ...s, [b.name]: { count: list.length, bytes, files: list, loading: false } }));
+        })
+        .catch(err => {
+          setBucketFiles(s => ({ ...s, [b.name]: { count: 0, bytes: 0, files: [], loading: false, error: String(err?.message || err) } }));
+        });
+    }
   }, []);
 
   const loadSchema = useCallback(async () => {
@@ -207,11 +226,41 @@ export default function SupabaseControlsPage() {
           <div style={S.card}>
             <div style={S.title}><HardDrive size={16}/> Storage buckets</div>
             <div style={S.sub}>{buckets.length} bucket(s)</div>
-            {buckets.map(b => (
-              <div key={b.id} style={{ fontSize: 12, padding: "2px 0" }}>
-                • {b.name} <span style={S.pill(!!b.public)}>{b.public ? "public" : "private"}</span>
-              </div>
-            ))}
+            {buckets.map(b => {
+              const info = bucketFiles[b.name];
+              const kb = info ? Math.round(info.bytes / 1024) : 0;
+              const isOpen = expandedBucket === b.name;
+              return (
+                <div key={b.id} style={{ borderBottom: "1px solid #f1f5f9", padding: "6px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12, cursor: "pointer" }}
+                       onClick={() => setExpandedBucket(isOpen ? null : b.name)}>
+                    <span>
+                      {isOpen ? "▾" : "▸"} <b>{b.name}</b>{" "}
+                      <span style={S.pill(!!b.public)}>{b.public ? "public" : "private"}</span>
+                    </span>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>
+                      {info?.loading ? "…" : info?.error ? "err" : `${info?.count ?? 0} files · ${kb}KB`}
+                    </span>
+                  </div>
+                  {isOpen && info && !info.loading && (
+                    <div style={{ marginTop: 6, maxHeight: 200, overflow: "auto" as const, background: "#f8fafc", borderRadius: 4, padding: 6 }}>
+                      {info.error && <div style={{ fontSize: 11, color: "#991b1b" }}>{info.error}</div>}
+                      {info.files.length === 0 && !info.error && <div style={{ fontSize: 11, color: "#94a3b8" }}>Empty bucket</div>}
+                      {info.files.map((f: any) => (
+                        <div key={f.id || f.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 4px", color: "#334155" }}>
+                          <span style={{ overflow: "hidden" as const, textOverflow: "ellipsis" as const, whiteSpace: "nowrap" as const, maxWidth: 200 }}>
+                            {f.name}
+                          </span>
+                          <span style={{ color: "#64748b" }}>
+                            {f?.metadata?.size ? `${Math.round(f.metadata.size / 1024)}KB` : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <button style={{ ...S.btn("#0f766e"), marginTop: 10 }} disabled={!!busy}
               onClick={() => run("refresh_buckets", loadBuckets)}>
               <RefreshCw size={14}/> Refresh

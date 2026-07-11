@@ -266,6 +266,7 @@ function XPWindow({ ws, onFocus, onClose, onMin, onMax, children, title, icon, a
 // ══ WINDOW CONTENT COMPONENTS ═════════════════════════════════════
 
 function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
+  const navigate = useNavigate();
   const paid   = payments.filter((v:any)=>["paid","approved"].includes(v.status)).reduce((s:number,v:any)=>s+(v.total_amount||0),0);
   const rcpd   = receipts.filter((v:any)=>v.status!=="rejected").reduce((s:number,v:any)=>s+(v.amount||0),0);
   const pend   = payments.filter((v:any)=>v.status==="pending").reduce((s:number,v:any)=>s+(v.total_amount||0),0);
@@ -297,6 +298,17 @@ function OverviewContent({ payments,receipts,glEntries,budgets }: any) {
         ))}
       </div>
       {/* Budget bars */}
+      {/* Quick actions — one-click into GRN review, invoices, and payment scheduling */}
+      <div style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",border:`1px solid ${XP.btnBorder}`,borderRadius:3,padding:"8px 12px",marginBottom:10}}>
+        <div style={{fontWeight:700,fontSize:XP.fs,fontFamily:XP.font,marginBottom:6}}>⚡ Quick Actions</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
+          <Btn primary onClick={()=>navigate("/goods-received")} title="Review incoming GRNs awaiting finance sign-off">📦 GRN Review</Btn>
+          <Btn primary onClick={()=>navigate("/vouchers/purchase")} title="Open supplier invoices for matching">🧾 Invoice View</Btn>
+          <Btn primary onClick={()=>navigate("/vouchers/payment?action=schedule")} title="Schedule the next batch of payments">💳 Schedule Payment</Btn>
+          <Btn onClick={()=>navigate("/purchase-orders")} title="Purchase orders">📄 Purchase Orders</Btn>
+          <Btn onClick={()=>navigate("/reports")} title="Finance reports">📊 Reports</Btn>
+        </div>
+      </div>
       <div style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",border:`1px solid ${XP.btnBorder}`,borderRadius:3,padding:"8px 12px",marginBottom:10}}>
         <div style={{fontWeight:700,fontSize:XP.fs,fontFamily:XP.font,marginBottom:6}}>📊 Budget Utilisation</div>
         {budgets.length===0 ? <div style={{color:"#888",fontSize:XP.fs,fontFamily:XP.font}}>No budgets configured</div>
