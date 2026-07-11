@@ -528,21 +528,22 @@ function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) 
   const { requisitions } = useRequisitions();
   const { purchaseOrders } = usePurchaseOrders();
 
-  const rows = useMemo(()=>data.filter((v:any)=>!search||[v.receipt_number,v.payer,v.description].some((x:any)=>x?.toLowerCase().includes(search.toLowerCase()))),[data,search]);
+  const rows = useMemo(()=>data.filter((v:any)=>!search||[v.receipt_number,v.received_from,v.description].some((x:any)=>x?.toLowerCase().includes(search.toLowerCase()))),[data,search]);
 
   const openNew = ()=>{setEditRow(null);setF({payer:"",amount:"",payment_method:"cash",gl_account:"",description:"",reference_number:""});setShowForm(true);};
-  const openEdit = (r:any)=>{setEditRow(r);setF({payer:r.payer||"",amount:r.amount?.toString()||"",payment_method:r.payment_method||"cash",gl_account:r.gl_account||"",description:r.description||"",reference_number:r.reference_number||""});setShowForm(true);};
+  const openEdit = (r:any)=>{setEditRow(r);setF({payer:r.received_from||"",amount:r.amount?.toString()||"",payment_method:r.payment_method||"cash",gl_account:r.gl_account||"",description:r.description||"",reference_number:r.reference||""});setShowForm(true);};
 
   const save = async () => {
     if (!f.payer||!f.amount){toast({title:"Payer and amount required",variant:"destructive"});return;}
     setSaving(true);
     const amt2=parseFloat(f.amount);
+    const {payer, reference_number, ...fRest} = f;
     if (editRow) {
-      await db.from("receipt_vouchers").update({...f,amount:amt2,total_amount:amt2,updated_at:new Date().toISOString()}).eq("id",editRow.id);
+      await db.from("receipt_vouchers").update({...fRest,received_from:payer,reference:reference_number,amount:amt2,total_amount:amt2,updated_at:new Date().toISOString()}).eq("id",editRow.id);
       toast({title:"✓ Updated"});
     } else {
       const rn=`RV/EL5H/${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,"0")}/${String(Date.now()).slice(-4)}`;
-      await db.from("receipt_vouchers").insert({...f,receipt_number:rn,received_from:f.payer,amount:amt2,total_amount:amt2,status:"draft"});
+      await db.from("receipt_vouchers").insert({...fRest,receipt_number:rn,received_from:payer,reference:reference_number,amount:amt2,total_amount:amt2,status:"draft"});
       toast({title:`✓ ${rn} created`});
     }
     setSaving(false);setShowForm(false);setEditRow(null);refresh();
@@ -551,7 +552,7 @@ function ReceiptsContent({ data, refresh, isManager, user, profile, coa }: any) 
     await db.from("receipt_vouchers").update({status,approved_by:profile?.full_name||user?.email}).eq("id",id);
     toast({title:`✓ → ${status}`});refresh();
   };
-  const exportCSV = ()=>{const h=["Receipt No","Payer","Amount","Method","Status","Date"];const r=rows.map((v:any)=>`${v.receipt_number||""},${v.payer||""},${v.amount||0},${v.payment_method||""},${v.status},${fmtDate(v.created_at)}`);const b=new Blob([[h.join(","),...r].join("\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="receipts.csv";a.click();toast({title:"✓ Exported"});};
+  const exportCSV = ()=>{const h=["Receipt No","Payer","Amount","Method","Status","Date"];const r=rows.map((v:any)=>`${v.receipt_number||""},${v.received_from||""},${v.amount||0},${v.payment_method||""},${v.status},${fmtDate(v.created_at)}`);const b=new Blob([[h.join(","),...r].join("\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="receipts.csv";a.click();toast({title:"✓ Exported"});};
 
   return (
     <div style={{display:"flex",flexDirection:"column" as const,flex:1,overflow:"hidden"}}>
