@@ -141,22 +141,16 @@ export default function SupabaseControlsPage() {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const [overviewRes, domainsRes] = await Promise.all([
-        fetch(`${ELIMU_FUNCTIONS_BASE}/edgeone-stats`, {
-          headers: { apikey: ELIMU_ANON_KEY, Authorization: `Bearer ${token || ELIMU_ANON_KEY}` },
-        }),
-        fetch(`${ELIMU_FUNCTIONS_BASE}/edgeone-stats?action=domains`, {
-          headers: { apikey: ELIMU_ANON_KEY, Authorization: `Bearer ${token || ELIMU_ANON_KEY}` },
-        }),
-      ]);
-      const overview = await overviewRes.json();
-      const domains = await domainsRes.json();
-      if (!overviewRes.ok || overview?.error) {
-        setEoError(overview?.error || `HTTP ${overviewRes.status}`);
+      const res = await fetch(`${ELIMU_FUNCTIONS_BASE}/edgeone-stats`, {
+        headers: { apikey: ELIMU_ANON_KEY, Authorization: `Bearer ${token || ELIMU_ANON_KEY}` },
+      });
+      const d = await res.json();
+      if (!res.ok || d?.error) {
+        setEoError(d?.error || `HTTP ${res.status}`);
         setEoData(null);
       } else {
         setEoError("");
-        setEoData({ ...overview, domains: domains?.domains ?? [] });
+        setEoData(d);
       }
     } catch (e: any) {
       setEoError(e?.message || "unreachable");
@@ -166,24 +160,24 @@ export default function SupabaseControlsPage() {
     }
   }, []);
 
-  const purgeEdgeOne = useCallback(async () => {
+  const redeployNow = useCallback(async () => {
     setEoBusy(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const res = await fetch(`${ELIMU_FUNCTIONS_BASE}/edgeone-stats?action=purge`, {
+      const res = await fetch(`${ELIMU_FUNCTIONS_BASE}/edgeone-stats?action=redeploy`, {
         method: "POST",
         headers: { apikey: ELIMU_ANON_KEY, Authorization: `Bearer ${token || ELIMU_ANON_KEY}` },
       });
       const d = await res.json();
       toast({
-        title: d.triggered ? "Redeploy triggered" : "Purge failed",
-        description: d.triggered ? `Deployment ${d.deployment_id} redeploying` : (d.error || "Unknown error"),
+        title: d.triggered ? "Redeploy triggered" : "Redeploy failed",
+        description: d.triggered ? "GitHub Actions workflow dispatched on main" : (d.error || "Unknown error"),
         variant: d.triggered ? "default" : "destructive",
       });
       await loadEdgeOne();
     } catch (e: any) {
-      toast({ title: "Purge failed", description: e?.message || String(e), variant: "destructive" });
+      toast({ title: "Redeploy failed", description: e?.message || String(e), variant: "destructive" });
     } finally {
       setEoBusy(false);
     }
@@ -377,13 +371,11 @@ export default function SupabaseControlsPage() {
 
           <div style={S.card}>
             <div style={S.title}><Zap size={16}/> EdgeOne / Tencent Cloud</div>
-            <div style={S.sub}>procurbosse.edgeone.app · deployments, domains, live health</div>
+            <div style={S.sub}>procurbosse.edgeone.app · live health + real GitHub Actions redeploy</div>
 
             {eoError && (
               <div style={{ fontSize: 12, color: "#991b1b", background: "#fee2e2", borderRadius: 6, padding: 8, marginBottom: 10 }}>
-                {eoError === "EDGEONE_API_TOKEN is not configured in edge function secrets"
-                  ? "EdgeOne API token isn't configured as an edge function secret yet — set EDGEONE_API_TOKEN in Supabase to enable this card."
-                  : eoError}
+                {eoError}
               </div>
             )}
 
@@ -392,52 +384,41 @@ export default function SupabaseControlsPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>Site health</span>
                   <span style={S.pill(!!eoData.health?.ok)}>
-                    {eoData.health?.ok ? `${eoData.health.status} OK` : (eoData.health?.status ? `HTTP ${eoData.health.status}` : "unknown")}
+                    {eoData.health?.ok ? `${eoData.health.status} OK` : (eoData.health?.status ? `HTTP ${eoData.health.status}` : "unreachable")}
                   </span>
                 </div>
                 {eoData.health?.latency_ms != null && (
                   <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>
                     {eoData.health.latency_ms}ms latency
                     {eoData.health.cf_cache ? ` · cache: ${eoData.health.cf_cache}` : ""}
+                    {eoData.health.server ? ` · ${eoData.health.server}` : ""}
                   </div>
                 )}
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-                  <div style={{ background: "#f1f5f9", borderRadius: 6, padding: 8, textAlign: "center" as const }}>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>{eoData.stats?.total ?? "—"}</div>
-                    <div style={{ fontSize: 10, color: "#64748b" }}>deployments</div>
-                  </div>
-                  <div style={{ background: "#f1f5f9", borderRadius: 6, padding: 8, textAlign: "center" as const }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "#166534" }}>{eoData.stats?.success ?? "—"}</div>
-                    <div style={{ fontSize: 10, color: "#64748b" }}>success</div>
-                  </div>
-                  <div style={{ background: "#f1f5f9", borderRadius: 6, padding: 8, textAlign: "center" as const }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: eoData.stats?.failed ? "#991b1b" : "#0f172a" }}>{eoData.stats?.failed ?? "—"}</div>
-                    <div style={{ fontSize: 10, color: "#64748b" }}>failed</div>
-                  </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Last deploy run</span>
+                  {eoData.last_deploy_run && (
+                    <span style={S.pill(eoData.last_deploy_run.conclusion === "success")}>
+                      {eoData.last_deploy_run.conclusion || eoData.last_deploy_run.status}
+                    </span>
+                  )}
                 </div>
+                {eoData.last_deploy_run ? (
+                  <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>
+                    {eoData.last_deploy_run.head_sha} · {new Date(eoData.last_deploy_run.created_at).toLocaleString()}
+                    {eoData.last_deploy_run.html_url && (
+                      <> · <a href={eoData.last_deploy_run.html_url} target="_blank" rel="noopener noreferrer" style={{ color: "#0f766e" }}>view run</a></>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>
+                    Set GITHUB_ADMIN_TOKEN as an edge function secret to see run history here.
+                  </div>
+                )}
 
-                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>
-                  latest: {eoData.stats?.latest_status ?? "unknown"}
-                  {eoData.stats?.latest_at ? ` · ${new Date(eoData.stats.latest_at).toLocaleString()}` : ""}
+                <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 10, lineHeight: 1.4 }}>
+                  {eoData.note}
                 </div>
-
-                {Array.isArray(eoData.domains) && eoData.domains.length > 0 && (
-                  <div style={{ fontSize: 11, color: "#334155", marginBottom: 10 }}>
-                    <span style={{ fontWeight: 600 }}>Domains: </span>
-                    {eoData.domains.map((d: any) => d.name || d.domain || d).join(", ")}
-                  </div>
-                )}
-
-                {Array.isArray(eoData.deployments) && eoData.deployments.length > 0 && (
-                  <div style={S.code}>
-                    {eoData.deployments.slice(0, 5).map((d: any, i: number) => (
-                      <div key={d.id || i}>
-                        {(d.status || "?").padEnd(10)} {d.id || "—"} {d.created_at ? new Date(d.created_at).toLocaleString() : ""}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </>
             )}
 
@@ -445,8 +426,8 @@ export default function SupabaseControlsPage() {
               <button style={S.btn("#0f766e")} onClick={loadEdgeOne} disabled={eoBusy}>
                 <RefreshCw size={14}/> {eoBusy ? "Loading…" : "Refresh"}
               </button>
-              <button style={S.btn("#c2410c")} onClick={purgeEdgeOne} disabled={eoBusy}>
-                <Zap size={14}/> Purge / Redeploy
+              <button style={S.btn("#c2410c")} onClick={redeployNow} disabled={eoBusy}>
+                <Zap size={14}/> Redeploy now
               </button>
             </div>
           </div>
