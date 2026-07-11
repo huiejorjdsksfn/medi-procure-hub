@@ -6,6 +6,7 @@
  */
 import { Component, ReactNode, ErrorInfo } from "react";
 import { T } from "@/lib/theme";
+import { reportCrash } from "@/lib/crashReporter";
 
 interface Props { children: ReactNode; fallback?: ReactNode; pageName?: string; }
 interface State { hasError: boolean; error: Error | null; errorInfo: ErrorInfo | null; retryCount: number; }
@@ -28,6 +29,14 @@ export class ErrorBoundary extends Component<Props, State> {
       if (errLog.length > 20) errLog.shift();
       localStorage.setItem("el5_error_log", JSON.stringify(errLog));
     } catch {}
+
+    // Persist crash to Supabase for the admin diagnostics screen.
+    reportCrash({
+      message: error.message,
+      stack: error.stack,
+      component_stack: errorInfo.componentStack || undefined,
+      page_name: this.props.pageName,
+    }).catch(() => {});
 
     // Backup path for the "page switch after a deploy" bug: if the browser's
     // vite:preloadError event doesn't fire for some reason (older browsers,
