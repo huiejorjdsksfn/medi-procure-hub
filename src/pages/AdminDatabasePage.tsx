@@ -266,6 +266,11 @@ ORDER BY t.table_name;`);
     setSqlRunning(false);
   }
 
+  const unwrapRows = (data: any): any[] =>
+    data && typeof data === "object" && "rows" in data
+      ? ((data as any).rows ?? [])
+      : Array.isArray(data) ? data : [];
+
   // - Load schema -
   async function loadSchema() {
     const { data } = await (supabase as any).rpc("exec_sql", {
@@ -274,7 +279,7 @@ ORDER BY t.table_name;`);
               WHERE table_schema='public' AND table_name='${selectedTable}'
               ORDER BY ordinal_position`
     });
-    if (data) setSchemaData(data);
+    setSchemaData(unwrapRows(data));
   }
 
   // - Load triggers -
@@ -285,7 +290,7 @@ ORDER BY t.table_name;`);
               FROM information_schema.triggers WHERE trigger_schema='public'
               ORDER BY event_object_table, trigger_name`
     });
-    if (data) setTriggers(data);
+    setTriggers(unwrapRows(data));
   }
 
   // - Load stats -
@@ -293,7 +298,7 @@ ORDER BY t.table_name;`);
     const { data } = await (supabase as any).rpc("exec_sql", {
       query: `SELECT table_name, column_count, policy_count, trigger_count FROM db_stats`
     });
-    if (data) setStats(data);
+    setStats(unwrapRows(data));
   }
 
   // - Realtime -
