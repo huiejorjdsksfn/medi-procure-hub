@@ -229,8 +229,19 @@ ORDER BY t.table_name;`);
       for (const stmt of statements) {
         const { data, error } = await (supabase as any).rpc("exec_sql", { query: stmt });
         if (error) throw error;
-        lastData = Array.isArray(data) ? data : [{ result: data }];
-        totalRows += lastData.length;
+        // exec_sql returns { rows: [...], rowCount: N, ok?: true } for both
+        // SELECT and write statements. Extract rows for display; fall back to
+        // legacy array-shape responses for backward compatibility.
+        if (data && typeof data === "object" && "rows" in data) {
+          lastData = Array.isArray((data as any).rows) ? (data as any).rows : [];
+          totalRows += Number((data as any).rowCount ?? lastData.length) || 0;
+          if (!lastData.length && (data as any).ok) {
+            lastData = [{ status: "ok", rows_affected: (data as any).rowCount }];
+          }
+        } else {
+          lastData = Array.isArray(data) ? data : [{ result: data }];
+          totalRows += lastData.length;
+        }
       }
 
       const ms = Date.now() - t0;
@@ -255,6 +266,11 @@ ORDER BY t.table_name;`);
     setSqlRunning(false);
   }
 
+  const unwrapRows = (data: any): any[] =>
+    data && typeof data === "object" && "rows" in data
+      ? ((data as any).rows ?? [])
+      : Array.isArray(data) ? data : [];
+
   // - Load schema -
   async function loadSchema() {
     const { data } = await (supabase as any).rpc("exec_sql", {
@@ -263,7 +279,7 @@ ORDER BY t.table_name;`);
               WHERE table_schema='public' AND table_name='${selectedTable}'
               ORDER BY ordinal_position`
     });
-    if (data) setSchemaData(data);
+    setSchemaData(unwrapRows(data));
   }
 
   // - Load triggers -
@@ -274,7 +290,7 @@ ORDER BY t.table_name;`);
               FROM information_schema.triggers WHERE trigger_schema='public'
               ORDER BY event_object_table, trigger_name`
     });
-    if (data) setTriggers(data);
+    setTriggers(unwrapRows(data));
   }
 
   // - Load stats -
@@ -282,7 +298,7 @@ ORDER BY t.table_name;`);
     const { data } = await (supabase as any).rpc("exec_sql", {
       query: `SELECT table_name, column_count, policy_count, trigger_count FROM db_stats`
     });
-    if (data) setStats(data);
+    setStats(unwrapRows(data));
   }
 
   // - Realtime -
