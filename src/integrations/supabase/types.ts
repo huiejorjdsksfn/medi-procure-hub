@@ -8542,7 +8542,7 @@ export type Database = {
         Row: {
           column_count: number | null
           policy_count: number | null
-          table_name: unknown
+          table_name: string | null
           trigger_count: number | null
         }
         Relationships: []
