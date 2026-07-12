@@ -229,8 +229,19 @@ ORDER BY t.table_name;`);
       for (const stmt of statements) {
         const { data, error } = await (supabase as any).rpc("exec_sql", { query: stmt });
         if (error) throw error;
-        lastData = Array.isArray(data) ? data : [{ result: data }];
-        totalRows += lastData.length;
+        // exec_sql returns { rows: [...], rowCount: N, ok?: true } for both
+        // SELECT and write statements. Extract rows for display; fall back to
+        // legacy array-shape responses for backward compatibility.
+        if (data && typeof data === "object" && "rows" in data) {
+          lastData = Array.isArray((data as any).rows) ? (data as any).rows : [];
+          totalRows += Number((data as any).rowCount ?? lastData.length) || 0;
+          if (!lastData.length && (data as any).ok) {
+            lastData = [{ status: "ok", rows_affected: (data as any).rowCount }];
+          }
+        } else {
+          lastData = Array.isArray(data) ? data : [{ result: data }];
+          totalRows += lastData.length;
+        }
       }
 
       const ms = Date.now() - t0;
