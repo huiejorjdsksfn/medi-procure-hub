@@ -539,6 +539,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                     {l:"Panel",p:"/admin/panel"},{l:"Users",p:"/users"},
                     {l:"Tracker",p:"/admin/tracker"},{l:"Settings",p:"/settings"},
                     {l:"Database",p:"/admin/database"},{l:"Webmaster",p:"/webmaster"},
+                    {l:"Connectivity",p:"/admin/connectivity"},
                   ].map(a=>(
                     <button key={a.p} onClick={()=>{nav(a.p);setMobileNavOpen(false);}}
                       style={{padding:"3px 8px",borderRadius:T.r,
