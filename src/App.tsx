@@ -31,6 +31,7 @@ const PublicFormPage         = lazy(() => import("@/pages/PublicFormPage"));
 const DashboardPage          = lazy(() => import("@/pages/DashboardPage"));
 const NotFound               = lazy(() => import("@/pages/NotFound"));
 const NotificationsPage      = lazy(() => import("@/pages/NotificationsPage"));
+const AdminConnectivityPage  = lazy(() => import("@/pages/AdminConnectivityPage"));
 const ProfilePage            = lazy(() => import("@/pages/ProfilePage"));
 const ReleasesPage           = lazy(() => import("@/pages/ReleasesPage"));
 const AboutPage              = lazy(() => import("@/pages/AboutPage"));
@@ -257,6 +258,7 @@ const App = () => {
               <Route path="/admin/not-found-log"         element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
               <Route path="/admin/crash-reports"         element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><CrashReportsPage /></RoleGuard></P>} />
               <Route path="/admin/users-ip-audit"        element={<P><RoleGuard allowed={ADMINS}><UsersIpAuditPage /></RoleGuard></P>} />
+              <Route path="/admin/connectivity"          element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><AdminConnectivityPage /></RoleGuard></P>} />
               <Route path="/admin/create-user"           element={<Navigate to="/users" replace />} />
               <Route path="/admin/tracker"               element={<Navigate to="/admin/users-ip-audit" replace />} />
 

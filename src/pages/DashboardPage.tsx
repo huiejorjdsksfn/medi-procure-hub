@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDefaultRoute } from "@/lib/sessionCookie";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import ERPWheel from "@/components/ERPWheel";
 
 const db = supabase as any;
 
@@ -281,6 +282,11 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI tiles grid */}
+            {/* ERP Wheel — Dynamics-365 style radial launcher */}
+            <div style={{background:"linear-gradient(180deg,#f8f7ee,#ece9d8)",border:`1px solid ${XP.btnBorder}`,borderRadius:4,padding:12,marginBottom:12,display:"flex",justifyContent:"center"}}>
+              <ERPWheel size={isMobile?300:440} title="ProcurBosse" subtitle="EL5 MediProcure" roles={roles} />
+            </div>
+
             <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(175px,1fr))",gap:isMobile?6:8,marginBottom:12}}>
               {visibleTiles.map(tile=>(
                 <button key={tile.path} onClick={()=>navigate(tile.path)}
