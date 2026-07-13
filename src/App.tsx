@@ -31,6 +31,7 @@ const PublicFormPage         = lazy(() => import("@/pages/PublicFormPage"));
 const DashboardPage          = lazy(() => import("@/pages/DashboardPage"));
 const NotFound               = lazy(() => import("@/pages/NotFound"));
 const NotificationsPage      = lazy(() => import("@/pages/NotificationsPage"));
+const AdminConnectivityPage  = lazy(() => import("@/pages/AdminConnectivityPage"));
 const ProfilePage            = lazy(() => import("@/pages/ProfilePage"));
 const ReleasesPage           = lazy(() => import("@/pages/ReleasesPage"));
 const AboutPage              = lazy(() => import("@/pages/AboutPage"));
