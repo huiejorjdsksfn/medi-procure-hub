@@ -84,7 +84,7 @@ export default function AdminConnectivityPage() {
           {stat("Twilio", snap?.twilioStatus ?? "—", "SMS engine", snap?.twilioStatus === "active")}
           {stat("Queue Backlog", queueSize, "pending sync jobs", queueSize < 50)}
           {stat("Retries", retries, "jobs with attempts > 0")}
-          {stat("Network Quality", net.quality, `${net.rttMs} ms RTT`, net.quality === "good" || net.quality === "excellent")}
+          {stat("Network Quality", net.quality, `${net.rttMs} ms RTT`, net.quality === "fast" || net.quality === "medium")}
           {stat("Engine Cycle", snap?.runNumber ?? 0, "poll #")}
         </div>
 
