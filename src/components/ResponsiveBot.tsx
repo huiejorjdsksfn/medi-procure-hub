@@ -1,23 +1,34 @@
 /**
- * EL5 MediProcure — ResponsiveBot v3.0 (Portrait-First)
+ * EL5 MediProcure — ResponsiveBot v4.0 (Portrait-First, Auto-Fit)
  * Wires every ERP page, table, modal, form, grid to fully fit
- * portrait-mode phones (320–430px) and tablets (768–1023px).
+ * every phone size (320–430px, incl. sub-360px "xs" devices),
+ * tablets (768–1023px), and phone/tablet landscape orientations.
  *
  * KEY FEATURES:
- *  1. CSS injection per breakpoint (phone / tablet / laptop / desktop)
+ *  1. CSS injection per breakpoint (xs / phone / tablet / laptop / desktop)
  *  2. Auto card-view for ALL <table> elements on phone portrait
  *     – Reads thead th labels → adds data-label to every td
  *     – Adds .m-card class for CSS-driven card layout
  *  3. Fixes overflow:hidden parents that block table scroll
  *  4. DOM-patches large minWidth dialogs and XP windows
- *  5. ResizeObserver + MutationObserver for dynamic content
+ *  5. JS-computed grid auto-fit: reads *computed* grid-template-columns
+ *     (not just inline-style string matches) so grids built via
+ *     Tailwind classes, CSS files, or arbitrary column counts still
+ *     collapse to a device-appropriate auto-fit layout
+ *  6. Landscape-orientation handling for short phone/tablet viewports
+ *  7. Overflow-guard sweep: catches any page-level container whose
+ *     content still overflows the viewport after the CSS pass and
+ *     forces it back into bounds
+ *  8. ResizeObserver + MutationObserver for dynamic content
  */
 
 import { useEffect, useRef, useCallback } from "react";
 
-const BP = { phone: 767, tablet: 1023, laptop: 1439 };
+const BP = { xs: 380, phone: 767, tablet: 1023, laptop: 1439 };
+const LANDSCAPE_SHORT_H = 480; // phones/small tablets rotated to landscape
 
 function device(w: number) {
+  if (w <= BP.xs)     return "xs";
   if (w <= BP.phone)  return "phone";
   if (w <= BP.tablet) return "tablet";
   if (w <= BP.laptop) return "laptop";
@@ -47,6 +58,10 @@ div:has(>table),div:has(>div>table){
 
 /* ─── ALL TABLES: base scroll ─── */
 table{max-width:100%!important;-webkit-overflow-scrolling:touch!important}
+
+/* ─── LONG-STRING SAFETY NET: no unbreakable text can force overflow ─── */
+.app-page-content,.app-page-content *{overflow-wrap:break-word!important}
+.app-page-content{max-width:100vw!important}
 `;
 
 const PHONE_CSS = `
@@ -271,6 +286,47 @@ svg[viewBox="0 0 480 480"]{
 }
 `;
 
+const XS_CSS = `
+/* ═══ XS ≤380px (small/older phones, e.g. SE, compact Android) ══ */
+:root{
+  --font-size-base:12px!important;
+  --font-size-sm:11px!important;
+  --font-size-lg:13px!important;
+  --content-padding:6px!important;
+}
+[style*="minmax(140px"],[style*="minmax(150px"],[style*="minmax(160px"],
+[style*="minmax(175px"],[style*="minmax(180px"],[style*="minmax(200px"],
+[style*="minmax(220px"],[style*="minmax(240px"],[style*="minmax(250px"],
+[style*="minmax(260px"],[style*="minmax(280px"]{
+  grid-template-columns:repeat(auto-fill,minmax(118px,1fr))!important;
+}
+table.m-card td::before{min-width:74px!important;max-width:88px!important;font-size:9px!important}
+table.m-card td{padding:6px 8px!important;font-size:11px!important}
+button,[role="button"]{min-height:38px!important;padding-left:8px!important;padding-right:8px!important}
+div[style*="padding: 20px"],div[style*="padding:20px"],
+div[style*="padding: 24px"],div[style*="padding:24px"]{padding:8px 6px!important}
+`;
+
+const LANDSCAPE_PHONE_CSS = `
+/* ═══ PHONE/TABLET LANDSCAPE (short viewport height) ═══════════ */
+[data-orientation="landscape"] [style*="position: fixed"][style*="inset: 0"],
+[data-orientation="landscape"] [style*="position:fixed"][style*="inset:0"]{
+  max-height:100vh!important;overflow-y:auto!important;
+}
+[data-orientation="landscape"] div[style*="min-height: 100vh"],
+[data-orientation="landscape"] div[style*="minHeight: 100vh"],
+[data-orientation="landscape"] div[style*="min-height:100vh"]{
+  min-height:calc(var(--100dvh, 100vh))!important;
+}
+[data-orientation="landscape"] .kpi-tiles-row,
+[data-orientation="landscape"] [style*="grid-template-columns:repeat(2"],
+[data-orientation="landscape"] [style*="grid-template-columns: repeat(2"]{
+  grid-template-columns:repeat(4,1fr)!important;
+}
+[data-orientation="landscape"] table.m-card tr{margin-bottom:6px!important}
+[data-orientation="landscape"] .app-page-content{padding-top:4px!important;padding-bottom:4px!important}
+`;
+
 const TABLET_CSS = `
 /* ═══ TABLET 768–1023px ════════════════════════════════════════ */
 :root{--font-size-base:14px!important;--content-padding:12px!important;}
@@ -328,11 +384,16 @@ th,td{padding:5px 10px!important;}
 [style*="position: fixed"][style*="width: 9"]{max-width:85vw!important;}
 `;
 
-function buildCSS(dev: string): string {
-  if (dev === "phone")  return BASE_CSS + PHONE_CSS;
-  if (dev === "tablet") return BASE_CSS + TABLET_CSS;
-  if (dev === "laptop") return BASE_CSS + LAPTOP_CSS;
-  return BASE_CSS;
+function buildCSS(dev: string, landscape: boolean): string {
+  let css = BASE_CSS;
+  if (dev === "xs")          css += PHONE_CSS + XS_CSS;
+  else if (dev === "phone")  css += PHONE_CSS;
+  else if (dev === "tablet") css += TABLET_CSS;
+  else if (dev === "laptop") css += LAPTOP_CSS;
+  if (landscape && (dev === "xs" || dev === "phone" || dev === "tablet")) {
+    css += LANDSCAPE_PHONE_CSS;
+  }
+  return css;
 }
 
 // ── CSS injection ──────────────────────────────────────────────────────────
@@ -348,9 +409,10 @@ function injectCSS(css: string) {
   if (el.textContent !== css) el.textContent = css;
 }
 
-function injectRoot(dev: string) {
+function injectRoot(dev: string, landscape: boolean) {
   const root = document.documentElement;
   root.setAttribute("data-device", dev);
+  root.setAttribute("data-orientation", landscape ? "landscape" : "portrait");
   const dvh = window.innerHeight * 0.01;
   root.style.setProperty("--dvh", `${dvh}px`);
   root.style.setProperty("--100dvh", `${window.innerHeight}px`);
@@ -445,12 +507,67 @@ function patchTables(dev: string) {
   });
 }
 
+// ── Grid patcher: computed-style auto-fit (catches grids the brittle
+// inline-style CSS selectors above can't match — Tailwind classes,
+// stylesheet-defined grids, or arbitrary/dynamic column counts) ──────────
+const GRID_MIN_TILE: Record<string, number> = { xs: 118, phone: 140, tablet: 160 };
+
+function patchGrids(dev: string) {
+  const minTile = GRID_MIN_TILE[dev];
+  if (!minTile) { // desktop/laptop: restore anything we previously auto-fit
+    document.querySelectorAll<HTMLElement>('[data-rbot-grid="1"]').forEach(el => {
+      el.style.removeProperty("grid-template-columns");
+      el.removeAttribute("data-rbot-grid");
+    });
+    return;
+  }
+
+  document.querySelectorAll<HTMLElement>("div,section,ul").forEach(el => {
+    // Skip elements a developer has explicitly opted out of auto-fitting
+    if (el.hasAttribute("data-rbot-skip")) return;
+
+    const cs = window.getComputedStyle(el);
+    if (cs.display !== "grid" && cs.display !== "inline-grid") return;
+
+    const cols = cs.gridTemplateColumns.split(/\s+/).filter(Boolean);
+    if (cols.length < 2) return; // single-column grids already fit
+
+    // Only intervene when a column would be narrower than a usable tap target
+    const containerW = el.clientWidth;
+    if (!containerW) return;
+    const approxColW = containerW / cols.length;
+    if (approxColW >= minTile) return; // already fits comfortably
+
+    if (!el.hasAttribute("data-rbot-grid")) {
+      el.setAttribute("data-rbot-grid", "1");
+    }
+    el.style.setProperty("grid-template-columns", `repeat(auto-fit,minmax(${minTile}px,1fr))`, "important");
+  });
+}
+
+// ── Overflow guard: final sweep for anything still wider than the
+// viewport after the CSS + grid passes (e.g. long unbroken SKUs/emails
+// inside elements the selectors above don't reach) ───────────────────────
+function patchOverflowGuards() {
+  const vw = document.documentElement.clientWidth;
+  document.querySelectorAll<HTMLElement>(
+    ".app-page-content, .xp-window, [class*='page-container'], [class*='card'], [class*='panel']"
+  ).forEach(el => {
+    if (el.scrollWidth > vw + 2) {
+      el.style.maxWidth = "100vw";
+      el.style.overflowX = "auto";
+      (el.style as any).webkitOverflowScrolling = "touch";
+    }
+  });
+}
+
 // ── DOM patcher: fix large minWidth dialogs ───────────────────────────────
 function patchDOM(dev: string) {
   patchTables(dev);
+  patchGrids(dev);
 
-  if (dev === "phone" || dev === "tablet") {
-    const maxW = dev === "phone" ? 0.95 : 0.92;
+  if (dev === "phone" || dev === "tablet" || dev === "xs") {
+    const maxW = dev === "tablet" ? 0.92 : 0.95;
     document.querySelectorAll<HTMLElement>("div[style]").forEach(el => {
       const mw = parseInt(el.style.minWidth || "0", 10);
       if (mw > 450 && el.style.position !== "fixed") {
@@ -464,6 +581,8 @@ function patchDOM(dev: string) {
       }
     });
   }
+
+  patchOverflowGuards();
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────
@@ -472,10 +591,12 @@ export function useResponsiveBot() {
 
   const run = useCallback(() => {
     const w   = window.innerWidth;
+    const h   = window.innerHeight;
     const dev = device(w);
+    const landscape = w > h && h <= LANDSCAPE_SHORT_H;
     devRef.current = dev;
-    injectRoot(dev);
-    injectCSS(buildCSS(dev));
+    injectRoot(dev, landscape);
+    injectCSS(buildCSS(dev, landscape));
     requestAnimationFrame(() => patchDOM(dev));
   }, []);
 
