@@ -68,7 +68,6 @@ const MODS = [
   {id:"procurement",label:"Procurement",col:T.procurement,
    roles:["admin","superadmin","webmaster","procurement_manager","procurement_officer","requisitioner","inventory_manager","warehouse_officer"],
    items:[
-     {l:"Home",           p:"/dashboard",           I:Home},
      {l:"Tracking & Approval",p:"/tracking-approval",I:CheckCircle},
      {l:"Requisitions",   p:"/requisitions",        I:ClipboardList, b:"requisitions"},
      {l:"Purchase Orders",p:"/purchase-orders",     I:ShoppingCart,  b:"purchase_orders"},
@@ -324,11 +323,11 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* ── ADMIN QUICK BAR ──────────────────────────────────────────── */}
       {(isAdmin||isDbAdmin) && (
         <div className="admin-quick-bar"
-             style={{background:T.accent,padding:"3px 14px",display:"flex",gap:5,
+             style={{background:"#1c2229",borderBottom:`2px solid ${T.accent}`,padding:"4px 14px",display:"flex",gap:5,
                      alignItems:"center",flexShrink:0,overflowX:"auto",
                      WebkitOverflowScrolling:"touch" as any}}>
-          <span style={{fontSize:10,fontWeight:800,color:"#fff",marginRight:3,
-                        whiteSpace:"nowrap",flexShrink:0}}>⚡ ADMIN</span>
+          <span style={{fontSize:9.5,fontWeight:800,color:T.accent,marginRight:5,letterSpacing:"0.06em",
+                        whiteSpace:"nowrap",flexShrink:0,textTransform:"uppercase"}}>Admin</span>
           {[
             {l:"Panel",      p:"/admin/panel"},
             {l:"Users",      p:"/users"},
@@ -345,13 +344,13 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             {l:"Superadmin", p:"/superadmin"},
           ].map(a=>(
             <button key={a.p} onClick={()=>nav(a.p)}
-              style={{padding:"2px 8px",borderRadius:T.r,
-                      background:loc.pathname===a.p?"rgba(255,255,255,.35)":"rgba(255,255,255,.15)",
-                      border:`1px solid rgba(255,255,255,${loc.pathname===a.p?".5":".2"})`,
-                      color:"#fff",fontSize:11,fontWeight:loc.pathname===a.p?800:500,
-                      cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}
-              onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.28)")}
-              onMouseLeave={e=>(e.currentTarget.style.background=loc.pathname===a.p?"rgba(255,255,255,.35)":"rgba(255,255,255,.15)")}>
+              style={{padding:"3px 9px",borderRadius:6,
+                      background:loc.pathname===a.p?T.accent:"rgba(255,255,255,.06)",
+                      border:"1px solid transparent",
+                      color:loc.pathname===a.p?"#fff":"rgba(255,255,255,.7)",fontSize:10.5,fontWeight:loc.pathname===a.p?700:500,
+                      cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"background .12s,color .12s"}}
+              onMouseEnter={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.14)";(e.currentTarget as any).style.color="#fff";}}}
+              onMouseLeave={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.06)";(e.currentTarget as any).style.color="rgba(255,255,255,.7)";}}}>
               {a.l}
             </button>
           ))}
@@ -410,9 +409,13 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* ── SUB-NAV COMMAND BAR — hidden on phone ─────────────────── */}
       {activeModDef && (
         <div className="sub-nav-bar"
-             style={{background:"#f8f9fa",borderBottom:`1px solid ${T.border}`,
+             style={{background:"#f8f9fa",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${activeModDef.col}`,
                      display:"flex",alignItems:"center",padding:"4px 12px",gap:2,
                      overflowX:"auto",flexShrink:0,WebkitOverflowScrolling:"touch" as any}}>
+          <span style={{fontSize:11,fontWeight:700,color:activeModDef.col,whiteSpace:"nowrap",
+                        marginRight:8,paddingRight:8,borderRight:`1px solid ${T.border}`,flexShrink:0}}>
+            {activeModDef.label}
+          </span>
           {filterItems(activeModDef.items).map(item=>{
             const isAct=loc.pathname===item.p||(item.p!=="/dashboard"&&loc.pathname.startsWith(item.p));
             const n=cnt[(item as any).b as string]||0;
