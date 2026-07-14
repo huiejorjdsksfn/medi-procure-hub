@@ -94,10 +94,49 @@ export default function ERPWheel({
           <filter id="wheel-shadow" x="-10%" y="-10%" width="120%" height="120%">
             <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.25" />
           </filter>
+
+          {/* Procurement wallpaper — tiled crates / pallet / barcode / supply-line motif */}
+          <pattern id="procurement-wallpaper" width={64} height={64} patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+            <rect width={64} height={64} fill="#0f2c5c" />
+            {/* shipping crate */}
+            <g stroke="#5c8fc9" strokeWidth={1} fill="none" opacity={0.55}>
+              <rect x={6} y={8} width={16} height={14} rx={1} />
+              <path d="M6 15 H22 M14 8 V22" />
+            </g>
+            {/* pallet */}
+            <g stroke="#5c8fc9" strokeWidth={1} fill="none" opacity={0.4}>
+              <path d="M32 40 H50 M32 44 H50 M32 48 H50" />
+              <path d="M34 40 V48 M40 40 V48 M46 40 V48" />
+            </g>
+            {/* barcode */}
+            <g fill="#5c8fc9" opacity={0.35}>
+              <rect x={40} y={6} width={1.5} height={10} />
+              <rect x={43} y={6} width={1} height={10} />
+              <rect x={45.5} y={6} width={2} height={10} />
+              <rect x={49} y={6} width={1} height={10} />
+              <rect x={51} y={6} width={1.5} height={10} />
+            </g>
+            {/* dolly / cart */}
+            <g stroke="#5c8fc9" strokeWidth={1} fill="none" opacity={0.4}>
+              <path d="M6 46 H18 L20 58 H8 Z" />
+              <circle cx={10} cy={60} r={1.6} />
+              <circle cx={17} cy={60} r={1.6} />
+            </g>
+            {/* supply-chain connector line */}
+            <path d="M0 32 H64" stroke="#5c8fc9" strokeWidth={0.6} opacity={0.2} strokeDasharray="2 4" />
+          </pattern>
+          <radialGradient id="wallpaper-fade" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#0f2c5c" stopOpacity={0.35} />
+            <stop offset="75%" stopColor="#0f2c5c" stopOpacity={0.7} />
+            <stop offset="100%" stopColor="#0f2c5c" stopOpacity={0.92} />
+          </radialGradient>
         </defs>
 
+        {/* procurement wallpaper backdrop, clipped to the wheel's footprint */}
+        <circle cx={cx} cy={cy} r={rOut + 2} fill="url(#procurement-wallpaper)" />
+        <circle cx={cx} cy={cy} r={rOut + 2} fill="url(#wallpaper-fade)" />
         {/* outer ring backdrop */}
-        <circle cx={cx} cy={cy} r={rOut + 2} fill="#0f2c5c" opacity={0.15} />
+        <circle cx={cx} cy={cy} r={rOut + 2} fill="#0f2c5c" opacity={0.05} />
 
         {visible.map((seg, i) => {
           const a0 = i * step + gap / 2;
