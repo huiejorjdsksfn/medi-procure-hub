@@ -10,6 +10,7 @@ import { WorkflowEngine } from "@/engines/workflow/WorkflowEngine";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { toast } from "@/hooks/use-toast";
 import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
@@ -55,6 +56,7 @@ const fmtDate = (d:string) => d ? new Date(d).toLocaleDateString("en-KE",{day:"2
 
 export default function RequisitionsPage() {
   const { user, profile, roles } = useAuth();
+  const isMobile = useIsMobile();
   const canApprove = roles?.includes("admin")||roles?.includes("procurement_manager");
   const canCreate  = !roles?.includes("warehouse_officer");
   const { getSetting } = useSystemSettings();
@@ -245,9 +247,9 @@ export default function RequisitionsPage() {
           {label:"Total Records",   val:String(reqs.length),   bg:"#6366f1",  icon:"-"},
           {label:"Approved",        val:String(COUNTS.approved),bg:"#0078d4", icon:"-"},
         ].map((kpi,i)=>(
-          <div key={i} style={{background:kpi.bg,color:"#fff",padding:"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none"}}>
-            <div style={{fontSize:9,fontWeight:600,opacity:0.8,letterSpacing:"0.06em",textTransform:"uppercase"}}>{kpi.label}</div>
-            <div style={{fontSize:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums"}}>{kpi.val}</div>
+          <div key={i} style={{background:kpi.bg,color:"#fff",padding:isMobile?"10px 8px":"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none",minWidth:0}}>
+            <div style={{fontSize:isMobile?9.5:9,fontWeight:600,opacity:0.85,letterSpacing:"0.04em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{kpi.label}</div>
+            <div style={{fontSize:isMobile?14:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums",lineHeight:1.15,overflowWrap:"break-word",wordBreak:"break-word"}}>{kpi.val}</div>
           </div>
         ))}
       </div>
@@ -309,7 +311,7 @@ export default function RequisitionsPage() {
         <div style={{position:"relative",maxWidth:"100%"}}>
           <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisition number, title, requester, department-"
-            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
+            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:isMobile?16:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
         </div>
       </div>
@@ -366,11 +368,11 @@ export default function RequisitionsPage() {
                     </td>
                     <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       <div style={{fontWeight:600,color:"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
-                      {r.notes&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
+                      {r.notes&&<div style={{fontSize:isMobile?11:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
                     </td>
                     <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"-"}</td>
                     <td style={{padding:"10px 14px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:isMobile?11:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
                     </td>
                     <td style={{padding:"10px 14px",color:"#94a3b8",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"-"}</td>
                     <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
