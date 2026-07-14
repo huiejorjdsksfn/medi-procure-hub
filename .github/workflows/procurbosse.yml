@@ -395,6 +395,26 @@ jobs:
       )
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Verify release version
+        run: |
+          VER="${{ needs.web.outputs.ver }}"
+          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::package.json version '$VER' is not valid semver (X.Y.Z) — bump the version before releasing."
+            exit 1
+          fi
+          if git rev-parse "v$VER" >/dev/null 2>&1; then
+            TAG_SHA=$(git rev-list -n1 "v$VER")
+            HEAD_SHA=$(git rev-parse HEAD)
+            if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+              echo "::error::Tag v$VER already points to a different commit ($TAG_SHA). Bump the version in package.json before publishing a new release."
+              exit 1
+            fi
+            echo "Tag v$VER already exists and matches HEAD — re-publishing the same release."
+          else
+            echo "Tag v$VER is new — proceeding."
+          fi
 
       - uses: actions/download-artifact@v4
         with:

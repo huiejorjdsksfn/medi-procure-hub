@@ -298,6 +298,46 @@ export async function printDocument(config: {
   doc.save(config.filename + ".pdf");
 }
 
+/** Print any tabular dataset (e.g. the Admin Database browser's table
+ *  view or SQL results) using the same letterhead + autoTable template
+ *  as requisitions/POs/vouchers — a real formatted PDF instead of a raw
+ *  window.print() screenshot of whatever's on screen. */
+export async function printDataTable(opts: {
+  title: string;
+  docNo?: string;
+  columns: string[];
+  rows: (string | number)[][];
+  filename: string;
+  /** Small subtitle line under the letterhead, e.g. the SQL text or a row count summary */
+  meta?: string;
+}): Promise<void> {
+  const { autoTable } = await ensurePdfLibs();
+  await printDocument({
+    title:    opts.title,
+    docNo:    opts.docNo || new Date().toLocaleDateString("en-KE"),
+    filename: opts.filename,
+    content: async (doc, startY) => {
+      let y = startY;
+      if (opts.meta) {
+        doc.setFontSize(7); doc.setTextColor(90, 90, 90); doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(opts.meta, doc.internal.pageSize.getWidth() - 24);
+        doc.text(lines, 12, y);
+        y += lines.length * 3.2 + 3;
+      }
+      autoTable(doc, {
+        startY: y,
+        head: [opts.columns],
+        body: opts.rows,
+        styles:       { fontSize:7, cellPadding:1.5, overflow:"linebreak" },
+        headStyles:   { fillColor:[0,45,100], textColor:255, fontStyle:"bold" },
+        alternateRowStyles: { fillColor:[240,246,255] },
+        theme:        "grid",
+        margin:       { left:12, right:12 },
+      });
+    },
+  });
+}
+
 /** Print requisition */
 export async function printRequisition(req: any, items: any[]): Promise<void> {
   await printDocument({

@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { netEngine } from "@/lib/networkEngine";
+import { pageCache } from "@/lib/pageCache";
 
 interface SearchResult {
   id: string;
@@ -32,6 +33,47 @@ const TYPE_LABELS: Record<string, string> = {
   item:           "Item",
 };
 
+// Local fallback: searches whatever each list page last cached via
+// pageCache (see RequisitionsPage/PurchaseOrdersPage/SuppliersPage/
+// ItemsPage), so the search bar keeps working offline or when Supabase
+// is unreachable — just scoped to whatever the user has already loaded.
+function searchLocal(q: string): SearchResult[] {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return [];
+  const out: SearchResult[] = [];
+
+  const reqs = pageCache.get<any[]>("requisitions") || [];
+  reqs.forEach((r: any) => {
+    if ((r.title || "").toLowerCase().includes(needle) || (r.requisition_number || "").toLowerCase().includes(needle)) {
+      out.push({ id:r.id, type:"requisition", label:r.title||r.requisition_number||r.id,
+        subtitle:`${r.requisition_number||""} · ${r.status||"Draft"}`, url:`/requisitions?focus=${r.id}`, icon:"📋" });
+    }
+  });
+  const pos = pageCache.get<any[]>("purchase_orders") || [];
+  pos.forEach((r: any) => {
+    if ((r.po_number || "").toLowerCase().includes(needle) || (r.supplier_name || "").toLowerCase().includes(needle)) {
+      out.push({ id:r.id, type:"purchase_order", label:r.po_number||r.id,
+        subtitle:`${r.supplier_name||"PO"} · ${r.status||""}`, url:`/purchase-orders?focus=${r.id}`, icon:"🛒" });
+    }
+  });
+  const sups = pageCache.get<any[]>("suppliers") || [];
+  sups.forEach((r: any) => {
+    if ((r.name || "").toLowerCase().includes(needle)) {
+      out.push({ id:r.id, type:"supplier", label:r.name,
+        subtitle:`Supplier · ${r.email||r.status||""}`, url:`/suppliers?focus=${r.id}`, icon:"🏢" });
+    }
+  });
+  const items = pageCache.get<any[]>("items") || [];
+  items.forEach((r: any) => {
+    if ((r.name || "").toLowerCase().includes(needle) || (r.sku || "").toLowerCase().includes(needle)) {
+      out.push({ id:r.id, type:"item", label:r.name,
+        subtitle:`${r.sku||"Item"} · ${r.category||""}`, url:`/items?focus=${r.id}`, icon:"📦" });
+    }
+  });
+
+  return out.slice(0, 20);
+}
+
 export default function GlobalSearchBar() {
   const [open, setOpen]       = useState(false);
   const [query, setQuery]     = useState("");
@@ -39,6 +81,7 @@ export default function GlobalSearchBar() {
   const [loading, setLoading] = useState(false);
   const [errored, setErrored] = useState(false);
   const [selected, setSelected] = useState(0);
+  const [fromCache, setFromCache] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
 
@@ -57,9 +100,19 @@ export default function GlobalSearchBar() {
   }, []);
 
   const search = useCallback(async (q: string) => {
-    if (q.trim().length < 2) { setResults([]); setErrored(false); return; }
+    if (q.trim().length < 2) { setResults([]); setErrored(false); setFromCache(false); return; }
     setLoading(true);
     setErrored(false);
+
+    // Offline: skip the network entirely and search whatever's cached
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setResults(searchLocal(q));
+      setSelected(0);
+      setFromCache(true);
+      setLoading(false);
+      return;
+    }
+
     const like = `%${q.trim()}%`;
     try {
       // Routed through netEngine: each table gets its own circuit breaker
@@ -145,7 +198,20 @@ export default function GlobalSearchBar() {
       setResults(out);
       setSelected(0);
       // If literally every query failed (network/RLS/circuit-open), surface it
-      setErrored(!anyOk && [reqs, pos, sups, items].every(r => !!r.error));
+      const allFailed = !anyOk && [reqs, pos, sups, items].every(r => !!r.error);
+      if (allFailed) {
+        const local = searchLocal(q);
+        if (local.length) {
+          setResults(local);
+          setFromCache(true);
+          setErrored(false);
+        } else {
+          setErrored(true);
+          setFromCache(false);
+        }
+      } else {
+        setFromCache(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -155,6 +221,14 @@ export default function GlobalSearchBar() {
   useEffect(() => {
     const t = setTimeout(() => search(query), 260);
     return () => clearTimeout(t);
+  }, [query, search]);
+
+  // Re-run the live search once connectivity returns, so cached
+  // (offline) results get upgraded to fresh ones automatically.
+  useEffect(() => {
+    const onOnline = () => { if (query.trim().length >= 2) search(query); };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
   }, [query, search]);
 
   const go = (r: SearchResult) => {
@@ -199,6 +273,12 @@ export default function GlobalSearchBar() {
 
         {/* Results */}
         {results.length > 0 && (
+          <>
+            {fromCache && (
+              <div style={{ padding:"6px 20px", background:"#fffbeb", borderBottom:"1px solid #fef3c7", fontSize:11, color:"#92400e" }}>
+                📡 Offline — showing cached results from what's already loaded
+              </div>
+            )}
           <div style={{ maxHeight:380, overflowY:"auto" }}>
             {results.map((r, i) => (
               <div key={`${r.type}-${r.id}`} onClick={() => go(r)}
@@ -217,6 +297,7 @@ export default function GlobalSearchBar() {
               </div>
             ))}
           </div>
+          </>
         )}
 
         {query.trim().length >= 2 && !loading && results.length === 0 && !errored && (

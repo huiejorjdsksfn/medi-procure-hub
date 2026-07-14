@@ -4,7 +4,7 @@
  * Real SQL editor, live realtime, all tables, triggers, edge functions
  * EL5 MediProcure - Embu Level 5 Hospital
  */
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ import {
 import * as XLSX from "@e965/xlsx";
 import RoleGuard from "@/components/RoleGuard";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { printDataTable } from "@/lib/printDocument";
 
 // - Table groups with all 57 tables -
 const TABLE_GROUPS = [
@@ -79,6 +80,7 @@ function DBInner() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(50);
   const [search, setSearch] = useState("");
+  const [rowFilter, setRowFilter] = useState("");
   const [sortCol, setSortCol] = useState("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [editingRow, setEditingRow] = useState<any>(null);
@@ -140,6 +142,19 @@ ORDER BY t.table_name;`);
     if (typeof v !== "string" || !UUID_RE.test(v)) return null;
     return profileNames[v] || itemNames[v] || null;
   }, [profileNames, itemNames]);
+
+  // - Row search: filters the currently loaded page across every column.
+  // Works entirely on data already in memory, so it keeps working even
+  // if the connection drops mid-session. -
+  const filteredTableData = useMemo(() => {
+    const needle = rowFilter.trim().toLowerCase();
+    if (!needle) return tableData;
+    return tableData.filter(row =>
+      Object.values(row).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(needle))
+    );
+  }, [tableData, rowFilter]);
+
+  useEffect(() => { setRowFilter(""); }, [selectedTable]);
 
   // - Load table data -
   const loadTable = useCallback(async () => {
@@ -451,6 +466,13 @@ ORDER BY t.table_name;`);
             <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}` }}>
               <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
               <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
+              <div style={{ display:"flex",alignItems:"center",gap:4,border:`1px solid ${S.border}`,padding:"2px 6px",background:S.bg,marginLeft:8 }}>
+                <Search style={{ width:11,height:11,color:"#94a3b8" }} />
+                <input value={rowFilter} onChange={e=>setRowFilter(e.target.value)} placeholder="Filter rows on this page…"
+                  style={{ border:"none",outline:"none",fontSize:11,fontFamily:S.font,width:160 }} />
+                {rowFilter && <button onClick={()=>setRowFilter("")} style={{ background:"none",border:"none",cursor:"pointer",padding:0,display:"flex" }}><X style={{ width:10,height:10,color:"#94a3b8" }} /></button>}
+              </div>
+              {rowFilter.trim() && <span style={{ fontSize:10,color:"#64748b",fontFamily:S.font }}>{filteredTableData.length} match{filteredTableData.length===1?"":"es"}</span>}
               <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
                 <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font }}>
                   {[25,50,100,200,500].map(n=><option key={n}>{n}</option>)}
@@ -461,6 +483,25 @@ ORDER BY t.table_name;`);
                 </button>
                 <button onClick={exportExcel} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Download style={{ width:11,height:11 }} /> Export
+                </button>
+                <button onClick={()=>{
+                  if(!filteredTableData.length){ toast({title:"No rows to print"}); return; }
+                  const cols = tableColumns.filter(c=>c!=="id");
+                  printDataTable({
+                    title:    `${selectedTable.toUpperCase()} — TABLE EXPORT`,
+                    docNo:    selectedTable,
+                    columns:  cols,
+                    rows:     filteredTableData.map(row=>cols.map(c=>{
+                      const v=row[c];
+                      if(v===null||v===undefined) return "";
+                      if(typeof v==="object") return "[JSON]";
+                      return String(v).slice(0,80);
+                    })),
+                    filename: `${selectedTable}-export-${Date.now()}`,
+                    meta:     `${filteredTableData.length} of ${totalRows.toLocaleString()} rows${rowFilter.trim()?` (filtered: "${rowFilter.trim()}")`:""} · Page ${page+1}`,
+                  }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
+                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <Printer style={{ width:11,height:11 }} /> Print
                 </button>
                 <button onClick={toggleRealtime} style={{ border:`1px solid ${realtimeOn?"#006600":"#b0b0b0"}`,background:realtimeOn?"#006600":S.bg,color:realtimeOn?"#fff":S.fg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
                   {realtimeOn?"Stop RT":"Live RT"}
@@ -502,7 +543,7 @@ ORDER BY t.table_name;`);
                     </tr>
                   </thead>
                   <tbody>
-                    {tableData.map((row, ri) => (
+                    {filteredTableData.map((row, ri) => (
                       <tr key={row.id||ri} style={{ background:ri%2===0?"#ffffff":"#f8fafc" }}
                         onMouseEnter={e=>(e.currentTarget.style.background="#e0e7ff")}
                         onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"#ffffff":"#f8fafc")}>
@@ -625,21 +666,14 @@ ORDER BY t.table_name;`);
                 <button onClick={()=>{
                   if(!sqlResult.length){ toast({title:"Run a query first"}); return; }
                   const cols=Object.keys(sqlResult[0]||{});
-                  const w=window.open("","_blank"); if(!w) return;
-                  w.document.write(`<html><head><title>SQL Result</title><style>
-                    body{font-family:'Segoe UI',sans-serif;margin:20px;color:#000}
-                    h1{font-size:16px}pre{background:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;color:#0f172a;white-space:pre-wrap}
-                    table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px}
-                    th{background:#003087;color:#fff;padding:6px 8px;text-align:left}
-                    td{border:1px solid #ddd;padding:5px 8px;color:#0f172a}
-                    tr:nth-child(even) td{background:#f8fafc}</style></head><body>
-                    <h1>Embu Level 5 Hospital — SQL Query Result</h1>
-                    <pre>${sql.replace(/</g,"&lt;")}</pre>
-                    <div style="font-size:11px;color:#666">Rows: ${sqlResult.length} · Executed in ${sqlMs}ms</div>
-                    <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead>
-                    <tbody>${sqlResult.map(r=>`<tr>${cols.map(c=>`<td>${r[c]==null?"":String(r[c]).replace(/</g,"&lt;")}</td>`).join("")}</tr>`).join("")}</tbody></table>
-                    </body></html>`);
-                  w.document.close(); setTimeout(()=>w.print(),300);
+                  printDataTable({
+                    title:    "SQL QUERY RESULT",
+                    docNo:    `ROWS-${sqlResult.length}`,
+                    columns:  cols,
+                    rows:     sqlResult.map(r=>cols.map(c=>r[c]==null?"":String(r[c]))),
+                    filename: `sql-result-${Date.now()}`,
+                    meta:     `Query: ${sql.trim().slice(0,300)}${sql.trim().length>300?"…":""}  ·  ${sqlResult.length} rows · ${sqlMs}ms`,
+                  }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
                 }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Printer style={{width:11,height:11}}/> Print
                 </button>
