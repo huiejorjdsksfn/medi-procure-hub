@@ -24,7 +24,7 @@ import {
   ClipboardList, BookOpen, PiggyBank, Layers, Receipt, BookMarked, Calendar,
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
-  BarChart2, Code2, Radio, Users, RefreshCw, PenLine,
+  BarChart2, Code2, Radio, Users, RefreshCw, PenLine, UserPlus,
   CheckCircle, Printer, UserCheck, AlertTriangle, Menu, X as XIcon, Palette
 } from "lucide-react";
 
@@ -329,30 +329,45 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
           <span style={{fontSize:9.5,fontWeight:800,color:T.accent,marginRight:5,letterSpacing:"0.06em",
                         whiteSpace:"nowrap",flexShrink:0,textTransform:"uppercase"}}>Admin</span>
           {[
-            {l:"Panel",      p:"/admin/panel"},
-            {l:"Users",      p:"/users"},
-            {l:"+ User",     p:"/admin/create-user"},
-            {l:"Tracker",    p:"/admin/tracker"},
-            {l:"IP Access",  p:"/admin/ip-access"},
-            {l:"IP Audit",   p:"/admin/users-ip-audit"},
-            {l:"Audit Log",  p:"/audit-log"},
-            {l:"Settings",   p:"/settings"},
-            {l:"GUI Editor", p:"/gui-editor"},
-            {l:"Database",   p:"/admin/database"},
-            {l:"404 Log",    p:"/admin/not-found-log"},
-            {l:"Webmaster",  p:"/webmaster"},
-            {l:"Superadmin", p:"/superadmin"},
-          ].map(a=>(
-            <button key={a.p} onClick={()=>nav(a.p)}
-              style={{padding:"3px 9px",borderRadius:6,
-                      background:loc.pathname===a.p?T.accent:"rgba(255,255,255,.06)",
-                      border:"1px solid transparent",
-                      color:loc.pathname===a.p?"#fff":"rgba(255,255,255,.7)",fontSize:10.5,fontWeight:loc.pathname===a.p?700:500,
-                      cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"background .12s,color .12s"}}
-              onMouseEnter={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.14)";(e.currentTarget as any).style.color="#fff";}}}
-              onMouseLeave={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.06)";(e.currentTarget as any).style.color="rgba(255,255,255,.7)";}}}>
-              {a.l}
-            </button>
+            [
+              {l:"Panel",  p:"/admin/panel", I:Layers},
+            ],
+            [
+              {l:"Users",   p:"/users",                 I:Users},
+              {l:"+ User",  p:"/admin/create-user",     I:UserPlus},
+              {l:"IP Access",p:"/admin/ip-access",      I:Lock},
+              {l:"IP Audit",p:"/admin/users-ip-audit",  I:Shield},
+            ],
+            [
+              {l:"Tracker",  p:"/admin/tracker", I:Activity},
+              {l:"Audit Log",p:"/audit-log",     I:ClipboardList},
+              {l:"404 Log",  p:"/admin/not-found-log", I:AlertTriangle},
+            ],
+            [
+              {l:"Settings",  p:"/settings",       I:Settings},
+              {l:"GUI Editor",p:"/gui-editor",     I:Palette},
+              {l:"Database",  p:"/admin/database", I:Database},
+            ],
+            [
+              {l:"Webmaster", p:"/webmaster",  I:Code2},
+              {l:"Superadmin",p:"/superadmin", I:Server},
+            ],
+          ].map((group,gi)=>(
+            <div key={gi} style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,
+                                   paddingLeft:gi>0?6:0,borderLeft:gi>0?"1px solid rgba(255,255,255,.1)":"none"}}>
+              {group.map(a=>(
+                <button key={a.p} onClick={()=>nav(a.p)}
+                  style={{display:"flex",alignItems:"center",gap:4,padding:"3px 9px",borderRadius:T.r,
+                          background:loc.pathname===a.p?T.accent:"rgba(255,255,255,.06)",
+                          border:"1px solid transparent",
+                          color:loc.pathname===a.p?"#fff":"rgba(255,255,255,.7)",fontSize:10.5,fontWeight:loc.pathname===a.p?700:500,
+                          cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"background .12s,color .12s"}}
+                  onMouseEnter={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.14)";(e.currentTarget as any).style.color="#fff";}}}
+                  onMouseLeave={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.06)";(e.currentTarget as any).style.color="rgba(255,255,255,.7)";}}}>
+                  <a.I size={11}/>{a.l}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -367,9 +382,10 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
           style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
                   color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,
                   fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",
-                  background:"transparent",border:"none",
+                  background:loc.pathname==="/dashboard"?`${T.primary}0a`:"transparent",
+                  border:"none",borderRadius:loc.pathname==="/dashboard"?"8px 8px 0 0":0,
                   borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,
-                  whiteSpace:"nowrap",transition:"all .15s",flexShrink:0}}
+                  whiteSpace:"nowrap",transition:"all .18s cubic-bezier(.4,0,.2,1)",flexShrink:0}}
           onMouseEnter={e=>{(e.currentTarget as any).style.color=T.primary}}
           onMouseLeave={e=>{(e.currentTarget as any).style.color=loc.pathname==="/dashboard"?T.primary:T.fgMuted}}>
           <Home size={13}/>Home
@@ -393,11 +409,11 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
               }}
               style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
                       color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,
-                      fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}08`:"transparent",
-                      border:"none",borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,
-                      whiteSpace:"nowrap",transition:"all .15s",flexShrink:0}}
-              onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}08`;}}
-              onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}08`:"transparent";}}>
+                      fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}0a`:"transparent",
+                      border:"none",borderRadius:isAct?"8px 8px 0 0":0,borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,
+                      whiteSpace:"nowrap",transition:"all .18s cubic-bezier(.4,0,.2,1)",flexShrink:0}}
+              onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}0a`;}}
+              onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}0a`:"transparent";}}>
               {mod.label}
               {(modCnt as number)>0&&<Badge n={modCnt as number} col={mod.col}/>}
               <ChevronDown size={11} style={{transform:isAct?"rotate(180deg)":"none",transition:"transform .2s"}}/>
@@ -409,7 +425,8 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* ── SUB-NAV COMMAND BAR — hidden on phone ─────────────────── */}
       {activeModDef && (
         <div className="sub-nav-bar"
-             style={{background:"#f8f9fa",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${activeModDef.col}`,
+             style={{background:`${activeModDef.col}05`,borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${activeModDef.col}`,
+                     boxShadow:"0 2px 6px rgba(0,0,0,.04)",
                      display:"flex",alignItems:"center",padding:"4px 12px",gap:2,
                      overflowX:"auto",flexShrink:0,WebkitOverflowScrolling:"touch" as any}}>
           <span style={{fontSize:11,fontWeight:700,color:activeModDef.col,whiteSpace:"nowrap",
@@ -423,12 +440,13 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
               <button key={item.p} onClick={()=>nav(item.p)}
                 style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",
                         borderRadius:T.r,
-                        background:isAct?`${activeModDef.col}12`:"transparent",
+                        background:isAct?`${activeModDef.col}14`:"transparent",
                         color:isAct?activeModDef.col:T.fgMuted,
                         fontSize:isTablet?11:12,fontWeight:isAct?600:400,
                         cursor:"pointer",border:"none",whiteSpace:"nowrap",transition:"all .12s"}}
                 onMouseEnter={e=>{(e.currentTarget as any).style.background=`${activeModDef.col}10`;(e.currentTarget as any).style.color=activeModDef.col;}}
-                onMouseLeave={e=>{(e.currentTarget as any).style.background=isAct?`${activeModDef.col}12`:"transparent";(e.currentTarget as any).style.color=isAct?activeModDef.col:T.fgMuted;}}>
+                onMouseLeave={e=>{(e.currentTarget as any).style.background=isAct?`${activeModDef.col}14`:"transparent";(e.currentTarget as any).style.color=isAct?activeModDef.col:T.fgMuted;}}>
+                {isAct&&<span style={{width:5,height:5,borderRadius:"50%",background:activeModDef.col,flexShrink:0}}/>}
                 <item.I size={12}/>{item.l}{n>0&&<Badge n={n} col={activeModDef.col}/>}
               </button>
             );
