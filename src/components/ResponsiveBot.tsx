@@ -1,8 +1,16 @@
 /**
- * EL5 MediProcure — ResponsiveBot v4.0 (Portrait-First, Auto-Fit)
+ * EL5 MediProcure — ResponsiveBot v5.0 (Portrait-First, Auto-Fit, Brand-Aligned)
  * Wires every ERP page, table, modal, form, grid to fully fit
  * every phone size (320–430px, incl. sub-360px "xs" devices),
  * tablets (768–1023px), and phone/tablet landscape orientations.
+ *
+ * v5.0: mobile card tables (light + dark variants) now carry the same
+ * ProcurBosse blue accent bar and brand-blue first-cell used by the
+ * ribbon nav, sub-nav, toasts, and stamp/approval confirmations — one
+ * visual identity across every module, automatically, since this runs
+ * against every <table> on every page rather than needing per-page
+ * edits. Also adds a site-wide 11px legible-text floor on phone and
+ * 40px minimum touch-height per card row.
  *
  * KEY FEATURES:
  *  1. CSS injection per breakpoint (xs / phone / tablet / laptop / desktop)
@@ -194,11 +202,15 @@ table.m-card td > *{
 }
 
 /* Light-themed tables (dark text authored for a white row) — render a clean white card.
-   This is the default for any table ResponsiveBot hasn't classified yet. */
+   This is the default for any table ResponsiveBot hasn't classified yet.
+   Left accent bar + brand-blue first cell tie every table site-wide back to
+   the same "ProcurBosse" accent used in the ribbon, sub-nav, toasts, and
+   stamp/approval confirmations — one visual identity across all modules. */
 table.m-card[data-rbot-theme="light"] tr,
 table.m-card:not([data-rbot-theme]) tr{
   background:#fff!important;
   border:1px solid #e5e7eb!important;
+  border-left:3px solid #2f7edd!important;
   box-shadow:0 1px 3px rgba(0,0,0,0.06)!important;
 }
 table.m-card[data-rbot-theme="light"] tr:nth-child(even),
@@ -207,34 +219,48 @@ table.m-card[data-rbot-theme="light"] td,
 table.m-card:not([data-rbot-theme]) td{
   color:#111827!important;
   border-bottom:1px solid #f3f4f6!important;
+  min-height:40px!important;
 }
 table.m-card[data-rbot-theme="light"] td::before,
 table.m-card:not([data-rbot-theme]) td::before{color:#6b7280!important}
 table.m-card[data-rbot-theme="light"] td:first-child,
 table.m-card:not([data-rbot-theme]) td:first-child{
-  background:#f0f4ff!important;
+  background:#eaf3fe!important;
   font-weight:700!important;
   font-size:13px!important;
-  color:#1e3a8a!important;
+  color:#1d4ed8!important;
 }
 
 /* Dark-glass tables (light text authored for a translucent dark row) — keep a dark card
-   instead of forcing a white background under text that was never meant to sit on white. */
+   instead of forcing a white background under text that was never meant to sit on white.
+   Same brand-blue accent bar as the light theme so both variants read as one system. */
 table.m-card[data-rbot-theme="dark"] tr{
-  background:rgba(15,23,42,0.55)!important;
-  border:1px solid rgba(255,255,255,0.12)!important;
+  background:linear-gradient(180deg,#1c2229 0%,#161b21 100%)!important;
+  border:1px solid rgba(255,255,255,0.08)!important;
+  border-left:3px solid #2f7edd!important;
   box-shadow:0 2px 10px rgba(0,0,0,0.35)!important;
 }
-table.m-card[data-rbot-theme="dark"] tr:nth-child(even){background:rgba(15,23,42,0.72)!important}
+table.m-card[data-rbot-theme="dark"] tr:nth-child(even){background:linear-gradient(180deg,#20262d 0%,#181d23 100%)!important}
 table.m-card[data-rbot-theme="dark"] td{
   color:#e2e8f0!important;
   border-bottom:1px solid rgba(255,255,255,0.08)!important;
+  min-height:40px!important;
 }
 /* Force readable text on any plain text wrapper, but leave badges/pills/buttons
    that carry their own background colour untouched so status colour-coding survives. */
 table.m-card[data-rbot-theme="dark"] td *:not([style*="background"]){color:#e2e8f0!important}
 table.m-card[data-rbot-theme="dark"] td::before{color:rgba(226,232,240,0.6)!important}
-table.m-card[data-rbot-theme="dark"] td:first-child{background:rgba(255,255,255,0.06)!important}
+table.m-card[data-rbot-theme="dark"] td:first-child{background:rgba(47,126,221,0.12)!important;color:#7db4f0!important}
+
+/* Font-size safety net: several older pages hand-author 9–10px labels/badges
+   that are legible on a desktop table but too small once a phone renders them
+   as full-width card text. Catch those inline sizes site-wide (every module,
+   not just pages that have been manually revisited) and float them up to an
+   11px legible minimum on phone. */
+[style*="fontSize:9"],[style*="fontSize: 9"],
+[style*="fontSize:8"],[style*="fontSize: 8"]{font-size:10px!important}
+table.m-card [style*="fontSize:9"],table.m-card [style*="fontSize: 9"],
+table.m-card [style*="fontSize:10"],table.m-card [style*="fontSize: 10"]{font-size:11px!important}
 /* Non-card tables: ensure scroll */
 table:not(.m-card){
   display:block!important;

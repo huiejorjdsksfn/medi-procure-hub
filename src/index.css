@@ -570,11 +570,14 @@ div:has(> div > table) {
     flex: 1 !important;
   }
 
-  /* Light-themed tables (dark text authored for a white row) — default look. */
+  /* Light-themed tables (dark text authored for a white row) — default look.
+     Brand-aligned: same blue accent bar + first-cell tint as the ribbon,
+     sub-nav, toasts, and stamp/approval confirmations. */
   table.m-card[data-rbot-theme="light"] tr,
   table.m-card:not([data-rbot-theme]) tr {
     background: #fff !important;
     border: 1px solid #e5e7eb !important;
+    border-left: 3px solid #2f7edd !important;
     box-shadow: 0 1px 3px rgba(0,0,0,.06) !important;
   }
   table.m-card[data-rbot-theme="light"] tr:nth-child(even),
@@ -583,32 +586,44 @@ div:has(> div > table) {
   table.m-card:not([data-rbot-theme]) td {
     color: #111827 !important;
     border-bottom: 1px solid #f3f4f6 !important;
+    min-height: 40px !important;
   }
   table.m-card[data-rbot-theme="light"] td::before,
   table.m-card:not([data-rbot-theme]) td::before { color: #6b7280 !important; }
   table.m-card[data-rbot-theme="light"] td:first-child,
   table.m-card:not([data-rbot-theme]) td:first-child {
-    background: #eef2ff !important;
+    background: #eaf3fe !important;
     font-weight: 700 !important;
     font-size: 13px !important;
-    color: #1e3a8a !important;
+    color: #1d4ed8 !important;
   }
 
   /* Dark-glass tables (light text authored for a translucent dark row) — keep a dark card
-     so text that was never meant to sit on white stays visible. */
+     so text that was never meant to sit on white stays visible. Same dark-card family
+     (#1c2229) used by the Toaster and BrandConfirmation overlay. */
   table.m-card[data-rbot-theme="dark"] tr {
-    background: rgba(15,23,42,.55) !important;
-    border: 1px solid rgba(255,255,255,.12) !important;
+    background: linear-gradient(180deg,#1c2229 0%,#161b21 100%) !important;
+    border: 1px solid rgba(255,255,255,.08) !important;
+    border-left: 3px solid #2f7edd !important;
     box-shadow: 0 2px 10px rgba(0,0,0,.35) !important;
   }
-  table.m-card[data-rbot-theme="dark"] tr:nth-child(even) { background: rgba(15,23,42,.72) !important; }
+  table.m-card[data-rbot-theme="dark"] tr:nth-child(even) { background: linear-gradient(180deg,#20262d 0%,#181d23 100%) !important; }
   table.m-card[data-rbot-theme="dark"] td {
     color: #e2e8f0 !important;
     border-bottom: 1px solid rgba(255,255,255,.08) !important;
+    min-height: 40px !important;
   }
   table.m-card[data-rbot-theme="dark"] td *:not([style*="background"]) { color: #e2e8f0 !important; }
   table.m-card[data-rbot-theme="dark"] td::before { color: rgba(226,232,240,.6) !important; }
-  table.m-card[data-rbot-theme="dark"] td:first-child { background: rgba(255,255,255,.06) !important; }
+  table.m-card[data-rbot-theme="dark"] td:first-child { background: rgba(47,126,221,.14) !important; color: #7db4f0 !important; }
+
+  /* Font-size safety net (same as ResponsiveBot's JS-injected copy): catch
+     hand-authored 8–10px labels site-wide and float them to a legible floor
+     on phone, without needing every page individually revisited. */
+  [style*="fontSize:9"], [style*="fontSize: 9"],
+  [style*="fontSize:8"], [style*="fontSize: 8"] { font-size: 10px !important; }
+  table.m-card [style*="fontSize:9"], table.m-card [style*="fontSize: 9"],
+  table.m-card [style*="fontSize:10"], table.m-card [style*="fontSize: 10"] { font-size: 11px !important; }
 
   /* ── Non-card tables: horizontal scroll ─── */
   table:not(.m-card) {
