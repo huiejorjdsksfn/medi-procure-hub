@@ -1,1 +1,0 @@
-import{o as a}from"./rolldown-runtime-BwLcaC_9.js";import{r as e}from"./query-vendor-B6Dtp3cL.js";import{s as t}from"./react-vendor-Bhj39De-.js";var o=a(e(),1);function c(){const r=t();return(0,o.useEffect)(()=>{r("/finance-dashboard",{replace:!0})},[r]),null}export{c as default};

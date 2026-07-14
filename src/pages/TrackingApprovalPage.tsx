@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp, QuickStampButton } from "@/components/DocumentStamp";
+import BrandConfirmation from "@/components/BrandConfirmation";
 import {
   ShoppingCart, FileText, Package, Users, Bell, AlertTriangle,
   Database, CheckCircle2, XCircle, RefreshCw, Search, BarChart3,
@@ -82,6 +83,7 @@ export default function TrackingApprovalPage() {
   const [needsStampGRNs,  setNeedsStampGRNs]  = useState<any[]>([]);
   const [stampingId, setStampingId] = useState<string|null>(null);
   const [activeTab,  setActiveTab]  = useState<"queue"|"pending"|"stamp">("queue");
+  const [confirm, setConfirm] = useState<{ title:string; message:string; status:"success"|"error" } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -155,9 +157,15 @@ export default function TrackingApprovalPage() {
       }
 
       toast({ title:`${action==="approved"?"✅ Approved":"❌ Rejected"}: ${item.document_number}` });
+      setConfirm({
+        title: action==="approved" ? "Document has been approved." : "Document has been rejected.",
+        message: `${item.document_number} was ${action} by ${profile?.full_name||"Admin"}.`,
+        status: "success",
+      });
       await load();
     } catch(e:any){
       toast({ title:"Action failed", description:e.message, variant:"destructive" });
+      setConfirm({ title:"Action failed.", message:e.message, status:"error" });
     }
     setResolving(null);
   };
@@ -169,8 +177,16 @@ export default function TrackingApprovalPage() {
       await db.from(table).update({ stamped:true, stamped_by_name:profile?.full_name||"Admin",
         stamped_at:new Date().toISOString(), stamp_label:label }).eq("id",id);
       toast({ title:`🔵 ${label} stamp affixed` });
+      setConfirm({
+        title: "Document has been stamped.",
+        message: `Officially stamped "${label}" by ${profile?.full_name||"Admin"}.`,
+        status: "success",
+      });
       await load();
-    } catch(e:any){ toast({ title:"Stamp failed", description:e.message, variant:"destructive" }); }
+    } catch(e:any){
+      toast({ title:"Stamp failed", description:e.message, variant:"destructive" });
+      setConfirm({ title:"Stamp failed.", message:e.message, status:"error" });
+    }
     setStampingId(null);
   };
 
@@ -510,6 +526,15 @@ export default function TrackingApprovalPage() {
       </div>
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+
+      <BrandConfirmation
+        open={!!confirm}
+        title={confirm?.title || ""}
+        message={confirm?.message}
+        status={confirm?.status || "success"}
+        autoDismissMs={3500}
+        onClose={() => setConfirm(null)}
+      />
     </div>
   );
 }

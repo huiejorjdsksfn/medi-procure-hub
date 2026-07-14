@@ -71,33 +71,34 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
       transform: visible ? "translateY(0) scale(1)" : "translateY(30px) scale(0.88)",
       pointerEvents: visible ? "auto" : "none",
     }}>
-      {/* - Outer pink/salmon background like image 1 - */}
+      {/* - Outer dark "Allhands" panel - */}
       <div style={{
         width: 320,
-        background: "linear-gradient(145deg, #ffd6d6, #ffb8c6)",
-        borderRadius: 28,
+        background: "linear-gradient(160deg, #232a35, #171c24)",
+        borderRadius: 24,
         padding: "12px 12px 18px",
-        boxShadow: "0 20px 60px rgba(200,50,100,0.25), 0 4px 16px rgba(0,0,0,0.1)",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.25)",
         position: "relative",
       }}>
         {/* Close button */}
         <button onClick={close} style={{
           position: "absolute", top: 10, right: 10,
-          background: "rgba(255,255,255,0.6)", border: "none", borderRadius: "50%",
+          background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
           width: 26, height: 26, cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
           backdropFilter: "blur(4px)",
         }}>
-          <X style={{ width: 12, height: 12, color: "#666" }} />
+          <X style={{ width: 12, height: 12, color: "rgba(255,255,255,0.6)" }} />
         </button>
 
-        {/* - White card (inner) - */}
+        {/* - Dark card (inner) with blue top accent - */}
         <div style={{
-          background: "#fff",
-          borderRadius: 20,
+          background: "#1c2229",
+          borderTop: "3px solid #2f7edd",
+          borderRadius: "4px 4px 20px 20px",
           padding: "40px 24px 20px",
           textAlign: "center",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
           position: "relative",
           marginTop: 36,
         }}>
@@ -136,12 +137,18 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
             </div>
           </div>
 
-          {/* Type emoji */}
-          <div style={{ fontSize: 18, marginBottom: 6 }}>{TYPE_EMOJI[n.type] || "-"}</div>
-
-          {/* Title - bold, dark */}
+          {/* Wordmark */}
           <div style={{
-            fontSize: 17, fontWeight: 800, color: "#1a1a2e",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "rgba(255,255,255,0.35)",
+            textTransform: "uppercase", marginBottom: 10,
+            fontFamily: "'Segoe UI', system-ui, sans-serif",
+          }}>
+            ProcurBosse
+          </div>
+
+          {/* Title - bold, white */}
+          <div style={{
+            fontSize: 17, fontWeight: 800, color: "#f5f7fa",
             marginBottom: 6, lineHeight: 1.3,
             fontFamily: "'Segoe UI', system-ui, sans-serif",
           }}>
@@ -150,14 +157,14 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
 
           {/* Subtitle - "You have X new notification(s)" */}
           <div style={{
-            fontSize: 12.5, color: "#6b7280",
+            fontSize: 12.5, color: "#98a2b3",
             marginBottom: 18, lineHeight: 1.5,
             fontFamily: "'Segoe UI', system-ui, sans-serif",
           }}>
             {n.message?.slice(0, 80)}{n.message?.length > 80 ? "-" : ""}
           </div>
 
-          {/* Open button - pink/crimson gradient like image 1 */}
+          {/* Open button - blue accent, matches brand theme */}
           <button
             onClick={() => { if (n.action_url) navigate(n.action_url); close(); }}
             style={{
@@ -165,23 +172,23 @@ function NotifToast({ n, unreadCount, onClose }: { n: Notif; unreadCount: number
               padding: "11px 0",
               borderRadius: 50,
               border: "none",
-              background: "linear-gradient(135deg, #e91e8c, #c0005e)",
+              background: "linear-gradient(135deg, #3f8cec, #2464c4)",
               color: "#fff",
               fontWeight: 800,
               fontSize: 15,
               cursor: "pointer",
-              boxShadow: "0 6px 20px rgba(193,0,94,0.38)",
+              boxShadow: "0 6px 20px rgba(47,126,221,0.4)",
               fontFamily: "'Segoe UI', system-ui, sans-serif",
               letterSpacing: "0.01em",
               transition: "transform 0.15s, box-shadow 0.15s",
             }}
             onMouseEnter={e => {
               (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.04)";
-              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 24px rgba(193,0,94,0.5)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 24px rgba(47,126,221,0.55)";
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
-              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 20px rgba(193,0,94,0.38)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 20px rgba(47,126,221,0.4)";
             }}
           >
             Open
@@ -281,9 +288,12 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
       <div ref={ref} style={{
         width: 390,
         background: "#fff",
-        borderRadius: 20,
+        borderRadius: "4px 4px 20px 20px",
+        borderTop: "3px solid #2f7edd",
         boxShadow: "0 16px 60px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.06)",
         border: "1px solid #e5e7eb",
+        borderTopWidth: 3,
+        borderTopColor: "#2f7edd",
         overflow: "hidden",
         fontFamily: "'Segoe UI', system-ui, sans-serif",
       }}>

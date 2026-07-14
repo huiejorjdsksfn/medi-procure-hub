@@ -304,6 +304,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { sendNotification } from '@/lib/notify';
 import { T, d365Btn, statusBadge } from '@/lib/theme';
+import BrandConfirmation from '@/components/BrandConfirmation';
 
 const db = supabase as any;
 
@@ -325,6 +326,7 @@ export function QuickStampButton({
   const [loading, setLoading]   = useState(false);
   const [stamping, setStamping] = useState<string|null>(null);
   const [error, setError]       = useState<string|null>(null);
+  const [confirm, setConfirm]   = useState<{ title: string; message: string } | null>(null);
 
   const pad: Record<string, string> = {
     sm:  '5px 12px', md: '8px 18px', lg: '10px 24px',
@@ -422,6 +424,11 @@ export function QuickStampButton({
       }
 
       await load(tab);
+      const docNum = doc[numCol[tab]] || id.slice(0, 8);
+      setConfirm({
+        title: 'Document has been stamped.',
+        message: `${labelMap[tab]} ${docNum} was officially stamped "${docStatus.toUpperCase()}" by ${stamper}.`,
+      });
     } catch (e: any) {
       setError(e?.message || 'Could not apply stamp');
     }
@@ -560,6 +567,15 @@ export function QuickStampButton({
           </div>
         </div>
       )}
+
+      <BrandConfirmation
+        open={!!confirm}
+        title={confirm?.title || ''}
+        message={confirm?.message}
+        status="success"
+        autoDismissMs={3500}
+        onClose={() => setConfirm(null)}
+      />
     </>
   );
 }
