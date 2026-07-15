@@ -633,6 +633,16 @@ function patchDOM(dev: string) {
         el.style.minWidth = `min(${mw}px,${Math.round(maxW*100)}vw)`;
         el.style.maxWidth = `${Math.round(maxW*100)}vw`;
       }
+      // Same fix, for plain fixed 'width' rather than 'minWidth'. Common
+      // modal pattern: a position:fixed backdrop (inset:0, no width set)
+      // wraps an inner content div with a flat width:400-640 — that inner
+      // div was never touched by the minWidth check above, so it silently
+      // overflowed the viewport on every phone.
+      const w = parseInt(el.style.width || "0", 10);
+      if (w > 380 && el.style.position !== "fixed" && !el.style.width.includes("%") && !el.style.width.includes("vw")) {
+        el.style.width = `min(${w}px,${Math.round(maxW*100)}vw)`;
+        if (!el.style.maxWidth) el.style.maxWidth = `${Math.round(maxW*100)}vw`;
+      }
       // overflow:hidden scroll fix (fallback to JS for browsers without :has())
       if (el.querySelector("table") && (el.style.overflow === "hidden" || el.style.overflowX === "hidden")) {
         el.style.overflowX = "auto";
