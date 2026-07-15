@@ -261,6 +261,22 @@ table.m-card[data-rbot-theme="dark"] td:first-child{background:rgba(47,126,221,0
 [style*="fontSize:8"],[style*="fontSize: 8"]{font-size:10px!important}
 table.m-card [style*="fontSize:9"],table.m-card [style*="fontSize: 9"],
 table.m-card [style*="fontSize:10"],table.m-card [style*="fontSize: 10"]{font-size:11px!important}
+
+/* ─── KPI TILE VALUE OVERFLOW: the same bug fixed by hand on
+   RequisitionsPage (bold 20px currency/count values overflowing once
+   the tile row collapses to 2 columns) exists verbatim across a dozen
+   other pages (Suppliers, Contracts, Tenders, GoodsReceived, Users,
+   Items, Vouchers, Dashboard, BidEvaluations, ProcurementPlanning,
+   InspectionsPage, etc.) that all share the identical authored
+   "fontSize:20,fontWeight:900" tile-value fingerprint. Fixing it once
+   here covers every one of them instead of hand-editing each file. ─── */
+[style*="fontSize:20,fontWeight:900"],[style*="fontSize:20, fontWeight:900"],
+[style*="fontSize: 20, fontWeight: 900"],[style*="fontSize:20,fontWeight: 900"]{
+  font-size:14px!important;
+  line-height:1.15!important;
+  word-break:break-word!important;
+  overflow-wrap:break-word!important;
+}
 /* Non-card tables: ensure scroll */
 table:not(.m-card){
   display:block!important;
@@ -461,11 +477,20 @@ function parseRGBChannels(str: string | null | undefined): number[] | null {
   return parts;
 }
 
-// Samples the authored text colour of the first data row. If the text is
+// Samples the authored text colour of the first REAL data row. If the text is
 // mostly light (high luminance) it was written for a dark/glass background,
 // so we must not force a white card under it or the text becomes invisible.
+//
+// Bug this fixes: while a table is loading, it typically renders a single
+// placeholder row like <td colSpan={10}>Loading...</td>. That row's text
+// colour has nothing to do with the real data rows' colour scheme, but the
+// old version sampled whatever row was first in the DOM — so a table whose
+// real rows are light text on a dark glass background (RequisitionsPage,
+// etc.) could get permanently misclassified as "light" from its loading
+// spinner, rendering white mobile cards under near-white text: invisible.
 function detectTableTheme(table: HTMLTableElement): "light" | "dark" {
-  const row = table.querySelector("tbody tr");
+  const rows = Array.from(table.querySelectorAll("tbody tr"));
+  const row = rows.find(r => r.querySelectorAll("td").length > 1) || rows[0];
   if (!row) return "light";
   const cells = Array.from(row.querySelectorAll("td")).slice(0, 3);
   const lums: number[] = [];
@@ -505,10 +530,13 @@ function patchTables(dev: string) {
     }
 
     // Phone: card view
-    if (table.classList.contains("m-card") && table.hasAttribute("data-rbot-done")) return;
+    if (table.classList.contains("m-card") && table.hasAttribute("data-rbot-done") && table.hasAttribute("data-rbot-theme-locked")) return;
 
-    if (!table.hasAttribute("data-rbot-theme")) {
+    if (!table.hasAttribute("data-rbot-theme-locked")) {
       table.setAttribute("data-rbot-theme", detectTableTheme(table));
+      const hasRealRow = Array.from(table.querySelectorAll("tbody tr"))
+        .some(r => r.querySelectorAll("td").length > 1);
+      if (hasRealRow) table.setAttribute("data-rbot-theme-locked", "1");
     }
 
     // Read header labels

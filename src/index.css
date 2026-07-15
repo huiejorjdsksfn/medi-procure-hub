@@ -625,6 +625,16 @@ div:has(> div > table) {
   table.m-card [style*="fontSize:9"], table.m-card [style*="fontSize: 9"],
   table.m-card [style*="fontSize:10"], table.m-card [style*="fontSize: 10"] { font-size: 11px !important; }
 
+  /* KPI tile value overflow — same fingerprint fix as ResponsiveBot's
+     JS-injected copy, covers every page sharing this authored pattern. */
+  [style*="fontSize:20,fontWeight:900"], [style*="fontSize:20, fontWeight:900"],
+  [style*="fontSize: 20, fontWeight: 900"], [style*="fontSize:20,fontWeight: 900"] {
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
   /* ── Non-card tables: horizontal scroll ─── */
   table:not(.m-card) {
     display: block !important;

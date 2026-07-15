@@ -359,25 +359,25 @@ export default function RequisitionsPage() {
                 const prioColor={urgent:"#dc2626",high:"#d97706",normal:"#059669",low:"#6b7280"}[r.priority as string]||"#6b7280";
 
                 return (
-                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)",transition:"background 0.1s"}}
+                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:isMobile?(ri%2===0?"#fff":"#fafafa"):(ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)"),transition:"background 0.1s"}}
                     onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
-                    onMouseLeave={e=>(e.currentTarget.style.background=ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)")}>
+                    onMouseLeave={e=>(e.currentTarget.style.background=isMobile?(ri%2===0?"#fff":"#fafafa"):(ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)"))}>
 
-                    <td style={{padding:"10px 14px",fontWeight:700,color:"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
+                    <td style={{padding:"10px 14px",fontWeight:700,color:isMobile?"#1d4ed8":"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
                       {r.requisition_number||"-"}
                     </td>
                     <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      <div style={{fontWeight:600,color:"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
-                      {r.notes&&<div style={{fontSize:isMobile?11:10,color:"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
+                      <div style={{fontWeight:600,color:isMobile?"#111827":"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
+                      {r.notes&&<div style={{fontSize:isMobile?11:10,color:isMobile?"#6b7280":"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
                     </td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"-"}</td>
+                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"-"}</td>
                     <td style={{padding:"10px 14px"}}>
                       <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:isMobile?11:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
                     </td>
-                    <td style={{padding:"10px 14px",color:"#94a3b8",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"-"}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
-                    <td style={{padding:"10px 14px",color:"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"-"}</td>
-                    <td style={{padding:"10px 14px",fontWeight:600,color:"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
+                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"#94a3b8",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"-"}</td>
+                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
+                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"-"}</td>
+                    <td style={{padding:"10px 14px",fontWeight:600,color:isMobile?"#111827":"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
                       {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"-"}
                     </td>
                     <td style={{padding:"10px 14px"}}>
