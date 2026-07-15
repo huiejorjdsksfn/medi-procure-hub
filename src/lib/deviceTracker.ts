@@ -164,12 +164,12 @@ export async function logDeviceSession(
         // Store device + geo as JSON in a details column if it exists
       }, { onConflict: "user_id" }),
 
-      db.from("audit_logs").insert({
+      db.from("audit_log").insert({
         user_id: userId || null,
         user_email: userEmail || null,
         action: "session_start",
+        module: "auth",
         ip_address: geo?.ip || null,
-        user_agent: device.user_agent,
         details: {
           os: `${device.os} ${device.os_version}`.trim(),
           browser: `${device.browser} ${device.browser_version}`.trim(),
@@ -177,6 +177,7 @@ export async function logDeviceSession(
           screen: `${device.screen_w}×${device.screen_h}`,
           timezone: device.timezone,
           language: device.language,
+          user_agent: device.user_agent,
           country: geo?.country || null,
           city: geo?.city || null,
           isp: geo?.isp || null,

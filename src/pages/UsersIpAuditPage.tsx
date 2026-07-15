@@ -137,6 +137,32 @@ export default function UsersIpAuditPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const streamRef = useRef<HTMLDivElement>(null);
 
+  const [reauditing, setReauditing] = useState(false);
+
+  const runFullReaudit = useCallback(async () => {
+    setReauditing(true);
+    try {
+      const [{ logDeviceSession, getGeoInfo }, { checkIpAccess }] = await Promise.all([
+        import("@/lib/deviceTracker"),
+        import("@/lib/ipRestriction"),
+      ]);
+      const { data: { user } = { user: null } } = await supabase.auth.getUser();
+      const geo = await getGeoInfo();
+      await Promise.allSettled([
+        logDeviceSession(user?.id, user?.email ?? undefined, geo),
+        checkIpAccess(user?.id, user?.email ?? undefined),
+      ]);
+      toast({ title: "Full re-audit complete", description: "Fresh device/OS and IP data captured for this session." });
+    } catch (_e) {
+      toast({ title: "Re-audit failed", description: "Could not capture fresh device/IP data.", variant: "destructive" as any });
+    } finally {
+      await loadAllRef.current?.();
+      setReauditing(false);
+    }
+  }, []);
+
+  const loadAllRef = useRef<null | (() => Promise<void>)>(null);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     const [logsRes, accessRes, usersRes, devRes] = await Promise.allSettled([
@@ -153,7 +179,24 @@ export default function UsersIpAuditPage() {
     setLoading(false);
   },[]);
 
+  useEffect(()=>{ loadAllRef.current = loadAll; },[loadAll]);
   useEffect(()=>{ loadAll(); },[loadAll]);
+
+  // Data freshness: flag sources whose newest record is older than expected
+  const freshness = useMemo(()=>{
+    const newest = (arr: {created_at?: string|null}[]) => arr.reduce<string|null>((m,e)=> (e.created_at && (!m || e.created_at>m)) ? e.created_at! : m, null);
+    const check = (label:string, ts: string|null, staleMs:number) => {
+      if (!ts) return { label, stale:true, msg:"No data yet" };
+      const ageMs = Date.now()-new Date(ts).getTime();
+      return { label, stale: ageMs>staleMs, msg: ago(ts) };
+    };
+    return [
+      check("IP access log", newest(accessLog), 24*3600*1000),
+      check("Audit trail", newest(auditLogs), 24*3600*1000),
+      check("Device fingerprints", deviceSessions.length ? (deviceSessions[0]?.timestamp||deviceSessions[0]?._updated||null) : null, 24*3600*1000),
+    ];
+  },[accessLog,auditLogs,deviceSessions]);
+  const staleSources = freshness.filter(f=>f.stale);
 
   useEffect(()=>{
     if (!autoRefresh) return;
@@ -288,6 +331,10 @@ export default function UsersIpAuditPage() {
         </div>
         <div style={{width:1,height:24,background:D.border}}/>
         {btn("⬇ Export",exportCSV)}
+        <button onClick={runFullReaudit} disabled={reauditing}
+          style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:D.blueLt,border:`1px solid ${D.blue}`,borderRadius:D.radius,fontSize:12,cursor:"pointer",color:D.blue,fontWeight:600}}>
+          <RefreshCw size={11} style={{animation:reauditing?"spin 1s linear infinite":"none"}}/> {reauditing?"Re-auditing…":"Full Re-Audit"}
+        </button>
         <button onClick={loadAll} disabled={loading}
           style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"transparent",border:`1px solid ${D.borderMd}`,borderRadius:D.radius,fontSize:12,cursor:"pointer",color:D.text}}>
           <RefreshCw size={11} style={{animation:loading?"spin 1s linear infinite":"none"}}/> Refresh
@@ -314,6 +361,13 @@ export default function UsersIpAuditPage() {
           </button>
         ))}
       </div>
+
+      {staleSources.length>0 && (
+        <div style={{margin:"10px 20px 0",padding:"8px 14px",background:D.warnLt,border:`1px solid ${D.warn}`,borderRadius:D.radius,display:"flex",alignItems:"center",gap:8,fontSize:12,color:"#7a4a00"}}>
+          <AlertTriangle size={13}/>
+          <span><b>Stale data:</b> {staleSources.map(s=>`${s.label} (${s.msg})`).join(" · ")}. Click "Full Re-Audit" to force a fresh capture, or check that the logging call sites are still wired into the live auth flow.</span>
+        </div>
+      )}
 
       <div style={{padding:"14px 20px 32px"}}>
 

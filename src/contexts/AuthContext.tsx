@@ -265,6 +265,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setRoleCookie(uid, session.user.email ?? "", fresh.profile?.full_name ?? "", fresh.roles, pr);
         }
 
+        // AUDIT FIX (Jul 2026): device/OS fingerprint + IP access logging previously only
+        // fired from LoginPage (device) and WebmasterPage (IP) — missing session-restore
+        // logins and causing weeks-stale audit data for non-admin roles. Fire from this
+        // single global auth choke point instead. Fire-and-forget: never blocks auth.
+        import("@/lib/deviceTracker").then(({ logDeviceSession, getGeoInfo }) => {
+          getGeoInfo().then(geo => logDeviceSession(uid, session.user.email ?? undefined, geo)).catch(() => {});
+        }).catch(() => {});
+        import("@/lib/ipRestriction").then(({ checkIpAccess }) => {
+          checkIpAccess(uid, session.user.email ?? undefined).catch(() => {});
+        }).catch(() => {});
+
       } else if (event === "TOKEN_REFRESHED") {
         // BUG-2 FIX: TOKEN_REFRESHED must NOT re-run the full data load.
         // It just means the JWT was extended. Silently update session only.
