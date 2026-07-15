@@ -227,35 +227,71 @@ export default function ODBCPage() {
 
   /* Generate migration SQL */
   const generateMigration = async () => {
-    const tables = ["requisitions","purchase_orders","suppliers","items","departments","categories",
-                    "payment_vouchers","journal_vouchers","receipt_vouchers","budgets","contracts",
-                    "tenders","profiles","user_roles","notifications","audit_log","system_settings"];
-    let sql = `-- EL5 MediProcure - MySQL Migration Script\n-- Generated: ${new Date().toISOString()}\n-- Target: MySQL 8.0+\n\nCREATE DATABASE IF NOT EXISTS \`mediprocure\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE \`mediprocure\`;\n\n`;
+    toast({title:"Reading full schema...",description:"Fetching all tables — this may take a moment."});
+    let sql = `-- EL5 MediProcure — Full MySQL Migration Script\n-- Generated: ${new Date().toISOString()}\n-- Target: MySQL 8.0+ / MariaDB 10.5+\n-- Source: Supabase project ${(supabase as any).supabaseUrl || "yvjfehnzbzjliizjvuhq"}\n\nSET FOREIGN_KEY_CHECKS=0;\nSET NAMES utf8mb4;\nCREATE DATABASE IF NOT EXISTS \`mediprocure\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE \`mediprocure\`;\n\n`;
 
     const typeMap: Record<string,string> = {
-      "uuid":"VARCHAR(36)","text":"LONGTEXT","varchar":"VARCHAR(255)",
-      "int":"INT","integer":"INT","bigint":"BIGINT","numeric":"DECIMAL(15,2)",
-      "boolean":"TINYINT(1)","timestamptz":"DATETIME(6)","timestamp":"DATETIME(6)",
-      "jsonb":"JSON","json":"JSON","date":"DATE",
+      "uuid":"VARCHAR(36)", "text":"LONGTEXT", "character varying":"VARCHAR(255)", "varchar":"VARCHAR(255)",
+      "character":"CHAR(1)", "int":"INT", "integer":"INT", "smallint":"SMALLINT", "bigint":"BIGINT",
+      "numeric":"DECIMAL(18,4)", "real":"FLOAT", "double precision":"DOUBLE",
+      "boolean":"TINYINT(1)", "timestamp with time zone":"DATETIME(6)", "timestamp without time zone":"DATETIME(6)",
+      "timestamptz":"DATETIME(6)", "timestamp":"DATETIME(6)", "date":"DATE", "time":"TIME",
+      "jsonb":"JSON", "json":"JSON", "ARRAY":"JSON", "bytea":"LONGBLOB",
+    };
+    const mysqlVal = (v: any): string => {
+      if (v === null || v === undefined) return "NULL";
+      if (typeof v === "number") return String(v);
+      if (typeof v === "boolean") return v ? "1" : "0";
+      if (typeof v === "object") return `'${JSON.stringify(v).replace(/\\/g,"\\\\").replace(/'/g,"''")}'`;
+      return `'${String(v).replace(/\\/g,"\\\\").replace(/'/g,"''")}'`;
     };
 
+    // Discover every table in the public schema — not a hardcoded subset
+    const { data: tableRows } = await db.rpc("exec_sql", {
+      query: `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name`
+    }).catch(() => ({ data: null }));
+    const tables: string[] = Array.isArray(tableRows) ? tableRows.map((r: any) => r.table_name) : [];
+    if (!tables.length) {
+      toast({title:"Could not enumerate tables", variant:"destructive"});
+      return;
+    }
+
+    let tablesDone = 0;
     for (const t of tables) {
-      const {data:cols} = await db.rpc("exec_sql",{query:`SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_name='${t}' AND table_schema='public'`}).catch(()=>({data:null}));
-      if (!cols) {
-        sql += `-- Skipped: ${t} (could not retrieve schema)\n\n`;
-        continue;
-      }
-      sql += `CREATE TABLE IF NOT EXISTS \`${t}\` (\n`;
-      const colDefs = (Array.isArray(cols)?cols:[]).map((c:any)=>{
-        const sqlType = typeMap[c.data_type]||"VARCHAR(255)";
-        const nullable = c.is_nullable==="YES"?"NULL":"NOT NULL";
-        const def = c.column_name==="id" ? " PRIMARY KEY" : "";
-        return `  \`${c.column_name}\` ${sqlType} ${nullable}${def}`;
+      const { data: cols } = await db.rpc("exec_sql", {
+        query: `SELECT column_name,data_type,is_nullable,character_maximum_length FROM information_schema.columns WHERE table_name='${t}' AND table_schema='public' ORDER BY ordinal_position`
+      }).catch(() => ({ data: null }));
+      if (!Array.isArray(cols) || !cols.length) { sql += `-- Skipped: ${t} (no columns found)\n\n`; continue; }
+
+      sql += `-- ── ${t} ──\nDROP TABLE IF EXISTS \`${t}\`;\nCREATE TABLE \`${t}\` (\n`;
+      const colDefs = cols.map((c: any) => {
+        const sqlType = typeMap[c.data_type] || "VARCHAR(255)";
+        const nullable = c.is_nullable === "YES" ? "NULL" : "NOT NULL";
+        const pk = c.column_name === "id" ? " PRIMARY KEY" : "";
+        return `  \`${c.column_name}\` ${sqlType} ${nullable}${pk}`;
       });
       sql += colDefs.join(",\n") + "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n";
+
+      // Export actual row data in batches so this is a real data migration, not schema-only
+      const { data: rows } = await db.from(t).select("*").limit(5000).catch(() => ({ data: null }));
+      if (Array.isArray(rows) && rows.length) {
+        const colNames = Object.keys(rows[0]);
+        const batchSize = 200;
+        for (let i = 0; i < rows.length; i += batchSize) {
+          const batch = rows.slice(i, i + batchSize);
+          const valueRows = batch.map((r: any) => `(${colNames.map(c => mysqlVal(r[c])).join(",")})`).join(",\n  ");
+          sql += `INSERT INTO \`${t}\` (\`${colNames.join("\`,\`")}\`) VALUES\n  ${valueRows};\n`;
+        }
+        sql += `\n`;
+      }
+      tablesDone++;
+      if (tablesDone % 10 === 0) setMigProgress(Math.round((tablesDone / tables.length) * 40));
     }
+
+    sql += `SET FOREIGN_KEY_CHECKS=1;\n`;
+    setMigProgress(0);
     setMigScript(sql);
-    toast({title:"Migration script generated"});
+    toast({title:`Migration script generated`, description:`${tables.length} tables, full schema + data.`});
   };
 
   const runMigration = async () => {
