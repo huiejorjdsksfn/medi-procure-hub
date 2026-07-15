@@ -62,7 +62,7 @@ export default function ProfilePage() {
         {/* Profile info */}
         <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
           <div style={{background:"linear-gradient(135deg,#0a2558,#1a3a6b)",padding:"20px 20px 40px"}}>
-            <div style={{width:64,height:64,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
+            <div style={{width:64,height:64,borderRadius:"50%",background:"#64748b",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
               <User style={{width:28,height:28,color:"#fff"}}/>
             </div>
             <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{fullName||user?.email?.split("@")[0]||"-"}</div>

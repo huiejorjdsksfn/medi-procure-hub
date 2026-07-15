@@ -358,7 +358,7 @@ export default function PurchaseOrdersPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={load} disabled={loading}
-            style={{padding:6,borderRadius:6,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer"}}>
+            style={{padding:6,borderRadius:6,background:"#64748b",color:"#fff",border:"none",cursor:"pointer"}}>
             <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
           </button>
           <button onClick={exportExcel}
@@ -481,7 +481,7 @@ export default function PurchaseOrdersPage() {
                   <p style={{fontSize:10,color:"rgba(255,255,255,0.5)",margin:0}}>{editing?`Editing ${editing.po_number}`:"Fill in all required fields marked with *"}</p>
                 </div>
               </div>
-              <button onClick={closeForm} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
+              <button onClick={closeForm} style={{padding:6,borderRadius:7,background:"#64748b",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
                 <X style={{width:16,height:16}}/>
               </button>
             </div>
@@ -677,14 +677,14 @@ export default function PurchaseOrdersPage() {
               </div>
               <div style={{display:"flex",gap:8}}>
                 {canCreate&&["draft","pending"].includes(viewPO.status)&&(
-                  <button onClick={()=>{setViewPO(null);openEdit(viewPO);}} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
+                  <button onClick={()=>{setViewPO(null);openEdit(viewPO);}} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#64748b"}}>
                     <Edit3 style={{width:12,height:12}}/>Edit
                   </button>
                 )}
-                <button onClick={()=>(printLPO as any)(viewPO, [], null)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#e2e8f0"}}>
+                <button onClick={()=>(printLPO as any)(viewPO, [], null)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,color:"#fff",fontSize:11,border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",background:"#64748b"}}>
                   <Printer style={{width:12,height:12}}/>Print LPO
                 </button>
-                <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"#e2e8f0",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
+                <button onClick={()=>setViewPO(null)} style={{padding:6,borderRadius:7,background:"#64748b",color:"#fff",border:"none",cursor:"pointer",lineHeight:0}}>
                   <X style={{width:16,height:16}}/>
                 </button>
               </div>
