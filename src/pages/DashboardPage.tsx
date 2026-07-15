@@ -238,7 +238,11 @@ export default function DashboardPage() {
 
         {/* Content */}
         <div style={{flex:1,display:"flex",overflow:"hidden",minHeight:0}}>
-          {/* Left nav panel */}
+          {/* Left nav panel — hidden on phone; the global app nav (hamburger drawer)
+              already covers navigation there, and this fixed 168px rail was eating
+              roughly half the usable width on a narrow screen, leaving the KPI tiles
+              and ERP wheel squeezed into ~150px. */}
+          {!isMobile && (
           <div style={{width:168,background:"linear-gradient(180deg,#6f9fcf,#4a7fc4)",
             borderRight:`1px solid ${XP.gridBorder}`,overflowY:"auto" as const,flexShrink:0}}>
             <div style={{background:"rgba(0,0,0,.15)",padding:"6px 10px",fontSize:9,
@@ -263,6 +267,7 @@ export default function DashboardPage() {
               <button onClick={signOut} style={{marginTop:8,background:"rgba(220,40,40,.7)",border:"1px solid rgba(255,255,255,.3)",borderRadius:3,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",width:"100%",fontFamily:XP.font}}>Sign Out</button>
             </div>
           </div>
+          )}
 
           {/* Main content */}
           <div style={{flex:1,overflowY:"auto" as const,padding:12}}>
@@ -378,9 +383,9 @@ export default function DashboardPage() {
         <button onClick={()=>setStartOpen(o=>!o)}
           style={{background:startOpen?"linear-gradient(180deg,#3ea03d,#237022)":"linear-gradient(180deg,#5cb85c,#3d9b3d)",
             border:"1px solid #1a7a1a",borderRadius:3,color:"#fff",
-            padding:"3px 12px 3px 8px",fontSize:13,fontWeight:900,fontFamily:XP.font,
-            cursor:"pointer",display:"flex",alignItems:"center",gap:5,height:28}}>
-          <span>⊞</span>start
+            padding:isMobile?"3px 8px":"3px 12px 3px 8px",fontSize:13,fontWeight:900,fontFamily:XP.font,
+            cursor:"pointer",display:"flex",alignItems:"center",gap:5,height:28,flexShrink:0}}>
+          <span>⊞</span>{!isMobile&&"start"}
         </button>
         {/* Start menu */}
         {startOpen&&(
@@ -412,15 +417,17 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-        <div style={{width:1,height:24,background:"rgba(255,255,255,.2)",margin:"0 2px"}}/>
+        <div style={{width:1,height:24,background:"rgba(255,255,255,.2)",margin:"0 2px",flexShrink:0}}/>
+        {!isMobile&&(
         <button onClick={()=>navigate("/dashboard")}
-          style={{background:"rgba(0,0,0,.3)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:"#fff",padding:"2px 10px",fontSize:10,fontFamily:XP.font,cursor:"pointer",height:24,display:"flex",alignItems:"center",gap:5}}>
+          style={{background:"rgba(0,0,0,.3)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:"#fff",padding:"2px 10px",fontSize:10,fontFamily:XP.font,cursor:"pointer",height:24,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
           🏥 EL5 MediProcure
         </button>
-        <div style={{flex:1}}/>
-        {loading&&<span style={{color:"rgba(255,255,255,.6)",fontSize:9}}>⏳</span>}
-        <button onClick={fetchKPI} title="Refresh" style={{background:"rgba(0,0,0,.2)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,color:"#fff",padding:"2px 8px",fontSize:10,cursor:"pointer",height:24}}>↻</button>
-        <div style={{background:"rgba(0,0,0,.25)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:XP.font,height:24,display:"flex",alignItems:"center"}}>
+        )}
+        <div style={{flex:1,minWidth:4}}/>
+        {loading&&<span style={{color:"rgba(255,255,255,.6)",fontSize:9,flexShrink:0}}>⏳</span>}
+        <button onClick={fetchKPI} title="Refresh" style={{background:"rgba(0,0,0,.2)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,color:"#fff",padding:"2px 8px",fontSize:10,cursor:"pointer",height:24,flexShrink:0}}>↻</button>
+        <div style={{background:"rgba(0,0,0,.25)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,padding:"2px 8px",color:"#fff",fontSize:10,fontFamily:XP.font,height:24,display:"flex",alignItems:"center",flexShrink:0}}>
           {time.toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}
         </div>
       </div>

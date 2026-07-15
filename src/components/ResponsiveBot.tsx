@@ -157,6 +157,11 @@ div[style*="padding: 16px"],div[style*="padding:16px"]{padding:8px 6px!important
 table.m-card{
   display:block!important;
   width:100%!important;
+  min-width:0!important; /* several pages set a large inline minWidth for
+    desktop/tablet horizontal-scroll mode (e.g. RequisitionsPage: 700px,
+    GoodsReceivedPage: 560-640px) — without this, that minWidth survives
+    the card-view conversion and forces the whole list to overflow
+    horizontally on every phone. */
   font-size:0!important; /* hide table layout */
 }
 table.m-card thead{display:none!important}

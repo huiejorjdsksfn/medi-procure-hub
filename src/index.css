@@ -530,7 +530,7 @@ div:has(> div > table) {
   input[type="date"], input[type="time"] { min-width: 0 !important; width: 100% !important; }
 
   /* ── Tables: card view (applied by ResponsiveBot JS, theme-aware) ─── */
-  table.m-card { display: block !important; width: 100% !important; }
+  table.m-card { display: block !important; width: 100% !important; min-width: 0 !important; }
   table.m-card thead { display: none !important; }
   table.m-card tbody { display: block !important; width: 100% !important; }
   table.m-card tr {

@@ -555,7 +555,7 @@ export default function SMSPage() {
             <span style={{marginLeft:"auto",fontSize:12,color:"#9ca3af"}}>{filteredLogs.length} logs</span>
           </div>
           <div style={{...card,overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",minWidth:isMobile?600:undefined}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:isMobile?undefined:600}}>
               <thead>
                 <tr>{["To","Provider","Message","Status","Module","SID","Sent"].map(h=><th key={h} style={tblH}>{h}</th>)}</tr>
               </thead>

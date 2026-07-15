@@ -83,8 +83,8 @@ export default function ERPWheel({
   const gap  = 1.2; // degrees between slices
 
   return (
-    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ display: "block" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: size, aspectRatio: "1 / 1", margin: "0 auto" }}>
+      <svg viewBox={`0 0 ${size} ${size}`} width="100%" height="100%" style={{ display: "block" }}>
         <defs>
           <radialGradient id="wheel-hub" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#ffffff" />
