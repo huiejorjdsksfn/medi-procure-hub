@@ -131,9 +131,9 @@ export default function ChartOfAccountsPage() {
       </div>
       <div style={{borderRadius:16,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#ffffff"}}>
+          <thead><tr style={{background:"#f8f9fa",borderBottom:"2px solid #e5e7eb"}}>
             {["Code","Account Name","Type","Category","Parent","Balance","Active","Actions"].map(h=>(
-              <th key={h} style={{textAlign:"left",fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
+              <th key={h} style={{textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:10,textTransform:"uppercase",padding:"10px 12px"}}>{h}</th>))}
           </tr></thead>
           <tbody>
             {loading?<tr><td colSpan={8} style={{padding:"32px 0",textAlign:"center"}}><RefreshCw style={{animation:"spin 1s linear infinite"}}/></td></tr>:
