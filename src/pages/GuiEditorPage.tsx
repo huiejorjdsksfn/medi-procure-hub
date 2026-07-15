@@ -10,11 +10,13 @@ import { toast } from "@/hooks/use-toast";
 import {
   Save, RotateCcw, Palette, Type, Layout, Settings2,
   Move, Check, RefreshCw, Monitor, Smartphone, Tablet,
-  ChevronUp, ChevronDown, X, Zap, Eye, Wifi, Globe, Shield, Server
+  ChevronUp, ChevronDown, X, Zap, Eye, Wifi, Globe, Shield, Server,
+  ImagePlus, Sparkles, UploadCloud
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useRealIP } from "@/hooks/useRealIP";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { supabase } from "@/integrations/supabase/client";
 
 const PRESETS = [
   { name:"Navy Blue",    primary:"#0a2558", accent:"#C45911", navBg:"#ffffff", navText:"#1e293b", pageBg:"#f8fafc" },
@@ -106,9 +108,64 @@ export default function GuiEditorPage() {
   const [cfg, setCfg] = useState<Record<string,string>>(buildCfg);
   const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV);
   const ipInfo = useRealIP();
+  const [extracting, setExtracting] = useState(false);
+  const [extractedName, setExtractedName] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  // Tracks which cfg keys the admin has touched locally (colors, fonts, layout, or
+  // an image-derived theme) so realtime updates from other tabs don't clobber them.
+  const dirtyKeys = useRef<Set<string>>(new Set());
+
+  // Real bot: uploads a reference image to the theme-extract edge function,
+  // which calls Claude's vision API, derives a cohesive theme from the image,
+  // and returns keys that map 1:1 onto this page's own settings keys.
+  // Applying it live-previews instantly via applyThemeToDOM(); saving pushes
+  // it through the normal Save & Apply path so every user gets it too.
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    setExtracting(true);
+    setExtractedName(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = () => reject(new Error("Could not read the image file"));
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await (supabase as any).functions.invoke("theme-extract", {
+        body: {
+          image_base64: base64,
+          media_type: file.type || "image/png",
+          activate: false,
+        },
+      });
+
+      if (error || !data?.ok) {
+        throw new Error(data?.error || error?.message || "Theme extraction failed");
+      }
+
+      const theme = data.theme;
+      const merged: Record<string, string> = {
+        ...theme.colors,
+        ...theme.typography,
+        ...theme.layout,
+      };
+      Object.keys(merged).forEach(k => dirtyKeys.current.add(k));
+      setCfg(prev => ({ ...prev, ...merged }));
+      setExtractedName(theme.name);
+      toast({ title: `"${theme.name}" derived from your image`, description: "Previewing live on the right — hit Save & Apply to push it to everyone." });
+    } catch (e: any) {
+      toast({ title: "Couldn't analyze that image", description: e.message, variant: "destructive" });
+    } finally {
+      setExtracting(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
 
   // Conflict-safe reconciliation: keep locally-edited (dirty) keys, merge the rest from realtime/Supabase
-  const dirtyKeys = useRef<Set<string>>(new Set());
   const [conflict, setConflict] = useState<{ remote: Record<string,string>; keys: string[] } | null>(null);
   useEffect(() => {
     const fresh = buildCfg();
@@ -342,6 +399,33 @@ export default function GuiEditorPage() {
         <div style={{ flex:1, overflowY:"auto", padding:"12px 12px 0" }}>
 
           {tab === "colors" && <>
+            <label style={{ ...lbl, marginBottom:8 }}>AI Theme From Image</label>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              style={{ display:"none" }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }}
+            />
+            <button
+              onClick={() => imageInputRef.current?.click()}
+              disabled={extracting}
+              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:7,
+                padding:"10px 12px", borderRadius:8, marginBottom:10,
+                border:`1.5px dashed ${cfg.primary_color}66`,
+                background: extracting ? "#f1f5f9" : `linear-gradient(135deg,${cfg.primary_color}12,${cfg.accent_color}12)`,
+                cursor: extracting ? "wait" : "pointer", fontSize:12, fontWeight:700, color:cfg.primary_color }}>
+              {extracting
+                ? <><RefreshCw style={{ width:14, height:14, animation:"spin 1s linear infinite" }}/>Analyzing image…</>
+                : <><ImagePlus style={{ width:14, height:14 }}/>Upload a screenshot, logo, or brand image</>}
+            </button>
+            {extractedName && (
+              <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:12, padding:"6px 10px",
+                borderRadius:6, background:"#f0fdf4", border:"1px solid #bbf7d0", fontSize:11, color:"#166534" }}>
+                <Sparkles style={{ width:12, height:12, flexShrink:0 }}/>
+                <span>Derived <strong>"{extractedName}"</strong> — previewing live. Save & Apply to push to everyone.</span>
+              </div>
+            )}
             <label style={{ ...lbl, marginBottom:8 }}>One-Click Presets</label>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:14 }}>
               {PRESETS.map(p => (
