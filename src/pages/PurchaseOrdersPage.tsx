@@ -8,6 +8,7 @@ import { pageCache } from "@/lib/pageCache";
 import { PrintEngine } from "@/engines/print/PrintEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { toast } from "@/hooks/use-toast";
 import PushToApprovalButton from "@/components/PushToApprovalButton";
 import { logAudit } from "@/lib/audit";
@@ -55,6 +56,7 @@ function genPONumber() {
 
 export default function PurchaseOrdersPage() {
   const { user, profile, roles } = useAuth();
+  const isMobile = useIsMobile();
   const { get: getSetting } = useSystemSettings();
   const { suppliers, hasMore: suppliersHasMore, loadMore: loadMoreSuppliers } = useSuppliers();
   const { departments, hasMore: departmentsHasMore, loadMore: loadMoreDepartments } = useDepartments();
@@ -423,17 +425,17 @@ export default function PurchaseOrdersPage() {
                     <td style={{padding:"10px 12px",fontWeight:600,color:"#1f2937",whiteSpace:"nowrap"}}>KES {Number(po.total_amount||0).toLocaleString()}</td>
                     <td style={{padding:"10px 12px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{po.delivery_date||"-"}</td>
                     <td style={{padding:"10px 12px"}}>
-                      <div style={{display:"flex",gap:4}}>
-                        <button onClick={()=>setViewPO(po)} title="View" style={{padding:5,borderRadius:6,background:"#fff7ed",color:"#ea580c",border:"none",cursor:"pointer"}}><Eye style={{width:12,height:12}}/></button>
+                      <div style={{display:"flex",gap:isMobile?6:4,flexWrap:isMobile?"wrap":"nowrap"}}>
+                        <button onClick={()=>setViewPO(po)} title="View" style={{padding:isMobile?7:5,borderRadius:6,background:"#fff7ed",color:"#ea580c",border:"none",cursor:"pointer"}}><Eye style={{width:isMobile?14:12,height:isMobile?14:12}}/></button>
                         {canCreate&&["draft","pending"].includes(po.status)&&(
-                          <button onClick={()=>openEdit(po)} title="Edit" style={{padding:5,borderRadius:6,background:"#eff6ff",color:"#3b82f6",border:"none",cursor:"pointer"}}><Edit3 style={{width:12,height:12}}/></button>
+                          <button onClick={()=>openEdit(po)} title="Edit" style={{padding:isMobile?7:5,borderRadius:6,background:"#eff6ff",color:"#3b82f6",border:"none",cursor:"pointer"}}><Edit3 style={{width:isMobile?14:12,height:isMobile?14:12}}/></button>
                         )}
-                        <button onClick={()=>(printLPO as any)(po, [], null)} title="Print LPO" style={{padding:5,borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:12,height:12}}/></button>
+                        <button onClick={()=>(printLPO as any)(po, [], null)} title="Print LPO" style={{padding:isMobile?7:5,borderRadius:6,background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer"}}><Printer style={{width:isMobile?14:12,height:isMobile?14:12}}/></button>
                         {canApprove&&po.status==="pending"&&(
-                          <button onClick={()=>approve(po.id)} title="Approve" style={{padding:5,borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:12,height:12}}/></button>
+                          <button onClick={()=>approve(po.id)} title="Approve" style={{padding:isMobile?7:5,borderRadius:6,background:"#dcfce7",color:"#15803d",border:"none",cursor:"pointer"}}><CheckCircle style={{width:isMobile?14:12,height:isMobile?14:12}}/></button>
                         )}
                         {canApprove&&["draft","pending"].includes(po.status)&&(
-                          <button onClick={()=>cancelPO(po.id)} title="Cancel" style={{padding:5,borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:12,height:12}}/></button>
+                          <button onClick={()=>cancelPO(po.id)} title="Cancel" style={{padding:isMobile?7:5,borderRadius:6,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer"}}><XCircle style={{width:isMobile?14:12,height:isMobile?14:12}}/></button>
                         )}
                       <PushToApprovalButton
                         documentType="purchase_order"

@@ -83,7 +83,7 @@ export default function AuditLogPage() {
     toast({title:"Exported",description:`${filtered.length} records exported`});
   };
 
-  const inp: React.CSSProperties = {background:"#e2e8f0",border:"1px solid #e2e8f0",color:"#fff",borderRadius:8,padding:"5px 10px",fontSize:12,outline:"none"};
+  const inp: React.CSSProperties = {background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#f1f5f9",borderRadius:8,padding:"5px 10px",fontSize:12,outline:"none"};
   const sel: React.CSSProperties = {...inp,cursor:"pointer"};
 
   return (
@@ -101,7 +101,7 @@ export default function AuditLogPage() {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={fetchLogs} disabled={loading}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"#e2e8f0",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"rgba(255,255,255,0.1)",color:"#f1f5f9",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
             <RefreshCw style={{width:13,height:13,...(loading?{animation:"spin 1s linear infinite"}:{})}}/>Refresh
           </button>
           <button onClick={exportExcel}
@@ -183,14 +183,14 @@ export default function AuditLogPage() {
           </div>
         )}
         {totalPages>1&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid #e2e8f0"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.1)"}}>
             <span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>Showing {(page-1)*PAGE_SIZE+1}-{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
             <div style={{display:"flex",gap:4}}>
               <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>-</button>
+                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#e2e8f0",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===1?0.4:1}}>-</button>
               <span style={{padding:"4px 10px",background:"rgba(96,165,250,0.2)",border:"1px solid rgba(96,165,250,0.3)",color:"#93c5fd",borderRadius:6,fontSize:12,fontWeight:700}}>{page}/{totalPages}</span>
               <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-                style={{padding:"4px 10px",background:"#e2e8f0",border:"1px solid #e2e8f0",color:"rgba(255,255,255,0.6)",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>-</button>
+                style={{padding:"4px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#e2e8f0",borderRadius:6,cursor:"pointer",fontSize:12,opacity:page===totalPages?0.4:1}}>-</button>
             </div>
           </div>
         )}
