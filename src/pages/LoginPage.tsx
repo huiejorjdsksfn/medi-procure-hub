@@ -1,8 +1,9 @@
 /**
- * EL5 MediProcure v10.2 — Login Page
- * Professional glassmorphism · Auto redirect · Reset password · Fast auth
+ * EL5 MediProcure v10.3 — Login Page
+ * Professional glassmorphism · Auto redirect · Username/password only
  * v10.2: SECURITY FIX — removed plaintext credential capture (password vault
  *        decommissioned, see passwordVault.ts). Device session tracking only.
+ * v10.3: Removed Google OAuth sign-in and self-service password reset.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,9 +35,6 @@ export default function LoginPage() {
   const [pass,     setPass]     = useState("");
   const [show,     setShow]     = useState(false);
   const [loading,  setLoading]  = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [forgot,   setForgot]   = useState(false);
-  const [sent,     setSent]     = useState(false);
   const [ready,    setReady]    = useState(false);
   const nav = useNavigate();
 
@@ -68,39 +66,6 @@ export default function LoginPage() {
       getGeoInfo().then(geo => logDeviceSession(userId, userEmail, geo)).catch(() => {});
       nav("/dashboard", { replace: true });
     }
-  };
-
-  const signInWithGoogle = async () => {
-    setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/#/dashboard` },
-    });
-    if (error) {
-      setGoogleLoading(false);
-      toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
-    }
-    // On success the browser redirects to Google, so no further local
-    // state change is needed here — AuthContext's onAuthStateChange
-    // picks up the session on return.
-  };
-
-  const resetPwd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) { toast({ title: "Enter your username", variant: "destructive" }); return; }
-    setLoading(true);
-    const email = await resolveEmail(username);
-    if (!email) {
-      setLoading(false);
-      toast({ title: "Reset failed", description: "No account found for that username", variant: "destructive" });
-      return;
-    }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/#/reset-password`,
-    });
-    setLoading(false);
-    if (error) toast({ title: "Reset failed", description: error.message, variant: "destructive" });
-    else setSent(true);
   };
 
   const s: Record<string, React.CSSProperties> = {
@@ -161,41 +126,9 @@ export default function LoginPage() {
               <div style={s.name}>EL5 MediProcure</div>
             </div>
           </div>
-          <div style={s.hd}>{forgot?"Reset Password":"Sign In"}</div>
+          <div style={s.hd}>Sign In</div>
 
-          {/* Sent */}
-          {sent ? (
-            <div style={{textAlign:"center",padding:"6px 0 4px"}}>
-              <div style={{fontSize:40,marginBottom:10}}>📧</div>
-              <div style={{fontSize:15,fontWeight:800,color:BLUE,marginBottom:6}}>Check your inbox</div>
-              <div style={{fontSize:12,color:"#6b7280",lineHeight:1.75}}>
-                Reset link sent to the email on file for<br/><strong style={{color:"#374151"}}>{username}</strong>
-              </div>
-              <div style={{marginTop:12,padding:"10px 14px",background:"#f0fdf4",borderRadius:8,
-                border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>
-                Expires in 1 hour. Check spam if not received.
-              </div>
-              <button onClick={()=>{setForgot(false);setSent(false);}} style={s.link}>← Back to Sign In</button>
-            </div>
-
-          ) : forgot ? (
-            <form onSubmit={resetPwd} autoComplete="off">
-              <div style={s.wrap2}>
-                <label style={s.lbl}>Username</label>
-                <div style={s.icon}><User size={15}/></div>
-                <input type="text" value={username} autoFocus onChange={e=>setUsername(e.target.value)}
-                  placeholder="j.mwangi" style={s.inp}
-                  onFocus={e=>(e.target.style.borderColor=TEAL)} onBlur={e=>(e.target.style.borderColor="#e5e7eb")}/>
-              </div>
-              <button type="submit" disabled={loading} style={{...s.btn,opacity:loading?.75:1}}>
-                {loading&&<RefreshCw size={15} style={{animation:"spin .8s linear infinite"}}/>}
-                {loading?"Sending…":"Send Reset Link"}
-              </button>
-              <button type="button" onClick={()=>setForgot(false)} style={s.link}>← Back to Sign In</button>
-            </form>
-
-          ) : (
-            <form onSubmit={signIn} autoComplete="on">
+          <form onSubmit={signIn} autoComplete="on">
               <div style={s.wrap2}>
                 <label style={s.lbl}>Username</label>
                 <div style={s.icon}><User size={15}/></div>
@@ -219,27 +152,7 @@ export default function LoginPage() {
                 {loading&&<RefreshCw size={15} style={{animation:"spin .8s linear infinite"}}/>}
                 {loading?"Signing in…":"Sign In"}
               </button>
-
-              <div style={{display:"flex",alignItems:"center",gap:10,margin:"16px 0"}}>
-                <div style={{flex:1,height:1,background:"#e5e7eb"}}/>
-                <span style={{fontSize:10.5,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,letterSpacing:".05em"}}>or</span>
-                <div style={{flex:1,height:1,background:"#e5e7eb"}}/>
-              </div>
-
-              <button type="button" onClick={signInWithGoogle} disabled={googleLoading}
-                style={{width:"100%",padding:"10px 0",background:"#fff",color:"#374151",fontWeight:700,fontSize:13,
-                  border:"1.5px solid #e5e7eb",borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",
-                  justifyContent:"center",gap:9,opacity:googleLoading?0.6:1}}>
-                {googleLoading ? (
-                  <RefreshCw size={15} style={{animation:"spin .8s linear infinite"}}/>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34 5.1 29.3 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.6 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34 5.1 29.3 3 24 3 16 3 9 7.6 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 36.4 26.7 37 24 37c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9 40.4 16 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.2 5.2C40.9 36 44 30.6 44 24c0-1.4-.1-2.7-.4-3.5z"/></svg>
-                )}
-                {googleLoading ? "Redirecting…" : "Sign in with Google"}
-              </button>
-              <button type="button" onClick={()=>setForgot(true)} style={s.link}>Forgot password?</button>
             </form>
-          )}
 
           {/* Security badge */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,marginTop:18,

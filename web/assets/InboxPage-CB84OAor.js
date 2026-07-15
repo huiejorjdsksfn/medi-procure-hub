@@ -1,0 +1,1 @@
+import{o as e}from"./rolldown-runtime-BwLcaC_9.js";import{r as t}from"./query-vendor-C7T_W2_h.js";import{s as a}from"./react-vendor-DJVK8YXE.js";var o=e(t(),1);function u(){const r=a();return(0,o.useEffect)(()=>{r("/email",{replace:!0})},[r]),null}export{u as default};
