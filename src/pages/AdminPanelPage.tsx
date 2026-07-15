@@ -23,7 +23,8 @@ import {
   UserCheck, Zap, ChevronRight, Monitor, MessageSquare, Tv, Power, ToggleLeft,
   HardDrive, Mail, ClipboardList, FileText, Play, Pause, Trash2, Plus,
   Download, Upload, Cpu, MemoryStick, HardDriveDownload, Cloud, Terminal,
-  AlertCircle, CheckCircle2, RefreshCw as Reload, ExternalLink, Link
+  AlertCircle, CheckCircle2, RefreshCw as Reload, ExternalLink, Link,
+  Image as ImageIcon
 } from "lucide-react";
 
 /* — O365 / Tracking-Portal style tokens (matches TrackingApprovalPage / Dashboard) — */
@@ -65,6 +66,7 @@ const NAVS = [
   {id:"serverctrl",label:"Server Control", icon:HardDrive,       col:"#7c3aed"},
   {id:"emailctrl", label:"Email Control",  icon:Mail,            col:"#0ea5e9"},
   {id:"formbuilder",label:"Forms Builder", icon:ClipboardList,   col:"#f59e0b"},
+  {id:"branding",  label:"Branding",       icon:ImageIcon,       col:"#db2777"},
 ];
 
 /* - IP detection - */
@@ -183,6 +185,51 @@ export default function AdminPanelPage() {
   const [fbViewResponse, setFbViewResponse] = useState<any|null>(null);
   const [fbCopied, setFbCopied] = useState(false);
 
+  // Branding
+  const [brand, setBrand] = useState<any>(null);
+  const [brandName, setBrandName] = useState("");
+  const [brandLogo, setBrandLogo] = useState("");
+  const [brandPrimary, setBrandPrimary] = useState("#0e2a4a");
+  const [brandAccent, setBrandAccent] = useState("#0e7490");
+  const [brandSaving, setBrandSaving] = useState(false);
+
+  const loadBrand = useCallback(async()=>{
+    try {
+      const { data, error } = await db.from("facilities").select("*").eq("is_main",true).maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setBrand(data);
+        setBrandName(data.name||"");
+        setBrandLogo(data.logo_url||"");
+        setBrandPrimary(data.primary_color||"#0e2a4a");
+        setBrandAccent(data.accent_color||"#0e7490");
+      }
+    } catch(e:any) { console.error("[Branding] load error:",e); }
+  },[]);
+
+  const onBrandLogoFile = (file: File) => {
+    if (file.size > 500*1024) { toast({title:"Logo too large", description:"Please use an image under 500KB", variant:"destructive"}); return; }
+    const reader = new FileReader();
+    reader.onload = () => setBrandLogo(String(reader.result||""));
+    reader.readAsDataURL(file);
+  };
+
+  const saveBrand = async()=>{
+    if (!brand) return;
+    setBrandSaving(true);
+    try {
+      const { error } = await db.from("facilities").update({
+        name: brandName, logo_url: brandLogo, primary_color: brandPrimary, accent_color: brandAccent,
+      }).eq("id", brand.id);
+      if (error) throw error;
+      toast({title:"✓ Branding updated", description:"Sign-in page and public forms will pick this up on next load."});
+      await loadBrand();
+    } catch(e:any) {
+      toast({title:"Save failed", description:e.message, variant:"destructive"});
+    }
+    setBrandSaving(false);
+  };
+
   const selectedForm = forms.find((f:any)=>f.form_id===selectedFormId) || null;
   const fbPublicUrl = selectedFormId ? `${window.location.origin}/#/forms/${selectedFormId}` : "";
 
@@ -291,6 +338,39 @@ export default function AdminPanelPage() {
     }
   };
 
+  const [fbSending, setFbSending] = useState(false);
+  const fbSendToAllUsers = async()=>{
+    if (!selectedForm) return;
+    if (selectedForm.status!=="published") {
+      toast({title:"Publish the form first", description:"Users can't fill in a draft form.", variant:"destructive"});
+      return;
+    }
+    if (!confirm(`Email the link for "${fbTitle}" to every active user?`)) return;
+    setFbSending(true);
+    try {
+      const { data: users, error: uErr } = await db.from("profiles").select("email").eq("is_active",true).not("email","is",null);
+      if (uErr) throw uErr;
+      const emails = Array.from(new Set((users||[]).map((u:any)=>u.email).filter(Boolean)));
+      if (emails.length===0) { toast({title:"No active users with an email on file",variant:"destructive"}); setFbSending(false); return; }
+
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: emails,
+          subject: `New form: ${fbTitle}`,
+          body: `${fbDesc||"A new form has been published and needs your response."}\n\nPlease complete it at the link below.`,
+          action_url: fbPublicUrl,
+          action_label: "Open Form",
+        },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error||"Send failed");
+      toast({title:`✓ Sent to ${emails.length} user${emails.length===1?"":"s"}`});
+    } catch(e:any) {
+      toast({title:"Send failed", description:e.message, variant:"destructive"});
+    }
+    setFbSending(false);
+  };
+
   const fbCopyLink = async()=>{
     try {
       await navigator.clipboard.writeText(fbPublicUrl);
@@ -300,6 +380,7 @@ export default function AdminPanelPage() {
   };
 
   useEffect(()=>{ if (sec==="formbuilder") loadForms(); },[sec,loadForms]);
+  useEffect(()=>{ if (sec==="branding") loadBrand(); },[sec,loadBrand]);
 
   const [blockedIPs, setBlockedIPs] = useState<Set<string>>(new Set());
   const [moduleCfg, setModuleCfg] = useState<Record<string,string>>({});
@@ -1662,6 +1743,9 @@ export default function AdminPanelPage() {
                     </button>
                     <button onClick={()=>window.open(fbPublicUrl,"_blank")} style={{...S.btn("#64748b"),fontSize:12}}><Eye size={14}/>Preview</button>
                     <button onClick={()=>loadFbResponses(selectedFormId)} style={{...S.btn("#3b82f6"),fontSize:12}}><RefreshCw size={14}/>Refresh Responses</button>
+                    <button onClick={fbSendToAllUsers} disabled={fbSending} style={{...S.btn("#8b5cf6"),fontSize:12,opacity:fbSending?0.6:1}}>
+                      <Mail size={14}/>{fbSending?"Sending…":"Send to All Users"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1720,6 +1804,74 @@ export default function AdminPanelPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* - BRANDING - */}
+          {sec==="branding"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={S.card}>
+                <div style={S.cardHd("#db2777")}><ImageIcon size={14} color="#db2777"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Organization Branding</span></div>
+                <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div style={{gridColumn:"1/-1"}}>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Organization / Facility Name</label>
+                    <input value={brandName} onChange={e=>setBrandName(e.target.value)} placeholder="Embu Level 5 Hospital" style={S.inp}/>
+                  </div>
+
+                  <div style={{gridColumn:"1/-1"}}>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Logo</label>
+                    <div style={{display:"flex",alignItems:"center",gap:14}}>
+                      <div style={{width:64,height:64,borderRadius:8,border:`1.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:"#f8fafc",flexShrink:0}}>
+                        {brandLogo ? <img src={brandLogo} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain"}}/> : <ImageIcon size={22} color="#cbd5e1"/>}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        <label style={{...S.btn("#64748b"),fontSize:12,cursor:"pointer",width:"fit-content"}}>
+                          <Upload size={14}/>Upload Logo
+                          <input type="file" accept="image/*" style={{display:"none"}}
+                            onChange={e=>{ const f=e.target.files?.[0]; if (f) onBrandLogoFile(f); }}/>
+                        </label>
+                        {brandLogo && <button onClick={()=>setBrandLogo("")} style={{...S.btn("#dc2626"),fontSize:11,padding:"4px 10px"}}><X size={12}/>Remove</button>}
+                        <span style={{fontSize:10.5,color:T.fgMuted}}>PNG or JPG, under 500KB. Appears on the login page and public forms.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Primary Color</label>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <input type="color" value={brandPrimary} onChange={e=>setBrandPrimary(e.target.value)} style={{width:40,height:34,padding:2,border:`1.5px solid ${T.border}`,borderRadius:6,cursor:"pointer"}}/>
+                      <input value={brandPrimary} onChange={e=>setBrandPrimary(e.target.value)} style={{...S.inp,flex:1}}/>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Accent Color</label>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <input type="color" value={brandAccent} onChange={e=>setBrandAccent(e.target.value)} style={{width:40,height:34,padding:2,border:`1.5px solid ${T.border}`,borderRadius:6,cursor:"pointer"}}/>
+                      <input value={brandAccent} onChange={e=>setBrandAccent(e.target.value)} style={{...S.inp,flex:1}}/>
+                    </div>
+                  </div>
+
+                  <div style={{gridColumn:"1/-1"}}>
+                    <button onClick={saveBrand} disabled={brandSaving || !brand} style={{...S.btn("#10b981"),fontSize:12,opacity:(brandSaving||!brand)?0.6:1}}>
+                      <Save size={14}/>{brandSaving?"Saving…":"Save Branding"}
+                    </button>
+                    {!brand && <span style={{marginLeft:10,fontSize:11,color:T.fgMuted}}>Loading facility record…</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#64748b")}><Eye size={14} color="#64748b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Preview</span></div>
+                <div style={{padding:16}}>
+                  <div style={{borderRadius:10,overflow:"hidden",border:`1px solid ${T.border}`,maxWidth:420}}>
+                    <div style={{background:`linear-gradient(135deg,${brandPrimary},${brandAccent})`,padding:"18px 20px",color:"#fff",display:"flex",alignItems:"center",gap:10}}>
+                      {brandLogo && <img src={brandLogo} alt="" style={{width:32,height:32,borderRadius:6,objectFit:"contain",background:"#fff",padding:2}}/>}
+                      <div style={{fontWeight:800,fontSize:15}}>{brandName||"Organization Name"}</div>
+                    </div>
+                    <div style={{padding:16,fontSize:12,color:T.fgMuted}}>This is how the header on public forms and the sign-in page will look.</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </ErrorBoundary>
