@@ -677,15 +677,30 @@ export function useResponsiveBot() {
     window.addEventListener("orientationchange", run);
     window.addEventListener("resize", run);
 
-    // Re-patch whenever new DOM nodes appear (async table renders)
+    // Re-patch whenever new DOM nodes appear (async table renders).
+    // Debounced: without this, a MutationObserver on the whole document
+    // body fires on *every* DOM mutation anywhere in the app — every
+    // keystroke in a filtered search box, every realtime Supabase update,
+    // every toast appearing/disappearing — each one triggering a full
+    // document.querySelectorAll("table") re-scan. That's the main cause
+    // of app-wide jank/freezing, especially while typing in a list filter
+    // or on realtime-heavy pages. Coalescing bursts into one patch pass
+    // ~120ms after mutations settle removes the thrash without any
+    // perceptible delay for the actual use case (a table's data finished
+    // loading).
+    let mutationTimer: ReturnType<typeof setTimeout> | undefined;
     const mo = new MutationObserver(() => {
-      requestAnimationFrame(() => patchTables(devRef.current));
+      if (mutationTimer) clearTimeout(mutationTimer);
+      mutationTimer = setTimeout(() => {
+        requestAnimationFrame(() => patchTables(devRef.current));
+      }, 120);
     });
     mo.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       ro.disconnect();
       mo.disconnect();
+      if (mutationTimer) clearTimeout(mutationTimer);
       window.removeEventListener("orientationchange", run);
       window.removeEventListener("resize", run);
     };
