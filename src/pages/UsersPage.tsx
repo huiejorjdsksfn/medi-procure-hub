@@ -262,10 +262,24 @@ export default function UsersPage() {
   const deleteUser = async () => {
     if (!selected) return;
     setSaving(true);
-    await db.from("user_roles").delete().eq("user_id",selected.id);
-    await db.from("profiles").delete().eq("id",selected.id);
-    toast({ title:"User removed" }); setModal(null); setSelected(null); load();
-    setSaving(false);
+    try {
+      const { data: sesData } = await supabase.auth.getSession();
+      const token = sesData?.session?.access_token || "";
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-delete-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ user_id: selected.id }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data?.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+      toast({ title: "✓ User fully removed", description: "Auth account, profile, and roles were all deleted." });
+      setModal(null); setSelected(null); load();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleActive = async (u:UserRow) => {
