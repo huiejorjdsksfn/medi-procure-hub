@@ -1,13 +1,22 @@
 /**
- * EL5 MediProcure — send-email v7.1  PRODUCTION
+ * EL5 MediProcure — send-email v8.0  PRODUCTION
+ * v8.0: FIXED — smtp_pass was being sent to the SMTP2GO HTTP API as if it
+ * were an SMTP2GO API key. It's actually a real Gmail/SMTP password
+ * (same system_settings the Settings → Email/SMTP page saves, and the
+ * same value notification-hub already used correctly via a real SMTP/TLS
+ * connection). This function had no real SMTP client at all — only HTTP
+ * API providers — so no smtp_pass value the admin entered could ever
+ * work. Added a real Gmail/SMTP path (denomailer) as the primary
+ * provider whenever smtp_enabled + host/user/pass are configured.
  * v7.1: Anti-replay guard (x-el5-nonce / x-el5-ts headers, optional).
- * Primary: Resend API (api.resend.com)
- * Fallback 1: SMTP2GO API (api.smtp2go.com)
- * Fallback 2: Supabase built-in email
+ * Primary: Gmail/SMTP (system_settings, real SMTP/TLS)
+ * Fallback 1: Resend API (api.resend.com), if RESEND_API_KEY is set
+ * Fallback 2: SMTP2GO API (api.smtp2go.com), if SMTP2GO_API_KEY is set
  * EL5 MediProcure · Embu Level 5 Hospital
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -121,10 +130,35 @@ async function sendViaSmtp2Go(to: string | string[], subject: string, html: stri
   } catch (e: any) { return { ok: false, error: e.message }; }
 }
 
-async function sendViaSmtp2GoWithSettings(to: string | string[], subject: string, html: string, text: string, smtp: SmtpSettings): Promise<{ ok: boolean; id?: string; error?: string }> {
-  const apiKey = smtp.pass;
-  if (!apiKey) return { ok: false, error: "SMTP2GO API key not found in smtp_pass" };
-  return sendViaSmtp2Go(to, subject, html, text, smtp.from_email, smtp.from_name, apiKey);
+async function sendViaGmailSmtp(to: string | string[], subject: string, html: string, text: string, smtp: SmtpSettings): Promise<{ ok: boolean; error?: string }> {
+  if (!smtp.host || !smtp.user || !smtp.pass) return { ok: false, error: "SMTP host/user/password not fully configured in Settings → Email/SMTP" };
+  const toArr = Array.isArray(to) ? to : [to];
+  let client: SMTPClient | null = null;
+  try {
+    const port = Number(smtp.port) || 587;
+    client = new SMTPClient({
+      connection: {
+        hostname: smtp.host,
+        port,
+        tls: port === 465,
+        auth: { username: smtp.user, password: smtp.pass },
+      },
+    });
+    for (const recipient of toArr) {
+      await client.send({
+        from: `${smtp.from_name || "EL5 MediProcure"} <${smtp.user}>`,
+        to: [recipient],
+        subject,
+        content: text.slice(0, 10000),
+        html,
+      });
+    }
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: `Gmail/SMTP: ${e.message}` };
+  } finally {
+    try { await client?.close(); } catch { /* already closed */ }
+  }
 }
 
 async function logEmail(to: string, subject: string, status: string, provider: string, id?: string, err?: string) {
@@ -147,8 +181,8 @@ serve(async (req) => {
   if (req.method === "GET" && url.searchParams.get("action") === "status") {
     const smtpSettings = await getSmtpSettings();
     return new Response(JSON.stringify({
-      ok: true, version: "7.1", resend_key_set: !!RESEND_KEY,
-      smtp2go_key_set: !!SMTP2GO_KEY || !!smtpSettings.pass,
+      ok: true, version: "8.0", resend_key_set: !!RESEND_KEY, smtp2go_key_set: !!SMTP2GO_KEY,
+      gmail_smtp_ready: !!(smtpSettings.enabled && smtpSettings.host && smtpSettings.user && smtpSettings.pass),
       smtp_enabled: smtpSettings.enabled, from: smtpSettings.from_email, from_name: smtpSettings.from_name,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
@@ -191,7 +225,11 @@ serve(async (req) => {
     let result: { ok: boolean; id?: string; error?: string } = { ok: false, error: "No email provider available" };
     let provider = "none";
 
-    if (RESEND_KEY) {
+    if (smtpSettings.enabled && smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
+      result = await sendViaGmailSmtp(to, subject, htmlContent, textContent, smtpSettings);
+      provider = "gmail-smtp";
+    }
+    if (!result.ok && RESEND_KEY) {
       result = await sendViaResend(to, subject, htmlContent, textContent, fromEmail, fromName);
       provider = "resend";
     }
@@ -199,9 +237,8 @@ serve(async (req) => {
       result = await sendViaSmtp2Go(to, subject, htmlContent, textContent, fromEmail, fromName, SMTP2GO_KEY);
       provider = "smtp2go-env";
     }
-    if (!result.ok && smtpSettings.enabled && smtpSettings.pass) {
-      result = await sendViaSmtp2GoWithSettings(to, subject, htmlContent, textContent, smtpSettings);
-      provider = "smtp2go-db";
+    if (!result.ok) {
+      result.error = result.error || "No email provider configured — set a real Gmail/SMTP password in Settings → Email/SMTP, or configure RESEND_API_KEY/SMTP2GO_API_KEY.";
     }
 
     await logEmail(Array.isArray(to) ? to[0] : to, subject, result.ok ? "sent" : "failed", provider, result.id, result.error);

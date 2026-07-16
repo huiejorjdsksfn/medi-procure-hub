@@ -244,14 +244,17 @@ async function sendEmail(to: string, subject: string, body: string, html?: strin
     }
   }
   
-  // Fallback: Log to audit_logs
+  // No working provider — log it for visibility, but report the honest
+  // failure instead of a false "ok:true" (this previously made bulk-send
+  // UIs like "email this form to every active user" claim success while
+  // no email was ever delivered).
   await db.from("audit_logs").insert({
     action: "email_logged",
     details: JSON.stringify({ to, subject, body: body.slice(0, 500), ts: new Date().toISOString() }),
     created_at: new Date().toISOString(),
   }).catch(() => {});
-  
-  return { ok: true, error: "Email logged (no SMTP configured)" };
+
+  return { ok: false, error: "No email provider configured — set a real Gmail/SMTP password in Settings → Email/SMTP (Enable SMTP must also be on)." };
 }
 
 // ── Bulk Notification ─────────────────────────────────────────────────────────
