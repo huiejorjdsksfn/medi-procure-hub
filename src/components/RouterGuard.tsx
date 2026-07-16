@@ -36,6 +36,7 @@ export const APP_ROUTES = [
   "/ai-agent",
   "/admin/tracker",
   "/admin/ip-audit",
+  "/sign",
 ];
 
 /**

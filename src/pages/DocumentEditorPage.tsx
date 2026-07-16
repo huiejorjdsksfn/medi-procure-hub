@@ -590,6 +590,12 @@ export default function DocumentEditorPage() {
   const [savedStamps, setSavedStamps]   = useState<any[]>([]);           // from DB
   const [signees, setSignees]           = useState<any[]>([]);           // scheduled signees
   const [newSignee, setNewSignee]       = useState({ name:"", role:"", email:"", due:"", note:"" });
+  const [notifying, setNotifying]       = useState<Set<string>>(new Set());
+  const [showBulkEmail, setShowBulkEmail] = useState(false);
+  const [bulkRecipients, setBulkRecipients] = useState("");
+  const [bulkSubject, setBulkSubject]   = useState("");
+  const [bulkMessage, setBulkMessage]   = useState("");
+  const [bulkSending, setBulkSending]   = useState(false);
   const [sigLoading, setSigLoading]     = useState(false);
   const [sigSaving, setSigSaving]       = useState(false);
   const [sigLabel, setSigLabel]         = useState("");
@@ -727,16 +733,35 @@ export default function DocumentEditorPage() {
     setSaving(false);
   };
 
-  /* ── print with letterhead ──────────────────────────────────── */
+  /* ── print with letterhead (+ real signature images when signees exist) ── */
   const printDoc = () => {
     const html = editorRef.current?.innerHTML || "";
     const win = window.open("","_blank","width=900,height=700");
     if (!win) return;
+    const isDraft = signees.length > 0 && signees.some(s => s.status === "pending");
+    const sigBlock = signees.length ? `
+      <div style="margin-top:36px;border-top:1px solid #cbd5e1;padding-top:10px">
+        <div style="font-size:9pt;font-weight:800;color:#1a3a6b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Authorized Signatures</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px">
+          ${signees.map((s:any) => `
+            <div style="border-top:1px solid #1a3a6b;padding-top:6px;min-height:44px">
+              ${s.status==="signed" && s.signature_image ? `<img src="${s.signature_image}" style="height:36px;max-width:150px;object-fit:contain;display:block;margin-bottom:3px"/>` : ""}
+              <div style="font-size:8.5pt;font-weight:700;color:#374151">${s.status==="signed" ? s.signee_name : "&nbsp;"}</div>
+              <div style="font-size:8pt;color:#6b7280;margin-top:2px">${s.signee_role||""}</div>
+              <span style="display:inline-block;font-size:6.5pt;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:8px;margin-top:3px;
+                background:${s.status==="signed"?"#dcfce7":s.status==="declined"?"#fee2e2":"#fef9c3"};
+                color:${s.status==="signed"?"#166534":s.status==="declined"?"#991b1b":"#854d0e"}">${s.status||"pending"}</span>
+              <div style="font-size:8pt;color:#9ca3af;margin-top:10px">Date: ${s.signed_at ? new Date(s.signed_at).toLocaleDateString("en-KE") : "_______________"}</div>
+            </div>`).join("")}
+        </div>
+      </div>` : "";
     win.document.write(`<!DOCTYPE html><html><head><title>${docName}</title><style>
-@page{margin:2cm}body{font-family:Times New Roman,serif;font-size:12pt;margin:0;padding:24px}
+@page{margin:2cm}body{font-family:Times New Roman,serif;font-size:12pt;margin:0;padding:24px;position:relative}
 table{border-collapse:collapse}img{max-width:100%}
 @media print{.no-print{display:none}}
+.wm{position:fixed;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-32deg);font-size:60pt;font-weight:900;color:rgba(220,38,38,.08);letter-spacing:.08em;pointer-events:none;z-index:0;white-space:nowrap}
 </style></head><body>
+${isDraft ? `<div class="wm">UNSIGNED DRAFT</div>` : ""}
 <div style="text-align:center;border-bottom:3px solid #1a3a6b;padding-bottom:12px;margin-bottom:20px">
   <div style="font-size:8pt;color:#555">REPUBLIC OF KENYA · COUNTY GOVERNMENT OF EMBU — DEPARTMENT OF HEALTH</div>
   <div style="font-size:16pt;font-weight:bold;color:#1a3a6b">EMBU LEVEL 5 HOSPITAL</div>
@@ -744,12 +769,14 @@ table{border-collapse:collapse}img{max-width:100%}
   <div style="border-top:1px solid #cc7700;margin-top:4px;padding-top:4px;font-size:8pt;color:#888">EL5 MediProcure · ${new Date().toLocaleString("en-KE")}</div>
 </div>
 ${html}
+${sigBlock}
 <div style="margin-top:40px;border-top:1px solid #ddd;padding-top:8px;font-size:8pt;color:#888;text-align:center">
   Printed from EL5 MediProcure — Embu Level 5 Hospital — ${new Date().toLocaleString("en-KE")}
 </div>
 <script>window.onload=()=>{window.print();window.close();}</script>
 </body></html>`);
     win.document.close();
+    db.from("print_log").insert({ page:"document", entity_type:"document", entity_id: docName }).then(()=>{},()=>{});
   };
 
   /* ── export PDF ─────────────────────────────────────────────── */
@@ -977,6 +1004,64 @@ ${html}
     loadSigData();
   };
 
+  /* ── notify a signee to sign (email + in-app) ──────────────────── */
+  const notifySignee = async (sn: any) => {
+    if (!sn.signee_email) { toast({title:"No email on file for this signee",variant:"destructive"}); return; }
+    setNotifying(prev => new Set(prev).add(sn.id));
+    try {
+      const { data, error } = await db.functions.invoke("notification-hub", {
+        body: {
+          action: "notify_signature_request",
+          signeeId: sn.id, documentId: docId, documentName: docName,
+          signeeName: sn.signee_name, signeeEmail: sn.signee_email,
+          signeeUserId: sn.user_id || null, signToken: sn.sign_token,
+          requestedByName: profile?.full_name || user?.email || "EL5 MediProcure",
+          dueDate: sn.due_date || undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || "Send failed");
+      toast({title:`✓ Notified ${sn.signee_name}`, description:"Email + in-app notification sent"});
+      loadSigData();
+    } catch(e:any) {
+      toast({title:"Notify failed", description:e.message, variant:"destructive"});
+    } finally {
+      setNotifying(prev => { const s=new Set(prev); s.delete(sn.id); return s; });
+    }
+  };
+
+  const notifyAllPending = async () => {
+    const pending = signees.filter(s => s.status === "pending" && s.signee_email);
+    if (pending.length === 0) { toast({title:"No pending signees with an email to notify"}); return; }
+    for (const sn of pending) await notifySignee(sn);
+    toast({title:`✓ Notified ${pending.length} signee(s)`});
+  };
+
+  /* ── bulk email this document to multiple recipients ───────────── */
+  const sendBulkEmail = async () => {
+    const emails = bulkRecipients.split(/[,;\n]/).map(e=>e.trim()).filter(Boolean);
+    if (emails.length === 0) { toast({title:"Enter at least one email address",variant:"destructive"}); return; }
+    setBulkSending(true);
+    try {
+      const message = `${bulkMessage || `A document has been shared with you: "${docName}".`}\n\nView it in EL5 MediProcure → Documents → "${docName}".`;
+      const { data, error } = await db.functions.invoke("notification-hub", {
+        body: {
+          action: "send_all",
+          recipients: emails.map(email => ({ email })),
+          channels: ["email"],
+          subject: bulkSubject || `Document shared: ${docName}`,
+          message,
+        },
+      });
+      if (error) throw error;
+      const okCount = (data?.results||[]).filter((r:any)=>r.ok).length;
+      toast({title:`✓ Sent to ${okCount}/${emails.length} recipient(s)`});
+      setShowBulkEmail(false); setBulkRecipients(""); setBulkSubject(""); setBulkMessage("");
+    } catch(e:any) {
+      toast({title:"Bulk send failed", description:e.message, variant:"destructive"});
+    } finally { setBulkSending(false); }
+  };
+
   /* ── file → base64 ──────────────────────────────────────────── */
   const fileToB64 = (file: File): Promise<string> =>
     new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result as string); r.onerror=rej; r.readAsDataURL(file); });
@@ -1019,6 +1104,7 @@ ${html}
           )}
           <button onClick={printDoc} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>🖨 Print</button>
           <button onClick={exportPDF} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>📤 PDF</button>
+          <button onClick={()=>setShowBulkEmail(true)} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>📧 Email</button>
           <button onClick={()=>navigate("/documents")} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>✕ Close</button>
         </div>
       </div>
@@ -1494,7 +1580,12 @@ ${html}
 
               {/* Scheduled Signees */}
               <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:6, padding:12 }}>
-                <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8 }}>📅 Scheduled Signees</div>
+                <div style={{ fontWeight:700, fontSize:12, color:C.blue, marginBottom:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span>📅 Scheduled Signees</span>
+                  {signees.some(s=>s.status==="pending") && (
+                    <button onClick={notifyAllPending} style={{ ...S.btn(true), fontSize:10, padding:"3px 9px" }}>🔔 Notify All Pending</button>
+                  )}
+                </div>
                 {!docId && <div style={{ fontSize:11, color:"#b45309", background:"#fffbeb", borderRadius:4, padding:"6px 10px", marginBottom:8 }}>Save the document first to add signees</div>}
                 {/* Add signee form */}
                 <div style={{ background:C.gray3, borderRadius:6, padding:8, marginBottom:8 }}>
@@ -1519,6 +1610,9 @@ ${html}
                 {signees.map((sn:any)=>(
                   <div key={sn.id} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 8px",
                     border:`1px solid ${C.border}`, borderRadius:4, marginBottom:4, background:C.white }}>
+                    {sn.status==="signed" && sn.signature_image && (
+                      <img src={sn.signature_image} alt="signature" style={{ height:24, maxWidth:60, objectFit:"contain", borderBottom:"1px solid #d1d5db" }} />
+                    )}
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:12, fontWeight:600, color:C.blue }}>{sn.signee_name}</div>
                       <div style={{ fontSize:10, color:C.gray2 }}>
@@ -1528,10 +1622,17 @@ ${html}
                       </div>
                     </div>
                     <span style={{ fontSize:10, padding:"2px 7px", borderRadius:10, fontWeight:700,
-                      background: sn.status==="signed"?C.green3:sn.status==="rejected"?C.red3:"#fef9c3",
-                      color: sn.status==="signed"?C.green:sn.status==="rejected"?C.red:"#854d0e" }}>
+                      background: sn.status==="signed"?C.green3:sn.status==="declined"||sn.status==="rejected"?C.red3:"#fef9c3",
+                      color: sn.status==="signed"?C.green:sn.status==="declined"||sn.status==="rejected"?C.red:"#854d0e" }}>
                       {sn.status||"pending"}
                     </span>
+                    {sn.status==="pending" && (
+                      <button onClick={()=>notifySignee(sn)} disabled={notifying.has(sn.id)||!sn.signee_email}
+                        title={sn.notified_at?`Last notified ${FMT_DT(sn.notified_at)} · click to remind again`:"Send sign request email + in-app notification"}
+                        style={{ ...S.btn(sn.notified_at?false:true), fontSize:9, padding:"2px 7px", opacity:notifying.has(sn.id)?.5:1 }}>
+                        {notifying.has(sn.id)?"…":sn.notified_at?"🔔 Remind":"🔔 Notify"}
+                      </button>
+                    )}
                     <button onClick={()=>insertSigPlaceholder(sn.signee_role||sn.signee_name)}
                       style={{ ...S.btn(true), fontSize:9, padding:"2px 7px" }}>Insert ↓</button>
                     <button onClick={()=>removeSignee(sn.id)}
@@ -1594,6 +1695,32 @@ ${html}
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {/* ══════════ BULK EMAIL MODAL ══════════════════════════════ */}
+      {showBulkEmail && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}
+          onClick={()=>!bulkSending && setShowBulkEmail(false)}>
+          <div style={{ background:"#fff", borderRadius:10, width:440, maxWidth:"92vw", padding:20, boxShadow:"0 12px 40px rgba(0,0,0,.3)" }}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{ fontWeight:800, fontSize:14, color:C.blue, marginBottom:4 }}>📧 Email This Document</div>
+            <div style={{ fontSize:11, color:C.gray2, marginBottom:12 }}>Sends via Gmail SMTP to multiple recipients at once.</div>
+            <label style={{ fontSize:11, fontWeight:700, color:C.gray, display:"block", marginBottom:3 }}>Recipients (comma, semicolon, or newline separated)</label>
+            <textarea value={bulkRecipients} onChange={e=>setBulkRecipients(e.target.value)} placeholder="jane@embulevel5.go.ke, john@embulevel5.go.ke"
+              style={{ ...S.inp, width:"100%", height:60, boxSizing:"border-box" as const, marginBottom:10, resize:"vertical" as const }} />
+            <label style={{ fontSize:11, fontWeight:700, color:C.gray, display:"block", marginBottom:3 }}>Subject</label>
+            <input value={bulkSubject} onChange={e=>setBulkSubject(e.target.value)} placeholder={`Document shared: ${docName}`}
+              style={{ ...S.inp, width:"100%", boxSizing:"border-box" as const, marginBottom:10 }} />
+            <label style={{ fontSize:11, fontWeight:700, color:C.gray, display:"block", marginBottom:3 }}>Message (optional)</label>
+            <textarea value={bulkMessage} onChange={e=>setBulkMessage(e.target.value)} placeholder="Add a personal note…"
+              style={{ ...S.inp, width:"100%", height:70, boxSizing:"border-box" as const, marginBottom:14, resize:"vertical" as const }} />
+            <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+              <button onClick={()=>setShowBulkEmail(false)} disabled={bulkSending} style={{ ...S.btn(), fontSize:12 }}>Cancel</button>
+              <button onClick={sendBulkEmail} disabled={bulkSending||!bulkRecipients.trim()} style={{ ...S.btn(true), fontSize:12, opacity:bulkSending?.6:1 }}>
+                {bulkSending?"Sending…":"📧 Send"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

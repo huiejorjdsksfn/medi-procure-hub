@@ -21,7 +21,7 @@ import {
 } from "@/lib/sessionCookie";
 
 // Public paths that never need role checks
-const PUBLIC_PATHS = ["/login", "/reset-password"];
+const PUBLIC_PATHS = ["/login", "/reset-password", "/sign", "/forms"];
 
 // Paths that are OK for every authenticated role
 const UNIVERSAL_PATHS = [

@@ -7,16 +7,20 @@ import { PRINT_CONFIG, STATUSES } from "./index";
 import { ReportTemplate } from "./reportTemplates";
 
 const LETTERHEAD_CSS = `
-  @page { size: A4; margin: 18mm 14mm; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @page { size: A4; margin: 18mm 14mm 22mm; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; font-size: 10pt; line-height: 1.5; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; font-size: 10pt; line-height: 1.5; position: relative; }
   .lh { width: 100%; border-bottom: 2px solid #0a2558; padding-bottom: 10px; margin-bottom: 14px; display: flex; align-items: center; gap: 16px; }
   .lh-text { flex: 1; }
   .lh-county { font-size: 13pt; font-weight: 800; color: #0a2558; letter-spacing: 0.04em; text-transform: uppercase; }
   .lh-dept { font-size: 9pt; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .lh-hospital { font-size: 11pt; font-weight: 700; color: #0a2558; }
-  .seal { width: 52px; height: 52px; border-radius: 50%; border: 2px solid #0a2558; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: 800; color: #0a2558; text-align: center; line-height: 1.2; }
+  .seal { width: 52px; height: 52px; border-radius: 50%; border: 2px solid #0a2558; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: 800; color: #0a2558; text-align: center; line-height: 1.2; overflow: hidden; }
+  .seal img { width: 100%; height: 100%; object-fit: contain; }
   .doc-title { font-size: 13pt; font-weight: 800; color: #0a2558; text-align: center; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.06em; }
   .doc-no { text-align: center; font-size: 9pt; color: #64748b; margin-bottom: 14px; }
   .confidential { text-align: center; font-size: 7pt; color: #dc2626; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
@@ -34,22 +38,30 @@ const LETTERHEAD_CSS = `
   .kv-val { color: #1f2937; font-weight: 500; flex: 1; }
   .sigs { margin-top: 28px; }
   .sig-grid { display: grid; gap: 20px; margin-top: 16px; }
-  .sig-box { border-top: 1px solid #0a2558; padding-top: 6px; }
+  .sig-box { border-top: 1px solid #0a2558; padding-top: 6px; min-height: 44px; }
+  .sig-box img.sig-img { height: 40px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 3px; }
   .sig-name { font-size: 8.5pt; font-weight: 700; color: #374151; }
   .sig-title { font-size: 8pt; color: #6b7280; margin-top: 2px; }
   .sig-date { font-size: 8pt; color: #9ca3af; margin-top: 14px; }
+  .sig-status { display: inline-block; font-size: 6.5pt; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; margin-top: 3px; }
+  .sig-status.signed { background: #dcfce7; color: #166534; }
+  .sig-status.pending { background: #fef9c3; color: #854d0e; }
+  .sig-status.declined { background: #fee2e2; color: #991b1b; }
   .footer { border-top: 1px solid #e2e8f0; margin-top: 20px; padding-top: 8px; font-size: 7.5pt; color: #9ca3af; text-align: center; }
   .badge { display: inline-block; padding: 1px 6px; border-radius: 12px; font-size: 7.5pt; font-weight: 700; }
   .amount-box { background: #0a2558; color: #fff; padding: 10px 14px; border-radius: 6px; margin: 10px 0; }
   .amount-box .label { font-size: 8pt; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
   .amount-box .value { font-size: 14pt; font-weight: 800; margin-top: 2px; }
+  .watermark { position: fixed; top: 42%; left: 50%; transform: translate(-50%,-50%) rotate(-32deg); font-size: 64pt; font-weight: 900; color: rgba(220,38,38,0.09); letter-spacing: 0.08em; pointer-events: none; z-index: 0; white-space: nowrap; }
+  .gen-stamp { text-align: center; font-size: 7pt; color: #cbd5e1; margin-top: 4px; }
 `;
 
-function letterhead(docTitle: string, docNo: string): string {
+function letterhead(docTitle: string, docNo: string, opts?: { sealImg?: string; watermark?: string }): string {
   const lh = PRINT_CONFIG.LETTERHEAD;
   return `
+    ${opts?.watermark ? `<div class="watermark">${opts.watermark}</div>` : ""}
     <div class="lh">
-      <div class="seal">EL5<br/>SEAL</div>
+      <div class="seal">${opts?.sealImg ? `<img src="${opts.sealImg}" alt="Official Seal"/>` : `EL5<br/>SEAL`}</div>
       <div class="lh-text">
         <div class="lh-county">${lh.county}</div>
         <div class="lh-dept">${lh.department}</div>
@@ -63,17 +75,22 @@ function letterhead(docTitle: string, docNo: string): string {
   `;
 }
 
-function signatories(roles: string[], cols = 2): string {
+interface SignatoryEntry { role: string; name?: string; signatureImg?: string; status?: "signed"|"pending"|"declined"; signedAt?: string; }
+
+function signatories(roles: string[] | SignatoryEntry[], cols = 2): string {
+  const entries: SignatoryEntry[] = roles.map((r: any) => typeof r === "string" ? { role: r } : r);
   const rows: string[] = [];
-  for (let i = 0; i < roles.length; i += cols) {
-    const slice = roles.slice(i, i + cols);
+  for (let i = 0; i < entries.length; i += cols) {
+    const slice = entries.slice(i, i + cols);
     rows.push(`
       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:20px;margin-bottom:20px;">
-        ${slice.map(r => `
+        ${slice.map(e => `
           <div class="sig-box">
-            <div class="sig-name">&nbsp;</div>
-            <div class="sig-title">${r}</div>
-            <div class="sig-date">Date: _______________</div>
+            ${e.signatureImg ? `<img class="sig-img" src="${e.signatureImg}" alt="Signature"/>` : `<div class="sig-name">&nbsp;</div>`}
+            <div class="sig-name">${e.name || "&nbsp;"}</div>
+            <div class="sig-title">${e.role}</div>
+            ${e.status ? `<span class="sig-status ${e.status}">${e.status}</span>` : ""}
+            <div class="sig-date">Date: ${e.signedAt ? new Date(e.signedAt).toLocaleDateString("en-KE") : "_______________"}</div>
           </div>
         `).join("")}
       </div>
@@ -105,19 +122,40 @@ function amountWords(amount: number): string {
   return `Kenya Shillings ${words.trim()}${cents ? ` and ${cents}/100` : ""} Only`;
 }
 
-function printDoc(html: string) {
+function printDoc(html: string, opts?: { docType?: string; docRef?: string; watermark?: string }) {
   const win = window.open("", "_blank", "width=900,height=700");
   if (!win) return;
+  const now = new Date();
+  const genStamp = now.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
   win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <title>EL5 MediProcure - Print</title>
     <style>${LETTERHEAD_CSS}</style>
   </head><body>${html}
     <div class="footer">
-      ${PRINT_CONFIG.LETTERHEAD.hospital} - ${PRINT_CONFIG.LETTERHEAD.address} - EL5 MediProcure v2.0
+      ${PRINT_CONFIG.LETTERHEAD.hospital} - ${PRINT_CONFIG.LETTERHEAD.address} - EL5 MediProcure v10
+      <div class="gen-stamp">Generated ${genStamp} - EL5 MediProcure ERP</div>
     </div>
-    <script>window.onload=()=>{window.print();}</script>
+    <script>
+      window.onload = () => {
+        window.print();
+      };
+    </script>
   </body></html>`);
   win.document.close();
+  logPrint(opts?.docType, opts?.docRef);
+}
+
+// Best-effort audit trail; never blocks printing if the table/network isn't available.
+function logPrint(docType?: string, docRef?: string) {
+  try {
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      (supabase as any).from("print_log").insert({
+        page: docType || "document",
+        entity_type: docType || "document",
+        entity_id: docRef || null,
+      }).then(() => {}, () => {});
+    }).catch(() => {});
+  } catch { /* non-critical */ }
 }
 
 // - PUBLIC PRINT FUNCTIONS -
@@ -159,7 +197,7 @@ export function printRequisition(req: any, items: any[]) {
     </div>
     ${signatories(PRINT_CONFIG.SIGNATORIES.REQUISITION, 2)}
   `;
-  printDoc(html);
+  printDoc(html, { docType: "requisition", docRef: req.requisition_number || req.id });
 }
 
 export function printPurchaseOrder(po: any, items: any[], supplier: any) {
@@ -205,7 +243,7 @@ export function printPurchaseOrder(po: any, items: any[], supplier: any) {
     ${po.notes ? `<div class="kv" style="margin-bottom:10px"><span class="kv-lbl">Special Instructions:</span><span class="kv-val">${po.notes}</span></div>` : ""}
     ${signatories(PRINT_CONFIG.SIGNATORIES.PO, 2)}
   `;
-  printDoc(html);
+  printDoc(html, { docType: "purchase_order", docRef: po.po_number || po.id });
 }
 
 export function printPaymentVoucher(voucher: any) {
@@ -243,7 +281,7 @@ export function printPaymentVoucher(voucher: any) {
     </div>
     ${signatories(PRINT_CONFIG.SIGNATORIES.PAYMENT_VOUCHER, 2)}
   `;
-  printDoc(html);
+  printDoc(html, { docType: "payment_voucher", docRef: voucher.voucher_number || voucher.id });
 }
 
 export function printGRN(grn: any, items: any[]) {
@@ -278,7 +316,7 @@ export function printGRN(grn: any, items: any[]) {
     </table>
     ${signatories(PRINT_CONFIG.SIGNATORIES.GRN, 2)}
   `;
-  printDoc(html);
+  printDoc(html, { docType: "grn", docRef: grn.grn_number || grn.id });
 }
 
 export function printReport(template: ReportTemplate, data: any[], period = "") {
@@ -312,5 +350,29 @@ export function printReport(template: ReportTemplate, data: any[], period = "") 
     </table>
     ${template.signatories ? signatories(template.signatories, 2) : ""}
   `;
-  printDoc(html);
+  printDoc(html, { docType: "report", docRef: template.title });
+}
+
+/**
+ * Print a document created in the Document Writer, with real signature
+ * images (or "Pending Signature" placeholders) for each assigned signee,
+ * a draft watermark when the signing workflow isn't yet complete, and
+ * the org seal when available.
+ */
+export function printSignedDocument(
+  doc: { name: string; category?: string; html: string; signature_status?: string },
+  signees: { signee_name: string; signee_role: string; status: string; signature_image?: string; signed_at?: string }[],
+  sealImg?: string
+) {
+  const isDraft = doc.signature_status && doc.signature_status !== "completed" && signees.length > 0;
+  const html = `
+    ${letterhead(doc.category ? `${doc.category.toUpperCase()} — ${doc.name}` : doc.name, new Date().toLocaleDateString("en-KE"),
+      { sealImg, watermark: isDraft ? "UNSIGNED DRAFT" : undefined })}
+    <div class="section">${doc.html || ""}</div>
+    ${signees.length ? signatories(signees.map(s => ({
+        role: s.signee_role, name: s.status === "signed" ? s.signee_name : undefined,
+        signatureImg: s.signature_image, status: s.status as any, signedAt: s.signed_at,
+      })), 2) : ""}
+  `;
+  printDoc(html, { docType: "document", docRef: doc.name });
 }

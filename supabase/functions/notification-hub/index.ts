@@ -333,6 +333,68 @@ async function notifyApprovalAction(
   return { ok: true, results };
 }
 
+// ── Document Signature Request Notification ──────────────────────────────────
+async function notifySignatureRequest(
+  signeeId: string, documentId: string, documentName: string,
+  signeeName: string, signeeEmail: string, signeeUserId: string | null,
+  signToken: string, requestedByName: string, dueDate?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const signUrl = `https://procurbosse.edgeone.app/#/sign/${signToken}`;
+  const dueTxt = dueDate ? ` by ${new Date(dueDate).toLocaleDateString("en-KE", { year: "numeric", month: "long", day: "numeric" })}` : "";
+  const textBody = `Hi ${signeeName},\n\n${requestedByName} has requested your signature on "${documentName}"${dueTxt}.\n\nOpen and sign here:\n${signUrl}\n\n— EL5 MediProcure ERP`;
+  const html = `<html><body style="font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px">
+    <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)">
+      <div style="background:linear-gradient(135deg,#0e2a4a 0%,#0e7490 100%);padding:26px 30px;text-align:center">
+        <div style="color:#fff;font-size:20px;font-weight:800">🏥 EL5 MediProcure</div>
+        <div style="color:rgba(255,255,255,.65);font-size:11px;margin-top:4px">Signature Requested</div>
+      </div>
+      <div style="padding:28px 32px">
+        <p style="color:#374151;font-size:14px">Hi <strong>${signeeName}</strong>,</p>
+        <p style="color:#374151;font-size:14px;line-height:1.6"><strong>${requestedByName}</strong> has requested your signature on:</p>
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;margin:14px 0;font-weight:700;color:#0e2a4a">${documentName}</div>
+        ${dueTxt ? `<p style="color:#dc2626;font-size:13px;font-weight:600">Please sign${dueTxt}.</p>` : ""}
+        <div style="text-align:center;margin:26px 0">
+          <a href="${signUrl}" style="background:#0e7490;color:#fff;padding:12px 28px;border-radius:7px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block">✍ Review &amp; Sign</a>
+        </div>
+        <p style="color:#9ca3af;font-size:11px">If the button doesn't work, copy this link: ${signUrl}</p>
+      </div>
+    </div>
+  </body></html>`;
+
+  const emailRes = await sendEmail(signeeEmail, `Signature requested: ${documentName}`, textBody, html);
+
+  // In-app notification for internal users (service role bypasses RLS)
+  if (signeeUserId) {
+    try {
+      const { data: notif } = await db.from("notifications").insert({
+        user_id: signeeUserId, title: "Signature requested",
+        message: `${requestedByName} requested your signature on "${documentName}"`,
+        type: "signature_request", category: "documents", priority: "high",
+        action_url: `/#/sign/${signToken}`, action_label: "Review & Sign",
+        icon: "✍", record_id: documentId, record_type: "document",
+        created_at: new Date().toISOString(),
+      }).select().single();
+      if (notif?.id) {
+        await db.from("notification_recipients").insert({
+          notification_id: notif.id, recipient_id: signeeUserId,
+          recipient_email: signeeEmail, recipient_name: signeeName,
+          created_at: new Date().toISOString(),
+        });
+      }
+    } catch (e) { console.error("[notification-hub] in-app notify failed:", e); }
+  }
+
+  try {
+    const { data: cur } = await db.from("document_signees").select("notify_count").eq("id", signeeId).single();
+    await db.from("document_signees").update({
+      notified_at: new Date().toISOString(),
+      notify_count: (cur?.notify_count || 0) + 1,
+    }).eq("id", signeeId);
+  } catch { /* best-effort */ }
+
+  return emailRes;
+}
+
 // ── Main Handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -383,6 +445,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: CORS });
     }
     
+    if (action === "notify_signature_request") {
+      const { signeeId, documentId, documentName, signeeName, signeeEmail, signeeUserId, signToken, requestedByName, dueDate } = params;
+      if (!signeeId || !documentId || !signeeEmail || !signToken) {
+        return new Response(JSON.stringify({ ok: false, error: "signeeId, documentId, signeeEmail, signToken required" }), { status: 400, headers: CORS });
+      }
+      const result = await notifySignatureRequest(
+        signeeId, documentId, documentName || "Document", signeeName || signeeEmail,
+        signeeEmail, signeeUserId || null, signToken, requestedByName || "A colleague", dueDate
+      );
+      return new Response(JSON.stringify(result), { headers: CORS });
+    }
+
     if (action === "call") {
       const { to, message } = params;
       if (!to || !message) {
@@ -409,7 +483,7 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       ok: false,
-      error: "Unknown action. Use: send, send_all, notify_approval, call, status",
+      error: "Unknown action. Use: send, send_all, notify_approval, notify_signature_request, call, status",
     }), { status: 400, headers: CORS });
     
   } catch (e: any) {

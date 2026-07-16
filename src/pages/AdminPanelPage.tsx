@@ -348,23 +348,33 @@ export default function AdminPanelPage() {
     if (!confirm(`Email the link for "${fbTitle}" to every active user?`)) return;
     setFbSending(true);
     try {
-      const { data: users, error: uErr } = await db.from("profiles").select("email").eq("is_active",true).not("email","is",null);
+      const { data: users, error: uErr } = await db.from("profiles").select("email,full_name").eq("is_active",true).not("email","is",null);
       if (uErr) throw uErr;
-      const emails = Array.from(new Set((users||[]).map((u:any)=>u.email).filter(Boolean)));
-      if (emails.length===0) { toast({title:"No active users with an email on file",variant:"destructive"}); setFbSending(false); return; }
+      const recipients = Array.from(
+        new Map((users||[]).filter((u:any)=>u.email).map((u:any)=>[u.email, { email:u.email, name:u.full_name||u.email }])).values()
+      );
+      if (recipients.length===0) { toast({title:"No active users with an email on file",variant:"destructive"}); setFbSending(false); return; }
 
-      const { data, error } = await supabase.functions.invoke("send-email", {
+      // Uses the Gmail SMTP already configured in notification-hub (Settings → SMTP),
+      // not the send-email function — that one relies on Resend/SMTP2GO, which
+      // aren't set up here, so it always failed with "No email provider available".
+      const { data, error } = await supabase.functions.invoke("notification-hub", {
         body: {
-          to: emails,
+          action: "send_all",
+          recipients,
+          channels: ["email"],
           subject: `New form: ${fbTitle}`,
-          body: `${fbDesc||"A new form has been published and needs your response."}\n\nPlease complete it at the link below.`,
-          action_url: fbPublicUrl,
-          action_label: "Open Form",
+          message: `${fbDesc||"A new form has been published and needs your response."}\n\nPlease complete it here:\n${fbPublicUrl}`,
         },
       });
       if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error||"Send failed");
-      toast({title:`✓ Sent to ${emails.length} user${emails.length===1?"":"s"}`});
+      const results = data?.results || [];
+      const okCount = results.filter((r:any)=>r.ok).length;
+      if (okCount === 0 && results.length > 0) {
+        throw new Error(results[0]?.error || "Delivery failed for all recipients");
+      }
+      toast({title:`✓ Sent to ${okCount}/${recipients.length} user${recipients.length===1?"":"s"}`,
+        description: okCount < recipients.length ? `${recipients.length-okCount} failed to send` : undefined});
     } catch(e:any) {
       toast({title:"Send failed", description:e.message, variant:"destructive"});
     }
