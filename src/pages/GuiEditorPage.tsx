@@ -331,8 +331,9 @@ export default function GuiEditorPage() {
   const visNav = navItems.filter(m => m.visible).sort((a, b) => a.order - b.order);
 
   return (
-    <div style={{ display:"flex", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
       <AdminBreadcrumb />
+      <div style={{ display:"flex", flex:1, minHeight:0, overflow:"hidden" }}>
 
       {/* Conflict resolution banner — appears when realtime brings remote edits to fields the user has changed locally */}
       {conflict && (
@@ -740,6 +741,7 @@ export default function GuiEditorPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
     </div>

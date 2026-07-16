@@ -9,11 +9,23 @@ const URL  = import.meta.env.VITE_SUPABASE_URL  || "https://yvjfehnzbzjliizjvuhq
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2amZlaG56YnpqbGlpemp2dWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMDg0NjYsImV4cCI6MjA3NjU4NDQ2Nn0.mkDvC1s90bbRBRKYZI6nOTxEpFrGKMNmWgTENeMTSnc";
 
-// Custom fetch with 15s timeout
-const RAW_TIMEOUT_MS = 15000;
+// Custom fetch with a route-aware timeout. A flat 15s ceiling was being
+// applied to EVERY request through this client — including calls to Claude's
+// vision API via edge functions (theme-extract) and PATCHes carrying an
+// embedded base64 logo image (branding save). Both routinely take longer
+// than 15s, so they were being killed by our OWN AbortController before the
+// server had a chance to respond — producing "Failed to send a request to
+// the Edge Function" and "AbortError: signal is aborted without reason"
+// respectively. Neither was a backend bug; both were us cutting ourselves off.
+const DEFAULT_TIMEOUT_MS = 20000;   // plain reads/writes
+const SLOW_ROUTE_TIMEOUT_MS = 75000; // edge functions (AI calls) + storage uploads
+const SLOW_ROUTE_PATTERN = /\/functions\/v1\/|\/storage\/v1\//;
+
 function fetchWithTimeout(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  const href = typeof url === "string" ? url : url.toString();
+  const timeoutMs = SLOW_ROUTE_PATTERN.test(href) ? SLOW_ROUTE_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
   const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), RAW_TIMEOUT_MS);
+  const id = setTimeout(() => ctrl.abort(new Error(`Request timed out after ${timeoutMs / 1000}s: ${href}`)), timeoutMs);
   return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id));
 }
 

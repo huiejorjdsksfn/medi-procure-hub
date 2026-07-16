@@ -11,6 +11,7 @@ import { Package, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye, Plus, Edi
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { TablePager, ColSearchRow } from "@/components/TablePager";
+import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
 
 const TYPES = ["pharmaceutical","medical_equipment","consumable","reagent","laboratory","surgical","general","other"];
 
@@ -381,6 +382,23 @@ export default function ItemsPage() {
               <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{overflowY:"auto",padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              {!editing && (
+                <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:"1px dashed #e5e7eb"}}>
+                  <DocumentAnalyzerButton target="item" onApply={(f)=>{
+                    const matchedCat = f.category ? cats.find((c:any)=>c.name.toLowerCase().includes(String(f.category).toLowerCase()) || String(f.category).toLowerCase().includes(c.name.toLowerCase())) : null;
+                    setForm(p=>({
+                      ...p,
+                      name: f.name ?? p.name,
+                      sku: f.sku ?? p.sku,
+                      unit_of_measure: f.unit ?? p.unit_of_measure,
+                      unit_price: f.unit_price!=null ? String(f.unit_price) : p.unit_price,
+                      description: f.description ?? p.description,
+                      category_id: matchedCat ? matchedCat.id : p.category_id,
+                      notes: (!matchedCat && f.category) ? [p.notes, `AI-detected category: ${f.category}`].filter(Boolean).join(" · ") : p.notes,
+                    }));
+                  }} />
+                </div>
+              )}
               <div style={{gridColumn:"1/-1"}}><label style={lbl}>Item Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Amoxicillin 500mg"/></div>
               <div><label style={lbl}>SKU / Code</label><input value={form.sku} onChange={e=>setForm(p=>({...p,sku:e.target.value}))} style={inp} placeholder="ITEM-001"/></div>
               <div><label style={lbl}>Item Type</label><select value={form.item_type} onChange={e=>setForm(p=>({...p,item_type:e.target.value}))} style={sel}>{TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}</select></div>

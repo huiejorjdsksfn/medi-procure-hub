@@ -23,6 +23,25 @@ const VERSION       = "v3.1";
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
+const ALLOWED_ROLES = ["admin", "database_admin", "webmaster", "superadmin", "procurement_officer", "procurement_manager", "finance_manager"];
+
+/** Verifies the caller's JWT and that they hold a role in user_roles —
+ *  the app's authoritative role table (see is_admin()) — that's allowed
+ *  to publish real Google Forms under the hospital's account. Previously
+ *  this function had no authorization of its own — any authenticated
+ *  user could call it directly and create/list forms. */
+async function authorize(req: Request): Promise<{ userId: string; role: string } | null> {
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  const { data: { user } } = await db.auth.getUser(token);
+  if (!user) return null;
+  const { data: roles } = await db.from("user_roles").select("role").eq("user_id", user.id);
+  const match = (roles || []).map((r: any) => r.role).find((r: string) => ALLOWED_ROLES.includes(r));
+  if (!match) return null;
+  return { userId: user.id, role: match };
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-el5-nonce, x-el5-ts",
@@ -181,6 +200,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   if (req.method === "POST") {
+    const auth = await authorize(req);
+    if (!auth) {
+      return new Response(JSON.stringify({ ok: false, error: "forbidden: an admin/procurement/finance role is required to publish or manage Google Forms" }), { status: 403, headers: CORS });
+    }
     const replay = await checkReplay(req);
     if (!replay.ok) return new Response(JSON.stringify({ ok: false, error: replay.error }), { status: 409, headers: CORS });
   }
