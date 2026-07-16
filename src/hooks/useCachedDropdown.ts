@@ -85,6 +85,7 @@ export function useCachedDropdown(opts: {
       { priority: nextPage === 0 ? "critical" : "background", label: `dropdown:${table}` }
     );
     if (error) {
+      console.error(`[useCachedDropdown] ${table} query failed:`, error);
       const fallback = existing?.rows || [];
       setRows(fallback);
       setHasMore(existing?.hasMore ?? false);

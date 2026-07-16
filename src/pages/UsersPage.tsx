@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import ImageUploader from "@/components/ImageUploader";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useDepartments } from "@/hooks/useDropdownData";
 import {
   Plus, Search, RefreshCw, Edit3, Trash2, Shield, X, Check,
   Key, Eye, EyeOff, Users, Lock, Unlock, AlertTriangle,
@@ -19,10 +20,7 @@ import {
 } from "lucide-react";
 
 const SUPABASE_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co";
-const DEPARTMENTS = [
-  "Finance & Accounts","Procurement","Pharmacy","Nursing","Medical",
-  "Laboratory","Radiology","ICT","Administration","Records","Maintenance",
-];
+
 
 const db = supabase as any;
 
@@ -103,6 +101,7 @@ const RoleChip = ({ role, onRemove }: { role:string; onRemove?:()=>void }) => {
 export default function UsersPage() {
   const { user:me, roles:myRoles } = useAuth();
   const isAdmin = myRoles?.some(r => ["admin","superadmin","webmaster"].includes(r));
+  const { departments } = useDepartments();
 
   const [users, setUsers]       = useState<UserRow[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -656,7 +655,7 @@ export default function UsersPage() {
                   <label style={{ fontSize:11,color:T.fgDim,fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".04em" }}>Department</label>
                   <select value={form.department||""} onChange={e=>setForm((f:any)=>({...f,department:e.target.value}))} style={inp}>
                     <option value="">— Select Department —</option>
-                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                    {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
                   </select>
                 </div>
                 <div style={{ gridColumn:"1/-1" }}>

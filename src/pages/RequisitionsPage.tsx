@@ -27,6 +27,7 @@ import { useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
 import { DocumentStamp } from "@/components/DocumentStamp";
+import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
 import {
   executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
   generateRequisitionNumber, type RequisitionAction
@@ -463,6 +464,21 @@ export default function RequisitionsPage() {
             <ConflictResolutionBanner fields={conflictResolver.conflict} onResolve={conflictResolver.resolve} remoteLabel="requisition" />
 
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              {!editReq && (
+                <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:"1px dashed #e5e7eb"}}>
+                  <DocumentAnalyzerButton target="requisition" onApply={(f)=>{
+                    setForm(p=>({
+                      ...p,
+                      title: f.title ?? p.title,
+                      department: f.department ?? p.department,
+                      justification: f.justification ?? p.justification,
+                      notes: Array.isArray(f.items) && f.items.length
+                        ? [p.notes, "AI-detected items: "+f.items.map((it:any)=>`${it.name||"?"}${it.quantity?` x${it.quantity}`:""}${it.unit?` ${it.unit}`:""}`).join(", ")].filter(Boolean).join(" · ")
+                        : p.notes,
+                    }));
+                  }} />
+                </div>
+              )}
               {[
                 {k:"title",l:"Requisition Title *",p:"e.g. Medical Supplies - Pharmacy",span:2,req:true},
                 {k:"department",l:"Department",p:"e.g. Pharmacy",span:1},

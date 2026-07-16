@@ -24,6 +24,7 @@ import { printLPO } from "@/lib/printDocument";
 import { useSuppliers, useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
+import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
 
 const STATUS_CFG: Record<string,{bg:string;color:string;label:string}> = {
   draft:    {bg:"#f3f4f6",color:"#6b7280",  label:"Draft"},
@@ -491,6 +492,24 @@ export default function PurchaseOrdersPage() {
             {/* Form body */}
             <div style={{overflowY:"auto",flex:1,padding:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                {!editing && (
+                  <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:"1px dashed #e5e7eb"}}>
+                    <DocumentAnalyzerButton target="purchase_order" onApply={(f)=>{
+                      const matchedSupplier = f.supplier_name ? suppliers.find(s=>s.name.toLowerCase().includes(String(f.supplier_name).toLowerCase()) || String(f.supplier_name).toLowerCase().includes(s.name.toLowerCase())) : null;
+                      const aiItems = Array.isArray(f.items) && f.items.length
+                        ? f.items.map((it:any)=>({ description: it.name||"", quantity: Number(it.quantity)||1, unit: it.unit||"pcs", unit_price: Number(it.unit_price)||0 }))
+                        : null;
+                      setForm((p:any)=>({
+                        ...p,
+                        supplier_id: matchedSupplier ? matchedSupplier.id : p.supplier_id,
+                        supplier_name: matchedSupplier ? matchedSupplier.name : (f.supplier_name ?? p.supplier_name),
+                        delivery_date: f.delivery_date ?? p.delivery_date,
+                        items: aiItems || p.items,
+                        notes: [p.notes, f.po_number ? `AI-detected source PO/ref #: ${f.po_number}` : null, f.total_amount ? `AI-detected total: ${f.total_amount}` : null].filter(Boolean).join(" · "),
+                      }));
+                    }} />
+                  </div>
+                )}
 
                 {/* PO Number — auto-generated, not user-editable */}
                 <div>

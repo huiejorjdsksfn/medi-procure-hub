@@ -219,6 +219,7 @@ export default function DocumentsPage() {
   }, [user, load]);
 
   /* - Import rows into ERP module - */
+  const itemCategoriesRef = useRef<any[] | null>(null);
   const importRows = useCallback(async (qi: UploadQueueItem, doc: ParsedDocument, targetModule: string, table: ParsedTable) => {
     if (!table.rows.length) return;
     setImporting(true);
@@ -231,15 +232,29 @@ export default function DocumentsPage() {
         let rows: any[] = [];
 
         if (targetModule === "items") {
-          rows = batch.map(r => ({
-            name: r.name||r.item_name||r.description||r.item||"Imported Item",
-            unit_of_measure: r.unit_of_measure||r.uom||r.unit||"PCS",
-            current_quantity: parseFloat(r.current_quantity||r.qty||"0")||0,
-            reorder_level: parseFloat(r.reorder_level||r.reorder||"10")||10,
-            unit_price: parseFloat(r.unit_price||r.price||"0")||0,
-            category: r.category||"General",
-            created_at: new Date().toISOString(),
-          })).filter(r => r.name && r.name !== "Imported Item");
+          // Fuzzy-match each row's free-text category against item_categories
+          // once per import, so imported items land in the same category_id
+          // FK the Items page actually reads/filters by (not a dangling
+          // free-text "category" column ItemsPage never looks at).
+          if (!itemCategoriesRef.current) {
+            const { data: cats } = await db.from("item_categories").select("id,name");
+            itemCategoriesRef.current = cats || [];
+          }
+          const cats = itemCategoriesRef.current;
+          rows = batch.map(r => {
+            const rawCat = String(r.category||r.item_category||"").trim();
+            const matched = rawCat ? cats.find((c:any)=>c.name.toLowerCase().includes(rawCat.toLowerCase()) || rawCat.toLowerCase().includes(c.name.toLowerCase())) : null;
+            return {
+              name: r.name||r.item_name||r.description||r.item||"Imported Item",
+              unit_of_measure: r.unit_of_measure||r.uom||r.unit||"PCS",
+              quantity_in_stock: parseFloat(r.quantity_in_stock||r.current_quantity||r.qty||"0")||0,
+              reorder_level: parseFloat(r.reorder_level||r.reorder||"10")||10,
+              unit_price: parseFloat(r.unit_price||r.price||"0")||0,
+              category_id: matched ? matched.id : null,
+              status: "active",
+              created_at: new Date().toISOString(),
+            };
+          }).filter(r => r.name && r.name !== "Imported Item");
         } else if (targetModule === "suppliers") {
           rows = batch.map(r => ({
             name: r.name||r.supplier_name||r.company||"",

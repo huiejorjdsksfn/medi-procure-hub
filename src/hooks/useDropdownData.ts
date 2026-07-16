@@ -1,7 +1,7 @@
 import { useCachedDropdown } from "@/hooks/useCachedDropdown";
 
 export function useDepartments() {
-  const dd = useCachedDropdown({ table: "departments", select: "id,name,code,is_active", order: "name", pageSize: 100 });
+  const dd = useCachedDropdown({ table: "departments", select: "id,name,code", order: "name", pageSize: 100 });
   return { departments: dd.rows, loading: dd.loading, reload: dd.reload, loadMore: dd.loadMore, hasMore: dd.hasMore };
 }
 
