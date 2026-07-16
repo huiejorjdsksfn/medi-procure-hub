@@ -26,6 +26,7 @@ import {
 import { Session, User } from "@supabase/supabase-js";
 import { supabase, authCache, fetchUserData } from "@/integrations/supabase/client";
 import { pageCache } from "@/lib/pageCache";
+import { cacheBuckets } from "@/lib/cacheBuckets";
 import {
   getLocalToken, issueToken, refreshToken,
   revokeToken, startTokenRefresh, stopTokenRefresh,
@@ -369,6 +370,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await revokeToken();
     authCache.clear();
     pageCache.clearAll();
+    cacheBuckets.clearAll(); // covers dropdown/dashboard/document-meta/search buckets too — pageCache.clearAll() only wipes its own "page" bucket
     clearRoleCookie();
     await supabase.auth.signOut();
     setSession(null);

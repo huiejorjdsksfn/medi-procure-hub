@@ -7,11 +7,31 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { netEngine } from "@/lib/networkEngine";
+import { cacheBuckets } from "@/lib/cacheBuckets";
 
 type CacheEntry = { ts: number; rows: any[]; hasMore: boolean };
 type FilterValue = string | number | boolean | null | undefined;
 
+// In-memory L1 (instant, synchronous within this session) backed by the
+// persistent "dropdown" bucket as L2. Previously this Map was the only
+// cache: a full page reload during a flaky connection meant every
+// dropdown on the page went back to zero and blocked on the network
+// again. Now a reload hydrates L1 from localStorage first, so dropdowns
+// render instantly from the last-known-good data while a fresh copy
+// loads in the background (see loadPage's stale-serve-then-refresh).
 const CACHE = new Map<string, CacheEntry>();
+
+function hydrateFromBucket(cacheKey: string): CacheEntry | undefined {
+  const mem = CACHE.get(cacheKey);
+  if (mem) return mem;
+  const persisted = cacheBuckets.getStale<CacheEntry>("dropdown", cacheKey);
+  if (persisted) {
+    CACHE.set(cacheKey, persisted.value);
+    return persisted.value;
+  }
+  return undefined;
+}
+
 const TTL = 30 * 60_000;
 const DEFAULT_PAGE_SIZE = 75;
 
@@ -42,7 +62,7 @@ export function useCachedDropdown(opts: {
     [user?.id, roleKey, table, select, filterKey, order, pageSize, search],
   );
 
-  const cached = CACHE.get(cacheKey);
+  const cached = hydrateFromBucket(cacheKey);
   const [rows, setRows] = useState<any[]>(() => cached?.rows || []);
   const [loading, setLoading] = useState(!cached);
   const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
@@ -96,7 +116,9 @@ export function useCachedDropdown(opts: {
     const batch = data || [];
     const nextRows = nextPage === 0 ? batch : [...rows, ...batch];
     const more = batch.length === pageSize;
-    CACHE.set(cacheKey, { ts: Date.now(), rows: nextRows, hasMore: more });
+    const entry: CacheEntry = { ts: Date.now(), rows: nextRows, hasMore: more };
+    CACHE.set(cacheKey, entry);
+    if (nextPage === 0) cacheBuckets.set("dropdown", cacheKey, entry); // only persist page 0 — "load more" pages stay session-only to bound storage size
     setRows(nextRows);
     setHasMore(more);
     setPage(nextPage + 1);
@@ -119,6 +141,7 @@ export function useCachedDropdown(opts: {
       .channel(`dd-cache-${table}-${cacheKey}-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, () => {
         CACHE.delete(cacheKey);
+        cacheBuckets.clear("dropdown", cacheKey);
         loadPage(0, true);
       })
       .subscribe();
@@ -135,6 +158,9 @@ export function useCachedDropdown(opts: {
 }
 
 export function invalidateDropdownCache(table?: string) {
-  if (!table) { CACHE.clear(); return; }
+  if (!table) { CACHE.clear(); cacheBuckets.clearBucket("dropdown"); return; }
   for (const k of CACHE.keys()) if (k.includes(`|${table}|`)) CACHE.delete(k);
+  for (const k of cacheBuckets.keysInBucket("dropdown")) {
+    if (k.includes(`|${table}|`)) cacheBuckets.clear("dropdown", k);
+  }
 }
