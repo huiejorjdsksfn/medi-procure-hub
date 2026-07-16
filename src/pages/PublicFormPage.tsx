@@ -1,12 +1,21 @@
 /**
- * PublicFormPage — ProcurBosse v12
- * Public, unauthenticated form-fill page for forms created in the
- * Admin Panel Forms Builder. Reached at /forms/:formId (HashRouter).
+ * PublicFormPage — ProcurBosse v13
+ * Form-fill page for forms created in the Admin Panel Forms Builder.
+ * Reached at /forms/:formId (HashRouter), normally via FormsGatewayPage
+ * (/forms) which handles the choose → sign-in step first.
+ *
+ * v13: now requires a signed-in MediProcure account — a direct link
+ * visited while signed out is bounced to /forms (the gateway) which
+ * handles sign-in and sends the user right back here. Responses are
+ * now attributed to the real authenticated user, not left anonymous.
+ * Branding (logo/colors) is pulled live from `facilities` instead of
+ * a hardcoded navy gradient.
  */
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const db = supabase as any;
 
@@ -17,8 +26,18 @@ interface QuestionDef {
   req?: boolean;
 }
 
+interface Brand {
+  name: string;
+  logo_url: string | null;
+  primary_color: string;
+  accent_color: string;
+}
+const DEFAULT_BRAND: Brand = { name: "EL5 MEDIPROCURE · EMBU LEVEL 5 HOSPITAL", logo_url: null, primary_color: "#1a3a6b", accent_color: "#2a5fc3" };
+
 export default function PublicFormPage() {
   const { formId } = useParams<{ formId: string }>();
+  const navigate = useNavigate();
+  const { session, user, profile, loading: authLoading } = useAuth() as any;
   const [form, setForm] = useState<any>(null);
   const [questions, setQuestions] = useState<QuestionDef[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -26,6 +45,20 @@ export default function PublicFormPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [brand, setBrand] = useState<Brand>(DEFAULT_BRAND);
+
+  useEffect(() => {
+    if (!authLoading && !session && formId) {
+      navigate(`/forms?next=${encodeURIComponent(formId)}`, { replace: true });
+    }
+  }, [authLoading, session, formId, navigate]);
+
+  const loadBrand = useCallback(async () => {
+    try {
+      const { data } = await db.from("facilities").select("name,logo_url,primary_color,accent_color").eq("is_main", true).maybeSingle();
+      if (data) setBrand({ name: (data.name || DEFAULT_BRAND.name).toUpperCase(), logo_url: data.logo_url || null, primary_color: data.primary_color || DEFAULT_BRAND.primary_color, accent_color: data.accent_color || DEFAULT_BRAND.accent_color });
+    } catch { /* keep default brand */ }
+  }, []);
 
   const load = useCallback(async () => {
     if (!formId) { setError("Missing form ID."); setLoading(false); return; }
@@ -50,7 +83,14 @@ export default function PublicFormPage() {
     }
   }, [formId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadBrand(); if (session) load(); }, [load, loadBrand, session]);
+
+  useEffect(() => {
+    if (!user?.email || !questions.length) return;
+    const emailQ = questions.find(q => q.t === "email");
+    if (emailQ && !answers[emailQ.q]) setAnswers(p => ({ ...p, [emailQ.q]: user.email }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions, user]);
 
   const setAnswer = (q: string, v: string) => setAnswers(p => ({ ...p, [q]: v }));
 
@@ -70,9 +110,14 @@ export default function PublicFormPage() {
       const emailField = questions.find(q => q.t === "email");
       await db.from("form_responses").insert({
         form_id: formId,
-        respondent_email: emailField ? answers[emailField.q] || null : null,
+        respondent_email: (emailField ? answers[emailField.q] : null) || user?.email || null,
         responses: answers,
-        metadata: { submitted_via: "public_form_page", form_title: form?.title },
+        metadata: {
+          submitted_via: "forms_gateway",
+          form_title: form?.title,
+          user_id: user?.id || null,
+          user_name: profile?.full_name || null,
+        },
       });
       setSubmitted(true);
     } catch {
@@ -81,6 +126,14 @@ export default function PublicFormPage() {
       setSubmitting(false);
     }
   };
+
+  if (authLoading || !session) {
+    return (
+      <div style={page}>
+        <div style={{ color: "#64748b", fontSize: 14 }}>Checking sign-in…</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -109,6 +162,9 @@ export default function PublicFormPage() {
           <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Response Submitted</div>
           <div style={{ fontSize: 13, color: "#64748b" }}>Thank you — your response to "{form?.title}" has been recorded.</div>
+          <button onClick={() => navigate("/forms")} style={{ marginTop: 18, padding: "9px 18px", background: brand.primary_color, color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+            Back to Forms
+          </button>
         </div>
       </div>
     );
@@ -117,13 +173,20 @@ export default function PublicFormPage() {
   return (
     <div style={page}>
       <div style={card}>
-        <div style={{ background: "linear-gradient(135deg,#1a3a6b,#2a5fc3)", padding: "20px 24px", color: "#fff" }}>
-          <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4 }}>EL5 MEDIPROCURE · EMBU LEVEL 5 HOSPITAL</div>
-          <div style={{ fontSize: 19, fontWeight: 800 }}>{form?.title}</div>
-          {form?.description && <div style={{ fontSize: 13, opacity: 0.9, marginTop: 6 }}>{form.description}</div>}
+        <div style={{ background: `linear-gradient(135deg,${brand.primary_color},${brand.accent_color})`, padding: "20px 24px", color: "#fff", display: "flex", alignItems: "center", gap: 12 }}>
+          {brand.logo_url && <img src={brand.logo_url} alt="" style={{ height: 34, width: 34, borderRadius: 8, objectFit: "cover", background: "#fff" }} />}
+          <div>
+            <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4 }}>{brand.name}</div>
+            <div style={{ fontSize: 19, fontWeight: 800 }}>{form?.title}</div>
+            {form?.description && <div style={{ fontSize: 13, opacity: 0.9, marginTop: 6 }}>{form.description}</div>}
+          </div>
         </div>
 
         <div style={{ padding: 24 }}>
+          <div style={{ fontSize: 11.5, color: "#94a3b8", marginBottom: 16 }}>
+            Answering as <b style={{ color: "#475569" }}>{profile?.full_name || user?.email}</b>
+          </div>
+
           {questions.map((q, i) => (
             <div key={i} style={{ marginBottom: 18 }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 6 }}>
@@ -167,7 +230,7 @@ export default function PublicFormPage() {
           {error && <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 12 }}>{error}</div>}
 
           <button onClick={submit} disabled={submitting}
-            style={{ width: "100%", padding: "12px", background: "#1a3a6b", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: submitting ? 0.6 : 1 }}>
+            style={{ width: "100%", padding: "12px", background: brand.primary_color, color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: submitting ? 0.6 : 1 }}>
             {submitting ? "Submitting…" : "Submit"}
           </button>
         </div>

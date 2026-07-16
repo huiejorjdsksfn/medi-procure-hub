@@ -26,6 +26,7 @@ import KeepAliveBot                       from "@/components/KeepAliveBot";
 const LoginPage              = lazy(() => import("@/pages/LoginPage"));
 const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
 const PublicFormPage         = lazy(() => import("@/pages/PublicFormPage"));
+const FormsGatewayPage       = lazy(() => import("@/pages/FormsGatewayPage"));
 const SignDocumentPage       = lazy(() => import("@/pages/SignDocumentPage"));
 
 // Core
@@ -168,6 +169,7 @@ const App = () => {
               {/* Public */}
               <Route path="/login"          element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/forms"          element={<FormsGatewayPage />} />
               <Route path="/forms/:formId"  element={<PublicFormPage />} />
               <Route path="/sign/:token"    element={<SignDocumentPage />} />
               <Route path="/"               element={<Navigate to="/dashboard" replace />} />

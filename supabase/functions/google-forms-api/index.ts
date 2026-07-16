@@ -168,32 +168,38 @@ async function createGoogleForm(title: string, description: string, fields: stri
   }
 }
 
-function fallbackFormUrl(title: string, formId: string): string {
-  return `https://docs.google.com/forms/create?title=${encodeURIComponent(`[${formId}] ${title} — ${HOSPITAL}`)}`;
+function fallbackFormUrl(_title: string, formId: string): string {
+  // Previously pointed at Google's generic blank-form-creator page, which
+  // doesn't create or link to this specific form at all. The app already
+  // has a fully working internal fill page at /forms/:formId (PublicFormPage,
+  // HashRouter) — point there instead so "Publish" produces a link that
+  // actually works.
+  return `${PORTAL}/#/forms/${formId}`;
 }
 
-async function saveFormToDb(formId: string, title: string, description: string, fields: string[], formUrl: string, editUrl: string | undefined, method: string, formApiId?: string) {
-  try {
-    const { error } = await db.from("google_forms").insert({
-      form_id: formId, title, description, fields: JSON.stringify(fields),
-      form_url: formUrl, edit_url: editUrl || formUrl, form_api_id: formApiId || null,
-      method, sender_email: SENDER_EMAIL, status: "published",
-      created_at: new Date().toISOString(), published_at: new Date().toISOString(),
-    });
-    if (error) {
-      await db.from("audit_logs").insert({
-        action: "google_form_published",
-        details: JSON.stringify({ formId, title, formUrl, editUrl, formApiId, method, fields: fields.length, senderEmail: SENDER_EMAIL }),
-        created_at: new Date().toISOString(),
-      });
-    }
-  } catch {
-    await db.from("audit_logs").insert({
-      action: "google_form_published",
-      details: JSON.stringify({ formId, title, formUrl, editUrl, formApiId, method, fields: fields.length }),
-      created_at: new Date().toISOString(),
-    });
-  }
+async function saveFormToDb(formId: string, title: string, description: string, fields: string[], formUrl: string, editUrl: string | undefined, method: string, formApiId?: string): Promise<{ ok: boolean; error?: string }> {
+  // BUGFIX: this was .insert() — but the row already exists (created when
+  // the form was first saved as a draft in the Forms Builder), and
+  // google_forms.form_id has a UNIQUE constraint. Every first-time publish
+  // was silently throwing a duplicate-key error that got swallowed into an
+  // (orphaned, unread) audit_logs write, while the UI reported "Published"
+  // success. is_active/form_url/method never actually got saved. Upsert on
+  // form_id fixes it; publishing a brand-new form_id still works the same.
+  const { error } = await db.from("google_forms").upsert({
+    form_id: formId, title, description, fields: JSON.stringify(fields),
+    form_url: formUrl, edit_url: editUrl || formUrl, form_api_id: formApiId || null,
+    method, sender_email: SENDER_EMAIL, status: "published", is_active: true,
+    published_at: new Date().toISOString(),
+  }, { onConflict: "form_id" });
+
+  await db.from("audit_log").insert({
+    action: error ? "google_form_publish_failed" : "google_form_published",
+    module: "forms",
+    details: { formId, title, formUrl, editUrl, formApiId, method, fields: fields.length, senderEmail: SENDER_EMAIL, error: error?.message },
+    created_at: new Date().toISOString(),
+  }).then(() => {});
+
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 Deno.serve(async (req) => {
@@ -214,9 +220,10 @@ Deno.serve(async (req) => {
 
     if (action === "create_form") {
       const finalFormId = formId || `EL5-FORM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      await db.from("audit_logs").insert({
+      await db.from("audit_log").insert({
         action: "google_form_create_attempt",
-        details: `Google Form requested: [${finalFormId}] ${title} (${fields.length} fields) by ${senderEmail || SENDER_EMAIL}`,
+        module: "forms",
+        details: { formId: finalFormId, title, fieldCount: fields.length, requestedBy: senderEmail || SENDER_EMAIL },
         created_at: new Date().toISOString(),
       }).then(() => {});
 
@@ -234,10 +241,14 @@ Deno.serve(async (req) => {
         method = "fallback_create_url";
       }
 
-      await saveFormToDb(finalFormId, title, description || "", fields, result.formUrl!, result.editUrl, method, result.formApiId);
-      await db.from("audit_logs").insert({
+      const dbResult = await saveFormToDb(finalFormId, title, description || "", fields, result.formUrl!, result.editUrl, method, result.formApiId);
+      if (!dbResult.ok) {
+        return new Response(JSON.stringify({ ok: false, error: `Form created but failed to save: ${dbResult.error}` }), { status: 500, headers: CORS });
+      }
+      await db.from("audit_log").insert({
         action: "google_form_published",
-        details: `Google Form PUBLISHED: [${finalFormId}] ${title} → ${result.formUrl}`,
+        module: "forms",
+        details: { formId: finalFormId, title, formUrl: result.formUrl },
         created_at: new Date().toISOString(),
       }).then(() => {});
 
