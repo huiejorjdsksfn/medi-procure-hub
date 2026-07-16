@@ -87,7 +87,7 @@ export default function SystemReportPage() {
       const [rRes, poRes, grRes, uRes, itRes, sRes, auRes] = await Promise.allSettled([
         db.from("requisitions").select("id,status"),
         db.from("purchase_orders").select("id,status"),
-        db.from("goods_received_notes").select("id"),
+        db.from("goods_received").select("id"),
         db.from("profiles").select("id,is_active,last_seen").limit(300),
         db.from("items").select("id,quantity_in_stock"),
         db.from("suppliers").select("id"),

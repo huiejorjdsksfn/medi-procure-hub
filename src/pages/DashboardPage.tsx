@@ -68,12 +68,12 @@ export default function DashboardPage() {
     const [rqR,poR,grnR,supR,pvR,rcpR,budR,invR,conR,tenR] = await Promise.allSettled([
       db.from("requisitions").select("id",{count:"exact",head:true}),
       db.from("purchase_orders").select("id,total_amount,status").eq("status","pending"),
-      db.from("goods_received_notes").select("id",{count:"exact",head:true}),
+      db.from("goods_received").select("id",{count:"exact",head:true}),
       db.from("suppliers").select("id",{count:"exact",head:true}),
       db.from("payment_vouchers").select("id,total_amount").eq("status","draft"),
       db.from("receipt_vouchers").select("id",{count:"exact",head:true}),
       db.from("budgets").select("total_budget,spent"),
-      db.from("inventory_items").select("id",{count:"exact",head:true}),
+      db.from("items").select("id",{count:"exact",head:true}),
       db.from("contracts").select("id",{count:"exact",head:true}),
       db.from("tenders").select("id",{count:"exact",head:true}),
     ]);
