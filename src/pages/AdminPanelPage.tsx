@@ -310,6 +310,41 @@ export default function AdminPanelPage() {
     const nowPublishing = selectedForm.status!=="published";
     setFbSaving(true);
     try {
+      // First-time publish of an internally-built form: actually sync it
+      // to a real Google Form via the google-forms-api edge function,
+      // instead of only flipping a local status flag. Re-publishing an
+      // already-synced form (has form_api_id) just re-activates it —
+      // no need to create a second Google Form.
+      if (nowPublishing && selectedForm.method === "internal" && !selectedForm.form_api_id) {
+        const questions = (selectedForm.field_definitions?.questions || fbQuestions).map((q:any)=>q.q || q);
+        const { data: syncRes, error: syncErr } = await supabase.functions.invoke("google-forms-api", {
+          body: {
+            action: "create_form",
+            title: fbTitle,
+            description: fbDesc,
+            fields: questions,
+            formId: selectedFormId,
+          },
+        });
+        if (syncErr) throw syncErr;
+        if (!syncRes?.ok) throw new Error(syncRes?.error || "Google Forms sync failed");
+
+        const { error } = await db.from("google_forms").update({
+          status: "published", is_active: true, published_at: new Date().toISOString(),
+          form_url: syncRes.formUrl, edit_url: syncRes.editUrl, form_api_id: syncRes.formApiId || null,
+          method: syncRes.method,
+        }).eq("form_id", selectedFormId);
+        if (error) throw error;
+
+        toast({
+          title: syncRes.method === "google_forms_api" ? "✓ Published & synced to Google Forms" : "✓ Published (Google API not configured — using create-link fallback)",
+          description: syncRes.formUrl,
+        });
+        await loadForms();
+        setFbSaving(false);
+        return;
+      }
+
       const { error } = await db.from("google_forms").update({
         status: nowPublishing ? "published" : "draft",
         is_active: nowPublishing,

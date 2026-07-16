@@ -30,7 +30,7 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-const ALLOWED_ROLES = ["admin", "database_admin", "webmaster"];
+const ALLOWED_ROLES = ["admin", "database_admin", "webmaster", "superadmin"];
 const WRITE_ACTIONS = new Set(["INSERT", "UPDATE", "DELETE", "MIGRATE"]);
 const READ_SQL_VERBS = new Set(["SELECT", "SHOW", "DESCRIBE", "DESC", "EXPLAIN"]);
 const IDENT_RE = /^[A-Za-z0-9_]+$/;
@@ -44,18 +44,20 @@ function validIdent(name: unknown): name is string {
   return typeof name === "string" && IDENT_RE.test(name);
 }
 
-/** Verifies the caller's JWT and that their profile role is allowed to
- *  touch the legacy MySQL bridge at all (read or write). */
+/** Verifies the caller's JWT and that they hold an admin-tier role in
+ *  user_roles — the app's authoritative role table (see is_admin()).
+ *  profiles.role is a different, non-authoritative field and must not
+ *  be used for this check. */
 async function authorize(req: Request): Promise<{ userId: string; role: string } | null> {
   const auth = req.headers.get("Authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   if (!token) return null;
   const { data: { user } } = await sb.auth.getUser(token);
   if (!user) return null;
-  const { data: profile } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  const role = (profile as any)?.role || "";
-  if (!ALLOWED_ROLES.includes(role)) return null;
-  return { userId: user.id, role };
+  const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", user.id);
+  const match = (roles || []).map((r: any) => r.role).find((r: string) => ALLOWED_ROLES.includes(r));
+  if (!match) return null;
+  return { userId: user.id, role: match };
 }
 
 async function logAccess(entry: {
