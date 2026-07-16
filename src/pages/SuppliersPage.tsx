@@ -12,6 +12,7 @@ import { Plus, Edit, Search, X, RefreshCw, Download, Printer, FileSpreadsheet, S
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { TablePager, ColSearchRow } from "@/components/TablePager";
+import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
 
 const SS: Record<string,{bg:string;color:string}> = {
   active:   {bg:"#dcfce7",color:"#15803d"},
@@ -372,6 +373,24 @@ export default function SuppliersPage() {
               <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{overflowY:"auto",padding:20}}>
+              {!editing && (
+                <div style={{marginBottom:14,paddingBottom:14,borderBottom:"1px dashed #e5e7eb"}}>
+                  <DocumentAnalyzerButton target="supplier" onApply={(f)=>{
+                    setForm(p=>({
+                      ...p,
+                      name: f.name ?? p.name,
+                      contact_person: f.contact_person ?? p.contact_person,
+                      email: f.email ?? p.email,
+                      phone: f.phone ?? p.phone,
+                      address: f.address ?? p.address,
+                      kra_pin: f.tax_pin ?? p.kra_pin,
+                      tax_id: f.registration_number ?? p.tax_id,
+                      category: CATS.includes(f.category) ? f.category : p.category,
+                      notes: f.category && !CATS.includes(f.category) ? [p.notes, `AI-detected category: ${f.category}`].filter(Boolean).join(" · ") : p.notes,
+                    }));
+                  }} />
+                </div>
+              )}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Supplier Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} placeholder="e.g. Pharmed Kenya Ltd"/></div>
                 <div><label style={lbl}>Contact Person</label><input value={form.contact_person} onChange={e=>setForm(p=>({...p,contact_person:e.target.value}))} style={inp}/></div>
