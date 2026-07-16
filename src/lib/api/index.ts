@@ -486,13 +486,18 @@ export const healthApi = {
 
     const latencyMs = Date.now() - start;
 
-    // Live sessions
+    // Live sessions — was querying a nonexistent view ("live_session_stats"),
+    // silently defaulting to 0/0 always. Computing directly from user_sessions.
     let activeSessions = 0;
     let total24h = 0;
     try {
-      const { data: ss } = await db.from("live_session_stats").select("*").maybeSingle();
-      activeSessions = ss?.active_now || 0;
-      total24h = ss?.sessions_24h || 0;
+      const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const [activeR, dayR] = await Promise.all([
+        db.from("user_sessions").select("id", { count: "exact", head: true }).eq("is_active", true),
+        db.from("user_sessions").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+      ]);
+      activeSessions = activeR.count || 0;
+      total24h = dayR.count || 0;
     } catch {}
 
     const status: SystemHealth["status"] =
@@ -591,9 +596,12 @@ export const securityApi = {
 
   /** Check if current IP is in the allowlist (if IP restriction is enabled) */
   async checkIpAllowlist(ip: string): Promise<boolean> {
-    const { data } = await db.from("ip_whitelist").select("ip_address").eq("is_active", true);
-    if (!data || data.length === 0) return true; // no restrictions
-    return data.some((r: any) => r.ip_address === ip || r.ip_address === "*");
+    // Was querying a table that doesn't exist ("ip_whitelist"), so this always
+    // silently failed open and allowed every IP. Real table is network_whitelist
+    // (columns: cidr, active) — restoring the actual check.
+    const { data } = await db.from("network_whitelist").select("cidr").eq("active", true);
+    if (!data || data.length === 0) return true; // no restrictions configured
+    return data.some((r: any) => r.cidr === ip || r.cidr === "*");
   },
 
   /** Force re-auth for sensitive operations */

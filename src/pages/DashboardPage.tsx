@@ -2,15 +2,14 @@
  * EL5 MediProcure — Dashboard v2.0
  * Full Windows XP Luna Blue desktop with role-aware tiles and live data
  */
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDefaultRoute } from "@/lib/sessionCookie";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useDashboardKPI } from "@/hooks/queries/useDashboardKPI";
 import ERPWheel from "@/components/ERPWheel";
 
-const db = supabase as any;
 
 // Procurement cycle background (graceful fallback to XP blue)
 let DESK_BG_URL = "";
@@ -48,14 +47,7 @@ export default function DashboardPage() {
   const isTablet = useIsMobile(1024) && !isMobile;
   const [time, setTime] = useState(new Date());
   const [startOpen, setStartOpen] = useState(false);
-  const [kpi, setKpi] = useState({
-    requisitions:0, pendingPOs:0, totalPOValue:0,
-    grnCount:0, suppliers:0, vouchers:0,
-    payments:0, receipts:0, budgetTotal:0, budgetSpent:0,
-    inventory:0, contracts:0, tenders:0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [activity, setActivity] = useState<any[]>([]);
+  const { kpi, activity, loading, refetch: fetchKPI } = useDashboardKPI();
 
   const isAdmin   = roles.some(r=>["superadmin","admin","webmaster"].includes(r));
   const isFinance = roles.some(r=>["finance_manager","finance_officer","accountant"].includes(r));
@@ -63,43 +55,7 @@ export default function DashboardPage() {
 
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t);},[]);
 
-  const fetchKPI = useCallback(async()=>{
-    setLoading(true);
-    const [rqR,poR,grnR,supR,pvR,rcpR,budR,invR,conR,tenR] = await Promise.allSettled([
-      db.from("requisitions").select("id",{count:"exact",head:true}),
-      db.from("purchase_orders").select("id,total_amount,status").eq("status","pending"),
-      db.from("goods_received").select("id",{count:"exact",head:true}),
-      db.from("suppliers").select("id",{count:"exact",head:true}),
-      db.from("payment_vouchers").select("id,total_amount").eq("status","draft"),
-      db.from("receipt_vouchers").select("id",{count:"exact",head:true}),
-      db.from("budgets").select("total_budget,spent"),
-      db.from("items").select("id",{count:"exact",head:true}),
-      db.from("contracts").select("id",{count:"exact",head:true}),
-      db.from("tenders").select("id",{count:"exact",head:true}),
-    ]);
-    const g = (r:any,field?:string) => r.status==="fulfilled"?(field?r.value.data?.reduce((s:number,x:any)=>s+(x[field]||0),0):r.value.count||0):0;
-    setKpi({
-      requisitions: g(rqR),
-      pendingPOs:   poR.status==="fulfilled"?(poR.value.data?.length||0):0,
-      totalPOValue: g(poR,"total_amount"),
-      grnCount:     g(grnR),
-      suppliers:    g(supR),
-      vouchers:     pvR.status==="fulfilled"?(pvR.value.data?.length||0):0,
-      payments:     g(pvR,"total_amount"),
-      receipts:     g(rcpR),
-      budgetTotal:  budR.status==="fulfilled"?(budR.value.data?.reduce((s:number,b:any)=>s+(b.total_budget||0),0)||0):0,
-      budgetSpent:  budR.status==="fulfilled"?(budR.value.data?.reduce((s:number,b:any)=>s+(b.spent||0),0)||0):0,
-      inventory:    g(invR),
-      contracts:    g(conR),
-      tenders:      g(tenR),
-    });
-    // Recent activity from audit_log
-    const {data:acts} = await db.from("audit_log").select("*").order("created_at",{ascending:false}).limit(8);
-    setActivity(acts||[]);
-    setLoading(false);
-  },[]);
 
-  useEffect(()=>{fetchKPI();},[fetchKPI]);
 
   // Redirect finance/specialist users to their role-specific desktop
   // Guard: only redirect AFTER roles are actually loaded (not the "requisitioner" default)

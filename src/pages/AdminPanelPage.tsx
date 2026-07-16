@@ -207,11 +207,35 @@ export default function AdminPanelPage() {
     } catch(e:any) { console.error("[Branding] load error:",e); }
   },[]);
 
-  const onBrandLogoFile = (file: File) => {
+  const [brandLogoUploading, setBrandLogoUploading] = useState(false);
+
+  const onBrandLogoFile = async (file: File) => {
     if (file.size > 500*1024) { toast({title:"Logo too large", description:"Please use an image under 500KB", variant:"destructive"}); return; }
-    const reader = new FileReader();
-    reader.onload = () => setBrandLogo(String(reader.result||""));
-    reader.readAsDataURL(file);
+    // Real upload to Supabase Storage (public "facilities" bucket) instead of
+    // embedding the image as base64 directly in the facilities row. Embedding
+    // base64 text turned a normal small UPDATE into a multi-hundred-KB JSON
+    // payload, which is what was causing "upstream connect error... connection
+    // timeout" — the gateway/Postgres connection was choking on the payload
+    // size, not a client-side issue. A real file upload transfers the bytes
+    // directly and the DB row only ever stores a short public URL string.
+    setBrandLogoUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `logos/${brand?.id || "default"}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("facilities").upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type || "image/png",
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("facilities").getPublicUrl(path);
+      setBrandLogo(pub.publicUrl);
+      toast({ title: "✓ Logo uploaded", description: "Click Save Branding to apply it." });
+    } catch (e: any) {
+      toast({ title: "Logo upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBrandLogoUploading(false);
+    }
   };
 
   const saveBrand = async()=>{
@@ -1870,9 +1894,9 @@ export default function AdminPanelPage() {
                         {brandLogo ? <img src={brandLogo} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain"}}/> : <ImageIcon size={22} color="#cbd5e1"/>}
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        <label style={{...S.btn("#64748b"),fontSize:12,cursor:"pointer",width:"fit-content"}}>
-                          <Upload size={14}/>Upload Logo
-                          <input type="file" accept="image/*" style={{display:"none"}}
+                        <label style={{...S.btn(brandLogoUploading?"#94a3b8":"#64748b"),fontSize:12,cursor:brandLogoUploading?"wait":"pointer",width:"fit-content"}}>
+                          <Upload size={14}/>{brandLogoUploading?"Uploading…":"Upload Logo"}
+                          <input type="file" accept="image/*" disabled={brandLogoUploading} style={{display:"none"}}
                             onChange={e=>{ const f=e.target.files?.[0]; if (f) onBrandLogoFile(f); }}/>
                         </label>
                         {brandLogo && <button onClick={()=>setBrandLogo("")} style={{...S.btn("#dc2626"),fontSize:11,padding:"4px 10px"}}><X size={12}/>Remove</button>}
