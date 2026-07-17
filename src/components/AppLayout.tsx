@@ -17,6 +17,7 @@ import SystemBroadcastBanner from "@/components/SystemBroadcastBanner";
 import NotificationPopup from "@/components/NotificationPopup";
 import GlobalSearchBar from "@/components/GlobalSearchBar";
 import SystemHealthWidget from "@/components/SystemHealthWidget";
+import { toast } from "@/hooks/use-toast";
 import logoImg from "@/assets/logo.png";
 import {
   Package, FileText, ShoppingCart, Truck, BarChart3, Settings, LogOut,
@@ -193,6 +194,23 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
 
   // Close mobile nav on route change
   useEffect(() => { setMobileNavOpen(false); }, [loc.pathname]);
+
+  // A queued offline mutation couldn't be saved even after the cache
+  // engines freed space — the change may not survive a refresh. Warn
+  // loudly instead of letting it vanish silently (see offlineEngine.ts).
+  useEffect(() => {
+    const onQueueSaveFailed = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      toast({
+        title: "⚠ Couldn't save your change locally",
+        description: "Device storage is full. Please stay on this page and check your connection — the change may not be saved if you navigate away.",
+        variant: "destructive",
+      });
+      console.error("[AppLayout] offline queue save failed:", detail);
+    };
+    window.addEventListener("el5:offline-queue-save-failed", onQueueSaveFailed);
+    return () => window.removeEventListener("el5:offline-queue-save-failed", onQueueSaveFailed);
+  }, []);
 
   const activeModDef = MODS.find(m=>m.id===activeMod);
   const totalAlerts = (cnt.requisitions||0)+(cnt.purchase_orders||0)+(cnt.payment_vouchers||0);

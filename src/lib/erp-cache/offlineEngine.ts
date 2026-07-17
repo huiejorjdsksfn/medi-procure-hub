@@ -1,10 +1,18 @@
 /**
  * Offline Engine — Service Worker + Background Sync
  * Queues mutations when offline, replays when back online
+ * v1.1: saveQueue() used to silently drop a queued mutation on quota
+ * pressure — the worst possible failure mode here, since this queue is
+ * the only record of an admin's edit/delete made while offline. Now
+ * evicts space from every read-cache engine (ERPCache, cacheBuckets)
+ * before the queue write itself is allowed to fail, and surfaces a
+ * loud, listenable event if it still can't be saved so the UI has a
+ * chance to warn the user instead of losing the change silently.
  * EL5 MediProcure — Embu Level 5 Hospital
  */
 import ERPCache from "./index";
 import { circuitBreaker } from "@/lib/networkEngine";
+import { cacheBuckets } from "@/lib/cacheBuckets";
 
 export type MutationType = "INSERT"|"UPDATE"|"DELETE"|"UPSERT";
 
@@ -23,7 +31,29 @@ function loadQueue(): PendingMutation[] {
   try { return JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]"); } catch { return []; }
 }
 function saveQueue(q: PendingMutation[]) {
-  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch {}
+  const str = JSON.stringify(q);
+  try { localStorage.setItem(QUEUE_KEY, str); return; } catch { /* quota pressure — fall through to recovery */ }
+
+  // A queued mutation is the only record of a change made while offline —
+  // unlike a read cache, losing it is real data loss, not just an extra
+  // network round trip later. Free space from every read-cache engine
+  // before accepting failure.
+  cacheBuckets.emergencyEvict(30);
+  try { localStorage.setItem(QUEUE_KEY, str); return; } catch { /* still full */ }
+
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith("el5c:")).slice(0, 30).forEach(k => localStorage.removeItem(k));
+  } catch { /* best effort */ }
+  try { localStorage.setItem(QUEUE_KEY, str); return; } catch { /* genuinely out of room */ }
+
+  // Out of options — this mutation cannot be persisted. Surface it loudly
+  // instead of the previous silent catch{} so a listener (e.g. AppLayout)
+  // can warn the user their change may not be saved, rather than it
+  // vanishing without a trace.
+  console.error("[OfflineEngine] Could not persist mutation queue — storage full even after eviction. Data may be lost:", q.length, "pending mutations");
+  try {
+    window.dispatchEvent(new CustomEvent("el5:offline-queue-save-failed", { detail: { pendingCount: q.length } }));
+  } catch { /* non-DOM environment */ }
 }
 
 export const OfflineEngine = {

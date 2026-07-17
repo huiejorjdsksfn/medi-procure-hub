@@ -32,12 +32,15 @@ export function getValidPath(userId: string): string {
 
 /* ── Save page state snapshot (for instant restore) ─────────────── */
 export function savePageState<T>(userId: string, page: string, state: T): void {
+  const str = JSON.stringify({ state, ts: Date.now() });
+  const key = VS_PREFIX + userId + "_" + page;
+  try { sessionStorage.setItem(key, str); return; } catch { /* quota — sessionStorage is small, fall through */ }
   try {
-    sessionStorage.setItem(
-      VS_PREFIX + userId + "_" + page,
-      JSON.stringify({ state, ts: Date.now() })
-    );
-  } catch (_e) { /* ignore */ }
+    // Evict this user's own oldest page-state snapshots first, then retry
+    const own = Object.keys(sessionStorage).filter(k => k.startsWith(VS_PREFIX + userId));
+    own.slice(0, 5).forEach(k => { try { sessionStorage.removeItem(k); } catch {} });
+    sessionStorage.setItem(key, str);
+  } catch { /* genuinely out of room — this is a nice-to-have restore, safe to drop */ }
 }
 
 /* ── Get page state (returns null if stale > 30 min) ────────────── */

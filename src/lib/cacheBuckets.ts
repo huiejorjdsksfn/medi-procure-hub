@@ -176,6 +176,20 @@ export const cacheBuckets = {
     }
     return Array.from(byBucket.entries()).map(([bucket, v]) => ({ bucket, ...v }));
   },
+
+  /** Free up localStorage space by evicting our own oldest entries.
+   *  Exposed so OTHER cache engines in the app (ERPCache, the offline
+   *  mutation queue, etc.) can call into the same eviction authority
+   *  under quota pressure instead of each maintaining separate,
+   *  inconsistent eviction logic. Returns the number of entries freed.
+   *  Read-cache data is expendable; a queued write mutation is not —
+   *  callers protecting the latter should evict aggressively here
+   *  before giving up. */
+  emergencyEvict(n: number): number {
+    const before = allEntries().length;
+    evictOldest(n);
+    return before - allEntries().length;
+  },
 };
 
 /**

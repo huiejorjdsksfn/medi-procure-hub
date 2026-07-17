@@ -1,12 +1,20 @@
 /**
- * ProcurBosse ERP Cache Engine v1.0
+ * ProcurBosse ERP Cache Engine v1.1
  * Multi-layer: Memory → IndexedDB → LocalStorage → Offline stale
+ * v1.1: localStorage tier is now quota-safe — a full quota used to
+ * silently drop every future write via a bare catch{}. Now evicts this
+ * engine's own oldest localStorage entries first, then falls back to
+ * cacheBuckets' shared eviction authority, and retries once before
+ * giving up.
  * EL5 MediProcure — Embu Level 5 Hospital
  */
+import { cacheBuckets } from "@/lib/cacheBuckets";
+
 const DB_NAME = "el5_erp_cache";
 const DB_VER  = 3;
 const STORE   = "erp_store";
 const MEM_LIMIT = 200;
+const LS_PREFIX = "el5c:";
 
 const MEM: Map<string,{data:any;exp:number}> = new Map();
 let _db: IDBDatabase | null = null;
@@ -36,13 +44,36 @@ async function idbDel(k:string):Promise<void>{
 
 interface CE{k:string;data:any;exp:number;tag?:string;}
 
+/** Evict this engine's own oldest localStorage entries (cheapest, most
+ *  likely to free enough space without touching other cache engines). */
+function evictOwnOldest(n:number):void{
+  try{
+    const entries = Object.keys(localStorage)
+      .filter(k=>k.startsWith(LS_PREFIX))
+      .map(k=>{ try{return {k, exp:(JSON.parse(localStorage.getItem(k)||"{}") as CE).exp||0};}catch{return {k, exp:0};} })
+      .sort((a,b)=>a.exp-b.exp);
+    entries.slice(0,n).forEach(e=>{ try{localStorage.removeItem(e.k);}catch{} });
+  }catch{}
+}
+
+function safeLocalStorageSet(key:string, str:string):void{
+  try{ localStorage.setItem(key, str); return; }catch{}
+  // Own entries first — cheapest, most targeted
+  evictOwnOldest(15);
+  try{ localStorage.setItem(key, str); return; }catch{}
+  // Still full — ask the shared eviction authority to free space across
+  // every other cache engine's localStorage footprint too
+  cacheBuckets.emergencyEvict(20);
+  try{ localStorage.setItem(key, str); }catch{ /* genuinely out of room — give up silently, memory+IDB tiers still work */ }
+}
+
 export const ERPCache = {
   async set(key:string,data:any,ttlMs=5*60_000,tag?:string):Promise<void>{
     const exp=Date.now()+ttlMs;
     if(MEM.size>=MEM_LIMIT){const o=[...MEM.entries()].sort((a,b)=>a[1].exp-b[1].exp)[0];if(o)MEM.delete(o[0]);}
     MEM.set(key,{data,exp});
     idbSet(key,{k:key,data,exp,tag}).catch(()=>{});
-    try{localStorage.setItem("el5c:"+key,JSON.stringify({k:key,data,exp,tag}));}catch{}
+    safeLocalStorageSet(LS_PREFIX+key, JSON.stringify({k:key,data,exp,tag}));
   },
 
   async get<T=any>(key:string):Promise<T|null>{
