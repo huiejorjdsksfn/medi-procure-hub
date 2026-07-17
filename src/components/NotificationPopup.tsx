@@ -212,9 +212,16 @@ export default function NotificationPopup({ onClose }: { onClose?: () => void })
   const load = useCallback(async () => {
     if (!user) return;
     // Try user_id first (new schema), fall back to recipient_id (legacy)
+    // Exclude dismissed/expired/stale notifications — these columns were
+    // added to the schema but never actually filtered on, so every
+    // dismissed and 90+ day old notification was still showing in the bell.
+    const staleCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await (supabase as any)
       .from("notifications").select("*")
       .or(`user_id.eq.${user.id},recipient_id.eq.${user.id},user_id.is.null,recipient_id.is.null`)
+      .is("dismissed_at", null)
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+      .gte("created_at", staleCutoff)
       .order("created_at", { ascending: false }).limit(40);
     const items = (data || []).filter((n:any,i:number,arr:any[]) =>
       arr.findIndex(x=>x.id===n.id)===i  // deduplicate
