@@ -15,7 +15,7 @@ import {
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
   ChevronRight, ChevronDown, Filter, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
-  ToggleLeft, ToggleRight, Settings
+  ToggleLeft, ToggleRight, Settings, HardDrive, Cpu
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import RoleGuard from "@/components/RoleGuard";
@@ -105,6 +105,9 @@ ORDER BY t.table_name;`);
   const [schemaData, setSchemaData] = useState<any[]>([]);
   const [triggers, setTriggers] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
+  const [dbDash, setDbDash] = useState<any | null>(null);
+  const [dbDashLoading, setDbDashLoading] = useState(false);
+  const [dbDashHistory, setDbDashHistory] = useState<{ t: number; active: number; cache: number }[]>([]);
   const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
   const [realtimeOn, setRealtimeOn] = useState(false);
   const [watchTables, setWatchTables] = useState<string[]>([]);
@@ -320,6 +323,34 @@ ORDER BY t.table_name;`);
     });
     setStats(unwrapRows(data));
   }
+
+  // - Load live server/database dashboard (real pg_stat_* data, no mocks) -
+  const loadDbDashboard = useCallback(async () => {
+    setDbDashLoading(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("get_db_dashboard_stats");
+      if (error) throw error;
+      setDbDash(data);
+      setDbDashHistory(prev => [
+        ...prev.slice(-29),
+        { t: Date.now(), active: data?.connections?.active ?? 0, cache: data?.performance?.cache_hit_ratio ?? 0 },
+      ]);
+    } catch (e: any) {
+      toast({ title: "Couldn't load database dashboard", description: e.message, variant: "destructive" });
+    } finally {
+      setDbDashLoading(false);
+    }
+  }, []);
+
+  // Keep it genuinely live while the tab is open — real Postgres stats change
+  // every second, so a 5s poll (not a static snapshot) is what makes this a
+  // dashboard rather than a one-time report.
+  useEffect(() => {
+    if (activeTab !== "stats") return;
+    loadDbDashboard();
+    const id = setInterval(loadDbDashboard, 5000);
+    return () => clearInterval(id);
+  }, [activeTab, loadDbDashboard]);
 
   // - Realtime -
   function toggleRealtime() {
@@ -901,10 +932,132 @@ ORDER BY t.table_name;`);
         {/* - STATS tab - */}
         {activeTab === "stats" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
+
+            {/* ── Live Server Dashboard — real pg_stat_* data, polled every 5s ── */}
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Database Statistics ({stats.length || "-"} tables)</span>
-              <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+                <Server size={15}/> Server Dashboard
+                {dbDashLoading && <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>}
+              </span>
+              <span style={{ fontSize:10,color:"#888",fontFamily:S.font }}>
+                {dbDash?.generated_at ? `Live — updated ${new Date(dbDash.generated_at).toLocaleTimeString()}` : "Loading…"}
+              </span>
             </div>
+
+            {dbDash && (
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:10,marginBottom:16 }}>
+                {/* Server card */}
+                <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Server size={13}/> SERVER</div>
+                  <div style={{ fontSize:11,fontFamily:S.font,color:"#333",lineHeight:1.9 }}>
+                    <div>{dbDash.server?.version}</div>
+                    <div>Uptime: {Math.floor((dbDash.server?.uptime_seconds||0)/86400)}d {Math.floor(((dbDash.server?.uptime_seconds||0)%86400)/3600)}h</div>
+                    <div>Max connections: {dbDash.server?.max_connections}</div>
+                  </div>
+                </div>
+
+                {/* Connections card */}
+                <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Cpu size={13}/> CONNECTIONS</div>
+                  <div style={{ fontSize:22,fontWeight:700,color:"#111" }}>{dbDash.connections?.total}<span style={{ fontSize:11,color:"#888",fontWeight:400 }}> / {dbDash.server?.max_connections}</span></div>
+                  <div style={{ fontSize:10,color:"#666",marginTop:4 }}>
+                    <span style={{ color:"#16a34a",fontWeight:700 }}>{dbDash.connections?.active}</span> active ·{" "}
+                    <span style={{ color:"#888" }}>{dbDash.connections?.idle}</span> idle ·{" "}
+                    <span style={{ color:"#ca8a04" }}>{dbDash.connections?.idle_in_transaction}</span> idle-in-tx
+                  </div>
+                </div>
+
+                {/* Storage card */}
+                <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><HardDrive size={13}/> STORAGE</div>
+                  <div style={{ fontSize:22,fontWeight:700,color:"#111" }}>{dbDash.storage?.database_size_pretty}</div>
+                  <div style={{ fontSize:10,color:"#666",marginTop:4 }}>Total database size (live)</div>
+                </div>
+
+                {/* Performance card */}
+                <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Zap size={13}/> CACHE HIT RATIO</div>
+                  <div style={{ fontSize:22,fontWeight:700,color:(dbDash.performance?.cache_hit_ratio||0)>95?"#16a34a":"#ca8a04" }}>{dbDash.performance?.cache_hit_ratio ?? "-"}%</div>
+                  <div style={{ fontSize:10,color:"#666",marginTop:4 }}>{dbDash.performance?.transactions_committed?.toLocaleString()} tx committed</div>
+                </div>
+
+                {/* Errors card */}
+                <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><AlertTriangle size={13}/> ERRORS</div>
+                  <div style={{ fontSize:22,fontWeight:700,color:(dbDash.errors?.unresolved_count||0)>0?"#dc2626":"#16a34a" }}>{dbDash.errors?.unresolved_count ?? 0}</div>
+                  <div style={{ fontSize:10,color:"#666",marginTop:4 }}>unresolved · {dbDash.errors?.last_24h_count ?? 0} in last 24h</div>
+                </div>
+              </div>
+            )}
+
+            {/* Live connections/cache-hit trend — real samples from the 5s poll, not a mock chart */}
+            {dbDashHistory.length > 1 && (
+              <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff",marginBottom:16 }}>
+                <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:8 }}>ACTIVE CONNECTIONS (live, last {dbDashHistory.length} samples)</div>
+                <svg viewBox="0 0 600 80" style={{ width:"100%",height:80 }}>
+                  {(() => {
+                    const max = Math.max(1, ...dbDashHistory.map(h=>h.active));
+                    const pts = dbDashHistory.map((h,i) => `${(i/(dbDashHistory.length-1))*600},${80-(h.active/max)*70-5}`).join(" ");
+                    return <polyline points={pts} fill="none" stroke="#0e7490" strokeWidth="2"/>;
+                  })()}
+                </svg>
+              </div>
+            )}
+
+            {/* Top tables by size — real pg_total_relation_size, matches "Storage" panels in reference dashboards */}
+            {dbDash?.storage?.top_tables?.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <div style={{ fontSize:12,fontWeight:700,color:"#003087",marginBottom:6 }}>LARGEST TABLES (live)</div>
+                <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                  <thead><tr>
+                    {["Table","Total Size","Row Estimate"].map(h=>(
+                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {dbDash.storage.top_tables.map((t:any,i:number)=>(
+                      <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}>
+                        <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                        <td style={{ ...CELL }}>{t.total_size}</td>
+                        <td style={{ ...CELL,textAlign:"right" }}>{Math.round(t.row_estimate||0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Recent errors — real rows from system_errors */}
+            {dbDash?.errors?.recent?.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <div style={{ fontSize:12,fontWeight:700,color:"#003087",marginBottom:6 }}>RECENT ERRORS (live)</div>
+                <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                  <thead><tr>
+                    {["Time","Code","Message","Page","Severity","Resolved"].map(h=>(
+                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {dbDash.errors.recent.map((e:any)=>(
+                      <tr key={e.id} style={{ background:"#fff" }}>
+                        <td style={{ ...CELL,whiteSpace:"nowrap" }}>{new Date(e.created_at).toLocaleString()}</td>
+                        <td style={{ ...CELL }}>{e.error_code||"-"}</td>
+                        <td style={{ ...CELL,maxWidth:320,overflow:"hidden",textOverflow:"ellipsis" }}>{e.error_msg}</td>
+                        <td style={{ ...CELL }}>{e.page||"-"}</td>
+                        <td style={{ ...CELL,color:e.severity==="critical"?"#dc2626":e.severity==="warning"?"#ca8a04":"#666" }}>{e.severity||"-"}</td>
+                        <td style={{ ...CELL,color:e.is_resolved?"#16a34a":"#dc2626" }}>{e.is_resolved?"Yes":"No"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ borderTop:`2px solid ${S.border}`,margin:"8px 0 16px",paddingTop:14 }}>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+                <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Table Schema Detail ({stats.length || "-"} tables)</span>
+                <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
+              </div>
             {stats.length > 0 ? (
               <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                 <thead>
@@ -929,6 +1082,7 @@ ORDER BY t.table_name;`);
             ) : (
               <div style={{ fontFamily:S.font,fontSize:12,color:"#666",padding:20 }}>Click Refresh to load statistics-</div>
             )}
+            </div>
           </div>
         )}
 
