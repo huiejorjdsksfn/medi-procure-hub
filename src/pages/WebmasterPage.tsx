@@ -12,7 +12,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystemSettings, saveSetting, saveSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
   Globe, RefreshCw, Activity, Package, Shield, Code2, Radio,
   Server, Terminal, ArrowRight, Users, Bell, Hash, Settings,
@@ -20,6 +19,7 @@ import {
   Trash2, Search, HardDrive, AlertTriangle, BarChart3, Cpu,
   Monitor, Wifi, ChevronRight, Power, Zap, Plus, BookOpen,
   Play, Clock, Zap as Zap2, Layers, FileCode,
+  Building2, CheckCircle2, Cable, AlertCircle,
 } from "lucide-react";
 
 const db = supabase as any;
@@ -72,7 +72,7 @@ const GROUP_COLORS: Record<string, string> = {
   Admin:"#dc2626", Engine:"#8b5cf6", Edge:"#c45910", "CI/CD":"#374151",
 };
 
-type WMTab = "overview"|"modules"|"roles"|"system"|"codebase"|"broadcast"|"terminal"|"deploy";
+type WMTab = "overview"|"modules"|"roles"|"system"|"codebase"|"broadcast"|"terminal"|"deploy"|"deployments"|"notfound";
 
 const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rLg, padding: "16px 20px" };
 const inp: React.CSSProperties  = { width:"100%", background: T.bg, border:`1px solid ${T.border}`, borderRadius: T.r, padding:"8px 12px", color: T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
@@ -86,6 +86,15 @@ export default function WebmasterPage() {
 
   const [tab, setTab] = useState<WMTab>("overview");
   const [kpis, setKpis] = useState<any>({});
+  // Merged from DeploymentsPage (company/facility onboarding tracker)
+  const [companyDeployments, setCompanyDeployments] = useState<any[]>([]);
+  const [deployJobs, setDeployJobs] = useState<any[]>([]);
+  const [deployConnections, setDeployConnections] = useState<any[]>([]);
+  const [deployLoading, setDeployLoading] = useState(false);
+  // Merged from NotFoundLogPage (404 route tracker)
+  const [notFoundRows, setNotFoundRows] = useState<any[]>([]);
+  const [notFoundLoading, setNotFoundLoading] = useState(false);
+  const [notFoundFilter, setNotFoundFilter] = useState("");
   const [saving, setSaving] = useState<string|null>(null);
   const [broadcast, setBroadcast] = useState("");
   const [broadcastType, setBroadcastType] = useState<"info"|"warning"|"error">("info");
@@ -197,6 +206,57 @@ export default function WebmasterPage() {
   }, []);
 
   useEffect(() => { loadKpis(); }, [loadKpis]);
+
+  const loadDeployments = useCallback(async () => {
+    setDeployLoading(true);
+    try {
+      const [dRes, jRes, cRes] = await Promise.all([
+        db.from("company_deployments").select("*").order("created_at", { ascending: false }),
+        db.from("deployment_import_jobs").select("id,deployment_id,imported_rows,failed_rows,status"),
+        db.from("external_connections").select("id,status,type,deployment_id"),
+      ]);
+      setCompanyDeployments(dRes.data || []);
+      setDeployJobs(jRes.data || []);
+      setDeployConnections(cRes.data || []);
+    } catch (e: any) {
+      toast({ title: "Failed to load deployments", description: e.message, variant: "destructive" as any });
+    } finally {
+      setDeployLoading(false);
+    }
+  }, []);
+
+  const loadNotFoundLog = useCallback(async () => {
+    setNotFoundLoading(true);
+    const { data, error } = await db.from("not_found_log").select("*").order("created_at", { ascending: false }).limit(500);
+    if (error) toast({ title: "Failed to load 404 log", description: error.message, variant: "destructive" as any });
+    setNotFoundRows(data || []);
+    setNotFoundLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (tab === "deployments" && companyDeployments.length === 0 && !deployLoading) loadDeployments();
+    if (tab === "notfound" && notFoundRows.length === 0 && !notFoundLoading) loadNotFoundLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const deleteCompanyDeployment = async (id: string, name: string) => {
+    if (!confirm(`Delete onboarding record for "${name}"? This won't delete any data already imported.`)) return;
+    try {
+      await db.from("company_deployments").delete().eq("id", id);
+      toast({ title: "Deployment record removed" });
+      loadDeployments();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" as any });
+    }
+  };
+
+  const clearNotFoundLog = async () => {
+    if (!confirm("Delete ALL 404 log entries?")) return;
+    const { error } = await db.from("not_found_log").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) return toast({ title: "Delete failed", description: error.message, variant: "destructive" as any });
+    toast({ title: "404 log cleared" });
+    loadNotFoundLog();
+  };
 
   const toggleModule = async (key: string) => {
     const cur = settings[key] !== "false";
@@ -437,14 +497,16 @@ export default function WebmasterPage() {
   };
 
   const TABS: { id:WMTab; label:string; icon:any }[] = [
-    { id:"overview",  label:"Overview",    icon:Monitor   },
-    { id:"modules",   label:"Modules",     icon:Package   },
-    { id:"roles",     label:"Role Caps",   icon:Shield    },
-    { id:"system",    label:"System",      icon:Settings  },
-    { id:"codebase",  label:"Codebase",    icon:Code2     },
-    { id:"broadcast", label:"Broadcast",   icon:Radio     },
-    { id:"terminal",  label:"Terminal",    icon:Terminal  },
-    { id:"deploy",    label:"Deploy",      icon:ArrowRight},
+    { id:"overview",    label:"Overview",     icon:Monitor    },
+    { id:"modules",     label:"Modules",      icon:Package    },
+    { id:"roles",       label:"Role Caps",    icon:Shield     },
+    { id:"system",      label:"System",       icon:Settings   },
+    { id:"codebase",    label:"Codebase",     icon:Code2      },
+    { id:"broadcast",   label:"Broadcast",    icon:Radio      },
+    { id:"terminal",    label:"Terminal",     icon:Terminal   },
+    { id:"deploy",      label:"CI/CD Deploy", icon:ArrowRight },
+    { id:"deployments", label:"Company Onboarding", icon:Building2 },
+    { id:"notfound",    label:"404 Log",      icon:AlertCircle },
   ];
 
   const filteredFiles = CODE_FILES.filter(f => !codeSearch ||
@@ -452,23 +514,30 @@ export default function WebmasterPage() {
     f.desc.toLowerCase().includes(codeSearch.toLowerCase()));
 
   return (
-    <div style={{ padding:20, minHeight:"100vh", background:T.bg }}>
-      <AdminBreadcrumb />
+    <div style={{ background:T.bg, minHeight:"100vh" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:18 }}>
-        <div style={{ width:42, height:42, borderRadius:10, background:`linear-gradient(135deg,${T.primary},#7c3aed)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <Globe size={20} color="#fff"/>
-        </div>
-        <div>
-          <h1 style={{ margin:0, fontSize:20, fontWeight:800, color:T.fg }}>Superadmin / Webmaster Control Centre</h1>
-          <div style={{ fontSize:11, color:T.fgDim, marginTop:2 }}>ProcurBosse v6.0 · EL5 MediProcure · {roles.filter(r=>["superadmin","webmaster","admin"].includes(r)).join(", ")||"admin"}</div>
-        </div>
-        <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
-          <button onClick={loadKpis} style={btn(T.bg, T.border)}><RefreshCw size={13}/> Refresh</button>
+      {/* Teal hero — matches the Admin Hub visual style, replaces the old breadcrumb + small header */}
+      <div style={{ background:"linear-gradient(135deg,#107C73,#0a5a52)", padding:"24px 24px 28px" }}>
+        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:42, height:42, borderRadius:10, background:"rgba(255,255,255,.15)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Globe size={20} color="#fff"/>
+            </div>
+            <div>
+              <h1 style={{ margin:0, fontSize:22, fontWeight:300, color:"#fff", letterSpacing:"-.02em" }}>Webmaster / Superadmin Control Centre</h1>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,.75)", marginTop:2 }}>
+                System control · Deployments · 404 tracking · CI/CD · {roles.filter(r=>["superadmin","webmaster","admin"].includes(r)).join(", ")||"admin"}
+              </div>
+            </div>
+          </div>
+          <button onClick={loadKpis} style={{ padding:"8px 12px", background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.3)", borderRadius:6, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:5 }}>
+            <RefreshCw size={13}/> Refresh
+          </button>
         </div>
       </div>
+
+      <div style={{ padding:20 }}>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:2, marginBottom:16, borderBottom:`1px solid ${T.border}`, overflowX:"auto" }}>
@@ -858,6 +927,202 @@ export default function WebmasterPage() {
           </div>
         </div>
       )}
+
+      {/* ── COMPANY ONBOARDING (merged from Deployments) ── */}
+      {tab==="deployments" && (() => {
+        const stats = {
+          total: companyDeployments.length,
+          completed: companyDeployments.filter(d => d.status === "completed").length,
+          inProgress: companyDeployments.filter(d => ["draft","db_connected","importing","review"].includes(d.status)).length,
+          failed: companyDeployments.filter(d => d.status === "failed").length,
+          rowsImported: deployJobs.reduce((s, j) => s + (j.imported_rows || 0), 0),
+          activeConnections: deployConnections.filter(c => c.status === "active").length,
+        };
+        const STATUS_CFG: Record<string, { color:string; bg:string; label:string }> = {
+          draft:        { color:T.fgMuted, bg:T.bg2,      label:"Draft" },
+          db_connected: { color:T.info,    bg:`${T.info}14`, label:"DB Connected" },
+          importing:    { color:T.warning, bg:T.warningBg,   label:"Importing" },
+          review:       { color:T.warning, bg:T.warningBg,   label:"In Review" },
+          completed:    { color:T.success, bg:T.successBg,   label:"Completed" },
+          failed:       { color:T.error,   bg:T.errorBg,     label:"Failed" },
+        };
+        const STAT_CARDS = [
+          { label:"Total Deployments", val:stats.total, col:T.primary, icon:Building2 },
+          { label:"Completed", val:stats.completed, col:T.success, icon:CheckCircle2 },
+          { label:"In Progress", val:stats.inProgress, col:T.warning, icon:Clock },
+          { label:"Failed", val:stats.failed, col:T.error, icon:AlertTriangle },
+          { label:"Rows Imported", val:stats.rowsImported, col:"#7c3aed", icon:Database },
+          { label:"Active DB Links", val:stats.activeConnections, col:"#0ea5e9", icon:Cable },
+        ];
+        return (
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:12, marginBottom:16 }}>
+              <p style={{ margin:0, fontSize:12, color:T.fgMuted, maxWidth:520, lineHeight:1.6 }}>
+                Onboard a new company or facility — set up their database link, import legacy data, and go live.
+              </p>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={loadDeployments} style={btn(T.bg, T.border)}><RefreshCw size={13} style={{animation:deployLoading?"spin 1s linear infinite":"none"}}/> Refresh</button>
+                <button onClick={() => nav("/admin/deployments/new")} style={btn(T.primary)}><Plus size={14}/> New Company Onboarding</button>
+              </div>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(6, minmax(0,1fr))", gap:10, marginBottom:20 }}>
+              {STAT_CARDS.map(s => (
+                <div key={s.label} style={{ ...card, padding:"14px 16px", borderTop:`3px solid ${s.col}` }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                    <s.icon size={15} color={s.col}/>
+                    <span style={{ fontSize:11, color:T.fgMuted, textTransform:"uppercase", letterSpacing:".03em", fontWeight:600 }}>{s.label}</span>
+                  </div>
+                  <div style={{ fontSize:24, fontWeight:800, color:s.col }}>{deployLoading ? "—" : s.val}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ ...card, overflow:"hidden" }}>
+              <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:8 }}>
+                <Server size={14} color={T.primary}/>
+                <span style={{ fontWeight:700, fontSize:13, color:T.fg }}>Onboarding Pipeline</span>
+              </div>
+              {deployLoading ? (
+                <div style={{ padding:40, textAlign:"center", color:T.fgMuted, fontSize:13 }}>Loading deployments…</div>
+              ) : companyDeployments.length === 0 ? (
+                <div style={{ padding:40, textAlign:"center", color:T.fgMuted }}>
+                  <Building2 size={28} style={{ opacity:.35, marginBottom:8 }}/>
+                  <div style={{ fontSize:13 }}>No deployments yet.</div>
+                  <button onClick={() => nav("/admin/deployments/new")} style={{ ...btn(T.primary), marginTop:12 }}>
+                    <Plus size={14}/> Start onboarding a new company
+                  </button>
+                </div>
+              ) : (
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                  <thead>
+                    <tr style={{ background:T.bg2 }}>
+                      {["Company","Status","Step","Contact","Created",""].map(h => (
+                        <th key={h} style={{ padding:"8px 16px", textAlign:"left", fontSize:11, color:T.fgMuted, fontWeight:600, textTransform:"uppercase", letterSpacing:".03em" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {companyDeployments.map(d => {
+                      const sc = STATUS_CFG[d.status] || STATUS_CFG.draft;
+                      const jobCount = deployJobs.filter(j => j.deployment_id === d.id).length;
+                      return (
+                        <tr key={d.id} style={{ borderBottom:`1px solid ${T.border}` }}>
+                          <td style={{ padding:"10px 16px", fontWeight:600, color:T.fg }}>
+                            {d.company_name}
+                            {d.facility_code && <span style={{ marginLeft:6, fontSize:11, color:T.fgMuted }}>({d.facility_code})</span>}
+                            {jobCount > 0 && <div style={{ fontSize:11, color:T.fgMuted, fontWeight:400 }}>{jobCount} import job{jobCount !== 1 ? "s" : ""}</div>}
+                          </td>
+                          <td style={{ padding:"10px 16px" }}>
+                            <span style={{ padding:"2px 10px", borderRadius:10, fontSize:11, fontWeight:700, background:sc.bg, color:sc.color, textTransform:"uppercase", letterSpacing:".04em" }}>{sc.label}</span>
+                          </td>
+                          <td style={{ padding:"10px 16px", color:T.fgMuted, fontSize:12 }}>{(d.current_step || "—").replace(/_/g," ")}</td>
+                          <td style={{ padding:"10px 16px", color:T.fgMuted, fontSize:12 }}>{d.contact_name || d.contact_email || "—"}</td>
+                          <td style={{ padding:"10px 16px", color:T.fgMuted, fontSize:12, whiteSpace:"nowrap" }}>
+                            {d.created_at ? new Date(d.created_at).toLocaleDateString("en-KE",{day:"2-digit",month:"short",year:"numeric"}) : "—"}
+                          </td>
+                          <td style={{ padding:"10px 16px", textAlign:"right", whiteSpace:"nowrap" }}>
+                            <button onClick={() => nav(`/admin/deployments/${d.id}`)} style={{ ...btn(`${T.primary}14`, T.primary), padding:"5px 12px", fontSize:12, marginRight:6 }}>
+                              {d.status === "completed" ? "View" : "Continue"} <ArrowRight size={12}/>
+                            </button>
+                            <button onClick={() => deleteCompanyDeployment(d.id, d.company_name)} style={{ ...btn(T.errorBg, T.error), padding:"5px 8px", fontSize:12 }}>
+                              <Trash2 size={12}/>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <p style={{ fontSize:11, color:T.fgMuted, marginTop:14, lineHeight:1.5 }}>
+              Live SQL Server connections are tested via an on-prem ODBC bridge. Until a bridge agent is configured for a
+              site, use the CSV / Excel upload step inside the wizard to bring in legacy data instead.
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* ── 404 LOG (merged from NotFoundLogPage) ── */}
+      {tab==="notfound" && (() => {
+        const filtered = notFoundRows.filter((r:any) =>
+          !notFoundFilter ||
+          r.path?.toLowerCase().includes(notFoundFilter.toLowerCase()) ||
+          (r.user_role || "").toLowerCase().includes(notFoundFilter.toLowerCase()) ||
+          (r.ip || "").includes(notFoundFilter)
+        );
+        const topPaths = Object.entries(
+          notFoundRows.reduce((acc: Record<string, number>, r: any) => { acc[r.path] = (acc[r.path] || 0) + 1; return acc; }, {})
+        ).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
+        const thS: React.CSSProperties = { padding:"10px 12px", fontWeight:700, fontSize:11, textTransform:"uppercase", letterSpacing:".05em", color:T.fgMuted };
+        const tdS: React.CSSProperties = { padding:"8px 12px", verticalAlign:"top" };
+        return (
+          <div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+              <div style={{ fontSize:12, color:T.fgMuted, maxWidth:520, lineHeight:1.6 }}>
+                Last 500 missing-route events (client + server). Use this to spot broken links and stale deploys.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={loadNotFoundLog} style={btn(T.bg, T.border)}><RefreshCw size={13} style={{animation:notFoundLoading?"spin 1s linear infinite":"none"}}/> Refresh</button>
+                <button onClick={clearNotFoundLog} style={btn(T.errorBg, T.error)}><Trash2 size={13}/> Clear all</button>
+              </div>
+            </div>
+
+            {topPaths.length > 0 && (
+              <div style={{ ...card, marginBottom:14, padding:14 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:T.fgMuted, textTransform:"uppercase", letterSpacing:".06em", marginBottom:8 }}>Top missing paths</div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:8 }}>
+                  {topPaths.map(([p, n]: any) => (
+                    <div key={p} style={{ padding:10, border:`1px solid ${T.border}`, borderRadius:6, background:`${T.error}08` }}>
+                      <div style={{ fontSize:13, fontWeight:700 }}>{p}</div>
+                      <div style={{ fontSize:11, color:T.fgMuted }}>{n} hit{n === 1 ? "" : "s"}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <input value={notFoundFilter} onChange={e => setNotFoundFilter(e.target.value)} placeholder="Filter by path, role, or IP…"
+              style={{ ...inp, marginBottom:12 }}/>
+
+            <div style={{ ...card, padding:0, overflow:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:T.bg2, textAlign:"left" }}>
+                    {["When","Path","Source","Role","Visitor","IP","Referrer"].map(h => <th key={h} style={thS}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {notFoundLoading ? (
+                    <tr><td colSpan={7} style={{ padding:24, textAlign:"center", color:T.fgMuted }}>Loading…</td></tr>
+                  ) : filtered.length === 0 ? (
+                    <tr><td colSpan={7} style={{ padding:24, textAlign:"center", color:T.fgMuted }}>No 404s recorded 🎉</td></tr>
+                  ) : filtered.map((r: any) => (
+                    <tr key={r.id} style={{ borderTop:`1px solid ${T.border}` }}>
+                      <td style={tdS}>{new Date(r.created_at).toLocaleString()}</td>
+                      <td style={{ ...tdS, fontFamily:"monospace", fontWeight:600 }}>{r.path}</td>
+                      <td style={tdS}>
+                        <span style={{ padding:"2px 8px", borderRadius:4, fontSize:11, fontWeight:600,
+                          background: r.source === "server" ? T.successBg : `${T.info}14`,
+                          color: r.source === "server" ? T.success : T.info }}>{r.source}</span>
+                      </td>
+                      <td style={tdS}>{r.user_role || "—"}</td>
+                      <td style={tdS}>{r.user_id
+                        ? <span style={{ padding:"2px 8px", borderRadius:4, background:T.successBg, color:T.success, fontSize:10, fontWeight:700 }}>Auth</span>
+                        : <span style={{ padding:"2px 8px", borderRadius:4, background:T.bg2, color:T.fgMuted, fontSize:10, fontWeight:600 }}>Visitor</span>}
+                      </td>
+                      <td style={{ ...tdS, fontFamily:"monospace", fontSize:11 }}>{r.ip || "—"}</td>
+                      <td style={{ ...tdS, maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }} title={r.referrer || ""}>{r.referrer || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+      </div>
     </div>
   );
 }

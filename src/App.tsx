@@ -104,10 +104,8 @@ const SupabaseControlsPage   = lazy(() => import("@/pages/SupabaseControlsPage")
 const AdminPanelPage         = lazy(() => import("@/pages/AdminPanelPage"));
 const WebmasterPage          = lazy(() => import("@/pages/WebmasterPage"));
 const GuiEditorPage          = lazy(() => import("@/pages/GuiEditorPage"));
-const NotFoundLogPage        = lazy(() => import("@/pages/NotFoundLogPage"));
 const CrashReportsPage       = lazy(() => import("@/pages/CrashReportsPage"));
 const UsersIpAuditPage       = lazy(() => import("@/pages/UsersIpAuditPage"));
-const DeploymentsPage        = lazy(() => import("@/pages/DeploymentsPage"));
 const CompanyOnboardingPage  = lazy(() => import("@/pages/CompanyOnboardingPage"));
 
 // ── Page loading skeleton ─────────────────────────────────────────────────────
@@ -250,16 +248,16 @@ const App = () => {
               <Route path="/admin/database"              element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
               <Route path="/admin/supabase-controls"     element={<P><SupabaseControlsPage /></P>} />
               <Route path="/admin/panel"                 element={<P><RoleGuard allowed={ADMINS}><AdminPanelPage /></RoleGuard></P>} />
-              <Route path="/admin/deployments"           element={<P><RoleGuard allowed={ADMINS}><DeploymentsPage /></RoleGuard></P>} />
+              <Route path="/admin/deployments"           element={<Navigate to="/webmaster" replace />} />
               <Route path="/admin/deployments/new"       element={<P><RoleGuard allowed={ADMINS}><CompanyOnboardingPage /></RoleGuard></P>} />
               <Route path="/admin/deployments/:id"       element={<P><RoleGuard allowed={ADMINS}><CompanyOnboardingPage /></RoleGuard></P>} />
               <Route path="/superadmin"                  element={<P><RoleGuard allowed={["superadmin","webmaster","admin"]}><WebmasterPage /></RoleGuard></P>} />
-              <Route path="/webmaster"                   element={<P><RoleGuard allowed={ADMINS}><WebmasterPage /></RoleGuard></P>} />
+              <Route path="/webmaster"                   element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><WebmasterPage /></RoleGuard></P>} />
               <Route path="/admin/ip-access"             element={<Navigate to="/admin/users-ip-audit" replace />} />
               <Route path="/ip-access"                   element={<Navigate to="/admin/users-ip-audit" replace />} />
               <Route path="/profile"                     element={<P><ProfilePage /></P>} />
               <Route path="/gui-editor"                  element={<P><RoleGuard allowed={ADMINS}><GuiEditorPage /></RoleGuard></P>} />
-              <Route path="/admin/not-found-log"         element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><NotFoundLogPage /></RoleGuard></P>} />
+              <Route path="/admin/not-found-log"         element={<Navigate to="/webmaster" replace />} />
               <Route path="/admin/crash-reports"         element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><CrashReportsPage /></RoleGuard></P>} />
               <Route path="/admin/users-ip-audit"        element={<P><RoleGuard allowed={ADMINS}><UsersIpAuditPage /></RoleGuard></P>} />
               <Route path="/admin/connectivity"          element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><AdminConnectivityPage /></RoleGuard></P>} />

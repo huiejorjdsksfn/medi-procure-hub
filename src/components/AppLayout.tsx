@@ -132,17 +132,12 @@ const MODS = [
      {l:"Admin Panel",        p:"/admin/panel",           I:Settings},
      {l:"Users",              p:"/users",                 I:Users},
      {l:"Create User",        p:"/admin/create-user",     I:UserCheck},
-     {l:"Security Tracker",   p:"/admin/tracker",         I:Eye},
-     {l:"Users & IP Audit",   p:"/admin/users-ip-audit",  I:Globe},
-     {l:"IP Access",          p:"/admin/ip-access",       I:Lock},
+     {l:"Security Center",    p:"/admin/users-ip-audit",  I:Globe},
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},
      {l:"Supabase Live Controls", p:"/admin/supabase-controls", I:Activity},
-     {l:"Deployments",        p:"/admin/deployments",     I:Server},
-     {l:"Not-Found Log",      p:"/admin/not-found-log",   I:AlertTriangle},
-     {l:"Webmaster",          p:"/webmaster",             I:Globe},
-     {l:"Superadmin",         p:"/superadmin",            I:Radio},
+     {l:"Webmaster / Superadmin", p:"/webmaster",         I:Globe},
    ]},
 ];
 
@@ -353,13 +348,8 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             [
               {l:"Users",   p:"/users",                 I:Users},
               {l:"+ User",  p:"/admin/create-user",     I:UserPlus},
-              {l:"IP Access",p:"/admin/ip-access",      I:Lock},
-              {l:"IP Audit",p:"/admin/users-ip-audit",  I:Shield},
-            ],
-            [
-              {l:"Tracker",  p:"/admin/tracker", I:Activity},
+              {l:"Security Center",p:"/admin/users-ip-audit",  I:Shield},
               {l:"Audit Log",p:"/audit-log",     I:ClipboardList},
-              {l:"404 Log",  p:"/admin/not-found-log", I:AlertTriangle},
             ],
             [
               {l:"Settings",  p:"/settings",       I:Settings},
@@ -367,8 +357,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
               {l:"Database",  p:"/admin/database", I:Database},
             ],
             [
-              {l:"Webmaster", p:"/webmaster",  I:Code2},
-              {l:"Superadmin",p:"/superadmin", I:Server},
+              {l:"Webmaster / Superadmin", p:"/webmaster",  I:Code2},
             ],
           ].map((group,gi)=>(
             <div key={gi} style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,
@@ -576,7 +565,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                 <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                   {[
                     {l:"Panel",p:"/admin/panel"},{l:"Users",p:"/users"},
-                    {l:"Tracker",p:"/admin/tracker"},{l:"Settings",p:"/settings"},
+                    {l:"Security",p:"/admin/users-ip-audit"},{l:"Settings",p:"/settings"},
                     {l:"Database",p:"/admin/database"},{l:"Webmaster",p:"/webmaster"},
                     {l:"Connectivity",p:"/admin/connectivity"},
                   ].map(a=>(

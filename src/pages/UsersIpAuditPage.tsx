@@ -7,7 +7,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getAllDeviceSessions } from "@/lib/deviceTracker";
 import {
   Users, Shield, Globe, MapPin, Monitor, Smartphone, Laptop,
@@ -316,39 +315,41 @@ export default function UsersIpAuditPage() {
 
   return (
     <div style={{background:D.bg,minHeight:"100vh",fontFamily:D.font,color:D.text}}>
-      <AdminBreadcrumb />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {/* Page header */}
-      <div style={{background:D.card,borderBottom:`1px solid ${D.border}`,padding:"8px 20px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginRight:10}}>
-          <div style={{width:28,height:28,borderRadius:D.radius,background:D.teal,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <Globe size={14} color="#fff"/>
+      {/* Teal hero — matches the Admin Hub visual style, replaces the old breadcrumb + small header */}
+      <div style={{background:"linear-gradient(135deg,#107C73,#0a5a52)",padding:"24px 24px 20px"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:42,height:42,borderRadius:10,background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <Globe size={20} color="#fff"/>
+            </div>
+            <div>
+              <h1 style={{margin:0,fontSize:22,fontWeight:300,color:"#fff",letterSpacing:"-.02em"}}>Security Center</h1>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.75)",marginTop:2}}>IP tracking · Security tracker · User activity · Devices · Geo intelligence</div>
+            </div>
           </div>
-          <div>
-            <div style={{fontSize:14,fontWeight:700,color:D.text}}>Users & IP Audit</div>
-            <div style={{fontSize:10,color:D.textMt}}>IP tracking · User activity · Devices · Geo intelligence</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {btn("⬇ Export",exportCSV,{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",color:"#fff"})}
+            <button onClick={runFullReaudit} disabled={reauditing}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"rgba(255,255,255,.9)",border:"none",borderRadius:D.radius,fontSize:12,cursor:"pointer",color:"#0a5a52",fontWeight:700}}>
+              <RefreshCw size={11} style={{animation:reauditing?"spin 1s linear infinite":"none"}}/> {reauditing?"Re-auditing…":"Full Re-Audit"}
+            </button>
+            <button onClick={loadAll} disabled={loading}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:D.radius,fontSize:12,cursor:"pointer",color:"#fff"}}>
+              <RefreshCw size={11} style={{animation:loading?"spin 1s linear infinite":"none"}}/> Refresh
+            </button>
+            <label style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"rgba(255,255,255,.85)",cursor:"pointer"}}>
+              <input type="checkbox" checked={autoRefresh} onChange={e=>setAutoRefresh(e.target.checked)} style={{margin:0}}/>
+              Auto-refresh
+            </label>
           </div>
         </div>
-        <div style={{width:1,height:24,background:D.border}}/>
-        {btn("⬇ Export",exportCSV)}
-        <button onClick={runFullReaudit} disabled={reauditing}
-          style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:D.blueLt,border:`1px solid ${D.blue}`,borderRadius:D.radius,fontSize:12,cursor:"pointer",color:D.blue,fontWeight:600}}>
-          <RefreshCw size={11} style={{animation:reauditing?"spin 1s linear infinite":"none"}}/> {reauditing?"Re-auditing…":"Full Re-Audit"}
-        </button>
-        <button onClick={loadAll} disabled={loading}
-          style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"transparent",border:`1px solid ${D.borderMd}`,borderRadius:D.radius,fontSize:12,cursor:"pointer",color:D.text}}>
-          <RefreshCw size={11} style={{animation:loading?"spin 1s linear infinite":"none"}}/> Refresh
-        </button>
-        <label style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:D.textSub,cursor:"pointer"}}>
-          <input type="checkbox" checked={autoRefresh} onChange={e=>setAutoRefresh(e.target.checked)} style={{margin:0}}/>
-          Auto-refresh
-        </label>
-        <div style={{flex:1}}/>
-        <div style={{position:"relative"}}>
-          <Search size={11} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",color:D.textMt,pointerEvents:"none"}}/>
+        <div style={{marginTop:14,position:"relative",maxWidth:320}}>
+          <Search size={11} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",color:"rgba(255,255,255,.6)",pointerEvents:"none"}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users, IPs, locations…"
-            style={{padding:"5px 8px 5px 24px",border:`1px solid ${D.borderMd}`,borderRadius:D.radius,fontSize:12,outline:"none",width:210,fontFamily:D.font}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:5,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:D.textMt,lineHeight:1}}>×</button>}
+            style={{padding:"6px 8px 6px 24px",border:"1px solid rgba(255,255,255,.3)",borderRadius:D.radius,fontSize:12,outline:"none",width:"100%",fontFamily:D.font,background:"rgba(255,255,255,.12)",color:"#fff"}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:5,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.7)",lineHeight:1}}>×</button>}
         </div>
       </div>
 
