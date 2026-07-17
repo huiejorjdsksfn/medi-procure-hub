@@ -107,13 +107,18 @@ ORDER BY t.table_name;`);
   const [stats, setStats] = useState<any[]>([]);
   const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
   const [realtimeOn, setRealtimeOn] = useState(false);
+  const [watchTables, setWatchTables] = useState<string[]>([]);
+  const [rtEventFilter, setRtEventFilter] = useState<Record<"INSERT"|"UPDATE"|"DELETE",boolean>>({ INSERT:true, UPDATE:true, DELETE:true });
+  const [rtExpanded, setRtExpanded] = useState<number|null>(null);
+  const [rtEventCount, setRtEventCount] = useState(0);
+  const [sqlViewMode, setSqlViewMode] = useState<"table"|"json">("table");
   const [tableCounts, setTableCounts] = useState<Record<string,number>>({});
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [savedQueries, setSavedQueries] = useState<{name:string;sql:string}[]>([
     { name:"All Tables",         sql:"SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;" },
     { name:"Table Stats",        sql:"SELECT table_name, (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_name=t.table_name) AS cols FROM information_schema.tables t WHERE table_schema='public' ORDER BY table_name;" },
     { name:"Active Sessions",    sql:"SELECT * FROM user_sessions WHERE is_active=true ORDER BY last_activity DESC LIMIT 50;" },
-    { name:"Recent Audit",       sql:"SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 50;" },
+    { name:"Recent Audit",       sql:"SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50;" },
     { name:"Unread Notifs",      sql:"SELECT * FROM notifications WHERE is_read=false ORDER BY created_at DESC LIMIT 50;" },
     { name:"Pending Reqs",       sql:"SELECT * FROM requisitions WHERE status IN ('pending','submitted') ORDER BY created_at DESC LIMIT 50;" },
     { name:"Low Stock Items",    sql:"SELECT * FROM items WHERE quantity_in_stock < 10 ORDER BY quantity_in_stock ASC LIMIT 50;" },
@@ -323,19 +328,24 @@ ORDER BY t.table_name;`);
       setRealtimeOn(false);
       toast({ title: "- Realtime disconnected" });
     } else {
-      rtChannel.current = (supabase as any)
-        .channel("db-changes-monitor")
-        .on("postgres_changes", { event:"*", schema:"public", table:selectedTable }, (payload: any) => {
+      const tables = watchTables.length ? watchTables : [selectedTable];
+      let ch = (supabase as any).channel("db-changes-monitor-" + Date.now());
+      for (const t of tables) {
+        ch = ch.on("postgres_changes", { event:"*", schema:"public", table:t }, (payload: any) => {
           setRealtimeLog(p => [{
             time: new Date().toLocaleTimeString("en-KE"),
             event: payload.eventType,
             table: payload.table,
-            data: JSON.stringify(payload.new || payload.old || {}).slice(0,120)
-          }, ...p.slice(0,49)]);
-        })
-        .subscribe();
+            row: payload.new || payload.old || {},
+            data: JSON.stringify(payload.new || payload.old || {}).slice(0,120),
+          }, ...p.slice(0,99)]);
+          setRtEventCount(c => c + 1);
+        });
+      }
+      rtChannel.current = ch.subscribe();
       setRealtimeOn(true);
-      toast({ title: "- Realtime connected to " + selectedTable });
+      setRtEventCount(0);
+      toast({ title: `- Realtime connected to ${tables.length} table${tables.length===1?"":"s"}` });
     }
   }
 
@@ -677,6 +687,30 @@ ORDER BY t.table_name;`);
                 }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Printer style={{width:11,height:11}}/> Print
                 </button>
+                <button onClick={()=>{
+                  if(!sqlResult.length){ toast({title:"Run a query first"}); return; }
+                  navigator.clipboard.writeText(JSON.stringify(sqlResult,null,2))
+                    .then(()=>toast({title:`✓ Copied ${sqlResult.length} rows as JSON`}))
+                    .catch(()=>toast({title:"Copy failed",variant:"destructive"}));
+                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                  📋 Copy
+                </button>
+                <button onClick={()=>{
+                  if(!sqlResult.length){ toast({title:"Run a query first"}); return; }
+                  const cols=Object.keys(sqlResult[0]||{});
+                  const esc=(v:any)=>{ if(v==null) return ""; const s=typeof v==="object"?JSON.stringify(v):String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+                  const csv=[cols.join(","), ...sqlResult.map(r=>cols.map(c=>esc(r[c])).join(","))].join("\n");
+                  const blob=new Blob([csv],{type:"text/csv"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a"); a.href=url; a.download=`sql-result-${Date.now()}.csv`; a.click();
+                  URL.revokeObjectURL(url);
+                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                  <Download style={{width:11,height:11,display:"inline",marginRight:3}}/>CSV
+                </button>
+                <div style={{ display:"flex",border:`1px solid ${S.border}`,borderRadius:2,overflow:"hidden" }}>
+                  <button onClick={()=>setSqlViewMode("table")} style={{ border:"none",background:sqlViewMode==="table"?"#003087":S.bg,color:sqlViewMode==="table"?"#fff":S.fg,padding:"3px 8px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>TABLE</button>
+                  <button onClick={()=>setSqlViewMode("json")} style={{ border:"none",background:sqlViewMode==="json"?"#003087":S.bg,color:sqlViewMode==="json"?"#fff":S.fg,padding:"3px 8px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>JSON</button>
+                </div>
                 <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:sqlRunning?"not-allowed":"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
                   <Play style={{ width:12,height:12 }} />{sqlRunning?"Running…":"Run ⌘↵"}
                 </button>
@@ -707,6 +741,11 @@ ORDER BY t.table_name;`);
                     {sqlResult.length} row(s) returned in {sqlMs}ms
                     <span style={{ marginLeft:8,color:"#999",fontSize:10 }}>{Object.keys(sqlResult[0]).length} columns</span>
                   </div>
+                  {sqlViewMode === "json" ? (
+                    <pre style={{ margin:0,padding:14,fontFamily:S.mono,fontSize:11.5,color:"#1e293b",background:"#f8fafc",overflow:"auto" }}>
+                      {JSON.stringify(sqlResult, null, 2)}
+                    </pre>
+                  ) : (
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                     <thead style={{ position:"sticky",top:0 }}>
                       <tr>
@@ -727,6 +766,7 @@ ORDER BY t.table_name;`);
                       ))}
                     </tbody>
                   </table>
+                  )}
                 </div>
               )}
             </div>
@@ -790,31 +830,70 @@ ORDER BY t.table_name;`);
 
         {/* - REALTIME tab - */}
         {activeTab === "realtime" && (
-          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-            <div style={{ padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.head,display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real-time Monitor - {selectedTable}</span>
-              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                <div style={{ width:8,height:8,borderRadius:"50%",background:realtimeOn?"#00cc44":"#cc0000" }} />
-                <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Connected":"Disconnected"}</span>
+          <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
+            {/* Watch-table picker sidebar */}
+            <div style={{ width:200,borderRight:`1px solid ${S.border}`,overflow:"auto",background:S.head,flexShrink:0 }}>
+              <div style={{ padding:"8px 10px",fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,borderBottom:`1px solid ${S.border}` }}>
+                Watch Tables ({watchTables.length || 1})
               </div>
-              <button onClick={toggleRealtime} style={{ background:realtimeOn?"#cc0000":"#006600",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:700 }}>
-                {realtimeOn?"Stop Listening":"Start Listening"}
-              </button>
-              <button onClick={()=>setRealtimeLog([])} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Clear Log</button>
+              <div style={{ padding:"4px 6px" }}>
+                {!watchTables.length && (
+                  <div style={{ fontSize:10,color:"#94a3b8",fontFamily:S.font,padding:"4px 4px 8px" }}>
+                    None picked — defaults to <b>{selectedTable}</b>
+                  </div>
+                )}
+                {TABLE_GROUPS.flatMap(g=>g.tables).map(t => (
+                  <label key={t} style={{ display:"flex",alignItems:"center",gap:6,padding:"3px 4px",cursor:"pointer",fontSize:11,fontFamily:S.font }}>
+                    <input type="checkbox" checked={watchTables.includes(t)}
+                      onChange={e=>setWatchTables(p => e.target.checked ? [...p,t] : p.filter(x=>x!==t))}
+                      disabled={realtimeOn} />
+                    <span style={{ color:watchTables.includes(t)?"#003087":"#475569",fontWeight:watchTables.includes(t)?700:400 }}>{t}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div style={{ flex:1,overflow:"auto",background:"#1e1e1e",padding:10 }}>
-              {realtimeLog.length === 0 ? (
-                <div style={{ color:"#4ade80",fontFamily:S.mono,fontSize:12,padding:10 }}>
-                  {realtimeOn ? "- Listening for changes on " + selectedTable + "-" : "Click 'Start Listening' to monitor real-time changes"}
+
+            <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+              <div style={{ padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.head,display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap" as const }}>
+                <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real-time Monitor</span>
+                <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                  <div style={{ width:8,height:8,borderRadius:"50%",background:realtimeOn?"#00cc44":"#cc0000" }} />
+                  <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Connected":"Disconnected"}</span>
                 </div>
-              ) : realtimeLog.map((log,i) => (
-                <div key={i} style={{ fontFamily:S.mono,fontSize:11,marginBottom:4,color:"#4ade80" }}>
-                  <span style={{ color:"#60a5fa" }}>[{log.time}]</span>{" "}
-                  <span style={{ color:log.event==="INSERT"?"#4ade80":log.event==="UPDATE"?"#fbbf24":"#f87171",fontWeight:700 }}>{log.event}</span>{" "}
-                  <span style={{ color:"#c084fc" }}>{log.table}</span>{" "}
-                  <span style={{ color:"#1e293b" }}>{log.data}</span>
+                {realtimeOn && <span style={{ fontSize:10,color:"#059669",fontFamily:S.font,background:"rgba(5,150,105,0.1)",padding:"1px 6px",borderRadius:4,fontWeight:700 }}>{rtEventCount} event{rtEventCount===1?"":"s"}</span>}
+                <button onClick={toggleRealtime} style={{ background:realtimeOn?"#cc0000":"#006600",color:"#fff",border:"none",padding:"4px 14px",cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:700 }}>
+                  {realtimeOn?"Stop Listening":"Start Listening"}
+                </button>
+                <button onClick={()=>{setRealtimeLog([]);setRtEventCount(0);}} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Clear Log</button>
+                <div style={{ marginLeft:"auto",display:"flex",gap:10 }}>
+                  {(["INSERT","UPDATE","DELETE"] as const).map(ev=>(
+                    <label key={ev} style={{ display:"flex",alignItems:"center",gap:4,fontSize:10,fontFamily:S.font,cursor:"pointer",color:ev==="INSERT"?"#4ade80":ev==="UPDATE"?"#fbbf24":"#f87171",fontWeight:700 }}>
+                      <input type="checkbox" checked={rtEventFilter[ev]} onChange={e=>setRtEventFilter(p=>({...p,[ev]:e.target.checked}))} />{ev}
+                    </label>
+                  ))}
                 </div>
-              ))}
+              </div>
+              <div style={{ flex:1,overflow:"auto",background:"#1e1e1e",padding:10 }}>
+                {realtimeLog.length === 0 ? (
+                  <div style={{ color:"#4ade80",fontFamily:S.mono,fontSize:12,padding:10 }}>
+                    {realtimeOn ? `- Listening on ${(watchTables.length?watchTables:[selectedTable]).join(", ")} -` : "Pick tables on the left (optional) and click 'Start Listening'"}
+                  </div>
+                ) : realtimeLog.filter(log=>rtEventFilter[log.event as "INSERT"|"UPDATE"|"DELETE"]).map((log,i) => (
+                  <div key={i} style={{ fontFamily:S.mono,fontSize:11,marginBottom:4 }}>
+                    <div onClick={()=>setRtExpanded(p=>p===i?null:i)} style={{ cursor:"pointer" }}>
+                      <span style={{ color:"#60a5fa" }}>[{log.time}]</span>{" "}
+                      <span style={{ color:log.event==="INSERT"?"#4ade80":log.event==="UPDATE"?"#fbbf24":"#f87171",fontWeight:700 }}>{log.event}</span>{" "}
+                      <span style={{ color:"#c084fc" }}>{log.table}</span>{" "}
+                      <span style={{ color:"#94a3b8" }}>{log.data}{rtExpanded!==i && Object.keys(log.row||{}).length>0 ? " ▸" : ""}</span>
+                    </div>
+                    {rtExpanded===i && (
+                      <pre style={{ color:"#e2e8f0",background:"#111827",padding:8,marginTop:4,marginLeft:16,borderRadius:4,overflow:"auto",fontSize:10 }}>
+                        {JSON.stringify(log.row, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
