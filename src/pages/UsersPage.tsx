@@ -77,9 +77,9 @@ interface UserRow {
 
 /* ── Ribbon button ── */
 const RBtn = ({ icon:Icon, label, onClick, color, disabled=false }:{ icon:any;label:string;onClick?:()=>void;color?:string;disabled?:boolean }) => (
-  <button onClick={onClick} disabled={disabled} title={label} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 10px",border:`1px solid ${T.border}`,background:T.card,cursor:disabled?"not-allowed":"pointer",color:disabled?T.fgDim:(color||T.fg),borderRadius:4,transition:"background .1s",fontSize:12,fontWeight:600,opacity:disabled?.5:1,whiteSpace:"nowrap" }}
-    onMouseEnter={e=>!disabled&&((e.currentTarget as any).style.background=T.bg)}
-    onMouseLeave={e=>((e.currentTarget as any).style.background=T.card)}>
+  <button onClick={onClick} disabled={disabled} title={label} style={{ display:"flex",alignItems:"center",gap:6,padding:"4px 9px",border:"1px solid transparent",background:"transparent",cursor:disabled?"not-allowed":"pointer",color:disabled?"#a0a0a0":(color||"#1e1e1e"),borderRadius:2,transition:"background .08s,border-color .08s",fontSize:11.5,fontWeight:500,opacity:disabled?.55:1,whiteSpace:"nowrap" }}
+    onMouseEnter={e=>{ if(disabled) return; const el=e.currentTarget as any; el.style.background="#e5f1fb"; el.style.borderColor="#99d1ff"; }}
+    onMouseLeave={e=>{ const el=e.currentTarget as any; el.style.background="transparent"; el.style.borderColor="transparent"; }}>
     <Icon size={14} style={{flexShrink:0}}/>
     {label}
   </button>
@@ -371,7 +371,7 @@ export default function UsersPage() {
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
 
       {/* ── TOOLBAR (SSMS-style) ── */}
-      <div style={{ background:T.card, borderBottom:`1px solid ${T.border}`, padding:"6px 10px", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+      <div style={{ background:"linear-gradient(#f7f7f7,#ececec)", borderBottom:"1px solid #c4c4c4", padding:"5px 10px", display:"flex", alignItems:"center", gap:2, flexWrap:"wrap" }}>
         <RBtn icon={Edit3}    label="Edit"       onClick={() => selected && (setForm({...selected}),setModal("edit"))} disabled={!selected}/>
         <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color={T.error} disabled={!selected||!isAdmin}/>
         <TSep/>
@@ -405,7 +405,7 @@ export default function UsersPage() {
         ))}
       </div>
 
-      <div style={{ display:"flex", height:"calc(100vh - 148px)" }}>
+      <div style={{ display:"flex", height:"calc(100vh - 170px)" }}>
 
         {/* ── LEFT: Object Explorer ── */}
         <div style={{ width:320, flexShrink:0, background:T.card, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
@@ -494,8 +494,8 @@ export default function UsersPage() {
                               <div
                                 onClick={() => { setSelected(u); setActiveLeaf("profile"); if (!isOpen) setExpanded(p=>({...p,[u.id]:true})); }}
                                 onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setSelected(u); setCtxMenu({ x:e.clientX, y:e.clientY, type:"user", user:u }); }}
-                                style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 40px", cursor:"pointer", fontSize:12.5, background:isSelUser&&activeLeaf==="profile"?`${T.primary}14`:"transparent" }}
-                                onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background=T.bg)}
+                                style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 40px", cursor:"pointer", fontSize:12.5, background:isSelUser&&activeLeaf==="profile"?"#cce8ff":"transparent", color:isSelUser&&activeLeaf==="profile"?"#003c6c":T.fg }}
+                                onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="#e5f1fb")}
                                 onMouseLeave={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="transparent")}
                               >
                                 <span onClick={e=>{ e.stopPropagation(); setExpanded(p=>({...p,[u.id]:!isOpen})); }} style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>
@@ -512,8 +512,8 @@ export default function UsersPage() {
                                   <div
                                     key={key}
                                     onClick={() => { setSelected(u); setActiveLeaf(key); }}
-                                    style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 62px", cursor:"pointer", fontSize:12, color:isSelLeaf?T.primary:T.fgMuted, background:isSelLeaf?`${T.primary}10`:"transparent" }}
-                                    onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background=T.bg)}
+                                    style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 62px", cursor:"pointer", fontSize:12, color:isSelLeaf?"#003c6c":T.fgMuted, background:isSelLeaf?"#cce8ff":"transparent" }}
+                                    onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background="#e5f1fb")}
                                     onMouseLeave={e=>!isSelLeaf&&((e.currentTarget as any).style.background="transparent")}
                                   >
                                     <LeafIcon size={12} style={{ flexShrink:0 }}/> {label}
@@ -735,6 +735,17 @@ export default function UsersPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── STATUS BAR (SSMS-style) ── */}
+      <div style={{ display:"flex", alignItems:"center", gap:16, background:"#007acc", color:"#fff", fontSize:11, padding:"3px 12px", height:22, flexShrink:0 }}>
+        <span style={{ display:"flex", alignItems:"center", gap:5 }}>
+          <span style={{ width:7,height:7,borderRadius:"50%",background:"#4ade80",display:"inline-block" }}/>
+          Connected — EL5-MediProcure\Users
+        </span>
+        <span>{filtered.length} row{filtered.length===1?"":"s"}</span>
+        {selected && <span>Selected: {selected.full_name} ({activeLeaf})</span>}
+        <span style={{ marginLeft:"auto" }}>{roleFilter==="all"?"All Roles":ROLE_META[roleFilter]?.label||roleFilter} · {statusFilter==="all"?"All Statuses":statusFilter}</span>
       </div>
 
       {/* ══════ MODALS ══════ */}
