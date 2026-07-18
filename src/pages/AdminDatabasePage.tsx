@@ -1370,6 +1370,7 @@ ORDER BY t.table_name;`);
                 )}
 
                 {monitorSubTab==="dataio" && liveStats && (
+                  <>
                   <MonitorTable
                     title="DATA I/O — real pg_stat_user_tables / pg_stat_bgwriter counters (cumulative since last stats reset)"
                     headers={["Metric","Value"]}
@@ -1387,6 +1388,35 @@ ORDER BY t.table_name;`);
                       ["Temp files / bytes", `${liveStats.transactions?.temp_files ?? 0} / ${liveStats.transactions?.temp_bytes ?? 0}`],
                     ]}
                   />
+                  {liveStats.tables?.length > 0 && (
+                    <div style={{ marginTop:14 }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:6,fontFamily:S.font }}>
+                        BUSIEST TABLES (live, by total activity — real pg_stat_user_tables)
+                      </div>
+                      <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                        <thead><tr>
+                          {["Table","Size","Rows (est.)","Dead rows","Seq scans","Idx scans","Ins/Upd/Del"].map(h=>(
+                            <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                          ))}
+                        </tr></thead>
+                        <tbody>
+                          {liveStats.tables.map((t:any,i:number)=>(
+                            <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }}
+                              onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}>
+                              <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                              <td style={{ ...CELL }}>{t.total_size}</td>
+                              <td style={{ ...CELL,textAlign:"right" }}>{(t.row_estimate??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right",color:(t.dead_rows??0)>0?"#ca8a04":"#666" }}>{(t.dead_rows??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right",color:(t.seq_scan??0)>100000?"#dc2626":"#666" }}>{(t.seq_scan??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right" }}>{(t.idx_scan??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right" }}>{(t.n_tup_ins??0)}/{(t.n_tup_upd??0)}/{(t.n_tup_del??0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  </>
                 )}
 
                 {monitorSubTab==="databases" && liveStats && (

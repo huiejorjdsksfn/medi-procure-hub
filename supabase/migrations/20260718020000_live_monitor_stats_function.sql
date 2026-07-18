@@ -66,6 +66,25 @@ begin
         'n_tup_ins', coalesce(sum(n_tup_ins),0), 'n_tup_upd', coalesce(sum(n_tup_upd),0), 'n_tup_del', coalesce(sum(n_tup_del),0)
       ) from pg_stat_user_tables
     ),
+    -- Real per-table breakdown (this was missing — only database-level sums
+    -- existed before). Ranked by total activity so the busiest real tables
+    -- surface first, matching what a per-table "Tables" panel needs.
+    'tables', (
+      select coalesce(jsonb_agg(t), '[]'::jsonb) from (
+        select
+          st.relname as table_name,
+          pg_size_pretty(pg_total_relation_size(st.relid)) as total_size,
+          pg_total_relation_size(st.relid) as total_size_bytes,
+          st.n_live_tup as row_estimate,
+          st.n_dead_tup as dead_rows,
+          st.seq_scan, st.idx_scan,
+          st.n_tup_ins, st.n_tup_upd, st.n_tup_del,
+          st.last_vacuum, st.last_autovacuum, st.last_analyze, st.last_autoanalyze
+        from pg_stat_user_tables st
+        order by (coalesce(st.seq_scan,0) + coalesce(st.idx_scan,0) + coalesce(st.n_tup_ins,0) + coalesce(st.n_tup_upd,0) + coalesce(st.n_tup_del,0)) desc
+        limit 20
+      ) t
+    ),
     -- Fixed: buffers_backend was removed from pg_stat_bgwriter in PG17 (moved
     -- into pg_stat_io's per-backend-type breakdown). Using the real PG17
     -- equivalent instead of a column that no longer exists.
