@@ -98,7 +98,7 @@ export default function DocumentAnalyzerButton({ target, onApply, label }: Props
           display: "flex", alignItems: "center", justifyContent: "center",
         }} onClick={() => setExtracted(null)}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, width: 420,
+            background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, width: "min(420px, 94vw)",
             maxHeight: "80vh", overflowY: "auto", padding: 16, fontFamily: T.font,
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>

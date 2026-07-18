@@ -604,6 +604,64 @@ function patchGrids(dev: string) {
   });
 }
 
+// ── Flex-split patcher: fixed-width sidebar + flex:1 content is a very
+// common admin-UI pattern (e.g. an Object Explorer or a watch-list
+// picker next to a detail pane) — grid auto-fit doesn't touch these
+// since they're plain flex rows, not CSS grids. On phone/xs, stack the
+// row vertically and let the formerly-fixed-width child go full-width
+// with a capped height, instead of squeezing the content pane into
+// whatever's left over (which is often negative on a 375px screen). ──
+function patchFlexSplits(dev: string) {
+  if (dev !== "xs" && dev !== "phone") {
+    document.querySelectorAll<HTMLElement>('[data-rbot-flexsplit="1"]').forEach(el => {
+      el.style.removeProperty("flex-direction");
+      el.removeAttribute("data-rbot-flexsplit");
+    });
+    document.querySelectorAll<HTMLElement>('[data-rbot-flexchild="1"]').forEach(el => {
+      el.style.removeProperty("width");
+      el.style.removeProperty("max-width");
+      el.style.removeProperty("max-height");
+      el.style.removeProperty("overflow-y");
+      el.removeAttribute("data-rbot-flexchild");
+    });
+    return;
+  }
+
+  document.querySelectorAll<HTMLElement>("div").forEach(el => {
+    if (el.hasAttribute("data-rbot-skip")) return;
+    const cs = window.getComputedStyle(el);
+    if (cs.display !== "flex") return;
+    if (cs.flexDirection === "column" || cs.flexDirection === "column-reverse") return; // already stacking
+
+    const kids = Array.from(el.children) as HTMLElement[];
+    if (kids.length < 2) return;
+
+    const containerW = el.clientWidth;
+    if (!containerW) return;
+
+    let sum = 0;
+    let fixedChild: HTMLElement | null = null;
+    for (const kid of kids) {
+      const kw = kid.getBoundingClientRect().width;
+      sum += kw;
+      const kcs = window.getComputedStyle(kid);
+      // A genuine fixed-width sidebar: wide, and not allowed to shrink
+      if (!fixedChild && kw > 150 && kcs.flexShrink === "0") fixedChild = kid;
+    }
+
+    if (sum <= containerW + 4 || !fixedChild) return; // fits already, or isn't the sidebar pattern — leave ordinary flex rows alone
+
+    el.setAttribute("data-rbot-flexsplit", "1");
+    el.style.setProperty("flex-direction", "column", "important");
+
+    fixedChild.setAttribute("data-rbot-flexchild", "1");
+    fixedChild.style.setProperty("width", "100%", "important");
+    fixedChild.style.setProperty("max-width", "100%", "important");
+    fixedChild.style.setProperty("max-height", "40vh", "important");
+    fixedChild.style.setProperty("overflow-y", "auto", "important");
+  });
+}
+
 // ── Overflow guard: final sweep for anything still wider than the
 // viewport after the CSS + grid passes (e.g. long unbroken SKUs/emails
 // inside elements the selectors above don't reach) ───────────────────────
@@ -624,6 +682,7 @@ function patchOverflowGuards() {
 function patchDOM(dev: string) {
   patchTables(dev);
   patchGrids(dev);
+  patchFlexSplits(dev);
 
   if (dev === "phone" || dev === "tablet" || dev === "xs") {
     const maxW = dev === "tablet" ? 0.92 : 0.95;
