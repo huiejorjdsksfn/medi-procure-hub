@@ -68,12 +68,18 @@ const CELL: React.CSSProperties = {
 };
 
 // - Live Monitor helper components (dbForge-style) -
-function MonitorChartCard({ title, subtitle, children }: { title:string; subtitle?:string; children:React.ReactNode }) {
+function MonitorChartCard({ title, subtitle, children, empty }: { title:string; subtitle?:string; children:React.ReactNode; empty?:boolean }) {
   return (
-    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff",marginBottom:10 }}>
+    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff",marginBottom:10,position:"relative" }}>
       <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>{title}</div>
       {subtitle && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,marginBottom:4 }}>{subtitle}</div>}
       {children}
+      {empty && (
+        <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",
+          background:"rgba(255,255,255,0.85)",fontSize:11,color:"#94a3b8",fontFamily:S.font,gap:6 }}>
+          <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/> Collecting first live sample…
+        </div>
+      )}
     </div>
   );
 }
@@ -1311,7 +1317,7 @@ ORDER BY t.table_name;`);
 
                 {monitorSubTab==="overview" && (
                   <>
-                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live">
+                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live" empty={liveHistory.length<2}>
                       <ResponsiveContainer width="100%" height={170}>
                         <AreaChart data={liveHistory}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
@@ -1326,7 +1332,7 @@ ORDER BY t.table_name;`);
                       </ResponsiveContainer>
                     </MonitorChartCard>
 
-                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'">
+                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'" empty={liveHistory.length<2}>
                       <ResponsiveContainer width="100%" height={140}>
                         <LineChart data={liveHistory}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
@@ -1338,7 +1344,7 @@ ORDER BY t.table_name;`);
                       </ResponsiveContainer>
                     </MonitorChartCard>
 
-                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'">
+                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'" empty={liveHistory.length<2}>
                       <ResponsiveContainer width="100%" height={140}>
                         <AreaChart data={liveHistory}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
