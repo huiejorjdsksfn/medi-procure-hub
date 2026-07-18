@@ -38,10 +38,11 @@ async function logDenied(
   userRoles: string[],
 ): Promise<void> {
   try {
-    await db.from("audit_logs").insert({
+    await db.from("audit_log").insert({
       user_id: userId || null,
       user_email: userEmail || null,
       action: "access_denied",
+      module: "auth",
       resource_type: "page",
       resource_id: path,
       details: { required_roles: required, user_roles: userRoles, silent_redirect: true },
