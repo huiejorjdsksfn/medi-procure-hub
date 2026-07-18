@@ -10,7 +10,6 @@ import { T } from "@/lib/theme";
 const ADMIN_CRUMBS: Record<string, { section: string; label: string }> = {
   "/admin/panel":              { section: "User Mgmt",  label: "Admin Panel" },
   "/users":                    { section: "User Mgmt",  label: "All Users" },
-  "/admin/create-user":        { section: "User Mgmt",  label: "Create User" },
   "/admin/users-ip-audit":     { section: "Security",   label: "Security Center" },
   "/audit-log":                { section: "Security",   label: "Audit Log" },
   "/settings":                 { section: "System",     label: "System Settings" },
@@ -38,7 +37,6 @@ const SECTION_COLORS: Record<string, string> = {
 const SECTION_SIBLINGS: Record<string, { l: string; p: string }[]> = {
   "User Mgmt": [
     { l: "All Users",    p: "/users" },
-    { l: "Create User",  p: "/admin/create-user" },
     { l: "Admin Panel",  p: "/admin/panel" },
     { l: "Profile",      p: "/profile" },
   ],

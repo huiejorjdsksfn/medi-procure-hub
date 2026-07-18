@@ -126,7 +126,7 @@ function PropRow({ k, v }: { k:string; v:any }) {
 // - Main Component -
 function DBInner() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"realtime"|"stats"|"monitor">("tables");
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"realtime"|"stats"|"monitor"|"mssql">("tables");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
   const [selectedTable, setSelectedTable] = useState<string>("requisitions");
   const [tableData, setTableData] = useState<any[]>([]);
@@ -170,6 +170,14 @@ ORDER BY t.table_name;`);
   const [liveStatsLoading, setLiveStatsLoading] = useState(false);
   const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
   const liveStatsPrev = useRef<{ t:number; xact_commit:number; blks_read:number; blks_hit:number } | null>(null);
+
+  // SQL Server Bridge — real config + live status, never mocked
+  const [bridgeCfg, setBridgeCfg] = useState<any | null>(null);
+  const [bridgeStatus, setBridgeStatus] = useState<any | null>(null);
+  const [bridgeChecking, setBridgeChecking] = useState(false);
+  const [bridgeForm, setBridgeForm] = useState({ url: "", secret: "" });
+  const [bridgeSaving, setBridgeSaving] = useState(false);
+  const [bridgeSchema, setBridgeSchema] = useState<any[] | null>(null);
   const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
   const [realtimeOn, setRealtimeOn] = useState(false);
   const [watchTables, setWatchTables] = useState<string[]>([]);
@@ -464,6 +472,70 @@ ORDER BY t.table_name;`);
     return () => clearInterval(id);
   }, [activeTab, loadLiveStats]);
 
+  // ── SQL Server Bridge — loads real config, pings the real bridge, never fakes status ──
+  const loadBridgeConfig = useCallback(async () => {
+    const { data } = await (supabase as any).from("sqlserver_bridge_config").select("*").limit(1).maybeSingle();
+    setBridgeCfg(data);
+    if (data) setBridgeForm({ url: data.bridge_url || "", secret: data.shared_secret || "" });
+  }, []);
+
+  const pingBridge = useCallback(async () => {
+    setBridgeChecking(true);
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("mssql-bridge", { body: { action: "ping" } });
+      if (error) throw error;
+      setBridgeStatus(data);
+    } catch (e: any) {
+      setBridgeStatus({ ok: false, connected: false, reason: e.message });
+    } finally {
+      setBridgeChecking(false);
+    }
+  }, []);
+
+  const saveBridgeConfig = async (enable: boolean) => {
+    setBridgeSaving(true);
+    try {
+      const { error } = await (supabase as any).from("sqlserver_bridge_config").update({
+        bridge_url: bridgeForm.url.trim(),
+        shared_secret: bridgeForm.secret.trim(),
+        is_enabled: enable,
+        updated_at: new Date().toISOString(),
+      }).eq("id", bridgeCfg.id);
+      if (error) throw error;
+      toast({ title: enable ? "✓ Bridge enabled" : "Bridge disabled", description: enable ? "Pinging now…" : "No requests will be sent to the bridge while disabled." });
+      await loadBridgeConfig();
+      if (enable) await pingBridge();
+      else setBridgeStatus(null);
+    } catch (e: any) {
+      toast({ title: "Couldn't save bridge config", description: e.message, variant: "destructive" });
+    } finally {
+      setBridgeSaving(false);
+    }
+  };
+
+  const loadBridgeSchema = async () => {
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("mssql-bridge", { body: { action: "schema" } });
+      if (error) throw error;
+      if (!data?.connected) { toast({ title: "Bridge not connected", description: data?.reason, variant: "destructive" }); return; }
+      setBridgeSchema(data.data?.tables || []);
+    } catch (e: any) {
+      toast({ title: "Couldn't load SQL Server schema", description: e.message, variant: "destructive" });
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== "mssql") return;
+    loadBridgeConfig().then(() => {});
+  }, [activeTab, loadBridgeConfig]);
+
+  useEffect(() => {
+    if (activeTab !== "mssql" || !bridgeCfg?.is_enabled) return;
+    pingBridge();
+    const id = setInterval(pingBridge, 10000);
+    return () => clearInterval(id);
+  }, [activeTab, bridgeCfg?.is_enabled, pingBridge]);
+
   // - Realtime -
   function toggleRealtime() {
     if (realtimeOn) {
@@ -535,6 +607,7 @@ ORDER BY t.table_name;`);
     { id:"realtime", label:"Realtime",      icon:Activity },
     { id:"stats",    label:"DB Stats",      icon:BarChart3 },
     { id:"monitor",  label:"Live Monitor",  icon:Activity },
+    { id:"mssql",    label:"SQL Server Bridge", icon:Server },
   ];
 
   // Cleanup rtChannel on unmount
@@ -1394,6 +1467,95 @@ ORDER BY t.table_name;`);
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── SQL SERVER BRIDGE tab — real config, real live status, never mocked ── */}
+        {activeTab === "mssql" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+                <Server size={15}/> SQL Server Bridge
+              </span>
+              {bridgeStatus && (
+                <span style={{ display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:700,
+                  color: bridgeStatus.connected ? "#16a34a" : "#dc2626" }}>
+                  <span style={{ width:8,height:8,borderRadius:"50%",background: bridgeStatus.connected ? "#16a34a" : "#dc2626" }}/>
+                  {bridgeStatus.connected ? `Connected${bridgeStatus.latency_ms?` (${bridgeStatus.latency_ms}ms)`:""}` : (bridgeStatus.reason || "Disconnected")}
+                  {bridgeChecking && <RefreshCw size={11} style={{ animation:"spin 1s linear infinite" }}/>}
+                </span>
+              )}
+            </div>
+
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+              <div style={{ fontSize:12,color:"#666",marginBottom:14,lineHeight:1.6 }}>
+                Deno Edge Functions (what Supabase runs) can only make HTTP/HTTPS calls — they can't open the raw
+                TCP connection SQL Server's TDS protocol needs. So this stays honestly disconnected until you run the
+                real bridge service (<code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>tools/mssql-bridge-server</code> in
+                the repo) on a machine that has real network access to your SQL Server, and point it here.
+              </div>
+
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12 }}>
+                <div>
+                  <label style={{ fontSize:11,fontWeight:700,color:"#333",display:"block",marginBottom:4 }}>Bridge URL</label>
+                  <input value={bridgeForm.url} onChange={e=>setBridgeForm(f=>({...f,url:e.target.value}))}
+                    placeholder="https://your-tunnel-url.trycloudflare.com"
+                    style={{ width:"100%",padding:"7px 10px",border:`1px solid ${S.border}`,borderRadius:5,fontSize:12,fontFamily:S.font }}/>
+                </div>
+                <div>
+                  <label style={{ fontSize:11,fontWeight:700,color:"#333",display:"block",marginBottom:4 }}>Shared Secret</label>
+                  <input type="password" value={bridgeForm.secret} onChange={e=>setBridgeForm(f=>({...f,secret:e.target.value}))}
+                    placeholder="must match SQLSERVER_BRIDGE_SECRET on the bridge"
+                    style={{ width:"100%",padding:"7px 10px",border:`1px solid ${S.border}`,borderRadius:5,fontSize:12,fontFamily:S.font }}/>
+                </div>
+              </div>
+
+              <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+                <button onClick={()=>saveBridgeConfig(true)} disabled={bridgeSaving || !bridgeForm.url || !bridgeForm.secret}
+                  style={{ padding:"7px 14px",borderRadius:5,border:"none",background:"#003087",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",opacity:(bridgeSaving||!bridgeForm.url||!bridgeForm.secret)?0.5:1 }}>
+                  {bridgeCfg?.is_enabled ? "Save & Reconnect" : "Save & Enable"}
+                </button>
+                {bridgeCfg?.is_enabled && (
+                  <button onClick={()=>saveBridgeConfig(false)} disabled={bridgeSaving}
+                    style={{ padding:"7px 14px",borderRadius:5,border:`1px solid ${S.border}`,background:"#fff",color:"#cc0000",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                    Disable
+                  </button>
+                )}
+                <button onClick={pingBridge} disabled={!bridgeCfg?.is_enabled || bridgeChecking}
+                  style={{ padding:"7px 14px",borderRadius:5,border:`1px solid ${S.border}`,background:"#fff",fontSize:12,cursor:"pointer",opacity:!bridgeCfg?.is_enabled?0.5:1 }}>
+                  ⟲ Ping now
+                </button>
+                {bridgeCfg?.last_ping_at && (
+                  <span style={{ fontSize:10,color:"#999" }}>last checked {new Date(bridgeCfg.last_ping_at).toLocaleTimeString()}</span>
+                )}
+              </div>
+            </div>
+
+            {bridgeStatus?.connected && (
+              <div style={{ marginBottom:16 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
+                  <div style={{ fontSize:12,fontWeight:700,color:"#003087" }}>LIVE SQL SERVER SCHEMA</div>
+                  <button onClick={loadBridgeSchema} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Load tables</button>
+                </div>
+                {bridgeSchema && (
+                  <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                    <thead><tr>
+                      {["Table","Columns"].map(h=>(
+                        <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {bridgeSchema.map((t:any,i:number)=>(
+                        <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
+                          <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                          <td style={{ ...CELL }}>{t.column_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
         )}
 

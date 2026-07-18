@@ -26,7 +26,7 @@ import {
   Scale, Search, Mail, Activity, UserCircle, TrendingUp, Eye, Lock,
   Phone, MessageSquare, MessageCircle, Bot, Bell, Globe, Wrench, Home, Server,
   BarChart2, Code2, Radio, Users, RefreshCw, PenLine, UserPlus,
-  CheckCircle, Printer, UserCheck, AlertTriangle, Menu, X as XIcon, Palette
+  CheckCircle, Printer, AlertTriangle, Menu, X as XIcon, Palette
 } from "lucide-react";
 
 const db = supabase as any;
@@ -132,7 +132,6 @@ const MODS = [
    items:[
      {l:"Admin Panel",        p:"/admin/panel",           I:Settings},
      {l:"Users",              p:"/users",                 I:Users},
-     {l:"Create User",        p:"/admin/create-user",     I:UserCheck},
      {l:"Security Center",    p:"/admin/users-ip-audit",  I:Globe},
      {l:"Audit Log",          p:"/audit-log",             I:Activity},
      {l:"Settings",           p:"/settings",              I:Wrench},

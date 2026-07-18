@@ -66,11 +66,15 @@ begin
         'n_tup_ins', coalesce(sum(n_tup_ins),0), 'n_tup_upd', coalesce(sum(n_tup_upd),0), 'n_tup_del', coalesce(sum(n_tup_del),0)
       ) from pg_stat_user_tables
     ),
+    -- Fixed: buffers_backend was removed from pg_stat_bgwriter in PG17 (moved
+    -- into pg_stat_io's per-backend-type breakdown). Using the real PG17
+    -- equivalent instead of a column that no longer exists.
     'bgwriter', (
       select jsonb_build_object(
-        'buffers_clean', buffers_clean, 'buffers_backend', buffers_backend,
-        'buffers_alloc', buffers_alloc
-      ) from pg_stat_bgwriter
+        'buffers_clean', bg.buffers_clean,
+        'buffers_alloc', bg.buffers_alloc,
+        'buffers_backend', coalesce((select sum(writes) from pg_stat_io where backend_type = 'client backend'), 0)
+      ) from pg_stat_bgwriter bg
     ),
     'locks', jsonb_build_object(
       'waiting', (select count(*) from pg_locks where not granted),
