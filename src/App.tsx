@@ -233,8 +233,8 @@ const App = () => {
               <Route path="/inbox"          element={<P><InboxPage /></P>} />
               <Route path="/email"          element={<P><EmailPage /></P>} />
               <Route path="/reception"      element={<P><ReceptionPage /></P>} />
-              <Route path="/telephony"      element={<P><TelephonyPage /></P>} />
-              <Route path="/sms"            element={<P><RoleGuard allowed={[...ADMINS,"procurement_manager"]}><SMSPage /></RoleGuard></P>} />
+              {/* <Route path="/telephony"      element={<P><TelephonyPage /></P>} /> */} {/* temporarily removed (Calls) — will restore */}
+              {/* <Route path="/sms"            element={<P><RoleGuard allowed={[...ADMINS,"procurement_manager"]}><SMSPage /></RoleGuard></P>} /> */} {/* temporarily removed — will restore */}
               <Route path="/communications" element={<P><CommunicationsHubPage /></P>} />
               <Route path="/whatsapp"       element={<P><WhatsAppPage /></P>} />
               <Route path="/ai-agent"       element={<P><AIAgentPage /></P>} />

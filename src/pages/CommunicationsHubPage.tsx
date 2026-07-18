@@ -200,24 +200,40 @@ export default function CommunicationsHubPage() {
   }, [user, profile]);
 
   const loadSMS = useCallback(async () => {
-    // Demo data - in production, load from sms_logs table
-    setSmsMessages([
-      { id: '1', to: '+254722123456', toName: 'John Kamau', body: 'Your requisition REQ-2024-045 has been approved.', date: new Date(Date.now() - 1800000).toISOString(), status: 'delivered', channel: 'sms' },
-      { id: '2', to: '+254733987654', toName: 'Sarah Wanjiku', body: 'GRN for PO-2024-088 confirmed. 45 items received.', date: new Date(Date.now() - 3600000).toISOString(), status: 'delivered', channel: 'whatsapp' },
-      { id: '3', to: '+254711555888', toName: 'Mike Ochieng', body: 'Reminder: Budget meeting at 2pm in Conference Room B', date: new Date(Date.now() - 7200000).toISOString(), status: 'sent', channel: 'sms' },
-      { id: '4', to: '+254722333444', toName: 'Ann Njeri', body: 'Supplier quote received - KES 89,500 for medical supplies', date: new Date(Date.now() - 14400000).toISOString(), status: 'delivered', channel: 'whatsapp' },
-    ]);
+    const { data, error } = await (supabase as any).from("sms_log").select("*")
+      .order("sent_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) { console.error("[CommsHub] sms_log load failed:", error); setSmsMessages([]); return; }
+    setSmsMessages((data || []).map((r: any) => ({
+      id: r.id,
+      to: r.to_number || "",
+      toName: r.to_number || "Unknown",
+      body: r.message || "",
+      date: r.sent_at || r.created_at,
+      status: (["sent","delivered","failed","pending"].includes(r.status) ? r.status : "sent") as SMSMessage["status"],
+      channel: "sms" as const,
+    })));
   }, []);
 
   const loadCalls = useCallback(async () => {
-    // Demo data - in production, load from call_logs table
-    setCalls([
-      { id: '1', contact: '+254722123456', contactName: 'John Kamau', direction: 'inbound', duration: 245, date: new Date(Date.now() - 1800000).toISOString(), status: 'completed' },
-      { id: '2', contact: '+254733987654', contactName: 'Sarah Wanjiku', direction: 'outbound', duration: 0, date: new Date(Date.now() - 3600000).toISOString(), status: 'missed' },
-      { id: '3', contact: '+254711555888', contactName: 'Mike Ochieng', direction: 'outbound', duration: 180, date: new Date(Date.now() - 7200000).toISOString(), status: 'completed' },
-      { id: '4', contact: '+254722333444', contactName: 'Ann Njeri', direction: 'inbound', duration: 0, date: new Date(Date.now() - 14400000).toISOString(), status: 'voicemail' },
-      { id: '5', contact: '+254700111222', contactName: 'Dr. Peter Mutua', direction: 'inbound', duration: 420, date: new Date(Date.now() - 28800000).toISOString(), status: 'completed' },
-    ]);
+    const { data, error } = await (supabase as any).from("phone_calls").select("*")
+      .order("start_time", { ascending: false }).limit(100);
+    if (error) { console.error("[CommsHub] phone_calls load failed:", error); setCalls([]); return; }
+    setCalls((data || []).map((r: any) => {
+      const inbound = r.direction === "inbound";
+      const contact = inbound ? (r.caller_extension || r.caller_name || "") : (r.callee_extension || r.callee_name || "");
+      const contactName = (inbound ? r.caller_name : r.callee_name) || contact || "Unknown";
+      const status = r.status === "no_answer" || r.status === "missed" ? "missed" : r.status === "voicemail" ? "voicemail" : "completed";
+      return {
+        id: r.id, contact, contactName,
+        direction: (inbound ? "inbound" : "outbound") as CallLog["direction"],
+        duration: r.duration_seconds || 0,
+        date: r.start_time,
+        status: status as CallLog["status"],
+        recording: r.recording_url || undefined,
+      };
+    }));
   }, []);
 
   useEffect(() => {

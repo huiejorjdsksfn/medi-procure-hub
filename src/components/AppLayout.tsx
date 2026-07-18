@@ -121,10 +121,10 @@ const MODS = [
   {id:"comms",label:"Communications",col:T.comms,roles:[],
    items:[
      {l:"Email",     p:"/email",     I:Mail},
-     {l:"SMS",       p:"/sms",       I:MessageSquare},
+     // {l:"SMS",       p:"/sms",       I:MessageSquare}, // temporarily removed — will restore
      {l:"WhatsApp",  p:"/whatsapp",   I:MessageCircle},
      {l:"AI Agent",  p:"/ai-agent",   I:Bot},
-     {l:"Telephony", p:"/telephony", I:Phone},
+     // {l:"Telephony", p:"/telephony", I:Phone}, // temporarily removed (Calls) — will restore
      {l:"Reception", p:"/reception", I:Users},
    ]},
   {id:"admin",label:"Administration",col:T.system,
