@@ -86,6 +86,19 @@ const RBtn = ({ icon:Icon, label, onClick, color, disabled=false }:{ icon:any;la
 );
 const TSep = () => <div style={{ width:1, height:22, background:T.border, margin:"0 2px" }}/>;
 
+/* ── Context menu item (SSMS-style right-click menu) ── */
+const CtxItem = ({ icon:Icon, label, onClick, color, disabled=false }:{ icon:any;label:string;onClick:()=>void;color?:string;disabled?:boolean }) => (
+  <div onClick={disabled?undefined:onClick}
+    style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 14px", fontSize:12.5, cursor:disabled?"not-allowed":"pointer",
+      color:disabled?T.fgDim:(color||T.fg), opacity:disabled?.5:1 }}
+    onMouseEnter={e=>!disabled&&((e.currentTarget as any).style.background=T.bg)}
+    onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}
+  >
+    <Icon size={13} style={{ flexShrink:0 }}/>{label}
+  </div>
+);
+const CtxDivider = () => <div style={{ height:1, background:T.border, margin:"4px 0" }}/>;
+
 /* ── Role chip ── */
 const RoleChip = ({ role, onRemove }: { role:string; onRemove?:()=>void }) => {
   const rm = ROLE_META[role] || { color:T.fgDim, bg:T.bg, label:role };
@@ -117,7 +130,26 @@ export default function UsersPage() {
   const [actLoading, setActLoading] = useState(false);
   const [ipLogs, setIpLogs]     = useState<any[]>([]);
   const [expanded, setExpanded] = useState<Record<string,boolean>>({});
+  const [expandedFolders, setExpandedFolders] = useState<Record<string,boolean>>({});
   const [activeLeaf, setActiveLeaf] = useState<"profile"|"roles"|"security"|"activity">("profile");
+  const [ctxMenu, setCtxMenu] = useState<{ x:number; y:number; type:"root"|"dept"|"role"|"user"; dept?:string; role?:string; user?:UserRow } | null>(null);
+
+  /* ── grouped tree: Department > Role > User (SSMS-style Object Explorer) ── */
+  const tree = useMemo(() => {
+    const byDept: Record<string, Record<string, UserRow[]>> = {};
+    for (const u of filtered) {
+      const dept = u.department?.trim() || "Unassigned";
+      const role = u.roles[0] || "no_role";
+      (byDept[dept] ??= {})[role] ??= [];
+      byDept[dept][role].push(u);
+    }
+    return Object.keys(byDept).sort((a,b) => a==="Unassigned"?1:b==="Unassigned"?-1:a.localeCompare(b))
+      .map(dept => ({
+        dept,
+        roles: Object.keys(byDept[dept]).sort((a,b) => a==="no_role"?1:b==="no_role"?-1:a.localeCompare(b))
+          .map(role => ({ role, users: byDept[dept][role].sort((a,b)=>(a.full_name||"").localeCompare(b.full_name||"")) })),
+      }));
+  }, [filtered]);
 
   /* ── Load all users ── */
   const load = useCallback(async () => {
@@ -148,6 +180,22 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /* ── close context menu on outside click / escape ── */
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    const escClose = (e:KeyboardEvent) => { if (e.key==="Escape") setCtxMenu(null); };
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("keydown", escClose);
+    return () => { window.removeEventListener("click", close); window.removeEventListener("contextmenu", close); window.removeEventListener("keydown", escClose); };
+  }, [ctxMenu]);
+
+  const openCreate = (presetDept?:string, presetRole?:string) => {
+    setForm({ is_active:true, role:presetRole&&presetRole!=="no_role"?presetRole:"requisitioner", department:presetDept&&presetDept!=="Unassigned"?presetDept:"" });
+    setSelected(null); setModal("create"); setCtxMenu(null);
+  };
 
   /* ── Realtime subscription ── */
   useEffect(() => {
@@ -324,8 +372,6 @@ export default function UsersPage() {
 
       {/* ── TOOLBAR (SSMS-style) ── */}
       <div style={{ background:T.card, borderBottom:`1px solid ${T.border}`, padding:"6px 10px", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-        <RBtn icon={Plus}     label="New User"   onClick={() => { setForm({ is_active:true, role:"requisitioner" }); setSelected(null); setModal("create"); }}/>
-        <TSep/>
         <RBtn icon={Edit3}    label="Edit"       onClick={() => selected && (setForm({...selected}),setModal("edit"))} disabled={!selected}/>
         <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color={T.error} disabled={!selected||!isAdmin}/>
         <TSep/>
@@ -382,7 +428,11 @@ export default function UsersPage() {
           </div>
 
           <div style={{ flex:1, overflowY:"auto" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 10px", fontSize:12.5, fontWeight:700, color:T.fg }}>
+            <div
+              onClick={() => { setSelected(null); }}
+              onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x:e.clientX, y:e.clientY, type:"root" }); }}
+              style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 10px", fontSize:12.5, fontWeight:700, color:T.fg, cursor:"context-menu" }}
+            >
               <Users size={13}/> EL5-MediProcure / Users ({filtered.length})
             </div>
 
@@ -390,46 +440,90 @@ export default function UsersPage() {
               <div style={{ padding:24, textAlign:"center", color:T.fgDim, fontSize:12 }}>Loading users...</div>
             ) : filtered.length===0 ? (
               <div style={{ padding:32, textAlign:"center", color:T.fgDim, fontSize:12 }}>No users found</div>
-            ) : filtered.map(u => {
-              const isOpen = !!expanded[u.id];
-              const isSelUser = selected?.id===u.id;
-              const isOnline = u.last_seen && (Date.now()-new Date(u.last_seen).getTime())<5*60_000;
-              const primaryRole = u.roles[0];
-              const rm = primaryRole ? (ROLE_META[primaryRole]||{color:T.fgDim,bg:T.bg,label:primaryRole}) : null;
-              const leaves: { key:"profile"|"roles"|"security"|"activity"; label:string; icon:any }[] = [
-                { key:"profile",  label:"Profile",            icon:UserCheck },
-                { key:"roles",    label:"Roles & Permissions", icon:Shield   },
-                { key:"security", label:"Security",            icon:Key      },
-                { key:"activity", label:"Activity & Sessions", icon:Activity },
-              ];
+            ) : tree.map(({ dept, roles }) => {
+              const deptKey = `dept:${dept}`;
+              const deptOpen = expandedFolders[deptKey] !== false; // default open
+              const deptCount = roles.reduce((n,r)=>n+r.users.length,0);
               return (
-                <div key={u.id}>
+                <div key={dept}>
+                  {/* Department folder */}
                   <div
-                    onClick={() => { setSelected(u); setActiveLeaf("profile"); if (!isOpen) setExpanded(p=>({...p,[u.id]:true})); }}
-                    style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 16px", cursor:"pointer", fontSize:12.5, background:isSelUser&&activeLeaf==="profile"?`${T.primary}14`:"transparent" }}
-                    onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background=T.bg)}
-                    onMouseLeave={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="transparent")}
+                    onClick={() => setExpandedFolders(p=>({...p,[deptKey]:!deptOpen}))}
+                    onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x:e.clientX, y:e.clientY, type:"dept", dept }); }}
+                    style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 10px", cursor:"pointer", fontSize:12.5, fontWeight:700, color:T.fg }}
+                    onMouseEnter={e=>((e.currentTarget as any).style.background=T.bg)}
+                    onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}
                   >
-                    <span onClick={e=>{ e.stopPropagation(); setExpanded(p=>({...p,[u.id]:!isOpen})); }} style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>
-                      {isOpen?"-":"+"}
-                    </span>
-                    <span style={{ width:7, height:7, borderRadius:7, flexShrink:0, background:u.is_locked?T.error:u.is_active!==false?(isOnline?T.success:T.fgDim):T.fgDim }}/>
-                    <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:u.is_active===false?T.fgDim:T.fg, fontWeight:isSelUser?700:400 }}>
-                      {u.full_name||"—"}
-                    </span>
-                    {rm && <span style={{ fontSize:9, fontWeight:700, padding:"1px 5px", borderRadius:3, background:rm.bg, color:rm.color, flexShrink:0 }}>{rm.label}</span>}
+                    <span style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>{deptOpen?"-":"+"}</span>
+                    <Building2 size={13} style={{ flexShrink:0, color:T.primary }}/>
+                    <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{dept}</span>
+                    <span style={{ fontSize:9, color:T.fgDim, fontWeight:600, flexShrink:0 }}>({deptCount})</span>
                   </div>
-                  {isOpen && leaves.map(({ key, label, icon:LeafIcon }) => {
-                    const isSelLeaf = isSelUser && activeLeaf===key;
+
+                  {deptOpen && roles.map(({ role, users:roleUsers }) => {
+                    const roleKey = `${deptKey}|role:${role}`;
+                    const roleOpen = expandedFolders[roleKey] !== false;
+                    const rmFolder = role!=="no_role" ? (ROLE_META[role]||{color:T.fgDim,bg:T.bg,label:role}) : null;
                     return (
-                      <div
-                        key={key}
-                        onClick={() => { setSelected(u); setActiveLeaf(key); }}
-                        style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 38px", cursor:"pointer", fontSize:12, color:isSelLeaf?T.primary:T.fgMuted, background:isSelLeaf?`${T.primary}10`:"transparent" }}
-                        onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background=T.bg)}
-                        onMouseLeave={e=>!isSelLeaf&&((e.currentTarget as any).style.background="transparent")}
-                      >
-                        <LeafIcon size={12} style={{ flexShrink:0 }}/> {label}
+                      <div key={role}>
+                        {/* Role sub-folder */}
+                        <div
+                          onClick={() => setExpandedFolders(p=>({...p,[roleKey]:!roleOpen}))}
+                          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x:e.clientX, y:e.clientY, type:"role", dept, role }); }}
+                          style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 26px", cursor:"pointer", fontSize:12, color:T.fgMuted }}
+                          onMouseEnter={e=>((e.currentTarget as any).style.background=T.bg)}
+                          onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}
+                        >
+                          <span style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>{roleOpen?"-":"+"}</span>
+                          <Shield size={12} style={{ flexShrink:0, color:rmFolder?.color||T.fgDim }}/>
+                          <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rmFolder?.label || "No Role"}</span>
+                          <span style={{ fontSize:9, color:T.fgDim, fontWeight:600, flexShrink:0 }}>({roleUsers.length})</span>
+                        </div>
+
+                        {roleOpen && roleUsers.map(u => {
+                          const isOpen = !!expanded[u.id];
+                          const isSelUser = selected?.id===u.id;
+                          const isOnline = u.last_seen && (Date.now()-new Date(u.last_seen).getTime())<5*60_000;
+                          const leaves: { key:"profile"|"roles"|"security"|"activity"; label:string; icon:any }[] = [
+                            { key:"profile",  label:"Profile",            icon:UserCheck },
+                            { key:"roles",    label:"Roles & Permissions", icon:Shield   },
+                            { key:"security", label:"Security",            icon:Key      },
+                            { key:"activity", label:"Activity & Sessions", icon:Activity },
+                          ];
+                          return (
+                            <div key={u.id}>
+                              <div
+                                onClick={() => { setSelected(u); setActiveLeaf("profile"); if (!isOpen) setExpanded(p=>({...p,[u.id]:true})); }}
+                                onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setSelected(u); setCtxMenu({ x:e.clientX, y:e.clientY, type:"user", user:u }); }}
+                                style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 40px", cursor:"pointer", fontSize:12.5, background:isSelUser&&activeLeaf==="profile"?`${T.primary}14`:"transparent" }}
+                                onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background=T.bg)}
+                                onMouseLeave={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="transparent")}
+                              >
+                                <span onClick={e=>{ e.stopPropagation(); setExpanded(p=>({...p,[u.id]:!isOpen})); }} style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>
+                                  {isOpen?"-":"+"}
+                                </span>
+                                <span style={{ width:7, height:7, borderRadius:7, flexShrink:0, background:u.is_locked?T.error:u.is_active!==false?(isOnline?T.success:T.fgDim):T.fgDim }}/>
+                                <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:u.is_active===false?T.fgDim:T.fg, fontWeight:isSelUser?700:400 }}>
+                                  {u.full_name||"—"}
+                                </span>
+                              </div>
+                              {isOpen && leaves.map(({ key, label, icon:LeafIcon }) => {
+                                const isSelLeaf = isSelUser && activeLeaf===key;
+                                return (
+                                  <div
+                                    key={key}
+                                    onClick={() => { setSelected(u); setActiveLeaf(key); }}
+                                    style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 62px", cursor:"pointer", fontSize:12, color:isSelLeaf?T.primary:T.fgMuted, background:isSelLeaf?`${T.primary}10`:"transparent" }}
+                                    onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background=T.bg)}
+                                    onMouseLeave={e=>!isSelLeaf&&((e.currentTarget as any).style.background="transparent")}
+                                  >
+                                    <LeafIcon size={12} style={{ flexShrink:0 }}/> {label}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -439,7 +533,47 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* ── RIGHT: detail panel ── */}
+        {/* ── RIGHT-CLICK CONTEXT MENU (SSMS-style) ── */}
+        {ctxMenu && (
+          <div
+            onClick={e=>e.stopPropagation()}
+            style={{ position:"fixed", top:ctxMenu.y, left:ctxMenu.x, zIndex:500, background:T.card, border:`1px solid ${T.border}`, borderRadius:6,
+              boxShadow:"0 6px 24px rgba(0,0,0,.25)", minWidth:190, padding:"4px 0", fontSize:12.5 }}
+          >
+            {ctxMenu.type==="root" && (
+              <>
+                <CtxItem icon={Plus} label="New User..." onClick={()=>openCreate()}/>
+                <CtxItem icon={RefreshCw} label="Refresh" onClick={()=>{load();setCtxMenu(null);}}/>
+              </>
+            )}
+            {ctxMenu.type==="dept" && (
+              <>
+                <CtxItem icon={Plus} label={`New User in ${ctxMenu.dept}...`} onClick={()=>openCreate(ctxMenu.dept)}/>
+                <CtxItem icon={RefreshCw} label="Refresh" onClick={()=>{load();setCtxMenu(null);}}/>
+              </>
+            )}
+            {ctxMenu.type==="role" && (
+              <>
+                <CtxItem icon={Plus} label="New User in this Role..." onClick={()=>openCreate(ctxMenu.dept, ctxMenu.role)}/>
+                <CtxItem icon={RefreshCw} label="Refresh" onClick={()=>{load();setCtxMenu(null);}}/>
+              </>
+            )}
+            {ctxMenu.type==="user" && ctxMenu.user && (() => { const u = ctxMenu.user!; return (
+              <>
+                <CtxItem icon={Edit3} label="Edit..." onClick={()=>{ setForm({...u}); setModal("edit"); setCtxMenu(null); }}/>
+                <CtxItem icon={Key} label="Reset Password..." onClick={()=>{ setForm({...u,newPw:""}); setModal("password"); setCtxMenu(null); }} disabled={!isAdmin}/>
+                <CtxItem icon={Activity} label="View Activity..." onClick={()=>{ loadActivity(u.id); setCtxMenu(null); }}/>
+                <CtxDivider/>
+                {u.is_locked && <CtxItem icon={Unlock} label="Unlock" onClick={()=>{ unlockUser(u); setCtxMenu(null); }}/>}
+                <CtxItem icon={u.is_active!==false?Lock:Unlock} label={u.is_active!==false?"Deactivate":"Activate"} onClick={()=>{ toggleActive(u); setCtxMenu(null); }}/>
+                <CtxDivider/>
+                <CtxItem icon={Plus} label="New User..." onClick={()=>openCreate(u.department, u.roles[0])}/>
+                <CtxDivider/>
+                <CtxItem icon={Trash2} label="Delete..." color={T.error} onClick={()=>{ setModal("delete"); setCtxMenu(null); }} disabled={!isAdmin}/>
+              </>
+            ); })()}
+          </div>
+        )}
         <div style={{ flex:1, overflowY:"auto", background:T.bg }}>
           {selected ? (
             <div style={{ padding:20, animation:"slideR .2s" }}>
@@ -598,7 +732,7 @@ export default function UsersPage() {
             <div style={{ height:"100%", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:12, color:T.fgDim }}>
               <Users size={52} color={T.border}/>
               <div style={{ fontSize:15, fontWeight:700, color:T.fgMuted }}>Select a user folder to view details</div>
-              <div style={{ fontSize:12 }}>Or create a new user from the toolbar above</div>
+              <div style={{ fontSize:12 }}>Right-click a folder or "EL5-MediProcure / Users" above to create one</div>
             </div>
           )}
         </div>
