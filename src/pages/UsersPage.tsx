@@ -113,8 +113,6 @@ export default function UsersPage() {
   const [form, setForm]         = useState<any>({});
   const [saving, setSaving]     = useState(false);
   const [showPw, setShowPw]     = useState(false);
-  const [revealedPws, setRevealedPws] = useState<Record<string,boolean>>({});
-  const [storedPws, setStoredPws]     = useState<Record<string,string>>({});
   const [activity, setActivity] = useState<any[]>([]);
   const [actLoading, setActLoading] = useState(false);
   const [ipLogs, setIpLogs]     = useState<any[]>([]);
@@ -128,23 +126,18 @@ export default function UsersPage() {
       const safe = async <T,>(p: Promise<T>): Promise<T | { data: any[] }> => {
         try { return await p; } catch { return { data: [] } as any; }
       };
-      const [profilesRes, rolesRes, ipRes, pwRes] = await Promise.all([
+      const [profilesRes, rolesRes, ipRes] = await Promise.all([
         safe(db.from("profiles").select("id,full_name,email,phone_number,department,avatar_url,is_active,is_locked,failed_logins,employee_id,created_at,last_login,last_seen,last_ip").order("full_name")),
         safe(db.from("user_roles").select("user_id,role")),
         safe(db.from("ip_access_log").select("user_id,ip_address,city,country,created_at").order("created_at",{ascending:false}).limit(500)),
-        safe(db.from("system_settings").select("key,value").ilike("key","temp_pw_%")),
       ]);
       const profiles = (profilesRes as any).data || [];
       const roleRows = (rolesRes as any).data || [];
       const ipRows = (ipRes as any).data || [];
-      const pwRows = (pwRes as any).data || [];
       const roleMap: Record<string,string[]> = {};
       roleRows.forEach((r:any) => { if (!roleMap[r.user_id]) roleMap[r.user_id]=[]; roleMap[r.user_id].push(r.role); });
       const ipMap: Record<string,any> = {};
       ipRows.forEach((l:any) => { if (!ipMap[l.user_id]) ipMap[l.user_id]=l; });
-      const pwMap: Record<string,string> = {};
-      pwRows.forEach((r:any) => { const uid=r.key.replace("temp_pw_",""); pwMap[uid]=r.value; });
-      setStoredPws(pwMap);
       setIpLogs(ipRows);
       setUsers(profiles.map((p:any) => ({ ...p, roles:roleMap[p.id]||[], lastIP:ipMap[p.id]?.ip_address||null, lastGeo:ipMap[p.id]?[ipMap[p.id].city,ipMap[p.id].country].filter(Boolean).join(", "):null })));
     } catch (e:any) {
@@ -181,21 +174,28 @@ export default function UsersPage() {
     online:  users.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<5*60_000).length,
   }), [users]);
 
-  /* ── Reset password ── */
+  /* ── Reset password (real, server-side — never touches/reveals the actual stored password, which is a one-way hash and cannot be retrieved) ── */
   const resetPassword = async (uid: string, newPw: string) => {
-    if (newPw.length < 6) { toast({title:"Min 6 characters",variant:"destructive"}); return; }
+    if (newPw.length < 8) { toast({title:"Min 8 characters",variant:"destructive"}); return; }
     setSaving(true);
     try {
-      /* Try admin API first */
-      const { error } = (await (supabase.auth as any).admin?.updateUserById?.(uid,{password:newPw})) || {};
-      if (error) throw error;
-    } catch {
-      /* Fallback: store temp password in system_settings for admin to distribute */
-      await db.from("system_settings").upsert({ key:`temp_pw_${uid}`, value:newPw, category:"security" }, { onConflict:"key" });
+      const { data: sesData } = await supabase.auth.getSession();
+      const token = sesData?.session?.access_token || "";
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ user_id: uid, new_password: newPw }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data?.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+      toast({ title:"✓ Password reset", description:`New password set for ${selected?.full_name}. Share it with them securely — it cannot be viewed again.` });
+      setModal(null);
+    } catch (e: any) {
+      toast({ title:"Password reset failed", description:e.message, variant:"destructive" });
+    } finally {
+      setSaving(false);
     }
-    setStoredPws(p => ({ ...p, [uid]:newPw }));
-    toast({ title:"✓ Password reset", description:`New password set for ${selected?.full_name}` });
-    setSaving(false); setModal(null);
   };
 
   /* ── CRUD ── */
@@ -239,12 +239,7 @@ export default function UsersPage() {
           } catch(e2:any) { lastErr += ` | ${e2?.message}`; }
         }
         if (!result) throw new Error(lastErr || "Both paths failed");
-        /* Store temp pw */
-        const uid = result.user_id || result.id;
-        if (uid) {
-          await db.from("system_settings").upsert({ key:`temp_pw_${uid}`, value:pw, category:"security" }, { onConflict:"key" });
-          setStoredPws(p => ({ ...p, [uid]:pw }));
-        }
+        /* Show the initial password once, in the success toast — never persisted anywhere after this */
         toast({ title:"✓ User created & activated", description:`Password: ${pw}` });
       } else if (modal==="edit" && selected) {
         await db.from("profiles").update({ full_name:form.full_name, phone_number:form.phone_number, department:form.department, employee_id:form.employee_id, avatar_url:form.avatar_url, is_active:form.is_active }).eq("id",selected.id);
@@ -294,12 +289,14 @@ export default function UsersPage() {
   };
 
   const removeRole = async (uid:string, role:string) => {
-    await db.from("user_roles").delete().eq("user_id",uid).eq("role",role);
+    const { error } = await db.from("user_roles").delete().eq("user_id",uid).eq("role",role);
+    if (error) { toast({ title:"Couldn't remove role", description:error.message, variant:"destructive" }); return; }
     load(); setSelected(p => p?{...p,roles:p.roles.filter(r=>r!==role)}:p);
   };
 
   const addRole = async (uid:string, role:string) => {
-    await db.from("user_roles").upsert({ user_id:uid, role }, { onConflict:"user_id,role" });
+    const { error } = await db.from("user_roles").upsert({ user_id:uid, role }, { onConflict:"user_id,role" });
+    if (error) { toast({ title:"Couldn't add role", description:error.message, variant:"destructive" }); return; }
     load(); setSelected(p => p?{...p,roles:[...p.roles,role]}:p);
   };
 
@@ -512,25 +509,18 @@ export default function UsersPage() {
                 <div style={card}>
                   <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, letterSpacing:".08em", marginBottom:12, textTransform:"uppercase" }}>Security & Access</div>
 
-                  {/* Password panel */}
+                  {/* Password panel — passwords are one-way hashed by Supabase Auth and can
+                      never be retrieved once set, by design. This used to persist plaintext
+                      temp passwords in system_settings for later recall, which is a real
+                      security anti-pattern (any admin, backup, or audit-log reader could see
+                      them indefinitely). Only a reset (setting a brand-new password) is
+                      possible now, not recall of the old one. */}
                   <div style={{ marginBottom:16, padding:"12px 14px", background:T.bg, borderRadius:T.r, border:`1px solid ${T.border}` }}>
                     <div style={{ fontSize:11, fontWeight:700, color:T.fgDim, marginBottom:8, textTransform:"uppercase", letterSpacing:".06em" }}>Password</div>
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <code style={{ flex:1, fontSize:14, fontFamily:"monospace", color:T.fg, letterSpacing:".08em", wordBreak:"break-all" }}>
-                        {revealedPws[selected.id]
-                          ? (storedPws[selected.id] || "— (no temp pw stored)")
-                          : "••••••••••"}
-                      </code>
-                      <button onClick={() => setRevealedPws(p=>({...p,[selected.id]:!p[selected.id]}))} style={{ background:"none", border:"none", cursor:"pointer", color:T.primary, padding:4 }}>
-                        {revealedPws[selected.id] ? <EyeOff size={15}/> : <Eye size={15}/>}
-                      </button>
-                      {storedPws[selected.id] && (
-                        <button onClick={() => navigator.clipboard.writeText(storedPws[selected.id]).then(()=>toast({title:"Copied"}))} style={{ background:"none", border:"none", cursor:"pointer", color:T.fgDim, padding:4 }}>
-                          <Copy size={13}/>
-                        </button>
-                      )}
+                    <div style={{ fontSize:12, color:T.fgDim, lineHeight:1.5 }}>
+                      Passwords are one-way hashed and can't be viewed by anyone, including admins.
+                      Use Reset Password below to set a new one.
                     </div>
-                    {storedPws[selected.id] && <div style={{ fontSize:10, color:T.warning, marginTop:6 }}>⚠ Temp password stored — user should change on next login</div>}
                     <button onClick={() => (setForm({...selected,newPw:""}),setModal("password"))} style={{ ...btn(T.primary), width:"100%", justifyContent:"center", marginTop:10 }}>
                       <Key size={12}/> Reset Password
                     </button>
