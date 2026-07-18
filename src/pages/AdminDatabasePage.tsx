@@ -18,7 +18,7 @@ import {
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import RoleGuard from "@/components/RoleGuard";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { printDataTable } from "@/lib/printDocument";
@@ -90,6 +90,47 @@ function MiniStat({ label, value, sub }: { label:string; value:string; sub?:stri
       <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,fontWeight:700,textTransform:"uppercase" }}>{label}</div>
       <div style={{ fontSize:19,fontWeight:800,color:"#0f172a",fontFamily:S.font }}>{value}</div>
       {sub && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font }}>{sub}</div>}
+    </div>
+  );
+}
+
+// Renders a real Postgres EXPLAIN plan tree as connected operator boxes —
+// the direct equivalent of SSMS's graphical execution plan. Node Type +
+// relative cost % per node, children laid out left-to-right beneath their
+// parent with a connecting line, matching the reference SSMS layout
+// (Nested Loops / Filter / Index Seek boxes joined by lines, cost % shown
+// under each box).
+function PlanNode({ node, totalCost }: { node: any; totalCost?: number }) {
+  if (!node) return null;
+  const rootCost = totalCost ?? (node["Total Cost"] || 1);
+  const ownCost = Math.max(0, (node["Total Cost"] || 0) - (node.Plans || []).reduce((s:number,c:any)=>s+(c["Total Cost"]||0),0));
+  const pct = rootCost > 0 ? Math.round((ownCost / rootCost) * 100) : 0;
+  const label = node["Node Type"] || "?";
+  const detail = node["Relation Name"] || node["Index Name"] || node["Alias"] || "";
+  const isScan = /Scan/i.test(label);
+  const isJoin = /Join|Loop/i.test(label);
+
+  return (
+    <div style={{ display:"inline-flex",flexDirection:"column",alignItems:"center",verticalAlign:"top",padding:"0 10px" }}>
+      <div style={{
+        border:`1.5px solid ${isJoin?"#0e7490":isScan?"#7c3aed":"#94a3b8"}`,
+        borderRadius:6, padding:"7px 10px", minWidth:110, textAlign:"center",
+        background: isJoin?"#ecfeff":isScan?"#f5f3ff":"#f8fafc",
+      }}>
+        <div style={{ fontSize:11,fontWeight:700,color:"#1e293b",fontFamily:S.font,whiteSpace:"nowrap" }}>{label}</div>
+        {detail && <div style={{ fontSize:9.5,color:"#64748b",fontFamily:"monospace",marginTop:1 }}>{detail}</div>}
+        <div style={{ fontSize:9,color:pct>50?"#dc2626":"#16a34a",fontWeight:700,marginTop:2 }}>Cost: {pct}%</div>
+      </div>
+      {node.Plans?.length > 0 && (
+        <>
+          <div style={{ width:1,height:14,background:"#cbd5e1" }}/>
+          <div style={{ display:"flex",alignItems:"flex-start" }}>
+            {node.Plans.map((child:any,i:number)=>(
+              <PlanNode key={i} node={child} totalCost={rootCost}/>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -176,6 +217,9 @@ ORDER BY t.table_name;`);
   const [liveStatsLoading, setLiveStatsLoading] = useState(false);
   const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
   const liveStatsPrev = useRef<{ t:number; xact_commit:number; blks_read:number; blks_hit:number } | null>(null);
+  const [selectedQuery, setSelectedQuery] = useState<any | null>(null);
+  const [queryPlan, setQueryPlan] = useState<any | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
 
   // SQL Server Bridge — real config + live status, never mocked
   const [bridgeCfg, setBridgeCfg] = useState<any | null>(null);
@@ -468,6 +512,26 @@ ORDER BY t.table_name;`);
       toast({ title:"Couldn't load live monitor", description:e.message, variant:"destructive" });
     } finally {
       setLiveStatsLoading(false);
+    }
+  }, []);
+
+  // Real Postgres execution plan (EXPLAIN, not ANALYZE — so inspecting the
+  // plan never actually re-executes the query) for the "Top Resource
+  // Consumers" query plan tree, the direct equivalent of SSMS's graphical
+  // execution plan.
+  const loadQueryPlan = useCallback(async (q: any) => {
+    setSelectedQuery(q);
+    setQueryPlan(null);
+    setPlanLoading(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("explain_query_plan", { p_query: q.query_snippet });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setQueryPlan(Array.isArray(data) ? data[0]?.Plan : data);
+    } catch (e:any) {
+      setQueryPlan({ error: e.message });
+    } finally {
+      setPlanLoading(false);
     }
   }, []);
 
@@ -1179,6 +1243,15 @@ ORDER BY t.table_name;`);
                   <div style={{ fontSize:22,fontWeight:700,color:(dbDash.errors?.unresolved_count||0)>0?"#dc2626":"#16a34a" }}>{dbDash.errors?.unresolved_count ?? 0}</div>
                   <div style={{ fontSize:10,color:"#666",marginTop:4 }}>unresolved · {dbDash.errors?.last_24h_count ?? 0} in last 24h</div>
                 </div>
+
+                {/* Top Resource Consumers — links straight into Live Monitor's real
+                    pg_stat_statements bar chart + EXPLAIN plan viewer */}
+                <div onClick={()=>{ setActiveTab("monitor"); setMonitorSubTab("topqueries"); }}
+                  style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff",cursor:"pointer" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><BarChart3 size={13}/> TOP RESOURCE CONSUMERS</div>
+                  <div style={{ fontSize:13,fontWeight:700,color:"#0e7490" }}>View query plans →</div>
+                  <div style={{ fontSize:10,color:"#666",marginTop:4 }}>Real execution plans, Live Monitor tab</div>
+                </div>
               </div>
             )}
 
@@ -1443,11 +1516,75 @@ ORDER BY t.table_name;`);
 
                 {monitorSubTab==="topqueries" && liveStats && (
                   liveStats.top_queries?.length ? (
-                    <MonitorTable
-                      title="TOP QUERIES — real pg_stat_statements, ranked by total execution time"
-                      headers={["Query","Calls","Total (ms)","Mean (ms)","Rows"]}
-                      rows={liveStats.top_queries.map((q:any)=>[q.query_snippet, q.calls, q.total_exec_ms, q.mean_exec_ms, q.rows])}
-                    />
+                    <div>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:2,fontFamily:S.font }}>
+                        TOP RESOURCE CONSUMERS — real pg_stat_statements, ranked by total execution time
+                      </div>
+                      <div style={{ fontSize:10,color:"#999",marginBottom:10,fontFamily:S.font }}>
+                        Postgres' equivalent of SQL Server's Query Store "Top Resource Consumers" report. Click a bar for its real execution plan.
+                      </div>
+
+                      <div style={{ display:"flex",gap:12,marginBottom:14 }}>
+                        {/* Bar chart — duration by query, like the SSMS report's left panel */}
+                        <div style={{ flex:1.4,border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
+                          <div style={{ fontSize:10,color:"#666",marginBottom:6,fontFamily:S.font }}>Metric: Duration (ms) · Statistic: Total</div>
+                          <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={liveStats.top_queries.map((q:any,i:number)=>({ ...q, idx:i+1 }))}
+                              onClick={(e:any)=>{ const q = e?.activePayload?.[0]?.payload; if (q) loadQueryPlan(q); }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                              <XAxis dataKey="idx" tick={{ fontSize:10 }} label={{ value:"query", position:"insideBottom", offset:-2, fontSize:10 }}/>
+                              <YAxis tick={{ fontSize:10 }} label={{ value:"ms", angle:-90, position:"insideLeft", fontSize:10 }}/>
+                              <Tooltip formatter={(v:any)=>[`${v} ms`,"Total duration"]} labelFormatter={(i:any)=>`Query #${i}`}
+                                contentStyle={{ fontSize:11 }}/>
+                              <Bar dataKey="total_exec_ms" cursor="pointer">
+                                {liveStats.top_queries.map((q:any,i:number)=>(
+                                  <Cell key={i} fill={selectedQuery?.query_snippet===q.query_snippet?"#0e7490":"#60a5fa"}/>
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Plan summary panel — like the SSMS report's right panel */}
+                        <div style={{ width:220,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
+                          <div style={{ fontSize:10,color:"#666",marginBottom:8,fontFamily:S.font }}>Plan summary</div>
+                          {!selectedQuery && <div style={{ fontSize:11,color:"#999",fontFamily:S.font }}>Click a bar to inspect its real execution plan.</div>}
+                          {selectedQuery && (
+                            <>
+                              <div style={{ fontSize:11,fontFamily:"monospace",color:"#334155",background:"#f8fafc",padding:"6px 8px",borderRadius:5,marginBottom:8,wordBreak:"break-all" }}>
+                                {selectedQuery.query_snippet}
+                              </div>
+                              <div style={{ fontSize:10,color:"#666",lineHeight:1.8 }}>
+                                <div>Calls: <b>{selectedQuery.calls}</b></div>
+                                <div>Total: <b>{selectedQuery.total_exec_ms} ms</b></div>
+                                <div>Mean: <b>{selectedQuery.mean_exec_ms} ms</b></div>
+                                <div>Rows: <b>{selectedQuery.rows}</b></div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Real execution plan tree — Postgres' EXPLAIN output, the direct
+                          equivalent of SSMS's graphical execution plan (Seq/Index Scan ≈
+                          Table/Index Scan, Hash/Nested Loop Join ≈ same concept in SQL Server) */}
+                      {selectedQuery && (
+                        <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"12px 14px",background:"#fff" }}>
+                          <div style={{ fontSize:10,color:"#666",marginBottom:10,fontFamily:S.font }}>
+                            Execution plan (real EXPLAIN — not executed, cost estimates only)
+                          </div>
+                          {planLoading && <div style={{ fontSize:12,color:"#999",fontFamily:S.font }}>⟲ Running EXPLAIN…</div>}
+                          {!planLoading && queryPlan?.error && (
+                            <div style={{ fontSize:12,color:"#dc2626",fontFamily:S.font }}>Couldn't get plan: {queryPlan.error}</div>
+                          )}
+                          {!planLoading && queryPlan && !queryPlan.error && (
+                            <div style={{ overflowX:"auto",paddingBottom:6 }}>
+                              <PlanNode node={queryPlan}/>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
                       pg_stat_statements has no recorded queries yet (or was just reset) — this fills in as the database is used.
