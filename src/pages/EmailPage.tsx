@@ -231,11 +231,6 @@ export default function EmailPage() {
       const mode = smtpStatus?.mode || getSetting("email_mode","internal");
       if(mode==="external"||mode==="both") {
         try {
-          const smtpRows = await (supabase as any).from("system_settings").select("key,value")
-            .in("key",["smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from_email","smtp_from_name","smtp_enabled","smtp_security","resend_api_key","sendgrid_api_key","mailgun_api_key","mailgun_domain"]);
-          const smtp:Record<string,string>={};
-          (smtpRows.data||[]).forEach((r:any)=>{ if(r.key) smtp[r.key]=r.value||""; });
-
           const { data:fnData, error:fnErr } = await supabase.functions.invoke("send-email",{
             body:{
               to,
@@ -243,18 +238,19 @@ export default function EmailPage() {
               subject,
               body,
               html:`<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#374151;line-height:1.75">${body.replace(/\n/g,"<br/>")}</div><hr style="margin-top:24px;border:none;border-top:1px solid #e5e7eb"/><p style="font-size:11px;color:#9ca3af">Sent via ${getSetting("system_name","EL5 MediProcure")} - ${getSetting("hospital_name","Embu Level 5 Hospital")}</p>`,
-              from_name: smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
-              smtp: smtp.smtp_enabled==="true"&&smtp.smtp_host ? {
-                host:smtp.smtp_host, port:Number(smtp.smtp_port)||587,
-                username:smtp.smtp_user, password:smtp.smtp_pass,
-                from_email:smtp.smtp_from_email||smtp.smtp_user,
-                from_name:smtp.smtp_from_name||getSetting("system_name","EL5 MediProcure"),
-                encryption:smtp.smtp_security||"tls",
-              } : undefined,
+              // send-email reads SMTP config from system_settings itself
+              // server-side (see getSmtpSettings() in the function) — it
+              // never reads a `smtp` field from the request body, so
+              // sending the plaintext password here achieved nothing but
+              // an unnecessary trip over the wire. Removed.
             }
           });
           const d = fnData as any;
-          if(fnErr||!d?.success) {
+          // send-email returns { ok: boolean, ... } — this used to check
+          // d?.success, a field the function has never actually returned,
+          // so every single send (successful or not) showed a false
+          // "external delivery failed" warning here.
+          if(fnErr||!d?.ok) {
             toast({title:testMode?"Test: Internal -, External -":"Saved internally - external delivery failed",description:fnErr?.message||d?.error||"Check SMTP/API settings",variant:testMode?"destructive":"default"});
           } else {
             toast({title:testMode?`Test sent via ${d.provider||"SMTP"} -`:`Email sent via ${d.provider||"SMTP"} -`,description:`Delivered to ${to}`});
