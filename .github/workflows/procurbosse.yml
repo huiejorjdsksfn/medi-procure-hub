@@ -161,7 +161,7 @@ jobs:
           for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook \
                     ai-agent verify-role notify-requisition make-call twilio-engine \
                     notify-api google-forms-api github-releases notification-hub edgeone-stats \
-                    analyze-document; do
+                    analyze-document theme-extract; do
             [ -d "supabase/functions/$fn" ] || continue
             echo "→ Deploying $fn"
             if supabase functions deploy $fn --project-ref ${{ env.SUPA_REF }} --no-verify-jwt 2>&1 | tail -5; then
