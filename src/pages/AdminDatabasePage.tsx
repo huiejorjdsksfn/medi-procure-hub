@@ -171,7 +171,7 @@ ORDER BY t.table_name;`);
   const [dbDash, setDbDash] = useState<any | null>(null);
   const [dbDashLoading, setDbDashLoading] = useState(false);
   const [dbDashHistory, setDbDashHistory] = useState<{ t: number; active: number; cache: number }[]>([]);
-  const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups">("overview");
+  const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups"|"site"|"loggers">("overview");
   const [liveStats, setLiveStats] = useState<any | null>(null);
   const [liveStatsLoading, setLiveStatsLoading] = useState(false);
   const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
@@ -1301,6 +1301,8 @@ ORDER BY t.table_name;`);
                 { id:"topqueries", label:"Top Queries" },
                 { id:"sessions",   label:"Sessions"    },
                 { id:"backups",    label:"Backups"     },
+                { id:"site",       label:"Site Stats"  },
+                { id:"loggers",    label:"Loggers"     },
               ].map(t => (
                 <button key={t.id} onClick={()=>setMonitorSubTab(t.id as any)}
                   style={{ padding:"6px 14px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
@@ -1481,6 +1483,66 @@ ORDER BY t.table_name;`);
                       No backup jobs recorded yet. Supabase also runs its own managed PITR backups behind the scenes — this table only reflects backups triggered from within the app.
                     </div>
                   )
+                )}
+
+                {monitorSubTab==="site" && liveStats && (
+                  <div>
+                    <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:10,fontFamily:S.font }}>
+                      SITE ACTIVITY — real application-level metrics, not raw Postgres internals
+                    </div>
+                    <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10 }}>
+                      {[
+                        ["Requisitions today", liveStats.site?.requisitions_today, "#003087"],
+                        ["Purchase orders today", liveStats.site?.purchase_orders_today, "#003087"],
+                        ["New users today", liveStats.site?.new_users_today, "#16a34a"],
+                        ["Active users (30 min)", liveStats.site?.active_users_last_30min, "#16a34a"],
+                        ["Audit events today", liveStats.site?.audit_events_today, "#666"],
+                        ["Audit events (1 hr)", liveStats.site?.audit_events_last_hour, "#666"],
+                        ["Failed logins today", liveStats.site?.failed_logins_today, liveStats.site?.failed_logins_today>0?"#dc2626":"#16a34a"],
+                        ["Blocked IPs today", liveStats.site?.blocked_ips_today, liveStats.site?.blocked_ips_today>0?"#dc2626":"#16a34a"],
+                        ["404 hits today", liveStats.site?.not_found_hits_today, "#ca8a04"],
+                        ["SMS sent today", liveStats.site?.sms_sent_today, "#16a34a"],
+                        ["SMS failed today", liveStats.site?.sms_failed_today, liveStats.site?.sms_failed_today>0?"#dc2626":"#16a34a"],
+                        ["Crash reports (unresolved)", liveStats.site?.crash_reports_unresolved, liveStats.site?.crash_reports_unresolved>0?"#dc2626":"#16a34a"],
+                        ["Crash reports today", liveStats.site?.crash_reports_today, "#666"],
+                      ].map(([label,val,color]:any)=>(
+                        <div key={label} style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
+                          <div style={{ fontSize:19,fontWeight:800,color }}>{(val??0).toLocaleString()}</div>
+                          <div style={{ fontSize:10.5,color:"#666",marginTop:2,fontFamily:S.font }}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {monitorSubTab==="loggers" && liveStats && (
+                  <div>
+                    <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>
+                        LIVE ACTIVITY FEED — merged from audit_log, ip_access_log, not_found_log, crash_reports, sms_log
+                      </div>
+                      <span style={{ fontSize:10,color:"#999",fontFamily:S.font }}>{liveStats.loggers?.length ?? 0} recent events</span>
+                    </div>
+                    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",maxHeight:480,overflowY:"auto" }}>
+                      {(liveStats.loggers ?? []).map((l:any,i:number)=>(
+                        <div key={i} style={{ display:"flex",gap:10,alignItems:"flex-start",padding:"8px 12px",
+                          borderTop:i>0?`1px solid ${S.border}`:"none",fontSize:12,fontFamily:S.font }}>
+                          <span style={{ flexShrink:0,width:76,fontSize:9.5,color:"#999",marginTop:2 }}>
+                            {l.at ? new Date(l.at).toLocaleTimeString() : "—"}
+                          </span>
+                          <span style={{ flexShrink:0,padding:"1px 7px",borderRadius:4,fontSize:9,fontWeight:700,marginTop:1,
+                            background: l.severity==="error"?"#fef2f2":l.severity==="warning"?"#fefce8":"#f0f9ff",
+                            color: l.severity==="error"?"#dc2626":l.severity==="warning"?"#ca8a04":"#0369a1" }}>
+                            {l.source}
+                          </span>
+                          <span style={{ flex:1,color:"#334155" }}>{l.summary || "—"}</span>
+                        </div>
+                      ))}
+                      {(!liveStats.loggers || liveStats.loggers.length===0) && (
+                        <div style={{ padding:20,fontSize:12,color:"#666",fontFamily:S.font }}>No recent activity across any logger.</div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -376,7 +376,6 @@ export default function UsersPage() {
         <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color={T.error} disabled={!selected||!isAdmin}/>
         <TSep/>
         <RBtn icon={Key}      label="Reset Pwd"  onClick={() => selected && (setForm({...selected,newPw:""}),setModal("password"))} disabled={!selected||!isAdmin}/>
-        <RBtn icon={Eye}      label="View Pwd"   onClick={() => selected && setRevealedPws(p=>({...p,[selected.id]:!p[selected.id]}))} disabled={!selected}/>
         <RBtn icon={Activity} label="Activity"   onClick={() => selected && loadActivity(selected.id)} disabled={!selected}/>
         <TSep/>
         <RBtn icon={RefreshCw} label="Refresh"   onClick={load}/>

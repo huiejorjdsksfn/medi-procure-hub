@@ -1,18 +1,16 @@
--- EL5 MediProcure — Live Monitor (dbForge-style dashboard) stats RPC
--- Powers the Overview/Data IO/Databases/Wait Stats/Top Queries/Sessions/Backups
--- tabs on AdminDatabasePage + the compact widget on WebmasterPage. Every number
--- is real (pg_stat_activity / pg_stat_database / pg_stat_statements / pg_locks /
--- pg_stat_bgwriter) — Postgres has no OS-level CPU%/Memory-GB like SQL Server
--- exposes, so those panels are mapped to the closest real Postgres equivalents
--- (connection load, buffer cache hit ratio, checkpoint/buffer I/O) rather than
--- faked with mock numbers.
-
-create or replace function public.get_live_monitor_stats()
-returns jsonb
-language plpgsql
-security definer
-set search_path = public, pg_catalog
-as $$
+-- get_live_monitor_stats(): powers the Live Monitor tab (dbForge/SSMS-style
+-- server + application dashboard). Real pg_stat_* data throughout, plus
+-- application-level "site" metrics and a merged multi-table "loggers" feed.
+-- History: fixed buffers_backend (removed from pg_stat_bgwriter in PG17),
+-- added per-table breakdown, added site stats + unified logger feed, fixed
+-- a jsonb_agg ORDER BY aliasing bug that would have taken down the entire
+-- function result (single atomic SELECT) rather than just one field.
+CREATE OR REPLACE FUNCTION public.get_live_monitor_stats()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
 declare
   result jsonb;
   has_pg_stat_statements boolean;
@@ -31,15 +29,25 @@ begin
   select jsonb_build_object(
     'server', jsonb_build_object(
       'version', (select split_part(version(), ' on ', 1)),
+      'platform', (select split_part(split_part(version(), 'on ', 2), ',', 1)),
       'started_at', pg_postmaster_start_time(),
       'uptime_seconds', extract(epoch from (now() - pg_postmaster_start_time())),
       'max_connections', (select setting::int from pg_settings where name='max_connections'),
       'shared_buffers', (select setting from pg_settings where name='shared_buffers'),
       'effective_cache_size', (select setting from pg_settings where name='effective_cache_size'),
       'work_mem', (select setting from pg_settings where name='work_mem'),
+      'maintenance_work_mem', (select setting from pg_settings where name='maintenance_work_mem'),
       'timezone', (select setting from pg_settings where name='TimeZone'),
       'server_encoding', (select setting from pg_settings where name='server_encoding'),
+      'lc_collate', (select setting from pg_settings where name='lc_collate'),
+      'lc_ctype', (select setting from pg_settings where name='lc_ctype'),
       'data_checksums', (select setting from pg_settings where name='data_checksums'),
+      'wal_level', (select setting from pg_settings where name='wal_level'),
+      'max_wal_size', (select setting from pg_settings where name='max_wal_size'),
+      'checkpoint_timeout', (select setting from pg_settings where name='checkpoint_timeout'),
+      'autovacuum', (select setting from pg_settings where name='autovacuum'),
+      'port', (select setting from pg_settings where name='port'),
+      'listen_addresses', (select setting from pg_settings where name='listen_addresses'),
       'current_database', current_database()
     ),
     'connections', jsonb_build_object(
@@ -66,9 +74,6 @@ begin
         'n_tup_ins', coalesce(sum(n_tup_ins),0), 'n_tup_upd', coalesce(sum(n_tup_upd),0), 'n_tup_del', coalesce(sum(n_tup_del),0)
       ) from pg_stat_user_tables
     ),
-    -- Real per-table breakdown (this was missing — only database-level sums
-    -- existed before). Ranked by total activity so the busiest real tables
-    -- surface first, matching what a per-table "Tables" panel needs.
     'tables', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
         select
@@ -85,9 +90,6 @@ begin
         limit 20
       ) t
     ),
-    -- Fixed: buffers_backend was removed from pg_stat_bgwriter in PG17 (moved
-    -- into pg_stat_io's per-backend-type breakdown). Using the real PG17
-    -- equivalent instead of a column that no longer exists.
     'bgwriter', (
       select jsonb_build_object(
         'buffers_clean', bg.buffers_clean,
@@ -138,6 +140,40 @@ begin
         from backup_jobs order by created_at desc limit 15
       ) b
     ),
+    'site', jsonb_build_object(
+      'requisitions_today', (select count(*) from requisitions where created_at::date = current_date),
+      'purchase_orders_today', (select count(*) from purchase_orders where created_at::date = current_date),
+      'new_users_today', (select count(*) from profiles where created_at::date = current_date),
+      'active_users_last_30min', (select count(distinct user_id) from audit_log where created_at > now() - interval '30 minutes' and user_id is not null),
+      'failed_logins_today', (select count(*) from ip_access_log where allowed = false and created_at::date = current_date),
+      'blocked_ips_today', (select count(distinct ip_address) from ip_access_log where allowed = false and created_at::date = current_date),
+      'sms_sent_today', (select count(*) from sms_log where created_at::date = current_date and status = 'sent'),
+      'sms_failed_today', (select count(*) from sms_log where created_at::date = current_date and status = 'failed'),
+      'not_found_hits_today', (select count(*) from not_found_log where created_at::date = current_date),
+      'crash_reports_unresolved', (select count(*) from crash_reports where resolved is distinct from true),
+      'crash_reports_today', (select count(*) from crash_reports where created_at::date = current_date),
+      'audit_events_today', (select count(*) from audit_log where created_at::date = current_date),
+      'audit_events_last_hour', (select count(*) from audit_log where created_at > now() - interval '1 hour')
+    ),
+    'loggers', (
+      select coalesce(jsonb_agg(l.j order by l.j->>'at' desc), '[]'::jsonb) from (
+        (select jsonb_build_object('source','audit_log','at',created_at,'summary', coalesce(user_name,user_email,'system') || ' — ' || action || coalesce(' ('||module||')',''), 'severity', coalesce(severity,'info')) as j
+         from audit_log order by created_at desc limit 15)
+        union all
+        (select jsonb_build_object('source','ip_access_log','at',created_at,'summary', case when allowed then 'Allowed: ' else 'BLOCKED: ' end || coalesce(ip_address,'?') || coalesce(' ('||reason||')',''), 'severity', case when allowed then 'info' else 'warning' end) as j
+         from ip_access_log order by created_at desc limit 15)
+        union all
+        (select jsonb_build_object('source','not_found_log','at',created_at,'summary','404: '||coalesce(path,'?'), 'severity','info') as j
+         from not_found_log order by created_at desc limit 10)
+        union all
+        (select jsonb_build_object('source','crash_reports','at',created_at,'summary', coalesce(page_name,path,'?') || ' — ' || left(coalesce(message,'unknown error'),120), 'severity','error') as j
+         from crash_reports order by created_at desc limit 10)
+        union all
+        (select jsonb_build_object('source','sms_log','at',created_at,'summary', 'SMS ' || status || ' to ' || coalesce(to_number,'?'), 'severity', case when status='failed' then 'warning' else 'info' end) as j
+         from sms_log order by created_at desc limit 10)
+      ) l
+      limit 40
+    ),
     'generated_at', now()
   ) into result;
 
@@ -145,6 +181,6 @@ begin
 exception when others then
   return jsonb_build_object('error', SQLERRM);
 end;
-$$;
+$function$;
 
-grant execute on function public.get_live_monitor_stats() to authenticated;
+notify pgrst, 'reload schema';
