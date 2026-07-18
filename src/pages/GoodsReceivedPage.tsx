@@ -44,7 +44,7 @@ export default function GoodsReceivedPage() {
     received_date:new Date().toISOString().slice(0,10),
     delivery_note_number:"", invoice_number:"", waybill_number:"",
     carrier_name:"", received_by:"", store_location:"Main Store",
-    inspection_done:false, remarks:"", status:"received"
+    remarks:"", status:"received"
   });
   const [grnItems, setGrnItems]   = useState<GrnItem[]>([{...EMPTY_ITEM}]);
 
@@ -103,7 +103,7 @@ export default function GoodsReceivedPage() {
     received_date:new Date().toISOString().slice(0,10),
     delivery_note_number:"", invoice_number:"", waybill_number:"",
     carrier_name:"", received_by:"", store_location:"Main Store",
-    inspection_done:false, remarks:"", status:"received"
+    remarks:"", status:"received"
   });
     setGrnItems([{...EMPTY_ITEM}]);
     setManualPO(false);

@@ -807,9 +807,8 @@ export default function AdminPanelPage() {
                     {l:"AI Agent Hub",      p:"/ai-agent",         col:"#7c3aed"},
                     {l:"DB Monitor",        p:"/admin/db-test",    col:T.quality},
                     {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
-                    {l:"Deployment Center", p:"/admin/deployments",col:"#0078d4"},
-                    {l:"Webmaster",         p:"/webmaster",        col:"#5c2d91"},
-                    {l:"IP Access Control", p:"/admin/users-ip-audit",  col:T.error},
+                    {l:"Security Center",   p:"/admin/users-ip-audit",  col:T.error},
+                    {l:"Webmaster / Superadmin", p:"/webmaster",   col:"#5c2d91"},
                     {l:"Supabase Live Controls", p:"/admin/supabase-controls", col:"#0f766e"},
                   ].map(a=>(
                     <button key={a.l} onClick={()=>{if(a.cb)a.cb();else if(a.p)nav(a.p);}} style={S.btn(`${a.col}14`,a.col)} onMouseEnter={e=>(e.currentTarget.style.background=`${a.col}22`)} onMouseLeave={e=>(e.currentTarget.style.background=`${a.col}14`)}>
@@ -1528,12 +1527,11 @@ export default function AdminPanelPage() {
                 <div style={S.cardHd(T.quality)}><Activity size={14} color={T.quality}/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Quick Links</span></div>
                 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}>
                   {[
-                    {l:"DB Monitor",   p:"/admin/db-test"},
-                    {l:"IP Access",    p:"/admin/users-ip-audit"},
-                    {l:"Audit Log",    p:"/audit-log"},
-                    {l:"Webmaster",    p:"/webmaster"},
-                    {l:"Backup",       p:"/backup"},
-                    {l:"Superadmin",   p:"/superadmin"},
+                    {l:"DB Monitor",        p:"/admin/db-test"},
+                    {l:"Security Center",   p:"/admin/users-ip-audit"},
+                    {l:"Audit Log",         p:"/audit-log"},
+                    {l:"Webmaster / Superadmin", p:"/webmaster"},
+                    {l:"Backup",            p:"/backup"},
                   ].map(({l,p})=>(
                     <button key={p} onClick={()=>nav(p)} style={{...S.btn(T.bg,T.fgMuted),justifyContent:"space-between",fontSize:12}}>
                       {l}<ChevronRight size={12}/>

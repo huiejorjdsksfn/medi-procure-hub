@@ -92,7 +92,7 @@ const WHEEL = [
       {l:"Admin Panel", p:"/admin/panel",    roles:["admin","superadmin","webmaster"]},
       {l:"Users",       p:"/users",          roles:["admin","superadmin","webmaster"]},
       {l:"Settings",    p:"/settings",       roles:["admin","superadmin","webmaster"]},
-      {l:"IP Audit",   p:"/admin/users-ip-audit",roles:["admin","superadmin","webmaster"]},
+      {l:"Security Center", p:"/admin/users-ip-audit",roles:["admin","superadmin","webmaster"]},
       {l:"Database",    p:"/admin/database", roles:["admin","superadmin","webmaster","database_admin"]},
       {l:"Webmaster",   p:"/webmaster",      roles:["admin","superadmin","webmaster"]},
     ],

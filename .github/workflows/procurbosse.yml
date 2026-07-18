@@ -88,6 +88,24 @@ jobs:
       - run: npx tsc --noEmit --skipLibCheck 2>&1 | head -30 || true
         continue-on-error: true
 
+      - name: Guard - TDZ / hook-ordering check
+        run: npm run audit:tdz
+        # Hard gate, not continue-on-error: this exact bug class (a useMemo/
+        # useCallback referencing a const declared later in the same file)
+        # crashed 100% of visits to /users on 2026-07-18. It's a real
+        # ReferenceError at render time, not a lint nit, and the check has
+        # had zero false positives — safe to block the build on.
+
+      - name: Guard - schema drift check (informational)
+        run: npm run audit:schema
+        continue-on-error: true
+        # Advisory only: flags insert/update/upsert payload keys that don't
+        # match scripts/schema-snapshot.json, but the regex can't tell a
+        # top-level column from a key nested inside a jsonb column, so it
+        # has known false positives. Read the output in the Actions log
+        # rather than gating the build on it. Regenerate the snapshot after
+        # schema changes (see comment at the top of check-schema-drift.mjs).
+
       - name: Build
         run: npm run build
         env:

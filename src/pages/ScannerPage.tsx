@@ -181,7 +181,7 @@ export default function ScannerPage() {
     });
     await (supabase as any).from("audit_log").insert({
       user_id: user?.id, action: "item_added_via_scanner", table_name: "items",
-      details: JSON.stringify({ id: newItemId, name: addForm.name, barcode: addForm.barcode || barcode }),
+      details: { id: newItemId, name: addForm.name, barcode: addForm.barcode || barcode },
     });
 
     toast({ title: `✅ "${addForm.name}" added to catalog`, description: `Barcode: ${addForm.barcode || barcode}` });
