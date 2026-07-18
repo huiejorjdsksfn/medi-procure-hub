@@ -18,6 +18,7 @@ import {
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import RoleGuard from "@/components/RoleGuard";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { printDataTable } from "@/lib/printDocument";
@@ -66,10 +67,66 @@ const CELL: React.CSSProperties = {
   background: "transparent",
 };
 
+// - Live Monitor helper components (dbForge-style) -
+function MonitorChartCard({ title, subtitle, children }: { title:string; subtitle?:string; children:React.ReactNode }) {
+  return (
+    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff",marginBottom:10 }}>
+      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>{title}</div>
+      {subtitle && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,marginBottom:4 }}>{subtitle}</div>}
+      {children}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, sub }: { label:string; value:string; sub?:string }) {
+  return (
+    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"8px 12px",background:"#fff" }}>
+      <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,fontWeight:700,textTransform:"uppercase" }}>{label}</div>
+      <div style={{ fontSize:19,fontWeight:800,color:"#0f172a",fontFamily:S.font }}>{value}</div>
+      {sub && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font }}>{sub}</div>}
+    </div>
+  );
+}
+
+function MonitorTable({ title, headers, rows, empty }: { title:string; headers:string[]; rows:(string|number)[][]; empty?:string }) {
+  return (
+    <div>
+      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,marginBottom:6 }}>{title}</div>
+      {rows.length === 0 ? (
+        <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:16,border:`1px solid ${S.border}`,borderRadius:6 }}>{empty || "No data"}</div>
+      ) : (
+        <div style={{ overflowX:"auto" }}>
+          <table style={{ borderCollapse:"collapse",width:"100%",fontSize:11.5,fontFamily:S.font }}>
+            <thead><tr>
+              {headers.map(h => <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {rows.map((row,i) => (
+                <tr key={i} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
+                  {row.map((cell,j) => <td key={j} style={CELL}>{String(cell)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PropRow({ k, v }: { k:string; v:any }) {
+  return (
+    <div style={{ display:"flex",justifyContent:"space-between",gap:8,padding:"4px 12px",fontSize:10.5,fontFamily:S.font,borderBottom:"1px solid #eef2f7" }}>
+      <span style={{ color:"#64748b" }}>{k}</span>
+      <span style={{ color:"#0f172a",fontWeight:600,textAlign:"right",wordBreak:"break-word" }}>{v ?? "—"}</span>
+    </div>
+  );
+}
+
 // - Main Component -
 function DBInner() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"realtime"|"stats">("tables");
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"realtime"|"stats"|"monitor">("tables");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
   const [selectedTable, setSelectedTable] = useState<string>("requisitions");
   const [tableData, setTableData] = useState<any[]>([]);
@@ -108,6 +165,11 @@ ORDER BY t.table_name;`);
   const [dbDash, setDbDash] = useState<any | null>(null);
   const [dbDashLoading, setDbDashLoading] = useState(false);
   const [dbDashHistory, setDbDashHistory] = useState<{ t: number; active: number; cache: number }[]>([]);
+  const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups">("overview");
+  const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [liveStatsLoading, setLiveStatsLoading] = useState(false);
+  const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
+  const liveStatsPrev = useRef<{ t:number; xact_commit:number; blks_read:number; blks_hit:number } | null>(null);
   const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
   const [realtimeOn, setRealtimeOn] = useState(false);
   const [watchTables, setWatchTables] = useState<string[]>([]);
@@ -352,6 +414,56 @@ ORDER BY t.table_name;`);
     return () => clearInterval(id);
   }, [activeTab, loadDbDashboard]);
 
+  // - Live Monitor (dbForge-style) — real pg_stat_activity / pg_stat_database /
+  //   pg_stat_statements / pg_locks / pg_stat_bgwriter data, polled every 5s.
+  //   Rates (commits/sec, reads/sec, cache-hits/sec) are computed client-side
+  //   from consecutive cumulative-counter samples — Postgres exposes running
+  //   totals, not per-second rates, so the delta has to happen here.
+  const loadLiveStats = useCallback(async () => {
+    setLiveStatsLoading(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("get_live_monitor_stats");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setLiveStats(data);
+
+      const now = Date.now();
+      const tx = data?.transactions || {};
+      const prev = liveStatsPrev.current;
+      let commitRate = 0, readRate = 0, hitRate = 0;
+      if (prev) {
+        const dt = Math.max(1, (now - prev.t) / 1000);
+        commitRate = Math.max(0, Math.round((tx.xact_commit - prev.xact_commit) / dt));
+        readRate = Math.max(0, Math.round((tx.blks_read - prev.blks_read) / dt));
+        hitRate = Math.max(0, Math.round((tx.blks_hit - prev.blks_hit) / dt));
+      }
+      liveStatsPrev.current = { t: now, xact_commit: tx.xact_commit||0, blks_read: tx.blks_read||0, blks_hit: tx.blks_hit||0 };
+
+      setLiveHistory(prevH => [
+        ...prevH.slice(-39),
+        {
+          time: new Date(now).toLocaleTimeString("en-KE", { hour12:false }),
+          active: data?.connections?.active ?? 0,
+          idle: data?.connections?.idle ?? 0,
+          idleTx: data?.connections?.idle_in_transaction ?? 0,
+          cacheHit: tx.cache_hit_ratio ?? 0,
+          commitRate, readRate, hitRate,
+        },
+      ]);
+    } catch (e:any) {
+      toast({ title:"Couldn't load live monitor", description:e.message, variant:"destructive" });
+    } finally {
+      setLiveStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "monitor") return;
+    loadLiveStats();
+    const id = setInterval(loadLiveStats, 5000);
+    return () => clearInterval(id);
+  }, [activeTab, loadLiveStats]);
+
   // - Realtime -
   function toggleRealtime() {
     if (realtimeOn) {
@@ -422,6 +534,7 @@ ORDER BY t.table_name;`);
     { id:"triggers", label:"Triggers",      icon:Zap },
     { id:"realtime", label:"Realtime",      icon:Activity },
     { id:"stats",    label:"DB Stats",      icon:BarChart3 },
+    { id:"monitor",  label:"Live Monitor",  icon:Activity },
   ];
 
   // Cleanup rtChannel on unmount
@@ -1082,6 +1195,204 @@ ORDER BY t.table_name;`);
             ) : (
               <div style={{ fontFamily:S.font,fontSize:12,color:"#666",padding:20 }}>Click Refresh to load statistics-</div>
             )}
+            </div>
+          </div>
+        )}
+
+        {/* - LIVE MONITOR tab (dbForge-style) - */}
+        {activeTab === "monitor" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+                <Activity size={15}/> Live Monitor
+                {liveStatsLoading && <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>}
+              </span>
+              <span style={{ fontSize:10,color:"#888",fontFamily:S.font }}>
+                {liveStats?.generated_at ? `Live — updated ${new Date(liveStats.generated_at).toLocaleTimeString()}` : "Loading…"}
+              </span>
+            </div>
+
+            {/* Sub-tab bar (Overview / Data IO / Databases / Wait Stats / Top Queries / Sessions / Backups) */}
+            <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14 }}>
+              {[
+                { id:"overview",   label:"Overview"   },
+                { id:"dataio",     label:"Data IO"     },
+                { id:"databases",  label:"Databases"   },
+                { id:"waitstats",  label:"Wait Stats"  },
+                { id:"topqueries", label:"Top Queries" },
+                { id:"sessions",   label:"Sessions"    },
+                { id:"backups",    label:"Backups"     },
+              ].map(t => (
+                <button key={t.id} onClick={()=>setMonitorSubTab(t.id as any)}
+                  style={{ padding:"6px 14px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
+                    marginBottom:-2,background:"transparent",cursor:"pointer",fontFamily:S.font,fontSize:12.5,
+                    fontWeight:monitorSubTab===t.id?700:500,color:monitorSubTab===t.id?"#003087":"#64748b" }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display:"flex",gap:14,alignItems:"flex-start" }}>
+              {/* ── LEFT: charts / tables for the active sub-tab ── */}
+              <div style={{ flex:1,minWidth:0 }}>
+
+                {monitorSubTab==="overview" && (
+                  <>
+                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live">
+                      <ResponsiveContainer width="100%" height={170}>
+                        <AreaChart data={liveHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
+                          <YAxis tick={{ fontSize:9 }} allowDecimals={false}/>
+                          <Tooltip contentStyle={{ fontSize:11 }}/>
+                          <Legend wrapperStyle={{ fontSize:10 }}/>
+                          <Area type="monotone" dataKey="active" name="Active" stroke="#dc2626" fill="#fecaca" fillOpacity={0.6}/>
+                          <Area type="monotone" dataKey="idle" name="Idle" stroke="#0ea5e9" fill="#bae6fd" fillOpacity={0.5}/>
+                          <Area type="monotone" dataKey="idleTx" name="Idle in TX" stroke="#ca8a04" fill="#fef08a" fillOpacity={0.5}/>
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </MonitorChartCard>
+
+                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'">
+                      <ResponsiveContainer width="100%" height={140}>
+                        <LineChart data={liveHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
+                          <YAxis tick={{ fontSize:9 }} domain={[0,100]}/>
+                          <Tooltip contentStyle={{ fontSize:11 }}/>
+                          <Line type="monotone" dataKey="cacheHit" name="Cache hit %" stroke="#16a34a" strokeWidth={2} dot={false}/>
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </MonitorChartCard>
+
+                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'">
+                      <ResponsiveContainer width="100%" height={140}>
+                        <AreaChart data={liveHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
+                          <YAxis tick={{ fontSize:9 }}/>
+                          <Tooltip contentStyle={{ fontSize:11 }}/>
+                          <Legend wrapperStyle={{ fontSize:10 }}/>
+                          <Area type="monotone" dataKey="readRate" name="Disk reads/sec" stroke="#7c3aed" fill="#ddd6fe" fillOpacity={0.6}/>
+                          <Area type="monotone" dataKey="hitRate" name="Cache hits/sec" stroke="#0891b2" fill="#a5f3fc" fillOpacity={0.5}/>
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </MonitorChartCard>
+
+                    {liveStats && (
+                      <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8 }}>
+                        <MiniStat label="Connections" value={`${liveStats.connections?.total ?? 0}`} sub={`of ${liveStats.server?.max_connections ?? "—"} max`}/>
+                        <MiniStat label="Commit Rate" value={`${liveHistory[liveHistory.length-1]?.commitRate ?? 0}`} sub="commits/sec"/>
+                        <MiniStat label="Waiting Tasks" value={`${liveStats.connections?.waiting ?? 0}`} sub={`${liveStats.locks?.waiting ?? 0} lock waits`}/>
+                        <MiniStat label="Deadlocks" value={`${liveStats.transactions?.deadlocks ?? 0}`} sub="cumulative"/>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {monitorSubTab==="dataio" && liveStats && (
+                  <MonitorTable
+                    title="DATA I/O — real pg_stat_user_tables / pg_stat_bgwriter counters (cumulative since last stats reset)"
+                    headers={["Metric","Value"]}
+                    rows={[
+                      ["Sequential scans", (liveStats.scans?.seq_scan ?? 0).toLocaleString()],
+                      ["Sequential tuples read", (liveStats.scans?.seq_tup_read ?? 0).toLocaleString()],
+                      ["Index scans", (liveStats.scans?.idx_scan ?? 0).toLocaleString()],
+                      ["Index tuples fetched", (liveStats.scans?.idx_tup_fetch ?? 0).toLocaleString()],
+                      ["Rows inserted", (liveStats.scans?.n_tup_ins ?? 0).toLocaleString()],
+                      ["Rows updated", (liveStats.scans?.n_tup_upd ?? 0).toLocaleString()],
+                      ["Rows deleted", (liveStats.scans?.n_tup_del ?? 0).toLocaleString()],
+                      ["Buffers written by bgwriter (clean)", (liveStats.bgwriter?.buffers_clean ?? "—")],
+                      ["Buffers written by backends", (liveStats.bgwriter?.buffers_backend ?? "—")],
+                      ["Buffers allocated", (liveStats.bgwriter?.buffers_alloc ?? "—")],
+                      ["Temp files / bytes", `${liveStats.transactions?.temp_files ?? 0} / ${liveStats.transactions?.temp_bytes ?? 0}`],
+                    ]}
+                  />
+                )}
+
+                {monitorSubTab==="databases" && liveStats && (
+                  <MonitorTable
+                    title="DATABASES — live pg_database_size()"
+                    headers={["Database","Size"]}
+                    rows={(liveStats.databases||[]).map((d:any)=>[d.datname, d.size_pretty])}
+                  />
+                )}
+
+                {monitorSubTab==="waitstats" && liveStats && (
+                  <MonitorTable
+                    title={`WAIT STATS — ${liveStats.locks?.waiting ?? 0} lock(s) waiting, ${liveStats.connections?.waiting ?? 0} session(s) blocked on a wait event`}
+                    headers={["PID","User","Wait Type","Wait Event","Running for","Query"]}
+                    rows={(liveStats.sessions||[]).filter((s:any)=>s.wait_event).map((s:any)=>[
+                      s.pid, s.usename||"—", s.wait_event_type||"—", s.wait_event||"—",
+                      `${s.running_seconds ?? 0}s`, s.query_snippet||"—",
+                    ])}
+                    empty="No sessions currently waiting — nothing blocked right now."
+                  />
+                )}
+
+                {monitorSubTab==="topqueries" && liveStats && (
+                  liveStats.top_queries?.length ? (
+                    <MonitorTable
+                      title="TOP QUERIES — real pg_stat_statements, ranked by total execution time"
+                      headers={["Query","Calls","Total (ms)","Mean (ms)","Rows"]}
+                      rows={liveStats.top_queries.map((q:any)=>[q.query_snippet, q.calls, q.total_exec_ms, q.mean_exec_ms, q.rows])}
+                    />
+                  ) : (
+                    <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
+                      pg_stat_statements has no recorded queries yet (or was just reset) — this fills in as the database is used.
+                    </div>
+                  )
+                )}
+
+                {monitorSubTab==="sessions" && liveStats && (
+                  <MonitorTable
+                    title={`SESSIONS — ${liveStats.connections?.total ?? 0} total (${liveStats.connections?.active ?? 0} active)`}
+                    headers={["PID","User","App","Client IP","State","Running for","Query"]}
+                    rows={(liveStats.sessions||[]).map((s:any)=>[
+                      s.pid, s.usename||"—", s.application_name||"—", s.client_addr||"local",
+                      s.state||"—", s.running_seconds!=null?`${s.running_seconds}s`:"—", s.query_snippet||"—",
+                    ])}
+                  />
+                )}
+
+                {monitorSubTab==="backups" && liveStats && (
+                  liveStats.backups?.length ? (
+                    <MonitorTable
+                      title="BACKUPS — recent app-level backup jobs (backup_jobs table)"
+                      headers={["Label","Type","Status","Size","Started","Completed"]}
+                      rows={liveStats.backups.map((b:any)=>[
+                        b.label||"—", b.backup_type||"—", b.status||"—",
+                        b.size_bytes?`${Math.round(b.size_bytes/1024)} KB`:"—",
+                        b.started_at?new Date(b.started_at).toLocaleString():"—",
+                        b.completed_at?new Date(b.completed_at).toLocaleString():"—",
+                      ])}
+                    />
+                  ) : (
+                    <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
+                      No backup jobs recorded yet. Supabase also runs its own managed PITR backups behind the scenes — this table only reflects backups triggered from within the app.
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* ── RIGHT: Server / Database Properties panel ── */}
+              {liveStats && (
+                <div style={{ width:240,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,background:"#fafbfc" }}>
+                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#003087" }}>Server Properties</div>
+                  <PropRow k="Version" v={liveStats.server?.version}/>
+                  <PropRow k="Database" v={liveStats.server?.current_database}/>
+                  <PropRow k="Uptime" v={`${Math.floor((liveStats.server?.uptime_seconds||0)/86400)}d ${Math.floor(((liveStats.server?.uptime_seconds||0)%86400)/3600)}h`}/>
+                  <PropRow k="Max Connections" v={liveStats.server?.max_connections}/>
+                  <PropRow k="Shared Buffers" v={liveStats.server?.shared_buffers}/>
+                  <PropRow k="Effective Cache Size" v={liveStats.server?.effective_cache_size}/>
+                  <PropRow k="Work Mem" v={liveStats.server?.work_mem}/>
+                  <PropRow k="Timezone" v={liveStats.server?.timezone}/>
+                  <PropRow k="Encoding" v={liveStats.server?.server_encoding}/>
+                  <PropRow k="Data Checksums" v={liveStats.server?.data_checksums}/>
+                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,borderTop:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#003087",marginTop:6 }}>Database Size</div>
+                  <PropRow k="Total Size" v={liveStats.storage?.database_size_pretty}/>
+                </div>
+              )}
             </div>
           </div>
         )}

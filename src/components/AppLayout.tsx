@@ -115,7 +115,8 @@ const MODS = [
      {l:"Documents",  p:"/documents",      I:FileText},
      {l:"Document Studio",p:"/documents/editor",I:PenLine},
      {l:"Stamp Studio",   p:"/admin/stamp-design",I:Palette},
-     {l:"Audit Log",  p:"/audit-log",      I:Activity},
+     {l:"Email",      p:"/email",          I:Mail},
+     {l:"SMS",        p:"/sms",            I:MessageSquare},
    ]},
   {id:"comms",label:"Communications",col:T.comms,roles:[],
    items:[
@@ -133,6 +134,7 @@ const MODS = [
      {l:"Users",              p:"/users",                 I:Users},
      {l:"Create User",        p:"/admin/create-user",     I:UserCheck},
      {l:"Security Center",    p:"/admin/users-ip-audit",  I:Globe},
+     {l:"Audit Log",          p:"/audit-log",             I:Activity},
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},

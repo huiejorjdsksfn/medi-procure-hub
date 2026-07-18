@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystemSettings, saveSetting, saveSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import {
   Globe, RefreshCw, Activity, Package, Shield, Code2, Radio,
   Server, Terminal, ArrowRight, Users, Bell, Hash, Settings,
@@ -86,6 +87,8 @@ export default function WebmasterPage() {
 
   const [tab, setTab] = useState<WMTab>("overview");
   const [kpis, setKpis] = useState<any>({});
+  const [liveMon, setLiveMon] = useState<any|null>(null);
+  const [liveMonHistory, setLiveMonHistory] = useState<{ time:string; active:number; cacheHit:number }[]>([]);
   // Merged from DeploymentsPage (company/facility onboarding tracker)
   const [companyDeployments, setCompanyDeployments] = useState<any[]>([]);
   const [deployJobs, setDeployJobs] = useState<any[]>([]);
@@ -206,6 +209,29 @@ export default function WebmasterPage() {
   }, []);
 
   useEffect(() => { loadKpis(); }, [loadKpis]);
+
+  // - Compact live server monitor (same real pg_stat_* RPC as the full
+  //   Live Monitor tab on /admin/database) — only polls while on Overview.
+  const loadLiveMon = useCallback(async () => {
+    try {
+      const { data, error } = await db.rpc("get_live_monitor_stats");
+      if (error || data?.error) return;
+      setLiveMon(data);
+      setLiveMonHistory(prev => [
+        ...prev.slice(-19),
+        { time: new Date().toLocaleTimeString("en-KE", { hour12:false }),
+          active: data?.connections?.active ?? 0,
+          cacheHit: data?.transactions?.cache_hit_ratio ?? 0 },
+      ]);
+    } catch { /* silent — this is a secondary widget, not the primary view */ }
+  }, []);
+
+  useEffect(() => {
+    if (tab !== "overview") return;
+    loadLiveMon();
+    const id = setInterval(loadLiveMon, 5000);
+    return () => clearInterval(id);
+  }, [tab, loadLiveMon]);
 
   const loadDeployments = useCallback(async () => {
     setDeployLoading(true);
@@ -569,6 +595,51 @@ export default function WebmasterPage() {
                 <div style={{ fontSize:10, color:T.fgDim, marginTop:2 }}>{k.label}</div>
               </div>
             ))}
+          </div>
+
+          {/* Live Server Monitor (compact) — real pg_stat_* data, same source as the full Live Monitor tab */}
+          <div style={{ ...card, marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontWeight:700, color:T.fg, fontSize:14, display:"flex", alignItems:"center", gap:6 }}>
+                <Activity size={15}/> Live Server Monitor
+              </div>
+              <button onClick={()=>nav("/admin/database")} style={{ fontSize:11, color:T.primary, background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>
+                Full Monitor →
+              </button>
+            </div>
+            {liveMon ? (
+              <div style={{ display:"grid", gridTemplateColumns:"1.3fr 1fr 1fr", gap:14 }}>
+                <div>
+                  <div style={{ fontSize:10, color:T.fgDim, fontWeight:700, marginBottom:2 }}>CONNECTIONS ({liveMon.connections?.active ?? 0} active / {liveMon.connections?.total ?? 0} total)</div>
+                  <ResponsiveContainer width="100%" height={70}>
+                    <AreaChart data={liveMonHistory}>
+                      <XAxis dataKey="time" hide/>
+                      <YAxis hide/>
+                      <Tooltip contentStyle={{ fontSize:10 }}/>
+                      <Area type="monotone" dataKey="active" stroke="#dc2626" fill="#fecaca" fillOpacity={0.6} strokeWidth={2}/>
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:T.fgDim, fontWeight:700, marginBottom:2 }}>CACHE HIT % (memory equivalent)</div>
+                  <ResponsiveContainer width="100%" height={70}>
+                    <LineChart data={liveMonHistory}>
+                      <XAxis dataKey="time" hide/>
+                      <YAxis hide domain={[0,100]}/>
+                      <Tooltip contentStyle={{ fontSize:10 }}/>
+                      <Line type="monotone" dataKey="cacheHit" stroke="#16a34a" strokeWidth={2} dot={false}/>
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ fontSize:11, color:T.fgDim, lineHeight:2 }}>
+                  <div>DB Size: <strong style={{ color:T.fg }}>{liveMon.storage?.database_size_pretty}</strong></div>
+                  <div>Uptime: <strong style={{ color:T.fg }}>{Math.floor((liveMon.server?.uptime_seconds||0)/86400)}d {Math.floor(((liveMon.server?.uptime_seconds||0)%86400)/3600)}h</strong></div>
+                  <div>Deadlocks: <strong style={{ color:T.fg }}>{liveMon.transactions?.deadlocks ?? 0}</strong></div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize:12, color:T.fgDim, padding:"12px 0" }}>Loading live stats…</div>
+            )}
           </div>
 
           {/* Module status */}

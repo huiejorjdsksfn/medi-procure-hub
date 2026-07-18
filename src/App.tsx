@@ -244,7 +244,7 @@ const App = () => {
               <Route path="/users"                       element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><UsersPage /></RoleGuard></P>} />
               <Route path="/settings"                    element={<P><RoleGuard allowed={ADMINS}><SettingsPage /></RoleGuard></P>} />
               <Route path="/audit"                       element={<Navigate to="/audit-log" replace />} />
-              <Route path="/audit-log"                   element={<P><RoleGuard allowed={["admin","procurement_manager","accountant","finance_manager"]}><AuditLogPage /></RoleGuard></P>} />
+              <Route path="/audit-log"                   element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><AuditLogPage /></RoleGuard></P>} />
               <Route path="/admin/database"              element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
               <Route path="/admin/supabase-controls"     element={<P><SupabaseControlsPage /></P>} />
               <Route path="/admin/panel"                 element={<P><RoleGuard allowed={ADMINS}><AdminPanelPage /></RoleGuard></P>} />

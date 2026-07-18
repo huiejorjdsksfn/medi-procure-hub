@@ -15,6 +15,8 @@ import {
   Database, RefreshCw, HardDrive, Zap, ShieldCheck,
   CloudUpload, Trash2, Activity, PlayCircle, HeartPulse,
 } from "lucide-react";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 const db = supabase as any;
 
@@ -38,7 +40,10 @@ const S = {
 
 export default function SupabaseControlsPage() {
   const { user, profile } = useAuth();
+  const nav = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
+  const [liveMon, setLiveMon] = useState<any|null>(null);
+  const [liveMonHistory, setLiveMonHistory] = useState<{ time:string; active:number; cacheHit:number }[]>([]);
   const [buckets, setBuckets] = useState<any[]>([]);
   const [bucketFiles, setBucketFiles] = useState<Record<string, { count: number; bytes: number; files: any[]; loading: boolean; error?: string }>>({});
   const [expandedBucket, setExpandedBucket] = useState<string | null>(null);
@@ -190,6 +195,25 @@ export default function SupabaseControlsPage() {
   }, [run, loadBuckets, loadSchema, pingFn, loadEdgeOne]);
 
   useEffect(() => {
+    const loadLiveMon = async () => {
+      try {
+        const { data, error } = await db.rpc("get_live_monitor_stats");
+        if (error || data?.error) return;
+        setLiveMon(data);
+        setLiveMonHistory(prev => [
+          ...prev.slice(-19),
+          { time: new Date().toLocaleTimeString("en-KE", { hour12:false }),
+            active: data?.connections?.active ?? 0,
+            cacheHit: data?.transactions?.cache_hit_ratio ?? 0 },
+        ]);
+      } catch { /* silent — secondary widget */ }
+    };
+    loadLiveMon();
+    const id = setInterval(loadLiveMon, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     pollBots();
     const id = setInterval(pollBots, 15000);
     return () => clearInterval(id);
@@ -200,6 +224,50 @@ export default function SupabaseControlsPage() {
       <div style={S.wrap}>
         <AdminBreadcrumb />
         <h1 style={S.h}>Supabase Live Controls</h1>
+
+        {/* Live Server Monitor (compact) — real pg_stat_* data, same RPC as the full Live Monitor tab on /admin/database */}
+        <div style={{ ...S.card, marginBottom: 16 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+            <div style={S.title}><Activity size={16}/> Live Server Monitor</div>
+            <button onClick={()=>nav("/admin/database")} style={{ fontSize:11, color:"#2563eb", background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>
+              Full Monitor →
+            </button>
+          </div>
+          {liveMon ? (
+            <div style={{ display:"grid", gridTemplateColumns:"1.3fr 1fr 1fr", gap:14 }}>
+              <div>
+                <div style={{ fontSize:10, color:"#94a3b8", fontWeight:700, marginBottom:2 }}>CONNECTIONS ({liveMon.connections?.active ?? 0} active / {liveMon.connections?.total ?? 0} total)</div>
+                <ResponsiveContainer width="100%" height={64}>
+                  <AreaChart data={liveMonHistory}>
+                    <XAxis dataKey="time" hide/>
+                    <YAxis hide/>
+                    <Tooltip contentStyle={{ fontSize:10 }}/>
+                    <Area type="monotone" dataKey="active" stroke="#dc2626" fill="#fecaca" fillOpacity={0.6} strokeWidth={2}/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div>
+                <div style={{ fontSize:10, color:"#94a3b8", fontWeight:700, marginBottom:2 }}>CACHE HIT % (memory equivalent)</div>
+                <ResponsiveContainer width="100%" height={64}>
+                  <LineChart data={liveMonHistory}>
+                    <XAxis dataKey="time" hide/>
+                    <YAxis hide domain={[0,100]}/>
+                    <Tooltip contentStyle={{ fontSize:10 }}/>
+                    <Line type="monotone" dataKey="cacheHit" stroke="#16a34a" strokeWidth={2} dot={false}/>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ fontSize:11, color:"#64748b", lineHeight:2 }}>
+                <div>DB Size: <strong style={{ color:"#0f172a" }}>{liveMon.storage?.database_size_pretty}</strong></div>
+                <div>Uptime: <strong style={{ color:"#0f172a" }}>{Math.floor((liveMon.server?.uptime_seconds||0)/86400)}d {Math.floor(((liveMon.server?.uptime_seconds||0)%86400)/3600)}h</strong></div>
+                <div>Deadlocks: <strong style={{ color:"#0f172a" }}>{liveMon.transactions?.deadlocks ?? 0}</strong></div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize:12, color:"#94a3b8", padding:"10px 0" }}>Loading live stats…</div>
+          )}
+        </div>
+
         <div style={S.grid}>
           <div style={S.card}>
             <div style={S.title}><Database size={16}/> Schema</div>
