@@ -134,6 +134,17 @@ export default function UsersPage() {
   const [activeLeaf, setActiveLeaf] = useState<"profile"|"roles"|"security"|"activity">("profile");
   const [ctxMenu, setCtxMenu] = useState<{ x:number; y:number; type:"root"|"dept"|"role"|"user"; dept?:string; role?:string; user?:UserRow } | null>(null);
 
+  /* ── Filtered list ── */
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase();
+    return users.filter(u => {
+      const matchText = !s || u.full_name?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s) || u.department?.toLowerCase().includes(s) || (u as any).lastIP?.includes(s);
+      const matchRole   = roleFilter==="all" || u.roles.includes(roleFilter);
+      const matchStatus = statusFilter==="all" || (statusFilter==="active"&&u.is_active!==false) || (statusFilter==="inactive"&&u.is_active===false) || (statusFilter==="locked"&&u.is_locked);
+      return matchText && matchRole && matchStatus;
+    });
+  }, [users,search,roleFilter,statusFilter]);
+
   /* ── grouped tree: Department > Role > User (SSMS-style Object Explorer) ── */
   const tree = useMemo(() => {
     const byDept: Record<string, Record<string, UserRow[]>> = {};
@@ -202,17 +213,6 @@ export default function UsersPage() {
     const ch = db.channel("users:rt").on("postgres_changes",{event:"*",schema:"public",table:"profiles"},()=>load()).subscribe();
     return () => db.removeChannel(ch);
   }, [load]);
-
-  /* ── Filtered list ── */
-  const filtered = useMemo(() => {
-    const s = search.toLowerCase();
-    return users.filter(u => {
-      const matchText = !s || u.full_name?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s) || u.department?.toLowerCase().includes(s) || (u as any).lastIP?.includes(s);
-      const matchRole   = roleFilter==="all" || u.roles.includes(roleFilter);
-      const matchStatus = statusFilter==="all" || (statusFilter==="active"&&u.is_active!==false) || (statusFilter==="inactive"&&u.is_active===false) || (statusFilter==="locked"&&u.is_locked);
-      return matchText && matchRole && matchStatus;
-    });
-  }, [users,search,roleFilter,statusFilter]);
 
   const stats = useMemo(() => ({
     total:   users.length,
