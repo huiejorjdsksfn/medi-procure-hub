@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { pageCache } from "@/lib/pageCache";
+import { cacheBuckets } from "@/lib/cacheBuckets";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -147,6 +148,12 @@ export default function AdminPanelPage() {
   const {user,roles,profile} = useAuth();
   const settings = useSystemSettings();
   const [sec, setSec] = useState("overview");
+  const [srvHealth, setSrvHealth] = useState<any>(null);
+  const [srvCron, setSrvCron] = useState<any[]>([]);
+  const [srvBreakers, setSrvBreakers] = useState<any[]>([]);
+  const [srvErrors, setSrvErrors] = useState<any[]>([]);
+  const [srvLoading, setSrvLoading] = useState(false);
+  const [srvActionBusy, setSrvActionBusy] = useState<string|null>(null);
   const [kpi, setKpi] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [ipLog, setIpLog] = useState<any[]>([]);
@@ -256,6 +263,31 @@ export default function AdminPanelPage() {
 
   const selectedForm = forms.find((f:any)=>f.form_id===selectedFormId) || null;
   const fbPublicUrl = selectedFormId ? `${window.location.origin}/#/forms/${selectedFormId}` : "";
+
+  const loadServerControls = useCallback(async()=>{
+    setSrvLoading(true);
+    try {
+      const [healthRes, cronRes, breakersRes, errorsRes] = await Promise.all([
+        db.rpc("get_db_health_stats"),
+        db.rpc("get_cron_job_health"),
+        db.from("system_circuit_breaker").select("*").order("service_key"),
+        db.from("system_errors").select("*").eq("is_resolved", false).order("created_at",{ascending:false}).limit(20),
+      ]);
+      if (healthRes.data) setSrvHealth(healthRes.data);
+      setSrvCron(cronRes.data||[]);
+      setSrvBreakers(breakersRes.data||[]);
+      setSrvErrors(errorsRes.data||[]);
+    } catch(e:any) { console.error("[ServerControl] load error:",e); }
+    setSrvLoading(false);
+  },[]);
+
+  useEffect(()=>{ if (sec==="serverctrl") loadServerControls(); },[sec,loadServerControls]);
+
+  const srvAction = useCallback(async(key:string, fn:()=>Promise<void>)=>{
+    setSrvActionBusy(key);
+    try { await fn(); } catch(e:any) { toast({title:"Action failed", description:e.message, variant:"destructive"}); }
+    setSrvActionBusy(null);
+  },[]);
 
   const [showDeletedForms, setShowDeletedForms] = useState(false);
   const loadForms = useCallback(async()=>{
@@ -1562,15 +1594,20 @@ export default function AdminPanelPage() {
           {sec==="serverctrl"&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <div style={S.card}>
-                <div style={S.cardHd("#7c3aed")}><HardDrive size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Server Control Panel</span></div>
+                <div style={S.cardHd("#7c3aed")}>
+                  <HardDrive size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>System Health</span>
+                  <button onClick={loadServerControls} disabled={srvLoading} style={{marginLeft:"auto",...S.btn("#7c3aed"),fontSize:11,padding:"4px 10px"}}>
+                    <RefreshCw size={12} style={srvLoading?{animation:"spin 1s linear infinite"}:{}}/>Refresh
+                  </button>
+                </div>
                 <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
                   {[
-                    {label:"CPU Usage",val:"24%",icon:Cpu,col:"#10b981",pct:24},
-                    {label:"Memory",val:"3.2 GB / 8 GB",icon:MemoryStick,col:"#3b82f6",pct:40},
-                    {label:"Disk I/O",val:"142 MB/s",icon:HardDriveDownload,col:"#f59e0b",pct:0},
-                    {label:"Network",val:"Active",icon:Cloud,col:"#8b5cf6",pct:0},
-                    {label:"Uptime",val:"99.8%",icon:Clock,col:"#10b981",pct:0},
-                    {label:"Response",val:"45ms",icon:Activity,col:"#3b82f6",pct:0},
+                    {label:"Active DB Connections",val:srvHealth?.active_conns ?? "—",icon:Cpu,col:"#10b981"},
+                    {label:"Requisitions",val:srvHealth?.table_counts?.requisitions ?? "—",icon:MemoryStick,col:"#3b82f6"},
+                    {label:"Purchase Orders",val:srvHealth?.table_counts?.purchase_orders ?? "—",icon:HardDriveDownload,col:"#f59e0b"},
+                    {label:"Documents",val:srvHealth?.table_counts?.documents ?? "—",icon:FileText,col:"#8b5cf6"},
+                    {label:"SMS Sent",val:srvHealth?.table_counts?.sms_log ?? "—",icon:Cloud,col:"#0ea5e9"},
+                    {label:"Unread Notifs",val:srvHealth?.table_counts?.notifications ?? "—",icon:Activity,col:"#3b82f6"},
                   ].map(({label,val,icon:Icon,col})=>(
                     <div key={label} style={{background:"#f8fafc",border:`1px solid ${T.border}22`,borderRadius:8,padding:"12px",display:"flex",flexDirection:"column",gap:6}}>
                       <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1581,21 +1618,76 @@ export default function AdminPanelPage() {
                     </div>
                   ))}
                 </div>
+                {srvHealth?.db_version && <div style={{padding:"0 16px 14px",fontSize:10,color:T.fgDim}}>Checked {new Date(srvHealth.checked_at).toLocaleString("en-KE")} · {String(srvHealth.db_version).split(",")[0]}</div>}
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#7c3aed")}><Clock size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Scheduled Jobs (cron)</span></div>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                    <thead><tr style={{background:"#f8fafc",borderBottom:`1px solid ${T.border}`}}>
+                      {["Job","Schedule","Active","Last Run","Status","Runs (14d)","Failures (14d)"].map(h=>
+                        <th key={h} style={{padding:"7px 10px",textAlign:"left",fontWeight:700,color:T.fgMuted}}>{h}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {srvCron.length===0 && <tr><td colSpan={7} style={{padding:14,textAlign:"center",color:T.fgDim}}>{srvLoading?"Loading…":"No scheduled jobs found"}</td></tr>}
+                      {srvCron.map((j:any)=>(
+                        <tr key={j.jobid} style={{borderBottom:`1px solid ${T.border}11`}}>
+                          <td style={{padding:"6px 10px",fontWeight:600}}>{j.jobname}</td>
+                          <td style={{padding:"6px 10px",fontFamily:"monospace",color:T.fgMuted}}>{j.schedule}</td>
+                          <td style={{padding:"6px 10px"}}>{j.active ? <CheckCircle2 size={13} color="#10b981"/> : <AlertCircle size={13} color="#9ca3af"/>}</td>
+                          <td style={{padding:"6px 10px",color:T.fgMuted}}>{j.last_run ? new Date(j.last_run).toLocaleString("en-KE") : "never"}</td>
+                          <td style={{padding:"6px 10px"}}>
+                            <span style={{padding:"1px 7px",borderRadius:10,fontSize:10,fontWeight:700,background:j.last_status==="succeeded"?"#dcfce7":j.last_status==="failed"?"#fee2e2":"#f1f5f9",color:j.last_status==="succeeded"?"#166534":j.last_status==="failed"?"#991b1b":"#64748b"}}>{j.last_status||"—"}</span>
+                          </td>
+                          <td style={{padding:"6px 10px"}}>{j.runs_last_14d}</td>
+                          <td style={{padding:"6px 10px",color:j.failures_last_14d>0?"#dc2626":T.fgMuted,fontWeight:j.failures_last_14d>0?700:400}}>{j.failures_last_14d}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={S.cardHd("#7c3aed")}><Zap size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Circuit Breakers</span></div>
+                <div style={{padding:"16px"}}>
+                  {srvBreakers.length===0
+                    ? <div style={{fontSize:12,color:"#166534",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"12px",display:"flex",alignItems:"center",gap:8}}><CheckCircle2 size={14}/>All services closed — no tripped breakers</div>
+                    : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {srvBreakers.map((b:any)=>(
+                          <div key={b.service_key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:b.state==="open"?"#fef2f2":"#fffbeb",border:`1px solid ${b.state==="open"?"#fecaca":"#fde68a"}`}}>
+                            <AlertTriangle size={14} color={b.state==="open"?"#dc2626":"#f59e0b"}/>
+                            <span style={{fontWeight:600,fontSize:12}}>{b.service_key}</span>
+                            <span style={{fontSize:11,color:T.fgMuted}}>{b.state} · {b.failure_count} failures</span>
+                          </div>
+                        ))}
+                      </div>}
+                </div>
               </div>
 
               <div style={S.card}>
                 <div style={S.cardHd("#7c3aed")}><Terminal size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Server Actions</span></div>
                 <div style={{padding:"16px",display:"flex",flexWrap:"wrap",gap:10}}>
                   {[
-                    {l:"Restart Server",icon:RefreshCw,col:"#dc2626"},
-                    {l:"Clear Cache",icon:Trash2,col:"#f59e0b"},
-                    {l:"Rebuild Indexes",icon:Database,col:"#3b82f6"},
-                    {l:"Check Integrity",icon:CheckCircle2,col:"#10b981"},
-                    {l:"Sync All Data",icon:Cloud,col:"#8b5cf6"},
-                    {l:"View Logs",icon:FileText,col:"#64748b"},
-                  ].map(({l,icon:Icon,col})=>(
-                    <button key={l} style={{...S.btn(col),gap:8,padding:"10px 16px",fontSize:12}}>
-                      <Icon size={14}/>{l}
+                    {key:"reload_schema",l:"Reload Schema Cache",icon:RefreshCw,col:"#3b82f6",fn:async()=>{
+                      const {error} = await db.rpc("reload_schema_cache");
+                      if(error) throw error;
+                      toast({title:"✓ Schema cache reload signalled"});
+                    }},
+                    {key:"clear_cache",l:"Clear Client Cache",icon:Trash2,col:"#f59e0b",fn:async()=>{
+                      cacheBuckets.clearAll();
+                      toast({title:"✓ Client cache cleared", description:"Dropdowns/pages will refetch on next load."});
+                    }},
+                    {key:"check_integrity",l:"Check Integrity",icon:CheckCircle2,col:"#10b981",fn:async()=>{
+                      await loadServerControls();
+                      toast({title:"✓ Integrity check complete", description:`${srvErrors.length} unresolved error(s), ${srvBreakers.length} tripped breaker(s)`});
+                    }},
+                    {key:"sync_all",l:"Refresh All Stats",icon:Cloud,col:"#8b5cf6",fn:loadServerControls},
+                    {key:"view_logs",l:"Open SQL Console",icon:Database,col:"#64748b",fn:async()=>{ nav("/admin/database"); }},
+                  ].map(({key,l,icon:Icon,col,fn})=>(
+                    <button key={key} disabled={srvActionBusy===key} onClick={()=>srvAction(key,fn)} style={{...S.btn(col),gap:8,padding:"10px 16px",fontSize:12,opacity:srvActionBusy===key?0.6:1}}>
+                      <Icon size={14} style={srvActionBusy===key?{animation:"spin 1s linear infinite"}:{}}/>{l}
                     </button>
                   ))}
                 </div>
@@ -1604,25 +1696,47 @@ export default function AdminPanelPage() {
               <div style={S.card}>
                 <div style={S.cardHd("#7c3aed")}><AlertCircle size={14} color="#7c3aed"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Error Handler</span></div>
                 <div style={{padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
-                  <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"12px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                      <AlertCircle size={14} color="#dc2626"/>
-                      <span style={{fontWeight:600,fontSize:12,color:"#991b1b"}}>Critical Errors (0)</span>
+                  {srvErrors.filter(e=>e.severity==="critical").length===0 ? (
+                    <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"12px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <CheckCircle2 size={14} color="#16a34a"/>
+                        <span style={{fontWeight:600,fontSize:12,color:"#166534"}}>No critical errors</span>
+                      </div>
                     </div>
-                    <span style={{fontSize:12,color:"#b91c1c"}}>No critical errors detected in the last 24 hours.</span>
-                  </div>
-                  <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"12px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                      <AlertTriangle size={14} color="#f59e0b"/>
-                      <span style={{fontWeight:600,fontSize:12,color:"#92400e"}}>Warnings (2)</span>
+                  ) : (
+                    <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"12px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <AlertCircle size={14} color="#dc2626"/>
+                        <span style={{fontWeight:600,fontSize:12,color:"#991b1b"}}>Critical Errors ({srvErrors.filter(e=>e.severity==="critical").length})</span>
+                      </div>
+                      {srvErrors.filter(e=>e.severity==="critical").slice(0,5).map((e:any)=>(
+                        <div key={e.id} style={{fontSize:11,color:"#b91c1c",padding:"3px 0"}}>• [{e.page||"?"}] {e.error_msg}</div>
+                      ))}
                     </div>
-                    <div style={{fontSize:11,color:"#b45309",display:"flex",flexDirection:"column",gap:4}}>
-                      <span>• API rate limit at 78% capacity</span>
-                      <span>• Session cleanup pending</span>
+                  )}
+                  {srvErrors.filter(e=>e.severity!=="critical").length>0 && (
+                    <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"12px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <AlertTriangle size={14} color="#f59e0b"/>
+                        <span style={{fontWeight:600,fontSize:12,color:"#92400e"}}>Warnings ({srvErrors.filter(e=>e.severity!=="critical").length})</span>
+                      </div>
+                      <div style={{fontSize:11,color:"#b45309",display:"flex",flexDirection:"column",gap:4}}>
+                        {srvErrors.filter(e=>e.severity!=="critical").slice(0,5).map((e:any)=>(
+                          <span key={e.id}>• [{e.page||"?"}] {e.error_msg}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <button style={{...S.btn("#7c3aed"),fontSize:12,marginTop:4}}>
-                    <Download size={14}/> Export Error Log
+                  )}
+                  <button onClick={()=>{
+                    if(!srvErrors.length){ toast({title:"No errors to export"}); return; }
+                    const cols=["created_at","severity","page","error_code","error_msg","user_email"];
+                    const csv=[cols.join(","), ...srvErrors.map(e=>cols.map(c=>`"${String(e[c]??"").replace(/"/g,'""')}"`).join(","))].join("\n");
+                    const blob=new Blob([csv],{type:"text/csv"});
+                    const url=URL.createObjectURL(blob);
+                    const a=document.createElement("a"); a.href=url; a.download=`error-log-${Date.now()}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                  }} style={{...S.btn("#7c3aed"),fontSize:12,marginTop:4}}>
+                    <Download size={14}/> Export Error Log ({srvErrors.length})
                   </button>
                 </div>
               </div>
