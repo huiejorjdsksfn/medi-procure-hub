@@ -115,8 +115,6 @@ const MODS = [
      {l:"Documents",  p:"/documents",      I:FileText},
      {l:"Document Studio",p:"/documents/editor",I:PenLine},
      {l:"Stamp Studio",   p:"/admin/stamp-design",I:Palette},
-     {l:"Email",      p:"/email",          I:Mail},
-     {l:"SMS",        p:"/sms",            I:MessageSquare},
    ]},
   {id:"comms",label:"Communications",col:T.comms,roles:[],
    items:[
