@@ -90,28 +90,30 @@ const CELL: React.CSSProperties = {
 const THEAD_CELL: React.CSSProperties = { ...CELL, background:"#1e3a5f", color:"#f1f5f9", fontWeight:700, textAlign:"left", border:"1px solid #16304d" };
 
 // - Live Monitor helper components (dbForge-style) -
-function MonitorChartCard({ title, subtitle, children, empty }: { title:string; subtitle?:string; children:React.ReactNode; empty?:boolean }) {
+function MonitorChartCard({ title, subtitle, stats, children, empty }: { title:string; subtitle?:string; stats?:{label:string;value:string}[]; children:React.ReactNode; empty?:boolean }) {
   return (
     <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff",marginBottom:10,position:"relative" }}>
       <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>{title}</div>
       {subtitle && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,marginBottom:4 }}>{subtitle}</div>}
-      {children}
+      <div style={{ display:"flex",gap:16,alignItems:"center" }}>
+        <div style={{ flex:1,minWidth:0 }}>{children}</div>
+        {stats && stats.length>0 && (
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 20px",flexShrink:0,minWidth:190,borderLeft:`1px solid ${S.border}`,paddingLeft:16 }}>
+            {stats.map(s => (
+              <div key={s.label}>
+                <div style={{ fontSize:17,fontWeight:800,color:"#0f172a",fontFamily:S.font,lineHeight:1.1 }}>{s.value}</div>
+                <div style={{ fontSize:9,color:"#94a3b8",fontFamily:S.font,marginTop:2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       {empty && (
         <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",
           background:"rgba(255,255,255,0.85)",fontSize:11,color:"#94a3b8",fontFamily:S.font,gap:6 }}>
           <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/> Collecting first live sample…
         </div>
       )}
-    </div>
-  );
-}
-
-function MiniStat({ label, value, sub }: { label:string; value:string; sub?:string }) {
-  return (
-    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"8px 12px",background:"#fff" }}>
-      <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,fontWeight:700,textTransform:"uppercase" }}>{label}</div>
-      <div style={{ fontSize:19,fontWeight:800,color:"#0f172a",fontFamily:S.font }}>{value}</div>
-      {sub && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font }}>{sub}</div>}
     </div>
   );
 }
@@ -1257,7 +1259,15 @@ ORDER BY t.table_name;`);
 
                 {monitorSubTab==="overview" && (
                   <>
-                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live" empty={liveHistory.length<2}>
+                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live — Postgres' equivalent to 'CPU Utilization'" empty={liveHistory.length<2}
+                      stats={liveStats ? [
+                        { label:"Total Connections", value:`${liveStats.connections?.total ?? 0}` },
+                        { label:"Commit Rate/sec", value:`${liveHistory[liveHistory.length-1]?.commitRate ?? 0}` },
+                        { label:"Waiting Tasks", value:`${liveStats.connections?.waiting ?? 0}` },
+                        { label:"Lock Waits", value:`${liveStats.locks?.waiting ?? 0}` },
+                        { label:"Active / Idle", value:`${liveStats.connections?.active ?? 0}/${liveStats.connections?.idle ?? 0}` },
+                        { label:"Deadlocks", value:`${liveStats.transactions?.deadlocks ?? 0}` },
+                      ] : undefined}>
                       <ResponsiveContainer width="100%" height={170}>
                         <AreaChart data={liveHistory}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
@@ -1272,7 +1282,15 @@ ORDER BY t.table_name;`);
                       </ResponsiveContainer>
                     </MonitorChartCard>
 
-                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'" empty={liveHistory.length<2}>
+                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'" empty={liveHistory.length<2}
+                      stats={liveStats ? [
+                        { label:"Cache Hit %", value:`${liveStats.transactions?.cache_hit_ratio ?? 0}%` },
+                        { label:"Blocks Hit", value:`${(liveStats.transactions?.blks_hit ?? 0).toLocaleString()}` },
+                        { label:"Blocks Read", value:`${(liveStats.transactions?.blks_read ?? 0).toLocaleString()}` },
+                        { label:"Rows Returned", value:`${(liveStats.transactions?.tup_returned ?? 0).toLocaleString()}` },
+                        { label:"Temp Files", value:`${liveStats.transactions?.temp_files ?? 0}` },
+                        { label:"Temp Bytes", value:`${Math.round((liveStats.transactions?.temp_bytes ?? 0)/1024)} KB` },
+                      ] : undefined}>
                       <ResponsiveContainer width="100%" height={140}>
                         <LineChart data={liveHistory}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
@@ -1284,7 +1302,15 @@ ORDER BY t.table_name;`);
                       </ResponsiveContainer>
                     </MonitorChartCard>
 
-                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'" empty={liveHistory.length<2}>
+                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'" empty={liveHistory.length<2}
+                      stats={liveStats ? [
+                        { label:"Disk Reads/sec", value:`${liveHistory[liveHistory.length-1]?.readRate ?? 0}` },
+                        { label:"Cache Hits/sec", value:`${liveHistory[liveHistory.length-1]?.hitRate ?? 0}` },
+                        { label:"Sequential Scans", value:`${(liveStats.scans?.seq_scan ?? 0).toLocaleString()}` },
+                        { label:"Index Scans", value:`${(liveStats.scans?.idx_scan ?? 0).toLocaleString()}` },
+                        { label:"Buffers by Backends", value:`${liveStats.bgwriter?.buffers_backend ?? 0}` },
+                        { label:"Buffers Allocated", value:`${liveStats.bgwriter?.buffers_alloc ?? 0}` },
+                      ] : undefined}>
                       <ResponsiveContainer width="100%" height={140}>
                         <AreaChart data={liveHistory}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
@@ -1297,15 +1323,6 @@ ORDER BY t.table_name;`);
                         </AreaChart>
                       </ResponsiveContainer>
                     </MonitorChartCard>
-
-                    {liveStats && (
-                      <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8 }}>
-                        <MiniStat label="Connections" value={`${liveStats.connections?.total ?? 0}`} sub={`of ${liveStats.server?.max_connections ?? "—"} max`}/>
-                        <MiniStat label="Commit Rate" value={`${liveHistory[liveHistory.length-1]?.commitRate ?? 0}`} sub="commits/sec"/>
-                        <MiniStat label="Waiting Tasks" value={`${liveStats.connections?.waiting ?? 0}`} sub={`${liveStats.locks?.waiting ?? 0} lock waits`}/>
-                        <MiniStat label="Deadlocks" value={`${liveStats.transactions?.deadlocks ?? 0}`} sub="cumulative"/>
-                      </div>
-                    )}
                   </>
                 )}
 
