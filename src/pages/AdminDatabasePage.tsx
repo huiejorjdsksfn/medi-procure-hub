@@ -18,7 +18,7 @@ import {
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
-import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import RoleGuard from "@/components/RoleGuard";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { printDataTable } from "@/lib/printDocument";
@@ -173,7 +173,7 @@ function PropRow({ k, v }: { k:string; v:any }) {
 // - Main Component -
 function DBInner() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"realtime"|"stats"|"monitor"|"mssql">("tables");
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql">("tables");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
   const [selectedTable, setSelectedTable] = useState<string>("requisitions");
   const [tableData, setTableData] = useState<any[]>([]);
@@ -212,7 +212,7 @@ ORDER BY t.table_name;`);
   const [dbDash, setDbDash] = useState<any | null>(null);
   const [dbDashLoading, setDbDashLoading] = useState(false);
   const [dbDashHistory, setDbDashHistory] = useState<{ t: number; active: number; cache: number }[]>([]);
-  const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups"|"site"|"loggers">("overview");
+  const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups"|"site"|"loggers"|"realtime"|"dbstats">("overview");
   const [liveStats, setLiveStats] = useState<any | null>(null);
   const [liveStatsLoading, setLiveStatsLoading] = useState(false);
   const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
@@ -220,6 +220,11 @@ ORDER BY t.table_name;`);
   const [selectedQuery, setSelectedQuery] = useState<any | null>(null);
   const [queryPlan, setQueryPlan] = useState<any | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
+  const [trcMetric, setTrcMetric] = useState<"duration"|"calls"|"mean"|"rows"|"io">("duration");
+  const [trcStatistic, setTrcStatistic] = useState<"total"|"average">("total");
+  const [trcPortrait, setTrcPortrait] = useState(false);
+  const [planForceMsg, setPlanForceMsg] = useState<string | null>(null);
+  const [planSamples, setPlanSamples] = useState<{t:number; v:number}[]>([]);
 
   // SQL Server Bridge — real config + live status, never mocked
   const [bridgeCfg, setBridgeCfg] = useState<any | null>(null);
@@ -466,11 +471,11 @@ ORDER BY t.table_name;`);
   // every second, so a 5s poll (not a static snapshot) is what makes this a
   // dashboard rather than a one-time report.
   useEffect(() => {
-    if (activeTab !== "stats") return;
+    if (activeTab !== "monitor" || monitorSubTab !== "dbstats") return;
     loadDbDashboard();
     const id = setInterval(loadDbDashboard, 5000);
     return () => clearInterval(id);
-  }, [activeTab, loadDbDashboard]);
+  }, [activeTab, monitorSubTab, loadDbDashboard]);
 
   // - Live Monitor (dbForge-style) — real pg_stat_activity / pg_stat_database /
   //   pg_stat_statements / pg_locks / pg_stat_bgwriter data, polled every 5s.
@@ -523,6 +528,8 @@ ORDER BY t.table_name;`);
     setSelectedQuery(q);
     setQueryPlan(null);
     setPlanLoading(true);
+    setPlanSamples([]);
+    setPlanForceMsg(null);
     try {
       const { data, error } = await (supabase as any).rpc("explain_query_plan", { p_query: q.query_snippet });
       if (error) throw error;
@@ -534,6 +541,25 @@ ORDER BY t.table_name;`);
       setPlanLoading(false);
     }
   }, []);
+
+  // Real metric-value resolver — every value here comes straight from
+  // pg_stat_statements, no synthetic scaling.
+  const trcValue = useCallback((q: any) => {
+    if (trcMetric === "calls") return q.calls ?? 0;
+    if (trcMetric === "rows") return q.rows ?? 0;
+    if (trcMetric === "io") return (q.shared_blks_hit ?? 0) + (q.shared_blks_read ?? 0);
+    return trcStatistic === "average" ? (q.mean_exec_ms ?? 0) : (q.total_exec_ms ?? 0);
+  }, [trcMetric, trcStatistic]);
+
+  // Collects a real sample of the selected query's cumulative stat every
+  // time liveStats refreshes (5s poll) — an honest "since you opened this
+  // page" trend, not a fabricated last-hour history Postgres doesn't keep.
+  useEffect(() => {
+    if (!selectedQuery || !liveStats?.top_queries) return;
+    const fresh = liveStats.top_queries.find((q:any) => q.query_id === selectedQuery.query_id);
+    if (!fresh) return;
+    setPlanSamples(prev => [...prev.slice(-59), { t: Date.now(), v: trcValue(fresh) }]);
+  }, [liveStats, selectedQuery, trcValue]);
 
   useEffect(() => {
     if (activeTab !== "monitor") return;
@@ -674,8 +700,6 @@ ORDER BY t.table_name;`);
     { id:"sql",      label:"SQL Editor",    icon:Code2 },
     { id:"schema",   label:"Schema",        icon:Layers },
     { id:"triggers", label:"Triggers",      icon:Zap },
-    { id:"realtime", label:"Realtime",      icon:Activity },
-    { id:"stats",    label:"DB Stats",      icon:BarChart3 },
     { id:"monitor",  label:"Live Monitor",  icon:Activity },
     { id:"mssql",    label:"SQL Server Bridge", icon:Server },
   ];
@@ -1116,7 +1140,411 @@ ORDER BY t.table_name;`);
         )}
 
         {/* - REALTIME tab - */}
-        {activeTab === "realtime" && (
+
+
+        {/* - LIVE MONITOR tab (dbForge-style) - */}
+        {activeTab === "monitor" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+                <Activity size={15}/> Live Monitor
+                {liveStatsLoading && <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>}
+              </span>
+              <span style={{ fontSize:10,color:"#888",fontFamily:S.font }}>
+                {liveStats?.generated_at ? `Live — updated ${new Date(liveStats.generated_at).toLocaleTimeString()}` : "Loading…"}
+              </span>
+            </div>
+
+            {/* Sub-tab bar (Overview / Data IO / Databases / Wait Stats / Top Queries / Sessions / Backups) */}
+            <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14 }}>
+              {[
+                { id:"overview",   label:"Overview"   },
+                { id:"dataio",     label:"Data IO"     },
+                { id:"databases",  label:"Databases"   },
+                { id:"waitstats",  label:"Wait Stats"  },
+                { id:"topqueries", label:"Top Queries" },
+                { id:"sessions",   label:"Sessions"    },
+                { id:"backups",    label:"Backups"     },
+                { id:"site",       label:"Site Stats"  },
+                { id:"loggers",    label:"Loggers"     },
+                { id:"realtime",   label:"Realtime"    },
+                { id:"dbstats",    label:"Schema & Errors" },
+              ].map(t => (
+                <button key={t.id} onClick={()=>setMonitorSubTab(t.id as any)}
+                  style={{ padding:"6px 14px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
+                    marginBottom:-2,background:"transparent",cursor:"pointer",fontFamily:S.font,fontSize:12.5,
+                    fontWeight:monitorSubTab===t.id?700:500,color:monitorSubTab===t.id?"#003087":"#64748b" }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display:"flex",gap:14,alignItems:"flex-start" }}>
+              {/* ── LEFT: charts / tables for the active sub-tab ── */}
+              <div style={{ flex:1,minWidth:0 }}>
+
+                {monitorSubTab==="overview" && (
+                  <>
+                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live" empty={liveHistory.length<2}>
+                      <ResponsiveContainer width="100%" height={170}>
+                        <AreaChart data={liveHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
+                          <YAxis tick={{ fontSize:9 }} allowDecimals={false}/>
+                          <Tooltip contentStyle={{ fontSize:11 }}/>
+                          <Legend wrapperStyle={{ fontSize:10 }}/>
+                          <Area type="monotone" dataKey="active" name="Active" stroke="#dc2626" fill="#fecaca" fillOpacity={0.6}/>
+                          <Area type="monotone" dataKey="idle" name="Idle" stroke="#0ea5e9" fill="#bae6fd" fillOpacity={0.5}/>
+                          <Area type="monotone" dataKey="idleTx" name="Idle in TX" stroke="#ca8a04" fill="#fef08a" fillOpacity={0.5}/>
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </MonitorChartCard>
+
+                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'" empty={liveHistory.length<2}>
+                      <ResponsiveContainer width="100%" height={140}>
+                        <LineChart data={liveHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
+                          <YAxis tick={{ fontSize:9 }} domain={[0,100]}/>
+                          <Tooltip contentStyle={{ fontSize:11 }}/>
+                          <Line type="monotone" dataKey="cacheHit" name="Cache hit %" stroke="#16a34a" strokeWidth={2} dot={false}/>
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </MonitorChartCard>
+
+                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'" empty={liveHistory.length<2}>
+                      <ResponsiveContainer width="100%" height={140}>
+                        <AreaChart data={liveHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
+                          <YAxis tick={{ fontSize:9 }}/>
+                          <Tooltip contentStyle={{ fontSize:11 }}/>
+                          <Legend wrapperStyle={{ fontSize:10 }}/>
+                          <Area type="monotone" dataKey="readRate" name="Disk reads/sec" stroke="#7c3aed" fill="#ddd6fe" fillOpacity={0.6}/>
+                          <Area type="monotone" dataKey="hitRate" name="Cache hits/sec" stroke="#0891b2" fill="#a5f3fc" fillOpacity={0.5}/>
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </MonitorChartCard>
+
+                    {liveStats && (
+                      <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8 }}>
+                        <MiniStat label="Connections" value={`${liveStats.connections?.total ?? 0}`} sub={`of ${liveStats.server?.max_connections ?? "—"} max`}/>
+                        <MiniStat label="Commit Rate" value={`${liveHistory[liveHistory.length-1]?.commitRate ?? 0}`} sub="commits/sec"/>
+                        <MiniStat label="Waiting Tasks" value={`${liveStats.connections?.waiting ?? 0}`} sub={`${liveStats.locks?.waiting ?? 0} lock waits`}/>
+                        <MiniStat label="Deadlocks" value={`${liveStats.transactions?.deadlocks ?? 0}`} sub="cumulative"/>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {monitorSubTab==="dataio" && liveStats && (
+                  <>
+                  <MonitorTable
+                    title="DATA I/O — real pg_stat_user_tables / pg_stat_bgwriter counters (cumulative since last stats reset)"
+                    headers={["Metric","Value"]}
+                    rows={[
+                      ["Sequential scans", (liveStats.scans?.seq_scan ?? 0).toLocaleString()],
+                      ["Sequential tuples read", (liveStats.scans?.seq_tup_read ?? 0).toLocaleString()],
+                      ["Index scans", (liveStats.scans?.idx_scan ?? 0).toLocaleString()],
+                      ["Index tuples fetched", (liveStats.scans?.idx_tup_fetch ?? 0).toLocaleString()],
+                      ["Rows inserted", (liveStats.scans?.n_tup_ins ?? 0).toLocaleString()],
+                      ["Rows updated", (liveStats.scans?.n_tup_upd ?? 0).toLocaleString()],
+                      ["Rows deleted", (liveStats.scans?.n_tup_del ?? 0).toLocaleString()],
+                      ["Buffers written by bgwriter (clean)", (liveStats.bgwriter?.buffers_clean ?? "—")],
+                      ["Buffers written by backends", (liveStats.bgwriter?.buffers_backend ?? "—")],
+                      ["Buffers allocated", (liveStats.bgwriter?.buffers_alloc ?? "—")],
+                      ["Temp files / bytes", `${liveStats.transactions?.temp_files ?? 0} / ${liveStats.transactions?.temp_bytes ?? 0}`],
+                    ]}
+                  />
+                  {liveStats.tables?.length > 0 && (
+                    <div style={{ marginTop:14 }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:6,fontFamily:S.font }}>
+                        BUSIEST TABLES (live, by total activity — real pg_stat_user_tables)
+                      </div>
+                      <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                        <thead><tr>
+                          {["Table","Size","Rows (est.)","Dead rows","Seq scans","Idx scans","Ins/Upd/Del"].map(h=>(
+                            <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                          ))}
+                        </tr></thead>
+                        <tbody>
+                          {liveStats.tables.map((t:any,i:number)=>(
+                            <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }}
+                              onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}>
+                              <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                              <td style={{ ...CELL }}>{t.total_size}</td>
+                              <td style={{ ...CELL,textAlign:"right" }}>{(t.row_estimate??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right",color:(t.dead_rows??0)>0?"#ca8a04":"#666" }}>{(t.dead_rows??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right",color:(t.seq_scan??0)>100000?"#dc2626":"#666" }}>{(t.seq_scan??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right" }}>{(t.idx_scan??0).toLocaleString()}</td>
+                              <td style={{ ...CELL,textAlign:"right" }}>{(t.n_tup_ins??0)}/{(t.n_tup_upd??0)}/{(t.n_tup_del??0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  </>
+                )}
+
+                {monitorSubTab==="databases" && liveStats && (
+                  <MonitorTable
+                    title="DATABASES — live pg_database_size()"
+                    headers={["Database","Size"]}
+                    rows={(liveStats.databases||[]).map((d:any)=>[d.datname, d.size_pretty])}
+                  />
+                )}
+
+                {monitorSubTab==="waitstats" && liveStats && (
+                  <MonitorTable
+                    title={`WAIT STATS — ${liveStats.locks?.waiting ?? 0} lock(s) waiting, ${liveStats.connections?.waiting ?? 0} session(s) blocked on a wait event`}
+                    headers={["PID","User","Wait Type","Wait Event","Running for","Query"]}
+                    rows={(liveStats.sessions||[]).filter((s:any)=>s.wait_event).map((s:any)=>[
+                      s.pid, s.usename||"—", s.wait_event_type||"—", s.wait_event||"—",
+                      `${s.running_seconds ?? 0}s`, s.query_snippet||"—",
+                    ])}
+                    empty="No sessions currently waiting — nothing blocked right now."
+                  />
+                )}
+
+                {monitorSubTab==="topqueries" && liveStats && (
+                  liveStats.top_queries?.length ? (
+                    <div>
+                      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2 }}>
+                        <div style={{ fontSize:13,fontWeight:700,color:"#1e293b",fontFamily:S.font }}>
+                          Top {liveStats.top_queries.length} resource consumers for database "{liveStats.server?.current_database}"
+                        </div>
+                        <label style={{ display:"flex",alignItems:"center",gap:6,fontSize:11,fontFamily:S.font,color:"#334155",cursor:"pointer" }}>
+                          <input type="checkbox" checked={trcPortrait} onChange={e=>setTrcPortrait(e.target.checked)}/> Portrait View
+                        </label>
+                      </div>
+                      <div style={{ fontSize:9.5,color:"#999",marginBottom:10,fontFamily:S.font }}>
+                        Postgres' equivalent of SQL Server Query Store's "Top Resource Consumers" report — real pg_stat_statements data throughout, cumulative since the last stats reset (not literally "last hour", Postgres doesn't retain a rolling time-series the way Query Store does).
+                      </div>
+
+                      <div style={{ display:"flex",gap:10,marginBottom:12,alignItems:"center" }}>
+                        <span style={{ fontSize:11,color:"#666",fontFamily:S.font }}>Metric:</span>
+                        <select value={trcMetric} onChange={e=>setTrcMetric(e.target.value as any)}
+                          style={{ fontSize:11,padding:"4px 8px",border:`1px solid ${S.border}`,borderRadius:5,fontFamily:S.font }}>
+                          <option value="duration">Duration (ms)</option>
+                          <option value="calls">Execution Count</option>
+                          <option value="rows">Row Count</option>
+                          <option value="io">Logical Reads (blocks)</option>
+                        </select>
+                        <span style={{ fontSize:11,color:"#666",fontFamily:S.font }}>Statistic:</span>
+                        <select value={trcStatistic} onChange={e=>setTrcStatistic(e.target.value as any)} disabled={trcMetric!=="duration"}
+                          style={{ fontSize:11,padding:"4px 8px",border:`1px solid ${S.border}`,borderRadius:5,fontFamily:S.font,opacity:trcMetric!=="duration"?0.5:1 }}>
+                          <option value="total">Total</option>
+                          <option value="average">Average</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display:"flex",flexDirection:trcPortrait?"column":"row",gap:12,marginBottom:14 }}>
+                        {/* Bar chart — like the SSMS report's left panel */}
+                        <div style={{ flex:1.4,border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
+                          <div style={{ fontSize:10,color:"#666",marginBottom:6,fontFamily:S.font }}>
+                            {trcMetric==="duration" ? `Metric: Duration (ms) · Statistic: ${trcStatistic==="average"?"Average":"Total"}` :
+                             trcMetric==="calls" ? "Metric: Execution Count" : trcMetric==="rows" ? "Metric: Row Count" : "Metric: Logical Reads (shared blocks hit + read)"}
+                          </div>
+                          <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={liveStats.top_queries.map((q:any,i:number)=>({ ...q, idx:i+1, val:trcValue(q) }))}
+                              onClick={(e:any)=>{ const q = e?.activePayload?.[0]?.payload; if (q) loadQueryPlan(q); }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                              <XAxis dataKey="idx" tick={{ fontSize:10 }} label={{ value:"query id", position:"insideBottom", offset:-2, fontSize:10 }}/>
+                              <YAxis tick={{ fontSize:10 }} label={{ value:"total", angle:-90, position:"insideLeft", fontSize:10 }}/>
+                              <Tooltip formatter={(v:any)=>[v,trcMetric==="duration"?"ms":trcMetric==="calls"?"calls":trcMetric==="rows"?"rows":"blocks"]} labelFormatter={(i:any)=>`Query id ${i}`}
+                                contentStyle={{ fontSize:11 }}/>
+                              <Bar dataKey="val" cursor="pointer">
+                                {liveStats.top_queries.map((q:any,i:number)=>(
+                                  <Cell key={i} fill={selectedQuery?.query_id===q.query_id?"#0e7490":"#60a5fa"}/>
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Plan summary — real scatter of samples collected while this query is
+                            selected (5s polling), honestly scoped to "since selected", not a
+                            fabricated hour of history Postgres doesn't retain */}
+                        <div style={{ width:trcPortrait?"100%":260,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
+                          <div style={{ fontSize:10,color:"#666",marginBottom:6,fontFamily:S.font }}>
+                            Plan summary {selectedQuery ? `for query id ${selectedQuery.query_id}` : ""}
+                          </div>
+                          {!selectedQuery && <div style={{ fontSize:11,color:"#999",fontFamily:S.font,padding:"20px 0" }}>Click a bar to inspect its real execution plan.</div>}
+                          {selectedQuery && (
+                            <>
+                              <ResponsiveContainer width="100%" height={150}>
+                                <ScatterChart>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
+                                  <XAxis dataKey="t" type="number" domain={["dataMin","dataMax"]} tick={{ fontSize:9 }}
+                                    tickFormatter={(t:number)=>new Date(t).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}/>
+                                  <YAxis dataKey="v" tick={{ fontSize:9 }}/>
+                                  <Tooltip labelFormatter={(t:any)=>new Date(t).toLocaleTimeString()} contentStyle={{ fontSize:11 }}/>
+                                  <Scatter data={planSamples} fill="#16a34a"/>
+                                </ScatterChart>
+                              </ResponsiveContainer>
+                              <div style={{ fontSize:9,color:"#999",fontFamily:S.font,marginTop:2 }}>
+                                {planSamples.length<2 ? "Collecting live samples…" : `${planSamples.length} real samples since you selected this query`}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Plan id bar + Force/Unforce Plan — Postgres has no plan-forcing
+                          mechanism (no equivalent to SQL Server Query Store's forced plans),
+                          so these are honest about that instead of pretending to do something */}
+                      {selectedQuery && (
+                        <div style={{ display:"flex",alignItems:"center",gap:10,padding:"7px 12px",background:"#f1f5f9",border:`1px solid ${S.border}`,borderRadius:6,marginBottom:10 }}>
+                          <span style={{ fontSize:11,fontWeight:700,color:"#334155",fontFamily:S.font }}>
+                            Query id {selectedQuery.query_id} [not forced]
+                          </span>
+                          <div style={{ marginLeft:"auto",display:"flex",gap:6 }}>
+                            <button onClick={()=>setPlanForceMsg("Postgres has no built-in plan-forcing mechanism like SQL Server Query Store — the planner always re-picks a plan based on current statistics. (The pg_hint_plan extension can influence plan choice, but it isn't installed here and works differently.)")}
+                              style={{ fontSize:10.5,padding:"4px 10px",border:`1px solid ${S.border}`,borderRadius:5,background:"#fff",cursor:"pointer",fontFamily:S.font }}>
+                              Force Plan
+                            </button>
+                            <button onClick={()=>setPlanForceMsg("There's no forced plan to remove — see above.")}
+                              style={{ fontSize:10.5,padding:"4px 10px",border:`1px solid ${S.border}`,borderRadius:5,background:"#fff",cursor:"pointer",fontFamily:S.font }}>
+                              Unforce Plan
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {planForceMsg && (
+                        <div style={{ fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:6,padding:"8px 12px",marginBottom:10,fontFamily:S.font }}>
+                          {planForceMsg}
+                        </div>
+                      )}
+
+                      {selectedQuery && (
+                        <div style={{ fontSize:11,fontFamily:S.font,color:"#334155",marginBottom:8 }}>
+                          Query cost: <b>{selectedQuery.calls}</b> calls · <b>{selectedQuery.total_exec_ms} ms</b> total · <b>{selectedQuery.mean_exec_ms} ms</b> mean · <b>{selectedQuery.rows}</b> rows
+                        </div>
+                      )}
+                      {selectedQuery && (
+                        <div style={{ fontFamily:"monospace",fontSize:11,color:"#334155",background:"#f8fafc",padding:"8px 10px",borderRadius:5,marginBottom:12,wordBreak:"break-all" }}>
+                          {selectedQuery.query_snippet}
+                        </div>
+                      )}
+
+                      {/* Real execution plan tree — Postgres' EXPLAIN output, the direct
+                          equivalent of SSMS's graphical execution plan */}
+                      {selectedQuery && (
+                        <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"12px 14px",background:"#fff" }}>
+                          <div style={{ fontSize:10,color:"#666",marginBottom:10,fontFamily:S.font }}>
+                            Execution plan (real EXPLAIN — not executed, cost estimates only)
+                          </div>
+                          {planLoading && <div style={{ fontSize:12,color:"#999",fontFamily:S.font }}>⟲ Running EXPLAIN…</div>}
+                          {!planLoading && queryPlan?.error && (
+                            <div style={{ fontSize:12,color:"#dc2626",fontFamily:S.font }}>Couldn't get plan: {queryPlan.error}</div>
+                          )}
+                          {!planLoading && queryPlan && !queryPlan.error && (
+                            <div style={{ overflowX:"auto",paddingBottom:6 }}>
+                              <PlanNode node={queryPlan}/>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
+                      pg_stat_statements has no recorded queries yet (or was just reset) — this fills in as the database is used.
+                    </div>
+                  )
+                )}
+
+                {monitorSubTab==="sessions" && liveStats && (
+                  <MonitorTable
+                    title={`SESSIONS — ${liveStats.connections?.total ?? 0} total (${liveStats.connections?.active ?? 0} active)`}
+                    headers={["PID","User","App","Client IP","State","Running for","Query"]}
+                    rows={(liveStats.sessions||[]).map((s:any)=>[
+                      s.pid, s.usename||"—", s.application_name||"—", s.client_addr||"local",
+                      s.state||"—", s.running_seconds!=null?`${s.running_seconds}s`:"—", s.query_snippet||"—",
+                    ])}
+                  />
+                )}
+
+                {monitorSubTab==="backups" && liveStats && (
+                  liveStats.backups?.length ? (
+                    <MonitorTable
+                      title="BACKUPS — recent app-level backup jobs (backup_jobs table)"
+                      headers={["Label","Type","Status","Size","Started","Completed"]}
+                      rows={liveStats.backups.map((b:any)=>[
+                        b.label||"—", b.backup_type||"—", b.status||"—",
+                        b.size_bytes?`${Math.round(b.size_bytes/1024)} KB`:"—",
+                        b.started_at?new Date(b.started_at).toLocaleString():"—",
+                        b.completed_at?new Date(b.completed_at).toLocaleString():"—",
+                      ])}
+                    />
+                  ) : (
+                    <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
+                      No backup jobs recorded yet. Supabase also runs its own managed PITR backups behind the scenes — this table only reflects backups triggered from within the app.
+                    </div>
+                  )
+                )}
+
+                {monitorSubTab==="site" && liveStats && (
+                  <div>
+                    <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:10,fontFamily:S.font }}>
+                      SITE ACTIVITY — real application-level metrics, not raw Postgres internals
+                    </div>
+                    <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10 }}>
+                      {[
+                        ["Requisitions today", liveStats.site?.requisitions_today, "#003087"],
+                        ["Purchase orders today", liveStats.site?.purchase_orders_today, "#003087"],
+                        ["New users today", liveStats.site?.new_users_today, "#16a34a"],
+                        ["Active users (30 min)", liveStats.site?.active_users_last_30min, "#16a34a"],
+                        ["Audit events today", liveStats.site?.audit_events_today, "#666"],
+                        ["Audit events (1 hr)", liveStats.site?.audit_events_last_hour, "#666"],
+                        ["Failed logins today", liveStats.site?.failed_logins_today, liveStats.site?.failed_logins_today>0?"#dc2626":"#16a34a"],
+                        ["Blocked IPs today", liveStats.site?.blocked_ips_today, liveStats.site?.blocked_ips_today>0?"#dc2626":"#16a34a"],
+                        ["404 hits today", liveStats.site?.not_found_hits_today, "#ca8a04"],
+                        ["SMS sent today", liveStats.site?.sms_sent_today, "#16a34a"],
+                        ["SMS failed today", liveStats.site?.sms_failed_today, liveStats.site?.sms_failed_today>0?"#dc2626":"#16a34a"],
+                        ["Crash reports (unresolved)", liveStats.site?.crash_reports_unresolved, liveStats.site?.crash_reports_unresolved>0?"#dc2626":"#16a34a"],
+                        ["Crash reports today", liveStats.site?.crash_reports_today, "#666"],
+                      ].map(([label,val,color]:any)=>(
+                        <div key={label} style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
+                          <div style={{ fontSize:19,fontWeight:800,color }}>{(val??0).toLocaleString()}</div>
+                          <div style={{ fontSize:10.5,color:"#666",marginTop:2,fontFamily:S.font }}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {monitorSubTab==="loggers" && liveStats && (
+                  <div>
+                    <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>
+                        LIVE ACTIVITY FEED — merged from audit_log, ip_access_log, not_found_log, crash_reports, sms_log
+                      </div>
+                      <span style={{ fontSize:10,color:"#999",fontFamily:S.font }}>{liveStats.loggers?.length ?? 0} recent events</span>
+                    </div>
+                    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",maxHeight:480,overflowY:"auto" }}>
+                      {(liveStats.loggers ?? []).map((l:any,i:number)=>(
+                        <div key={i} style={{ display:"flex",gap:10,alignItems:"flex-start",padding:"8px 12px",
+                          borderTop:i>0?`1px solid ${S.border}`:"none",fontSize:12,fontFamily:S.font }}>
+                          <span style={{ flexShrink:0,width:76,fontSize:9.5,color:"#999",marginTop:2 }}>
+                            {l.at ? new Date(l.at).toLocaleTimeString() : "—"}
+                          </span>
+                          <span style={{ flexShrink:0,padding:"1px 7px",borderRadius:4,fontSize:9,fontWeight:700,marginTop:1,
+                            background: l.severity==="error"?"#fef2f2":l.severity==="warning"?"#fefce8":"#f0f9ff",
+                            color: l.severity==="error"?"#dc2626":l.severity==="warning"?"#ca8a04":"#0369a1" }}>
+                            {l.source}
+                          </span>
+                          <span style={{ flex:1,color:"#334155" }}>{l.summary || "—"}</span>
+                        </div>
+                      ))}
+                      {(!liveStats.loggers || liveStats.loggers.length===0) && (
+                        <div style={{ padding:20,fontSize:12,color:"#666",fontFamily:S.font }}>No recent activity across any logger.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+        {monitorSubTab === "realtime" && (
           <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
             {/* Watch-table picker sidebar */}
             <div style={{ width:200,borderRight:`1px solid ${S.border}`,overflow:"auto",background:S.head,flexShrink:0 }}>
@@ -1185,8 +1613,8 @@ ORDER BY t.table_name;`);
           </div>
         )}
 
-        {/* - STATS tab - */}
-        {activeTab === "stats" && (
+        {/* - SCHEMA & ERRORS sub-tab (moved from the old standalone DB Stats page) - */}
+        {monitorSubTab === "dbstats" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
 
             {/* ── Live Server Dashboard — real pg_stat_* data, polled every 5s ── */}
@@ -1350,337 +1778,6 @@ ORDER BY t.table_name;`);
             </div>
           </div>
         )}
-
-        {/* - LIVE MONITOR tab (dbForge-style) - */}
-        {activeTab === "monitor" && (
-          <div style={{ flex:1,overflow:"auto",padding:14 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
-                <Activity size={15}/> Live Monitor
-                {liveStatsLoading && <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>}
-              </span>
-              <span style={{ fontSize:10,color:"#888",fontFamily:S.font }}>
-                {liveStats?.generated_at ? `Live — updated ${new Date(liveStats.generated_at).toLocaleTimeString()}` : "Loading…"}
-              </span>
-            </div>
-
-            {/* Sub-tab bar (Overview / Data IO / Databases / Wait Stats / Top Queries / Sessions / Backups) */}
-            <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14 }}>
-              {[
-                { id:"overview",   label:"Overview"   },
-                { id:"dataio",     label:"Data IO"     },
-                { id:"databases",  label:"Databases"   },
-                { id:"waitstats",  label:"Wait Stats"  },
-                { id:"topqueries", label:"Top Queries" },
-                { id:"sessions",   label:"Sessions"    },
-                { id:"backups",    label:"Backups"     },
-                { id:"site",       label:"Site Stats"  },
-                { id:"loggers",    label:"Loggers"     },
-              ].map(t => (
-                <button key={t.id} onClick={()=>setMonitorSubTab(t.id as any)}
-                  style={{ padding:"6px 14px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
-                    marginBottom:-2,background:"transparent",cursor:"pointer",fontFamily:S.font,fontSize:12.5,
-                    fontWeight:monitorSubTab===t.id?700:500,color:monitorSubTab===t.id?"#003087":"#64748b" }}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display:"flex",gap:14,alignItems:"flex-start" }}>
-              {/* ── LEFT: charts / tables for the active sub-tab ── */}
-              <div style={{ flex:1,minWidth:0 }}>
-
-                {monitorSubTab==="overview" && (
-                  <>
-                    <MonitorChartCard title="CONNECTIONS ACTIVITY" subtitle="active / idle / idle-in-transaction, live" empty={liveHistory.length<2}>
-                      <ResponsiveContainer width="100%" height={170}>
-                        <AreaChart data={liveHistory}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
-                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
-                          <YAxis tick={{ fontSize:9 }} allowDecimals={false}/>
-                          <Tooltip contentStyle={{ fontSize:11 }}/>
-                          <Legend wrapperStyle={{ fontSize:10 }}/>
-                          <Area type="monotone" dataKey="active" name="Active" stroke="#dc2626" fill="#fecaca" fillOpacity={0.6}/>
-                          <Area type="monotone" dataKey="idle" name="Idle" stroke="#0ea5e9" fill="#bae6fd" fillOpacity={0.5}/>
-                          <Area type="monotone" dataKey="idleTx" name="Idle in TX" stroke="#ca8a04" fill="#fef08a" fillOpacity={0.5}/>
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </MonitorChartCard>
-
-                    <MonitorChartCard title="CACHE HIT RATIO, %" subtitle="buffer cache — Postgres' closest equivalent to 'Memory Utilization'" empty={liveHistory.length<2}>
-                      <ResponsiveContainer width="100%" height={140}>
-                        <LineChart data={liveHistory}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
-                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
-                          <YAxis tick={{ fontSize:9 }} domain={[0,100]}/>
-                          <Tooltip contentStyle={{ fontSize:11 }}/>
-                          <Line type="monotone" dataKey="cacheHit" name="Cache hit %" stroke="#16a34a" strokeWidth={2} dot={false}/>
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </MonitorChartCard>
-
-                    <MonitorChartCard title="BUFFER I/O, blocks/sec" subtitle="disk reads vs. cache hits — Postgres' equivalent to 'Disk Activity'" empty={liveHistory.length<2}>
-                      <ResponsiveContainer width="100%" height={140}>
-                        <AreaChart data={liveHistory}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
-                          <XAxis dataKey="time" tick={{ fontSize:9 }} interval="preserveStartEnd"/>
-                          <YAxis tick={{ fontSize:9 }}/>
-                          <Tooltip contentStyle={{ fontSize:11 }}/>
-                          <Legend wrapperStyle={{ fontSize:10 }}/>
-                          <Area type="monotone" dataKey="readRate" name="Disk reads/sec" stroke="#7c3aed" fill="#ddd6fe" fillOpacity={0.6}/>
-                          <Area type="monotone" dataKey="hitRate" name="Cache hits/sec" stroke="#0891b2" fill="#a5f3fc" fillOpacity={0.5}/>
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </MonitorChartCard>
-
-                    {liveStats && (
-                      <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8 }}>
-                        <MiniStat label="Connections" value={`${liveStats.connections?.total ?? 0}`} sub={`of ${liveStats.server?.max_connections ?? "—"} max`}/>
-                        <MiniStat label="Commit Rate" value={`${liveHistory[liveHistory.length-1]?.commitRate ?? 0}`} sub="commits/sec"/>
-                        <MiniStat label="Waiting Tasks" value={`${liveStats.connections?.waiting ?? 0}`} sub={`${liveStats.locks?.waiting ?? 0} lock waits`}/>
-                        <MiniStat label="Deadlocks" value={`${liveStats.transactions?.deadlocks ?? 0}`} sub="cumulative"/>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {monitorSubTab==="dataio" && liveStats && (
-                  <>
-                  <MonitorTable
-                    title="DATA I/O — real pg_stat_user_tables / pg_stat_bgwriter counters (cumulative since last stats reset)"
-                    headers={["Metric","Value"]}
-                    rows={[
-                      ["Sequential scans", (liveStats.scans?.seq_scan ?? 0).toLocaleString()],
-                      ["Sequential tuples read", (liveStats.scans?.seq_tup_read ?? 0).toLocaleString()],
-                      ["Index scans", (liveStats.scans?.idx_scan ?? 0).toLocaleString()],
-                      ["Index tuples fetched", (liveStats.scans?.idx_tup_fetch ?? 0).toLocaleString()],
-                      ["Rows inserted", (liveStats.scans?.n_tup_ins ?? 0).toLocaleString()],
-                      ["Rows updated", (liveStats.scans?.n_tup_upd ?? 0).toLocaleString()],
-                      ["Rows deleted", (liveStats.scans?.n_tup_del ?? 0).toLocaleString()],
-                      ["Buffers written by bgwriter (clean)", (liveStats.bgwriter?.buffers_clean ?? "—")],
-                      ["Buffers written by backends", (liveStats.bgwriter?.buffers_backend ?? "—")],
-                      ["Buffers allocated", (liveStats.bgwriter?.buffers_alloc ?? "—")],
-                      ["Temp files / bytes", `${liveStats.transactions?.temp_files ?? 0} / ${liveStats.transactions?.temp_bytes ?? 0}`],
-                    ]}
-                  />
-                  {liveStats.tables?.length > 0 && (
-                    <div style={{ marginTop:14 }}>
-                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:6,fontFamily:S.font }}>
-                        BUSIEST TABLES (live, by total activity — real pg_stat_user_tables)
-                      </div>
-                      <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                        <thead><tr>
-                          {["Table","Size","Rows (est.)","Dead rows","Seq scans","Idx scans","Ins/Upd/Del"].map(h=>(
-                            <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
-                          ))}
-                        </tr></thead>
-                        <tbody>
-                          {liveStats.tables.map((t:any,i:number)=>(
-                            <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }}
-                              onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}>
-                              <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
-                              <td style={{ ...CELL }}>{t.total_size}</td>
-                              <td style={{ ...CELL,textAlign:"right" }}>{(t.row_estimate??0).toLocaleString()}</td>
-                              <td style={{ ...CELL,textAlign:"right",color:(t.dead_rows??0)>0?"#ca8a04":"#666" }}>{(t.dead_rows??0).toLocaleString()}</td>
-                              <td style={{ ...CELL,textAlign:"right",color:(t.seq_scan??0)>100000?"#dc2626":"#666" }}>{(t.seq_scan??0).toLocaleString()}</td>
-                              <td style={{ ...CELL,textAlign:"right" }}>{(t.idx_scan??0).toLocaleString()}</td>
-                              <td style={{ ...CELL,textAlign:"right" }}>{(t.n_tup_ins??0)}/{(t.n_tup_upd??0)}/{(t.n_tup_del??0)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  </>
-                )}
-
-                {monitorSubTab==="databases" && liveStats && (
-                  <MonitorTable
-                    title="DATABASES — live pg_database_size()"
-                    headers={["Database","Size"]}
-                    rows={(liveStats.databases||[]).map((d:any)=>[d.datname, d.size_pretty])}
-                  />
-                )}
-
-                {monitorSubTab==="waitstats" && liveStats && (
-                  <MonitorTable
-                    title={`WAIT STATS — ${liveStats.locks?.waiting ?? 0} lock(s) waiting, ${liveStats.connections?.waiting ?? 0} session(s) blocked on a wait event`}
-                    headers={["PID","User","Wait Type","Wait Event","Running for","Query"]}
-                    rows={(liveStats.sessions||[]).filter((s:any)=>s.wait_event).map((s:any)=>[
-                      s.pid, s.usename||"—", s.wait_event_type||"—", s.wait_event||"—",
-                      `${s.running_seconds ?? 0}s`, s.query_snippet||"—",
-                    ])}
-                    empty="No sessions currently waiting — nothing blocked right now."
-                  />
-                )}
-
-                {monitorSubTab==="topqueries" && liveStats && (
-                  liveStats.top_queries?.length ? (
-                    <div>
-                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:2,fontFamily:S.font }}>
-                        TOP RESOURCE CONSUMERS — real pg_stat_statements, ranked by total execution time
-                      </div>
-                      <div style={{ fontSize:10,color:"#999",marginBottom:10,fontFamily:S.font }}>
-                        Postgres' equivalent of SQL Server's Query Store "Top Resource Consumers" report. Click a bar for its real execution plan.
-                      </div>
-
-                      <div style={{ display:"flex",gap:12,marginBottom:14 }}>
-                        {/* Bar chart — duration by query, like the SSMS report's left panel */}
-                        <div style={{ flex:1.4,border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
-                          <div style={{ fontSize:10,color:"#666",marginBottom:6,fontFamily:S.font }}>Metric: Duration (ms) · Statistic: Total</div>
-                          <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={liveStats.top_queries.map((q:any,i:number)=>({ ...q, idx:i+1 }))}
-                              onClick={(e:any)=>{ const q = e?.activePayload?.[0]?.payload; if (q) loadQueryPlan(q); }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7"/>
-                              <XAxis dataKey="idx" tick={{ fontSize:10 }} label={{ value:"query", position:"insideBottom", offset:-2, fontSize:10 }}/>
-                              <YAxis tick={{ fontSize:10 }} label={{ value:"ms", angle:-90, position:"insideLeft", fontSize:10 }}/>
-                              <Tooltip formatter={(v:any)=>[`${v} ms`,"Total duration"]} labelFormatter={(i:any)=>`Query #${i}`}
-                                contentStyle={{ fontSize:11 }}/>
-                              <Bar dataKey="total_exec_ms" cursor="pointer">
-                                {liveStats.top_queries.map((q:any,i:number)=>(
-                                  <Cell key={i} fill={selectedQuery?.query_snippet===q.query_snippet?"#0e7490":"#60a5fa"}/>
-                                ))}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-
-                        {/* Plan summary panel — like the SSMS report's right panel */}
-                        <div style={{ width:220,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
-                          <div style={{ fontSize:10,color:"#666",marginBottom:8,fontFamily:S.font }}>Plan summary</div>
-                          {!selectedQuery && <div style={{ fontSize:11,color:"#999",fontFamily:S.font }}>Click a bar to inspect its real execution plan.</div>}
-                          {selectedQuery && (
-                            <>
-                              <div style={{ fontSize:11,fontFamily:"monospace",color:"#334155",background:"#f8fafc",padding:"6px 8px",borderRadius:5,marginBottom:8,wordBreak:"break-all" }}>
-                                {selectedQuery.query_snippet}
-                              </div>
-                              <div style={{ fontSize:10,color:"#666",lineHeight:1.8 }}>
-                                <div>Calls: <b>{selectedQuery.calls}</b></div>
-                                <div>Total: <b>{selectedQuery.total_exec_ms} ms</b></div>
-                                <div>Mean: <b>{selectedQuery.mean_exec_ms} ms</b></div>
-                                <div>Rows: <b>{selectedQuery.rows}</b></div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Real execution plan tree — Postgres' EXPLAIN output, the direct
-                          equivalent of SSMS's graphical execution plan (Seq/Index Scan ≈
-                          Table/Index Scan, Hash/Nested Loop Join ≈ same concept in SQL Server) */}
-                      {selectedQuery && (
-                        <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"12px 14px",background:"#fff" }}>
-                          <div style={{ fontSize:10,color:"#666",marginBottom:10,fontFamily:S.font }}>
-                            Execution plan (real EXPLAIN — not executed, cost estimates only)
-                          </div>
-                          {planLoading && <div style={{ fontSize:12,color:"#999",fontFamily:S.font }}>⟲ Running EXPLAIN…</div>}
-                          {!planLoading && queryPlan?.error && (
-                            <div style={{ fontSize:12,color:"#dc2626",fontFamily:S.font }}>Couldn't get plan: {queryPlan.error}</div>
-                          )}
-                          {!planLoading && queryPlan && !queryPlan.error && (
-                            <div style={{ overflowX:"auto",paddingBottom:6 }}>
-                              <PlanNode node={queryPlan}/>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
-                      pg_stat_statements has no recorded queries yet (or was just reset) — this fills in as the database is used.
-                    </div>
-                  )
-                )}
-
-                {monitorSubTab==="sessions" && liveStats && (
-                  <MonitorTable
-                    title={`SESSIONS — ${liveStats.connections?.total ?? 0} total (${liveStats.connections?.active ?? 0} active)`}
-                    headers={["PID","User","App","Client IP","State","Running for","Query"]}
-                    rows={(liveStats.sessions||[]).map((s:any)=>[
-                      s.pid, s.usename||"—", s.application_name||"—", s.client_addr||"local",
-                      s.state||"—", s.running_seconds!=null?`${s.running_seconds}s`:"—", s.query_snippet||"—",
-                    ])}
-                  />
-                )}
-
-                {monitorSubTab==="backups" && liveStats && (
-                  liveStats.backups?.length ? (
-                    <MonitorTable
-                      title="BACKUPS — recent app-level backup jobs (backup_jobs table)"
-                      headers={["Label","Type","Status","Size","Started","Completed"]}
-                      rows={liveStats.backups.map((b:any)=>[
-                        b.label||"—", b.backup_type||"—", b.status||"—",
-                        b.size_bytes?`${Math.round(b.size_bytes/1024)} KB`:"—",
-                        b.started_at?new Date(b.started_at).toLocaleString():"—",
-                        b.completed_at?new Date(b.completed_at).toLocaleString():"—",
-                      ])}
-                    />
-                  ) : (
-                    <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:20,border:`1px solid ${S.border}`,borderRadius:6 }}>
-                      No backup jobs recorded yet. Supabase also runs its own managed PITR backups behind the scenes — this table only reflects backups triggered from within the app.
-                    </div>
-                  )
-                )}
-
-                {monitorSubTab==="site" && liveStats && (
-                  <div>
-                    <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:10,fontFamily:S.font }}>
-                      SITE ACTIVITY — real application-level metrics, not raw Postgres internals
-                    </div>
-                    <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10 }}>
-                      {[
-                        ["Requisitions today", liveStats.site?.requisitions_today, "#003087"],
-                        ["Purchase orders today", liveStats.site?.purchase_orders_today, "#003087"],
-                        ["New users today", liveStats.site?.new_users_today, "#16a34a"],
-                        ["Active users (30 min)", liveStats.site?.active_users_last_30min, "#16a34a"],
-                        ["Audit events today", liveStats.site?.audit_events_today, "#666"],
-                        ["Audit events (1 hr)", liveStats.site?.audit_events_last_hour, "#666"],
-                        ["Failed logins today", liveStats.site?.failed_logins_today, liveStats.site?.failed_logins_today>0?"#dc2626":"#16a34a"],
-                        ["Blocked IPs today", liveStats.site?.blocked_ips_today, liveStats.site?.blocked_ips_today>0?"#dc2626":"#16a34a"],
-                        ["404 hits today", liveStats.site?.not_found_hits_today, "#ca8a04"],
-                        ["SMS sent today", liveStats.site?.sms_sent_today, "#16a34a"],
-                        ["SMS failed today", liveStats.site?.sms_failed_today, liveStats.site?.sms_failed_today>0?"#dc2626":"#16a34a"],
-                        ["Crash reports (unresolved)", liveStats.site?.crash_reports_unresolved, liveStats.site?.crash_reports_unresolved>0?"#dc2626":"#16a34a"],
-                        ["Crash reports today", liveStats.site?.crash_reports_today, "#666"],
-                      ].map(([label,val,color]:any)=>(
-                        <div key={label} style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff" }}>
-                          <div style={{ fontSize:19,fontWeight:800,color }}>{(val??0).toLocaleString()}</div>
-                          <div style={{ fontSize:10.5,color:"#666",marginTop:2,fontFamily:S.font }}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {monitorSubTab==="loggers" && liveStats && (
-                  <div>
-                    <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>
-                        LIVE ACTIVITY FEED — merged from audit_log, ip_access_log, not_found_log, crash_reports, sms_log
-                      </div>
-                      <span style={{ fontSize:10,color:"#999",fontFamily:S.font }}>{liveStats.loggers?.length ?? 0} recent events</span>
-                    </div>
-                    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",maxHeight:480,overflowY:"auto" }}>
-                      {(liveStats.loggers ?? []).map((l:any,i:number)=>(
-                        <div key={i} style={{ display:"flex",gap:10,alignItems:"flex-start",padding:"8px 12px",
-                          borderTop:i>0?`1px solid ${S.border}`:"none",fontSize:12,fontFamily:S.font }}>
-                          <span style={{ flexShrink:0,width:76,fontSize:9.5,color:"#999",marginTop:2 }}>
-                            {l.at ? new Date(l.at).toLocaleTimeString() : "—"}
-                          </span>
-                          <span style={{ flexShrink:0,padding:"1px 7px",borderRadius:4,fontSize:9,fontWeight:700,marginTop:1,
-                            background: l.severity==="error"?"#fef2f2":l.severity==="warning"?"#fefce8":"#f0f9ff",
-                            color: l.severity==="error"?"#dc2626":l.severity==="warning"?"#ca8a04":"#0369a1" }}>
-                            {l.source}
-                          </span>
-                          <span style={{ flex:1,color:"#334155" }}>{l.summary || "—"}</span>
-                        </div>
-                      ))}
-                      {(!liveStats.loggers || liveStats.loggers.length===0) && (
-                        <div style={{ padding:20,fontSize:12,color:"#666",fontFamily:S.font }}>No recent activity across any logger.</div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* ── RIGHT: Server / Database Properties panel ── */}

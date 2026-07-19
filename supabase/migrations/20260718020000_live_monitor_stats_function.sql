@@ -125,13 +125,14 @@ begin
     ),
     'top_queries', case when has_pg_stat_statements then (
       select coalesce(jsonb_agg(q), '[]'::jsonb) from (
-        select left(query,200) as query_snippet, calls,
+        select queryid::text as query_id, left(query,200) as query_snippet, calls,
                round(total_exec_time::numeric,1) as total_exec_ms,
                round(mean_exec_time::numeric,2) as mean_exec_ms,
-               rows
+               rows,
+               shared_blks_hit, shared_blks_read
         from extensions.pg_stat_statements
         where dbid = (select oid from pg_database where datname = current_database())
-        order by total_exec_time desc limit 15
+        order by total_exec_time desc limit 25
       ) q
     ) else '[]'::jsonb end,
     'backups', (
