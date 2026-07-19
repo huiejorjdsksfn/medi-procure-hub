@@ -77,7 +77,7 @@ const SSMS = {
 
 const CELL: React.CSSProperties = {
   border: `1px solid #e2e8f0`,
-  padding: "6px 12px",
+  padding: "7px 14px",
   fontSize: 12,
   fontFamily: S.font,
   color: "#0f172a",
@@ -87,6 +87,7 @@ const CELL: React.CSSProperties = {
   textOverflow: "ellipsis",
   background: "transparent",
 };
+const THEAD_CELL: React.CSSProperties = { ...CELL, background:"#1e3a5f", color:"#f1f5f9", fontWeight:700, textAlign:"left", border:"1px solid #16304d" };
 
 // - Live Monitor helper components (dbForge-style) -
 function MonitorChartCard({ title, subtitle, children, empty }: { title:string; subtitle?:string; children:React.ReactNode; empty?:boolean }) {
@@ -166,7 +167,7 @@ function MonitorTable({ title, headers, rows, empty }: { title:string; headers:s
         <div style={{ overflowX:"auto" }}>
           <table style={{ borderCollapse:"collapse",width:"100%",fontSize:11.5,fontFamily:S.font }}>
             <thead><tr>
-              {headers.map(h => <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>)}
+              {headers.map(h => <th key={h} style={THEAD_CELL}>{h}</th>)}
             </tr></thead>
             <tbody>
               {rows.map((row,i) => (
@@ -923,10 +924,10 @@ ORDER BY t.table_name;`);
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
                     <tr>
-                      <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
+                      <th style={{ ...CELL,background:"#1e3a5f",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
                       {tableColumns.filter(col=>col!=="id").map(col => (
                         <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
-                          style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
+                          style={{ ...CELL,background:"#1e3a5f",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
                           {col}{sortCol===col?(sortAsc?" -":" -"):""}
                         </th>
                       ))}
@@ -1029,30 +1030,32 @@ ORDER BY t.table_name;`);
 
         {/* - SQL EDITOR tab - */}
         {activeTab === "sql" && (
-          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-            <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}`,flexWrap:"wrap" as const }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>SQL Editor PRO</span>
-              {sqlMs !== null && <span style={{ fontSize:11,color:"#059669",fontFamily:S.font,background:"rgba(5,150,105,0.1)",padding:"1px 6px",borderRadius:4,fontWeight:700 }}>⏱ {sqlMs}ms</span>}
+          <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff" }}>
+            <div style={{ padding:"9px 14px",display:"flex",alignItems:"center",gap:10,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}`,boxShadow:"0 1px 2px rgba(0,0,0,.04)",flexWrap:"wrap" as const }}>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087",letterSpacing:.2 }}>SQL Editor PRO</span>
+              {sqlMs !== null && <span style={{ fontSize:11,color:"#059669",fontFamily:S.font,background:"#ecfdf5",border:"1px solid #a7f3d0",padding:"2px 8px",borderRadius:12,fontWeight:700 }}>⏱ {sqlMs}ms</span>}
               {/* Saved queries */}
               <select value={selectedSaved} onChange={e=>{
                 const q=savedQueries.find(q=>q.name===e.target.value);
                 if(q){ setSql(q.sql); setSelectedSaved(e.target.value); } else setSelectedSaved("");
-              }} style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,background:"#fff",maxWidth:160 }}>
+              }} style={{ border:`1px solid ${S.border}`,borderRadius:5,padding:"5px 8px",fontSize:11,fontFamily:S.font,background:"#fff",maxWidth:160,color:"#334155" }}>
                 <option value="">— Saved Queries —</option>
                 {savedQueries.map(q=><option key={q.name} value={q.name}>{q.name}</option>)}
               </select>
               {/* Save current */}
-              <div style={{ display:"flex",gap:4,alignItems:"center" }}>
+              <div style={{ display:"flex",gap:5,alignItems:"center" }}>
                 <input value={queryName} onChange={e=>setQueryName(e.target.value)} placeholder="Save as…"
-                  style={{ border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,background:"#fff",width:110 }} />
+                  style={{ border:`1px solid ${S.border}`,borderRadius:5,padding:"5px 8px",fontSize:11,fontFamily:S.font,background:"#fff",width:110,color:"#334155" }} />
                 <button onClick={()=>{ if(!queryName||!sql.trim()){toast({title:"Name & SQL required"});return;} setSavedQueries(p=>[...p.filter(q=>q.name!==queryName),{name:queryName,sql}]); setQueryName(""); toast({title:"Query saved"}); }}
-                  style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"2px 6px",cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:700 }}>💾</button>
+                  title="Save query"
+                  style={{ border:`1px solid ${S.border}`,borderRadius:5,background:"#fff",padding:"5px 8px",cursor:"pointer",fontFamily:S.font,fontSize:12,lineHeight:1 }}>💾</button>
               </div>
-              <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
+              <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>
                 {/* Auto-refresh */}
-                <button onClick={()=>setAutoRefresh(p=>!p)} style={{ border:`1px solid ${autoRefresh?"#006600":"#b0b0b0"}`,background:autoRefresh?"#006600":S.bg,color:autoRefresh?"#fff":S.fg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                <button onClick={()=>setAutoRefresh(p=>!p)} style={{ border:`1px solid ${autoRefresh?"#006600":S.border}`,borderRadius:6,background:autoRefresh?"#006600":"#fff",color:autoRefresh?"#fff":S.fg,padding:"5px 11px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:5,fontWeight:600 }}>
                   <div style={{ width:6,height:6,borderRadius:"50%",background:autoRefresh?"#4ade80":"#ccc" }} />{autoRefresh?"AUTO 15s":"Auto OFF"}
                 </button>
+                <div style={{ width:1,height:20,background:S.border }} />
                 <button onClick={()=>{
                   if(!sqlResult.length){ toast({title:"Run a query first"}); return; }
                   const cols=Object.keys(sqlResult[0]||{});
@@ -1064,7 +1067,7 @@ ORDER BY t.table_name;`);
                     filename: `sql-result-${Date.now()}`,
                     meta:     `Query: ${sql.trim().slice(0,300)}${sql.trim().length>300?"…":""}  ·  ${sqlResult.length} rows · ${sqlMs}ms`,
                   }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
-                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                }} style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",padding:"5px 11px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:5,color:"#334155",fontWeight:600 }}>
                   <Printer style={{width:11,height:11}}/> Print
                 </button>
                 <button onClick={()=>{
@@ -1072,7 +1075,7 @@ ORDER BY t.table_name;`);
                   navigator.clipboard.writeText(JSON.stringify(sqlResult,null,2))
                     .then(()=>toast({title:`✓ Copied ${sqlResult.length} rows as JSON`}))
                     .catch(()=>toast({title:"Copy failed",variant:"destructive"}));
-                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
+                }} style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",padding:"5px 11px",cursor:"pointer",fontFamily:S.font,fontSize:11,color:"#334155",fontWeight:600 }}>
                   📋 Copy
                 </button>
                 <button onClick={()=>{
@@ -1084,14 +1087,15 @@ ORDER BY t.table_name;`);
                   const url=URL.createObjectURL(blob);
                   const a=document.createElement("a"); a.href=url; a.download=`sql-result-${Date.now()}.csv`; a.click();
                   URL.revokeObjectURL(url);
-                }} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>
-                  <Download style={{width:11,height:11,display:"inline",marginRight:3}}/>CSV
+                }} style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",padding:"5px 11px",cursor:"pointer",fontFamily:S.font,fontSize:11,color:"#334155",fontWeight:600 }}>
+                  <Download style={{width:11,height:11,display:"inline",marginRight:3,verticalAlign:"-1px"}}/>CSV
                 </button>
-                <div style={{ display:"flex",border:`1px solid ${S.border}`,borderRadius:2,overflow:"hidden" }}>
-                  <button onClick={()=>setSqlViewMode("table")} style={{ border:"none",background:sqlViewMode==="table"?"#003087":S.bg,color:sqlViewMode==="table"?"#fff":S.fg,padding:"3px 8px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>TABLE</button>
-                  <button onClick={()=>setSqlViewMode("json")} style={{ border:"none",background:sqlViewMode==="json"?"#003087":S.bg,color:sqlViewMode==="json"?"#fff":S.fg,padding:"3px 8px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>JSON</button>
+                <div style={{ width:1,height:20,background:S.border }} />
+                <div style={{ display:"flex",border:`1px solid ${S.border}`,borderRadius:6,overflow:"hidden" }}>
+                  <button onClick={()=>setSqlViewMode("table")} style={{ border:"none",background:sqlViewMode==="table"?"#003087":"#fff",color:sqlViewMode==="table"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>TABLE</button>
+                  <button onClick={()=>setSqlViewMode("json")} style={{ border:"none",background:sqlViewMode==="json"?"#003087":"#fff",color:sqlViewMode==="json"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>JSON</button>
                 </div>
-                <button onClick={runSQL} disabled={sqlRunning} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 14px",cursor:sqlRunning?"not-allowed":"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
+                <button onClick={runSQL} disabled={sqlRunning} style={{ background:sqlRunning?"#5b7db1":"#003087",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",cursor:sqlRunning?"not-allowed":"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5,boxShadow:"0 1px 3px rgba(0,48,135,.3)" }}>
                   <Play style={{ width:12,height:12 }} />{sqlRunning?"Running…":"Run ⌘↵"}
                 </button>
               </div>
@@ -1102,45 +1106,47 @@ ORDER BY t.table_name;`);
                 value={sql}
                 onChange={e=>setSql(e.target.value)}
                 onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); runSQL(); } }}
-                style={{ width:"100%",height:"100%",border:"none",padding:12,fontSize:13,fontFamily:S.mono,color:"#1e293b",background:"#f8fafc",resize:"none",outline:"none",boxSizing:"border-box",lineHeight:1.6 }}
+                style={{ width:"100%",height:"100%",border:"none",padding:14,fontSize:13,fontFamily:S.mono,color:"#1e293b",background:"#fbfcfe",resize:"none",outline:"none",boxSizing:"border-box",lineHeight:1.7 }}
                 placeholder="-- Write SQL here (Ctrl+Enter to run)"
                 spellCheck={false}
               />
-              <div style={{ position:"absolute",bottom:4,right:8,fontSize:10,color:"#999",fontFamily:S.font }}>Ctrl+Enter to run</div>
+              <div style={{ position:"absolute",bottom:6,right:10,fontSize:10,color:"#94a3b8",fontFamily:S.font,background:"#fbfcfe",padding:"1px 5px" }}>Ctrl+Enter to run</div>
             </div>
             <div style={{ flex:1,overflow:"auto",padding:0 }}>
               {sqlError && (
-                <div style={{ padding:"8px 14px",background:"rgba(248,113,113,0.1)",borderBottom:`1px solid #cc0000`,fontFamily:S.mono,fontSize:12,color:"#cc0000" }}>
-                  <AlertTriangle style={{ width:12,height:12,display:"inline",marginRight:6 }} />Error: {sqlError}
+                <div style={{ margin:12,padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,fontFamily:S.mono,fontSize:12,color:"#b91c1c" }}>
+                  <AlertTriangle style={{ width:12,height:12,display:"inline",marginRight:6,verticalAlign:"-1px" }} />Error: {sqlError}
                 </div>
               )}
               {sqlResult.length > 0 && (
                 <div>
-                  <div style={{ padding:"4px 12px",background:"rgba(74,222,128,0.1)",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,color:"#006600",display:"flex",alignItems:"center",gap:6 }}>
-                    <CheckCircle style={{ width:11,height:11,display:"inline" }} />
-                    {sqlResult.length} row(s) returned in {sqlMs}ms
-                    <span style={{ marginLeft:8,color:"#999",fontSize:10 }}>{Object.keys(sqlResult[0]).length} columns</span>
+                  <div style={{ padding:"7px 14px",background:"#f0fdf4",borderBottom:`1px solid #bbf7d0`,fontFamily:S.font,fontSize:11,color:"#15803d",display:"flex",alignItems:"center",gap:6,fontWeight:600 }}>
+                    <CheckCircle style={{ width:12,height:12,display:"inline" }} />
+                    {sqlResult.length} row{sqlResult.length===1?"":"s"} returned in {sqlMs}ms
+                    <span style={{ marginLeft:6,color:"#86a596",fontSize:10,fontWeight:500 }}>· {Object.keys(sqlResult[0]).length} columns</span>
                   </div>
                   {sqlViewMode === "json" ? (
-                    <pre style={{ margin:0,padding:14,fontFamily:S.mono,fontSize:11.5,color:"#1e293b",background:"#f8fafc",overflow:"auto" }}>
+                    <pre style={{ margin:0,padding:14,fontFamily:S.mono,fontSize:11.5,color:"#1e293b",background:"#fbfcfe",overflow:"auto" }}>
                       {JSON.stringify(sqlResult, null, 2)}
                     </pre>
                   ) : (
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                     <thead style={{ position:"sticky",top:0 }}>
                       <tr>
-                        <th style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,width:40 }}>#</th>
+                        <th style={{ ...THEAD_CELL,width:40,textAlign:"center" }}>#</th>
                         {Object.keys(sqlResult[0]).map(k => (
-                          <th key={k} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{k}</th>
+                          <th key={k} style={THEAD_CELL}>{k}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {sqlResult.map((r,i) => (
-                        <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
-                          <td style={{ ...CELL,color:"#999",fontSize:10,textAlign:"center",width:40 }}>{i+1}</td>
+                        <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}
+                          onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
+                          onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#ffffff":"#f8fafc")}>
+                          <td style={{ ...CELL,color:"#94a3b8",fontSize:10,textAlign:"center",width:40 }}>{i+1}</td>
                           {Object.values(r).map((v:any,j) => (
-                            <td key={j} style={CELL}>{v===null?<span style={{ color:"#999",fontStyle:"italic" }}>NULL</span>:typeof v==="boolean"?<span style={{ color:v?"#006600":"#cc0000",fontWeight:700 }}>{String(v)}</span>:String(v).slice(0,200)}</td>
+                            <td key={j} style={CELL}>{v===null?<span style={{ color:"#94a3b8",fontStyle:"italic" }}>NULL</span>:typeof v==="boolean"?<span style={{ color:v?"#15803d":"#b91c1c",fontWeight:700 }}>{String(v)}</span>:String(v).slice(0,200)}</td>
                           ))}
                         </tr>
                       ))}
@@ -1161,7 +1167,7 @@ ORDER BY t.table_name;`);
               <thead>
                 <tr>
                   {["Column","Data Type","Nullable","Default"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    <th key={h} style={THEAD_CELL}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1190,7 +1196,7 @@ ORDER BY t.table_name;`);
               <thead>
                 <tr>
                   {["Trigger Name","Table","Event","Timing"].map(h=>(
-                    <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                    <th key={h} style={THEAD_CELL}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1330,7 +1336,7 @@ ORDER BY t.table_name;`);
                       <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                         <thead><tr>
                           {["Table","Size","Rows (est.)","Dead rows","Seq scans","Idx scans","Ins/Upd/Del"].map(h=>(
-                            <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                            <th key={h} style={THEAD_CELL}>{h}</th>
                           ))}
                         </tr></thead>
                         <tbody>
@@ -1770,7 +1776,7 @@ ORDER BY t.table_name;`);
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead><tr>
                     {["Table","Total Size","Row Estimate"].map(h=>(
-                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                      <th key={h} style={THEAD_CELL}>{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>
@@ -1793,7 +1799,7 @@ ORDER BY t.table_name;`);
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead><tr>
                     {["Time","Code","Message","Page","Severity","Resolved"].map(h=>(
-                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                      <th key={h} style={THEAD_CELL}>{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>
@@ -1822,13 +1828,15 @@ ORDER BY t.table_name;`);
                 <thead>
                   <tr>
                     {["Table","Columns","Policies","Triggers","Rows"].map(h=>(
-                      <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                      <th key={h} style={THEAD_CELL}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {stats.map((row,i) => (
-                    <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}>
+                    <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}
+                      onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
+                      onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#ffffff":"#f8fafc")}>
                       <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{row.table_name}</td>
                       <td style={{ ...CELL,textAlign:"center" }}>{row.column_count}</td>
                       <td style={{ ...CELL,textAlign:"center",color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
@@ -1939,7 +1947,7 @@ ORDER BY t.table_name;`);
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                     <thead><tr>
                       {["Table","Columns"].map(h=>(
-                        <th key={h} style={{ ...CELL,background:"rgba(30,58,138,0.8)",color:"#f1f5f9",fontWeight:700,textAlign:"left" }}>{h}</th>
+                        <th key={h} style={THEAD_CELL}>{h}</th>
                       ))}
                     </tr></thead>
                     <tbody>
