@@ -161,19 +161,24 @@ function PlanNode({ node, totalCost }: { node: any; totalCost?: number }) {
 
 function MonitorTable({ title, headers, rows, empty }: { title:string; headers:string[]; rows:(string|number)[][]; empty?:string }) {
   return (
-    <div>
-      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,marginBottom:6 }}>{title}</div>
+    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginBottom:10,overflow:"hidden" }}>
+      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+        <span>{title}</span>
+        {rows.length > 0 && <span style={{ fontSize:9.5,color:"#94a3b8",fontWeight:600 }}>{rows.length} row{rows.length===1?"":"s"}</span>}
+      </div>
       {rows.length === 0 ? (
-        <div style={{ fontSize:12,color:"#666",fontFamily:S.font,padding:16,border:`1px solid ${S.border}`,borderRadius:6 }}>{empty || "No data"}</div>
+        <div style={{ fontSize:12,color:"#94a3b8",fontFamily:S.font,padding:20,textAlign:"center" }}>{empty || "No data"}</div>
       ) : (
-        <div style={{ overflowX:"auto" }}>
+        <div style={{ overflowX:"auto",maxHeight:520,overflowY:"auto" }}>
           <table style={{ borderCollapse:"collapse",width:"100%",fontSize:11.5,fontFamily:S.font }}>
-            <thead><tr>
+            <thead style={{ position:"sticky",top:0,zIndex:1 }}><tr>
               {headers.map(h => <th key={h} style={THEAD_CELL}>{h}</th>)}
             </tr></thead>
             <tbody>
               {rows.map((row,i) => (
-                <tr key={i} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
+                <tr key={i} style={{ background:i%2===0?"#fff":"#f8fafc" }}
+                  onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
+                  onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f8fafc")}>
                   {row.map((cell,j) => <td key={j} style={CELL}>{String(cell)}</td>)}
                 </tr>
               ))}
@@ -1230,7 +1235,7 @@ ORDER BY t.table_name;`);
             </div>
 
             {/* Sub-tab bar (Overview / Data IO / Databases / Wait Stats / Top Queries / Sessions / Backups) */}
-            <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14 }}>
+            <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14,flexWrap:"wrap" as const }}>
               {[
                 { id:"overview",   label:"Overview"   },
                 { id:"dataio",     label:"Data IO"     },
@@ -1245,8 +1250,8 @@ ORDER BY t.table_name;`);
                 { id:"dbstats",    label:"Schema & Errors" },
               ].map(t => (
                 <button key={t.id} onClick={()=>setMonitorSubTab(t.id as any)}
-                  style={{ padding:"6px 14px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
-                    marginBottom:-2,background:"transparent",cursor:"pointer",fontFamily:S.font,fontSize:12.5,
+                  style={{ padding:"6px 12px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
+                    marginBottom:-2,background:"transparent",cursor:"pointer",fontFamily:S.font,fontSize:12,whiteSpace:"nowrap",
                     fontWeight:monitorSubTab===t.id?700:500,color:monitorSubTab===t.id?"#003087":"#64748b" }}>
                   {t.label}
                 </button>
@@ -1346,12 +1351,13 @@ ORDER BY t.table_name;`);
                     ]}
                   />
                   {liveStats.tables?.length > 0 && (
-                    <div style={{ marginTop:14 }}>
-                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:6,fontFamily:S.font }}>
+                    <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginTop:14,overflow:"hidden" }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>
                         BUSIEST TABLES (live, by total activity — real pg_stat_user_tables)
                       </div>
+                      <div style={{ overflowX:"auto",maxHeight:400,overflowY:"auto" }}>
                       <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                        <thead><tr>
+                        <thead style={{ position:"sticky",top:0,zIndex:1 }}><tr>
                           {["Table","Size","Rows (est.)","Dead rows","Seq scans","Idx scans","Ins/Upd/Del"].map(h=>(
                             <th key={h} style={THEAD_CELL}>{h}</th>
                           ))}
@@ -1359,7 +1365,9 @@ ORDER BY t.table_name;`);
                         <tbody>
                           {liveStats.tables.map((t:any,i:number)=>(
                             <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }}
-                              onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}>
+                              onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}
+                              onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
+                              onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f8fafc")}>
                               <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
                               <td style={{ ...CELL }}>{t.total_size}</td>
                               <td style={{ ...CELL,textAlign:"right" }}>{(t.row_estimate??0).toLocaleString()}</td>
@@ -1371,6 +1379,7 @@ ORDER BY t.table_name;`);
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   )}
                   </>
@@ -1788,17 +1797,20 @@ ORDER BY t.table_name;`);
 
             {/* Top tables by size — real pg_total_relation_size, matches "Storage" panels in reference dashboards */}
             {dbDash?.storage?.top_tables?.length > 0 && (
-              <div style={{ marginBottom:16 }}>
-                <div style={{ fontSize:12,fontWeight:700,color:"#003087",marginBottom:6 }}>LARGEST TABLES (live)</div>
+              <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginBottom:16,overflow:"hidden" }}>
+                <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>LARGEST TABLES (live)</div>
+                <div style={{ overflowX:"auto" }}>
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                  <thead><tr>
+                  <thead style={{ position:"sticky",top:0,zIndex:1 }}><tr>
                     {["Table","Total Size","Row Estimate"].map(h=>(
                       <th key={h} style={THEAD_CELL}>{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>
                     {dbDash.storage.top_tables.map((t:any,i:number)=>(
-                      <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}>
+                      <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}
+                        onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
+                        onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f8fafc")}>
                         <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
                         <td style={{ ...CELL }}>{t.total_size}</td>
                         <td style={{ ...CELL,textAlign:"right" }}>{Math.round(t.row_estimate||0).toLocaleString()}</td>
@@ -1806,22 +1818,26 @@ ORDER BY t.table_name;`);
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
 
             {/* Recent errors — real rows from system_errors */}
             {dbDash?.errors?.recent?.length > 0 && (
-              <div style={{ marginBottom:16 }}>
-                <div style={{ fontSize:12,fontWeight:700,color:"#003087",marginBottom:6 }}>RECENT ERRORS (live)</div>
+              <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginBottom:16,overflow:"hidden" }}>
+                <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>RECENT ERRORS (live)</div>
+                <div style={{ overflowX:"auto" }}>
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                  <thead><tr>
+                  <thead style={{ position:"sticky",top:0,zIndex:1 }}><tr>
                     {["Time","Code","Message","Page","Severity","Resolved"].map(h=>(
                       <th key={h} style={THEAD_CELL}>{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>
-                    {dbDash.errors.recent.map((e:any)=>(
-                      <tr key={e.id} style={{ background:"#fff" }}>
+                    {dbDash.errors.recent.map((e:any,i:number)=>(
+                      <tr key={e.id} style={{ background:i%2===0?"#fff":"#f8fafc" }}
+                        onMouseEnter={ev=>(ev.currentTarget.style.background="#eef4fb")}
+                        onMouseLeave={ev=>(ev.currentTarget.style.background=i%2===0?"#fff":"#f8fafc")}>
                         <td style={{ ...CELL,whiteSpace:"nowrap" }}>{new Date(e.created_at).toLocaleString()}</td>
                         <td style={{ ...CELL }}>{e.error_code||"-"}</td>
                         <td style={{ ...CELL,maxWidth:320,overflow:"hidden",textOverflow:"ellipsis" }}>{e.error_msg}</td>
@@ -1832,6 +1848,7 @@ ORDER BY t.table_name;`);
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
 
@@ -1841,8 +1858,10 @@ ORDER BY t.table_name;`);
                 <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
               </div>
             {stats.length > 0 ? (
+              <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",overflow:"hidden" }}>
+              <div style={{ overflowX:"auto",maxHeight:520,overflowY:"auto" }}>
               <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
-                <thead>
+                <thead style={{ position:"sticky",top:0,zIndex:1 }}>
                   <tr>
                     {["Table","Columns","Policies","Triggers","Rows"].map(h=>(
                       <th key={h} style={THEAD_CELL}>{h}</th>
@@ -1863,6 +1882,8 @@ ORDER BY t.table_name;`);
                   ))}
                 </tbody>
               </table>
+              </div>
+              </div>
             ) : (
               <div style={{ fontFamily:S.font,fontSize:12,color:"#666",padding:20 }}>Click Refresh to load statistics-</div>
             )}
@@ -1871,10 +1892,13 @@ ORDER BY t.table_name;`);
         )}
               </div>
 
-              {/* ── RIGHT: Server / Database Properties panel ── */}
-              {liveStats && (
-                <div style={{ width:240,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,background:"#fafbfc" }}>
-                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#003087" }}>Server Properties</div>
+              {/* ── RIGHT: Server / Database Properties panel — Overview only, so
+                    table-heavy sub-tabs (Sessions, Top Queries, Data IO, …) get
+                    the full width they need instead of being squeezed by 240px
+                    of context that's only relevant next to the charts ── */}
+              {liveStats && monitorSubTab==="overview" && (
+                <div style={{ width:240,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,background:"#fafbfc",alignSelf:"flex-start",maxHeight:"calc(100vh - 260px)",overflowY:"auto" }}>
+                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#003087",position:"sticky",top:0,background:"#fafbfc" }}>Server Properties</div>
                   <PropRow k="Version" v={liveStats.server?.version}/>
                   <PropRow k="Database" v={liveStats.server?.current_database}/>
                   <PropRow k="Uptime" v={`${Math.floor((liveStats.server?.uptime_seconds||0)/86400)}d ${Math.floor(((liveStats.server?.uptime_seconds||0)%86400)/3600)}h`}/>
