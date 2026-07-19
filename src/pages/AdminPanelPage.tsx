@@ -81,6 +81,18 @@ async function getMyIP(): Promise<{ip:string}|null> {
 async function getGeo(ip:string): Promise<any> {
   try { return await (await fetch(`https://ipapi.co/${ip}/json/`,{signal:AbortSignal.timeout(4000)})).json(); } catch { return null; }
 }
+function timeAgo(iso?: string | null): string {
+  if (!iso) return "Never";
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0 || Number.isNaN(ms)) return "Never";
+  const m = Math.floor(ms/60000), h = Math.floor(ms/3600000), d = Math.floor(ms/86400000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
+  if (d < 30) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString("en-KE",{day:"2-digit",month:"short",year:"numeric"});
+}
+
 function classIP(ip:string):"public"|"private"|"loopback" {
   if(/^127\.|^::1$/.test(ip)) return "loopback";
   if(/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(ip)) return "private";
@@ -541,16 +553,11 @@ export default function AdminPanelPage() {
 
   /* Load users */
   const loadUsers = useCallback(async()=>{
-    const {data:pr} = await db.from("profiles").select("id,full_name,email,is_active,created_at").order("full_name");
+    const {data:pr} = await db.from("profiles").select("id,full_name,email,is_active,is_locked,failed_logins,last_login,last_seen,last_ip,created_at").order("full_name");
     const {data:rls} = await db.from("user_roles").select("user_id,role");
     const roleMap: Record<string,string[]> = {};
     (rls||[]).forEach((r:any)=>{if(!roleMap[r.user_id])roleMap[r.user_id]=[];roleMap[r.user_id].push(r.role);});
     setUsers((pr||[]).map((p:any)=>({...p,roles:roleMap[p.id]||[]})));
-    // Load temp passwords from system_settings
-    const {data:tp} = await db.from("system_settings").select("key,value").like("key","temp_pw_%");
-    const pm: Record<string,string> = {};
-    (tp||[]).forEach((t:any)=>{ pm[t.key.replace("temp_pw_","")] = t.value; });
-    setTempPwds(pm);
   },[]);
 
   /* Load IP data */
@@ -641,20 +648,22 @@ export default function AdminPanelPage() {
   /* Reset password */
   const resetPwd = async()=>{
     if(!pwdUser||!newPwd){toast({title:"Select user and enter password",variant:"destructive"});return;}
-    if(newPwd.length<6){toast({title:"Password must be 6+ characters",variant:"destructive"});return;}
+    if(newPwd.length<8){toast({title:"Password must be 8+ characters",variant:"destructive"});return;}
     setSaving(true);
     try {
-      // Try admin API first
-      const {error} = await (supabase.auth as any).admin?.updateUserById?.(pwdUser.id,{password:newPwd})||{error:{message:"Admin API unavailable"}};
-      if(error){
-        // Fallback: store temp password for admin reference
-        await db.from("system_settings").upsert({key:`temp_pw_${pwdUser.id}`,value:newPwd,category:"temp_passwords"},{onConflict:"key"});
-        toast({title:"- Temp password stored",description:`Password saved. User must update on next login.`});
-      } else {
-        // Clear any stored temp password
-        await db.from("system_settings").delete().eq("key",`temp_pw_${pwdUser.id}`);
-        toast({title:"- Password reset",description:`${pwdUser.full_name}'s password updated`});
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+        body: { user_id: pwdUser.id, new_password: newPwd },
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Reset failed");
       }
+      // Ephemeral, in-memory only — never written to any table. Cleared
+      // automatically after 2 minutes so it doesn't linger on-screen.
+      setTempPwds(p => ({ ...p, [pwdUser.id]: newPwd }));
+      setTimeout(() => setTempPwds(p => { const n = { ...p }; delete n[pwdUser.id]; return n; }), 120_000);
+      toast({title:"- Password reset",description:`${pwdUser.full_name}'s password updated. Copy it now — it won't be shown again after this session.`});
     } catch(e:any){toast({title:"Error",description:e.message,variant:"destructive"});}
     setSaving(false);setNewPwd("");setPwdUser(null);loadUsers();
   };
@@ -1040,11 +1049,12 @@ export default function AdminPanelPage() {
                 <div style={S.cardHd(T.primary)}><Users size={14} color={T.primary}/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>All Users ({users.length})</span></div>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead><tr style={{background:T.bg}}>
-                    {["User","Email","Roles","Status","Temp Password","Actions"].map(h=><th key={h} style={{padding:"8px 14px",textAlign:"left",fontSize:10,fontWeight:700,color:T.fgDim,borderBottom:`1px solid ${T.border}`}}>{h}</th>)}
+                    {["User","Email","Roles","Account Status","Just Reset","Actions"].map(h=><th key={h} style={{padding:"8px 14px",textAlign:"left",fontSize:10,fontWeight:700,color:T.fgDim,borderBottom:`1px solid ${T.border}`}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {users.map(u=>{
                       const tp = tempPwds[u.id];
+                      const lastLoginAgo = u.last_login ? timeAgo(u.last_login) : (u.last_seen ? timeAgo(u.last_seen) : "Never signed in");
                       return(
                         <tr key={u.id} style={{borderBottom:`1px solid ${T.border}14`}} onMouseEnter={e=>(e.currentTarget.style.background=T.bg)} onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
                           <td style={{padding:"9px 14px"}}>
@@ -1061,15 +1071,22 @@ export default function AdminPanelPage() {
                               ))}
                             </div>
                           </td>
-                          <td style={{padding:"9px 14px"}}><span style={{padding:"2px 8px",borderRadius:T.r,fontSize:10,fontWeight:600,background:u.is_active!==false?T.successBg:T.errorBg,color:u.is_active!==false?T.success:T.error}}>{u.is_active!==false?"Active":"Inactive"}</span></td>
+                          <td style={{padding:"9px 14px"}}>
+                            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:3}}>
+                              <span style={{padding:"2px 8px",borderRadius:T.r,fontSize:10,fontWeight:600,background:u.is_active!==false?T.successBg:T.errorBg,color:u.is_active!==false?T.success:T.error}}>{u.is_active!==false?"Active":"Inactive"}</span>
+                              {u.is_locked && <span style={{padding:"2px 8px",borderRadius:T.r,fontSize:10,fontWeight:600,background:T.errorBg,color:T.error}}><Lock size={9} style={{marginRight:3,verticalAlign:-1}}/>Locked</span>}
+                              {!!u.failed_logins && u.failed_logins>0 && <span style={{padding:"2px 8px",borderRadius:T.r,fontSize:10,fontWeight:600,background:T.warningBg,color:T.warning}}>{u.failed_logins} failed</span>}
+                            </div>
+                            <div style={{fontSize:10,color:T.fgDim}}>{lastLoginAgo}{u.last_ip?` · ${u.last_ip}`:""}</div>
+                          </td>
                           <td style={{padding:"9px 14px"}}>
                             {tp?(
                               <div style={{display:"flex",alignItems:"center",gap:5}}>
-                                <code style={{fontSize:11,fontFamily:"monospace",color:T.warning,background:T.warningBg,padding:"2px 7px",borderRadius:T.r}}>{showPwd[u.id]?tp:"-"}</code>
+                                <code style={{fontSize:11,fontFamily:"monospace",color:T.warning,background:T.warningBg,padding:"2px 7px",borderRadius:T.r}}>{showPwd[u.id]?tp:"••••••••"}</code>
                                 <button onClick={()=>setShowPwd(p=>({...p,[u.id]:!p[u.id]}))} style={{background:"none",border:"none",cursor:"pointer",color:T.fgDim,padding:2}}>{showPwd[u.id]?<EyeOff size={11}/>:<Eye size={11}/>}</button>
                                 <button onClick={()=>{navigator.clipboard.writeText(tp);toast({title:"Copied"});}} style={{background:"none",border:"none",cursor:"pointer",color:T.fgDim,padding:2}}><Copy size={11}/></button>
                               </div>
-                            ):<span style={{fontSize:10,color:T.fgDim}}>-</span>}
+                            ):<span style={{fontSize:10,color:T.fgDim}}>—</span>}
                           </td>
                           <td style={{padding:"9px 14px"}}>
                             <div style={{display:"flex",gap:5}}>
@@ -1083,6 +1100,10 @@ export default function AdminPanelPage() {
                   </tbody>
                 </table>
               </div>
+              <p style={{fontSize:11,color:T.fgDim,marginTop:10,lineHeight:1.5}}>
+                Passwords are hashed one-way by Supabase Auth and can never be viewed — only replaced. A freshly reset
+                password appears once under "Just Reset" for this session only, then disappears automatically after 2 minutes.
+              </p>
             </div>
           )}
 
