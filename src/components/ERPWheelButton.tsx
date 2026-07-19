@@ -78,10 +78,6 @@ const WHEEL = [
     subs:[
       {l:"Reception", p:"/reception", roles:[]},
       {l:"Email",     p:"/email",     roles:[]},
-      {l:"SMS",       p:"/sms",       roles:[]},
-      {l:"Telephony", p:"/telephony", roles:[]},
-      {l:"WhatsApp",  p:"/whatsapp",  roles:[]},
-      {l:"AI Agent",  p:"/ai-agent",  roles:[]},
     ],
   },
   {

@@ -727,7 +727,6 @@ export default function AdminPanelPage() {
                   {label:"Suppliers",val:kpi.suppliers, col:T.inventory,icon:TrendingUp,  path:"/suppliers"},
                   {label:"Items",    val:kpi.items,    col:T.quality,  icon:Package,     path:"/items"},
                   {label:"Notifs",   val:kpi.unread,   col:T.error,    icon:Bell,        path:"/notifications"},
-                  {label:"AI Sent",  val:0,             col:"#7c3aed",  icon:Activity,    path:"/ai-agent"},
                 ].map(k=>(
                   <div key={k.label} onClick={()=>nav(k.path)} style={{...S.card,padding:"14px 16px",cursor:"pointer"}}
                     onMouseEnter={e=>{(e.currentTarget as any).style.transform="translateY(-1px)";(e.currentTarget as any).style.boxShadow="0 4px 12px rgba(0,0,0,.1)";}}
@@ -804,7 +803,6 @@ export default function AdminPanelPage() {
                     {l:"Live IP Stats",     p:"",                  col:"#7719aa",  cb:()=>setSec("iplive")},
                     {l:"Test Twilio SMS",   p:"",                  col:T.inventory,cb:()=>setSec("twilio")},
                     {l:"System Broadcast",  p:"",                  col:T.warning,  cb:()=>setSec("broadcast")},
-                    {l:"AI Agent Hub",      p:"/ai-agent",         col:"#7c3aed"},
                     {l:"DB Monitor",        p:"/admin/db-test",    col:T.quality},
                     {l:"Audit Log",         p:"/audit-log",        col:"#374151"},
                     {l:"Security Center",   p:"/admin/users-ip-audit",  col:T.error},
