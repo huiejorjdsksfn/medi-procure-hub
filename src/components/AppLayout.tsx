@@ -122,8 +122,8 @@ const MODS = [
    items:[
      {l:"Email",     p:"/email",     I:Mail},
      // {l:"SMS",       p:"/sms",       I:MessageSquare}, // temporarily removed — will restore
-     {l:"WhatsApp",  p:"/whatsapp",   I:MessageCircle},
-     {l:"AI Agent",  p:"/ai-agent",   I:Bot},
+     // {l:"WhatsApp",  p:"/whatsapp",   I:MessageCircle}, // removed per request — only Reception + Email remain
+     // {l:"AI Agent",  p:"/ai-agent",   I:Bot}, // removed per request — only Reception + Email remain
      // {l:"Telephony", p:"/telephony", I:Phone}, // temporarily removed (Calls) — will restore
      {l:"Reception", p:"/reception", I:Users},
    ]},
