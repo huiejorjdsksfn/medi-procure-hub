@@ -236,8 +236,8 @@ const App = () => {
               {/* <Route path="/telephony"      element={<P><TelephonyPage /></P>} /> */} {/* temporarily removed (Calls) — will restore */}
               {/* <Route path="/sms"            element={<P><RoleGuard allowed={[...ADMINS,"procurement_manager"]}><SMSPage /></RoleGuard></P>} /> */} {/* temporarily removed — will restore */}
               <Route path="/communications" element={<P><CommunicationsHubPage /></P>} />
-              <Route path="/whatsapp"       element={<P><WhatsAppPage /></P>} />
-              <Route path="/ai-agent"       element={<P><AIAgentPage /></P>} />
+              {/* <Route path="/whatsapp"       element={<P><WhatsAppPage /></P>} /> */} {/* removed per request — only Reception + Email remain */}
+              {/* <Route path="/ai-agent"       element={<P><AIAgentPage /></P>} /> */} {/* removed per request — only Reception + Email remain */}
 
               {/* Admin */}
               <Route path="/admin"                       element={<Navigate to="/admin/panel" replace />} />
