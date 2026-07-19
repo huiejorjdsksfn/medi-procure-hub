@@ -129,8 +129,8 @@ export default function AdminBreadcrumb({ label, extra }: Props) {
         </button>
       </div>
 
-      {/* Section siblings quick-jump strip */}
-      {siblings.length > 0 && (
+      {/* Section siblings quick-jump strip — only worth showing when there's an actual choice */}
+      {siblings.length > 1 && (
         <div style={{ display: "flex", gap: 2, padding: "0 20px 6px", overflowX: "auto" }}>
           {siblings.map(s => {
             const active = loc.pathname === s.p;

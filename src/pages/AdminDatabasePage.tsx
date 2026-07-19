@@ -13,7 +13,7 @@ import { safeFetch } from "@/lib/safeFetch";
 import {
   Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
-  ChevronRight, ChevronDown, Filter, AlertTriangle,
+  ChevronRight, ChevronDown, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu
 } from "lucide-react";
@@ -808,9 +808,6 @@ ORDER BY t.table_name;`);
               <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
                 <button onClick={loadTable} title="Refresh" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
                   <RefreshCw style={{ width:11,height:11,color:"#64748b" }} />
-                </button>
-                <button title="Filter" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
-                  <Filter style={{ width:11,height:11,color:"#64748b" }} />
                 </button>
               </div>
             </div>
