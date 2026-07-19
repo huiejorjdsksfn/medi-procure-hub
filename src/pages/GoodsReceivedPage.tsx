@@ -138,6 +138,13 @@ export default function GoodsReceivedPage() {
     const supp = suppliers.find(s=>s.id===form.supplier_id);
     const{data,error}=await(supabase as any).from("goods_received").insert({
       ...form, grn_number:num, supplier_name:supp?.name||form.supplier_name,
+      // supplier_id is a uuid column — "" (the field's default/unselected
+      // state) isn't a valid uuid and Postgres rejects it outright
+      // ("invalid input syntax for type uuid: ''"), which happened any
+      // time a GRN was saved by typing a supplier name instead of
+      // picking one from the dropdown. Send null when nothing was
+      // actually selected.
+      supplier_id: form.supplier_id || null,
       created_by:user?.id, created_by_name:profile?.full_name
     }).select().single();
     if(error||!data){toast({title:"Save failed",description:error?.message||"Database error - please try again",variant:"destructive"});setSaving(false);return;}
