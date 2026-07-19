@@ -622,7 +622,30 @@ export default function DocumentEditorPage() {
     setDocId(data.id); setDocName(data.name); setDocCat(data.category||"General");
     setDocIT(data.is_template||false);
     setDocPub(data.is_published||false);
-    if (editorRef.current && data.template_html) editorRef.current.innerHTML = data.template_html;
+    if (editorRef.current) {
+      if (data.template_html) {
+        // Authored in this Studio's rich-text editor — load as-is.
+        editorRef.current.innerHTML = data.template_html;
+      } else if (data.parsed_content) {
+        // Uploaded document (PDF/Word/etc.) — template_html was never
+        // populated for these, only parsed_content (plain extracted
+        // text). Previously loadDoc only checked template_html, so
+        // opening any uploaded document showed a blank editor with no
+        // indication why. Render the extracted text as paragraphs so
+        // there's something to see and edit.
+        const paras = String(data.parsed_content).split(/\n{2,}|\r\n\r\n/).filter(Boolean);
+        editorRef.current.innerHTML = paras.length
+          ? paras.map((p:string)=>`<p>${p.replace(/\n/g,"<br/>").replace(/</g,"&lt;")}</p>`).join("")
+          : `<p>${String(data.parsed_content).replace(/\n/g,"<br/>").replace(/</g,"&lt;")}</p>`;
+      } else if (data.storage_path || data.file_url) {
+        // No extractable text at all (e.g. a scanned/image-only PDF) —
+        // say so plainly instead of leaving a silent blank page, and
+        // offer the original file.
+        editorRef.current.innerHTML = `<p style="color:#9ca3af;font-style:italic">This document has no editable text content (likely a scanned image or unsupported format for in-Studio editing).</p><p><a href="${data.file_url||"#"}" target="_blank" rel="noopener">Open the original file</a> to view it, or download it from the Documents library instead.</p>`;
+      } else {
+        editorRef.current.innerHTML = "";
+      }
+    }
     updateCounts();
   };
 
@@ -673,10 +696,20 @@ export default function DocumentEditorPage() {
   /* ── publish document ───────────────────────────────────────── */
   const publishDoc = async () => {
     if (!editorRef.current) return;
-    // If document hasn't been saved yet, save it first
-    if (!docId) {
-      await saveDoc();
-      // saveDoc sets docId asynchronously; proceed with current state
+    // If document hasn't been saved yet, save it first. saveDoc() now
+    // returns the id directly instead of relying on the docId state
+    // variable, which is still stale in this closure right after the
+    // await (React batches the setDocId from inside saveDoc) — that
+    // used to mean a first-time publish never actually reached the DB:
+    // it fell through to "no id yet, just flip local state" and the
+    // is_published flag was never written.
+    let id = docId;
+    if (!id) {
+      id = await saveDoc();
+      if (!id) {
+        toast({ title: "Publish failed", description: "Could not save the document first", variant: "destructive" });
+        return;
+      }
     }
     setPublishing(true);
     try {
@@ -687,11 +720,7 @@ export default function DocumentEditorPage() {
       };
       if (newPublished) payload.published_at = new Date().toISOString();
 
-      if (docId) {
-        await db.from("documents").update(payload).eq("id", docId);
-      } else {
-        // No id yet – just flip local state optimistically
-      }
+      await db.from("documents").update(payload).eq("id", id);
       setDocPub(newPublished);
       toast({
         title: newPublished ? "🚀 Document published" : "📄 Document unpublished",
@@ -706,8 +735,8 @@ export default function DocumentEditorPage() {
   };
 
   /* ── save document ──────────────────────────────────────────── */
-  const saveDoc = async () => {
-    if (!editorRef.current) return;
+  const saveDoc = async (): Promise<string | null> => {
+    if (!editorRef.current) return docId;
     setSaving(true);
     const html = editorRef.current.innerHTML;
     const payload = {
@@ -717,20 +746,23 @@ export default function DocumentEditorPage() {
       file_size: html.length, tags: [], description: "",
       updated_at: new Date().toISOString(),
     };
+    let resultId: string | null = docId;
     try {
       if (docId) {
         await db.from("documents").update(payload).eq("id", docId);
         toast({ title: "✓ Document updated" });
       } else {
         const { data } = await db.from("documents").insert({ ...payload, created_at: new Date().toISOString() }).select().single();
-        if (data?.id) setDocId(data.id);
+        if (data?.id) { setDocId(data.id); resultId = data.id; }
         toast({ title: "✓ Document saved" });
       }
       loadLibrary();
     } catch (e: any) {
       toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      resultId = null;
     }
     setSaving(false);
+    return resultId;
   };
 
   /* ── print with letterhead (+ real signature images when signees exist) ── */
