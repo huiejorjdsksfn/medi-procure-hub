@@ -1,0 +1,1 @@
+import{t as a}from"./cacheBuckets-DUl6xT7S.js";var c=Number.MAX_SAFE_INTEGER,l={set(e,r,t=c){a.set("page",e,r,t)},get(e){return a.get("page",e)},getStale(e){const r=a.getStale("page",e);return r?r.value:null},clear(e){a.clear("page",e)},clearAll(){a.clearBucket("page")},has(e){return this.get(e)!==null}},n=l.clearAll.bind(l),u=l.clear.bind(l);export{l as t};

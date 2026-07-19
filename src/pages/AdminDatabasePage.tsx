@@ -734,31 +734,13 @@ ORDER BY t.table_name;`);
     <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:SSMS.font,color:SSMS.titleText,minHeight:"100%" }}>
       <AdminBreadcrumb />
 
-      {/* ── SSMS title bar ── */}
-      <div style={{ background:SSMS.titlebar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 12px",display:"flex",alignItems:"center",gap:8,flexShrink:0 }}>
-        <Database style={{ width:15,height:15,color:SSMS.accent }} />
-        <span style={{ fontSize:12,fontWeight:600,color:SSMS.titleText }}>
-          {selectedTable || "Database Administration"} [EL5 MediProcure] — Microsoft SQL Server Management Studio
+      {/* ── Toolbar: page context, real actions (New Query/Refresh/Execute), realtime status, connection ── */}
+      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:6,flexShrink:0,flexWrap:"wrap" }}>
+        <Database style={{ width:14,height:14,color:SSMS.accent,flexShrink:0 }} />
+        <span style={{ fontSize:12,fontWeight:600,color:SSMS.titleText,marginRight:6 }}>
+          {selectedTable || "Database Administration"}
         </span>
-        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
-          <div style={{ background:realtimeOn?"#16a34a":"#94a3b8",width:7,height:7,borderRadius:"50%" }} />
-          <span style={{ fontSize:10.5,color:"#475569" }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
-        </div>
-      </div>
-
-      {/* ── SSMS menu bar (decorative — matches the chrome, all actions live in the toolbar/tabs below) ── */}
-      <div style={{ background:SSMS.menubar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"3px 12px",display:"flex",alignItems:"center",gap:16,flexShrink:0 }}>
-        {["File","Edit","View","Project","Debug","Tools","Window","Help"].map(m=>(
-          <span key={m} style={{ fontSize:11.5,color:"#333",cursor:"default",userSelect:"none" }}>{m}</span>
-        ))}
-        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
-          <Search style={{ width:11,height:11,color:"#94a3b8" }} />
-          <input placeholder="Quick Launch" style={{ border:`1px solid ${SSMS.toolbarBd}`,borderRadius:3,padding:"2px 8px",fontSize:11,width:130,outline:"none",fontFamily:SSMS.font }} />
-        </div>
-      </div>
-
-      {/* ── SSMS toolbar ── */}
-      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 10px",display:"flex",alignItems:"center",gap:4,flexShrink:0 }}>
+        <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 2px" }} />
         <button onClick={()=>{setActiveTab("sql");}} title="New Query"
           style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
           onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
@@ -781,9 +763,15 @@ ORDER BY t.table_name;`);
             </button>
           </>
         )}
-        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6,fontSize:10.5,color:"#64748b" }}>
-          <Server style={{ width:11,height:11 }} />
-          <span>yvjfehnzbzjliizjvuhq.supabase.co</span>
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:14 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+            <div style={{ background:realtimeOn?"#16a34a":"#94a3b8",width:7,height:7,borderRadius:"50%" }} />
+            <span style={{ fontSize:10.5,color:"#475569" }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
+          </div>
+          <div style={{ display:"flex",alignItems:"center",gap:6,fontSize:10.5,color:"#64748b" }}>
+            <Server style={{ width:11,height:11 }} />
+            <span>yvjfehnzbzjliizjvuhq.supabase.co</span>
+          </div>
         </div>
       </div>
 
@@ -1222,9 +1210,6 @@ ORDER BY t.table_name;`);
             </table>
           </div>
         )}
-
-        {/* - REALTIME tab - */}
-
 
         {/* - LIVE MONITOR tab (dbForge-style) - */}
         {activeTab === "monitor" && (
