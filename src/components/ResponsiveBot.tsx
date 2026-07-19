@@ -605,12 +605,13 @@ function patchGrids(dev: string) {
 }
 
 // ── Flex-split patcher: fixed-width sidebar + flex:1 content is a very
-// common admin-UI pattern (e.g. an Object Explorer or a watch-list
-// picker next to a detail pane) — grid auto-fit doesn't touch these
-// since they're plain flex rows, not CSS grids. On phone/xs, stack the
-// row vertically and let the formerly-fixed-width child go full-width
-// with a capped height, instead of squeezing the content pane into
-// whatever's left over (which is often negative on a 375px screen). ──
+// common admin-UI pattern (e.g. an Object Explorer tree, a report
+// filter panel, a watch-list picker) next to a detail/content pane —
+// grid auto-fit doesn't touch these since they're plain flex rows, not
+// CSS grids. On phone/xs, admin pages and reports need the sidebar out
+// of the way by default (not just stacked-and-visible eating half the
+// screen) — so this hides the sidebar behind a small "☰ Menu" toggle
+// and gives the content pane the full viewport until it's tapped open. ──
 function patchFlexSplits(dev: string) {
   if (dev !== "xs" && dev !== "phone") {
     document.querySelectorAll<HTMLElement>('[data-rbot-flexsplit="1"]').forEach(el => {
@@ -622,8 +623,10 @@ function patchFlexSplits(dev: string) {
       el.style.removeProperty("max-width");
       el.style.removeProperty("max-height");
       el.style.removeProperty("overflow-y");
+      el.style.removeProperty("display");
       el.removeAttribute("data-rbot-flexchild");
     });
+    document.querySelectorAll<HTMLElement>('[data-rbot-toggle="1"]').forEach(el => el.remove());
     return;
   }
 
@@ -633,7 +636,7 @@ function patchFlexSplits(dev: string) {
     if (cs.display !== "flex") return;
     if (cs.flexDirection === "column" || cs.flexDirection === "column-reverse") return; // already stacking
 
-    const kids = Array.from(el.children) as HTMLElement[];
+    const kids = Array.from(el.children).filter(k => !k.hasAttribute("data-rbot-toggle")) as HTMLElement[];
     if (kids.length < 2) return;
 
     const containerW = el.clientWidth;
@@ -657,8 +660,25 @@ function patchFlexSplits(dev: string) {
     fixedChild.setAttribute("data-rbot-flexchild", "1");
     fixedChild.style.setProperty("width", "100%", "important");
     fixedChild.style.setProperty("max-width", "100%", "important");
-    fixedChild.style.setProperty("max-height", "40vh", "important");
+    fixedChild.style.setProperty("max-height", "45vh", "important");
     fixedChild.style.setProperty("overflow-y", "auto", "important");
+
+    // Hidden by default; a toggle reveals it. Skip if a toggle already
+    // exists for this row (avoid re-inserting on every patchDOM pass).
+    if (!el.querySelector(':scope > [data-rbot-toggle="1"]')) {
+      fixedChild.style.setProperty("display", "none", "important");
+      const toggle = document.createElement("button");
+      toggle.setAttribute("data-rbot-toggle", "1");
+      toggle.type = "button";
+      toggle.textContent = "☰ Menu";
+      toggle.style.cssText = "order:-1;display:flex;align-items:center;gap:6px;width:100%;padding:9px 12px;margin:0;border:none;border-bottom:1px solid rgba(0,0,0,.12);background:rgba(0,48,135,.06);color:#003087;font:600 13px system-ui,sans-serif;text-align:left;cursor:pointer;";
+      toggle.addEventListener("click", () => {
+        const hidden = fixedChild!.style.display === "none";
+        fixedChild!.style.setProperty("display", hidden ? "" : "none", hidden ? "" : "important");
+        toggle.textContent = hidden ? "☰ Menu ▲" : "☰ Menu";
+      });
+      el.insertBefore(toggle, el.firstChild);
+    }
   });
 }
 
