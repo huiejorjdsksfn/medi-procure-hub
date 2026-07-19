@@ -16,7 +16,7 @@ import {
   Plus, Search, RefreshCw, Edit3, Trash2, Shield, X, Check,
   Key, Eye, EyeOff, Users, Lock, Unlock, AlertTriangle,
   Activity, Copy, Clock, Mail, Phone, Building2, UserCheck,
-  ChevronDown, ChevronUp, MoreHorizontal, Zap, Globe, Ban,
+  ChevronDown, ChevronUp, MoreHorizontal, Zap, Globe, Ban, UserPlus,
 } from "lucide-react";
 
 const SUPABASE_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co";
@@ -372,6 +372,7 @@ export default function UsersPage() {
 
       {/* ── TOOLBAR (SSMS-style) ── */}
       <div style={{ background:"linear-gradient(#f7f7f7,#ececec)", borderBottom:"1px solid #c4c4c4", padding:"5px 10px", display:"flex", alignItems:"center", gap:2, flexWrap:"wrap" }}>
+        <RBtn icon={UserPlus} label="New User"   onClick={()=>openCreate()} color={T.primary} disabled={!isAdmin}/>
         <RBtn icon={Edit3}    label="Edit"       onClick={() => selected && (setForm({...selected}),setModal("edit"))} disabled={!selected}/>
         <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color={T.error} disabled={!selected||!isAdmin}/>
         <TSep/>

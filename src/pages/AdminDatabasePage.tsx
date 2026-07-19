@@ -233,6 +233,8 @@ WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
 ORDER BY t.table_name;`);
   const [sqlResult, setSqlResult] = useState<any[]>([]);
   const [sqlError, setSqlError] = useState<string|null>(null);
+  const [sqlHistory, setSqlHistory] = useState<any[]>([]);
+  const [showSqlHistory, setShowSqlHistory] = useState(false);
   const [sqlRunning, setSqlRunning] = useState(false);
   const [sqlMs, setSqlMs] = useState<number|null>(null);
   const [schemaData, setSchemaData] = useState<any[]>([]);
@@ -380,6 +382,13 @@ ORDER BY t.table_name;`);
   }, [selectedTable]);
 
   // - Run SQL -
+  async function loadSqlHistory() {
+    try {
+      const { data } = await (supabase as any).from("query_log").select("*").order("executed_at",{ascending:false}).limit(50);
+      setSqlHistory(data||[]);
+    } catch { /* query_log table may not exist — safe to ignore */ }
+  }
+
   async function runSQL() {
     if (!sql.trim()) return;
     setSqlRunning(true); setSqlError(null); setSqlResult([]);
@@ -434,6 +443,7 @@ ORDER BY t.table_name;`);
           executed_by: user?.id
         });
       } catch { /* query_log table may not exist — safe to ignore */ }
+      loadSqlHistory();
       toast({ title: `✓ Query executed (${ms}ms, ${totalRows} rows)` });
     } catch (e: any) {
       setSqlError(e.message);
@@ -1098,6 +1108,30 @@ ORDER BY t.table_name;`);
                   <Download style={{width:11,height:11,display:"inline",marginRight:3,verticalAlign:"-1px"}}/>CSV
                 </button>
                 <div style={{ width:1,height:20,background:S.border }} />
+                <button onClick={()=>{ const next=!showSqlHistory; setShowSqlHistory(next); if(next && !sqlHistory.length) loadSqlHistory(); }}
+                  style={{ border:`1px solid ${S.border}`,background:showSqlHistory?"#003087":"#fff",color:showSqlHistory?"#fff":"#334155",padding:"5px 10px",borderRadius:6,cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <Clock style={{width:11,height:11}}/>History
+                </button>
+                <button onClick={async()=>{
+                  if(!sqlHistory.length) await loadSqlHistory();
+                  const rows = sqlHistory.length ? sqlHistory : [];
+                  if(!rows.length){ toast({title:"No job history to print"}); return; }
+                  printDataTable({
+                    title: "SQL JOB LOG",
+                    docNo: `${rows.length} RUNS`,
+                    columns: ["executed_at","query_type","query_text","rows_affected","execution_ms","error_message"],
+                    rows: rows.map((r:any)=>[
+                      r.executed_at ? new Date(r.executed_at).toLocaleString("en-KE") : "",
+                      r.query_type||"", (r.query_text||"").slice(0,120),
+                      r.rows_affected ?? "", r.execution_ms!=null?`${r.execution_ms}ms`:"", r.error_message||"",
+                    ]),
+                    filename: `sql-job-log-${Date.now()}`,
+                    meta: `Query execution history · ${rows.length} run(s) shown`,
+                  }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
+                }} style={{ border:`1px solid ${S.border}`,background:"#fff",color:"#334155",padding:"5px 10px",borderRadius:6,cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  <Printer style={{width:11,height:11}}/>Print Job Log
+                </button>
+                <div style={{ width:1,height:20,background:S.border }} />
                 <div style={{ display:"flex",border:`1px solid ${S.border}`,borderRadius:6,overflow:"hidden" }}>
                   <button onClick={()=>setSqlViewMode("table")} style={{ border:"none",background:sqlViewMode==="table"?"#003087":"#fff",color:sqlViewMode==="table"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>TABLE</button>
                   <button onClick={()=>setSqlViewMode("json")} style={{ border:"none",background:sqlViewMode==="json"?"#003087":"#fff",color:sqlViewMode==="json"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>JSON</button>
@@ -1120,6 +1154,34 @@ ORDER BY t.table_name;`);
               <div style={{ position:"absolute",bottom:6,right:10,fontSize:10,color:"#94a3b8",fontFamily:S.font,background:"#fbfcfe",padding:"1px 5px" }}>Ctrl+Enter to run</div>
             </div>
             <div style={{ flex:1,overflow:"auto",padding:0 }}>
+              {showSqlHistory && (
+                <div style={{ margin:12,border:`1px solid ${S.border}`,borderRadius:6,overflow:"hidden" }}>
+                  <div style={{ padding:"6px 12px",background:"#f0f4fa",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,fontWeight:700,color:"#003087" }}>
+                    Job Log — last {sqlHistory.length} run{sqlHistory.length===1?"":"s"}
+                  </div>
+                  <div style={{ maxHeight:260,overflow:"auto" }}>
+                    <table style={{ width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:S.font }}>
+                      <thead><tr style={{ background:"#fafbfc",position:"sticky",top:0 }}>
+                        {["Run at","Type","Query","Rows","Time","Status"].map(h=>
+                          <th key={h} style={{ padding:"5px 10px",textAlign:"left",borderBottom:`1px solid ${S.border}`,color:"#64748b",fontWeight:700 }}>{h}</th>)}
+                      </tr></thead>
+                      <tbody>
+                        {sqlHistory.length===0 && <tr><td colSpan={6} style={{ padding:14,textAlign:"center",color:"#94a3b8" }}>No runs logged yet</td></tr>}
+                        {sqlHistory.map((r:any)=>(
+                          <tr key={r.id} style={{ borderBottom:"1px solid #f1f5f9",cursor:"pointer" }} onClick={()=>setSql(r.query_text||"")} title="Click to reload this query">
+                            <td style={{ padding:"5px 10px",color:"#64748b",whiteSpace:"nowrap" }}>{r.executed_at?new Date(r.executed_at).toLocaleString("en-KE"):""}</td>
+                            <td style={{ padding:"5px 10px" }}><span style={{ padding:"1px 6px",borderRadius:4,fontSize:10,fontWeight:700,background:"#e0e7ff",color:"#3730a3" }}>{r.query_type}</span></td>
+                            <td style={{ padding:"5px 10px",fontFamily:S.mono,color:"#334155",maxWidth:320,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.query_text}</td>
+                            <td style={{ padding:"5px 10px" }}>{r.rows_affected ?? "—"}</td>
+                            <td style={{ padding:"5px 10px" }}>{r.execution_ms!=null?`${r.execution_ms}ms`:"—"}</td>
+                            <td style={{ padding:"5px 10px" }}>{r.error_message ? <span style={{color:"#dc2626"}}>Error</span> : <CheckCircle style={{width:11,height:11,color:"#16a34a"}}/>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               {sqlError && (
                 <div style={{ margin:12,padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,fontFamily:S.mono,fontSize:12,color:"#b91c1c" }}>
                   <AlertTriangle style={{ width:12,height:12,display:"inline",marginRight:6,verticalAlign:"-1px" }} />Error: {sqlError}
