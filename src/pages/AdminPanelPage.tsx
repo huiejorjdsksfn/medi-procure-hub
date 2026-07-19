@@ -257,15 +257,18 @@ export default function AdminPanelPage() {
   const selectedForm = forms.find((f:any)=>f.form_id===selectedFormId) || null;
   const fbPublicUrl = selectedFormId ? `${window.location.origin}/#/forms/${selectedFormId}` : "";
 
+  const [showDeletedForms, setShowDeletedForms] = useState(false);
   const loadForms = useCallback(async()=>{
     setFormsLoading(true);
     try {
-      const { data, error } = await db.from("google_forms").select("*").order("created_at",{ascending:false});
+      let q = db.from("google_forms").select("*").order("created_at",{ascending:false});
+      if (!showDeletedForms) q = q.is("deleted_at", null);
+      const { data, error } = await q;
       if (error) throw error;
       setForms(data||[]);
     } catch(e:any) { console.error("[FormsBuilder] load error:",e); }
     setFormsLoading(false);
-  },[]);
+  },[showDeletedForms]);
 
   const loadFbResponses = useCallback(async(formId:string)=>{
     try {
@@ -385,15 +388,30 @@ export default function AdminPanelPage() {
 
   const fbDeleteForm = async()=>{
     if (!selectedFormId) return;
-    if (!confirm(`Delete form "${fbTitle}"? This cannot be undone.`)) return;
+    if (!confirm(`Delete form "${fbTitle}"? You can restore it later from "Show deleted".`)) return;
     try {
-      const { error } = await db.from("google_forms").delete().eq("form_id",selectedFormId);
+      // Soft delete — previously this was a hard DELETE with no way to
+      // recover ("This cannot be undone"). Now it just flags the row;
+      // Restore below clears the flag.
+      const { error } = await db.from("google_forms").update({ deleted_at: new Date().toISOString(), is_active: false, status: "deleted" }).eq("form_id",selectedFormId);
       if (error) throw error;
-      toast({title:"✓ Form deleted"});
+      toast({title:"✓ Form deleted", description:"You can restore it from \"Show deleted\" if this was a mistake."});
       fbResetDraft();
       await loadForms();
     } catch(e:any) {
       toast({title:"Delete failed", description:e.message, variant:"destructive"});
+    }
+  };
+
+  const fbRestoreForm = async()=>{
+    if (!selectedFormId) return;
+    try {
+      const { error } = await db.from("google_forms").update({ deleted_at: null, status: "draft" }).eq("form_id",selectedFormId);
+      if (error) throw error;
+      toast({title:"✓ Form restored"});
+      await loadForms();
+    } catch(e:any) {
+      toast({title:"Restore failed", description:e.message, variant:"destructive"});
     }
   };
 
@@ -1711,8 +1729,12 @@ export default function AdminPanelPage() {
                     if (f) fbSelectForm(f);
                   }} style={{...S.inp,width:220,marginLeft:"auto",fontSize:11}}>
                     <option value="">— New Form —</option>
-                    {forms.map((f:any)=><option key={f.form_id} value={f.form_id}>{f.title||f.form_id} ({f.status||"draft"})</option>)}
+                    {forms.map((f:any)=><option key={f.form_id} value={f.form_id}>{f.title||f.form_id} ({f.deleted_at?"deleted":f.status||"draft"})</option>)}
                   </select>
+                  <label style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.fgMuted,cursor:"pointer",whiteSpace:"nowrap"}}>
+                    <input type="checkbox" checked={showDeletedForms} onChange={e=>setShowDeletedForms(e.target.checked)} />
+                    Show deleted
+                  </label>
                   <button onClick={fbResetDraft} style={{...S.btn("#f59e0b"),padding:"5px 12px",fontSize:11}}><Plus size={12}/>New Form</button>
                 </div>
                 <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -1739,7 +1761,8 @@ export default function AdminPanelPage() {
                     <button onClick={fbSaveForm} disabled={fbSaving} style={{...S.btn("#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
                       <Save size={14}/>{fbSaving?"Saving…":selectedFormId?"Save Changes":"Create Form"}
                     </button>
-                    {selectedFormId && <button onClick={fbDeleteForm} style={{...S.btn("#dc2626"),fontSize:12}}><Trash2 size={14}/>Delete</button>}
+                    {selectedFormId && selectedForm?.deleted_at && <button onClick={fbRestoreForm} style={{...S.btn("#059669"),fontSize:12}}><RefreshCw size={14}/>Restore</button>}
+                    {selectedFormId && !selectedForm?.deleted_at && <button onClick={fbDeleteForm} style={{...S.btn("#dc2626"),fontSize:12}}><Trash2 size={14}/>Delete</button>}
                   </div>
                 </div>
               </div>
