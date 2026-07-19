@@ -54,6 +54,27 @@ const S = {
   mono:  "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace",
 };
 
+// SSMS ("SQL Server Management Studio") chrome theme — v6.0 redesign.
+// Distinct from S above: this governs only the window chrome (menu bar,
+// toolbar, Object Explorer header, document tabs, status bar), matching
+// the classic SSMS light/blue theme. Table/grid/SQL-editor content below
+// keeps using S so none of that logic changes.
+const SSMS = {
+  font:      "'Segoe UI', 'Inter', system-ui, sans-serif",
+  titlebar:  "#f3f3f3",
+  titleText: "#1e1e1e",
+  menubar:   "#f3f3f3",
+  toolbar:   "#eef2f6",
+  toolbarBd: "#d6dce3",
+  accent:    "#0067b8",
+  accentDk:  "#004b87",
+  tabActive: "#ffffff",
+  tabInactive: "#e4e9ee",
+  tabBorder: "#c9d2db",
+  statusbar: "#0067b8",
+  explorerHd:"#e4e9ee",
+};
+
 const CELL: React.CSSProperties = {
   border: `1px solid #e2e8f0`,
   padding: "6px 12px",
@@ -710,31 +731,79 @@ ORDER BY t.table_name;`);
   },[]);
 
   return (
-    <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:S.font,color:S.fg,minHeight:"100%" }}>
+    <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:SSMS.font,color:SSMS.titleText,minHeight:"100%" }}>
       <AdminBreadcrumb />
 
-      {/* - Header - */}
-      <div style={{ background:"linear-gradient(135deg,#0a2558,#1a3a6b)",color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:"2px solid #001a5c" }}>
-        <Database style={{ width:20,height:20 }} />
-        <div>
-          <div style={{ fontSize:15,fontWeight:700,fontFamily:S.font }}>Database Administration</div>
-          <div style={{ fontSize:10,opacity:0.7,fontFamily:S.font }}>EL5 MediProcure - Supabase - yvjfehnzbzjliizjvuhq</div>
-        </div>
-        <div style={{ marginLeft:"auto",display:"flex",gap:6,alignItems:"center" }}>
-          <div style={{ background:realtimeOn?"#00cc44":"#666",width:8,height:8,borderRadius:"50%" }} />
-          <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
-          <button onClick={loadTable} style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"4px 10px",cursor:"pointer",fontFamily:S.font,fontSize:12,borderRadius:3 }}>
-            <RefreshCw style={{ width:12,height:12 }} />
-          </button>
+      {/* ── SSMS title bar ── */}
+      <div style={{ background:SSMS.titlebar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 12px",display:"flex",alignItems:"center",gap:8,flexShrink:0 }}>
+        <Database style={{ width:15,height:15,color:SSMS.accent }} />
+        <span style={{ fontSize:12,fontWeight:600,color:SSMS.titleText }}>
+          {selectedTable || "Database Administration"} [EL5 MediProcure] — Microsoft SQL Server Management Studio
+        </span>
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
+          <div style={{ background:realtimeOn?"#16a34a":"#94a3b8",width:7,height:7,borderRadius:"50%" }} />
+          <span style={{ fontSize:10.5,color:"#475569" }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
         </div>
       </div>
 
-      {/* - Tab bar - */}
-      <div style={{ display:"flex",borderBottom:`1px solid ${S.border}`,background:"#f1f5f9",flexShrink:0 }}>
+      {/* ── SSMS menu bar (decorative — matches the chrome, all actions live in the toolbar/tabs below) ── */}
+      <div style={{ background:SSMS.menubar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"3px 12px",display:"flex",alignItems:"center",gap:16,flexShrink:0 }}>
+        {["File","Edit","View","Project","Debug","Tools","Window","Help"].map(m=>(
+          <span key={m} style={{ fontSize:11.5,color:"#333",cursor:"default",userSelect:"none" }}>{m}</span>
+        ))}
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
+          <Search style={{ width:11,height:11,color:"#94a3b8" }} />
+          <input placeholder="Quick Launch" style={{ border:`1px solid ${SSMS.toolbarBd}`,borderRadius:3,padding:"2px 8px",fontSize:11,width:130,outline:"none",fontFamily:SSMS.font }} />
+        </div>
+      </div>
+
+      {/* ── SSMS toolbar ── */}
+      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 10px",display:"flex",alignItems:"center",gap:4,flexShrink:0 }}>
+        <button onClick={()=>{setActiveTab("sql");}} title="New Query"
+          style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
+          onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
+          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="transparent";}}>
+          <FileText style={{ width:13,height:13,color:SSMS.accent }} /> New Query
+        </button>
+        <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 4px" }} />
+        <button onClick={loadTable} title="Refresh"
+          style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
+          onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
+          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="transparent";}}>
+          <RefreshCw style={{ width:13,height:13,color:SSMS.accent }} /> Refresh
+        </button>
+        {activeTab==="sql" && (
+          <>
+            <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 4px" }} />
+            <button onClick={runSQL} disabled={sqlRunning} title="Execute (⌘↵)"
+              style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:sqlRunning?"not-allowed":"pointer",fontSize:11.5,color:sqlRunning?"#94a3b8":SSMS.titleText,fontWeight:600 }}>
+              <Play style={{ width:13,height:13,color: sqlRunning?"#94a3b8":"#16a34a" }} /> {sqlRunning?"Executing…":"Execute"}
+            </button>
+          </>
+        )}
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6,fontSize:10.5,color:"#64748b" }}>
+          <Server style={{ width:11,height:11 }} />
+          <span>yvjfehnzbzjliizjvuhq.supabase.co</span>
+        </div>
+      </div>
+
+      {/* ── Document tabs (SSMS style) ── */}
+      <div style={{ display:"flex",borderBottom:`1px solid ${SSMS.tabBorder}`,background:SSMS.tabInactive,flexShrink:0,paddingTop:4 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 16px",border:"none",borderBottom:activeTab===t.id?`3px solid ${S.blue}`:"3px solid transparent",background:activeTab===t.id?"#ffffff":"transparent",cursor:"pointer",fontFamily:S.font,fontSize:13,fontWeight:activeTab===t.id?700:500,color:activeTab===t.id?"#0f172a":"#475569" }}>
-            <t.icon style={{ width:13,height:13 }} />
+            style={{
+              display:"flex",alignItems:"center",gap:6,padding:"6px 16px",
+              border:`1px solid ${activeTab===t.id?SSMS.tabBorder:"transparent"}`,
+              borderBottom: activeTab===t.id ? `1px solid ${SSMS.tabActive}` : `1px solid transparent`,
+              borderTopLeftRadius:3, borderTopRightRadius:3,
+              background: activeTab===t.id ? SSMS.tabActive : "transparent",
+              cursor:"pointer", fontFamily:SSMS.font, fontSize:12,
+              fontWeight: activeTab===t.id ? 600 : 400,
+              color: activeTab===t.id ? SSMS.titleText : "#475569",
+              marginBottom:-1, position:"relative", top:1,
+              boxShadow: activeTab===t.id ? "0 -1px 0 rgba(0,0,0,0.02)" : "none",
+            }}>
+            <t.icon style={{ width:12,height:12, color: activeTab===t.id ? SSMS.accent : "#94a3b8" }} />
             {t.label}
           </button>
         ))}
@@ -743,9 +812,24 @@ ORDER BY t.table_name;`);
       {/* - Main content - */}
       <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
 
-        {/* Left sidebar - table tree */}
+        {/* Left sidebar - table tree, styled as SSMS Object Explorer */}
         {activeTab === "tables" && (
-          <div style={{ width:220,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"#ffffff",flexShrink:0 }}>
+          <div style={{ width:230,borderRight:`1px solid ${SSMS.toolbarBd}`,overflowY:"auto",background:"#ffffff",flexShrink:0,display:"flex",flexDirection:"column" }}>
+            <div style={{ background:SSMS.explorerHd,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 8px",display:"flex",alignItems:"center",gap:6 }}>
+              <span style={{ fontSize:11,fontWeight:700,color:SSMS.titleText }}>Object Explorer</span>
+              <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
+                <button onClick={loadTable} title="Refresh" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
+                  <RefreshCw style={{ width:11,height:11,color:"#64748b" }} />
+                </button>
+                <button title="Filter" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
+                  <Filter style={{ width:11,height:11,color:"#64748b" }} />
+                </button>
+              </div>
+            </div>
+            <div style={{ padding:"5px 8px",borderBottom:`1px solid ${SSMS.toolbarBd}`,background:"#fafbfc",display:"flex",alignItems:"center",gap:5 }}>
+              <Server style={{ width:11,height:11,color:SSMS.accent,flexShrink:0 }} />
+              <span style={{ fontSize:10.5,color:"#475569",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>yvjfehnzbzjliizjvuhq (Supabase)</span>
+            </div>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
                 style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
@@ -1891,6 +1975,20 @@ ORDER BY t.table_name;`);
           </div>
         )}
 
+      </div>
+
+      {/* ── SSMS status bar ── */}
+      <div style={{ background:SSMS.statusbar,color:"#fff",padding:"3px 12px",display:"flex",alignItems:"center",gap:16,flexShrink:0,fontSize:10.5 }}>
+        <span style={{ display:"flex",alignItems:"center",gap:5 }}>
+          {sqlRunning
+            ? <><RefreshCw style={{ width:10,height:10,animation:"spin 1s linear infinite" }} /> Executing query…</>
+            : <><CheckCircle style={{ width:10,height:10 }} /> Ready</>}
+        </span>
+        {activeTab==="tables" && selectedTable && (
+          <span>{selectedTable} — {totalRows.toLocaleString()} row{totalRows===1?"":"s"}</span>
+        )}
+        <span style={{ marginLeft:"auto" }}>yvjfehnzbzjliizjvuhq (Supabase Postgres)</span>
+        <span>{realtimeOn ? "Realtime: ON" : "Realtime: OFF"}</span>
       </div>
     </div>
   );
