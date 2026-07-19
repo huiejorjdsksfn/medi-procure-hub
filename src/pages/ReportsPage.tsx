@@ -103,11 +103,116 @@ export default function ReportsPage() {
 
   useEffect(()=>{load();},[load]);
 
+  // Turns "total_amount" into "Total Amount", "created_at" into "Created At", etc.
+  const humanLabel = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
   const exportXLSX = () => {
-    const ws = XLSX.utils.json_to_sheet(rows);
+    if (!rows.length) { toast({ title:"Nothing to export", description:"This report has no rows for the current filters.", variant:"destructive" }); return; }
+
+    const dataCols = Object.keys(rows[0]).filter(k => k !== "id" && !["__v"].includes(k)).slice(0, 12);
+    const isAmountCol = (k: string) => /amount|value|price|total|cost/i.test(k);
+    const isDateCol = (k: string) => /_at$|_date$/i.test(k);
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,activeRpt.label);
-    XLSX.writeFile(wb,`${sysName}-${(activeRpt.label||(activeRpt as any).name||activeRpt.id).replace(/\s+/g,"-")}-${startDate}-${endDate}.xlsx`);
+    const aoa: any[][] = [];
+
+    // Title block — real hospital branding, not a raw data dump
+    aoa.push([sysName]);
+    aoa.push([hospitalName]);
+    aoa.push([`${activeRpt.label} Report`]);
+    aoa.push([`Period: ${startDate} to ${endDate}   ·   Generated: ${new Date().toLocaleString()}   ·   ${rows.length} records`]);
+    aoa.push([]);
+    aoa.push(dataCols.map(humanLabel));
+
+    let totals: Record<string, number> = {};
+    rows.forEach(r => {
+      aoa.push(dataCols.map(k => {
+        let v = r[k];
+        if (k === "requested_by" || k === "approved_by" || k === "created_by") v = profileNames[v] || v;
+        if (k === "item_id") v = itemNames[v] || v;
+        if (isAmountCol(k)) { totals[k] = (totals[k]||0) + (Number(v)||0); return Number(v)||0; }
+        if (isDateCol(k) && v) return new Date(v).toLocaleString("en-KE", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+        return v ?? "";
+      }));
+    });
+
+    // Totals row for any amount-like columns
+    if (Object.keys(totals).length) {
+      aoa.push(dataCols.map(k => isAmountCol(k) ? totals[k] : (k === dataCols[0] ? "TOTAL" : "")));
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const headerRowIdx = 5; // 0-indexed row of the actual column headers
+
+    // Column widths sized to content, not Excel's cramped default
+    ws["!cols"] = dataCols.map((k, i) => ({
+      wch: Math.max(humanLabel(k).length, 12, k === dataCols[0] ? 22 : 14),
+    }));
+
+    // Merge the title/subtitle rows across all columns so they read as a real header block
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: dataCols.length - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: dataCols.length - 1 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: dataCols.length - 1 } },
+      { s: { r: 3, c: 0 }, e: { r: 3, c: dataCols.length - 1 } },
+    ];
+
+    // Real number formatting — currency and dates render properly in Excel, not as raw numbers/ISO strings
+    for (let r = headerRowIdx + 1; r < aoa.length; r++) {
+      dataCols.forEach((k, c) => {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        if (!ws[addr]) return;
+        if (isAmountCol(k)) ws[addr].z = '"KES" #,##0.00';
+      });
+    }
+
+    ws["!freeze"] = { xSplit: 0, ySplit: headerRowIdx + 1 };
+
+    XLSX.utils.book_append_sheet(wb, ws, activeRpt.label.slice(0, 31));
+    XLSX.writeFile(wb, `${sysName}-${(activeRpt.label||(activeRpt as any).name||activeRpt.id).replace(/\s+/g,"-")}-${startDate}-${endDate}.xlsx`);
+  };
+
+  const exportPrint = () => {
+    if (!rows.length) { toast({ title:"Nothing to print", description:"This report has no rows for the current filters.", variant:"destructive" }); return; }
+    const dataCols = Object.keys(rows[0]).filter(k => k !== "id" && !["__v"].includes(k)).slice(0, 8);
+    const isAmountCol = (k: string) => /amount|value|price|total|cost/i.test(k);
+    const fmtCell = (k: string, v: any) => {
+      if (k === "requested_by" || k === "approved_by" || k === "created_by") v = profileNames[v] || v;
+      if (k === "item_id") v = itemNames[v] || v;
+      if (isAmountCol(k)) return fmtKES(Number(v) || 0);
+      if (/_at$|_date$/i.test(k) && v) return new Date(v).toLocaleDateString();
+      return v ?? "—";
+    };
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><title>${activeRpt.label} Report</title><style>
+      @page { size: A4 landscape; margin: 14mm; }
+      * { box-sizing:border-box; margin:0; padding:0; }
+      body { font-family:'Segoe UI',Arial,sans-serif; color:#1f2937; font-size:9.5pt; }
+      .lh { border-bottom:2px solid #0a2558; padding-bottom:10px; margin-bottom:14px; }
+      .lh-sys { font-size:13pt; font-weight:800; color:#0a2558; }
+      .lh-hosp { font-size:10pt; color:#64748b; }
+      .doc-title { font-size:14pt; font-weight:800; color:#0a2558; text-align:center; margin:10px 0 4px; text-transform:uppercase; }
+      .meta { text-align:center; font-size:8.5pt; color:#64748b; margin-bottom:14px; }
+      table { width:100%; border-collapse:collapse; }
+      th { background:#0a2558; color:#fff; padding:6px 8px; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.04em; }
+      td { padding:5px 8px; border-bottom:0.5px solid #e5e7eb; }
+      tr:nth-child(even) td { background:#f8fafc; }
+      tfoot td { font-weight:800; border-top:2px solid #0a2558; }
+      .footer { margin-top:16px; text-align:center; font-size:7.5pt; color:#9ca3af; }
+      @media print { .no-print { display:none; } }
+    </style></head><body>
+      <div class="lh"><div class="lh-sys">${sysName}</div><div class="lh-hosp">${hospitalName}</div></div>
+      <div class="doc-title">${activeRpt.label} Report</div>
+      <div class="meta">Period: ${startDate} to ${endDate} &middot; Generated ${new Date().toLocaleString()} &middot; ${rows.length} records</div>
+      <table>
+        <thead><tr>${dataCols.map(k=>`<th>${humanLabel(k)}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(r=>`<tr>${dataCols.map(k=>`<td>${fmtCell(k,r[k])}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table>
+      <div class="footer">${sysName} &middot; Confidential &middot; Printed ${new Date().toLocaleString()}</div>
+      <script>window.onload=()=>window.print();</script>
+    </body></html>`);
+    win.document.close();
   };
 
   const cols = rows.length ? Object.keys(rows[0]).filter(k=>k!=="id"&&!["__v"].includes(k)).slice(0,10) : [];
@@ -125,6 +230,9 @@ export default function ReportsPage() {
           <div style={{fontSize:11,color:T.fgMuted}}>{hospitalName} - {sysName}</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={exportPrint} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#0a2558",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
+            <Download size={13}/> Print / PDF
+          </button>
           <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#107c10",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
             <FileSpreadsheet size={13}/> Export Excel
           </button>
