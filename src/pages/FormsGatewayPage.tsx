@@ -9,7 +9,7 @@
  */
 import type React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -40,6 +40,8 @@ const DEFAULT_BRAND: Brand = {
 
 export default function FormsGatewayPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextFormId = searchParams.get("next");
   const { session, user, profile } = useAuth();
   const [forms, setForms] = useState<FormRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,7 @@ export default function FormsGatewayPage() {
   const [identifier, setIdentifier] = useState(""); // username or email
   const [password, setPassword] = useState("");
   const [signingIn, setSigningIn] = useState(false);
+  const [signingInGoogle, setSigningInGoogle] = useState(false);
   const [authError, setAuthError] = useState("");
 
   const loadBrand = useCallback(async () => {
@@ -74,6 +77,16 @@ export default function FormsGatewayPage() {
   }, []);
 
   useEffect(() => { loadBrand(); loadForms(); }, [loadBrand, loadForms]);
+
+  // Deep link from PublicFormPage: /forms/:formId → (not signed in) → /forms?next=:formId.
+  // Once forms are loaded, resolve it: skip straight through if already signed
+  // in, otherwise open the sign-in panel pre-targeted at that form.
+  useEffect(() => {
+    if (!nextFormId || loading) return;
+    if (session) { navigate(`/forms/${nextFormId}`, { replace: true }); return; }
+    const target = forms.find(f => f.form_id === nextFormId);
+    if (target) setPendingForm(target);
+  }, [nextFormId, loading, forms, session, navigate]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -121,6 +134,27 @@ export default function FormsGatewayPage() {
       setAuthError(e?.message || "Sign-in failed.");
     } finally {
       setSigningIn(false);
+    }
+  };
+
+  const doGoogleSignIn = async () => {
+    setAuthError("");
+    setSigningInGoogle(true);
+    try {
+      const formId = pendingForm?.form_id || nextFormId;
+      // Land back on the gateway with ?next= set so the deep-link effect
+      // above sends the user straight into the right form once the
+      // OAuth redirect completes and AuthContext picks up the session.
+      const redirectTo = `${window.location.origin}${window.location.pathname}#/forms${formId ? `?next=${encodeURIComponent(formId)}` : ""}`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) { setAuthError(error.message || "Google sign-in failed."); setSigningInGoogle(false); }
+      // On success the browser navigates away to Google, so nothing more to do here.
+    } catch (e: any) {
+      setAuthError(e?.message || "Google sign-in failed.");
+      setSigningInGoogle(false);
     }
   };
 
@@ -189,6 +223,23 @@ export default function FormsGatewayPage() {
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 380, padding: 26, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
             <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>Sign in to answer</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 18 }}>{pendingForm.title}</div>
+
+            <button onClick={doGoogleSignIn} disabled={signingInGoogle}
+              style={{ width: "100%", padding: 10, background: "#fff", color: "#3c4043", border: "1.5px solid #dadce0", borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: signingInGoogle ? 0.6 : 1, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.81.54-1.85.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+                <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/>
+                <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+              </svg>
+              {signingInGoogle ? "Redirecting…" : "Continue with Google"}
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>OR</div>
+              <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+            </div>
 
             <label style={{ fontSize: 12, fontWeight: 600, color: "#334155", display: "block", marginBottom: 5 }}>Username or email</label>
             <input value={identifier} onChange={e => setIdentifier(e.target.value)} onKeyDown={e => e.key === "Enter" && doSignIn()}
