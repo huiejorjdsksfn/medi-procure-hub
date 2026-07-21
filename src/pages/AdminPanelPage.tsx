@@ -337,6 +337,7 @@ export default function AdminPanelPage() {
     setFbDesc(f.description||"");
     setFbQuestions(Array.isArray(fd.questions)&&fd.questions.length ? fd.questions : FB_DEFAULT_QUESTIONS);
     loadFbResponses(f.form_id);
+    loadFbSchedules(f.form_id);
   };
 
   const fbGenFormId = ()=>{
@@ -485,7 +486,9 @@ export default function AdminPanelPage() {
           recipients,
           channels: ["email"],
           subject: `New form: ${fbTitle}`,
-          message: `${fbDesc||"A new form has been published and needs your response."}\n\nPlease complete it here:\n${fbPublicUrl}`,
+          message: fbDesc||"A new form has been published and needs your response.",
+          ctaUrl: fbPublicUrl,
+          ctaLabel: "Answer the Form",
         },
       });
       if (error) throw error;
@@ -495,11 +498,68 @@ export default function AdminPanelPage() {
         throw new Error(results[0]?.error || "Delivery failed for all recipients");
       }
       toast({title:`✓ Sent to ${okCount}/${recipients.length} user${recipients.length===1?"":"s"}`,
-        description: okCount < recipients.length ? `${recipients.length-okCount} failed to send` : undefined});
+        description: okCount < recipients.length ? `${recipients.length-okCount} failed — check Settings → SMTP` : undefined,
+        variant: okCount < recipients.length ? "destructive" : undefined});
+      await loadFbSchedules(selectedFormId!);
     } catch(e:any) {
       toast({title:"Send failed", description:e.message, variant:"destructive"});
     }
     setFbSending(false);
+  };
+
+  // ── Scheduled sends ────────────────────────────────────────────────────
+  const [fbSchedules, setFbSchedules] = useState<any[]>([]);
+  const [fbScheduleAt, setFbScheduleAt] = useState("");
+  const [fbScheduling, setFbScheduling] = useState(false);
+
+  const loadFbSchedules = useCallback(async(formId:string)=>{
+    try {
+      const { data, error } = await db.from("form_email_schedules").select("*").eq("form_id",formId).order("scheduled_at",{ascending:false}).limit(10);
+      if (error) throw error;
+      setFbSchedules(data||[]);
+    } catch(e:any) { console.error("[FormsBuilder] schedules load error:",e); setFbSchedules([]); }
+  },[]);
+
+  const fbScheduleSend = async()=>{
+    if (!selectedForm || !selectedFormId) return;
+    if (selectedForm.status!=="published") {
+      toast({title:"Publish the form first", description:"Users can't fill in a draft form.", variant:"destructive"});
+      return;
+    }
+    if (!fbScheduleAt) { toast({title:"Pick a date and time first",variant:"destructive"}); return; }
+    const when = new Date(fbScheduleAt);
+    if (isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+      toast({title:"Pick a time in the future",variant:"destructive"}); return;
+    }
+    if (!confirm(`Schedule "${fbTitle}" to email every active user on ${when.toLocaleString()}?`)) return;
+    setFbScheduling(true);
+    try {
+      const { error } = await db.from("form_email_schedules").insert({
+        form_id: selectedFormId,
+        form_title: fbTitle,
+        subject: `New form: ${fbTitle}`,
+        message: fbDesc||"A new form has been published and needs your response.",
+        scheduled_at: when.toISOString(),
+        created_by: session?.user?.id || null,
+        created_by_name: profile?.full_name || user?.email || null,
+      });
+      if (error) throw error;
+      toast({title:"✓ Scheduled", description:`Will send on ${when.toLocaleString()} (checked every 2 min)`});
+      setFbScheduleAt("");
+      await loadFbSchedules(selectedFormId);
+    } catch(e:any) {
+      toast({title:"Schedule failed", description:e.message, variant:"destructive"});
+    }
+    setFbScheduling(false);
+  };
+
+  const fbCancelSchedule = async(id:string)=>{
+    try {
+      const { error } = await db.from("form_email_schedules").update({status:"cancelled"}).eq("id",id).eq("status","pending");
+      if (error) throw error;
+      toast({title:"Schedule cancelled"});
+      if (selectedFormId) await loadFbSchedules(selectedFormId);
+    } catch(e:any) { toast({title:"Cancel failed", description:e.message, variant:"destructive"}); }
   };
 
   const fbCopyLink = async()=>{
@@ -1960,16 +2020,65 @@ export default function AdminPanelPage() {
                       <div style={{fontSize:16,fontWeight:700,color: selectedForm?.status==="published"?"#7c3aed":"#dc2626"}}>{selectedForm?.status==="published"?"Published":"Draft"}</div>
                     </div>
                   </div>
-                  <div style={{display:"flex",gap:10}}>
+                  <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
                     <button onClick={fbTogglePublish} disabled={fbSaving} style={{...S.btn(selectedForm?.status==="published"?"#64748b":"#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
                       {selectedForm?.status==="published" ? <><Pause size={14}/>Unpublish</> : <><Play size={14}/>Publish Form</>}
                     </button>
                     <button onClick={()=>window.open(fbPublicUrl,"_blank")} style={{...S.btn("#64748b"),fontSize:12}}><Eye size={14}/>Preview</button>
                     <button onClick={()=>loadFbResponses(selectedFormId)} style={{...S.btn("#3b82f6"),fontSize:12}}><RefreshCw size={14}/>Refresh Responses</button>
                     <button onClick={fbSendToAllUsers} disabled={fbSending} style={{...S.btn("#8b5cf6"),fontSize:12,opacity:fbSending?0.6:1}}>
-                      <Mail size={14}/>{fbSending?"Sending…":"Send to All Users"}
+                      <Mail size={14}/>{fbSending?"Sending…":"Send to All Users Now"}
                     </button>
+                    <div style={{display:"flex",alignItems:"center",gap:6,background:"#f8fafc",border:`1px solid ${T.border}`,borderRadius:8,padding:"4px 4px 4px 10px"}}>
+                      <Clock size={13} color="#64748b"/>
+                      <input type="datetime-local" value={fbScheduleAt} onChange={e=>setFbScheduleAt(e.target.value)}
+                        min={new Date(Date.now()+5*60000).toISOString().slice(0,16)}
+                        style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none"}}/>
+                      <button onClick={fbScheduleSend} disabled={fbScheduling} style={{...S.btn("#f59e0b"),fontSize:12,opacity:fbScheduling?0.6:1}}>
+                        {fbScheduling?"Scheduling…":"Schedule Send"}
+                      </button>
+                    </div>
                   </div>
+                </div>
+              </div>
+              )}
+
+              {selectedFormId && fbSchedules.length>0 && (
+              <div style={S.card}>
+                <div style={S.cardHd("#f59e0b")}><Clock size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>Scheduled &amp; Sent Blasts</span></div>
+                <div style={{padding:0}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"#f8fafc",borderBottom:`1px solid ${T.border}`}}>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>When</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Status</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Delivered</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fbSchedules.map((s:any)=>(
+                        <tr key={s.id} style={{borderBottom:`1px solid ${T.border}18`}}>
+                          <td style={{padding:"8px 12px",color:T.fgMuted}}>{new Date(s.scheduled_at).toLocaleString()}</td>
+                          <td style={{padding:"8px 12px"}}>
+                            <span style={{
+                              padding:"2px 8px",borderRadius:999,fontSize:10,fontWeight:700,textTransform:"uppercase",
+                              color: s.status==="sent"?"#065f46": s.status==="failed"?"#991b1b": s.status==="cancelled"?"#64748b": s.status==="sending"?"#7c3aed":"#92400e",
+                              background: s.status==="sent"?"#d1fae5": s.status==="failed"?"#fee2e2": s.status==="cancelled"?"#f1f5f9": s.status==="sending"?"#ede9fe":"#fef3c7",
+                            }}>{s.status}</span>
+                          </td>
+                          <td style={{padding:"8px 12px",color:T.fgMuted}}>
+                            {s.status==="sent" ? `${s.sent_count}/${s.recipients_count}` : s.status==="failed" && s.error ? <span title={s.error} style={{color:"#dc2626"}}>error — hover</span> : "—"}
+                          </td>
+                          <td style={{padding:"8px 12px"}}>
+                            {s.status==="pending" && (
+                              <button onClick={()=>fbCancelSchedule(s.id)} style={{...S.btn("#dc2626"),padding:"4px 8px",fontSize:10}}><X size={12}/>Cancel</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
               )}
