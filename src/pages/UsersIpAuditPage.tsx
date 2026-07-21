@@ -326,7 +326,6 @@ export default function UsersIpAuditPage() {
             </div>
             <div>
               <h1 style={{margin:0,fontSize:22,fontWeight:300,color:"#fff",letterSpacing:"-.02em"}}>Security Center</h1>
-              <div style={{fontSize:12,color:"rgba(255,255,255,.75)",marginTop:2}}>IP tracking · Security tracker · User activity · Devices · Geo intelligence</div>
             </div>
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>

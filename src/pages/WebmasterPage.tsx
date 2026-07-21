@@ -552,9 +552,6 @@ export default function WebmasterPage() {
             </div>
             <div>
               <h1 style={{ margin:0, fontSize:22, fontWeight:300, color:"#fff", letterSpacing:"-.02em" }}>Webmaster / Superadmin Control Centre</h1>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,.75)", marginTop:2 }}>
-                System control · Deployments · 404 tracking · CI/CD · {roles.filter(r=>["superadmin","webmaster","admin"].includes(r)).join(", ")||"admin"}
-              </div>
             </div>
           </div>
           <button onClick={loadKpis} style={{ padding:"8px 12px", background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.3)", borderRadius:6, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:5 }}>

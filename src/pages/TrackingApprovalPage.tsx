@@ -254,7 +254,7 @@ export default function TrackingApprovalPage() {
               {greeting}, {profile?.full_name?.split(" ")[0]||"Administrator"}
             </h1>
             <div style={{ color:"rgba(255,255,255,.7)", fontSize:12 }}>
-              Tracking & Approval Portal · {counts.inQueue} item{counts.inQueue!==1?"s":""} in queue
+              {counts.inQueue} item{counts.inQueue!==1?"s":""} in queue
             </div>
           </div>
           <QuickStampButton label="Official Stamp" size="md" variant="outline"/>

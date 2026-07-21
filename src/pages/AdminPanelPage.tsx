@@ -787,9 +787,6 @@ export default function AdminPanelPage() {
             <h1 style={{ color:O.white, fontSize:24, fontWeight:300, margin:"0 0 4px", letterSpacing:"-.02em" }}>
               {greeting}, {profile?.full_name?.split(" ")[0]||"Administrator"}
             </h1>
-            <div style={{ color:"rgba(255,255,255,.7)", fontSize:12 }}>
-              Administration · System control · Live IP monitor · User management
-            </div>
           </div>
           <QuickStampButton label="Official Stamp" size="md" variant="outline"/>
         </div>

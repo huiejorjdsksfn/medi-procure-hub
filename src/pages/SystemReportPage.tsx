@@ -177,10 +177,9 @@ export default function SystemReportPage() {
 
       {/* ── Teal hero ───────────────────────────────────────── */}
       <div style={{ background: O.hero, padding: "36px 24px 40px" }}>
-        <h1 style={{ color:O.white, fontSize:28, fontWeight:300, margin:"0 0 6px", letterSpacing:"-.02em" }}>
+        <h1 style={{ color:O.white, fontSize:28, fontWeight:300, margin:"0 0 20px", letterSpacing:"-.02em" }}>
           {greeting}, {profile?.full_name?.split(" ")[0] || "Administrator"}
         </h1>
-        <p style={{ color:"rgba(255,255,255,.75)", margin:"0 0 20px", fontSize:14 }}>System Utilization Report · Embu Level 5 Hospital</p>
 
         {/* Search + Period selector */}
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>

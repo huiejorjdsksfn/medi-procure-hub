@@ -278,12 +278,10 @@ export default function StampDesignPage() {
 
       {/* ── O365 teal hero ──────────────────────────────────────────── */}
       <div style={{ background:O.hero, padding:"30px 24px 36px" }}>
-        <h1 style={{ color:O.white, fontSize:26, fontWeight:300, margin:"0 0 6px", letterSpacing:"-.02em" }}>
+        <h1 style={{ color:O.white, fontSize:26, fontWeight:300, margin:"0 0 18px", letterSpacing:"-.02em" }}>
           {greeting}, {profile?.full_name?.split(" ")[0] || "Administrator"}
         </h1>
-        <p style={{ color:"rgba(255,255,255,.75)", margin:"0 0 18px", fontSize:13 }}>
-          Stamp Design Studio · Customise official procurement stamps
-        </p>
+
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           <div style={{ position:"relative", flex:1, maxWidth:360 }}>
             <Search size={13} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:O.textMt, pointerEvents:"none" }}/>
