@@ -165,8 +165,6 @@ export default function UsersPage() {
   const [users, setUsers]       = useState<UserRow[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<UserRow|null>(null);
   const [modal, setModal]       = useState<ModalType>(null);
   const [form, setForm]         = useState<any>({});
@@ -185,11 +183,9 @@ export default function UsersPage() {
     const s = search.toLowerCase();
     return users.filter(u => {
       const matchText = !s || u.full_name?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s) || u.department?.toLowerCase().includes(s) || (u as any).lastIP?.includes(s);
-      const matchRole   = roleFilter==="all" || u.roles.includes(roleFilter);
-      const matchStatus = statusFilter==="all" || (statusFilter==="active"&&u.is_active!==false) || (statusFilter==="inactive"&&u.is_active===false) || (statusFilter==="locked"&&u.is_locked);
-      return matchText && matchRole && matchStatus;
+      return matchText;
     });
-  }, [users,search,roleFilter,statusFilter]);
+  }, [users,search]);
 
   /* ── grouped tree: Department > Role > User (SSMS-style Object Explorer) ── */
   const tree = useMemo(() => {
@@ -472,18 +468,6 @@ export default function UsersPage() {
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 12px", borderBottom:`1px solid ${T.border}`, background:T.bg }}>
             <span style={{ fontSize:11, fontWeight:700, color:T.fgDim, textTransform:"uppercase", letterSpacing:".06em" }}>Object Explorer</span>
             <RefreshCw size={13} color={T.fgDim} style={{ cursor:"pointer" }} onClick={load}/>
-          </div>
-          <div style={{ padding:"8px 10px", borderBottom:`1px solid ${T.border}`, display:"flex", gap:6 }}>
-            <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{ ...inp, flex:1, fontSize:11, height:26 }}>
-              <option value="all">All Roles</option>
-              {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label||r}</option>)}
-            </select>
-            <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{ ...inp, width:90, fontSize:11, height:26 }}>
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="locked">Locked</option>
-            </select>
           </div>
 
           <div style={{ flex:1, overflowY:"auto" }}>
@@ -824,7 +808,6 @@ export default function UsersPage() {
         </span>
         <span>{filtered.length} row{filtered.length===1?"":"s"}</span>
         {selected && <span>Selected: {selected.full_name} ({activeLeaf})</span>}
-        <span style={{ marginLeft:"auto" }}>{roleFilter==="all"?"All Roles":ROLE_META[roleFilter]?.label||roleFilter} · {statusFilter==="all"?"All Statuses":statusFilter}</span>
       </div>
 
       {/* ══════ MODALS ══════ */}

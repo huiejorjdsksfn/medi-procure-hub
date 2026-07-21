@@ -15,7 +15,8 @@ import {
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
   ChevronRight, ChevronDown, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
-  ToggleLeft, ToggleRight, Settings, HardDrive, Cpu
+  ToggleLeft, ToggleRight, Settings, HardDrive, Cpu,
+  Folder, FolderOpen, File, Image as ImageIcon, ChevronLeft, Lock, Globe2,
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -202,7 +203,7 @@ function PropRow({ k, v }: { k:string; v:any }) {
 // - Main Component -
 function DBInner() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql">("tables");
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("tables");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
   const [selectedTable, setSelectedTable] = useState<string>("requisitions");
   const [tableData, setTableData] = useState<any[]>([]);
@@ -212,6 +213,99 @@ function DBInner() {
   const [totalRows, setTotalRows] = useState(0);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(50);
+
+  /* ── Storage Explorer state ── */
+  const [storageBuckets, setStorageBuckets] = useState<any[]>([]);
+  const [storageBucket, setStorageBucket] = useState<string|null>(null);
+  const [storagePath, setStoragePath] = useState<string>("");
+  const [storageItems, setStorageItems] = useState<any[]>([]);
+  const [storageLoading, setStorageLoading] = useState(false);
+  const [storageSelected, setStorageSelected] = useState<Set<string>>(new Set());
+  const [storageDeleting, setStorageDeleting] = useState(false);
+
+  const loadStorageBuckets = useCallback(async () => {
+    const { data, error } = await supabase.storage.listBuckets();
+    if (error) { toast({ title:"Failed to load buckets", description:error.message, variant:"destructive" }); return; }
+    setStorageBuckets(data || []);
+    if (!storageBucket && data && data.length) setStorageBucket(data[0].id);
+  }, [storageBucket]);
+
+  const loadStorageItems = useCallback(async (bucket:string, path:string) => {
+    setStorageLoading(true);
+    setStorageSelected(new Set());
+    const { data, error } = await supabase.storage.from(bucket).list(path, { limit:200, sortBy:{ column:"name", order:"asc" } });
+    setStorageLoading(false);
+    if (error) { toast({ title:"Failed to list files", description:error.message, variant:"destructive" }); setStorageItems([]); return; }
+    // Supabase Storage returns folders as entries with id===null and no metadata.
+    const sorted = [...(data||[])].sort((a,b) => {
+      const aFolder = a.id===null, bFolder = b.id===null;
+      if (aFolder!==bFolder) return aFolder ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    }).filter(it => it.name !== ".emptyFolderPlaceholder");
+    setStorageItems(sorted);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "storage") return;
+    loadStorageBuckets();
+  }, [activeTab, loadStorageBuckets]);
+
+  useEffect(() => {
+    if (activeTab !== "storage" || !storageBucket) return;
+    loadStorageItems(storageBucket, storagePath);
+  }, [activeTab, storageBucket, storagePath, loadStorageItems]);
+
+  const storageFullPath = (name:string) => storagePath ? `${storagePath}/${name}` : name;
+
+  const storageOpenFolder = (name:string) => { setStoragePath(p => p ? `${p}/${name}` : name); };
+  const storageGoUp = () => { setStoragePath(p => { const parts=p.split("/").filter(Boolean); parts.pop(); return parts.join("/"); }); };
+  const storageGoToCrumb = (idx:number) => { const parts = storagePath.split("/").filter(Boolean); setStoragePath(parts.slice(0, idx+1).join("/")); };
+
+  const storageView = async (item:any) => {
+    if (!storageBucket) return;
+    const full = storageFullPath(item.name);
+    const bucketMeta = storageBuckets.find(b => b.id===storageBucket);
+    if (bucketMeta?.public) {
+      const { data } = supabase.storage.from(storageBucket).getPublicUrl(full);
+      window.open(data.publicUrl, "_blank");
+    } else {
+      const { data, error } = await supabase.storage.from(storageBucket).createSignedUrl(full, 120);
+      if (error) { toast({ title:"Couldn't open file", description:error.message, variant:"destructive" }); return; }
+      window.open(data.signedUrl, "_blank");
+    }
+  };
+
+  const storageDeleteOne = async (item:any) => {
+    if (!storageBucket) return;
+    if (!confirm(`Permanently delete "${item.name}"? This cannot be undone.`)) return;
+    setStorageDeleting(true);
+    const { error } = await supabase.storage.from(storageBucket).remove([storageFullPath(item.name)]);
+    setStorageDeleting(false);
+    if (error) { toast({ title:"Delete failed", description:error.message, variant:"destructive" }); return; }
+    toast({ title:`Deleted "${item.name}"` });
+    loadStorageItems(storageBucket, storagePath);
+  };
+
+  const storageDeleteSelected = async () => {
+    if (!storageBucket || storageSelected.size===0) return;
+    if (!confirm(`Permanently delete ${storageSelected.size} item${storageSelected.size===1?"":"s"}? This cannot be undone.`)) return;
+    setStorageDeleting(true);
+    const paths = Array.from(storageSelected).map(n => storageFullPath(n));
+    const { error } = await supabase.storage.from(storageBucket).remove(paths);
+    setStorageDeleting(false);
+    if (error) { toast({ title:"Delete failed", description:error.message, variant:"destructive" }); return; }
+    toast({ title:`Deleted ${paths.length} item${paths.length===1?"":"s"}` });
+    loadStorageItems(storageBucket, storagePath);
+  };
+
+  function fmtStorageBytes(n?:number) {
+    if (n==null) return "—";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024*1024) return `${(n/1024).toFixed(1)} KB`;
+    if (n < 1024*1024*1024) return `${(n/1024/1024).toFixed(1)} MB`;
+    return `${(n/1024/1024/1024).toFixed(2)} GB`;
+  }
+  const IMG_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
   const [search, setSearch] = useState("");
   const [rowFilter, setRowFilter] = useState("");
   const [sortCol, setSortCol] = useState("created_at");
@@ -739,6 +833,7 @@ ORDER BY t.table_name;`);
     { id:"sql",      label:"SQL Editor",    icon:Code2 },
     { id:"schema",   label:"Schema",        icon:Layers },
     { id:"triggers", label:"Triggers",      icon:Zap },
+    { id:"storage",  label:"Storage",       icon:HardDrive },
     { id:"monitor",  label:"Live Monitor",  icon:Activity },
     { id:"mssql",    label:"SQL Server Bridge", icon:Server },
   ];
@@ -1281,6 +1376,100 @@ ORDER BY t.table_name;`);
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* - STORAGE tab: bucket explorer with view + delete - */}
+        {activeTab === "storage" && (
+          <>
+            <div style={{ width:200,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"#ffffff",flexShrink:0,display:"flex",flexDirection:"column" }}>
+              <div style={{ background:"#e8eef7",borderBottom:`1px solid ${S.border}`,padding:"5px 8px",display:"flex",alignItems:"center",gap:6 }}>
+                <span style={{ fontSize:11,fontWeight:700,color:"#003087" }}>Buckets</span>
+              </div>
+              {storageBuckets.map(b => (
+                <div key={b.id} onClick={()=>{ setStorageBucket(b.id); setStoragePath(""); }}
+                  style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 9px",cursor:"pointer",fontSize:12,fontFamily:S.font,
+                    background: storageBucket===b.id ? "#dbe9fb" : "transparent", color: storageBucket===b.id ? "#003087":"#334155", fontWeight: storageBucket===b.id?700:400 }}
+                  onMouseEnter={e=>{ if(storageBucket!==b.id) (e.currentTarget as HTMLElement).style.background="#f1f5f9"; }}
+                  onMouseLeave={e=>{ if(storageBucket!==b.id) (e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                  {b.public ? <Globe2 size={13} style={{ flexShrink:0, color:"#16a34a" }}/> : <Lock size={13} style={{ flexShrink:0, color:"#94a3b8" }}/>}
+                  <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.name}</span>
+                </div>
+              ))}
+              {storageBuckets.length===0 && <div style={{ padding:12,fontSize:11,color:"#94a3b8" }}>No buckets found.</div>}
+            </div>
+
+            <div style={{ flex:1,overflow:"auto",padding:14 }}>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:4,fontSize:12,fontFamily:S.font,color:"#334155",flexWrap:"wrap" }}>
+                  <button onClick={()=>setStoragePath("")} disabled={!storagePath} style={{ border:"none",background:"none",cursor:storagePath?"pointer":"default",fontWeight:700,color:storagePath?"#0078d4":"#003087",padding:0 }}>{storageBucket}</button>
+                  {storagePath.split("/").filter(Boolean).map((seg,i,arr) => (
+                    <span key={i} style={{ display:"flex",alignItems:"center",gap:4 }}>
+                      <ChevronRight size={12} color="#94a3b8"/>
+                      <button onClick={()=>storageGoToCrumb(i)} disabled={i===arr.length-1} style={{ border:"none",background:"none",cursor:i===arr.length-1?"default":"pointer",fontWeight:i===arr.length-1?700:400,color:i===arr.length-1?"#003087":"#0078d4",padding:0 }}>{seg}</button>
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display:"flex",gap:6 }}>
+                  {storagePath && <button onClick={storageGoUp} style={{ display:"flex",alignItems:"center",gap:5,border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,background:"#fff" }}><ChevronLeft size={12}/> Up</button>}
+                  {storageSelected.size>0 && (
+                    <button onClick={storageDeleteSelected} disabled={storageDeleting} style={{ display:"flex",alignItems:"center",gap:5,border:"1px solid #dc2626",padding:"3px 10px",cursor:storageDeleting?"not-allowed":"pointer",fontFamily:S.font,fontSize:11,background:"#fee2e2",color:"#991b1b",fontWeight:700 }}>
+                      <Trash2 size={12}/> Delete {storageSelected.size} selected
+                    </button>
+                  )}
+                  <button onClick={()=>storageBucket && loadStorageItems(storageBucket, storagePath)} style={{ display:"flex",alignItems:"center",gap:5,border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,background:"#fff" }}><RefreshCw size={12}/> Refresh</button>
+                </div>
+              </div>
+
+              {storageLoading ? (
+                <div style={{ padding:24,textAlign:"center",color:"#94a3b8",fontSize:12,fontFamily:S.font }}>Loading…</div>
+              ) : storageItems.length===0 ? (
+                <div style={{ padding:32,textAlign:"center",color:"#94a3b8",fontSize:12,fontFamily:S.font }}>Empty folder.</div>
+              ) : (
+                <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...THEAD_CELL, width:28 }}></th>
+                      {["Name","Size","Last Modified","Actions"].map(h=>(
+                        <th key={h} style={THEAD_CELL}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {storageItems.map((it,i) => {
+                      const isFolder = it.id===null;
+                      const isImg = !isFolder && IMG_EXT.test(it.name);
+                      return (
+                        <tr key={it.name} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                          <td style={{ ...CELL, textAlign:"center" }}>
+                            {!isFolder && (
+                              <input type="checkbox" checked={storageSelected.has(it.name)}
+                                onChange={e=>setStorageSelected(prev=>{ const n=new Set(prev); e.target.checked?n.add(it.name):n.delete(it.name); return n; })}/>
+                            )}
+                          </td>
+                          <td style={{ ...CELL, cursor:isFolder?"pointer":"default", fontWeight:isFolder?700:400 }} onClick={()=>isFolder && storageOpenFolder(it.name)}>
+                            <span style={{ display:"flex",alignItems:"center",gap:6 }}>
+                              {isFolder ? <Folder size={14} color="#eab308"/> : isImg ? <ImageIcon size={13} color="#0078d4"/> : <File size={13} color="#64748b"/>}
+                              {it.name}
+                            </span>
+                          </td>
+                          <td style={{ ...CELL, color:"#64748b" }}>{isFolder ? "—" : fmtStorageBytes(it.metadata?.size)}</td>
+                          <td style={{ ...CELL, color:"#64748b" }}>{it.updated_at ? new Date(it.updated_at).toLocaleString() : "—"}</td>
+                          <td style={{ ...CELL }}>
+                            {!isFolder && (
+                              <span style={{ display:"flex",gap:10 }}>
+                                <button onClick={()=>storageView(it)} title="View" style={{ border:"none",background:"none",cursor:"pointer",color:"#0078d4",padding:0,display:"flex" }}><Eye size={14}/></button>
+                                <button onClick={()=>storageDeleteOne(it)} title="Delete" style={{ border:"none",background:"none",cursor:"pointer",color:"#dc2626",padding:0,display:"flex" }}><Trash2 size={14}/></button>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
         )}
 
         {/* - LIVE MONITOR tab (dbForge-style) - */}
