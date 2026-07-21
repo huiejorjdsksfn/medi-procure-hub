@@ -4,6 +4,7 @@
  * Real SQL editor, live realtime, all tables, triggers, edge functions
  * EL5 MediProcure - Embu Level 5 Hospital
  */
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,7 +204,12 @@ function PropRow({ k, v }: { k:string; v:any }) {
 // - Main Component -
 function DBInner() {
   const { user, profile } = useAuth();
+  const nav = useNavigate();
   const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("tables");
+  const [openMenu, setOpenMenu] = useState<string|null>(null);
+  const [quickLaunch, setQuickLaunch] = useState("");
+  const rowFilterRef = useRef<HTMLInputElement>(null);
+  const tableSearchRef = useRef<HTMLInputElement>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
   const [selectedTable, setSelectedTable] = useState<string>("requisitions");
   const [tableData, setTableData] = useState<any[]>([]);
@@ -827,6 +833,24 @@ ORDER BY t.table_name;`);
     XLSX.writeFile(wb, `${selectedTable}_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
+  function printCurrentTable() {
+    if(!filteredTableData.length){ toast({title:"No rows to print"}); return; }
+    const cols = tableColumns.filter(c=>c!=="id");
+    printDataTable({
+      title:    `${selectedTable.toUpperCase()} — TABLE EXPORT`,
+      docNo:    selectedTable,
+      columns:  cols,
+      rows:     filteredTableData.map(row=>cols.map(c=>{
+        const v=row[c];
+        if(v===null||v===undefined) return "";
+        if(typeof v==="object") return "[JSON]";
+        return String(v).slice(0,80);
+      })),
+      filename: `${selectedTable}-export-${Date.now()}`,
+      meta:     `${filteredTableData.length} of ${totalRows.toLocaleString()} rows${rowFilter.trim()?` (filtered: "${rowFilter.trim()}")`:""} · Page ${page+1}`,
+    }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
+  }
+
   // - Tab nav -
   const tabs = [
     { id:"tables",   label:"Tables",        icon:TableIcon },
@@ -838,6 +862,86 @@ ORDER BY t.table_name;`);
     { id:"mssql",    label:"SQL Server Bridge", icon:Server },
   ];
 
+  // ── Menu-bar actions (File/Edit/View/Project/Debug/Tools/Window/Help) ──
+  function runQuickLaunch() {
+    const q = quickLaunch.trim().toLowerCase();
+    if (!q) return;
+    const tabMatch = tabs.find(t => t.label.toLowerCase().includes(q) || t.id.toLowerCase().includes(q));
+    if (tabMatch) {
+      setActiveTab(tabMatch.id as any);
+      setQuickLaunch("");
+      toast({ title: `Switched to ${tabMatch.label}` });
+      return;
+    }
+    for (const grp of TABLE_GROUPS) {
+      const tblMatch = grp.tables.find(t => t.toLowerCase().includes(q));
+      if (tblMatch) {
+        setActiveTab("tables");
+        setOpenGroups(p => new Set(p).add(grp.id));
+        setSelectedTable(tblMatch);
+        setPage(0);
+        setSearch("");
+        setQuickLaunch("");
+        toast({ title: `Opened table: ${tblMatch}` });
+        return;
+      }
+    }
+    toast({ title: `No tab or table matches "${quickLaunch}"`, variant:"destructive" });
+  }
+
+  function findInResults() {
+    setActiveTab("tables");
+    setOpenMenu(null);
+    setTimeout(() => rowFilterRef.current?.focus(), 50);
+  }
+
+  function collapseAllGroups() { setOpenGroups(new Set()); setOpenMenu(null); }
+  function expandAllGroups() { setOpenGroups(new Set(TABLE_GROUPS.map(g=>g.id))); setOpenMenu(null); }
+
+  const MENUS: Record<string, { label: string; action: () => void; disabled?: boolean }[]> = {
+    File: [
+      { label: "New Query",  action: () => setActiveTab("sql") },
+      { label: "New Row",    action: () => { setActiveTab("tables"); setNewRow(Object.fromEntries(tableColumns.filter(c=>c!=="id"&&c!=="created_at"&&c!=="updated_at").map(c=>[c,""]))); }, disabled: activeTab!=="tables" },
+      { label: "Export to Excel", action: exportExcel, disabled: activeTab!=="tables" },
+      { label: "Print Table",     action: printCurrentTable, disabled: activeTab!=="tables" },
+      { label: "Refresh",    action: loadTable },
+    ],
+    Edit: [
+      { label: "Find in Results",   action: findInResults },
+      { label: "Clear Row Filter",  action: () => setRowFilter("") },
+      { label: "Copy Table Name",   action: () => { navigator.clipboard.writeText(selectedTable); toast({title:"Copied table name"}); } },
+    ],
+    View: [
+      ...tabs.map(t => ({ label: t.label, action: () => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); } })),
+      { label: realtimeOn ? "Stop Realtime" : "Start Realtime", action: toggleRealtime },
+    ],
+    Project: [
+      { label: "Supabase Live Controls", action: () => nav("/admin/supabase-controls") },
+      { label: "Security Center",        action: () => nav("/admin/users-ip-audit") },
+      { label: "Webmaster / Superadmin", action: () => nav("/webmaster") },
+    ],
+    Debug: [
+      { label: "Live Monitor",           action: () => setActiveTab("monitor") },
+      { label: "Ping SQL Server Bridge", action: () => { setActiveTab("mssql"); setTimeout(()=>pingBridge(),50); } },
+      { label: "View Audit Log",         action: () => nav("/audit-log") },
+    ],
+    Tools: [
+      { label: "Export Current Table (Excel)", action: exportExcel, disabled: activeTab!=="tables" },
+      { label: "Print Current Table",          action: printCurrentTable, disabled: activeTab!=="tables" },
+      { label: `${realtimeOn?"Stop":"Start"} Realtime Monitor`, action: toggleRealtime },
+      { label: "SQL Server Bridge",            action: () => setActiveTab("mssql") },
+    ],
+    Window: [
+      { label: "Collapse All Table Groups", action: collapseAllGroups },
+      { label: "Expand All Table Groups",   action: expandAllGroups },
+      { label: "Clear Table Search",        action: () => setSearch("") },
+    ],
+    Help: [
+      { label: "Open Supabase Dashboard", action: () => window.open("https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq","_blank") },
+      { label: "About",                   action: () => toast({ title: "Database Administration", description: "ProcurBosse v12 · SSMS-style admin GUI · Supabase Postgres" }) },
+    ],
+  };
+
   // Cleanup rtChannel on unmount
   React.useEffect(()=>{
     return ()=>{ if(rtChannel.current){ (supabase as any).removeChannel(rtChannel.current); rtChannel.current=null; } };
@@ -847,13 +951,44 @@ ORDER BY t.table_name;`);
     <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:SSMS.font,color:SSMS.titleText,minHeight:"100%" }}>
       <AdminBreadcrumb />
 
-      {/* ── Toolbar: page context, real actions (New Query/Refresh/Execute), realtime status, connection ── */}
-      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:6,flexShrink:0,flexWrap:"wrap" }}>
-        <Database style={{ width:14,height:14,color:SSMS.accent,flexShrink:0 }} />
-        <span style={{ fontSize:12,fontWeight:600,color:SSMS.titleText,marginRight:6 }}>
-          {selectedTable || "Database Administration"}
-        </span>
-        <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 2px" }} />
+      {/* ── SSMS menu bar — real dropdowns, wired to MENUS ── */}
+      <div style={{ background:SSMS.menubar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"3px 12px",display:"flex",alignItems:"center",gap:2,flexShrink:0,position:"relative" }}
+        onMouseLeave={()=>setOpenMenu(null)}>
+        {Object.keys(MENUS).map(m=>(
+          <div key={m} style={{ position:"relative" }}>
+            <span onClick={()=>setOpenMenu(p=>p===m?null:m)} onMouseEnter={()=>{ if(openMenu) setOpenMenu(m); }}
+              style={{ fontSize:11.5,color: openMenu===m ? "#fff" : "#333",background: openMenu===m ? SSMS.accent : "transparent",padding:"2px 8px",borderRadius:2,cursor:"pointer",userSelect:"none",display:"inline-block" }}>
+              {m}
+            </span>
+            {openMenu===m && (
+              <div style={{ position:"absolute",top:"100%",left:0,background:"#fff",border:`1px solid ${SSMS.toolbarBd}`,boxShadow:"0 4px 14px rgba(0,0,0,0.15)",minWidth:210,zIndex:100,padding:"3px 0" }}>
+                {MENUS[m].map(item=>(
+                  <div key={item.label}
+                    onClick={()=>{ if(item.disabled) return; item.action(); setOpenMenu(null); }}
+                    style={{
+                      padding:"6px 14px",fontSize:12,cursor: item.disabled ? "not-allowed" : "pointer",
+                      color: item.disabled ? "#b0b6bd" : "#1e1e1e",
+                      background: activeTab===tabs.find(t=>t.label===item.label)?.id ? "#eef2f8" : "transparent",
+                    }}
+                    onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background="#dbe6f2"; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.background = activeTab===tabs.find(t=>t.label===item.label)?.id ? "#eef2f8" : "transparent"; }}>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
+          <Search style={{ width:11,height:11,color:"#94a3b8" }} />
+          <input value={quickLaunch} onChange={e=>setQuickLaunch(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") runQuickLaunch(); }}
+            placeholder="Quick Launch — jump to a tab or table"
+            style={{ border:`1px solid ${SSMS.toolbarBd}`,borderRadius:3,padding:"2px 8px",fontSize:11,width:190,outline:"none",fontFamily:SSMS.font }} />
+        </div>
+      </div>
+
+      {/* ── SSMS toolbar ── */}
+      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 10px",display:"flex",alignItems:"center",gap:4,flexShrink:0 }}>
         <button onClick={()=>{setActiveTab("sql");}} title="New Query"
           style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
           onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
@@ -922,6 +1057,9 @@ ORDER BY t.table_name;`);
                 <button onClick={loadTable} title="Refresh" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
                   <RefreshCw style={{ width:11,height:11,color:"#64748b" }} />
                 </button>
+                <button title="Filter" onClick={()=>tableSearchRef.current?.focus()} style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
+                  <Filter style={{ width:11,height:11,color:"#64748b" }} />
+                </button>
               </div>
             </div>
             <div style={{ padding:"5px 8px",borderBottom:`1px solid ${SSMS.toolbarBd}`,background:"#fafbfc",display:"flex",alignItems:"center",gap:5 }}>
@@ -929,7 +1067,7 @@ ORDER BY t.table_name;`);
               <span style={{ fontSize:10.5,color:"#475569",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>yvjfehnzbzjliizjvuhq (Supabase)</span>
             </div>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
+              <input ref={tableSearchRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
                 style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
             </div>
             {TABLE_GROUPS.map(grp => {
@@ -971,7 +1109,7 @@ ORDER BY t.table_name;`);
               <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
               <div style={{ display:"flex",alignItems:"center",gap:4,border:`1px solid ${S.border}`,padding:"2px 6px",background:S.bg,marginLeft:8 }}>
                 <Search style={{ width:11,height:11,color:"#94a3b8" }} />
-                <input value={rowFilter} onChange={e=>setRowFilter(e.target.value)} placeholder="Filter rows on this page…"
+                <input ref={rowFilterRef} value={rowFilter} onChange={e=>setRowFilter(e.target.value)} placeholder="Filter rows on this page…"
                   style={{ border:"none",outline:"none",fontSize:11,fontFamily:S.font,width:160 }} />
                 {rowFilter && <button onClick={()=>setRowFilter("")} style={{ background:"none",border:"none",cursor:"pointer",padding:0,display:"flex" }}><X style={{ width:10,height:10,color:"#94a3b8" }} /></button>}
               </div>
