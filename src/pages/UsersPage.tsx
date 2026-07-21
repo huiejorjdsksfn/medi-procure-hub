@@ -12,6 +12,7 @@ import { T } from "@/lib/theme";
 import ImageUploader from "@/components/ImageUploader";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { useDepartments } from "@/hooks/useDropdownData";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   Plus, Search, RefreshCw, Edit3, Trash2, Shield, X, Check,
   Key, Eye, EyeOff, Users, Lock, Unlock, AlertTriangle,
@@ -115,6 +116,7 @@ export default function UsersPage() {
   const { user:me, roles:myRoles } = useAuth();
   const isAdmin = myRoles?.some(r => ["admin","superadmin","webmaster"].includes(r));
   const { departments } = useDepartments();
+  const isMobile = useIsMobile();
 
   const [users, setUsers]       = useState<UserRow[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -406,10 +408,14 @@ export default function UsersPage() {
         ))}
       </div>
 
-      <div style={{ display:"flex", height:"calc(100vh - 170px)" }}>
+      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 170px)" }}>
 
         {/* ── LEFT: Object Explorer ── */}
-        <div style={{ width:320, flexShrink:0, background:T.card, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
+        <div style={{
+          width: isMobile ? "100%" : 320, flexShrink:0, background:T.card, borderRight: isMobile ? "none" : `1px solid ${T.border}`,
+          display: isMobile && selected ? "none" : "flex", flexDirection:"column",
+          maxHeight: isMobile ? "60vh" : undefined, overflowY: isMobile ? "auto" : undefined,
+        }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderBottom:`1px solid ${T.border}` }}>
             <span style={{ fontSize:11, fontWeight:700, color:T.fgDim, textTransform:"uppercase", letterSpacing:".06em" }}>Object Explorer</span>
             <RefreshCw size={13} color={T.fgDim} style={{ cursor:"pointer" }} onClick={load}/>
@@ -574,13 +580,18 @@ export default function UsersPage() {
             ); })()}
           </div>
         )}
-        <div style={{ flex:1, overflowY:"auto", background:T.bg }}>
+        <div style={{ flex:1, overflowY:"auto", background:T.bg, display: isMobile && !selected ? "none" : "block", width: isMobile ? "100%" : undefined }}>
+          {isMobile && selected && (
+            <button onClick={()=>setSelected(null)} style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 14px", border:"none", borderBottom:`1px solid ${T.border}`, background:T.card, color:T.primary, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              ← Back to Users
+            </button>
+          )}
           {selected ? (
             <div style={{ padding:20, animation:"slideR .2s" }}>
 
               {/* User header card */}
               <div style={{ ...card, marginBottom:14 }}>
-                <div style={{ display:"flex", alignItems:"flex-start", gap:16 }}>
+                <div style={{ display:"flex", alignItems:"flex-start", gap:16, flexWrap: isMobile ? "wrap" : "nowrap" }}>
                   <div style={{ width:72, height:72, borderRadius:"50%", background:`${T.primary}18`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`3px solid ${T.primary}`, overflow:"hidden" }}>
                     {selected.avatar_url
                       ? <img src={selected.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
@@ -613,7 +624,7 @@ export default function UsersPage() {
               </div>
 
               {(activeLeaf==="profile"||activeLeaf==="security"||activeLeaf==="roles") && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+              <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:14, marginBottom:14 }}>
                 {/* Profile info */}
                 {activeLeaf==="profile" && (
                 <div style={card}>
@@ -763,13 +774,13 @@ export default function UsersPage() {
               <div style={{ display:"flex",justifyContent:"center",marginBottom:20 }}>
                 <ImageUploader type="profile" circle size="md" current={form.avatar_url||""} folder={`profiles/${selected?.id||"new"}`} onUploaded={(url:string)=>setForm((f:any)=>({...f,avatar_url:url}))}/>
               </div>
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+              <div style={{ display:"grid",gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",gap:12 }}>
                 {[
                   { key:"full_name",    label:"Full Name *",   col:"1/-1", type:"text",     placeholder:"John Kamau"                  },
                   { key:"email",        label:"Email *",       col:"1/-1", type:"email",    placeholder:"user@embu.health.go.ke", disabled:modal==="edit" },
                   ...(modal==="create"?[{ key:"password", label:"Password", col:"1/-1", type:showPw?"text":"password", placeholder:"Auto-generated if blank" }]:[]),
-                  { key:"phone_number", label:"Phone",         col:"1/2",  type:"text",     placeholder:"+254 7xx xxx xxx"            },
-                  { key:"employee_id",  label:"Employee ID",   col:"2/3",  type:"text",     placeholder:"EL5-001"                     },
+                  { key:"phone_number", label:"Phone",         col: isMobile?"1/-1":"1/2",  type:"text",     placeholder:"+254 7xx xxx xxx"            },
+                  { key:"employee_id",  label:"Employee ID",   col: isMobile?"1/-1":"2/3",  type:"text",     placeholder:"EL5-001"                     },
                 ].map(({ key, label, col, type, placeholder, disabled }) => (
                   <div key={key} style={{ gridColumn:col }}>
                     <label style={{ fontSize:11,color:T.fgDim,fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".04em" }}>{label}</label>
@@ -840,8 +851,8 @@ export default function UsersPage() {
 
       {/* Password Reset */}
       {modal==="password" && selected && (
-        <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setModal(null)}>
-          <div style={{ background:T.card,borderRadius:T.rXl,width:440,boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }} onClick={()=>setModal(null)}>
+          <div style={{ background:T.card,borderRadius:T.rXl,width:"min(440px,94vw)" as any,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
             <div style={{ background:"linear-gradient(135deg,#0a2558,#1d4ed8)",padding:"16px 20px",borderRadius:`${T.rXl}px ${T.rXl}px 0 0`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
               <span style={{ color:"#fff",fontWeight:800,fontSize:15 }}><Key size={14} style={{ verticalAlign:"middle",marginRight:6 }}/>Reset Password</span>
               <button onClick={()=>setModal(null)} style={{ background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,.7)" }}><X size={15}/></button>
@@ -884,8 +895,8 @@ export default function UsersPage() {
 
       {/* Delete confirm */}
       {modal==="delete" && selected && (
-        <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setModal(null)}>
-          <div style={{ background:T.card,borderRadius:T.rXl,width:400,padding:28,boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }} onClick={()=>setModal(null)}>
+          <div style={{ background:T.card,borderRadius:T.rXl,width:"min(400px,94vw)" as any,padding:28,boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:"flex",gap:14,marginBottom:20 }}>
               <div style={{ width:44,height:44,borderRadius:T.rMd,background:T.errorBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><AlertTriangle size={22} color={T.error}/></div>
               <div>
@@ -906,7 +917,7 @@ export default function UsersPage() {
       {/* Activity modal */}
       {modal==="activity" && selected && (
         <div style={{ position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:20 }} onClick={()=>setModal(null)}>
-          <div style={{ background:T.card,borderRadius:T.rXl,width:640,maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
+          <div style={{ background:T.card,borderRadius:T.rXl,width:"min(640px,94vw)" as any,maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:T.shadowMd,animation:"fadeIn .2s" }} onClick={e=>e.stopPropagation()}>
             <div style={{ background:"linear-gradient(135deg,#0a2558,#1d4ed8)",padding:"16px 20px",borderRadius:`${T.rXl}px ${T.rXl}px 0 0`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
               <span style={{ color:"#fff",fontWeight:800,fontSize:15 }}><Activity size={14} style={{ verticalAlign:"middle",marginRight:6 }}/>Activity — {selected.full_name}</span>
               <button onClick={()=>setModal(null)} style={{ background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,.7)" }}><X size={15}/></button>
