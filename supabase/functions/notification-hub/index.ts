@@ -63,6 +63,63 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+// ── Branded HTML email template ──────────────────────────────────────────────
+// Pulls the hospital's live logo/colors from `facilities` (same source
+// FormsGatewayPage/PublicFormPage already use) so every email — immediate
+// "Send to All Users" or a scheduled blast — looks like it came from the
+// actual hospital instead of a bare text message.
+let _brandCache: { name: string; logo_url: string | null; primary: string; accent: string; ts: number } | null = null;
+async function getBrand() {
+  if (_brandCache && Date.now() - _brandCache.ts < 5 * 60 * 1000) return _brandCache;
+  let brand = { name: "EL5 MediProcure · Embu Level 5 Hospital", logo_url: null as string | null, primary: "#0a2558", accent: "#C45911" };
+  try {
+    const { data } = await db.from("facilities").select("name,logo_url,primary_color,accent_color").eq("is_main", true).maybeSingle();
+    if (data) brand = {
+      name: data.name || brand.name,
+      logo_url: data.logo_url || null,
+      primary: data.primary_color || brand.primary,
+      accent: data.accent_color || brand.accent,
+    };
+  } catch { /* keep default brand */ }
+  _brandCache = { ...brand, ts: Date.now() };
+  return _brandCache;
+}
+
+function escapeHtml(s: string): string {
+  return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
+
+async function buildBrandedEmailHtml(opts: { recipientName?: string; heading: string; bodyText: string; ctaLabel?: string; ctaUrl?: string }): Promise<string> {
+  const brand = await getBrand();
+  const greeting = opts.recipientName ? `Hi ${escapeHtml(opts.recipientName)},` : "Hello,";
+  const bodyHtml = escapeHtml(opts.bodyText).replace(/\n/g, "<br/>");
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,${brand.primary},${brand.accent});padding:22px 24px;color:#fff;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          ${brand.logo_url ? `<td style="padding-right:12px;"><img src="${brand.logo_url}" alt="" width="40" height="40" style="border-radius:9px;display:block;background:#fff;"/></td>` : ""}
+          <td>
+            <div style="font-size:11px;opacity:0.85;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">${escapeHtml(brand.name)}</div>
+            <div style="font-size:18px;font-weight:800;margin-top:2px;">${escapeHtml(opts.heading)}</div>
+          </td>
+        </tr></table>
+      </div>
+      <div style="padding:26px 24px;color:#1e293b;font-size:14px;line-height:1.6;">
+        <p style="margin:0 0 14px;">${greeting}</p>
+        <p style="margin:0 0 20px;">${bodyHtml}</p>
+        ${opts.ctaUrl ? `<a href="${opts.ctaUrl}" style="display:inline-block;background:${brand.primary};color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px 22px;border-radius:8px;">${escapeHtml(opts.ctaLabel || "Open")}</a>` : ""}
+      </div>
+      <div style="padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:11px;">
+        This is an automated message from ${escapeHtml(brand.name)}. Please do not reply directly to this email.
+      </div>
+    </div>
+  </div>
+</body></html>`;
+}
+
 // ── SMS via Twilio ──────────────────────────────────────────────────────────
 async function sendSMS(to: string, message: string): Promise<{ ok: boolean; error?: string; sid?: string }> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
@@ -262,13 +319,15 @@ async function sendBulkNotification(
   recipients: { phone?: string; email?: string; whatsapp?: string; name?: string }[],
   message: string,
   channels: ("sms" | "whatsapp" | "email")[],
-  subject?: string
+  subject?: string,
+  ctaUrl?: string,
+  ctaLabel?: string
 ): Promise<{ results: { recipient: string; channel: string; ok: boolean; error?: string }[] }> {
   const results: { recipient: string; channel: string; ok: boolean; error?: string }[] = [];
-  
+
   for (const r of recipients) {
     const name = r.name || r.email || r.phone || "User";
-    
+
     for (const ch of channels) {
       if (ch === "sms" && r.phone) {
         const res = await sendSMS(r.phone, `Hi ${name}, ${message}`);
@@ -277,12 +336,16 @@ async function sendBulkNotification(
         const res = await sendWhatsApp(r.whatsapp, `🏥 EL5 MediProcure\n\nHi ${name},\n\n${message}`);
         results.push({ recipient: r.whatsapp, channel: "whatsapp", ...res });
       } else if (ch === "email" && r.email) {
-        const res = await sendEmail(r.email, subject || "Notification", message);
+        const html = await buildBrandedEmailHtml({
+          recipientName: r.name, heading: subject || "Notification", bodyText: message,
+          ctaUrl, ctaLabel,
+        });
+        const res = await sendEmail(r.email, subject || "Notification", message, html);
         results.push({ recipient: r.email, channel: "email", ...res });
       }
     }
   }
-  
+
   return { results };
 }
 
@@ -427,12 +490,57 @@ Deno.serve(async (req) => {
     }
     
     if (action === "send_all") {
-      const { recipients, message, channels, subject } = params;
+      const { recipients, message, channels, subject, ctaUrl, ctaLabel } = params;
       if (!recipients || !message || !channels) {
         return new Response(JSON.stringify({ ok: false, error: "recipients, message, channels required" }), { status: 400, headers: CORS });
       }
-      const results = await sendBulkNotification(recipients, message, channels, subject);
+      const results = await sendBulkNotification(recipients, message, channels, subject, ctaUrl, ctaLabel);
       return new Response(JSON.stringify({ ok: true, ...results }), { headers: CORS });
+    }
+
+    // Cron-invoked (every 2 minutes — see 20260720210000_form_email_scheduler.sql).
+    // Finds due, pending rows in form_email_schedules, sends the branded
+    // email to every active user with an email on file, and marks the
+    // schedule sent/failed. Idempotent per row via the status column, so
+    // overlapping cron ticks can't double-send the same schedule.
+    if (action === "process_scheduled_form_emails") {
+      const nowIso = new Date().toISOString();
+      const { data: due, error: dueErr } = await db
+        .from("form_email_schedules")
+        .select("*")
+        .eq("status", "pending")
+        .lte("scheduled_at", nowIso)
+        .limit(10);
+      if (dueErr) return new Response(JSON.stringify({ ok: false, error: dueErr.message }), { status: 500, headers: CORS });
+      if (!due || due.length === 0) return new Response(JSON.stringify({ ok: true, processed: 0 }), { headers: CORS });
+
+      const processed: { id: string; ok: boolean; sent: number; failed: number }[] = [];
+      for (const sched of due) {
+        // Claim the row first (status → sending) so a second overlapping
+        // cron tick skips it instead of sending it twice.
+        const { data: claimed } = await db.from("form_email_schedules")
+          .update({ status: "sending" }).eq("id", sched.id).eq("status", "pending").select("id").maybeSingle();
+        if (!claimed) continue; // another tick already grabbed it
+
+        try {
+          const { data: users } = await db.from("profiles").select("email,full_name").eq("is_active", true).not("email", "is", null);
+          const recipients = Array.from(
+            new Map((users || []).filter((u: any) => u.email).map((u: any) => [u.email, { email: u.email, name: u.full_name || u.email }])).values()
+          );
+          const ctaUrl = `https://procurbosse.edgeone.app/#/forms/${sched.form_id}`;
+          const { results } = await sendBulkNotification(recipients as any, sched.message, ["email"], sched.subject, ctaUrl, "Answer the Form");
+          const okCount = results.filter((r) => r.ok).length;
+          await db.from("form_email_schedules").update({
+            status: "sent", sent_at: new Date().toISOString(),
+            recipients_count: recipients.length, sent_count: okCount, failed_count: recipients.length - okCount,
+          }).eq("id", sched.id);
+          processed.push({ id: sched.id, ok: true, sent: okCount, failed: recipients.length - okCount });
+        } catch (e: any) {
+          await db.from("form_email_schedules").update({ status: "failed", error: e?.message || "Unknown error" }).eq("id", sched.id);
+          processed.push({ id: sched.id, ok: false, sent: 0, failed: 0 });
+        }
+      }
+      return new Response(JSON.stringify({ ok: true, processed: processed.length, details: processed }), { headers: CORS });
     }
     
     if (action === "notify_approval") {
@@ -486,7 +594,7 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       ok: false,
-      error: "Unknown action. Use: send, send_all, notify_approval, notify_signature_request, call, status",
+      error: "Unknown action. Use: send, send_all, notify_approval, notify_signature_request, call, status, process_scheduled_form_emails",
     }), { status: 400, headers: CORS });
     
   } catch (e: any) {

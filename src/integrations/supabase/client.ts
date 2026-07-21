@@ -18,15 +18,49 @@ const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
 // the Edge Function" and "AbortError: signal is aborted without reason"
 // respectively. Neither was a backend bug; both were us cutting ourselves off.
 const DEFAULT_TIMEOUT_MS = 20000;   // plain reads/writes
+const RETRY_TIMEOUT_MS = 35000;     // second attempt gets more slack
 const SLOW_ROUTE_TIMEOUT_MS = 75000; // edge functions (AI calls) + storage uploads
 const SLOW_ROUTE_PATTERN = /\/functions\/v1\/|\/storage\/v1\//;
 
-function fetchWithTimeout(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+function isAbortTimeout(e: unknown): boolean {
+  return e instanceof Error && (e.name === "AbortError" || /timed out/i.test(e.message));
+}
+
+async function fetchOnce(url: RequestInfo | URL, options: RequestInit | undefined, timeoutMs: number): Promise<Response> {
   const href = typeof url === "string" ? url : url.toString();
-  const timeoutMs = SLOW_ROUTE_PATTERN.test(href) ? SLOW_ROUTE_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(new Error(`Request timed out after ${timeoutMs / 1000}s: ${href}`)), timeoutMs);
-  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id));
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/**
+ * Supabase's connection pooler occasionally stalls for a few seconds on an
+ * otherwise-healthy project (seen directly while debugging: a trivial
+ * catalog query timed out once, then succeeded instantly on the very next
+ * try). Previously a single 20s AbortController killed the request outright
+ * with no recovery — "Save failed: Request timed out after 20s" on a normal
+ * small PATCH that had nothing wrong with it. Now a timeout gets exactly one
+ * retry with a longer window before it's treated as a real failure. GET
+ * requests are always safe to retry; POST/PATCH/DELETE are retried too since
+ * every write in this app either targets a row by primary key (safe to
+ * repeat) or is guarded by a unique constraint / ON CONFLICT — a genuine
+ * duplicate-submit risk is far smaller than the cost of failing writes on a
+ * transient blip.
+ */
+async function fetchWithTimeout(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  const href = typeof url === "string" ? url : url.toString();
+  const timeoutMs = SLOW_ROUTE_PATTERN.test(href) ? SLOW_ROUTE_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+  try {
+    return await fetchOnce(url, options, timeoutMs);
+  } catch (e) {
+    if (!isAbortTimeout(e)) throw e;
+    console.warn(`[supabase] timed out once, retrying: ${href}`);
+    return fetchOnce(url, options, SLOW_ROUTE_PATTERN.test(href) ? SLOW_ROUTE_TIMEOUT_MS : RETRY_TIMEOUT_MS);
+  }
 }
 
 /**
