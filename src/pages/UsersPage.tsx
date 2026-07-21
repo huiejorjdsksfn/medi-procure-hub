@@ -46,10 +46,14 @@ const ROLE_META: Record<string,{color:string;bg:string;label:string}> = {
 };
 
 /* ── Styles ── */
-const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px" };
-const inp: React.CSSProperties  = { width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"8px 12px", color:T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
-const btn = (bg:string, bd?:string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:7, padding:"8px 14px", background:bg, color:bd?T.fgMuted:"#fff", border:`1px solid ${bd||"transparent"}`, borderRadius:T.r, fontSize:12, fontWeight:700, cursor:"pointer" });
-const chip = (col:string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px", borderRadius:99, fontSize:9, fontWeight:700, background:col+"20", color:col, border:`1px solid ${col}44` });
+const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px", boxShadow:"0 1px 2px rgba(16,24,40,0.04)", transition:"box-shadow .15s ease, border-color .15s ease" };
+const inp: React.CSSProperties  = { width:"100%", background:T.card, border:`1.5px solid ${T.border}`, borderRadius:T.rMd, padding:"8px 12px", color:T.fg, fontSize:13, outline:"none", boxSizing:"border-box", transition:"border-color .15s ease, box-shadow .15s ease" };
+const inpFocus = (e:React.FocusEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.borderColor = T.primary; (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 3px ${T.primary}1f`; };
+const inpBlur  = (e:React.FocusEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.borderColor = T.border; (e.currentTarget as HTMLElement).style.boxShadow = "none"; };
+const btn = (bg:string, bd?:string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:7, padding:"8px 14px", background:bg, color:bd?T.fgMuted:"#fff", border:`1px solid ${bd||"transparent"}`, borderRadius:T.rMd, fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:bd?"none":"0 1px 2px rgba(16,24,40,0.08)", transition:"transform .1s ease, box-shadow .1s ease, filter .1s ease" });
+const btnHoverOn  = (e:React.MouseEvent<HTMLElement>) => { const el=e.currentTarget as HTMLElement; el.style.transform="translateY(-1px)"; el.style.filter="brightness(1.04)"; };
+const btnHoverOff = (e:React.MouseEvent<HTMLElement>) => { const el=e.currentTarget as HTMLElement; el.style.transform="none"; el.style.filter="none"; };
+const chip = (col:string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"2.5px 9px", borderRadius:99, fontSize:9.5, fontWeight:700, letterSpacing:".02em", background:col+"18", color:col, border:`1px solid ${col}38` });
 
 function fmtDate(s:string|null) { return s ? new Date(s).toLocaleDateString("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"short",year:"numeric"}) : "—"; }
 function fmtAgo(s:string|null) {
@@ -78,33 +82,35 @@ interface UserRow {
 
 /* ── Ribbon button ── */
 const RBtn = ({ icon:Icon, label, onClick, color, disabled=false }:{ icon:any;label:string;onClick?:()=>void;color?:string;disabled?:boolean }) => (
-  <button onClick={onClick} disabled={disabled} title={label} style={{ display:"flex",alignItems:"center",gap:6,padding:"4px 9px",border:"1px solid transparent",background:"transparent",cursor:disabled?"not-allowed":"pointer",color:disabled?"#a0a0a0":(color||"#1e1e1e"),borderRadius:2,transition:"background .08s,border-color .08s",fontSize:11.5,fontWeight:500,opacity:disabled?.55:1,whiteSpace:"nowrap" }}
-    onMouseEnter={e=>{ if(disabled) return; const el=e.currentTarget as any; el.style.background="#e5f1fb"; el.style.borderColor="#99d1ff"; }}
-    onMouseLeave={e=>{ const el=e.currentTarget as any; el.style.background="transparent"; el.style.borderColor="transparent"; }}>
+  <button onClick={onClick} disabled={disabled} title={label} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 10px",border:"1px solid transparent",background:"transparent",cursor:disabled?"not-allowed":"pointer",color:disabled?"#a0a0a0":(color||"#1e1e1e"),borderRadius:5,transition:"background .12s ease,border-color .12s ease,transform .08s ease",fontSize:11.5,fontWeight:600,opacity:disabled?.55:1,whiteSpace:"nowrap" }}
+    onMouseEnter={e=>{ if(disabled) return; const el=e.currentTarget as any; el.style.background="#e5f1fb"; el.style.borderColor="#bfe0ff"; }}
+    onMouseLeave={e=>{ const el=e.currentTarget as any; el.style.background="transparent"; el.style.borderColor="transparent"; el.style.transform="none"; }}
+    onMouseDown={e=>{ if(disabled) return; (e.currentTarget as any).style.transform="scale(.96)"; }}
+    onMouseUp={e=>{ (e.currentTarget as any).style.transform="none"; }}>
     <Icon size={14} style={{flexShrink:0}}/>
     {label}
   </button>
 );
-const TSep = () => <div style={{ width:1, height:22, background:T.border, margin:"0 2px" }}/>;
+const TSep = () => <div style={{ width:1, height:22, background:T.border, margin:"0 3px" }}/>;
 
 /* ── Context menu item (SSMS-style right-click menu) ── */
 const CtxItem = ({ icon:Icon, label, onClick, color, disabled=false }:{ icon:any;label:string;onClick:()=>void;color?:string;disabled?:boolean }) => (
   <div onClick={disabled?undefined:onClick}
-    style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 14px", fontSize:12.5, cursor:disabled?"not-allowed":"pointer",
-      color:disabled?T.fgDim:(color||T.fg), opacity:disabled?.5:1 }}
+    style={{ display:"flex", alignItems:"center", gap:9, padding:"6.5px 14px", fontSize:12.5, cursor:disabled?"not-allowed":"pointer", borderRadius:4, margin:"0 4px",
+      color:disabled?T.fgDim:(color||T.fg), opacity:disabled?.5:1, transition:"background .1s ease" }}
     onMouseEnter={e=>!disabled&&((e.currentTarget as any).style.background=T.bg)}
     onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}
   >
     <Icon size={13} style={{ flexShrink:0 }}/>{label}
   </div>
 );
-const CtxDivider = () => <div style={{ height:1, background:T.border, margin:"4px 0" }}/>;
+const CtxDivider = () => <div style={{ height:1, background:T.border, margin:"4px 6px" }}/>;
 
 /* ── Role chip ── */
 const RoleChip = ({ role, onRemove }: { role:string; onRemove?:()=>void }) => {
   const rm = ROLE_META[role] || { color:T.fgDim, bg:T.bg, label:role };
   return (
-    <span style={{ display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:4,background:rm.bg,color:rm.color,fontSize:11,fontWeight:700 }}>
+    <span style={{ display:"inline-flex",alignItems:"center",gap:4,padding:"3.5px 9px",borderRadius:5,background:rm.bg,color:rm.color,fontSize:11,fontWeight:700,border:`1px solid ${rm.color}2a` }}>
       {rm.label}
       {onRemove && <button onClick={onRemove} style={{ background:"none",border:"none",cursor:"pointer",color:"inherit",padding:0,lineHeight:0,opacity:.7 }}><X size={10}/></button>}
     </span>
@@ -370,10 +376,10 @@ export default function UsersPage() {
   return (
     <div style={{ minHeight:"100vh", background:T.bg }}>
       <AdminBreadcrumb />
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}} @keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}} @keyframes pulseDot{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.05;transform:scale(1.6)}}`}</style>
 
       {/* ── TOOLBAR (SSMS-style) ── */}
-      <div style={{ background:"linear-gradient(#f7f7f7,#ececec)", borderBottom:"1px solid #c4c4c4", padding:"5px 10px", display:"flex", alignItems:"center", gap:2, flexWrap:"wrap" }}>
+      <div style={{ background:"linear-gradient(#fafafa,#eef0f2)", borderBottom:"1px solid #c4c4c4", padding:"6px 12px", display:"flex", alignItems:"center", gap:2, flexWrap:"wrap", boxShadow:"0 1px 3px rgba(16,24,40,0.06)", position:"relative", zIndex:2 }}>
         <RBtn icon={UserPlus} label="New User"   onClick={()=>openCreate()} color={T.primary} disabled={!isAdmin}/>
         <RBtn icon={Edit3}    label="Edit"       onClick={() => selected && (setForm({...selected}),setModal("edit"))} disabled={!selected}/>
         <RBtn icon={Trash2}   label="Delete"     onClick={() => selected && setModal("delete")} color={T.error} disabled={!selected||!isAdmin}/>
@@ -387,36 +393,45 @@ export default function UsersPage() {
           onClick={() => selected && toggleActive(selected)} disabled={!selected}/>
         <div style={{ flex:1 }}/>
         <div style={{ position:"relative", width:240 }}>
-          <Search size={13} color={T.fgDim} style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)" }}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, IP..." style={{ ...inp, paddingLeft:28, fontSize:12, height:28 }}/>
+          <Search size={13} color={T.fgDim} style={{ position:"absolute", left:9, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, IP..." onFocus={inpFocus} onBlur={inpBlur}
+            style={{ ...inp, paddingLeft:30, fontSize:12, height:30, background:"#fff" }}/>
         </div>
       </div>
 
       {/* ── STAT BAR ── */}
-      <div style={{ display:"flex", background:T.card, borderBottom:`1px solid ${T.border}`, gap:0 }}>
+      <div style={{ display:"flex", gap:10, padding:"10px 12px", background:T.bg }}>
         {[
-          { label:"Total",    value:stats.total,    color:T.primary  },
-          { label:"Active",   value:stats.active,   color:T.success  },
-          { label:"Inactive", value:stats.inactive, color:T.fgDim    },
-          { label:"Locked",   value:stats.locked,   color:T.error    },
-          { label:"Online",   value:stats.online,   color:"#f59e0b"  },
+          { label:"Total",    value:stats.total,    color:T.primary, icon:Users     },
+          { label:"Active",   value:stats.active,   color:T.success, icon:UserCheck },
+          { label:"Inactive", value:stats.inactive, color:T.fgDim,   icon:Ban       },
+          { label:"Locked",   value:stats.locked,   color:T.error,   icon:Lock      },
+          { label:"Online",   value:stats.online,   color:"#f59e0b", icon:Zap       },
         ].map(s => (
-          <div key={s.label} style={{ flex:1, padding:"8px 0", textAlign:"center", borderRight:`1px solid ${T.border}` }}>
-            <div style={{ fontSize:20, fontWeight:900, color:s.color }}>{s.value}</div>
-            <div style={{ fontSize:9, color:T.fgDim, fontWeight:700, textTransform:"uppercase" }}>{s.label}</div>
+          <div key={s.label} style={{ flex:1, minWidth:0, display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, boxShadow:"0 1px 2px rgba(16,24,40,0.04)", transition:"box-shadow .15s ease, transform .15s ease", cursor:"default" }}
+            onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.boxShadow="0 4px 14px rgba(16,24,40,0.09)"; el.style.transform="translateY(-1px)"; }}
+            onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.boxShadow="0 1px 2px rgba(16,24,40,0.04)"; el.style.transform="none"; }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:s.color+"16", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <s.icon size={15} color={s.color}/>
+            </div>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:19, fontWeight:900, color:s.color, lineHeight:1.1 }}>{s.value}</div>
+              <div style={{ fontSize:9.5, color:T.fgDim, fontWeight:700, textTransform:"uppercase", letterSpacing:".04em" }}>{s.label}</div>
+            </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 170px)" }}>
+      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "calc(100vh - 216px)", padding: isMobile ? 0 : "0 12px 12px", gap: isMobile ? 0 : 12 }}>
 
         {/* ── LEFT: Object Explorer ── */}
         <div style={{
-          width: isMobile ? "100%" : 320, flexShrink:0, background:T.card, borderRight: isMobile ? "none" : `1px solid ${T.border}`,
-          display: isMobile && selected ? "none" : "flex", flexDirection:"column",
+          width: isMobile ? "100%" : 320, flexShrink:0, background:T.card,
+          border: isMobile ? "none" : `1px solid ${T.border}`, borderRadius: isMobile ? 0 : T.rLg, boxShadow: isMobile ? "none" : "0 1px 3px rgba(16,24,40,0.05)",
+          display: isMobile && selected ? "none" : "flex", flexDirection:"column", overflow:"hidden",
           maxHeight: isMobile ? "60vh" : undefined, overflowY: isMobile ? "auto" : undefined,
         }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderBottom:`1px solid ${T.border}` }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 12px", borderBottom:`1px solid ${T.border}`, background:T.bg }}>
             <span style={{ fontSize:11, fontWeight:700, color:T.fgDim, textTransform:"uppercase", letterSpacing:".06em" }}>Object Explorer</span>
             <RefreshCw size={13} color={T.fgDim} style={{ cursor:"pointer" }} onClick={load}/>
           </div>
@@ -501,15 +516,20 @@ export default function UsersPage() {
                               <div
                                 onClick={() => { setSelected(u); setActiveLeaf("profile"); if (!isOpen) setExpanded(p=>({...p,[u.id]:true})); }}
                                 onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setSelected(u); setCtxMenu({ x:e.clientX, y:e.clientY, type:"user", user:u }); }}
-                                style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 40px", cursor:"pointer", fontSize:12.5, background:isSelUser&&activeLeaf==="profile"?"#cce8ff":"transparent", color:isSelUser&&activeLeaf==="profile"?"#003c6c":T.fg }}
-                                onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="#e5f1fb")}
+                                style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 37px", cursor:"pointer", fontSize:12.5, transition:"background .1s ease",
+                                  background:isSelUser&&activeLeaf==="profile"?T.primaryBg:"transparent", color:isSelUser&&activeLeaf==="profile"?T.primaryDark:T.fg,
+                                  borderLeft:`3px solid ${isSelUser&&activeLeaf==="profile"?T.primary:"transparent"}` }}
+                                onMouseEnter={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background=T.bg)}
                                 onMouseLeave={e=>!(isSelUser&&activeLeaf==="profile")&&((e.currentTarget as any).style.background="transparent")}
                               >
                                 <span onClick={e=>{ e.stopPropagation(); setExpanded(p=>({...p,[u.id]:!isOpen})); }} style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>
                                   {isOpen?"-":"+"}
                                 </span>
-                                <span style={{ width:7, height:7, borderRadius:7, flexShrink:0, background:u.is_locked?T.error:u.is_active!==false?(isOnline?T.success:T.fgDim):T.fgDim }}/>
-                                <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:u.is_active===false?T.fgDim:T.fg, fontWeight:isSelUser?700:400 }}>
+                                <span style={{ position:"relative", width:7, height:7, flexShrink:0 }}>
+                                  <span style={{ position:"absolute", inset:0, borderRadius:7, background:u.is_locked?T.error:u.is_active!==false?(isOnline?T.success:T.fgDim):T.fgDim }}/>
+                                  {isOnline && !u.is_locked && u.is_active!==false && <span style={{ position:"absolute", inset:-3, borderRadius:7, background:T.success, opacity:.35, animation:"pulseDot 2s ease-in-out infinite" }}/>}
+                                </span>
+                                <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:u.is_active===false?T.fgDim:(isSelUser&&activeLeaf==="profile"?T.primaryDark:T.fg), fontWeight:isSelUser?700:500 }}>
                                   {u.full_name||"—"}
                                 </span>
                               </div>
@@ -519,8 +539,9 @@ export default function UsersPage() {
                                   <div
                                     key={key}
                                     onClick={() => { setSelected(u); setActiveLeaf(key); }}
-                                    style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 62px", cursor:"pointer", fontSize:12, color:isSelLeaf?"#003c6c":T.fgMuted, background:isSelLeaf?"#cce8ff":"transparent" }}
-                                    onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background="#e5f1fb")}
+                                    style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 59px", cursor:"pointer", fontSize:12, transition:"background .1s ease",
+                                      color:isSelLeaf?T.primaryDark:T.fgMuted, background:isSelLeaf?T.primaryBg:"transparent", borderLeft:`3px solid ${isSelLeaf?T.primary:"transparent"}` }}
+                                    onMouseEnter={e=>!isSelLeaf&&((e.currentTarget as any).style.background=T.bg)}
                                     onMouseLeave={e=>!isSelLeaf&&((e.currentTarget as any).style.background="transparent")}
                                   >
                                     <LeafIcon size={12} style={{ flexShrink:0 }}/> {label}
@@ -580,7 +601,8 @@ export default function UsersPage() {
             ); })()}
           </div>
         )}
-        <div style={{ flex:1, overflowY:"auto", background:T.bg, display: isMobile && !selected ? "none" : "block", width: isMobile ? "100%" : undefined }}>
+        <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", background:T.bg, display: isMobile && !selected ? "none" : "block", width: isMobile ? "100%" : undefined,
+          border: isMobile ? "none" : `1px solid ${T.border}`, borderRadius: isMobile ? 0 : T.rLg, boxShadow: isMobile ? "none" : "0 1px 3px rgba(16,24,40,0.05)" }}>
           {isMobile && selected && (
             <button onClick={()=>setSelected(null)} style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 14px", border:"none", borderBottom:`1px solid ${T.border}`, background:T.card, color:T.primary, fontWeight:700, fontSize:13, cursor:"pointer" }}>
               ← Back to Users
@@ -590,14 +612,17 @@ export default function UsersPage() {
             <div style={{ padding:20, animation:"slideR .2s" }}>
 
               {/* User header card */}
-              <div style={{ ...card, marginBottom:14 }}>
-                <div style={{ display:"flex", alignItems:"flex-start", gap:16, flexWrap: isMobile ? "wrap" : "nowrap" }}>
-                  <div style={{ width:72, height:72, borderRadius:"50%", background:`${T.primary}18`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`3px solid ${T.primary}`, overflow:"hidden" }}>
-                    {selected.avatar_url
-                      ? <img src={selected.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
-                      : <span style={{ fontSize:30, fontWeight:700, color:T.primary }}>{selected.full_name?.[0]||"?"}</span>}
+              <div style={{ ...card, marginBottom:14, padding:0, overflow:"hidden" }}>
+                <div style={{ height:56, background:`linear-gradient(120deg, ${T.primary}, ${T.primaryDark})` }}/>
+                <div style={{ display:"flex", alignItems:"flex-start", gap:16, flexWrap: isMobile ? "wrap" : "nowrap", padding:"0 20px 18px" }}>
+                  <div style={{ width:76, height:76, borderRadius:"50%", background:T.card, flexShrink:0, marginTop:-38, padding:3, boxShadow:"0 2px 8px rgba(16,24,40,0.18)" }}>
+                    <div style={{ width:"100%", height:"100%", borderRadius:"50%", background:`${T.primary}14`, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+                      {selected.avatar_url
+                        ? <img src={selected.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                        : <span style={{ fontSize:28, fontWeight:800, color:T.primary }}>{selected.full_name?.[0]||"?"}</span>}
+                    </div>
                   </div>
-                  <div style={{ flex:1 }}>
+                  <div style={{ flex:1, minWidth:0, paddingTop:12 }}>
                     <h2 style={{ margin:"0 0 4px", fontSize:20, fontWeight:800, color:T.fg }}>{selected.full_name}</h2>
                     <div style={{ fontSize:13, color:T.fgMuted, marginBottom:8 }}>{selected.email}</div>
                     <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
@@ -608,11 +633,11 @@ export default function UsersPage() {
                       {selected.last_seen && (Date.now()-new Date(selected.last_seen).getTime())<5*60_000 && <span style={chip(T.success)}>● Online</span>}
                     </div>
                   </div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                    <button onClick={() => (setForm({...selected}),setModal("edit"))} style={btn(T.primary)}><Edit3 size={12}/> Edit</button>
-                    <button onClick={() => (setForm({...selected,newPw:""}),setModal("password"))} style={btn(T.bg,T.border)}><Key size={12}/> Reset Password</button>
-                    {selected.is_locked && <button onClick={() => unlockUser(selected)} style={{ ...btn(T.successBg,T.success), color:T.success }}><Unlock size={12}/> Unlock</button>}
-                    <button onClick={() => toggleActive(selected)} style={{ ...btn(selected.is_active!==false?T.errorBg:T.successBg,selected.is_active!==false?T.error:T.success), color:selected.is_active!==false?T.error:T.success }}>
+                  <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", flexWrap:"wrap", gap:6, paddingTop:12 }}>
+                    <button onClick={() => (setForm({...selected}),setModal("edit"))} style={btn(T.primary)} onMouseEnter={btnHoverOn} onMouseLeave={btnHoverOff}><Edit3 size={12}/> Edit</button>
+                    <button onClick={() => (setForm({...selected,newPw:""}),setModal("password"))} style={btn(T.bg,T.border)} onMouseEnter={btnHoverOn} onMouseLeave={btnHoverOff}><Key size={12}/> Reset Password</button>
+                    {selected.is_locked && <button onClick={() => unlockUser(selected)} style={{ ...btn(T.successBg,T.success), color:T.success }} onMouseEnter={btnHoverOn} onMouseLeave={btnHoverOff}><Unlock size={12}/> Unlock</button>}
+                    <button onClick={() => toggleActive(selected)} style={{ ...btn(selected.is_active!==false?T.errorBg:T.successBg,selected.is_active!==false?T.error:T.success), color:selected.is_active!==false?T.error:T.success }} onMouseEnter={btnHoverOn} onMouseLeave={btnHoverOff}>
                       {selected.is_active!==false?<><Lock size={12}/> Deactivate</>:<><Unlock size={12}/> Activate</>}
                     </button>
                   </div>
