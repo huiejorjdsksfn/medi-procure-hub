@@ -18,6 +18,10 @@ import {
   Key, Eye, EyeOff, Users, Lock, Unlock, AlertTriangle,
   Activity, Copy, Clock, Mail, Phone, Building2, UserCheck,
   ChevronDown, ChevronUp, MoreHorizontal, Zap, Globe, Ban, UserPlus,
+  Folder, FolderOpen, Pill, FlaskConical, Scissors, Siren, HeartPulse,
+  Baby, Wallet, Laptop, UserCog, ShoppingCart, FileText, BedDouble,
+  Briefcase, ShieldAlert, Wrench, UtensilsCrossed, Droplets, BadgeCheck,
+  HeartHandshake, Stethoscope, ScanLine,
 } from "lucide-react";
 
 const SUPABASE_URL = "https://yvjfehnzbzjliizjvuhq.supabase.co";
@@ -44,6 +48,40 @@ const ROLE_META: Record<string,{color:string;bg:string;label:string}> = {
   requisitioner:       { color:"#d97706", bg:"#fef3c7", label:"Requisitioner"   },
   accountant:          { color:"#065f46", bg:"#d1fae5", label:"Accountant"      },
 };
+
+/* ── Department → icon/color classifier ──────────────────────────────────
+   The `departments` table has ~140 real hospital department names (Cardiac
+   Care Unit, Antenatal Clinic, ICT Department, Mortuary, ...). Keyword rules
+   beat an exact-match table here since it's impossible to enumerate them
+   all — first matching rule wins, falls back to a generic office icon. */
+const DEPT_ICON_RULES: { test:RegExp; icon:any; color:string }[] = [
+  { test:/pharma/i,                                                          icon:Pill,            color:"#0891b2" },
+  { test:/labor|patholog|hematol|microbiol|cytolog|chemistry|parasitol|blood bank/i, icon:FlaskConical,   color:"#7c3aed" },
+  { test:/theatre|surger|operating|cssd/i,                                   icon:Scissors,        color:"#dc2626" },
+  { test:/radiol|x-?ray|mri|ct .?s|ultrasound|mammograph|imaging/i,          icon:ScanLine,        color:"#0369a1" },
+  { test:/icu|emergency|casualty|accident|critical|hdu|\bccu\b|resuscitat/i, icon:Siren,           color:"#dc2626" },
+  { test:/cardio|heart/i,                                                    icon:HeartPulse,      color:"#e11d48" },
+  { test:/matern|obstetric|gyneco|antenatal|postnatal|labour ward/i,         icon:Baby,            color:"#db2777" },
+  { test:/paediat|pediatr|child/i,                                          icon:Baby,            color:"#f59e0b" },
+  { test:/financ|account|billing/i,                                         icon:Wallet,          color:"#047857" },
+  { test:/\bict\b|\bit department\b|information tech/i,                     icon:Laptop,          color:"#2563eb" },
+  { test:/human resources|^hr$/i,                                           icon:UserCog,         color:"#b4009e" },
+  { test:/procure|stores|supplies/i,                                        icon:ShoppingCart,    color:"#0078d4" },
+  { test:/record|health information|coding/i,                               icon:FileText,        color:"#64748b" },
+  { test:/nursing|\bward\b/i,                                                icon:BedDouble,       color:"#0d9488" },
+  { test:/admin|executive|superintend|chief executive/i,                    icon:Briefcase,       color:"#334155" },
+  { test:/security/i,                                                       icon:ShieldAlert,     color:"#b91c1c" },
+  { test:/mainten|engineer|biomed/i,                                        icon:Wrench,          color:"#a16207" },
+  { test:/caterin|housekeep|laundry|hospitality/i,                          icon:UtensilsCrossed, color:"#ca8a04" },
+  { test:/dialysis|renal/i,                                                 icon:Droplets,        color:"#0284c7" },
+  { test:/quality|risk/i,                                                   icon:BadgeCheck,      color:"#15803d" },
+  { test:/chaplain|social work|counsel|patient relations|volunteer/i,       icon:HeartHandshake,  color:"#be185d" },
+  { test:/clinic|therapy|dental|dermat|neuro|ortho|onco|renal|pulmon|nephro|gastro|urolog|rheumat/i, icon:Stethoscope, color:"#0891b2" },
+];
+function deptMeta(name:string): { icon:any; color:string } {
+  const hit = DEPT_ICON_RULES.find(r => r.test.test(name));
+  return hit ? { icon:hit.icon, color:hit.color } : { icon:Building2, color:T.primary };
+}
 
 /* ── Styles ── */
 const card: React.CSSProperties = { background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"16px 20px", boxShadow:"0 1px 2px rgba(16,24,40,0.04)", transition:"box-shadow .15s ease, border-color .15s ease" };
@@ -468,18 +506,22 @@ export default function UsersPage() {
               return (
                 <div key={dept}>
                   {/* Department folder */}
+                  {(() => { const dm = deptMeta(dept); return (
                   <div
                     onClick={() => setExpandedFolders(p=>({...p,[deptKey]:!deptOpen}))}
                     onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x:e.clientX, y:e.clientY, type:"dept", dept }); }}
-                    style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px 5px 10px", cursor:"pointer", fontSize:12.5, fontWeight:700, color:T.fg }}
+                    style={{ display:"flex", alignItems:"center", gap:7, padding:"6px 10px 6px 9px", cursor:"pointer", fontSize:12.5, fontWeight:700, color:T.fg, transition:"background .1s ease" }}
                     onMouseEnter={e=>((e.currentTarget as any).style.background=T.bg)}
                     onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}
                   >
-                    <span style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>{deptOpen?"-":"+"}</span>
-                    <Building2 size={13} style={{ flexShrink:0, color:T.primary }}/>
+                    {deptOpen ? <FolderOpen size={14} style={{ flexShrink:0, color:"#eab308" }}/> : <Folder size={14} style={{ flexShrink:0, color:"#eab308" }}/>}
+                    <span style={{ width:20, height:20, borderRadius:6, background:dm.color+"18", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <dm.icon size={12} style={{ color:dm.color }}/>
+                    </span>
                     <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{dept}</span>
                     <span style={{ fontSize:9, color:T.fgDim, fontWeight:600, flexShrink:0 }}>({deptCount})</span>
                   </div>
+                  ); })()}
 
                   {deptOpen && roles.map(({ role, users:roleUsers }) => {
                     const roleKey = `${deptKey}|role:${role}`;
@@ -491,11 +533,11 @@ export default function UsersPage() {
                         <div
                           onClick={() => setExpandedFolders(p=>({...p,[roleKey]:!roleOpen}))}
                           onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x:e.clientX, y:e.clientY, type:"role", dept, role }); }}
-                          style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px 4px 26px", cursor:"pointer", fontSize:12, color:T.fgMuted }}
+                          style={{ display:"flex", alignItems:"center", gap:7, padding:"5px 10px 5px 27px", cursor:"pointer", fontSize:12, color:T.fgMuted, transition:"background .1s ease" }}
                           onMouseEnter={e=>((e.currentTarget as any).style.background=T.bg)}
                           onMouseLeave={e=>((e.currentTarget as any).style.background="transparent")}
                         >
-                          <span style={{ width:12, color:T.fgDim, fontWeight:700, flexShrink:0, textAlign:"center" }}>{roleOpen?"-":"+"}</span>
+                          {roleOpen ? <FolderOpen size={13} style={{ flexShrink:0, color:"#cbb26a" }}/> : <Folder size={13} style={{ flexShrink:0, color:"#cbb26a" }}/>}
                           <Shield size={12} style={{ flexShrink:0, color:rmFolder?.color||T.fgDim }}/>
                           <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rmFolder?.label || "No Role"}</span>
                           <span style={{ fontSize:9, color:T.fgDim, fontWeight:600, flexShrink:0 }}>({roleUsers.length})</span>
