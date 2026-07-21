@@ -203,6 +203,9 @@ export default function AdminPanelPage() {
   const [fbResponses, setFbResponses] = useState<any[]>([]);
   const [fbViewResponse, setFbViewResponse] = useState<any|null>(null);
   const [fbCopied, setFbCopied] = useState(false);
+  const [fbListSearch, setFbListSearch] = useState("");
+  const [fbListCategory, setFbListCategory] = useState("all");
+  const [fbListStatus, setFbListStatus] = useState("all");
 
   // Branding
   const [brand, setBrand] = useState<any>(null);
@@ -377,9 +380,11 @@ export default function AdminPanelPage() {
     setFbSaving(false);
   };
 
-  const fbTogglePublish = async()=>{
-    if (!selectedFormId || !selectedForm) return;
-    const nowPublishing = selectedForm.status!=="published";
+  const fbTogglePublish = async(formOverride?:any)=>{
+    const target = formOverride || selectedForm;
+    const targetId = target?.form_id;
+    if (!targetId || !target) return;
+    const nowPublishing = target.status!=="published";
     setFbSaving(true);
     try {
       // First-time publish of an internally-built form: actually sync it
@@ -387,15 +392,19 @@ export default function AdminPanelPage() {
       // instead of only flipping a local status flag. Re-publishing an
       // already-synced form (has form_api_id) just re-activates it —
       // no need to create a second Google Form.
-      if (nowPublishing && selectedForm.method === "internal" && !selectedForm.form_api_id) {
-        const questions = (selectedForm.field_definitions?.questions || fbQuestions).map((q:any)=>q.q || q);
+      if (nowPublishing && target.method === "internal" && !target.form_api_id) {
+        // formOverride (quick-publish from the All Forms list) has no
+        // separate "unsaved edits" state — target IS the source of truth.
+        // The main editor button (no override) still prefers the live
+        // fbTitle/fbDesc/fbQuestions so in-progress edits publish correctly.
+        const title = formOverride ? (target.title||target.form_id) : fbTitle;
+        const desc  = formOverride ? (target.description||"") : fbDesc;
+        const questions = (target.field_definitions?.questions || (formOverride?[]:fbQuestions)).map((q:any)=>q.q || q);
         const { data: syncRes, error: syncErr } = await supabase.functions.invoke("google-forms-api", {
           body: {
             action: "create_form",
-            title: fbTitle,
-            description: fbDesc,
-            fields: questions,
-            formId: selectedFormId,
+            title, description: desc, fields: questions,
+            formId: targetId,
           },
         });
         if (syncErr) throw syncErr;
@@ -405,7 +414,7 @@ export default function AdminPanelPage() {
           status: "published", is_active: true, published_at: new Date().toISOString(),
           form_url: syncRes.formUrl, edit_url: syncRes.editUrl, form_api_id: syncRes.formApiId || null,
           method: syncRes.method,
-        }).eq("form_id", selectedFormId);
+        }).eq("form_id", targetId);
         if (error) throw error;
 
         toast({
@@ -420,8 +429,8 @@ export default function AdminPanelPage() {
       const { error } = await db.from("google_forms").update({
         status: nowPublishing ? "published" : "draft",
         is_active: nowPublishing,
-        published_at: nowPublishing ? new Date().toISOString() : selectedForm.published_at,
-      }).eq("form_id",selectedFormId);
+        published_at: nowPublishing ? new Date().toISOString() : target.published_at,
+      }).eq("form_id",targetId);
       if (error) throw error;
       toast({title: nowPublishing ? "✓ Form published" : "Form unpublished"});
       await loadForms();
@@ -431,27 +440,30 @@ export default function AdminPanelPage() {
     setFbSaving(false);
   };
 
-  const fbDeleteForm = async()=>{
-    if (!selectedFormId) return;
-    if (!confirm(`Delete form "${fbTitle}"? You can restore it later from "Show deleted".`)) return;
+  const fbDeleteForm = async(formOverride?:any)=>{
+    const targetId = formOverride?.form_id || selectedFormId;
+    const title = formOverride?.title || fbTitle;
+    if (!targetId) return;
+    if (!confirm(`Delete form "${title}"? You can restore it later from "Show deleted".`)) return;
     try {
       // Soft delete — previously this was a hard DELETE with no way to
       // recover ("This cannot be undone"). Now it just flags the row;
       // Restore below clears the flag.
-      const { error } = await db.from("google_forms").update({ deleted_at: new Date().toISOString(), is_active: false, status: "deleted" }).eq("form_id",selectedFormId);
+      const { error } = await db.from("google_forms").update({ deleted_at: new Date().toISOString(), is_active: false, status: "deleted" }).eq("form_id",targetId);
       if (error) throw error;
       toast({title:"✓ Form deleted", description:"You can restore it from \"Show deleted\" if this was a mistake."});
-      fbResetDraft();
+      if (!formOverride || targetId===selectedFormId) fbResetDraft();
       await loadForms();
     } catch(e:any) {
       toast({title:"Delete failed", description:e.message, variant:"destructive"});
     }
   };
 
-  const fbRestoreForm = async()=>{
-    if (!selectedFormId) return;
+  const fbRestoreForm = async(formOverride?:any)=>{
+    const targetId = formOverride?.form_id || selectedFormId;
+    if (!targetId) return;
     try {
-      const { error } = await db.from("google_forms").update({ deleted_at: null, status: "draft" }).eq("form_id",selectedFormId);
+      const { error } = await db.from("google_forms").update({ deleted_at: null, status: "draft" }).eq("form_id",targetId);
       if (error) throw error;
       toast({title:"✓ Form restored"});
       await loadForms();
@@ -1914,6 +1926,99 @@ export default function AdminPanelPage() {
           {/* - FORMS BUILDER - */}
           {sec==="formbuilder"&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+              {(() => {
+                const cats = Array.from(new Set(forms.map((f:any)=>f.field_definitions?.category || "General"))).sort();
+                const q = fbListSearch.trim().toLowerCase();
+                const rows = forms.filter((f:any)=>{
+                  if (!showDeletedForms && f.deleted_at) return false;
+                  if (q && !(f.title||"").toLowerCase().includes(q) && !(f.form_id||"").toLowerCase().includes(q)) return false;
+                  if (fbListCategory!=="all" && (f.field_definitions?.category||"General")!==fbListCategory) return false;
+                  const st = f.deleted_at ? "deleted" : (f.status||"draft");
+                  if (fbListStatus!=="all" && st!==fbListStatus) return false;
+                  return true;
+                });
+                const totalResponses = forms.reduce((n:number,f:any)=>n+(f.response_count||0),0);
+                return (
+                <div style={S.card}>
+                  <div style={{...S.cardHd("#f59e0b"), flexWrap:"wrap", gap:8}}>
+                    <ClipboardList size={14} color="#f59e0b"/>
+                    <span style={{fontWeight:700,color:T.fg,fontSize:13}}>All Forms ({rows.length}/{forms.length})</span>
+                    <span style={{fontSize:11,color:T.fgMuted,fontWeight:500}}>· {totalResponses} total responses</span>
+                    <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <input value={fbListSearch} onChange={e=>setFbListSearch(e.target.value)} placeholder="Search forms…" style={{...S.inp,width:170,fontSize:11}}/>
+                      <select value={fbListCategory} onChange={e=>setFbListCategory(e.target.value)} style={{...S.inp,width:140,fontSize:11}}>
+                        <option value="all">All Categories</option>
+                        {cats.map(c=><option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <select value={fbListStatus} onChange={e=>setFbListStatus(e.target.value)} style={{...S.inp,width:120,fontSize:11}}>
+                        <option value="all">All Statuses</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                        {showDeletedForms && <option value="deleted">Deleted</option>}
+                      </select>
+                      <label style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.fgMuted,cursor:"pointer",whiteSpace:"nowrap"}}>
+                        <input type="checkbox" checked={showDeletedForms} onChange={e=>setShowDeletedForms(e.target.checked)} />
+                        Show deleted
+                      </label>
+                      <button onClick={fbResetDraft} style={{...S.btn("#f59e0b"),padding:"5px 12px",fontSize:11}}><Plus size={12}/>New Form</button>
+                    </div>
+                  </div>
+                  <div style={{maxHeight:360,overflowY:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                      <thead>
+                        <tr style={{background:"#f8fafc",borderBottom:`1px solid ${T.border}`,position:"sticky",top:0}}>
+                          <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Form</th>
+                          <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Category</th>
+                          <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Status</th>
+                          <th style={{padding:"8px 12px",textAlign:"center",fontWeight:600,color:T.fgMuted}}>Responses</th>
+                          <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Published</th>
+                          <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:T.fgMuted}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.length===0 ? (
+                          <tr><td colSpan={6} style={{padding:"20px 12px",textAlign:"center",color:T.fgMuted}}>No forms match these filters</td></tr>
+                        ) : rows.map((f:any)=>{
+                          const st = f.deleted_at ? "deleted" : (f.status||"draft");
+                          const stColor = st==="published" ? "#059669" : st==="deleted" ? "#dc2626" : "#d97706";
+                          const stBg    = st==="published" ? "#d1fae5" : st==="deleted" ? "#fee2e2" : "#fef3c7";
+                          const isSel = f.form_id===selectedFormId;
+                          return (
+                            <tr key={f.form_id} onClick={()=>fbSelectForm(f)} style={{borderBottom:`1px solid ${T.border}18`, cursor:"pointer", background:isSel?"#fffbeb":"transparent"}}
+                              onMouseEnter={e=>{ if(!isSel) (e.currentTarget as HTMLElement).style.background="#f8fafc"; }}
+                              onMouseLeave={e=>{ if(!isSel) (e.currentTarget as HTMLElement).style.background="transparent"; }}>
+                              <td style={{padding:"8px 12px",fontWeight:600,color:T.fg}}>
+                                {f.title||f.form_id}
+                                <div style={{fontSize:10,color:T.fgMuted,fontWeight:400}}>{f.form_id}</div>
+                              </td>
+                              <td style={{padding:"8px 12px",color:T.fgMuted}}>{f.field_definitions?.category||"General"}</td>
+                              <td style={{padding:"8px 12px"}}><span style={{padding:"2px 8px",borderRadius:999,fontSize:10,fontWeight:700,textTransform:"uppercase",color:stColor,background:stBg}}>{st}</span></td>
+                              <td style={{padding:"8px 12px",textAlign:"center",fontWeight:700,color:"#0369a1"}}>{f.response_count||0}</td>
+                              <td style={{padding:"8px 12px",color:T.fgMuted}}>{f.published_at ? new Date(f.published_at).toLocaleDateString() : "—"}</td>
+                              <td style={{padding:"8px 12px"}} onClick={e=>e.stopPropagation()}>
+                                <span style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                                  <button onClick={()=>{ fbSelectForm(f); loadFbResponses(f.form_id); }} title="View responses" style={{...S.btn("#64748b"),padding:"3px 7px",fontSize:10}}><Eye size={11}/>View</button>
+                                  {!f.deleted_at && (
+                                    <button onClick={()=>fbTogglePublish(f)} disabled={fbSaving} title={st==="published"?"Unpublish":"Publish"} style={{...S.btn(st==="published"?"#64748b":"#10b981"),padding:"3px 7px",fontSize:10,opacity:fbSaving?0.6:1}}>
+                                      {st==="published" ? <Pause size={11}/> : <Play size={11}/>}
+                                    </button>
+                                  )}
+                                  <button onClick={()=>{ navigator.clipboard.writeText(`${window.location.origin}/#/forms/${f.form_id}`); toast({title:"✓ Link copied"}); }} title="Copy public link" style={{...S.btn("#3b82f6"),padding:"3px 7px",fontSize:10}}><Copy size={11}/></button>
+                                  {f.deleted_at
+                                    ? <button onClick={()=>fbRestoreForm(f)} title="Restore" style={{...S.btn("#059669"),padding:"3px 7px",fontSize:10}}><RefreshCw size={11}/></button>
+                                    : <button onClick={()=>fbDeleteForm(f)} title="Delete" style={{...S.btn("#dc2626"),padding:"3px 7px",fontSize:10}}><Trash2 size={11}/></button>}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                );
+              })()}
               <div style={S.card}>
                 <div style={S.cardHd("#f59e0b")}><ClipboardList size={14} color="#f59e0b"/><span style={{fontWeight:700,color:T.fg,fontSize:13}}>
                   {selectedFormId ? `Editing: ${fbTitle||"Untitled"}` : "New Form"}
@@ -1956,8 +2061,8 @@ export default function AdminPanelPage() {
                     <button onClick={fbSaveForm} disabled={fbSaving} style={{...S.btn("#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
                       <Save size={14}/>{fbSaving?"Saving…":selectedFormId?"Save Changes":"Create Form"}
                     </button>
-                    {selectedFormId && selectedForm?.deleted_at && <button onClick={fbRestoreForm} style={{...S.btn("#059669"),fontSize:12}}><RefreshCw size={14}/>Restore</button>}
-                    {selectedFormId && !selectedForm?.deleted_at && <button onClick={fbDeleteForm} style={{...S.btn("#dc2626"),fontSize:12}}><Trash2 size={14}/>Delete</button>}
+                    {selectedFormId && selectedForm?.deleted_at && <button onClick={()=>fbRestoreForm()} style={{...S.btn("#059669"),fontSize:12}}><RefreshCw size={14}/>Restore</button>}
+                    {selectedFormId && !selectedForm?.deleted_at && <button onClick={()=>fbDeleteForm()} style={{...S.btn("#dc2626"),fontSize:12}}><Trash2 size={14}/>Delete</button>}
                   </div>
                 </div>
               </div>
@@ -2021,7 +2126,7 @@ export default function AdminPanelPage() {
                     </div>
                   </div>
                   <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-                    <button onClick={fbTogglePublish} disabled={fbSaving} style={{...S.btn(selectedForm?.status==="published"?"#64748b":"#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
+                    <button onClick={()=>fbTogglePublish()} disabled={fbSaving} style={{...S.btn(selectedForm?.status==="published"?"#64748b":"#10b981"),fontSize:12,opacity:fbSaving?0.6:1}}>
                       {selectedForm?.status==="published" ? <><Pause size={14}/>Unpublish</> : <><Play size={14}/>Publish Form</>}
                     </button>
                     <button onClick={()=>window.open(fbPublicUrl,"_blank")} style={{...S.btn("#64748b"),fontSize:12}}><Eye size={14}/>Preview</button>
