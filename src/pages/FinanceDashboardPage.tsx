@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useChartOfAccounts, useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
 import { netEngine } from "@/lib/networkEngine";
+import { pageCache } from "@/lib/pageCache";
 
 const db = supabase as any;
 
@@ -1186,42 +1187,91 @@ export default function FinanceDashboardPage() {
   const [sales,     setSales]     = useState<any[]>([]);
   const [loading,   setLoading]   = useState(true);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (only?: string[]) => {
+    if (!only) setLoading(true);
     // Each ledger gets its own circuit breaker so a stuck fixed_assets query
     // (say) can't stall payments/receipts/GL too, and "critical" priority
     // keeps this dashboard load ahead of any background prefetching.
-    const [pR,rcR,glR,bR,aR,puR,svR] = await Promise.all([
-      netEngine.request("finance:payment_vouchers",
+    const jobs: Record<string, () => Promise<any>> = {
+      payments: () => netEngine.request("finance:payment_vouchers",
         () => db.from("payment_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
         { priority: "critical", label: "payment vouchers" }),
-      netEngine.request("finance:receipt_vouchers",
+      receipts: () => netEngine.request("finance:receipt_vouchers",
         () => db.from("receipt_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
         { priority: "critical", label: "receipt vouchers" }),
-      netEngine.request("finance:gl_entries",
+      gl: () => netEngine.request("finance:gl_entries",
         () => db.from("gl_entries").select("*").order("created_at",{ascending:false}).limit(400),
         { priority: "critical", label: "GL entries" }),
-      netEngine.request("finance:budgets",
+      budgets: () => netEngine.request("finance:budgets",
         () => db.from("budgets").select("*").order("created_at",{ascending:false}).limit(100),
         { priority: "critical", label: "budgets" }),
-      netEngine.request("finance:fixed_assets",
+      assets: () => netEngine.request("finance:fixed_assets",
         () => db.from("fixed_assets").select("*").order("created_at",{ascending:false}).limit(200),
         { priority: "critical", label: "fixed assets" }),
-      netEngine.request("finance:purchase_vouchers",
+      purchases: () => netEngine.request("finance:purchase_vouchers",
         () => db.from("purchase_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
         { priority: "critical", label: "purchase vouchers" }),
-      netEngine.request("finance:sales_vouchers",
+      sales: () => netEngine.request("finance:sales_vouchers",
         () => db.from("sales_vouchers").select("*").order("created_at",{ascending:false}).limit(400),
         { priority: "critical", label: "sales vouchers" }),
-    ]);
-    setPayments(pR.data??[]); setReceipts(rcR.data??[]); setGlEntries(glR.data??[]); setBudgets(bR.data??[]); setAssets(aR.data??[]);
-    setPurchases(puR.data??[]); setSales(svR.data??[]); setLoading(false);
+    };
+    // A realtime change on, say, payment_vouchers used to refetch all
+    // 7 datasets (2,000+ rows total) from scratch on every single write —
+    // wasteful bandwidth and latency, especially under load. Now only the
+    // table that actually changed gets refetched; a full load (mount,
+    // manual refresh) still fetches everything.
+    const keys = only && only.length ? only : Object.keys(jobs);
+    const results = await Promise.all(keys.map(k => jobs[k]()));
+    const setters: Record<string, (v:any[])=>void> = {
+      payments: setPayments, receipts: setReceipts, gl: setGlEntries,
+      budgets: setBudgets, assets: setAssets, purchases: setPurchases, sales: setSales,
+    };
+    const nextSnapshot: Record<string, any[]> = {};
+    keys.forEach((k, i) => {
+      const rows = results[i]?.data ?? [];
+      setters[k](rows);
+      nextSnapshot[k] = rows;
+    });
+    // Cache a full snapshot so reopening this dashboard paints instantly
+    // from last-known data while a fresh load happens quietly underneath,
+    // instead of a blank multi-window desktop every time it's reopened.
+    if (!only) {
+      pageCache.set("finance_dashboard_v2", nextSnapshot);
+    } else {
+      const prev = pageCache.get<Record<string, any[]>>("finance_dashboard_v2") || {};
+      pageCache.set("finance_dashboard_v2", { ...prev, ...nextSnapshot });
+    }
+    setLoading(false);
+  }, []);
+
+  // Instant paint from cache on mount, before the network round trip
+  // resolves — the multi-window Finance Desktop is one of the heavier
+  // pages in the app (7 datasets, up to 400 rows each) and previously
+  // always showed a blank loading state on every navigation to it.
+  useEffect(() => {
+    const cached = pageCache.get<Record<string, any[]>>("finance_dashboard_v2");
+    if (cached) {
+      if (cached.payments) setPayments(cached.payments);
+      if (cached.receipts) setReceipts(cached.receipts);
+      if (cached.gl) setGlEntries(cached.gl);
+      if (cached.budgets) setBudgets(cached.budgets);
+      if (cached.assets) setAssets(cached.assets);
+      if (cached.purchases) setPurchases(cached.purchases);
+      if (cached.sales) setSales(cached.sales);
+      setLoading(false);
+    }
   }, []);
 
   useEffect(()=>{fetchAll();},[fetchAll]);
 
   useEffect(()=>{
-    const ch=db.channel("fin_desk_v2").on("postgres_changes",{event:"*",schema:"public",table:"payment_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"gl_entries"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"purchase_vouchers"},fetchAll).on("postgres_changes",{event:"*",schema:"public",table:"sales_vouchers"},fetchAll).subscribe();
+    const ch=db.channel("fin_desk_v2")
+      .on("postgres_changes",{event:"*",schema:"public",table:"payment_vouchers"},()=>fetchAll(["payments"]))
+      .on("postgres_changes",{event:"*",schema:"public",table:"receipt_vouchers"},()=>fetchAll(["receipts"]))
+      .on("postgres_changes",{event:"*",schema:"public",table:"gl_entries"},()=>fetchAll(["gl"]))
+      .on("postgres_changes",{event:"*",schema:"public",table:"purchase_vouchers"},()=>fetchAll(["purchases"]))
+      .on("postgres_changes",{event:"*",schema:"public",table:"sales_vouchers"},()=>fetchAll(["sales"]))
+      .subscribe();
     return ()=>{supabase.removeChannel(ch);};
   },[fetchAll]);
 
