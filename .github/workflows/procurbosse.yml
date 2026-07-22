@@ -27,7 +27,7 @@ permissions:
 
 env:
   NODE_VER:   "22"
-  APP_VER:    "11.12.0"
+  APP_VER:    "22.13.0"
   SUPA_URL:   "https://yvjfehnzbzjliizjvuhq.supabase.co"
   SUPA_ANON:  "${{ secrets.SUPABASE_ANON_KEY }}"
   SUPA_REF:   "yvjfehnzbzjliizjvuhq"
