@@ -209,7 +209,7 @@ function PropRow({ k, v }: { k:string; v:any }) {
 function DBInner() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("tables");
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("monitor");
   const [openMenu, setOpenMenu] = useState<string|null>(null);
   const [quickLaunch, setQuickLaunch] = useState("");
   const rowFilterRef = useRef<HTMLInputElement>(null);
