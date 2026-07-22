@@ -27,16 +27,20 @@ import { printDataTable } from "@/lib/printDocument";
 
 // - Table groups with all 57 tables -
 const TABLE_GROUPS = [
-  { id:"procurement", label:"Procurement",         color:"#003087", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","bid_evaluations","tenders","contracts","suppliers"] },
-  { id:"inventory",   label:"Inventory & Stock",   color:"#107c10", tables:["items","item_categories","departments","stock_movements"] },
-  { id:"finance",     label:"Finance & Vouchers",  color:"#8B4513", tables:["payment_vouchers","receipt_vouchers","journal_vouchers","purchase_vouchers","sales_vouchers","budgets","chart_of_accounts","bank_accounts","gl_entries","fixed_assets"] },
-  { id:"quality",     label:"Quality Control",     color:"#005C3C", tables:["inspections","non_conformance"] },
-  { id:"users",       label:"Users & Access",      color:"#4B0082", tables:["profiles","user_roles","roles","permissions"] },
-  { id:"email",       label:"Email",               color:"#B22222", tables:["email_inbox","email_sent","email_drafts","email_attachments"] },
-  { id:"system",      label:"System & Settings",   color:"#333333", tables:["system_settings","system_config","system_broadcasts","system_errors","module_settings","notifications","notification_recipients","audit_log","backup_jobs","query_log","edge_function_logs"] },
-  { id:"documents",   label:"Documents",           color:"#006B6B", tables:["documents","reports","inbox_items","admin_inbox"] },
-  { id:"network",     label:"Network & DB",        color:"#1A237E", tables:["network_whitelist","ip_access_log","odbc_connections","external_connections"] },
-  { id:"sms",         label:"SMS & Logs",          color:"#5D4037", tables:["sms_log","db_admin_log","db_fix_scripts"] },
+  { id:"procurement", label:"Procurement", color:"#003087", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","procurement_plan_items","bid_evaluations","tenders","contracts","contract_milestones","suppliers","supplier_scorecards","quotations","quotation_items","approval_queue"] },
+  { id:"inventory", label:"Inventory & Stock", color:"#107c10", tables:["items","item_categories","categories","departments","stock_movements"] },
+  { id:"finance", label:"Finance & Vouchers", color:"#8B4513", tables:["payment_vouchers","receipt_vouchers","journal_vouchers","journal_voucher_lines","purchase_vouchers","purchase_voucher_lines","sales_vouchers","budgets","budget_alerts","chart_of_accounts","bank_accounts","bank_statements","gl_entries","gl_journal","gl_mappings","fixed_assets","invoice_matching","invoice_matching_queue","payment_proposals","vouchers"] },
+  { id:"quality", label:"Quality Control", color:"#005C3C", tables:["inspections","inspection_items","non_conformance","non_conformances"] },
+  { id:"users", label:"Users & Access", color:"#4B0082", tables:["profiles","user_roles","roles","permissions","role_permissions","role_assignment_log","user_facilities","user_sessions","user_session_tokens","user_signatures"] },
+  { id:"facilities", label:"Facilities & Deployment", color:"#00695C", tables:["facilities","facility_settings","facility_transfers","company_deployments","deployment_import_jobs"] },
+  { id:"forms", label:"Forms", color:"#C45911", tables:["google_forms","form_responses","form_email_schedules"] },
+  { id:"email", label:"Email", color:"#B22222", tables:["email_inbox","email_sent","email_drafts","email_attachments","email_logs","email_messages","email_templates"] },
+  { id:"reception", label:"Reception & Telephony", color:"#6A1B9A", tables:["reception_appointments","reception_calls","reception_messages","reception_visitors","phone_calls","phone_extensions","ivr_menus","ivr_options","call_queues","queue_agents","voicemails","sms_conversations","sms_messages","sms_bulk_operations","sms_templates"] },
+  { id:"system", label:"System & Settings", color:"#333333", tables:["system_settings","system_config","system_broadcasts","system_errors","system_modules","system_circuit_breaker","system_failover_log","system_metrics","module_settings","notifications","notification_recipients","keepalive_bot_control","keepalive_incidents","keepalive_records","el5_sequences","db_heartbeat","ai_agent_events","erp_sync_queue"] },
+  { id:"documents", label:"Documents", color:"#006B6B", tables:["documents","document_attachments","document_imports","document_signees","reports","report_schedules","inbox_items","admin_inbox","org_stamps","themes","record_comments","reference_data"] },
+  { id:"network", label:"Network & DB", color:"#1A237E", tables:["network_whitelist","ip_access_log","ip_access_rules","odbc_connections","odbc_access_log","external_connections","sqlserver_bridge_config"] },
+  { id:"security", label:"Audit & Security", color:"#7A0000", tables:["audit_log","audit_logs","activity_logs","admin_activity_log","security_audit_chain","security_nonces","crash_reports","scan_log","user_action_log","user_activity_log","rate_limit_log","not_found_log","password_reset_log","schema_cache_log"] },
+  { id:"logs", label:"Logs & Backups", color:"#5D4037", tables:["sms_log","db_admin_log","db_fix_scripts","query_log","edge_function_logs","backup_jobs","print_jobs","print_log"] },
 ];
 
 // - Styles (Clean white Inter design - v5.8) -

@@ -2041,14 +2041,10 @@ export default function AdminPanelPage() {
                   </div>
                   <div>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Category</label>
-                    <select value={fbCategory} onChange={e=>setFbCategory(e.target.value)} style={S.inp}>
-                      <option>General</option>
-                      <option>HR / Staff</option>
-                      <option>Patient Feedback</option>
-                      <option>Procurement</option>
-                      <option>Maintenance</option>
-                      <option>IT Support</option>
-                    </select>
+                    <input list="fb-category-options" value={fbCategory} onChange={e=>setFbCategory(e.target.value)} placeholder="e.g., HR, Procurement, Facilities…" style={S.inp}/>
+                    <datalist id="fb-category-options">
+                      {Array.from(new Set([...forms.map((f:any)=>f.field_definitions?.category).filter((c:string)=>c&&c!=="General"), "HR","IT","Procurement","Inventory","Facilities","Safety","Quality","Finance"])).sort().map((c:string)=><option key={c} value={c}/>)}
+                    </datalist>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Description</label>

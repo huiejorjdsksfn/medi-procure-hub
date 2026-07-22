@@ -48,6 +48,7 @@ export default function FormsGatewayPage() {
   const [brand, setBrand] = useState<Brand>(DEFAULT_BRAND);
   const [search, setSearch] = useState("");
   const [pendingForm, setPendingForm] = useState<FormRow | null>(null);
+  const [mySubmissions, setMySubmissions] = useState<Record<string, number>>({});
 
   // sign-in panel state (inline — no redirect away from the gateway)
   const [identifier, setIdentifier] = useState(""); // username or email
@@ -76,7 +77,22 @@ export default function FormsGatewayPage() {
     }
   }, []);
 
+  // form_responses has no top-level user_id column (only a metadata jsonb
+  // blob) — respondent_email is the reliable real column to match against,
+  // and PublicFormPage always sets it (from the form's own email field, or
+  // falling back to the signed-in user's email).
+  const loadMySubmissions = useCallback(async () => {
+    if (!user?.email) { setMySubmissions({}); return; }
+    try {
+      const { data } = await db.from("form_responses").select("form_id").eq("respondent_email", user.email);
+      const counts: Record<string, number> = {};
+      for (const r of data || []) counts[r.form_id] = (counts[r.form_id] || 0) + 1;
+      setMySubmissions(counts);
+    } catch { /* non-critical — just skip the "already submitted" badge */ }
+  }, [user?.email]);
+
   useEffect(() => { loadBrand(); loadForms(); }, [loadBrand, loadForms]);
+  useEffect(() => { loadMySubmissions(); }, [loadMySubmissions]);
 
   // Deep link from PublicFormPage: /forms/:formId → (not signed in) → /forms?next=:formId.
   // Once forms are loaded, resolve it: skip straight through if already signed
@@ -203,14 +219,27 @@ export default function FormsGatewayPage() {
             <div key={cat} style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "#475569", letterSpacing: "0.04em", marginBottom: 10, textTransform: "uppercase" as const }}>{cat}</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
-                {list.map(f => (
+                {list.map(f => {
+                  const mySubs = mySubmissions[f.form_id] || 0;
+                  return (
                   <button key={f.form_id} onClick={() => chooseForm(f)}
-                    style={{ textAlign: "left", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", transition: "box-shadow .15s" }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{f.title}</div>
+                    style={{ textAlign: "left", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", transition: "box-shadow .15s", position: "relative" }}>
+                    {mySubs > 0 && (
+                      <div style={{ position: "absolute", top: 10, right: 10, fontSize: 9.5, fontWeight: 700, color: "#16a34a", background: "#dcfce7", padding: "2px 7px", borderRadius: 20 }}>
+                        ✓ Submitted{mySubs > 1 ? ` ×${mySubs}` : ""}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0f172a", marginBottom: 4, paddingRight: mySubs > 0 ? 70 : 0 }}>{f.title}</div>
                     {f.description && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8, lineHeight: 1.4 }}>{f.description}</div>}
-                    <div style={{ fontSize: 11, color: A, fontWeight: 700 }}>{session ? "Continue →" : "Sign in to answer →"}</div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ fontSize: 11, color: A, fontWeight: 700 }}>{session ? "Continue →" : "Sign in to answer →"}</div>
+                      {typeof f.response_count === "number" && f.response_count > 0 && (
+                        <div style={{ fontSize: 10.5, color: "#94a3b8" }}>{f.response_count} response{f.response_count === 1 ? "" : "s"}</div>
+                      )}
+                    </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))
