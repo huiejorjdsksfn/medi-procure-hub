@@ -14,7 +14,7 @@ import { safeFetch } from "@/lib/safeFetch";
 import {
   Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
-  ChevronRight, ChevronDown, AlertTriangle,
+  ChevronRight, ChevronDown, Filter, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu,
   Folder, FolderOpen, File, Image as ImageIcon, ChevronLeft, Lock, Globe2,

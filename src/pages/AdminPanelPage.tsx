@@ -552,7 +552,7 @@ export default function AdminPanelPage() {
         subject: `New form: ${fbTitle}`,
         message: fbDesc||"A new form has been published and needs your response.",
         scheduled_at: when.toISOString(),
-        created_by: session?.user?.id || null,
+        created_by: user?.id || null,
         created_by_name: profile?.full_name || user?.email || null,
       });
       if (error) throw error;
