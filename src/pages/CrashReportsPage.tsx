@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import RoleGuard from "@/components/RoleGuard";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { RefreshCw, Trash2, CheckCircle, AlertTriangle, Copy } from "lucide-react";
 
 const db = supabase as any;
@@ -88,7 +87,6 @@ export default function CrashReportsPage() {
   return (
     <RoleGuard allowed={["admin", "database_admin"]}>
       <div style={S.wrap}>
-        <AdminBreadcrumb />
         <h1 style={S.h}>Crash Diagnostics</h1>
         <div style={S.sub}>{openCount} open · {rows.length} total (most recent 100)</div>
 

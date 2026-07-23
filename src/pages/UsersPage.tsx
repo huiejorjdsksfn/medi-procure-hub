@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import ImageUploader from "@/components/ImageUploader";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { useDepartments } from "@/hooks/useDropdownData";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
@@ -409,7 +408,6 @@ export default function UsersPage() {
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg }}>
-      <AdminBreadcrumb />
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes slideR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}} @keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}} @keyframes pulseDot{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.05;transform:scale(1.6)}}`}</style>
 
       {/* ── TOOLBAR (SSMS-style) ── */}

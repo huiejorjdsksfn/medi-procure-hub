@@ -7,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 import { Activity, Search, X, RefreshCw, Download, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
 const ACTION_STYLE: Record<string,{bg:string;color:string}> = {
   create:  {bg:"#dcfce7",color:"#15803d"},
@@ -52,7 +51,6 @@ export default function AuditLogPage() {
 
   if(!isAdminRole) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200}}>
-      <AdminBreadcrumb />
       <p style={{color:"#9ca3af",fontSize:14}}>Administrator access required to view audit trail.</p>
     </div>
   );

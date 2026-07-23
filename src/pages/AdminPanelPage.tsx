@@ -14,7 +14,6 @@ import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
 import { checkTwilioStatus, sendSms, makeCall } from "@/lib/sms";
 import { QuickStampButton } from "@/components/DocumentStamp";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   LayoutDashboard, Users, Shield, Phone, Globe, Activity, Database,
@@ -25,7 +24,7 @@ import {
   HardDrive, Mail, ClipboardList, FileText, Play, Pause, Trash2, Plus,
   Download, Upload, Cpu, MemoryStick, HardDriveDownload, Cloud, Terminal,
   AlertCircle, CheckCircle2, RefreshCw as Reload, ExternalLink, Link,
-  Image as ImageIcon
+  Image as ImageIcon, Boxes
 } from "lucide-react";
 
 /* — O365 / Tracking-Portal style tokens (matches TrackingApprovalPage / Dashboard) — */
@@ -762,44 +761,50 @@ export default function AdminPanelPage() {
 
   return (
     <div style={{ background:O.bg, minHeight:"100vh", fontFamily:O.font, color:O.text }}>
-      <AdminBreadcrumb />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Top bar */}
-      <div style={{ background:O.topBar, height:44, display:"flex", alignItems:"center", padding:"0 24px", gap:8 }}>
+      <div style={{ background:O.topBar, height:48, display:"flex", alignItems:"center", padding:"0 24px", gap:10, boxShadow:"0 1px 4px rgba(0,0,0,.15)" }}>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,5px)", gap:2 }}>
           {Array(9).fill(0).map((_,i)=><div key={i} style={{ width:5,height:5,background:"rgba(255,255,255,.7)",borderRadius:1 }}/>)}
         </div>
         <span style={{ color:O.white, fontWeight:700, fontSize:14, marginLeft:6 }}>EL5 MediProcure</span>
-        <div style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center" }}>
-          <button onClick={()=>nav("/notifications")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex" }}><Bell size={16}/></button>
-          <button onClick={()=>nav("/settings")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex" }}><Settings size={16}/></button>
-          <div style={{ width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-            <span style={{ color:O.white,fontWeight:700,fontSize:11 }}>{(profile?.full_name||"A").charAt(0).toUpperCase()}</span>
+        <span style={{ color:"rgba(255,255,255,.4)", fontSize:13 }}>/</span>
+        <span style={{ color:"rgba(255,255,255,.85)", fontSize:13, fontWeight:600 }}>{NAVS.find(n=>n.id===sec)?.label || "Admin Panel"}</span>
+        <div style={{ marginLeft:"auto", display:"flex", gap:4, alignItems:"center" }}>
+          <button onClick={()=>nav("/notifications")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex",padding:8,borderRadius:6,transition:"background .12s" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.12)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}><Bell size={16}/></button>
+          <button onClick={()=>nav("/settings")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex",padding:8,borderRadius:6,transition:"background .12s" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.12)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}><Settings size={16}/></button>
+          <div style={{ width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",marginLeft:6 }}>
+            <span style={{ color:O.white,fontWeight:700,fontSize:11.5 }}>{(profile?.full_name||"A").charAt(0).toUpperCase()}</span>
           </div>
         </div>
       </div>
 
       {/* Teal hero */}
-      <div style={{ background:O.hero, padding:"28px 24px 34px" }}>
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom:16 }}>
+      <div style={{ background:`linear-gradient(120deg, ${O.hero}, #0c5a52 65%, #0a4a44)`, padding:"30px 24px 46px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:-60, right:-60, width:220, height:220, borderRadius:"50%", background:"rgba(255,255,255,.05)" }}/>
+        <div style={{ position:"relative", display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom:16 }}>
           <div>
-            <h1 style={{ color:O.white, fontSize:24, fontWeight:300, margin:"0 0 4px", letterSpacing:"-.02em" }}>
+            <h1 style={{ color:O.white, fontSize:25, fontWeight:300, margin:"0 0 4px", letterSpacing:"-.02em" }}>
               {greeting}, {profile?.full_name?.split(" ")[0]||"Administrator"}
             </h1>
-            <div style={{ color:"rgba(255,255,255,.7)", fontSize:12 }}>
+            <div style={{ color:"rgba(255,255,255,.72)", fontSize:12.5 }}>
               Administration · System control · Live IP monitor · User management
             </div>
           </div>
           <QuickStampButton label="Official Stamp" size="md" variant="outline"/>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
+        <div style={{ position:"relative", display:"flex", gap:8 }}>
           <button onClick={()=>{loadKpi();loadUsers();loadIPData();}}
-            style={{ padding:"8px 12px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:O.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
+            style={{ padding:"8px 14px",background:"rgba(255,255,255,.14)",border:"1px solid rgba(255,255,255,.3)",borderRadius:6,color:O.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5,transition:"background .12s" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.22)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.14)")}>
             <RefreshCw size={11}/> Refresh
           </button>
           <button onClick={()=>nav("/users")}
-            style={{ padding:"8px 12px",background:O.white,border:"none",borderRadius:2,color:O.hero,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
+            style={{ padding:"8px 14px",background:O.white,border:"none",borderRadius:6,color:O.hero,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5,boxShadow:"0 2px 6px rgba(0,0,0,.15)",transition:"transform .1s" }}
+            onMouseEnter={e=>(e.currentTarget.style.transform="translateY(-1px)")} onMouseLeave={e=>(e.currentTarget.style.transform="none")}>
             <Users size={11}/> Manage Users
           </button>
         </div>
@@ -807,35 +812,47 @@ export default function AdminPanelPage() {
 
       <div style={{ padding:"0 24px 32px" }}>
 
-        {/* KPI strip */}
-        <div style={{ display:"flex", gap:10, marginTop:16, marginBottom:20, flexWrap:"wrap" }}>
+        {/* KPI strip — floats up over the hero's bottom edge */}
+        <div style={{ display:"flex", gap:12, marginTop:-30, marginBottom:22, flexWrap:"wrap", position:"relative", zIndex:3 }}>
           {[
-            { label:"Users",         val:kpi.users,    color:T.primary },
-            { label:"Pending Reqs",  val:kpi.reqs,     color:T.warning },
-            { label:"Open POs",      val:kpi.pos,      color:"#7719aa" },
-            { label:"Suppliers",     val:kpi.suppliers,color:T.inventory },
-            { label:"Items",        val:kpi.items,    color:T.quality },
-            { label:"Notifications",val:kpi.unread,   color:T.error },
+            { label:"Users",         val:kpi.users,    color:T.primary,   icon:Users },
+            { label:"Pending Reqs",  val:kpi.reqs,     color:T.warning,   icon:Clock },
+            { label:"Open POs",      val:kpi.pos,      color:"#7719aa",   icon:ClipboardList },
+            { label:"Suppliers",     val:kpi.suppliers,color:T.inventory, icon:Package },
+            { label:"Items",        val:kpi.items,    color:T.quality,   icon:Boxes },
+            { label:"Notifications",val:kpi.unread,   color:T.error,     icon:Bell },
           ].map(b=>(
-            <div key={b.label} style={{ background:O.card, border:`1px solid ${O.border}`, borderTop:`3px solid ${b.color}`, borderRadius:2, padding:"10px 16px", boxShadow:O.shadow, minWidth:120 }}>
-              <div style={{ fontSize:22, fontWeight:800, color:b.color }}>{b.val??0}</div>
-              <div style={{ fontSize:10, color:O.textSub, fontWeight:600, textTransform:"uppercase", letterSpacing:".04em" }}>{b.label}</div>
+            <div key={b.label} style={{ flex:"1 1 140px", display:"flex", alignItems:"center", gap:10, background:O.card, border:`1px solid ${O.border}`, borderRadius:10, padding:"12px 14px", boxShadow:"0 4px 16px rgba(16,24,40,.08)", minWidth:140, transition:"transform .15s, box-shadow .15s" }}
+              onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.transform="translateY(-2px)"; el.style.boxShadow="0 8px 22px rgba(16,24,40,.13)"; }}
+              onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.transform="none"; el.style.boxShadow="0 4px 16px rgba(16,24,40,.08)"; }}>
+              <div style={{ width:36,height:36,borderRadius:9,background:b.color+"16",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                <b.icon size={17} color={b.color}/>
+              </div>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:21, fontWeight:800, color:b.color, lineHeight:1.1 }}>{b.val??0}</div>
+                <div style={{ fontSize:10, color:O.textSub, fontWeight:600, textTransform:"uppercase", letterSpacing:".04em", whiteSpace:"nowrap" }}>{b.label}</div>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Quick access tile grid — replaces the old left sidebar */}
-        <p style={{ fontSize:12, color:O.textSub, margin:"0 0 10px" }}>Quick access</p>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:20 }}>
-          {NAVS.map(n=>(
+        <p style={{ fontSize:12, color:O.textSub, margin:"0 0 10px", fontWeight:600, textTransform:"uppercase", letterSpacing:".05em" }}>Quick access</p>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:24 }}>
+          {NAVS.map(n=>{
+            const active = sec===n.id;
+            return (
             <button key={n.id} onClick={()=>setSec(n.id)}
-              style={{ width:82,height:82,background:n.col,border:sec===n.id?`2px solid ${O.text}`:"none",borderRadius:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",boxShadow:O.shadow,transition:"opacity .15s,transform .15s",opacity:sec===n.id?1:.92 }}
-              onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.opacity="1"; el.style.transform="translateY(-2px)"; }}
-              onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.opacity=sec===n.id?"1":".92"; el.style.transform="none"; }}>
-              <n.icon size={20} color={O.white} strokeWidth={1.5}/>
-              <span style={{ color:O.white,fontSize:9,fontWeight:700,textAlign:"center",lineHeight:1.2,padding:"0 3px" }}>{n.label}</span>
+              style={{ width:104,height:96,background:O.card,border:`1.5px solid ${active?n.col:O.border}`,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",boxShadow:active?`0 6px 16px ${n.col}30`:"0 1px 3px rgba(16,24,40,.05)",transition:"box-shadow .15s,transform .15s,border-color .15s"}}
+              onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.transform="translateY(-3px)"; el.style.boxShadow=`0 8px 20px ${n.col}28`; }}
+              onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.transform="none"; el.style.boxShadow=active?`0 6px 16px ${n.col}30`:"0 1px 3px rgba(16,24,40,.05)"; }}>
+              <div style={{ width:34,height:34,borderRadius:9,background:n.col+"18",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <n.icon size={17} color={n.col} strokeWidth={2}/>
+              </div>
+              <span style={{ color:active?n.col:O.text,fontSize:10.5,fontWeight:700,textAlign:"center",lineHeight:1.25,padding:"0 6px" }}>{n.label}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         <div style={{ borderTop:`1px solid ${O.border}`, marginBottom:16 }}/>

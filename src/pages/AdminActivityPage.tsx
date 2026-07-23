@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { safeFetch } from "@/lib/safeFetch";
 import { T } from "@/lib/theme";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
   Activity, Users as UsersIcon, KeyRound, ShieldAlert, Globe,
   RefreshCw, Printer, Filter, TrendingUp, TrendingDown, AlertTriangle,
@@ -139,7 +138,6 @@ export default function AdminActivityPage() {
 
   return (
     <div style={S.page}>
-      <AdminBreadcrumb />
 
       {/* Header */}
       <div style={{background:"#fff",borderBottom:`1px solid ${T.border}`,padding:"16px 24px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>

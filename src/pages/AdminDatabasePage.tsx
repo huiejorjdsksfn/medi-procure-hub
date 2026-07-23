@@ -21,7 +21,6 @@ import {
 import * as XLSX from "@e965/xlsx";
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import RoleGuard from "@/components/RoleGuard";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { printDataTable } from "@/lib/printDocument";
 
 // - Table groups with all 57 tables -
@@ -845,7 +844,6 @@ ORDER BY t.table_name;`);
 
   return (
     <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:SSMS.font,color:SSMS.titleText,minHeight:"100%" }}>
-      <AdminBreadcrumb />
 
       {/* ── Toolbar: page context, real actions (New Query/Refresh/Execute), realtime status, connection ── */}
       <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:6,flexShrink:0,flexWrap:"wrap" }}>

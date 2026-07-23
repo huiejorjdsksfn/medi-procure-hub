@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import Papa from "papaparse";
 import * as XLSX from "@e965/xlsx";
 import {
@@ -440,7 +439,6 @@ export default function CompanyOnboardingPage() {
     return (
       <div style={{ background: T.bg, minHeight: "100vh" }}>
         <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <AdminBreadcrumb label="Company Onboarding" />
         <div style={{ padding: 60, textAlign: "center", color: T.fgMuted }}><Loader2 className="spin" size={20} /> Loading…</div>
       </div>
     );
@@ -451,7 +449,6 @@ export default function CompanyOnboardingPage() {
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: "'Segoe UI','Inter',sans-serif" }}>
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <AdminBreadcrumb label="Company Onboarding" />
       <div style={{ padding: "20px 24px 50px", maxWidth: 880, margin: "0 auto" }}>
         <button onClick={() => nav("/admin/deployments")} style={{ ...btnS("transparent", T.border), marginBottom: 16, padding: "5px 12px", fontSize: 12 }}>
           <ArrowLeft size={13} /> Back to Deployment Center

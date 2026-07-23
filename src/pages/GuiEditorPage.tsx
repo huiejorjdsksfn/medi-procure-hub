@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useRealIP } from "@/hooks/useRealIP";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { supabase } from "@/integrations/supabase/client";
 
 const PRESETS = [
@@ -332,7 +331,6 @@ export default function GuiEditorPage() {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", fontFamily:"'Segoe UI',system-ui,sans-serif", background:"#f1f5f9", overflow:"hidden" }}>
-      <AdminBreadcrumb />
       <div style={{ display:"flex", flex:1, minHeight:0, overflow:"hidden" }}>
 
       {/* Conflict resolution banner — appears when realtime brings remote edits to fields the user has changed locally */}

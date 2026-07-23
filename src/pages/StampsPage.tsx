@@ -6,7 +6,6 @@
 import { useState } from "react";
 import { DocumentStamp, QuickStampButton, type StampStatus } from "@/components/DocumentStamp";
 import { useAuth } from "@/contexts/AuthContext";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { RefreshCw, Printer, Stamp } from "lucide-react";
 import { T, d365Btn, d365Card } from "@/lib/theme";
 
@@ -108,7 +107,6 @@ export default function StampsPage() {
 
   return (
     <div style={{ minHeight:"100vh", background: T.bg, fontFamily:"'Segoe UI','Inter',system-ui,sans-serif" }}>
-      <AdminBreadcrumb />
 
       {/* ── Header ── */}
       <div style={{ background: T.card, borderBottom:`1px solid ${T.border}`, padding:"20px 28px" }}>

@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import RoleGuard from "@/components/RoleGuard";
-import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { logAudit } from "@/lib/audit";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -222,7 +221,6 @@ export default function SupabaseControlsPage() {
   return (
     <RoleGuard allowed={["admin", "database_admin"]}>
       <div style={S.wrap}>
-        <AdminBreadcrumb />
         <h1 style={S.h}>Supabase Live Controls</h1>
 
         {/* Live Server Monitor (compact) — real pg_stat_* data, same RPC as the full Live Monitor tab on /admin/database */}
