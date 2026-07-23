@@ -345,10 +345,12 @@ ORDER BY t.table_name;`);
   const [triggers, setTriggers] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
   const [dbDash, setDbDash] = useState<any | null>(null);
+  const [dbDashError, setDbDashError] = useState<string | null>(null);
   const [dbDashLoading, setDbDashLoading] = useState(false);
   const [dbDashHistory, setDbDashHistory] = useState<{ t: number; active: number; cache: number }[]>([]);
   const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups"|"site"|"loggers"|"realtime"|"dbstats">("overview");
   const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [liveStatsError, setLiveStatsError] = useState<string | null>(null);
   const [liveStatsLoading, setLiveStatsLoading] = useState(false);
   const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
   const liveStatsPrev = useRef<{ t:number; xact_commit:number; blks_read:number; blks_hit:number } | null>(null);
@@ -599,11 +601,13 @@ ORDER BY t.table_name;`);
       const { data, error } = await (supabase as any).rpc("get_db_dashboard_stats");
       if (error) throw error;
       setDbDash(data);
+      setDbDashError(null);
       setDbDashHistory(prev => [
         ...prev.slice(-29),
         { t: Date.now(), active: data?.connections?.active ?? 0, cache: data?.performance?.cache_hit_ratio ?? 0 },
       ]);
     } catch (e: any) {
+      setDbDashError(e.message || "Unknown error loading database dashboard");
       toast({ title: "Couldn't load database dashboard", description: e.message, variant: "destructive" });
     } finally {
       setDbDashLoading(false);
@@ -632,6 +636,7 @@ ORDER BY t.table_name;`);
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setLiveStats(data);
+      setLiveStatsError(null);
 
       const now = Date.now();
       const tx = data?.transactions || {};
@@ -657,6 +662,7 @@ ORDER BY t.table_name;`);
         },
       ]);
     } catch (e:any) {
+      setLiveStatsError(e.message || "Unknown error loading live monitor");
       toast({ title:"Couldn't load live monitor", description:e.message, variant:"destructive" });
     } finally {
       setLiveStatsLoading(false);
@@ -1627,6 +1633,22 @@ ORDER BY t.table_name;`);
               </span>
             </div>
 
+            {liveStatsError && (
+              <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8, padding:"12px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:10 }}>
+                <AlertTriangle size={16} color="#dc2626" style={{ flexShrink:0, marginTop:1 }}/>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:12.5, color:"#991b1b" }}>Live Monitor couldn't load</div>
+                  <div style={{ fontSize:11.5, color:"#b91c1c", marginTop:2 }}>{liveStatsError}</div>
+                  {liveStatsError.toLowerCase().includes("admin role required") && (
+                    <div style={{ fontSize:11, color:"#7f1d1d", marginTop:4 }}>
+                      Your logged-in account doesn't have admin/database_admin/superadmin/webmaster in user_roles —
+                      that's what this dashboard checks server-side, regardless of what page you were able to navigate to.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Sub-tab bar (Overview / Data IO / Databases / Wait Stats / Top Queries / Sessions / Backups) */}
             <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14,flexWrap:"wrap" as const }}>
               {[
@@ -2118,6 +2140,16 @@ ORDER BY t.table_name;`);
                 {dbDash?.generated_at ? `Live — updated ${new Date(dbDash.generated_at).toLocaleTimeString()}` : "Loading…"}
               </span>
             </div>
+
+            {dbDashError && (
+              <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8, padding:"12px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:10 }}>
+                <AlertTriangle size={16} color="#dc2626" style={{ flexShrink:0, marginTop:1 }}/>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:12.5, color:"#991b1b" }}>Server Dashboard couldn't load</div>
+                  <div style={{ fontSize:11.5, color:"#b91c1c", marginTop:2 }}>{dbDashError}</div>
+                </div>
+              </div>
+            )}
 
             {dbDash && (
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:10,marginBottom:16 }}>
