@@ -2228,7 +2228,9 @@ export default function AdminPanelPage() {
                     {Object.entries(fbViewResponse.responses||{}).map(([k,v]:[string,any])=>(
                       <div key={k} style={{marginBottom:10,paddingBottom:10,borderBottom:"1px solid #f1f5f9"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k}</div>
-                        <div style={{fontSize:13,color:"#0f172a",marginTop:2}}>{String(v)||"—"}</div>
+                        <div style={{fontSize:13,color:"#0f172a",marginTop:2,wordBreak:"break-word",whiteSpace:"pre-wrap"}}>
+                          {v===""||v==null ? "—" : v==="true" ? "✓ Yes" : v==="false" ? "✗ No" : String(v)}
+                        </div>
                       </div>
                     ))}
                   </div>
