@@ -551,7 +551,7 @@ export default function AdminPanelPage() {
         subject: `New form: ${fbTitle}`,
         message: fbDesc||"A new form has been published and needs your response.",
         scheduled_at: when.toISOString(),
-        created_by: session?.user?.id || null,
+        created_by: user?.id || null,
         created_by_name: profile?.full_name || user?.email || null,
       });
       if (error) throw error;
@@ -2061,14 +2061,10 @@ export default function AdminPanelPage() {
                   </div>
                   <div>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Category</label>
-                    <select value={fbCategory} onChange={e=>setFbCategory(e.target.value)} style={S.inp}>
-                      <option>General</option>
-                      <option>HR / Staff</option>
-                      <option>Patient Feedback</option>
-                      <option>Procurement</option>
-                      <option>Maintenance</option>
-                      <option>IT Support</option>
-                    </select>
+                    <input list="fb-category-options" value={fbCategory} onChange={e=>setFbCategory(e.target.value)} placeholder="e.g., HR, Procurement, Facilities…" style={S.inp}/>
+                    <datalist id="fb-category-options">
+                      {Array.from(new Set([...forms.map((f:any)=>f.field_definitions?.category).filter((c:string)=>c&&c!=="General"), "HR","IT","Procurement","Inventory","Facilities","Safety","Quality","Finance"])).sort().map((c:string)=><option key={c} value={c}/>)}
+                    </datalist>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={{fontSize:11,fontWeight:600,color:T.fgMuted,marginBottom:4,display:"block"}}>Form Description</label>
@@ -2252,7 +2248,9 @@ export default function AdminPanelPage() {
                     {Object.entries(fbViewResponse.responses||{}).map(([k,v]:[string,any])=>(
                       <div key={k} style={{marginBottom:10,paddingBottom:10,borderBottom:"1px solid #f1f5f9"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k}</div>
-                        <div style={{fontSize:13,color:"#0f172a",marginTop:2}}>{String(v)||"—"}</div>
+                        <div style={{fontSize:13,color:"#0f172a",marginTop:2,wordBreak:"break-word",whiteSpace:"pre-wrap"}}>
+                          {v===""||v==null ? "—" : v==="true" ? "✓ Yes" : v==="false" ? "✗ No" : String(v)}
+                        </div>
                       </div>
                     ))}
                   </div>

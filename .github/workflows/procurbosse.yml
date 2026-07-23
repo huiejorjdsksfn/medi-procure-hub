@@ -27,7 +27,7 @@ permissions:
 
 env:
   NODE_VER:   "22"
-  APP_VER:    "11.12.0"
+  APP_VER:    "22.13.0"
   SUPA_URL:   "https://yvjfehnzbzjliizjvuhq.supabase.co"
   SUPA_ANON:  "${{ secrets.SUPABASE_ANON_KEY }}"
   SUPA_REF:   "yvjfehnzbzjliizjvuhq"
@@ -85,8 +85,17 @@ jobs:
           VITE_TWILIO_MG_SID=${{ env.TWILIO_MG }}
           EOF
 
-      - run: npx tsc --noEmit --skipLibCheck 2>&1 | head -30 || true
+      - run: npx tsc --noEmit --skipLibCheck -p tsconfig.app.json 2>&1 | head -30 || true
         continue-on-error: true
+        # Informational full dump. NOTE: the root tsconfig.json has an
+        # empty "files": [] and only wires up project references, so a
+        # bare `npx tsc --noEmit` (no -p) here used to check ZERO files
+        # and always exit clean, regardless of real errors in src/ — that
+        # silently no-op'd step was the actual reason the 'Filter is not
+        # defined' and 'session is not defined' ReferenceErrors reached
+        # production on 2026-07-21, not just the continue-on-error/head
+        # piping. Pointing at tsconfig.app.json (the config with the real
+        # "include": ["src"]) makes this step check real files again.
 
       - name: Guard - TDZ / hook-ordering check
         run: npm run audit:tdz
@@ -95,6 +104,20 @@ jobs:
         # crashed 100% of visits to /users on 2026-07-18. It's a real
         # ReferenceError at render time, not a lint nit, and the check has
         # had zero false positives — safe to block the build on.
+
+      - name: Guard - undefined reference check
+        run: npm run audit:refs
+        # Hard gate: TS2304/TS2552/TS2593 ("Cannot find name") errors mean
+        # an identifier is used but never declared/imported anywhere in
+        # scope — a guaranteed runtime ReferenceError if that code path
+        # executes, not a strictness nitpick. Caught two real, then-live
+        # production bugs the day this check was added: a dropped `Filter`
+        # icon import in AdminDatabasePage.tsx (crashed 100% of visits to
+        # /admin/database) and a stray `session` reference in
+        # AdminPanelPage.tsx (would have crashed the scheduled-forms-email
+        # feature the first time anyone used it). Deliberately scoped to
+        # only these "identifier does not exist at all" codes, not the
+        # rest of the project's TS output — see check-undefined-refs.mjs.
 
       - name: Guard - schema drift check (informational)
         run: npm run audit:schema

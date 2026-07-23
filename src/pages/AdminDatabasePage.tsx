@@ -4,6 +4,7 @@
  * Real SQL editor, live realtime, all tables, triggers, edge functions
  * EL5 MediProcure - Embu Level 5 Hospital
  */
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { pageCache } from "@/lib/pageCache";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ import { safeFetch } from "@/lib/safeFetch";
 import {
   Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
   Download, Server, Table as TableIcon, Code2, Activity, Wifi,
-  ChevronRight, ChevronDown, AlertTriangle,
+  ChevronRight, ChevronDown, Filter, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu,
   Folder, FolderOpen, File, Image as ImageIcon, ChevronLeft, Lock, Globe2,
@@ -25,16 +26,20 @@ import { printDataTable } from "@/lib/printDocument";
 
 // - Table groups with all 57 tables -
 const TABLE_GROUPS = [
-  { id:"procurement", label:"Procurement",         color:"#003087", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","bid_evaluations","tenders","contracts","suppliers"] },
-  { id:"inventory",   label:"Inventory & Stock",   color:"#107c10", tables:["items","item_categories","departments","stock_movements"] },
-  { id:"finance",     label:"Finance & Vouchers",  color:"#8B4513", tables:["payment_vouchers","receipt_vouchers","journal_vouchers","purchase_vouchers","sales_vouchers","budgets","chart_of_accounts","bank_accounts","gl_entries","fixed_assets"] },
-  { id:"quality",     label:"Quality Control",     color:"#005C3C", tables:["inspections","non_conformance"] },
-  { id:"users",       label:"Users & Access",      color:"#4B0082", tables:["profiles","user_roles","roles","permissions"] },
-  { id:"email",       label:"Email",               color:"#B22222", tables:["email_inbox","email_sent","email_drafts","email_attachments"] },
-  { id:"system",      label:"System & Settings",   color:"#333333", tables:["system_settings","system_config","system_broadcasts","system_errors","module_settings","notifications","notification_recipients","audit_log","backup_jobs","query_log","edge_function_logs"] },
-  { id:"documents",   label:"Documents",           color:"#006B6B", tables:["documents","reports","inbox_items","admin_inbox"] },
-  { id:"network",     label:"Network & DB",        color:"#1A237E", tables:["network_whitelist","ip_access_log","odbc_connections","external_connections"] },
-  { id:"sms",         label:"SMS & Logs",          color:"#5D4037", tables:["sms_log","db_admin_log","db_fix_scripts"] },
+  { id:"procurement", label:"Procurement", color:"#003087", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","procurement_plan_items","bid_evaluations","tenders","contracts","contract_milestones","suppliers","supplier_scorecards","quotations","quotation_items","approval_queue"] },
+  { id:"inventory", label:"Inventory & Stock", color:"#107c10", tables:["items","item_categories","categories","departments","stock_movements"] },
+  { id:"finance", label:"Finance & Vouchers", color:"#8B4513", tables:["payment_vouchers","receipt_vouchers","journal_vouchers","journal_voucher_lines","purchase_vouchers","purchase_voucher_lines","sales_vouchers","budgets","budget_alerts","chart_of_accounts","bank_accounts","bank_statements","gl_entries","gl_journal","gl_mappings","fixed_assets","invoice_matching","invoice_matching_queue","payment_proposals","vouchers"] },
+  { id:"quality", label:"Quality Control", color:"#005C3C", tables:["inspections","inspection_items","non_conformance","non_conformances"] },
+  { id:"users", label:"Users & Access", color:"#4B0082", tables:["profiles","user_roles","roles","permissions","role_permissions","role_assignment_log","user_facilities","user_sessions","user_session_tokens","user_signatures"] },
+  { id:"facilities", label:"Facilities & Deployment", color:"#00695C", tables:["facilities","facility_settings","facility_transfers","company_deployments","deployment_import_jobs"] },
+  { id:"forms", label:"Forms", color:"#C45911", tables:["google_forms","form_responses","form_email_schedules"] },
+  { id:"email", label:"Email", color:"#B22222", tables:["email_inbox","email_sent","email_drafts","email_attachments","email_logs","email_messages","email_templates"] },
+  { id:"reception", label:"Reception & Telephony", color:"#6A1B9A", tables:["reception_appointments","reception_calls","reception_messages","reception_visitors","phone_calls","phone_extensions","ivr_menus","ivr_options","call_queues","queue_agents","voicemails","sms_conversations","sms_messages","sms_bulk_operations","sms_templates"] },
+  { id:"system", label:"System & Settings", color:"#333333", tables:["system_settings","system_config","system_broadcasts","system_errors","system_modules","system_circuit_breaker","system_failover_log","system_metrics","module_settings","notifications","notification_recipients","keepalive_bot_control","keepalive_incidents","keepalive_records","el5_sequences","db_heartbeat","ai_agent_events","erp_sync_queue"] },
+  { id:"documents", label:"Documents", color:"#006B6B", tables:["documents","document_attachments","document_imports","document_signees","reports","report_schedules","inbox_items","admin_inbox","org_stamps","themes","record_comments","reference_data"] },
+  { id:"network", label:"Network & DB", color:"#1A237E", tables:["network_whitelist","ip_access_log","ip_access_rules","odbc_connections","odbc_access_log","external_connections","sqlserver_bridge_config"] },
+  { id:"security", label:"Audit & Security", color:"#7A0000", tables:["audit_log","audit_logs","activity_logs","admin_activity_log","security_audit_chain","security_nonces","crash_reports","scan_log","user_action_log","user_activity_log","rate_limit_log","not_found_log","password_reset_log","schema_cache_log"] },
+  { id:"logs", label:"Logs & Backups", color:"#5D4037", tables:["sms_log","db_admin_log","db_fix_scripts","query_log","edge_function_logs","backup_jobs","print_jobs","print_log"] },
 ];
 
 // - Styles (Clean white Inter design - v5.8) -
@@ -202,7 +207,12 @@ function PropRow({ k, v }: { k:string; v:any }) {
 // - Main Component -
 function DBInner() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("tables");
+  const nav = useNavigate();
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("monitor");
+  const [openMenu, setOpenMenu] = useState<string|null>(null);
+  const [quickLaunch, setQuickLaunch] = useState("");
+  const rowFilterRef = useRef<HTMLInputElement>(null);
+  const tableSearchRef = useRef<HTMLInputElement>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["procurement","inventory"]));
   const [selectedTable, setSelectedTable] = useState<string>("requisitions");
   const [tableData, setTableData] = useState<any[]>([]);
@@ -334,10 +344,12 @@ ORDER BY t.table_name;`);
   const [triggers, setTriggers] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
   const [dbDash, setDbDash] = useState<any | null>(null);
+  const [dbDashError, setDbDashError] = useState<string | null>(null);
   const [dbDashLoading, setDbDashLoading] = useState(false);
   const [dbDashHistory, setDbDashHistory] = useState<{ t: number; active: number; cache: number }[]>([]);
   const [monitorSubTab, setMonitorSubTab] = useState<"overview"|"dataio"|"databases"|"waitstats"|"topqueries"|"sessions"|"backups"|"site"|"loggers"|"realtime"|"dbstats">("overview");
   const [liveStats, setLiveStats] = useState<any | null>(null);
+  const [liveStatsError, setLiveStatsError] = useState<string | null>(null);
   const [liveStatsLoading, setLiveStatsLoading] = useState(false);
   const [liveHistory, setLiveHistory] = useState<{ time:string; active:number; idle:number; idleTx:number; cacheHit:number; commitRate:number; readRate:number; hitRate:number }[]>([]);
   const liveStatsPrev = useRef<{ t:number; xact_commit:number; blks_read:number; blks_hit:number } | null>(null);
@@ -588,11 +600,13 @@ ORDER BY t.table_name;`);
       const { data, error } = await (supabase as any).rpc("get_db_dashboard_stats");
       if (error) throw error;
       setDbDash(data);
+      setDbDashError(null);
       setDbDashHistory(prev => [
         ...prev.slice(-29),
         { t: Date.now(), active: data?.connections?.active ?? 0, cache: data?.performance?.cache_hit_ratio ?? 0 },
       ]);
     } catch (e: any) {
+      setDbDashError(e.message || "Unknown error loading database dashboard");
       toast({ title: "Couldn't load database dashboard", description: e.message, variant: "destructive" });
     } finally {
       setDbDashLoading(false);
@@ -621,6 +635,7 @@ ORDER BY t.table_name;`);
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setLiveStats(data);
+      setLiveStatsError(null);
 
       const now = Date.now();
       const tx = data?.transactions || {};
@@ -646,6 +661,7 @@ ORDER BY t.table_name;`);
         },
       ]);
     } catch (e:any) {
+      setLiveStatsError(e.message || "Unknown error loading live monitor");
       toast({ title:"Couldn't load live monitor", description:e.message, variant:"destructive" });
     } finally {
       setLiveStatsLoading(false);
@@ -826,6 +842,24 @@ ORDER BY t.table_name;`);
     XLSX.writeFile(wb, `${selectedTable}_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
+  function printCurrentTable() {
+    if(!filteredTableData.length){ toast({title:"No rows to print"}); return; }
+    const cols = tableColumns.filter(c=>c!=="id");
+    printDataTable({
+      title:    `${selectedTable.toUpperCase()} — TABLE EXPORT`,
+      docNo:    selectedTable,
+      columns:  cols,
+      rows:     filteredTableData.map(row=>cols.map(c=>{
+        const v=row[c];
+        if(v===null||v===undefined) return "";
+        if(typeof v==="object") return "[JSON]";
+        return String(v).slice(0,80);
+      })),
+      filename: `${selectedTable}-export-${Date.now()}`,
+      meta:     `${filteredTableData.length} of ${totalRows.toLocaleString()} rows${rowFilter.trim()?` (filtered: "${rowFilter.trim()}")`:""} · Page ${page+1}`,
+    }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
+  }
+
   // - Tab nav -
   const tabs = [
     { id:"tables",   label:"Tables",        icon:TableIcon },
@@ -837,6 +871,86 @@ ORDER BY t.table_name;`);
     { id:"mssql",    label:"SQL Server Bridge", icon:Server },
   ];
 
+  // ── Menu-bar actions (File/Edit/View/Project/Debug/Tools/Window/Help) ──
+  function runQuickLaunch() {
+    const q = quickLaunch.trim().toLowerCase();
+    if (!q) return;
+    const tabMatch = tabs.find(t => t.label.toLowerCase().includes(q) || t.id.toLowerCase().includes(q));
+    if (tabMatch) {
+      setActiveTab(tabMatch.id as any);
+      setQuickLaunch("");
+      toast({ title: `Switched to ${tabMatch.label}` });
+      return;
+    }
+    for (const grp of TABLE_GROUPS) {
+      const tblMatch = grp.tables.find(t => t.toLowerCase().includes(q));
+      if (tblMatch) {
+        setActiveTab("tables");
+        setOpenGroups(p => new Set(p).add(grp.id));
+        setSelectedTable(tblMatch);
+        setPage(0);
+        setSearch("");
+        setQuickLaunch("");
+        toast({ title: `Opened table: ${tblMatch}` });
+        return;
+      }
+    }
+    toast({ title: `No tab or table matches "${quickLaunch}"`, variant:"destructive" });
+  }
+
+  function findInResults() {
+    setActiveTab("tables");
+    setOpenMenu(null);
+    setTimeout(() => rowFilterRef.current?.focus(), 50);
+  }
+
+  function collapseAllGroups() { setOpenGroups(new Set()); setOpenMenu(null); }
+  function expandAllGroups() { setOpenGroups(new Set(TABLE_GROUPS.map(g=>g.id))); setOpenMenu(null); }
+
+  const MENUS: Record<string, { label: string; action: () => void; disabled?: boolean }[]> = {
+    File: [
+      { label: "New Query",  action: () => setActiveTab("sql") },
+      { label: "New Row",    action: () => { setActiveTab("tables"); setNewRow(Object.fromEntries(tableColumns.filter(c=>c!=="id"&&c!=="created_at"&&c!=="updated_at").map(c=>[c,""]))); }, disabled: activeTab!=="tables" },
+      { label: "Export to Excel", action: exportExcel, disabled: activeTab!=="tables" },
+      { label: "Print Table",     action: printCurrentTable, disabled: activeTab!=="tables" },
+      { label: "Refresh",    action: loadTable },
+    ],
+    Edit: [
+      { label: "Find in Results",   action: findInResults },
+      { label: "Clear Row Filter",  action: () => setRowFilter("") },
+      { label: "Copy Table Name",   action: () => { navigator.clipboard.writeText(selectedTable); toast({title:"Copied table name"}); } },
+    ],
+    View: [
+      ...tabs.map(t => ({ label: t.label, action: () => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); } })),
+      { label: realtimeOn ? "Stop Realtime" : "Start Realtime", action: toggleRealtime },
+    ],
+    Project: [
+      { label: "Supabase Live Controls", action: () => nav("/admin/supabase-controls") },
+      { label: "Security Center",        action: () => nav("/admin/users-ip-audit") },
+      { label: "Webmaster / Superadmin", action: () => nav("/webmaster") },
+    ],
+    Debug: [
+      { label: "Live Monitor",           action: () => setActiveTab("monitor") },
+      { label: "Ping SQL Server Bridge", action: () => { setActiveTab("mssql"); setTimeout(()=>pingBridge(),50); } },
+      { label: "View Audit Log",         action: () => nav("/audit-log") },
+    ],
+    Tools: [
+      { label: "Export Current Table (Excel)", action: exportExcel, disabled: activeTab!=="tables" },
+      { label: "Print Current Table",          action: printCurrentTable, disabled: activeTab!=="tables" },
+      { label: `${realtimeOn?"Stop":"Start"} Realtime Monitor`, action: toggleRealtime },
+      { label: "SQL Server Bridge",            action: () => setActiveTab("mssql") },
+    ],
+    Window: [
+      { label: "Collapse All Table Groups", action: collapseAllGroups },
+      { label: "Expand All Table Groups",   action: expandAllGroups },
+      { label: "Clear Table Search",        action: () => setSearch("") },
+    ],
+    Help: [
+      { label: "Open Supabase Dashboard", action: () => window.open("https://supabase.com/dashboard/project/yvjfehnzbzjliizjvuhq","_blank") },
+      { label: "About",                   action: () => toast({ title: "Database Administration", description: "ProcurBosse v12 · SSMS-style admin GUI · Supabase Postgres" }) },
+    ],
+  };
+
   // Cleanup rtChannel on unmount
   React.useEffect(()=>{
     return ()=>{ if(rtChannel.current){ (supabase as any).removeChannel(rtChannel.current); rtChannel.current=null; } };
@@ -845,13 +959,44 @@ ORDER BY t.table_name;`);
   return (
     <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:SSMS.font,color:SSMS.titleText,minHeight:"100%" }}>
 
-      {/* ── Toolbar: page context, real actions (New Query/Refresh/Execute), realtime status, connection ── */}
-      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:6,flexShrink:0,flexWrap:"wrap" }}>
-        <Database style={{ width:14,height:14,color:SSMS.accent,flexShrink:0 }} />
-        <span style={{ fontSize:12,fontWeight:600,color:SSMS.titleText,marginRight:6 }}>
-          {selectedTable || "Database Administration"}
-        </span>
-        <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 2px" }} />
+      {/* ── SSMS menu bar — real dropdowns, wired to MENUS ── */}
+      <div style={{ background:SSMS.menubar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"3px 12px",display:"flex",alignItems:"center",gap:2,flexShrink:0,position:"relative" }}
+        onMouseLeave={()=>setOpenMenu(null)}>
+        {Object.keys(MENUS).map(m=>(
+          <div key={m} style={{ position:"relative" }}>
+            <span onClick={()=>setOpenMenu(p=>p===m?null:m)} onMouseEnter={()=>{ if(openMenu) setOpenMenu(m); }}
+              style={{ fontSize:11.5,color: openMenu===m ? "#fff" : "#333",background: openMenu===m ? SSMS.accent : "transparent",padding:"2px 8px",borderRadius:2,cursor:"pointer",userSelect:"none",display:"inline-block" }}>
+              {m}
+            </span>
+            {openMenu===m && (
+              <div style={{ position:"absolute",top:"100%",left:0,background:"#fff",border:`1px solid ${SSMS.toolbarBd}`,boxShadow:"0 4px 14px rgba(0,0,0,0.15)",minWidth:210,zIndex:100,padding:"3px 0" }}>
+                {MENUS[m].map(item=>(
+                  <div key={item.label}
+                    onClick={()=>{ if(item.disabled) return; item.action(); setOpenMenu(null); }}
+                    style={{
+                      padding:"6px 14px",fontSize:12,cursor: item.disabled ? "not-allowed" : "pointer",
+                      color: item.disabled ? "#b0b6bd" : "#1e1e1e",
+                      background: activeTab===tabs.find(t=>t.label===item.label)?.id ? "#eef2f8" : "transparent",
+                    }}
+                    onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background="#dbe6f2"; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.background = activeTab===tabs.find(t=>t.label===item.label)?.id ? "#eef2f8" : "transparent"; }}>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
+          <Search style={{ width:11,height:11,color:"#94a3b8" }} />
+          <input value={quickLaunch} onChange={e=>setQuickLaunch(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") runQuickLaunch(); }}
+            placeholder="Quick Launch — jump to a tab or table"
+            style={{ border:`1px solid ${SSMS.toolbarBd}`,borderRadius:3,padding:"2px 8px",fontSize:11,width:190,outline:"none",fontFamily:SSMS.font }} />
+        </div>
+      </div>
+
+      {/* ── SSMS toolbar ── */}
+      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 10px",display:"flex",alignItems:"center",gap:4,flexShrink:0 }}>
         <button onClick={()=>{setActiveTab("sql");}} title="New Query"
           style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
           onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
@@ -920,6 +1065,9 @@ ORDER BY t.table_name;`);
                 <button onClick={loadTable} title="Refresh" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
                   <RefreshCw style={{ width:11,height:11,color:"#64748b" }} />
                 </button>
+                <button title="Filter" onClick={()=>tableSearchRef.current?.focus()} style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
+                  <Filter style={{ width:11,height:11,color:"#64748b" }} />
+                </button>
               </div>
             </div>
             <div style={{ padding:"5px 8px",borderBottom:`1px solid ${SSMS.toolbarBd}`,background:"#fafbfc",display:"flex",alignItems:"center",gap:5 }}>
@@ -927,7 +1075,7 @@ ORDER BY t.table_name;`);
               <span style={{ fontSize:10.5,color:"#475569",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>yvjfehnzbzjliizjvuhq (Supabase)</span>
             </div>
             <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
+              <input ref={tableSearchRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
                 style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
             </div>
             {TABLE_GROUPS.map(grp => {
@@ -969,7 +1117,7 @@ ORDER BY t.table_name;`);
               <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
               <div style={{ display:"flex",alignItems:"center",gap:4,border:`1px solid ${S.border}`,padding:"2px 6px",background:S.bg,marginLeft:8 }}>
                 <Search style={{ width:11,height:11,color:"#94a3b8" }} />
-                <input value={rowFilter} onChange={e=>setRowFilter(e.target.value)} placeholder="Filter rows on this page…"
+                <input ref={rowFilterRef} value={rowFilter} onChange={e=>setRowFilter(e.target.value)} placeholder="Filter rows on this page…"
                   style={{ border:"none",outline:"none",fontSize:11,fontFamily:S.font,width:160 }} />
                 {rowFilter && <button onClick={()=>setRowFilter("")} style={{ background:"none",border:"none",cursor:"pointer",padding:0,display:"flex" }}><X style={{ width:10,height:10,color:"#94a3b8" }} /></button>}
               </div>
@@ -1483,6 +1631,22 @@ ORDER BY t.table_name;`);
               </span>
             </div>
 
+            {liveStatsError && (
+              <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8, padding:"12px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:10 }}>
+                <AlertTriangle size={16} color="#dc2626" style={{ flexShrink:0, marginTop:1 }}/>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:12.5, color:"#991b1b" }}>Live Monitor couldn't load</div>
+                  <div style={{ fontSize:11.5, color:"#b91c1c", marginTop:2 }}>{liveStatsError}</div>
+                  {liveStatsError.toLowerCase().includes("admin role required") && (
+                    <div style={{ fontSize:11, color:"#7f1d1d", marginTop:4 }}>
+                      Your logged-in account doesn't have admin/database_admin/superadmin/webmaster in user_roles —
+                      that's what this dashboard checks server-side, regardless of what page you were able to navigate to.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Sub-tab bar (Overview / Data IO / Databases / Wait Stats / Top Queries / Sessions / Backups) */}
             <div style={{ display:"flex",gap:2,borderBottom:`2px solid ${S.border}`,marginBottom:14,flexWrap:"wrap" as const }}>
               {[
@@ -1974,6 +2138,16 @@ ORDER BY t.table_name;`);
                 {dbDash?.generated_at ? `Live — updated ${new Date(dbDash.generated_at).toLocaleTimeString()}` : "Loading…"}
               </span>
             </div>
+
+            {dbDashError && (
+              <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8, padding:"12px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:10 }}>
+                <AlertTriangle size={16} color="#dc2626" style={{ flexShrink:0, marginTop:1 }}/>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:12.5, color:"#991b1b" }}>Server Dashboard couldn't load</div>
+                  <div style={{ fontSize:11.5, color:"#b91c1c", marginTop:2 }}>{dbDashError}</div>
+                </div>
+              </div>
+            )}
 
             {dbDash && (
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:10,marginBottom:16 }}>

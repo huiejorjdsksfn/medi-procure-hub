@@ -30,16 +30,17 @@ export default function AdminConnectivityPage() {
     const load = async () => {
       const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
       const tables = ["db_heartbeat", "audit_log", "ip_access_log", "notifications", "erp_sync_queue", "crash_reports"];
-      const rows: Growth[] = [];
-      for (const t of tables) {
+      // Was 6 tables × 2 sequential awaits each = 12 serial round trips on
+      // every page load. Same data, fired in parallel instead.
+      const rows: Growth[] = await Promise.all(tables.map(async (t): Promise<Growth> => {
         try {
           const { count: total } = await db.from(t).select("id", { count: "exact", head: true });
           const { count: recent } = await db.from(t).select("id", { count: "exact", head: true }).gte("created_at", dayAgo);
-          rows.push({ table: t, rows: total || 0, growth24h: recent || 0 });
+          return { table: t, rows: total || 0, growth24h: recent || 0 };
         } catch (e: any) {
-          rows.push({ table: t, rows: 0, growth24h: 0, latestAt: e?.message });
+          return { table: t, rows: 0, growth24h: 0, latestAt: e?.message };
         }
-      }
+      }));
       setGrowth(rows);
 
       try {

@@ -50,7 +50,16 @@ export class ErrorBoundary extends Component<Props, State> {
       /Failed to fetch dynamically imported module/i.test(msg) ||
       /Loading chunk [\w-]+ failed/i.test(msg) ||
       /error loading dynamically imported module/i.test(msg) ||
-      /Importing a module script failed/i.test(msg);
+      /Importing a module script failed/i.test(msg) ||
+      // A dynamic import() can resolve "successfully" against a stale
+      // cached/service-worker response with an empty or unexpected body
+      // (rather than rejecting outright), so React.lazy's
+      // `module.default` ends up undefined. Same root cause (stale
+      // chunk after a deploy), different symptom — this was the actual
+      // error signature logged in production (page "Routing") and
+      // wasn't covered by the patterns above, so it fell through to the
+      // generic error card with no auto-recovery instead of reloading.
+      /Cannot read propert(y|ies) of undefined \(reading 'default'\)/i.test(msg);
     if (isChunkError) {
       const guardKey = "el5_chunk_reload_guard";
       const guard = sessionStorage.getItem(guardKey);
@@ -87,7 +96,8 @@ export class ErrorBoundary extends Component<Props, State> {
       /Failed to fetch dynamically imported module/i.test(errMsg) ||
       /Loading chunk [\w-]+ failed/i.test(errMsg) ||
       /error loading dynamically imported module/i.test(errMsg) ||
-      /Importing a module script failed/i.test(errMsg);
+      /Importing a module script failed/i.test(errMsg) ||
+      /Cannot read propert(y|ies) of undefined \(reading 'default'\)/i.test(errMsg);
 
     if (isChunkError) {
       // componentDidCatch is already reloading the page — this only shows
