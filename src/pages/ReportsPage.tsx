@@ -1,6 +1,10 @@
 /**
- * ProcurBosse - Reports & BI v6.0 (Power BI Dashboard Style)
- * Left sidebar report types, KPI tiles, tabular data, Excel/Print export
+ * ProcurBosse - Reports & BI v7.0 (2026 ERP redesign)
+ * Elevated card system, refined sidebar nav, real status-breakdown +
+ * monthly-trend charts, and letterhead PDF export (shared printDocument
+ * template with actual logos, matching every other document in the app).
+ * Same data-loading / export logic as v6.0's bot pass — visual layer +
+ * chart mix reconciled on top of it.
  * EL5 MediProcure, Embu Level 5 Hospital
  */
 import { useEffect, useState, useCallback } from "react";
@@ -12,11 +16,11 @@ import { RefreshCw, FileSpreadsheet, Search, X, Calendar,
   BarChart3, TrendingUp, Package, ShoppingCart, DollarSign, FileText,
   Truck, Shield, Activity, BookOpen, Gavel, ClipboardList, ChevronRight,
   Filter, Printer } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { T } from "@/lib/theme";
 import { printDataTable } from "@/lib/printDocument";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const db = supabase as any;
 const fmtKES = (n:number) => n>=1_000_000?`KES ${(n/1_000_000).toFixed(2)}M`:n>=1_000?`KES ${(n/1_000).toFixed(2)}K`:`KES ${Number(n||0).toFixed(2)}`;
@@ -100,7 +104,7 @@ export default function ReportsPage() {
         {label:"Total Value",    value:fmtKES(value), color:T.finance,       icon:DollarSign},
       ]);
 
-      // ── Status breakdown (pie) — real distribution, not decorative ──
+      // ── Status breakdown (donut) — real distribution, not decorative ──
       const statusColors: Record<string,string> = {
         approved:T.success, active:T.success, completed:T.success,
         pending:T.warning, submitted:T.warning, draft:T.fgDim,
@@ -212,11 +216,8 @@ export default function ReportsPage() {
       if (/_at$|_date$/i.test(k) && v) return new Date(v).toLocaleDateString();
       return String(v ?? "—");
     };
-    // Was a raw window.open()+HTML print with just system/hospital NAME as
-    // text — no actual logo image, unlike the rest of the app's printed
-    // documents (requisitions, POs, the Admin Database job log, etc.),
-    // which all go through this same letterhead template with the real
-    // Embu County + hospital logo images.
+    // Real letterhead PDF — same printDocument template (Embu County + hospital
+    // logos) used by requisitions/POs/vouchers, rather than a raw window.print().
     printDataTable({
       title: `${activeRpt.label.toUpperCase()} REPORT`,
       docNo: `${rows.length} RECORDS`,
@@ -230,22 +231,22 @@ export default function ReportsPage() {
   const cols = rows.length ? Object.keys(rows[0]).filter(k=>k!=="id"&&!["__v"].includes(k)).slice(0,10) : [];
 
   return (
-    <div style={{background:T.bg,minHeight:"100%",display:"flex",flexDirection:"column",fontFamily:"'Segoe UI','Inter',system-ui,sans-serif"}}>
+    <div style={{background:T.bg,minHeight:"100%",display:"flex",flexDirection:"column",fontFamily:"'Inter','Segoe UI',system-ui,sans-serif"}}>
 
-      {/* Page header */}
-      <div style={{background:"#fff",borderBottom:"1px solid "+T.border,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 1px 3px rgba(0,0,0,.05)",flexShrink:0}}>
-        <div style={{width:38,height:38,borderRadius:T.r,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <BarChart3 size={19} color={T.primary}/>
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div style={{background:T.card,borderBottom:"1px solid "+T.border,padding:"14px 22px",display:"flex",alignItems:"center",gap:14,boxShadow:"0 1px 2px rgba(16,24,40,.04)",flexShrink:0}}>
+        <div style={{width:42,height:42,borderRadius:T.rLg,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <BarChart3 size={20} color={T.primary}/>
         </div>
         <div>
-          <h1 style={{margin:0,fontSize:17,fontWeight:700,color:T.fg}}>Reports & Business Intelligence</h1>
-          <div style={{fontSize:11,color:T.fgMuted}}>{hospitalName} - {sysName}</div>
+          <h1 style={{margin:0,fontSize:18,fontWeight:700,color:T.fg,letterSpacing:"-.01em"}}>Reports &amp; Business Intelligence</h1>
+          <div style={{fontSize:11.5,color:T.fgMuted, marginTop:1}}>{hospitalName} · {sysName}</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
-          <button onClick={exportPrint} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#0a2558",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
+          <button onClick={exportPrint} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 15px",background:T.card,border:`1px solid ${T.border}`,borderRadius:T.r,cursor:"pointer",color:T.fgMuted,fontSize:12.5,fontWeight:600}}>
             <Printer size={13}/> Print / PDF
           </button>
-          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#107c10",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
+          <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 15px",background:T.success,border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12.5,fontWeight:600}}>
             <FileSpreadsheet size={13}/> Export Excel
           </button>
         </div>
@@ -253,27 +254,31 @@ export default function ReportsPage() {
 
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
-        {/* Left sidebar - report types */}
-        <div style={{width:220,background:"#fff",borderRight:"1px solid "+T.border,overflowY:"auto",flexShrink:0}}>
-          <div style={{padding:"10px 14px",fontSize:10,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:".06em",borderBottom:"1px solid "+T.border}}>
+        {/* ── Left sidebar - report types ───────────────────────────── */}
+        <div style={{width:224,background:T.card,borderRight:"1px solid "+T.border,overflowY:"auto",flexShrink:0,padding:"12px 10px"}}>
+          <div style={{padding:"4px 8px 10px",fontSize:10.5,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:".06em"}}>
             Report Types
           </div>
           {GROUPS.map(grp=>{
             const grpTypes = REPORT_TYPES.filter(r=>r.group===grp);
             return(
-              <div key={grp}>
-                <div style={{padding:"8px 14px 4px",fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:".05em"}}>{grp}</div>
+              <div key={grp} style={{marginBottom:6}}>
+                <div style={{padding:"6px 8px 4px",fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:".05em"}}>{grp}</div>
                 {grpTypes.map(rt=>{
                   const Icon=rt.icon;
                   const active=activeRpt.id===rt.id;
                   return(
                     <button key={rt.id} onClick={()=>setActiveRpt(rt)}
-                      style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 14px",background:active?rt.color+"14":"transparent",
-                        border:"none",borderLeft:active?"3px solid "+rt.color:"3px solid transparent",cursor:"pointer",
-                        color:active?rt.color:T.fgMuted,fontSize:12,fontWeight:active?600:400,transition:"all .12s",textAlign:"left"}}
+                      style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"7px 10px",background:active?rt.color+"14":"transparent",
+                        border:"none",borderRadius:T.rMd,cursor:"pointer",marginBottom:2,
+                        color:active?rt.color:T.fgMuted,fontSize:12.5,fontWeight:active?700:500,transition:"all .12s",textAlign:"left"}}
                       onMouseEnter={e=>{if(!active)(e.currentTarget as any).style.background=T.bg;}}
                       onMouseLeave={e=>{if(!active)(e.currentTarget as any).style.background="transparent";}}>
-                      <Icon size={13}/>{rt.label}
+                      <div style={{width:24,height:24,borderRadius:T.r,background:active?rt.color+"22":T.bg2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <Icon size={12.5} color={active?rt.color:T.fgDim}/>
+                      </div>
+                      {rt.label}
+                      {active&&<ChevronRight size={13} style={{marginLeft:"auto"}}/>}
                     </button>
                   );
                 })}
@@ -282,69 +287,69 @@ export default function ReportsPage() {
           })}
         </div>
 
-        {/* Main content */}
+        {/* ── Main content ──────────────────────────────────────────── */}
         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
           {/* Filters bar */}
-          <div style={{background:"#fff",borderBottom:"1px solid "+T.border,padding:"10px 16px",display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,background:T.bg,border:"1px solid "+T.border,borderRadius:T.r,padding:"5px 10px"}}>
-              <Calendar size={12} color={T.fgMuted}/>
-              <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none"}}/>
+          <div style={{background:T.card,borderBottom:"1px solid "+T.border,padding:"12px 18px",display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,background:T.bg,border:"1px solid "+T.border,borderRadius:T.r,padding:"6px 11px"}}>
+              <Calendar size={13} color={T.fgMuted}/>
+              <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} style={{border:"none",background:"transparent",fontSize:12.5,color:T.fg,outline:"none"}}/>
               <span style={{color:T.fgDim,fontSize:11}}>to</span>
-              <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none"}}/>
+              <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} style={{border:"none",background:"transparent",fontSize:12.5,color:T.fg,outline:"none"}}/>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:6,background:T.bg,border:"1px solid "+T.border,borderRadius:T.r,padding:"5px 10px",flex:1,minWidth:180}}>
-              <Search size={12} color={T.fgMuted}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search records..." style={{border:"none",background:"transparent",fontSize:12,color:T.fg,outline:"none",width:"100%"}}/>
-              {search&&<button onClick={()=>setSearch("")} style={{border:"none",background:"transparent",cursor:"pointer",padding:0}}><X size={12} color={T.fgMuted}/></button>}
+            <div style={{display:"flex",alignItems:"center",gap:7,background:T.bg,border:"1px solid "+T.border,borderRadius:T.r,padding:"6px 11px",flex:1,minWidth:180}}>
+              <Search size={13} color={T.fgMuted}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search records..." style={{border:"none",background:"transparent",fontSize:12.5,color:T.fg,outline:"none",width:"100%"}}/>
+              {search&&<button onClick={()=>setSearch("")} style={{border:"none",background:"transparent",cursor:"pointer",padding:0}}><X size={13} color={T.fgMuted}/></button>}
             </div>
-            <button onClick={load} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:T.primaryBg,border:"1px solid "+T.primary+"33",borderRadius:T.r,cursor:"pointer",color:T.primary,fontSize:12,fontWeight:600}}>
-              <RefreshCw size={12} style={loading?{animation:"spin 1s linear infinite"}:{}}/> Load
+            <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:T.primaryBg,border:"1px solid "+T.primary+"33",borderRadius:T.r,cursor:"pointer",color:T.primary,fontSize:12.5,fontWeight:600}}>
+              <RefreshCw size={13} style={loading?{animation:"spin 1s linear infinite"}:{}}/> Load
             </button>
           </div>
 
-          {/* KPI summary tiles */}
-          <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,flexShrink:0,borderBottom:"1px solid "+T.border,background:"#fff"}}>
+          {/* ── KPI band ──────────────────────────────────────────────── */}
+          <div style={{padding:"14px 18px",display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px,1fr))",gap:10,flexShrink:0,borderBottom:"1px solid "+T.border,background:T.card}}>
             {summaries.map((s,i)=>{
               const Icon=s.icon;
               return(
                 <div key={i} style={{background:T.bg,borderRadius:T.rLg,padding:"12px 14px",border:"1px solid "+T.border,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:34,height:34,borderRadius:T.rMd,background:s.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <Icon size={16} color={s.color}/>
+                  <div style={{width:36,height:36,borderRadius:T.rMd,background:s.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <Icon size={17} color={s.color}/>
                   </div>
-                  <div>
-                    <div style={{fontSize:18,fontWeight:800,color:s.color,lineHeight:1}}>{s.value}</div>
-                    <div style={{fontSize:10,color:T.fgMuted,marginTop:2}}>{s.label}</div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:19,fontWeight:800,color:T.fg,lineHeight:1.1}}>{s.value}</div>
+                    <div style={{fontSize:10.5,color:T.fgMuted,marginTop:2}}>{s.label}</div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* BI charts — real distribution/trend from the loaded rows, not decorative */}
+          {/* ── Signature: real BI charts — status breakdown + monthly trend ── */}
           {!loading && rows.length > 0 && (
-            <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr 1.4fr",gap:10,flexShrink:0,borderBottom:"1px solid "+T.border,background:"#fff"}}>
-              <div style={{border:"1px solid "+T.border,borderRadius:T.rLg,padding:"10px 12px 4px"}}>
-                <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,marginBottom:4}}>Status Breakdown</div>
-                <ResponsiveContainer width="100%" height={170}>
+            <div style={{padding:"14px 18px",display:"grid",gridTemplateColumns:"1fr 1.4fr",gap:12,flexShrink:0,borderBottom:"1px solid "+T.border,background:T.card,minHeight:0}}>
+              <div style={{border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"14px 16px 6px",boxShadow:T.shadow,background:T.bg}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.fg,marginBottom:4}}>Status Breakdown</div>
+                <ResponsiveContainer width="100%" height={172}>
                   <PieChart>
-                    <Pie data={statusBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2}>
+                    <Pie data={statusBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2} stroke="none">
                       {statusBreakdown.map((s,i)=><Cell key={i} fill={s.color}/>)}
                     </Pie>
-                    <Tooltip formatter={(v:any,n:any)=>[v,n]}/>
-                    <Legend wrapperStyle={{fontSize:10}} iconSize={8}/>
+                    <Tooltip formatter={(v:any,n:any)=>[v,n]} contentStyle={{fontSize:11,borderRadius:8,border:`1px solid ${T.border}`}}/>
+                    <Legend wrapperStyle={{fontSize:10.5}} iconSize={8}/>
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div style={{border:"1px solid "+T.border,borderRadius:T.rLg,padding:"10px 12px 4px"}}>
-                <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,marginBottom:4}}>Monthly Trend</div>
-                <ResponsiveContainer width="100%" height={170}>
+              <div style={{border:`1px solid ${T.border}`,borderRadius:T.rLg,padding:"14px 16px 6px",boxShadow:T.shadow,background:T.bg}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.fg,marginBottom:4}}>Monthly Trend</div>
+                <ResponsiveContainer width="100%" height={172}>
                   <BarChart data={monthlyTrend}>
                     <CartesianGrid strokeDasharray="3 3" stroke={T.border}/>
-                    <XAxis dataKey="month" tick={{fontSize:10}}/>
-                    <YAxis tick={{fontSize:10}}/>
-                    <Tooltip formatter={(v:any,n:any)=>n==="value"?[fmtKES(v),"Value"]:[v,"Records"]}/>
-                    <Bar dataKey="count" fill={activeRpt.color} radius={[3,3,0,0]} name="Records"/>
+                    <XAxis dataKey="month" tick={{fontSize:10.5}}/>
+                    <YAxis tick={{fontSize:10.5}}/>
+                    <Tooltip formatter={(v:any,n:any)=>n==="value"?[fmtKES(v),"Value"]:[v,"Records"]} contentStyle={{fontSize:11,borderRadius:8,border:`1px solid ${T.border}`}}/>
+                    <Bar dataKey="count" fill={activeRpt.color} radius={[4,4,0,0]} name="Records"/>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -364,13 +369,13 @@ export default function ReportsPage() {
                 <div style={{fontSize:11,color:T.fgDim,marginTop:4}}>Try adjusting your date range or search filter</div>
               </div>
             ):(
-              <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any, margin:"14px 18px 0", border:`1px solid ${T.border}`, borderRadius:T.rLg, boxShadow:T.shadow}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5}}>
                   <thead>
-                    <tr style={{background:activeRpt.color,position:"sticky",top:0,zIndex:1}}>
-                      <th style={{padding:"9px 14px",textAlign:"left",fontWeight:700,color:"#fff",fontSize:11,whiteSpace:"nowrap"}}>#</th>
+                    <tr style={{background:T.bg,position:"sticky",top:0,zIndex:1}}>
+                      <th style={{padding:"10px 14px",textAlign:"left",fontWeight:700,color:T.fgDim,fontSize:10.5,textTransform:"uppercase",letterSpacing:".03em",whiteSpace:"nowrap",borderBottom:`1px solid ${T.border}`}}>#</th>
                       {cols.map(c=>(
-                        <th key={c} style={{padding:"9px 14px",textAlign:"left",fontWeight:700,color:"#fff",fontSize:11,whiteSpace:"nowrap"}}>
+                        <th key={c} style={{padding:"10px 14px",textAlign:"left",fontWeight:700,color:T.fgDim,fontSize:10.5,textTransform:"uppercase",letterSpacing:".03em",whiteSpace:"nowrap",borderBottom:`1px solid ${T.border}`}}>
                           {c.replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}
                         </th>
                       ))}
@@ -378,8 +383,10 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {rows.map((row,i)=>(
-                      <tr key={i} style={{background:i%2===0?"#fff":"#f8f9fb",borderBottom:"1px solid "+T.border}}>
-                        <td style={{padding:"7px 14px",color:T.fgMuted,fontWeight:600}}>{i+1}</td>
+                      <tr key={i} style={{background:T.card,borderBottom:"1px solid "+T.border,transition:"background .1s"}}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background=T.bg;}}
+                        onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=T.card;}}>
+                        <td style={{padding:"9px 14px",color:T.fgDim,fontWeight:600}}>{i+1}</td>
                         {cols.map(c=>{
                           const v=row[c];
                           const isStatus=c==="status";
@@ -387,9 +394,9 @@ export default function ReportsPage() {
                           const isUuid = typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
                           const resolvedName = isUuid ? (profileNames[v] || itemNames[v]) : null;
                           return(
-                            <td key={c} style={{padding:"7px 14px",color:isStatus?statusColor:T.fg,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            <td key={c} style={{padding:"9px 14px",color:isStatus?statusColor:T.fg,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                               {isStatus&&v?(
-                                <span style={{padding:"2px 8px",borderRadius:4,background:statusColor+"14",color:statusColor,fontSize:10,fontWeight:700}}>
+                                <span style={{padding:"3px 9px",borderRadius:99,background:statusColor+"14",color:statusColor,fontSize:10.5,fontWeight:700}}>
                                   {String(v).toUpperCase()}
                                 </span>
                               ):isUuid?(
@@ -411,11 +418,11 @@ export default function ReportsPage() {
           </div>
 
           {/* Status bar */}
-          <div style={{background:"#fff",borderTop:"1px solid "+T.border,padding:"6px 16px",display:"flex",alignItems:"center",gap:12,fontSize:11,color:T.fgMuted,flexShrink:0}}>
-            <span>{activeRpt.label} - <strong>{rows.length}</strong> records</span>
+          <div style={{background:T.card,borderTop:"1px solid "+T.border,padding:"8px 18px",display:"flex",alignItems:"center",gap:14,fontSize:11.5,color:T.fgMuted,flexShrink:0}}>
+            <span>{activeRpt.label} · <strong style={{color:T.fg}}>{rows.length}</strong> records</span>
             <span>Period: {startDate} to {endDate}</span>
             <div style={{flex:1}}/>
-            <span style={{color:T.fgDim}}>{hospitalName} - {sysName} ProcurBosse v6.0</span>
+            <span style={{color:T.fgDim}}>{hospitalName} · {sysName} ProcurBosse v7.0</span>
           </div>
         </div>
       </div>
