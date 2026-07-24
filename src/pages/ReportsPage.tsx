@@ -11,10 +11,12 @@ import { toast } from "@/hooks/use-toast";
 import { RefreshCw, FileSpreadsheet, Search, X, Calendar,
   BarChart3, TrendingUp, Package, ShoppingCart, DollarSign, FileText,
   Truck, Shield, Activity, BookOpen, Gavel, ClipboardList, ChevronRight,
-  Filter, Download } from "lucide-react";
+  Filter, Printer } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { T } from "@/lib/theme";
+import { printDataTable } from "@/lib/printDocument";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const db = supabase as any;
 const fmtKES = (n:number) => n>=1_000_000?`KES ${(n/1_000_000).toFixed(2)}M`:n>=1_000?`KES ${(n/1_000).toFixed(2)}K`:`KES ${Number(n||0).toFixed(2)}`;
@@ -52,6 +54,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [kpi, setKpi] = useState({total:0,pending:0,approved:0,value:0});
   const [summaries, setSummaries] = useState<{label:string;value:number|string;color:string;icon:any}[]>([]);
+  const [statusBreakdown, setStatusBreakdown] = useState<{name:string;value:number;color:string}[]>([]);
+  const [monthlyTrend, setMonthlyTrend] = useState<{month:string;count:number;value:number}[]>([]);
   const [profileNames, setProfileNames] = useState<Record<string,string>>({});
   const [itemNames, setItemNames] = useState<Record<string,string>>({});
 
@@ -95,6 +99,31 @@ export default function ReportsPage() {
         {label:"Approved / Active",value:approved,    color:T.success,       icon:TrendingUp},
         {label:"Total Value",    value:fmtKES(value), color:T.finance,       icon:DollarSign},
       ]);
+
+      // ── Status breakdown (pie) — real distribution, not decorative ──
+      const statusColors: Record<string,string> = {
+        approved:T.success, active:T.success, completed:T.success,
+        pending:T.warning, submitted:T.warning, draft:T.fgDim,
+        rejected:T.error, cancelled:T.error, expired:T.error,
+      };
+      const byStatus = new Map<string,number>();
+      filtered.forEach((r:any)=>{ const s=r.status||"unspecified"; byStatus.set(s,(byStatus.get(s)||0)+1); });
+      setStatusBreakdown(Array.from(byStatus.entries())
+        .sort((a,b)=>b[1]-a[1]).slice(0,8)
+        .map(([name,value])=>({ name:name.replace(/_/g," "), value, color: statusColors[name]||activeRpt.color })));
+
+      // ── Monthly trend (bar) — record count + value per month across the range ──
+      const byMonth = new Map<string,{count:number;value:number}>();
+      filtered.forEach((r:any)=>{
+        const d = r.created_at ? new Date(r.created_at) : null;
+        if (!d || isNaN(d.getTime())) return;
+        const key = d.toLocaleDateString("en-KE",{month:"short",year:"2-digit"});
+        const cur = byMonth.get(key) || {count:0,value:0};
+        cur.count += 1;
+        cur.value += Number(r.total_amount||r.amount||r.estimated_amount||r.total_value||0);
+        byMonth.set(key,cur);
+      });
+      setMonthlyTrend(Array.from(byMonth.entries()).map(([month,v])=>({ month, ...v })).slice(-12));
     } catch(e:any) {
       toast({title:"Error loading report",description:e.message,variant:"destructive"});
     }
@@ -124,7 +153,7 @@ export default function ReportsPage() {
     aoa.push([]);
     aoa.push(dataCols.map(humanLabel));
 
-    let totals: Record<string, number> = {};
+    const totals: Record<string, number> = {};
     rows.forEach(r => {
       aoa.push(dataCols.map(k => {
         let v = r[k];
@@ -181,38 +210,21 @@ export default function ReportsPage() {
       if (k === "item_id") v = itemNames[v] || v;
       if (isAmountCol(k)) return fmtKES(Number(v) || 0);
       if (/_at$|_date$/i.test(k) && v) return new Date(v).toLocaleDateString();
-      return v ?? "—";
+      return String(v ?? "—");
     };
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><title>${activeRpt.label} Report</title><style>
-      @page { size: A4 landscape; margin: 14mm; }
-      * { box-sizing:border-box; margin:0; padding:0; }
-      body { font-family:'Segoe UI',Arial,sans-serif; color:#1f2937; font-size:9.5pt; }
-      .lh { border-bottom:2px solid #0a2558; padding-bottom:10px; margin-bottom:14px; }
-      .lh-sys { font-size:13pt; font-weight:800; color:#0a2558; }
-      .lh-hosp { font-size:10pt; color:#64748b; }
-      .doc-title { font-size:14pt; font-weight:800; color:#0a2558; text-align:center; margin:10px 0 4px; text-transform:uppercase; }
-      .meta { text-align:center; font-size:8.5pt; color:#64748b; margin-bottom:14px; }
-      table { width:100%; border-collapse:collapse; }
-      th { background:#0a2558; color:#fff; padding:6px 8px; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.04em; }
-      td { padding:5px 8px; border-bottom:0.5px solid #e5e7eb; }
-      tr:nth-child(even) td { background:#f8fafc; }
-      tfoot td { font-weight:800; border-top:2px solid #0a2558; }
-      .footer { margin-top:16px; text-align:center; font-size:7.5pt; color:#9ca3af; }
-      @media print { .no-print { display:none; } }
-    </style></head><body>
-      <div class="lh"><div class="lh-sys">${sysName}</div><div class="lh-hosp">${hospitalName}</div></div>
-      <div class="doc-title">${activeRpt.label} Report</div>
-      <div class="meta">Period: ${startDate} to ${endDate} &middot; Generated ${new Date().toLocaleString()} &middot; ${rows.length} records</div>
-      <table>
-        <thead><tr>${dataCols.map(k=>`<th>${humanLabel(k)}</th>`).join("")}</tr></thead>
-        <tbody>${rows.map(r=>`<tr>${dataCols.map(k=>`<td>${fmtCell(k,r[k])}</td>`).join("")}</tr>`).join("")}</tbody>
-      </table>
-      <div class="footer">${sysName} &middot; Confidential &middot; Printed ${new Date().toLocaleString()}</div>
-      <script>window.onload=()=>window.print();</script>
-    </body></html>`);
-    win.document.close();
+    // Was a raw window.open()+HTML print with just system/hospital NAME as
+    // text — no actual logo image, unlike the rest of the app's printed
+    // documents (requisitions, POs, the Admin Database job log, etc.),
+    // which all go through this same letterhead template with the real
+    // Embu County + hospital logo images.
+    printDataTable({
+      title: `${activeRpt.label.toUpperCase()} REPORT`,
+      docNo: `${rows.length} RECORDS`,
+      columns: dataCols.map(humanLabel),
+      rows: rows.map(r => dataCols.map(k => fmtCell(k, r[k]))),
+      filename: `${activeRpt.id}-report-${Date.now()}`,
+      meta: `Period: ${startDate} to ${endDate} · Generated ${new Date().toLocaleString()} · ${rows.length} records`,
+    }).catch(() => toast({ title:"Print failed", variant:"destructive" }));
   };
 
   const cols = rows.length ? Object.keys(rows[0]).filter(k=>k!=="id"&&!["__v"].includes(k)).slice(0,10) : [];
@@ -231,7 +243,7 @@ export default function ReportsPage() {
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={exportPrint} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#0a2558",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
-            <Download size={13}/> Print / PDF
+            <Printer size={13}/> Print / PDF
           </button>
           <button onClick={exportXLSX} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#107c10",border:"none",borderRadius:T.r,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600}}>
             <FileSpreadsheet size={13}/> Export Excel
@@ -308,6 +320,36 @@ export default function ReportsPage() {
               );
             })}
           </div>
+
+          {/* BI charts — real distribution/trend from the loaded rows, not decorative */}
+          {!loading && rows.length > 0 && (
+            <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr 1.4fr",gap:10,flexShrink:0,borderBottom:"1px solid "+T.border,background:"#fff"}}>
+              <div style={{border:"1px solid "+T.border,borderRadius:T.rLg,padding:"10px 12px 4px"}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,marginBottom:4}}>Status Breakdown</div>
+                <ResponsiveContainer width="100%" height={170}>
+                  <PieChart>
+                    <Pie data={statusBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2}>
+                      {statusBreakdown.map((s,i)=><Cell key={i} fill={s.color}/>)}
+                    </Pie>
+                    <Tooltip formatter={(v:any,n:any)=>[v,n]}/>
+                    <Legend wrapperStyle={{fontSize:10}} iconSize={8}/>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{border:"1px solid "+T.border,borderRadius:T.rLg,padding:"10px 12px 4px"}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.fgMuted,marginBottom:4}}>Monthly Trend</div>
+                <ResponsiveContainer width="100%" height={170}>
+                  <BarChart data={monthlyTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={T.border}/>
+                    <XAxis dataKey="month" tick={{fontSize:10}}/>
+                    <YAxis tick={{fontSize:10}}/>
+                    <Tooltip formatter={(v:any,n:any)=>n==="value"?[fmtKES(v),"Value"]:[v,"Records"]}/>
+                    <Bar dataKey="count" fill={activeRpt.color} radius={[3,3,0,0]} name="Records"/>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* Table */}
           <div style={{flex:1,overflowY:"auto",padding:"0 0 16px"}}>
