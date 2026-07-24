@@ -523,16 +523,35 @@ Deno.serve(async (req) => {
         if (!claimed) continue; // another tick already grabbed it
 
         try {
-          const { data: users } = await db.from("profiles").select("email,full_name").eq("is_active", true).not("email", "is", null);
-          const recipients = Array.from(
-            new Map((users || []).filter((u: any) => u.email).map((u: any) => [u.email, { email: u.email, name: u.full_name || u.email }])).values()
-          );
+          const { data: users } = await db.from("profiles").select("id,email,full_name").eq("is_active", true);
+          const activeUsers = users || [];
           const ctaUrl = `https://procurbosse.edgeone.app/#/forms/${sched.form_id}`;
-          const { results } = await sendBulkNotification(recipients as any, sched.message, ["email"], sched.subject, ctaUrl, "Answer the Form");
+
+          // Reliable channel first: in-app notifications need no external
+          // provider at all, so this always succeeds regardless of SMTP/
+          // Twilio/Resend configuration state. Runs with service-role
+          // access here (this is the cron path, not a client call), so no
+          // RLS consideration either.
+          const notifRows = activeUsers.map((u: any) => ({
+            user_id: u.id, title: sched.subject || "New form", message: sched.message,
+            type: "form_published", category: "forms", priority: "normal", icon: "📋",
+            action_url: ctaUrl, action_label: "Answer the Form",
+            record_id: sched.form_id, record_type: "google_forms",
+            created_at: new Date().toISOString(),
+          }));
+          if (notifRows.length) await db.from("notifications").insert(notifRows);
+
+          // Best-effort email on top of the reliable channel above.
+          const recipients = Array.from(
+            new Map(activeUsers.filter((u: any) => u.email).map((u: any) => [u.email, { email: u.email, name: u.full_name || u.email }])).values()
+          );
+          const { results } = recipients.length
+            ? await sendBulkNotification(recipients as any, sched.message, ["email"], sched.subject, ctaUrl, "Answer the Form")
+            : { results: [] as { ok: boolean }[] };
           const okCount = results.filter((r) => r.ok).length;
           await db.from("form_email_schedules").update({
             status: "sent", sent_at: new Date().toISOString(),
-            recipients_count: recipients.length, sent_count: okCount, failed_count: recipients.length - okCount,
+            recipients_count: activeUsers.length, sent_count: okCount, failed_count: recipients.length - okCount,
           }).eq("id", sched.id);
           processed.push({ id: sched.id, ok: true, sent: okCount, failed: recipients.length - okCount });
         } catch (e: any) {

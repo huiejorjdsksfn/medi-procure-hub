@@ -478,39 +478,69 @@ export default function AdminPanelPage() {
       toast({title:"Publish the form first", description:"Users can't fill in a draft form.", variant:"destructive"});
       return;
     }
-    if (!confirm(`Email the link for "${fbTitle}" to every active user?`)) return;
+    if (!confirm(`Send "${fbTitle}" to every active user?`)) return;
     setFbSending(true);
     try {
-      const { data: users, error: uErr } = await db.from("profiles").select("email,full_name").eq("is_active",true).not("email","is",null);
+      // id is required to target in-app notifications (below); email is
+      // only needed for the best-effort email attempt.
+      const { data: users, error: uErr } = await db.from("profiles").select("id,email,full_name").eq("is_active",true);
       if (uErr) throw uErr;
-      const recipients = Array.from(
-        new Map((users||[]).filter((u:any)=>u.email).map((u:any)=>[u.email, { email:u.email, name:u.full_name||u.email }])).values()
-      );
-      if (recipients.length===0) { toast({title:"No active users with an email on file",variant:"destructive"}); setFbSending(false); return; }
+      const activeUsers = users || [];
+      if (activeUsers.length===0) { toast({title:"No active users found",variant:"destructive"}); setFbSending(false); return; }
 
-      // Uses the Gmail SMTP already configured in notification-hub (Settings → SMTP),
-      // not the send-email function — that one relies on Resend/SMTP2GO, which
-      // aren't set up here, so it always failed with "No email provider available".
-      const { data, error } = await supabase.functions.invoke("notification-hub", {
-        body: {
-          action: "send_all",
-          recipients,
-          channels: ["email"],
-          subject: `New form: ${fbTitle}`,
-          message: fbDesc||"A new form has been published and needs your response.",
-          ctaUrl: fbPublicUrl,
-          ctaLabel: "Answer the Form",
-        },
-      });
-      if (error) throw error;
-      const results = data?.results || [];
-      const okCount = results.filter((r:any)=>r.ok).length;
-      if (okCount === 0 && results.length > 0) {
-        throw new Error(results[0]?.error || "Delivery failed for all recipients");
+      // ── Reliable channel: in-app notifications ──────────────────────
+      // No external provider needed at all (no SMTP/Twilio/Resend — all
+      // confirmed unconfigured right now via a live status check), so
+      // this always works and is what the "Sent to N users" count below
+      // is actually based on. Every active user gets a bell-icon
+      // notification with a real "Answer the Form" button, whether or
+      // not they have an email on file or email delivery is working.
+      const message = fbDesc || "A new form has been published and needs your response.";
+      const notifRows = activeUsers.map((u:any)=>({
+        user_id: u.id,
+        title: `New form: ${fbTitle}`,
+        message,
+        type: "form_published",
+        category: "forms",
+        priority: "normal",
+        icon: "📋",
+        action_url: fbPublicUrl,
+        action_label: "Answer the Form",
+        record_id: selectedFormId,
+        record_type: "google_forms",
+        created_at: new Date().toISOString(),
+      }));
+      const { error: nErr } = await db.from("notifications").insert(notifRows);
+      if (nErr) throw nErr;
+
+      // ── Best-effort email on top ─────────────────────────────────────
+      // Attempted in addition (not instead of) the reliable channel
+      // above — harmless to try, and picks up automatically the moment
+      // a real SMTP password/Twilio/Resend key is ever configured,
+      // with zero code changes needed then.
+      const recipients = Array.from(
+        new Map(activeUsers.filter((u:any)=>u.email).map((u:any)=>[u.email, { email:u.email, name:u.full_name||u.email }])).values()
+      );
+      let emailOkCount = 0;
+      if (recipients.length) {
+        try {
+          const { data } = await supabase.functions.invoke("notification-hub", {
+            body: {
+              action: "send_all", recipients, channels: ["email"],
+              subject: `New form: ${fbTitle}`, message,
+              ctaUrl: fbPublicUrl, ctaLabel: "Answer the Form",
+            },
+          });
+          emailOkCount = (data?.results||[]).filter((r:any)=>r.ok).length;
+        } catch { /* email is a bonus here, not the reliable channel — don't fail the send over it */ }
       }
-      toast({title:`✓ Sent to ${okCount}/${recipients.length} user${recipients.length===1?"":"s"}`,
-        description: okCount < recipients.length ? `${recipients.length-okCount} failed — check Settings → SMTP` : undefined,
-        variant: okCount < recipients.length ? "destructive" : undefined});
+
+      toast({
+        title: `✓ Notified ${activeUsers.length} user${activeUsers.length===1?"":"s"} in-app`,
+        description: emailOkCount>0
+          ? `Also emailed ${emailOkCount}/${recipients.length}.`
+          : "Email delivery isn't configured yet (Settings → Email/SMTP) — everyone still got the in-app notification with the form link.",
+      });
       await loadFbSchedules(selectedFormId!);
     } catch(e:any) {
       toast({title:"Send failed", description:e.message, variant:"destructive"});
