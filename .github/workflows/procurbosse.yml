@@ -107,7 +107,8 @@ jobs:
 
       - name: Guard - undefined reference check
         run: npm run audit:refs
-        # Hard gate: TS2304/TS2552/TS2593 ("Cannot find name") errors mean
+        # Hard gate: TS2304/TS2552/TS2593 ("Cannot find name") and TS2300
+        # ("Duplicate identifier") errors mean
         # an identifier is used but never declared/imported anywhere in
         # scope — a guaranteed runtime ReferenceError if that code path
         # executes, not a strictness nitpick. Caught two real, then-live
