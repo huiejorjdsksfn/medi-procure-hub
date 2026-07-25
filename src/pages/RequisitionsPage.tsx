@@ -1,6 +1,9 @@
 /**
- * ProcurBosse - Requisitions Page v3.0
- * ERP-style: status tabs, search bar, KPI tiles, professional table
+ * ProcurBosse - Requisitions Page v4.0 (2026 ERP redesign)
+ * Elevated card system via the shared erpKit, on the central T theme.
+ * Includes the real line-items editor (item name/qty/unit/price, wired
+ * to requisition_items, total_amount computed from actual items) added
+ * concurrently — reconciled on top of the visual redesign.
  * EL5 MediProcure - Embu Level 5 Hospital
  */
 import { useEffect, useState, useCallback } from "react";
@@ -32,20 +35,14 @@ import {
   executeRequisitionAction, getAvailableActions, STATUS_CONFIG,
   generateRequisitionNumber, type RequisitionAction
 } from "@/lib/procurement/requisitionWorkflow";
+import { T } from "@/lib/theme";
+import { PageHeader, SearchBox, BtnPrimary, BtnGhost, KpiBand, Card,
+  StatusPill, EmptyState, spinKeyframes, font } from "@/lib/erpKit";
 
 // - Status config -
 const STATUS_CFG: Record<string,{bg:string;color:string;border:string;label:string;dot:string}> = Object.fromEntries(
   Object.entries(STATUS_CONFIG).map(([k, v]) => [k, { ...v, border: v.bg }])
 ) as any;
-
-// - Styles -
-const CARD_STYLE: React.CSSProperties = {
-  background:"#fff",
-  border:"1px solid #e5e7eb",
-  borderRadius:12,
-  padding:"14px 18px",
-  boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
-};
 
 // - Format helpers -
 const fmtKES = (n:number) => {
@@ -83,14 +80,8 @@ export default function RequisitionsPage() {
   const EMPTY_FORM = {title:"",department:"",priority:"normal",notes:"",delivery_date:"",justification:"",cost_centre:"",fund_source:"County Fund"};
   const [form, setForm] = useState({...EMPTY_FORM});
 
-  // Line items — requisitions had no way to record what's actually being
-  // requested beyond a free-text title; total_amount was never computed
-  // from anything real. requisition_items already exists as a table and
-  // is even queried (.select("*,requisition_items(count)")) but nothing
-  // ever wrote to it or displayed it. DocumentAnalyzerButton could
-  // AI-detect real items from an uploaded doc but had to dump them into
-  // the notes field as text, since there was nowhere structured to put
-  // them.
+  // Line items — item name/qty/unit/price, wired to requisition_items,
+  // with total_amount/items_count computed from the real items on save.
   const EMPTY_ITEM = { item_name: "", quantity: "1", unit_of_measure: "pcs", unit_price: "0", description: "" };
   const [reqItems, setReqItems] = useState<any[]>([{ ...EMPTY_ITEM }]);
 
@@ -200,7 +191,7 @@ export default function RequisitionsPage() {
   async function handleAction(id: string, action: RequisitionAction, reason?: string) {
     const result = await executeRequisitionAction(id, action, user?.id || '', profile?.full_name || '', { reason });
     if (result.success) {
-      toast({ title: `Requisition ${action}${action.endsWith('e') ? 'd' : 'ed'} -` });
+      toast({ title: `Requisition ${action}${action.endsWith('e') ? 'd' : 'ed'}` });
     } else {
       toast({ title: `Action failed`, description: result.error, variant: 'destructive' });
     }
@@ -253,7 +244,7 @@ export default function RequisitionsPage() {
     conflictResolver.clearDirty();
     conflictResolver.setBaseline({ ...form, ...payload });
     if (formCacheKey) { try { localStorage.removeItem(formCacheKey); } catch {} }
-    toast({title:editReq?"Requisition updated -":"Requisition created -",description:num});
+    toast({title:editReq?"Requisition updated":"Requisition created",description:num});
     setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); setReqItems([{...EMPTY_ITEM}]); load();
     setSaving(false);
   }
@@ -295,69 +286,51 @@ export default function RequisitionsPage() {
   const toggleSort=(col:string)=>{if(sortCol===col)setSortAsc(a=>!a);else{setSortCol(col);setSortAsc(true);}};
   const SortInd=({col}:{col:string})=>sortCol===col?<span style={{fontSize:9,marginLeft:3}}>{sortAsc?"▲":"▼"}</span>:null;
 
+  const modalOverlay: React.CSSProperties = {position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20};
+  const modalBox: React.CSSProperties = {background:T.card,borderRadius:T.rXl,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:T.shadowLg};
+  const inputStyle: React.CSSProperties = {width:"100%",padding:"8px 10px",border:`1.5px solid ${T.border}`,borderRadius:T.rMd,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:font,color:T.fg,background:T.bg};
+  const closeFormAll = () => { setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); setReqItems([{...EMPTY_ITEM}]); conflictResolver.clearDirty(); };
+
   // - Render -
   return (
-    <div style={{minHeight:"100vh",background:"#0d1b35",fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:font}}>
 
-      {/* - KPI TILES - */}
-      <div className="kpi-tiles-row" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-        {[
-          {label:"Total Value",     val:fmtKES(totalValue),    bg:"#dc2626",  icon:"-"},
-          {label:"Approved Value",  val:fmtKES(approvedValue), bg:"#059669",  icon:"-"},
-          {label:"Pending Approval",val:String(pendingCount),  bg:"#d97706",  icon:"-"},
-          {label:"Total Records",   val:String(reqs.length),   bg:"#6366f1",  icon:"-"},
-          {label:"Approved",        val:String(COUNTS.approved),bg:"#0078d4", icon:"-"},
-        ].map((kpi,i)=>(
-          <div key={i} style={{background:kpi.bg,color:"#fff",padding:isMobile?"10px 8px":"14px 18px",textAlign:"center",borderRight:i<4?"1px solid rgba(255,255,255,0.15)":"none",minWidth:0}}>
-            <div style={{fontSize:isMobile?9.5:9,fontWeight:600,opacity:0.85,letterSpacing:"0.04em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{kpi.label}</div>
-            <div style={{fontSize:isMobile?14:20,fontWeight:900,marginTop:4,fontVariantNumeric:"tabular-nums",lineHeight:1.15,overflowWrap:"break-word",wordBreak:"break-word"}}>{kpi.val}</div>
-          </div>
-        ))}
-      </div>
+      <PageHeader icon={ClipboardList} title="Requisitions" subtitle={`Purchase requisition management · ${reqs.length} records`}>
+        <BtnGhost onClick={exportExcel} icon={Download}>Export</BtnGhost>
+        <BtnGhost onClick={load} icon={RefreshCw} loading={loading}>Refresh</BtnGhost>
+        {canCreate&&(
+          <BtnPrimary icon={Plus} onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();setShowForm(true);}}>
+            New Requisition
+          </BtnPrimary>
+        )}
+      </PageHeader>
 
-      {/* - PAGE HEADER - */}
-      <div style={{padding:"16px 20px 0",display:"flex",alignItems:"center",gap:10,background:"transparent"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
-          </div>
-          <div>
-            <div style={{fontSize:16,fontWeight:800,color:"#f1f5f9"}}>Requisitions</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Purchase requisition management - {reqs.length} records</div>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>exportExcel()} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
-            <Download style={{width:13,height:13}}/> Export
-          </button>
-          <button onClick={load} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e2e8f0"}}>
-            <RefreshCw style={{width:13,height:13}}/> Refresh
-          </button>
-          {canCreate&&(
-            <button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();setShowForm(true);}}
-              style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(5,150,105,0.35)"}}>
-              <Plus style={{width:14,height:14}}/> New Requisition
-            </button>
-          )}
-        </div>
-      </div>
+      <div style={{padding:"20px 20px 32px"}}>
 
-      {/* - STATUS TABS - */}
-      <div style={{padding:"10px 20px 0",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" as const,background:"transparent"}}>
-        {Object.entries({all:"All",...Object.fromEntries(Object.entries(STATUS_CFG).map(([k,v])=>[k,v.label]))}).map(([key,label])=>{
-          const cnt=COUNTS[key as keyof typeof COUNTS]??0;
-          const isActive=statusTab===key;
-          const cfg=STATUS_CFG[key];
-          return (
-            <button key={key} onClick={()=>setStatusTab(key)}
-              style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||"#3b82f6"):"#e5e7eb"}`,background:isActive?(cfg?.bg||"#dbeafe"):"rgba(255,255,255,0.06)",cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||"#1d4ed8"):"#6b7280",transition:"all 0.15s",display:"flex",alignItems:"center",gap:5}}>
-              {cfg?.dot&&isActive&&<span style={{width:6,height:6,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>}
-              {label} ({key==="all"?reqs.length:cnt})
-            </button>
-          );
-        })}
-        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",fontSize:12,color:"#e2e8f0",cursor:"pointer"}}>
+        {/* - KPI BAND - */}
+        <KpiBand loading={loading} items={[
+          {label:"Total Value",      val:fmtKES(totalValue),           color:"#a4262c", icon:ClipboardList},
+          {label:"Approved Value",   val:fmtKES(approvedValue),        color:T.success, icon:CheckCircle},
+          {label:"Pending Approval", val:pendingCount,                 color:T.warning, icon:Clock, hot:pendingCount>0},
+          {label:"Total Records",    val:reqs.length,                  color:"#6366f1", icon:FileSpreadsheet},
+          {label:"Approved",         val:COUNTS.approved,              color:T.primary, icon:CheckCircle},
+        ]}/>
+
+        {/* - STATUS TABS + PRIORITY FILTER - */}
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:14}}>
+          {Object.entries({all:"All",...Object.fromEntries(Object.entries(STATUS_CFG).map(([k,v])=>[k,v.label]))}).map(([key,label])=>{
+            const cnt=COUNTS[key as keyof typeof COUNTS]??0;
+            const isActive=statusTab===key;
+            const cfg=STATUS_CFG[key];
+            return (
+              <button key={key} onClick={()=>setStatusTab(key)}
+                style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${isActive?(cfg?.border||T.primary):T.border}`,background:isActive?(cfg?.bg||T.primaryBg):T.card,cursor:"pointer",fontSize:12,fontWeight:isActive?700:500,color:isActive?(cfg?.color||T.primary):T.fgMuted,transition:"all 0.15s",display:"flex",alignItems:"center",gap:5,fontFamily:font}}>
+                {cfg?.dot&&isActive&&<span style={{width:6,height:6,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>}
+                {label} ({key==="all"?reqs.length:cnt})
+              </button>
+            );
+          })}
+          <select value={priority} onChange={e=>setPriority(e.target.value)} style={{marginLeft:"auto",padding:"6px 10px",borderRadius:T.r,border:`1px solid ${T.border}`,background:T.card,fontSize:12,color:T.fg,cursor:"pointer",fontFamily:font}}>
             <option value="all">All Priority</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
@@ -365,167 +338,162 @@ export default function RequisitionsPage() {
             <option value="low">Low</option>
           </select>
         </div>
-      </div>
 
-      {/* - SEARCH BAR - */}
-      <div style={{padding:"10px 20px"}}>
-        <div style={{position:"relative",maxWidth:"100%"}}>
-          <Search style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",width:15,height:15,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requisition number, title, requester, department-"
-            style={{width:"100%",padding:"9px 12px 9px 36px",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,background:"rgba(255,255,255,0.08)",color:"#f1f5f9",fontSize:isMobile?16:13,outline:"none",boxSizing:"border-box",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2}}><X style={{width:14,height:14,color:"#9ca3af"}}/></button>}
+        {/* - SEARCH BAR - */}
+        <div style={{marginBottom:14}}>
+          <SearchBox value={search} onChange={setSearch} placeholder="Search requisition number, title, requester, department…" width={isMobile?undefined as any:360}/>
         </div>
-      </div>
 
-      {/* - TABLE - */}
-      <div style={{margin:"0 20px 20px",background:"rgba(255,255,255,0.04)",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto"}}>
-          <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:700}}>
-            <thead>
-              <tr style={{borderBottom:"2px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.05)"}}>
-                {[
-                  {col:"requisition_number",label:"REQ NO",    w:150},
-                  {col:"title",            label:"TITLE",      w:220},
-                  {col:"department",       label:"DEPARTMENT", w:120},
-                  {col:"priority",         label:"PRIORITY",   w:90},
-                  {col:"requester_name",   label:"REQUESTER",  w:140},
-                  {col:"created_at",       label:"DATE",       w:100},
-                  {col:"delivery_date",    label:"DELIVERY",   w:100},
-                  {col:"total_amount",     label:"AMOUNT",     w:110},
-                  {col:"status",           label:"STATUS",     w:110},
-                  {col:"",                 label:"ACTIONS",    w:90},
-                ].map(h=>(
-                  <th key={h.col} onClick={()=>h.col&&toggleSort(h.col)}
-                    style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:"#9ca3af",letterSpacing:"0.06em",whiteSpace:"nowrap",cursor:h.col?"pointer":"default",userSelect:"none",width:h.w}}>
-                    {h.label}{h.col&&<SortInd col={h.col}/>}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center",color:"#9ca3af",fontSize:13}}>Loading requisitions-</td></tr>
-              )}
-              {!loading&&filtered.length===0&&(
-                <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
-                  <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
-                  <div style={{fontSize:13,color:"#9ca3af"}}>No requisitions found{search?` for "${search}"`:""}.</div>
-                  {canCreate&&!search&&<button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();setShowForm(true);}} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
-                </td></tr>
-              )}
-              {!loading&&filtered.map((r,ri)=>{
-                const cfg=STATUS_CFG[r.status]||STATUS_CFG.draft;
-                const isPending=r.status==="submitted"||r.status==="pending";
-                const isDraft=r.status==="draft";
-                const prioColor={urgent:"#dc2626",high:"#d97706",normal:"#059669",low:"#6b7280"}[r.priority as string]||"#6b7280";
+        {/* - TABLE - */}
+        <Card style={{overflow:"hidden"}}>
+          <div style={{overflowX:"auto"}}>
+            <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:700}}>
+              <thead>
+                <tr style={{borderBottom:`1px solid ${T.border}`,background:T.bg}}>
+                  {[
+                    {col:"requisition_number",label:"REQ NO",    w:150},
+                    {col:"title",            label:"TITLE",      w:220},
+                    {col:"department",       label:"DEPARTMENT", w:120},
+                    {col:"priority",         label:"PRIORITY",   w:90},
+                    {col:"requester_name",   label:"REQUESTER",  w:140},
+                    {col:"created_at",       label:"DATE",       w:100},
+                    {col:"delivery_date",    label:"DELIVERY",   w:100},
+                    {col:"total_amount",     label:"AMOUNT",     w:110},
+                    {col:"status",           label:"STATUS",     w:110},
+                    {col:"",                 label:"ACTIONS",    w:90},
+                  ].map(h=>(
+                    <th key={h.col} onClick={()=>h.col&&toggleSort(h.col)}
+                      style={{padding:"10px 14px",textAlign:"left",fontSize:10.5,fontWeight:700,color:T.fgDim,letterSpacing:"0.06em",whiteSpace:"nowrap",cursor:h.col?"pointer":"default",userSelect:"none",width:h.w,textTransform:"uppercase"}}>
+                      {h.label}{h.col&&<SortInd col={h.col}/>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading&&(
+                  <tr><td colSpan={10} style={{padding:40,textAlign:"center",color:T.fgDim,fontSize:13}}>Loading requisitions…</td></tr>
+                )}
+                {!loading&&filtered.length===0&&(
+                  <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
+                    <ClipboardList style={{width:32,height:32,color:T.border,display:"block",margin:"0 auto 8px"}}/>
+                    <div style={{fontSize:13,color:T.fgDim}}>No requisitions found{search?` for "${search}"`:""}.</div>
+                    {canCreate&&!search&&<button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();setShowForm(true);}} style={{marginTop:12,padding:"7px 16px",borderRadius:T.r,border:"none",background:T.success,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
+                  </td></tr>
+                )}
+                {!loading&&filtered.map((r,ri)=>{
+                  const cfg=STATUS_CFG[r.status]||STATUS_CFG.draft;
+                  const isPending=r.status==="submitted"||r.status==="pending";
+                  const isDraft=r.status==="draft";
+                  const prioColor={urgent:T.error,high:T.warning,normal:T.success,low:T.fgMuted}[r.priority as string]||T.fgMuted;
 
-                return (
-                  <tr key={r.id} style={{borderBottom:"1px solid #f3f4f6",background:isMobile?(ri%2===0?"#fff":"#fafafa"):(ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)"),transition:"background 0.1s"}}
-                    onMouseEnter={e=>(e.currentTarget.style.background="rgba(59,130,246,0.15)")}
-                    onMouseLeave={e=>(e.currentTarget.style.background=isMobile?(ri%2===0?"#fff":"#fafafa"):(ri%2===0?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.06)"))}>
+                  return (
+                    <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:T.card,transition:"background 0.1s"}}
+                      onMouseEnter={e=>(e.currentTarget.style.background=T.bg)}
+                      onMouseLeave={e=>(e.currentTarget.style.background=T.card)}>
 
-                    <td style={{padding:"10px 14px",fontWeight:700,color:isMobile?"#1d4ed8":"#60a5fa",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
-                      {r.requisition_number||"-"}
-                    </td>
-                    <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      <div style={{fontWeight:600,color:isMobile?"#111827":"#f1f5f9",fontSize:12}}>{r.title||"Untitled"}</div>
-                      {r.notes&&<div style={{fontSize:isMobile?11:10,color:isMobile?"#6b7280":"#9ca3af",marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
-                    </td>
-                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"rgba(255,255,255,0.45)",fontSize:12,whiteSpace:"nowrap"}}>{r.department||"-"}</td>
-                    <td style={{padding:"10px 14px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:isMobile?11:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
-                    </td>
-                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"#94a3b8",fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"-"}</td>
-                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
-                    <td style={{padding:"10px 14px",color:isMobile?"#374151":"rgba(255,255,255,0.45)",fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"-"}</td>
-                    <td style={{padding:"10px 14px",fontWeight:600,color:isMobile?"#111827":"#f1f5f9",fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
-                      {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"-"}
-                    </td>
-                    <td style={{padding:"10px 14px"}}>
-                      <span className="status-chip" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
-                        <span style={{width:5,height:5,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>
-                        {cfg.label}
-                      </span>
-                    </td>
-                    <td style={{padding:"10px 14px"}}>
-                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-                        <button title="View" onClick={()=>setViewReq(r)} style={{padding:5,borderRadius:6,border:"none",background:"#f0f9ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <Eye style={{width:13,height:13,color:"#0369a1"}}/>
-                        </button>
-                        {(isDraft||r.requested_by===user?.id)&&(
-                          <button title="Edit" onClick={()=>{const nextForm={title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"};setEditReq(r);setForm(nextForm);loadItemsForEdit(r.id);conflictResolver.clearDirty();conflictResolver.setBaseline(nextForm);setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <Edit3 style={{width:13,height:13,color:"#059669"}}/>
+                      <td style={{padding:"10px 14px",fontWeight:700,color:T.primary,fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",fontSize:12}}>
+                        {r.requisition_number||"-"}
+                      </td>
+                      <td style={{padding:"10px 14px",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        <div style={{fontWeight:600,color:T.fg,fontSize:12}}>{r.title||"Untitled"}</div>
+                        {r.notes&&<div style={{fontSize:10.5,color:T.fgDim,marginTop:1,overflow:"hidden",textOverflow:"ellipsis"}}>{r.notes.slice(0,50)}</div>}
+                      </td>
+                      <td style={{padding:"10px 14px",color:T.fgMuted,fontSize:12,whiteSpace:"nowrap"}}>{r.department||"-"}</td>
+                      <td style={{padding:"10px 14px"}}>
+                        <span style={{padding:"2px 8px",borderRadius:12,background:`${prioColor}18`,color:prioColor,fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{r.priority||"normal"}</span>
+                      </td>
+                      <td style={{padding:"10px 14px",color:T.fgMuted,fontSize:12,whiteSpace:"nowrap"}}>{r.requester_name||"-"}</td>
+                      <td style={{padding:"10px 14px",color:T.fgDim,fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(r.created_at)}</td>
+                      <td style={{padding:"10px 14px",color:T.fgDim,fontSize:11,whiteSpace:"nowrap"}}>{r.delivery_date?fmtDate(r.delivery_date):"-"}</td>
+                      <td style={{padding:"10px 14px",fontWeight:600,color:T.fg,fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>
+                        {r.total_amount?`${currencySymbol} ${Number(r.total_amount).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2})}`:"-"}
+                      </td>
+                      <td style={{padding:"10px 14px"}}>
+                        <span className="status-chip" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:16,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600,border:`1px solid ${cfg.border}`}}>
+                          <span style={{width:5,height:5,borderRadius:"50%",background:cfg.dot,flexShrink:0}}/>
+                          {cfg.label}
+                        </span>
+                      </td>
+                      <td style={{padding:"10px 14px"}}>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                          <button title="View" onClick={()=>setViewReq(r)} style={{padding:5,borderRadius:6,border:"none",background:T.primaryBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <Eye style={{width:13,height:13,color:T.primary}}/>
                           </button>
-                        )}
-                        {isDraft&&(
-                          <button title="Submit" onClick={()=>submit(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#eff6ff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <Send style={{width:13,height:13,color:"#3b82f6"}}/>
+                          {(isDraft||r.requested_by===user?.id)&&(
+                            <button title="Edit" onClick={()=>{const nextForm={title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"};setEditReq(r);setForm(nextForm);loadItemsForEdit(r.id);conflictResolver.clearDirty();conflictResolver.setBaseline(nextForm);setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:T.successBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <Edit3 style={{width:13,height:13,color:T.success}}/>
+                            </button>
+                          )}
+                          {isDraft&&(
+                            <button title="Submit" onClick={()=>submit(r.id)} style={{padding:5,borderRadius:6,border:"none",background:T.primaryBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <Send style={{width:13,height:13,color:T.primary}}/>
+                            </button>
+                          )}
+                          {isPending&&canApprove&&(
+                            <>
+                              <button title="Approve" onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,border:"none",background:T.successBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <CheckCircle style={{width:13,height:13,color:T.success}}/>
+                              </button>
+                              <button title="Reject" onClick={()=>setRejectId(r.id)} style={{padding:5,borderRadius:6,border:"none",background:T.errorBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <XCircle style={{width:13,height:13,color:T.error}}/>
+                              </button>
+                            </>
+                          )}
+                          <button title="Print" onClick={()=>(printRequisition as any)(r, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:T.warningBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <Printer style={{width:13,height:13,color:T.warning}}/>
                           </button>
-                        )}
-                        {isPending&&canApprove&&(
-                          <>
-                            <button title="Approve" onClick={()=>approve(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                              <CheckCircle style={{width:13,height:13,color:"#059669"}}/>
-                            </button>
-                            <button title="Reject" onClick={()=>setRejectId(r.id)} style={{padding:5,borderRadius:6,border:"none",background:"#fff1f2",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                              <XCircle style={{width:13,height:13,color:"#dc2626"}}/>
-                            </button>
-                          </>
-                        )}
-                        <button title="Print" onClick={()=>(printRequisition as any)(r, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||getSetting("system_logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:getSetting("show_stamp","true")==="true"})} style={{padding:5,borderRadius:6,border:"none",background:"#fefce8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <Printer style={{width:13,height:13,color:"#ca8a04"}}/>
-                        </button>
 
-                        <PushToApprovalButton
-                          documentType="requisition"
-                          documentId={r.id}
-                          documentNumber={r.requisition_number||`REQ/${r.department||"General"}`}
-                          documentTitle={r.title}
-                          department={r.department}
-                          amount={Number(r.total_amount||0)}
-                          currentStatus={r.status}
-                          stamped={!!r.stamped}
-                          stampedByName={r.stamped_by_name}
-                          stampLabel={r.stamp_label}
-                          size="sm"
-                          onPushed={load}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {/* Footer */}
-        <div style={{padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:"#9ca3af"}}>
-          <span>Showing {filtered.length} of {reqs.length} requisitions</span>
-          <span>{reqs.length>0&&`Total value: ${fmtKES(totalValue)}`}</span>
-        </div>
+                          <PushToApprovalButton
+                            documentType="requisition"
+                            documentId={r.id}
+                            documentNumber={r.requisition_number||`REQ/${r.department||"General"}`}
+                            documentTitle={r.title}
+                            department={r.department}
+                            amount={Number(r.total_amount||0)}
+                            currentStatus={r.status}
+                            stamped={!!r.stamped}
+                            stampedByName={r.stamped_by_name}
+                            stampLabel={r.stamp_label}
+                            size="sm"
+                            onPushed={load}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Footer */}
+          <div style={{padding:"8px 16px",borderTop:`1px solid ${T.border}`,background:T.bg,display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:11,color:T.fgMuted}}>
+            <span>Showing {filtered.length} of {reqs.length} requisitions</span>
+            <span>{reqs.length>0&&`Total value: ${fmtKES(totalValue)}`}</span>
+          </div>
+        </Card>
       </div>
 
       {/* - CREATE / EDIT MODAL - */}
       {showForm&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#059669,#0d9488)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <div style={{padding:"18px 22px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:T.rMd,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <ClipboardList style={{width:18,height:18,color:T.primary}}/>
               </div>
               <div>
-                <div style={{fontSize:16,fontWeight:800,color:"#0f172a"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
-                <div style={{fontSize:11,color:"#64748b"}}>Embu Level 5 Hospital - {editReq?.requisition_number||"New"}</div>
+                <div style={{fontSize:16,fontWeight:800,color:T.fg}}>{editReq?"Edit Requisition":"New Requisition"}</div>
+                <div style={{fontSize:11,color:T.fgMuted}}>Embu Level 5 Hospital · {editReq?.requisition_number||"New"}</div>
               </div>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"#64748b"}}/>
+              <button onClick={closeFormAll} style={{marginLeft:"auto",padding:8,borderRadius:T.rMd,border:"none",background:T.bg2,cursor:"pointer",lineHeight:0}}>
+                <X style={{width:16,height:16,color:T.fgMuted}}/>
               </button>
             </div>
             <ConflictResolutionBanner fields={conflictResolver.conflict} onResolve={conflictResolver.resolve} remoteLabel="requisition" />
 
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {!editReq && (
-                <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:"1px dashed #e5e7eb"}}>
+                <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:`1px dashed ${T.border}`}}>
                   <DocumentAnalyzerButton target="requisition" onApply={(f)=>{
                     setForm(p=>({
                       ...p,
@@ -553,24 +521,24 @@ export default function RequisitionsPage() {
                 {k:"cost_centre",l:"Cost Centre",p:"e.g. PHARM-001",span:1},
                 {k:"fund_source",l:"Fund Source",p:"County Fund",span:1,type:"select",opts:["County Fund","National Fund","Donor Fund","NHIF","Other"]},
                 {k:"justification",l:"Justification",p:"Why is this needed?",span:2,type:"textarea"},
-                {k:"notes",l:"Additional Notes",p:"Any other information-",span:2,type:"textarea"},
+                {k:"notes",l:"Additional Notes",p:"Any other information…",span:2,type:"textarea"},
               ].map(field=>(
                 <div key={field.k} style={{gridColumn:field.span===2?"span 2":"span 1"}}>
-                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:"#94a3b8",marginBottom:4}}>{field.l}</label>
+                  <label style={{display:"block",fontSize:11.5,fontWeight:600,color:T.fgDim,marginBottom:4}}>{field.l}</label>
                   {field.k==="department"?(
-                    <select value={(form as any)[field.k]||""} onChange={async e=>{ if (e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
+                    <select value={(form as any)[field.k]||""} onChange={async e=>{ if (e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} style={inputStyle}>
                       <option value="">Select department…</option>
                       {departments.map(d=><option key={d.id} value={d.name}>{d.name}</option>)}
                       {departmentsHasMore&&<option value="__load_more_departments__">Load more departments…</option>}
                     </select>
                   ):field.type==="select"?(
-                    <select value={(form as any)[field.k]||""} onChange={async e=>{ if (field.k === "department" && e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none"}}>
+                    <select value={(form as any)[field.k]||""} onChange={async e=>{ if (field.k === "department" && e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} style={inputStyle}>
                       {field.opts?.map(o=><option key={o} value={o} style={{textTransform:"capitalize"}}>{o.charAt(0).toUpperCase()+o.slice(1)}</option>)}
                     </select>
                   ):field.type==="textarea"?(
-                    <textarea value={(form as any)[field.k]||""} onChange={async e=>{ if (field.k === "department" && e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} placeholder={field.p} rows={2} style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+                    <textarea value={(form as any)[field.k]||""} onChange={async e=>{ if (field.k === "department" && e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} placeholder={field.p} rows={2} style={{...inputStyle,resize:"vertical"}}/>
                   ):(
-                    <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={async e=>{ if (field.k === "department" && e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} placeholder={field.p} style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+                    <input type={field.type||"text"} value={(form as any)[field.k]||""} onChange={async e=>{ if (field.k === "department" && e.target.value === "__load_more_departments__") { await loadMoreDepartments(); return; } updateFormField(field.k, e.target.value); }} placeholder={field.p} style={{...inputStyle,border:`1.5px solid ${field.req&&!(form as any)[field.k]?"#fca5a5":T.border}`}}/>
                   )}
                 </div>
               ))}
@@ -579,41 +547,42 @@ export default function RequisitionsPage() {
             {/* Line items */}
             <div style={{padding:"0 22px 18px"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <label style={{fontSize:11.5,fontWeight:700,color:"#374151"}}>Items Requested</label>
-                <button type="button" onClick={addItemRow} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:7,border:"1px solid #d1d5db",background:"#f9fafb",cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+                <label style={{fontSize:11.5,fontWeight:700,color:T.fgMuted}}>Items Requested</label>
+                <button type="button" onClick={addItemRow} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:T.r,border:`1px solid ${T.border}`,background:T.bg,cursor:"pointer",fontSize:11,fontWeight:600,color:T.fgMuted}}>
                   <Plus style={{width:11,height:11}}/> Add Item
                 </button>
               </div>
-              <div style={{border:"1px solid #e5e7eb",borderRadius:10,overflow:"hidden"}}>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 70px 90px 100px 90px 30px",gap:0,background:"#f8fafc",padding:"6px 8px",fontSize:9.5,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:".03em"}}>
+              <div style={{border:`1px solid ${T.border}`,borderRadius:T.rMd,overflow:"hidden"}}>
+                <div style={{display:"grid",gridTemplateColumns:"2fr 70px 90px 100px 90px 30px",gap:0,background:T.bg,padding:"6px 8px",fontSize:9.5,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:".03em"}}>
                   <span>Item</span><span>Qty</span><span>Unit</span><span>Unit Price</span><span>Total</span><span/>
                 </div>
                 {reqItems.map((it,idx)=>(
-                  <div key={idx} style={{display:"grid",gridTemplateColumns:"2fr 70px 90px 100px 90px 30px",gap:6,padding:"6px 8px",alignItems:"center",borderTop:"1px solid #f1f5f9"}}>
-                    <input value={it.item_name} onChange={e=>updateItem(idx,"item_name",e.target.value)} placeholder="Item name…" style={{width:"100%",padding:"5px 7px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
-                    <input type="number" min="0" value={it.quantity} onChange={e=>updateItem(idx,"quantity",e.target.value)} style={{width:"100%",padding:"5px 7px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
-                    <select value={it.unit_of_measure} onChange={e=>updateItem(idx,"unit_of_measure",e.target.value)} style={{width:"100%",padding:"5px 4px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box"}}>
+                  <div key={idx} style={{display:"grid",gridTemplateColumns:"2fr 70px 90px 100px 90px 30px",gap:6,padding:"6px 8px",alignItems:"center",borderTop:`1px solid ${T.border}`}}>
+                    <input value={it.item_name} onChange={e=>updateItem(idx,"item_name",e.target.value)} placeholder="Item name…" style={{width:"100%",padding:"5px 7px",border:`1px solid ${T.border}`,borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box",background:T.bg,color:T.fg}}/>
+                    <input type="number" min="0" value={it.quantity} onChange={e=>updateItem(idx,"quantity",e.target.value)} style={{width:"100%",padding:"5px 7px",border:`1px solid ${T.border}`,borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box",background:T.bg,color:T.fg}}/>
+                    <select value={it.unit_of_measure} onChange={e=>updateItem(idx,"unit_of_measure",e.target.value)} style={{width:"100%",padding:"5px 4px",border:`1px solid ${T.border}`,borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box",background:T.bg,color:T.fg}}>
                       {["pcs","boxes","cartons","litres","kg","packs","units"].map(u=><option key={u} value={u}>{u}</option>)}
                     </select>
-                    <input type="number" min="0" step="0.01" value={it.unit_price} onChange={e=>updateItem(idx,"unit_price",e.target.value)} style={{width:"100%",padding:"5px 7px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
-                    <div style={{fontSize:12,fontWeight:700,color:"#0f172a",textAlign:"right",paddingRight:4}}>{itemTotal(it).toLocaleString("en-KE",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+                    <input type="number" min="0" step="0.01" value={it.unit_price} onChange={e=>updateItem(idx,"unit_price",e.target.value)} style={{width:"100%",padding:"5px 7px",border:`1px solid ${T.border}`,borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box",background:T.bg,color:T.fg}}/>
+                    <div style={{fontSize:12,fontWeight:700,color:T.fg,textAlign:"right",paddingRight:4}}>{itemTotal(it).toLocaleString("en-KE",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
                     <button type="button" onClick={()=>removeItemRow(idx)} disabled={reqItems.length===1} style={{background:"none",border:"none",cursor:reqItems.length===1?"not-allowed":"pointer",padding:2,opacity:reqItems.length===1?0.3:1,display:"flex",justifyContent:"center"}}>
-                      <X style={{width:13,height:13,color:"#dc2626"}}/>
+                      <X style={{width:13,height:13,color:T.error}}/>
                     </button>
                   </div>
                 ))}
-                <div style={{display:"flex",justifyContent:"flex-end",padding:"8px 12px",background:"#f8fafc",borderTop:"1px solid #e5e7eb",fontSize:13,fontWeight:800,color:"#0f172a"}}>
+                <div style={{display:"flex",justifyContent:"flex-end",padding:"8px 12px",background:T.bg,borderTop:`1px solid ${T.border}`,fontSize:13,fontWeight:800,color:T.fg}}>
                   {currencySymbol} {itemsGrandTotal.toLocaleString("en-KE",{minimumFractionDigits:2})}
                 </div>
               </div>
             </div>
-            <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
-              <button onClick={()=>save()} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
-                {saving?"Saving-":editReq?"Update Requisition":"Create Requisition"}
+
+            <div style={{padding:"14px 22px",borderTop:`1px solid ${T.border}`,display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={closeFormAll} style={{padding:"9px 20px",borderRadius:T.rMd,border:`1px solid ${T.border}`,background:T.bg2,cursor:"pointer",fontSize:13,fontWeight:600,color:T.fgMuted}}>Cancel</button>
+              <button onClick={()=>save()} disabled={saving} style={{padding:"9px 22px",borderRadius:T.rMd,border:"none",background:T.success,cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
+                {saving?"Saving…":editReq?"Update Requisition":"Create Requisition"}
               </button>
               {!editReq&&(
-                <button onClick={async()=>{await save();/* submit after save handled by status */}} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
+                <button onClick={async()=>{await save();/* submit after save handled by status */}} disabled={saving} style={{padding:"9px 22px",borderRadius:T.rMd,border:"none",background:T.primary,cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                   Save &amp; Submit
                 </button>
               )}
@@ -624,22 +593,22 @@ export default function RequisitionsPage() {
 
       {/* - VIEW DETAIL MODAL - */}
       {viewReq&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:700,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-            <div style={{padding:"18px 22px 14px",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#0369a1,#1d4ed8)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <ClipboardList style={{width:18,height:18,color:"#fff"}}/>
+        <div style={modalOverlay}>
+          <div style={{...modalBox,maxWidth:700}}>
+            <div style={{padding:"18px 22px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:T.rMd,background:T.primaryBg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <ClipboardList style={{width:18,height:18,color:T.primary}}/>
               </div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:800,color:"#0f172a"}}>{viewReq.requisition_number}</div>
-                <div style={{fontSize:11,color:"#64748b"}}>{viewReq.title}</div>
+                <div style={{fontSize:15,fontWeight:800,color:T.fg}}>{viewReq.requisition_number}</div>
+                <div style={{fontSize:11,color:T.fgMuted}}>{viewReq.title}</div>
               </div>
-              <span className="status-chip" style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||"#f3f4f6",color:STATUS_CFG[viewReq.status]?.color||"#374151",fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||"#e5e7eb"}`}}>
+              <span className="status-chip" style={{padding:"4px 12px",borderRadius:16,background:STATUS_CFG[viewReq.status]?.bg||T.bg2,color:STATUS_CFG[viewReq.status]?.color||T.fgMuted,fontSize:12,fontWeight:700,border:`1px solid ${STATUS_CFG[viewReq.status]?.border||T.border}`}}>
                   <DocumentStamp status={viewReq.status} date={viewReq.created_at} size={100} rotate={-12} />
                 {STATUS_CFG[viewReq.status]?.label||viewReq.status}
               </span>
-              <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
-                <X style={{width:16,height:16,color:"#64748b"}}/>
+              <button onClick={()=>setViewReq(null)} style={{padding:8,borderRadius:T.rMd,border:"none",background:T.bg2,cursor:"pointer",lineHeight:0}}>
+                <X style={{width:16,height:16,color:T.fgMuted}}/>
               </button>
             </div>
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -660,42 +629,42 @@ export default function RequisitionsPage() {
                 {l:"Notes",v:viewReq.notes||"-",span:2},
                 ...(viewReq.status==="rejected"?[{l:"Rejection Reason",v:viewReq.rejection_reason||"-",span:2,warn:true}]:[]),
               ].map((row:any,i:number)=>(
-                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?"rgba(239,68,68,0.15)":"#f8fafc",borderRadius:8,border: `1px solid ${row.warn?"#fca5a5":"#f0f0f0"}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:row.warn?"#dc2626":"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
-                  <div style={{fontSize:13,fontWeight:600,color:row.warn?"#dc2626":"#1f2937"}}>{row.v}</div>
+                <div key={i} style={{gridColumn:row.span===2?"span 2":"span 1",padding:"8px 12px",background:row.warn?T.errorBg:T.bg,borderRadius:T.rMd,border: `1px solid ${row.warn?"#fca5a5":T.border}`}}>
+                  <div style={{fontSize:10,fontWeight:700,color:row.warn?T.error:T.fgDim,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:2}}>{row.l}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:row.warn?T.error:T.fg}}>{row.v}</div>
                 </div>
               ))}
             </div>
             {viewItems.length > 0 && (
               <div style={{padding:"0 22px 18px"}}>
-                <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:6}}>Items Requested ({viewItems.length})</div>
-                <div style={{border:"1px solid #f0f0f0",borderRadius:8,overflow:"hidden"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"2fr 60px 90px 90px",gap:0,background:"#f8fafc",padding:"6px 10px",fontSize:9.5,fontWeight:700,color:"#94a3b8",textTransform:"uppercase"}}>
+                <div style={{fontSize:10,fontWeight:700,color:T.fgDim,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:6}}>Items Requested ({viewItems.length})</div>
+                <div style={{border:`1px solid ${T.border}`,borderRadius:T.rMd,overflow:"hidden"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"2fr 60px 90px 90px",gap:0,background:T.bg,padding:"6px 10px",fontSize:9.5,fontWeight:700,color:T.fgDim,textTransform:"uppercase"}}>
                     <span>Item</span><span>Qty</span><span>Unit Price</span><span>Total</span>
                   </div>
                   {viewItems.map((it:any)=>(
-                    <div key={it.id} style={{display:"grid",gridTemplateColumns:"2fr 60px 90px 90px",gap:0,padding:"6px 10px",fontSize:12,borderTop:"1px solid #f4f4f5"}}>
-                      <span style={{fontWeight:600,color:"#1f2937"}}>{it.item_name}</span>
-                      <span style={{color:"#64748b"}}>{it.quantity} {it.unit_of_measure}</span>
-                      <span style={{color:"#64748b"}}>{currencySymbol} {Number(it.unit_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</span>
-                      <span style={{fontWeight:700,color:"#0f172a"}}>{currencySymbol} {Number(it.total_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</span>
+                    <div key={it.id} style={{display:"grid",gridTemplateColumns:"2fr 60px 90px 90px",gap:0,padding:"6px 10px",fontSize:12,borderTop:`1px solid ${T.border}`}}>
+                      <span style={{fontWeight:600,color:T.fg}}>{it.item_name}</span>
+                      <span style={{color:T.fgMuted}}>{it.quantity} {it.unit_of_measure}</span>
+                      <span style={{color:T.fgMuted}}>{currencySymbol} {Number(it.unit_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</span>
+                      <span style={{fontWeight:700,color:T.fg}}>{currencySymbol} {Number(it.total_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" as const}}>
+            <div style={{padding:"12px 22px",borderTop:`1px solid ${T.border}`,display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" as const}}>
               {(viewReq.status==="submitted"||viewReq.status==="pending")&&canApprove&&(
                 <>
-                  <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Approve</button>
-                  <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Reject</button>
+                  <button onClick={()=>{approve(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:T.rMd,border:"none",background:T.success,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>Approve</button>
+                  <button onClick={()=>{setRejectId(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:T.rMd,border:"none",background:T.error,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>Reject</button>
                 </>
               )}
               {viewReq.status==="draft"&&(
-                <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#3b82f6",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>- Submit for Approval</button>
+                <button onClick={()=>{submit(viewReq.id);setViewReq(null);}} style={{padding:"8px 18px",borderRadius:T.rMd,border:"none",background:T.primary,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>Submit for Approval</button>
               )}
-              <button onClick={()=>(printRequisition as any)(viewReq, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>- Print</button>
-              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:12,fontWeight:600,color:"#374151"}}>Close</button>
+              <button onClick={()=>(printRequisition as any)(viewReq, [], {hospitalName:getSetting("hospital_name","Embu Level 5 Hospital"),sysName:getSetting("system_name","EL5 MediProcure"),docFooter:getSetting("doc_footer",""),currencySymbol,logoUrl:getSetting("logo_url")||"",printFont:getSetting("print_font","Times New Roman"),printFontSize:getSetting("print_font_size","11"),showStamp:true})} style={{padding:"8px 18px",borderRadius:T.rMd,border:`1px solid ${T.border}`,background:T.bg2,cursor:"pointer",fontSize:12,fontWeight:600,color:T.fgMuted}}>Print</button>
+              <button onClick={()=>setViewReq(null)} style={{padding:"8px 18px",borderRadius:T.rMd,border:`1px solid ${T.border}`,background:T.bg2,cursor:"pointer",fontSize:12,fontWeight:600,color:T.fgMuted}}>Close</button>
             </div>
           </div>
         </div>
@@ -703,21 +672,21 @@ export default function RequisitionsPage() {
 
       {/* - REJECT DIALOG - */}
       {rejectId&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:440,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{...modalOverlay,zIndex:300}}>
+          <div style={{background:T.card,borderRadius:T.rXl,padding:24,maxWidth:440,width:"90%",boxShadow:T.shadowLg}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-              <AlertTriangle style={{width:22,height:22,color:"#dc2626"}}/>
-              <div style={{fontSize:15,fontWeight:800,color:"#0f172a"}}>Reject Requisition</div>
+              <AlertTriangle style={{width:22,height:22,color:T.error}}/>
+              <div style={{fontSize:15,fontWeight:800,color:T.fg}}>Reject Requisition</div>
             </div>
-            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)-" rows={3} style={{width:"100%",padding:"10px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:14}}/>
+            <textarea value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Enter reason for rejection (required)…" rows={3} style={{...inputStyle,resize:"vertical",marginBottom:14}}/>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
-              <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
+              <button onClick={()=>{setRejectId(null);setRejectReason("");}} style={{padding:"8px 18px",borderRadius:T.rMd,border:`1px solid ${T.border}`,background:T.bg2,cursor:"pointer",fontSize:13,fontWeight:600,color:T.fgMuted}}>Cancel</button>
+              <button onClick={rejectConfirm} disabled={!rejectReason.trim()} style={{padding:"8px 18px",borderRadius:T.rMd,border:"none",background:T.error,color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,opacity:!rejectReason.trim()?0.5:1}}>Confirm Reject</button>
             </div>
           </div>
         </div>
       )}
+      <style>{spinKeyframes}</style>
     </div>
   );
 }
-
