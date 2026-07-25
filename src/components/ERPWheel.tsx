@@ -1,14 +1,23 @@
 /**
  * ProcurBosse — ERP Wheel (Dynamics-365 style radial navigator)
- * Pure-SVG circular navigator: 10 segments around a hub, each opens a module.
- * Used on the main dashboard and Finance Desktop.
+ * Pure-SVG circular navigator: segments around a hub, each opens a module.
+ * Rendered on the main Dashboard (DashboardPage.tsx).
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart, TrendingUp, Package, Truck, DollarSign, FileText,
-  Users, Shield, Layers, Radio, ClipboardList,
+  Users, Shield, Layers, Radio, ClipboardList, Receipt, ClipboardCheck,
 } from "lucide-react";
+
+// Role sets mirrored exactly from App.tsx's RoleGuard allowlists for each
+// target route, so the wheel never shows a tile that dead-ends at a
+// "forbidden" screen. Previously every DEFAULT_SEGMENTS entry had no
+// `roles` at all, so every signed-in user — down to a warehouse officer —
+// saw all 10 tiles including Finance, People (user admin), etc.
+const ADMINS  = ["admin", "superadmin", "webmaster"];
+const FINANCE = ["admin", "procurement_manager", "accountant", "finance_manager", "finance_officer"];
+const PROCURE = ["admin", "procurement_manager", "procurement_officer"];
 
 export interface WheelSegment {
   id: string;
@@ -17,19 +26,22 @@ export interface WheelSegment {
   icon: React.ComponentType<{ size?: number; color?: string }>;
   path: string;
   roles?: string[];
+  badge?: number;
 }
 
-const DEFAULT_SEGMENTS: WheelSegment[] = [
-  { id: "requisitions",   label: "Requisitions",  color: "#1B5CA8", icon: ClipboardList, path: "/requisitions" },
-  { id: "procurement",    label: "Procurement",   color: "#1E6BB8", icon: ShoppingCart,  path: "/purchase-orders" },
-  { id: "inventory",      label: "Inventory",     color: "#227AC5", icon: Package,       path: "/items" },
-  { id: "suppliers",      label: "Suppliers",     color: "#2789D0", icon: Truck,         path: "/suppliers" },
-  { id: "finance",        label: "Finance",       color: "#2C98DC", icon: DollarSign,    path: "/finance-dashboard" },
-  { id: "reports",        label: "Reports & BI",  color: "#1E6BB8", icon: TrendingUp,    path: "/reports" },
-  { id: "documents",      label: "Documents",     color: "#1B5CA8", icon: FileText,      path: "/documents" },
-  { id: "quality",        label: "Quality",       color: "#194F94", icon: Shield,        path: "/quality/dashboard" },
-  { id: "users",          label: "People",        color: "#16447F", icon: Users,         path: "/users" },
-  { id: "comms",          label: "Comms",         color: "#133A6D", icon: Radio,         path: "/communications" },
+export const DEFAULT_SEGMENTS: WheelSegment[] = [
+  { id: "requisitions",   label: "Requisitions",  color: "#1B5CA8", icon: ClipboardList,   path: "/requisitions",     roles: [...PROCURE, "requisitioner", "warehouse_officer", "inventory_manager"] },
+  { id: "procurement",    label: "Procurement",   color: "#1E6BB8", icon: ShoppingCart,    path: "/purchase-orders",  roles: [...PROCURE, ...FINANCE] },
+  { id: "inventory",      label: "Inventory",     color: "#227AC5", icon: Package,         path: "/items" },
+  { id: "suppliers",      label: "Suppliers",     color: "#2789D0", icon: Truck,           path: "/suppliers",        roles: PROCURE },
+  { id: "finance",        label: "Finance",       color: "#2C98DC", icon: DollarSign,      path: "/finance-dashboard",roles: ["admin", "finance_manager", "finance_officer", "accountant", "procurement_manager"] },
+  { id: "invoice-match",  label: "Invoice Match", color: "#0EA5A0", icon: ClipboardCheck,  path: "/invoice-matching", roles: FINANCE },
+  { id: "reports",        label: "Reports & BI",  color: "#1E6BB8", icon: TrendingUp,      path: "/reports" },
+  { id: "documents",      label: "Documents",     color: "#1B5CA8", icon: FileText,        path: "/documents" },
+  { id: "quality",        label: "Quality",       color: "#194F94", icon: Shield,          path: "/quality/dashboard" },
+  { id: "forms",          label: "Forms",         color: "#C45911", icon: Receipt,         path: "/forms" },
+  { id: "users",          label: "People",        color: "#16447F", icon: Users,           path: "/users",            roles: [...ADMINS, "database_admin"] },
+  { id: "comms",          label: "Comms",         color: "#133A6D", icon: Radio,           path: "/communications" },
 ];
 
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
@@ -164,6 +176,15 @@ export default function ERPWheel({
                   <Icon size={22} color="#fff" />
                 </div>
               </foreignObject>
+              {!!seg.badge && (
+                <g pointerEvents="none">
+                  <circle cx={iconP.x + 14} cy={iconP.y - 14} r={9} fill="#dc2626" stroke="#fff" strokeWidth={1.5} />
+                  <text x={iconP.x + 14} y={iconP.y - 14} textAnchor="middle" dominantBaseline="central"
+                        fill="#fff" fontSize={9.5} fontWeight={800} style={{ fontFamily: "'Segoe UI',sans-serif" }}>
+                    {seg.badge > 99 ? "99+" : seg.badge}
+                  </text>
+                </g>
+              )}
               <text x={labelP.x} y={labelP.y}
                     textAnchor="middle" dominantBaseline="middle"
                     fill="#ffffff" fontSize={10.5} fontWeight={700}

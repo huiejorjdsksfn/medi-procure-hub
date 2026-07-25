@@ -70,6 +70,7 @@ export default function RequisitionsPage() {
   const [statusTab,  setStatusTab]  = useState("all");
   const [priority,   setPriority]   = useState("all");
   const [viewReq,    setViewReq]    = useState<any>(null);
+  const [viewItems,  setViewItems]  = useState<any[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [showForm,   setShowForm]   = useState(false);
   const [editReq,    setEditReq]    = useState<any>(null);
@@ -81,6 +82,38 @@ export default function RequisitionsPage() {
 
   const EMPTY_FORM = {title:"",department:"",priority:"normal",notes:"",delivery_date:"",justification:"",cost_centre:"",fund_source:"County Fund"};
   const [form, setForm] = useState({...EMPTY_FORM});
+
+  // Line items — requisitions had no way to record what's actually being
+  // requested beyond a free-text title; total_amount was never computed
+  // from anything real. requisition_items already exists as a table and
+  // is even queried (.select("*,requisition_items(count)")) but nothing
+  // ever wrote to it or displayed it. DocumentAnalyzerButton could
+  // AI-detect real items from an uploaded doc but had to dump them into
+  // the notes field as text, since there was nowhere structured to put
+  // them.
+  const EMPTY_ITEM = { item_name: "", quantity: "1", unit_of_measure: "pcs", unit_price: "0", description: "" };
+  const [reqItems, setReqItems] = useState<any[]>([{ ...EMPTY_ITEM }]);
+
+  const itemTotal = (it: any) => (Number(it.quantity) || 0) * (Number(it.unit_price) || 0);
+  const itemsGrandTotal = reqItems.reduce((s, it) => s + itemTotal(it), 0);
+
+  const updateItem = (idx: number, field: string, value: string) =>
+    setReqItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+  const addItemRow = () => setReqItems(prev => [...prev, { ...EMPTY_ITEM }]);
+  const removeItemRow = (idx: number) => setReqItems(prev => prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev);
+
+  const loadItemsForEdit = useCallback(async (requisitionId: string) => {
+    const { data } = await (supabase as any).from("requisition_items").select("*").eq("requisition_id", requisitionId);
+    if (data && data.length) {
+      setReqItems(data.map((r: any) => ({
+        id: r.id, item_name: r.item_name || "", quantity: String(r.quantity ?? 1),
+        unit_of_measure: r.unit_of_measure || "pcs", unit_price: String(r.unit_price ?? 0),
+        description: r.description || "",
+      })));
+    } else {
+      setReqItems([{ ...EMPTY_ITEM }]);
+    }
+  }, []);
 
   const conflictResolver = useConflictResolver({
     table: "requisitions",
@@ -151,6 +184,12 @@ export default function RequisitionsPage() {
     }
   }, [reqs, searchParams, setSearchParams]);
 
+  useEffect(() => {
+    if (!viewReq?.id) { setViewItems([]); return; }
+    (supabase as any).from("requisition_items").select("*").eq("requisition_id", viewReq.id)
+      .then(({ data }: any) => setViewItems(data || []));
+  }, [viewReq?.id]);
+
   // Real-time
   useEffect(()=>{
     const ch=(supabase as any).channel("reqs-v3").on("postgres_changes",{event:"*",schema:"public",table:"requisitions"},load).subscribe();
@@ -180,21 +219,42 @@ export default function RequisitionsPage() {
 
   async function save(){
     if(!form.title.trim()){toast({title:"Requisition title is required",variant:"destructive"});return;}
+    const cleanItems = reqItems.filter(it => it.item_name.trim());
     setSaving(true);
     const num = editReq?.requisition_number||genDocNumber("RQQ");
-    const payload={...form,requisition_number:num,status:editReq?.status||"draft",requested_by:user?.id,requester_name:profile?.full_name};
-    let error:any;
+    const payload={...form,requisition_number:num,status:editReq?.status||"draft",requested_by:user?.id,requester_name:profile?.full_name,total_amount:itemsGrandTotal,items_count:cleanItems.length};
+    let error:any; let reqId = editReq?.id;
     if(editReq){
       ({error}=await (supabase as any).from("requisitions").update({ ...payload, updated_at: new Date().toISOString() }).eq("id",editReq.id));
     } else {
-      ({error}=await (supabase as any).from("requisitions").insert(payload));
+      const { data, error: insErr } = await (supabase as any).from("requisitions").insert(payload).select("id").single();
+      error = insErr; reqId = data?.id;
     }
     if(error){toast({title:"Save failed",description:error.message||"Database error",variant:"destructive"});setSaving(false);return;}
+
+    if (reqId) {
+      // Replace this requisition's line items wholesale — simplest reliable
+      // approach for a per-requisition item list of this size, and avoids
+      // needing to reconcile which rows were edited vs added vs removed.
+      await (supabase as any).from("requisition_items").delete().eq("requisition_id", reqId);
+      if (cleanItems.length) {
+        await (supabase as any).from("requisition_items").insert(cleanItems.map(it => ({
+          requisition_id: reqId,
+          item_name: it.item_name.trim(),
+          quantity: Number(it.quantity) || 0,
+          unit_of_measure: it.unit_of_measure || "pcs",
+          unit_price: Number(it.unit_price) || 0,
+          total_price: itemTotal(it),
+          description: it.description?.trim() || null,
+        })));
+      }
+    }
+
     conflictResolver.clearDirty();
     conflictResolver.setBaseline({ ...form, ...payload });
     if (formCacheKey) { try { localStorage.removeItem(formCacheKey); } catch {} }
     toast({title:editReq?"Requisition updated -":"Requisition created -",description:num});
-    setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); load();
+    setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); setReqItems([{...EMPTY_ITEM}]); load();
     setSaving(false);
   }
 
@@ -233,7 +293,7 @@ export default function RequisitionsPage() {
   const pendingCount=COUNTS.submitted+COUNTS.pending;
 
   const toggleSort=(col:string)=>{if(sortCol===col)setSortAsc(a=>!a);else{setSortCol(col);setSortAsc(true);}};
-  const SortInd=({col}:{col:string})=>sortCol===col?<span style={{fontSize:9,marginLeft:3}}>{sortAsc?"-":"-"}</span>:null;
+  const SortInd=({col}:{col:string})=>sortCol===col?<span style={{fontSize:9,marginLeft:3}}>{sortAsc?"▲":"▼"}</span>:null;
 
   // - Render -
   return (
@@ -274,7 +334,7 @@ export default function RequisitionsPage() {
             <RefreshCw style={{width:13,height:13}}/> Refresh
           </button>
           {canCreate&&(
-            <button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();setShowForm(true);}}
+            <button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();setShowForm(true);}}
               style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:12,fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(5,150,105,0.35)"}}>
               <Plus style={{width:14,height:14}}/> New Requisition
             </button>
@@ -350,7 +410,7 @@ export default function RequisitionsPage() {
                 <tr><td colSpan={10} style={{padding:40,textAlign:"center"}}>
                   <ClipboardList style={{width:32,height:32,color:"#d1d5db",display:"block",margin:"0 auto 8px"}}/>
                   <div style={{fontSize:13,color:"#9ca3af"}}>No requisitions found{search?` for "${search}"`:""}.</div>
-                  {canCreate&&!search&&<button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();setShowForm(true);}} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
+                  {canCreate&&!search&&<button onClick={()=>{setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();setShowForm(true);}} style={{marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600}}>Create First Requisition</button>}
                 </td></tr>
               )}
               {!loading&&filtered.map((r,ri)=>{
@@ -393,7 +453,7 @@ export default function RequisitionsPage() {
                           <Eye style={{width:13,height:13,color:"#0369a1"}}/>
                         </button>
                         {(isDraft||r.requested_by===user?.id)&&(
-                          <button title="Edit" onClick={()=>{const nextForm={title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"};setEditReq(r);setForm(nextForm);conflictResolver.clearDirty();conflictResolver.setBaseline(nextForm);setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <button title="Edit" onClick={()=>{const nextForm={title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"};setEditReq(r);setForm(nextForm);loadItemsForEdit(r.id);conflictResolver.clearDirty();conflictResolver.setBaseline(nextForm);setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:"#f0fdf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                             <Edit3 style={{width:13,height:13,color:"#059669"}}/>
                           </button>
                         )}
@@ -457,7 +517,7 @@ export default function RequisitionsPage() {
                 <div style={{fontSize:16,fontWeight:800,color:"#0f172a"}}>{editReq?"Edit Requisition":"New Requisition"}</div>
                 <div style={{fontSize:11,color:"#64748b"}}>Embu Level 5 Hospital - {editReq?.requisition_number||"New"}</div>
               </div>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();}} style={{marginLeft:"auto",padding:8,borderRadius:8,border:"none",background:"#f3f4f6",cursor:"pointer",lineHeight:0}}>
                 <X style={{width:16,height:16,color:"#64748b"}}/>
               </button>
             </div>
@@ -472,10 +532,16 @@ export default function RequisitionsPage() {
                       title: f.title ?? p.title,
                       department: f.department ?? p.department,
                       justification: f.justification ?? p.justification,
-                      notes: Array.isArray(f.items) && f.items.length
-                        ? [p.notes, "AI-detected items: "+f.items.map((it:any)=>`${it.name||"?"}${it.quantity?` x${it.quantity}`:""}${it.unit?` ${it.unit}`:""}`).join(", ")].filter(Boolean).join(" · ")
-                        : p.notes,
                     }));
+                    if (Array.isArray(f.items) && f.items.length) {
+                      setReqItems(f.items.map((it:any)=>({
+                        item_name: it.name || "",
+                        quantity: String(it.quantity || 1),
+                        unit_of_measure: it.unit || "pcs",
+                        unit_price: String(it.unit_price || 0),
+                        description: "",
+                      })));
+                    }
                   }} />
                 </div>
               )}
@@ -509,8 +575,40 @@ export default function RequisitionsPage() {
                 </div>
               ))}
             </div>
+
+            {/* Line items */}
+            <div style={{padding:"0 22px 18px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                <label style={{fontSize:11.5,fontWeight:700,color:"#374151"}}>Items Requested</label>
+                <button type="button" onClick={addItemRow} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:7,border:"1px solid #d1d5db",background:"#f9fafb",cursor:"pointer",fontSize:11,fontWeight:600,color:"#374151"}}>
+                  <Plus style={{width:11,height:11}}/> Add Item
+                </button>
+              </div>
+              <div style={{border:"1px solid #e5e7eb",borderRadius:10,overflow:"hidden"}}>
+                <div style={{display:"grid",gridTemplateColumns:"2fr 70px 90px 100px 90px 30px",gap:0,background:"#f8fafc",padding:"6px 8px",fontSize:9.5,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:".03em"}}>
+                  <span>Item</span><span>Qty</span><span>Unit</span><span>Unit Price</span><span>Total</span><span/>
+                </div>
+                {reqItems.map((it,idx)=>(
+                  <div key={idx} style={{display:"grid",gridTemplateColumns:"2fr 70px 90px 100px 90px 30px",gap:6,padding:"6px 8px",alignItems:"center",borderTop:"1px solid #f1f5f9"}}>
+                    <input value={it.item_name} onChange={e=>updateItem(idx,"item_name",e.target.value)} placeholder="Item name…" style={{width:"100%",padding:"5px 7px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+                    <input type="number" min="0" value={it.quantity} onChange={e=>updateItem(idx,"quantity",e.target.value)} style={{width:"100%",padding:"5px 7px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+                    <select value={it.unit_of_measure} onChange={e=>updateItem(idx,"unit_of_measure",e.target.value)} style={{width:"100%",padding:"5px 4px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box"}}>
+                      {["pcs","boxes","cartons","litres","kg","packs","units"].map(u=><option key={u} value={u}>{u}</option>)}
+                    </select>
+                    <input type="number" min="0" step="0.01" value={it.unit_price} onChange={e=>updateItem(idx,"unit_price",e.target.value)} style={{width:"100%",padding:"5px 7px",border:"1px solid #e5e7eb",borderRadius:6,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+                    <div style={{fontSize:12,fontWeight:700,color:"#0f172a",textAlign:"right",paddingRight:4}}>{itemTotal(it).toLocaleString("en-KE",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+                    <button type="button" onClick={()=>removeItemRow(idx)} disabled={reqItems.length===1} style={{background:"none",border:"none",cursor:reqItems.length===1?"not-allowed":"pointer",padding:2,opacity:reqItems.length===1?0.3:1,display:"flex",justifyContent:"center"}}>
+                      <X style={{width:13,height:13,color:"#dc2626"}}/>
+                    </button>
+                  </div>
+                ))}
+                <div style={{display:"flex",justifyContent:"flex-end",padding:"8px 12px",background:"#f8fafc",borderTop:"1px solid #e5e7eb",fontSize:13,fontWeight:800,color:"#0f172a"}}>
+                  {currencySymbol} {itemsGrandTotal.toLocaleString("en-KE",{minimumFractionDigits:2})}
+                </div>
+              </div>
+            </div>
             <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});conflictResolver.clearDirty();}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
+              <button onClick={()=>{setShowForm(false);setEditReq(null);setForm({...EMPTY_FORM});setReqItems([{...EMPTY_ITEM}]);conflictResolver.clearDirty();}} style={{padding:"9px 20px",borderRadius:9,border:"1px solid #d1d5db",background:"#f3f4f6",cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>Cancel</button>
               <button onClick={()=>save()} disabled={saving} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#0d9488)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff",opacity:saving?0.7:1}}>
                 {saving?"Saving-":editReq?"Update Requisition":"Create Requisition"}
               </button>
@@ -568,6 +666,24 @@ export default function RequisitionsPage() {
                 </div>
               ))}
             </div>
+            {viewItems.length > 0 && (
+              <div style={{padding:"0 22px 18px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:6}}>Items Requested ({viewItems.length})</div>
+                <div style={{border:"1px solid #f0f0f0",borderRadius:8,overflow:"hidden"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"2fr 60px 90px 90px",gap:0,background:"#f8fafc",padding:"6px 10px",fontSize:9.5,fontWeight:700,color:"#94a3b8",textTransform:"uppercase"}}>
+                    <span>Item</span><span>Qty</span><span>Unit Price</span><span>Total</span>
+                  </div>
+                  {viewItems.map((it:any)=>(
+                    <div key={it.id} style={{display:"grid",gridTemplateColumns:"2fr 60px 90px 90px",gap:0,padding:"6px 10px",fontSize:12,borderTop:"1px solid #f4f4f5"}}>
+                      <span style={{fontWeight:600,color:"#1f2937"}}>{it.item_name}</span>
+                      <span style={{color:"#64748b"}}>{it.quantity} {it.unit_of_measure}</span>
+                      <span style={{color:"#64748b"}}>{currencySymbol} {Number(it.unit_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</span>
+                      <span style={{fontWeight:700,color:"#0f172a"}}>{currencySymbol} {Number(it.total_price||0).toLocaleString("en-KE",{minimumFractionDigits:2})}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{padding:"12px 22px",borderTop:"1px solid #f3f4f6",display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" as const}}>
               {(viewReq.status==="submitted"||viewReq.status==="pending")&&canApprove&&(
                 <>
