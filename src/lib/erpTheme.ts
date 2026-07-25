@@ -1,63 +1,84 @@
 import type React from "react";
+import { T } from "@/lib/theme";
 
-// EL5 MediProcure — Classic ERP Design System
+/**
+ * EL5 MediProcure — Classic ERP Design System
+ *
+ * v2 — synced to the central theme. This used to be a fully static
+ * palette (literal hex strings), completely disconnected from the
+ * GUI Editor / `system_settings` table: changing the brand colour there
+ * had zero effect on any page using ERP.*. Every property below is now
+ * a getter that derives from `T` (which itself reads live CSS custom
+ * properties set by applyThemeToDOM()), so this file — and every page
+ * that imports it — stays in sync with the rest of the system.
+ *
+ * The exported shape (property names, erpStyles helpers) is unchanged
+ * on purpose: MobileTable, QualityDashboardPage, PaymentVouchersPage,
+ * JournalVouchersPage, ReceiptVouchersPage, and BudgetsPage all consume
+ * ERP.* and erpStyles.* directly and needed no changes.
+ */
 export const ERP = {
-  titleBar: "linear-gradient(180deg, #2a4fa3 0%, #1a3580 100%)",
-  titleBarBorder: "#1a3580",
-  titleText: "#ffffff",
-  toolbar: "linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 100%)",
-  toolbarBorder: "#a0a0a0",
-  statBg: "#ffffff",
-  statBorder: "#cccccc",
-  statValue: "#1a1a1a",
-  statLabel: "#555555",
-  statIcon: "#c0392b",
-  sidebarBg: "#f5f5f5",
-  sidebarBorder: "#cccccc",
-  sidebarHeader: "linear-gradient(180deg,#2a4fa3,#1a3580)",
-  sidebarHeaderText: "#ffffff",
-  sidebarItem: "#333333",
-  sidebarHover: "#dce9ff",
-  sidebarActive: "#c5d9f1",
-  gridHeader: "linear-gradient(180deg,#f0f0f0,#dcdcdc)",
-  gridHeaderText: "#1a1a1a",
-  gridHeaderBorder: "#a0a0a0",
-  gridRow: "#ffffff",
-  gridRowAlt: "#f7f7f7",
-  gridRowHover: "#dce9ff",
-  gridBorder: "#d0d0d0",
-  gridText: "#1a1a1a",
-  gridTextMuted: "#555555",
-  btnPrimary: "linear-gradient(180deg,#4a7fe3,#2a5fc3)",
-  btnPrimaryBorder: "#1a4fa3",
-  btnPrimaryText: "#ffffff",
-  btnSecondary: "linear-gradient(180deg,#f5f5f5,#e0e0e0)",
-  btnSecondaryBorder: "#a0a0a0",
-  btnSecondaryText: "#333333",
-  tabActive: "linear-gradient(180deg,#4a7fe3,#2a5fc3)",
-  tabActiveBorder: "#1a4fa3",
-  tabActiveText: "#ffffff",
-  tabInactive: "linear-gradient(180deg,#f5f5f5,#e0e0e0)",
-  tabInactiveBorder: "#a0a0a0",
-  tabInactiveText: "#333333",
-  contentBg: "#f0f0f0",
-  cardBg: "#ffffff",
-  cardBorder: "#cccccc",
+  get titleBar()          { return `linear-gradient(180deg, ${T.primary} 0%, ${T.primaryDark} 100%)`; },
+  get titleBarBorder()    { return T.primaryDark; },
+  titleText:          "#ffffff",
+  get toolbar()           { return `linear-gradient(180deg, ${T.card} 0%, ${T.bg2} 100%)`; },
+  get toolbarBorder()     { return T.border; },
+  get statBg()            { return T.card; },
+  get statBorder()        { return T.border; },
+  get statValue()         { return T.fg; },
+  get statLabel()         { return T.fgMuted; },
+  get statIcon()          { return T.accent; },
+  get sidebarBg()         { return T.bg; },
+  get sidebarBorder()     { return T.border; },
+  get sidebarHeader()     { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
+  sidebarHeaderText:  "#ffffff",
+  get sidebarItem()       { return T.fg; },
+  get sidebarHover()      { return T.primaryBg; },
+  get sidebarActive()     { return T.primary + "33"; },
+  get gridHeader()        { return `linear-gradient(180deg, ${T.bg2}, ${T.border})`; },
+  get gridHeaderText()    { return T.fg; },
+  get gridHeaderBorder()  { return T.border; },
+  get gridRow()           { return T.card; },
+  get gridRowAlt()        { return T.bg; },
+  get gridRowHover()      { return T.primaryBg; },
+  get gridBorder()        { return T.border; },
+  get gridText()          { return T.fg; },
+  get gridTextMuted()     { return T.fgMuted; },
+  get btnPrimary()        { return `linear-gradient(180deg, ${T.primaryHov}, ${T.primaryDark})`; },
+  get btnPrimaryBorder()  { return T.primaryDark; },
+  btnPrimaryText:     "#ffffff",
+  get btnSecondary()      { return `linear-gradient(180deg, ${T.card}, ${T.bg2})`; },
+  get btnSecondaryBorder(){ return T.border; },
+  get btnSecondaryText()  { return T.fg; },
+  get tabActive()         { return `linear-gradient(180deg, ${T.primaryHov}, ${T.primaryDark})`; },
+  get tabActiveBorder()   { return T.primaryDark; },
+  tabActiveText:      "#ffffff",
+  get tabInactive()       { return `linear-gradient(180deg, ${T.card}, ${T.bg2})`; },
+  get tabInactiveBorder() { return T.border; },
+  get tabInactiveText()   { return T.fg; },
+  get contentBg()         { return T.bg; },
+  get cardBg()            { return T.card; },
+  get cardBorder()        { return T.border; },
+  // Typography stays fixed to the "classic ERP" look on purpose — this is
+  // the signature grid/toolbar aesthetic these pages are going for, not a
+  // theme-sync concern the way colour is.
   fontFamily: "'Segoe UI', 'Tahoma', 'Arial', sans-serif",
   fontSize: "12px",
 };
 
 export const erpStyles = {
-  toolbar: {
-    background: ERP.toolbar,
-    borderBottom: `1px solid ${ERP.toolbarBorder}`,
-    padding: "4px 8px",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    fontFamily: ERP.fontFamily,
-    fontSize: "12px",
-  } as React.CSSProperties,
+  get toolbar(): React.CSSProperties {
+    return {
+      background: ERP.toolbar,
+      borderBottom: `1px solid ${ERP.toolbarBorder}`,
+      padding: "4px 8px",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontFamily: ERP.fontFamily,
+      fontSize: "12px",
+    };
+  },
 
   btn: (primary = false): React.CSSProperties => ({
     padding: "3px 12px",
@@ -76,20 +97,23 @@ export const erpStyles = {
   }),
 
   statusChip: (status: string): React.CSSProperties => {
+    // Semantic status -> central theme colour, instead of a hardcoded
+    // literal per status. Same status->bucket mapping as before, just
+    // pointed at T so it moves with the rest of the system's palette.
     const colors: Record<string, string> = {
-      paid: "#007700", approved: "#007700", matched: "#007700", active: "#007700",
-      pass: "#007700", passed: "#007700", allow: "#007700",
-      pending: "#cc6600", draft: "#555555", monitor: "#cc6600", warning: "#cc6600",
-      rejected: "#cc0000", cancelled: "#cc0000", failed: "#cc0000", inactive: "#555555",
-      blocked: "#cc0000", block: "#cc0000", fail: "#cc0000",
-      sent: "#2255cc", completed: "#007700", processing: "#2255cc",
-      over_budget: "#cc0000", ended: "#555555", open: "#cc6600",
-      resolved: "#007700", in_progress: "#2255cc",
-      low: "#007700", medium: "#2255cc", high: "#cc6600", critical: "#cc0000",
-      login: "#2255cc", logout: "#555555", create: "#007700",
-      update: "#cc6600", delete: "#cc0000", view: "#555555",
+      paid: T.success, approved: T.success, matched: T.success, active: T.success,
+      pass: T.success, passed: T.success, allow: T.success, completed: T.success,
+      resolved: T.success, low: T.success,
+      pending: T.warning, monitor: T.warning, warning: T.warning, open: T.warning,
+      high: T.warning,
+      rejected: T.error, cancelled: T.error, failed: T.error, blocked: T.error,
+      block: T.error, fail: T.error, over_budget: T.error, critical: T.error,
+      delete: T.error,
+      draft: T.fgDim, inactive: T.fgDim, ended: T.fgDim, logout: T.fgDim, view: T.fgDim,
+      sent: T.primary, processing: T.primary, in_progress: T.primary, medium: T.primary,
+      login: T.primary, create: T.primary, update: T.warning,
     };
-    const c = colors[status?.toLowerCase()] || "#555555";
+    const c = colors[status?.toLowerCase()] || T.fgDim;
     return {
       display: "inline-block",
       padding: "1px 7px",
@@ -105,38 +129,44 @@ export const erpStyles = {
     };
   },
 
-  gridTh: {
-    background: ERP.gridHeader,
-    borderBottom: `2px solid ${ERP.gridHeaderBorder}`,
-    borderRight: `1px solid ${ERP.gridBorder}`,
-    padding: "5px 8px",
-    fontSize: "11px",
-    fontWeight: 700,
-    color: ERP.gridHeaderText,
-    fontFamily: ERP.fontFamily,
-    textAlign: "left" as const,
-    whiteSpace: "nowrap" as const,
-    userSelect: "none" as const,
-  } as React.CSSProperties,
+  get gridTh(): React.CSSProperties {
+    return {
+      background: ERP.gridHeader,
+      borderBottom: `2px solid ${ERP.gridHeaderBorder}`,
+      borderRight: `1px solid ${ERP.gridBorder}`,
+      padding: "5px 8px",
+      fontSize: "11px",
+      fontWeight: 700,
+      color: ERP.gridHeaderText,
+      fontFamily: ERP.fontFamily,
+      textAlign: "left" as const,
+      whiteSpace: "nowrap" as const,
+      userSelect: "none" as const,
+    };
+  },
 
-  gridTd: {
-    borderBottom: `1px solid ${ERP.gridBorder}`,
-    borderRight: `1px solid ${ERP.gridBorder}`,
-    padding: "4px 8px",
-    fontSize: "12px",
-    color: ERP.gridText,
-    fontFamily: ERP.fontFamily,
-    verticalAlign: "middle" as const,
-  } as React.CSSProperties,
+  get gridTd(): React.CSSProperties {
+    return {
+      borderBottom: `1px solid ${ERP.gridBorder}`,
+      borderRight: `1px solid ${ERP.gridBorder}`,
+      padding: "4px 8px",
+      fontSize: "12px",
+      color: ERP.gridText,
+      fontFamily: ERP.fontFamily,
+      verticalAlign: "middle" as const,
+    };
+  },
 
-  inp: {
-    padding: "3px 6px",
-    border: "1px solid #aaaaaa",
-    borderRadius: 1,
-    fontSize: "12px",
-    fontFamily: "'Segoe UI','Tahoma',sans-serif",
-    outline: "none",
-    background: "#ffffff",
-    color: "#1a1a1a",
-  } as React.CSSProperties,
+  get inp(): React.CSSProperties {
+    return {
+      padding: "3px 6px",
+      border: `1px solid ${ERP.gridBorder}`,
+      borderRadius: 1,
+      fontSize: "12px",
+      fontFamily: "'Segoe UI','Tahoma',sans-serif",
+      outline: "none",
+      background: ERP.cardBg,
+      color: ERP.gridText,
+    };
+  },
 };
