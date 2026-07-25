@@ -12,8 +12,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { toast } from "@/hooks/use-toast";
 import { T } from "@/lib/theme";
-import { Printer, FileText, Settings, RefreshCw, Download, Eye, ChevronRight, X, Save, BarChart3, FileSpreadsheet, Filter, Search, Play } from "lucide-react";
+import { Printer, FileText, Settings, RefreshCw, Download, Eye, ChevronRight, X, Save, BarChart3, FileSpreadsheet, Filter, Search, Play, LayoutGrid, Clock, History, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
+import { printDataTable } from "@/lib/printDocument";
 
 const db = supabase as any;
 
@@ -80,6 +81,17 @@ export default function PrintEnginePage() {
   const [tmplName,setTN]     = useState("");
   const [savingT,setSavingT] = useState(false);
 
+  // ── D365-style app switcher: Report Builder / Scheduled Reports /
+  // Print History — three real sub-apps in one shell, each wired to
+  // its own live table (report_schedules, print_jobs) instead of the
+  // page being a single flat report-builder screen. ──
+  const [app,setApp]           = useState<"builder"|"schedules"|"history">("builder");
+  const [schedules,setSchedules] = useState<any[]>([]);
+  const [schedLoading,setSchedLoading] = useState(false);
+  const [schedForm,setSchedForm] = useState({name:"",report_type:REPORT_TYPES[0].id,cron:"0 7 * * 1",format:"pdf",recipients:""});
+  const [printHistory,setPrintHistory] = useState<any[]>([]);
+  const [historyLoading,setHistoryLoading] = useState(false);
+
   const allCols=COLS[rt.id]||DEFAULT_COLS;
 
   useEffect(()=>{setCols((COLS[rt.id]||DEFAULT_COLS).filter(c=>c.def).map(c=>c.key));setRows([]);setTab("config");},[rt]);
@@ -107,11 +119,19 @@ export default function PrintEnginePage() {
   });
 
   const printReport=()=>{
-    const w=window.open("","_blank","width=1100,height=700");if(!w)return;
-    const thead=cols.map(k=>`<th>${(allCols.find(c=>c.key===k) as any)?.label||k}</th>`).join("");
-    const tbody=filtered.map(r=>`<tr>${cols.map(k=>`<td>${fmtV(r[k],k)}</td>`).join("")}</tr>`).join("");
-    w.document.write(`<!DOCTYPE html><html><head><title>${rt.label} Report</title><style>body{font-family:Segoe UI,Arial;margin:30px;font-size:11px;}h2{color:#1e1e2e;}table{width:100%;border-collapse:collapse;margin-top:14px;}th{background:#1e1e2e;color:#fff;padding:7px 10px;text-align:left;font-size:10px;}td{padding:6px 10px;border-bottom:1px solid #eee;}tr:nth-child(even) td{background:#f8f9fb;}.meta{color:#666;font-size:10px;}.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #1e1e2e;padding-bottom:10px;margin-bottom:14px;}@media print{button{display:none}}</style></head><body><div class="hdr"><div><h2>${rt.label} Report</h2><div class="meta">${hospital}</div></div><div class="meta" style="text-align:right">Generated: ${new Date().toLocaleString("en-KE")}<br/>By: ${profile?.full_name||"System"}<br/>Period: ${startDate} to ${endDate}<br/>Records: ${filtered.length}</div></div><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table><br/><button onclick="window.print()">Print</button></body></html>`);
-    w.document.close();setTimeout(()=>w.print(),400);
+    // Same bug as ReportsPage had: raw window.open()+HTML, no real logo
+    // image — just plain text. Switched to the same letterhead-templated
+    // PDF (real Embu County + hospital logo) every other printed
+    // document in the app already uses.
+    if(!filtered.length){ toast({title:"Nothing to print",variant:"destructive"}); return; }
+    printDataTable({
+      title: `${rt.label.toUpperCase()} REPORT`,
+      docNo: `${filtered.length} RECORDS`,
+      columns: cols.map(k=>(allCols.find(c=>c.key===k) as any)?.label||k),
+      rows: filtered.map(r=>cols.map(k=>fmtV(r[k],k))),
+      filename: `${rt.id}-report-${Date.now()}`,
+      meta: `Period: ${startDate} to ${endDate} · Generated ${new Date().toLocaleString("en-KE")} by ${profile?.full_name||"System"} · ${filtered.length} records`,
+    }).catch(()=>toast({title:"Print failed",variant:"destructive"}));
   };
 
   const exportExcel=()=>{
@@ -143,6 +163,57 @@ export default function PrintEnginePage() {
     toast({title:`Template "${t.name}" loaded`});
   };
 
+  // ── Scheduled Reports sub-app ──────────────────────────────────
+  const loadSchedules=useCallback(async()=>{
+    setSchedLoading(true);
+    const {data,error}=await db.from("report_schedules").select("*").order("created_at",{ascending:false});
+    if(error) toast({title:"Couldn't load schedules",description:error.message,variant:"destructive"});
+    setSchedules(data||[]);
+    setSchedLoading(false);
+  },[]);
+  useEffect(()=>{ if(app==="schedules") loadSchedules(); },[app,loadSchedules]);
+
+  const createSchedule=async()=>{
+    if(!schedForm.name.trim()){ toast({title:"Name required",variant:"destructive"}); return; }
+    const recipients=schedForm.recipients.split(",").map(s=>s.trim()).filter(Boolean);
+    const {error}=await db.from("report_schedules").insert({
+      name:schedForm.name, report_type:schedForm.report_type, cron:schedForm.cron,
+      format:schedForm.format, recipients, is_active:true, enabled:true,
+      created_by:profile?.id,
+    });
+    if(error){ toast({title:"Create failed",description:error.message,variant:"destructive"}); return; }
+    toast({title:"✓ Schedule created"});
+    setSchedForm({name:"",report_type:REPORT_TYPES[0].id,cron:"0 7 * * 1",format:"pdf",recipients:""});
+    loadSchedules();
+  };
+  const toggleSchedule=async(s:any)=>{
+    const next=!(s.is_active!==false);
+    await db.from("report_schedules").update({is_active:next,enabled:next}).eq("id",s.id);
+    loadSchedules();
+  };
+  const deleteSchedule=async(id:string)=>{
+    if(!confirm("Delete this scheduled report?")) return;
+    await db.from("report_schedules").delete().eq("id",id);
+    loadSchedules();
+  };
+
+  // ── Print History sub-app ──────────────────────────────────────
+  const loadPrintHistory=useCallback(async()=>{
+    setHistoryLoading(true);
+    const {data,error}=await db.from("print_jobs").select("*").order("created_at",{ascending:false}).limit(200);
+    if(error) toast({title:"Couldn't load print history",description:error.message,variant:"destructive"});
+    setPrintHistory(data||[]);
+    setHistoryLoading(false);
+  },[]);
+  useEffect(()=>{ if(app==="history") loadPrintHistory(); },[app,loadPrintHistory]);
+
+  const CRON_PRESETS=[
+    {label:"Every Monday 7am",value:"0 7 * * 1"},
+    {label:"1st of month 6am",value:"0 6 1 * *"},
+    {label:"Daily 8am",value:"0 8 * * *"},
+    {label:"Every Friday 5pm",value:"0 17 * * 5"},
+  ];
+
   return(
     <div style={S.page}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -163,6 +234,117 @@ export default function PrintEnginePage() {
         <span style={{cursor:"pointer",color:T.primary}} onClick={()=>nav("/dashboard")}>Home</span>
         <ChevronRight size={12}/><span>Reports</span><ChevronRight size={12}/><span style={{fontWeight:600}}>Print Engine</span>
       </div>
+
+      {/* D365-style app switcher — three real sub-apps in one shell */}
+      <div style={{display:"flex",gap:2,padding:"0 24px",background:"#fff",borderBottom:`1px solid ${T.border}`}}>
+        {[
+          {id:"builder" as const,  label:"Report Builder",   icon:LayoutGrid},
+          {id:"schedules" as const,label:"Scheduled Reports", icon:Clock},
+          {id:"history" as const,  label:"Print History",     icon:History},
+        ].map(a=>{
+          const Icon=a.icon; const active=app===a.id;
+          return (
+            <button key={a.id} onClick={()=>setApp(a.id)} style={{
+              display:"flex",alignItems:"center",gap:6,padding:"10px 16px",background:"transparent",border:"none",
+              borderBottom:active?`2px solid ${T.primary}`:"2px solid transparent",cursor:"pointer",
+              color:active?T.primary:T.fgMuted,fontSize:12.5,fontWeight:active?700:500,fontFamily:"inherit",
+            }}>
+              <Icon size={14}/>{a.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {app==="schedules" && (
+        <div style={{padding:"16px 24px",display:"flex",gap:16,alignItems:"flex-start"}}>
+          <div style={{width:280,flexShrink:0,...S.card,padding:16}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",alignItems:"center",gap:6}}><Plus size={14} color={T.primary}/>New Schedule</div>
+            <label style={{fontSize:10,fontWeight:700,color:T.fgMuted,display:"block",marginBottom:3}}>NAME</label>
+            <input value={schedForm.name} onChange={e=>setSchedForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Weekly Requisitions" style={{...S.inp,marginBottom:10}}/>
+            <label style={{fontSize:10,fontWeight:700,color:T.fgMuted,display:"block",marginBottom:3}}>REPORT TYPE</label>
+            <select value={schedForm.report_type} onChange={e=>setSchedForm(p=>({...p,report_type:e.target.value}))} style={{...S.inp,marginBottom:10}}>
+              {REPORT_TYPES.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}
+            </select>
+            <label style={{fontSize:10,fontWeight:700,color:T.fgMuted,display:"block",marginBottom:3}}>FREQUENCY</label>
+            <select value={schedForm.cron} onChange={e=>setSchedForm(p=>({...p,cron:e.target.value}))} style={{...S.inp,marginBottom:10}}>
+              {CRON_PRESETS.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <label style={{fontSize:10,fontWeight:700,color:T.fgMuted,display:"block",marginBottom:3}}>FORMAT</label>
+            <select value={schedForm.format} onChange={e=>setSchedForm(p=>({...p,format:e.target.value}))} style={{...S.inp,marginBottom:10}}>
+              <option value="pdf">PDF</option><option value="excel">Excel</option>
+            </select>
+            <label style={{fontSize:10,fontWeight:700,color:T.fgMuted,display:"block",marginBottom:3}}>RECIPIENTS (comma-separated emails)</label>
+            <input value={schedForm.recipients} onChange={e=>setSchedForm(p=>({...p,recipients:e.target.value}))} placeholder="finance@el5.go.ke, ..." style={{...S.inp,marginBottom:12}}/>
+            <button onClick={createSchedule} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",background:T.primary,border:"none",borderRadius:T.r,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              <Save size={13}/>Create Schedule
+            </button>
+          </div>
+          <div style={{flex:1,...S.card}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+              Scheduled Reports
+              <button onClick={loadSchedules} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:T.fgMuted}}><RefreshCw size={13} style={schedLoading?{animation:"spin 1s linear infinite"}:{}}/></button>
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Name","Report","Frequency","Format","Recipients","Next Run","Active",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {schedules.length===0 && <tr><td colSpan={8} style={{...S.td,textAlign:"center",color:T.fgDim,padding:24}}>{schedLoading?"Loading…":"No scheduled reports yet — create one on the left."}</td></tr>}
+                {schedules.map(s=>(
+                  <tr key={s.id}>
+                    <td style={{...S.td,fontWeight:600}}>{s.name}</td>
+                    <td style={S.td}>{REPORT_TYPES.find(r=>r.id===s.report_type)?.label||s.report_type}</td>
+                    <td style={{...S.td,fontFamily:"monospace",fontSize:10}}>{s.cron}</td>
+                    <td style={S.td}>{(s.format||"pdf").toUpperCase()}</td>
+                    <td style={{...S.td,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(s.recipients||[]).join(", ")||"—"}</td>
+                    <td style={S.td}>{s.next_run_at?new Date(s.next_run_at).toLocaleDateString("en-KE"):"—"}</td>
+                    <td style={S.td}>
+                      <button onClick={()=>toggleSchedule(s)} style={{background:"none",border:"none",cursor:"pointer",display:"flex"}}>
+                        {s.is_active!==false ? <ToggleRight size={20} color={T.success}/> : <ToggleLeft size={20} color={T.fgDim}/>}
+                      </button>
+                    </td>
+                    <td style={S.td}><button onClick={()=>deleteSchedule(s.id)} style={{background:"none",border:"none",cursor:"pointer",color:T.error}}><Trash2 size={13}/></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {app==="history" && (
+        <div style={{padding:"16px 24px"}}>
+          <div style={S.card}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+              Print History <span style={{fontWeight:400,color:T.fgMuted}}>({printHistory.length} jobs)</span>
+              <button onClick={loadPrintHistory} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:T.fgMuted}}><RefreshCw size={13} style={historyLoading?{animation:"spin 1s linear infinite"}:{}}/></button>
+            </div>
+            <div style={{maxHeight:520,overflow:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr>{["Printed At","Job Type","Reference","Template","Copies","Printed By","Status"].map(h=><th key={h} style={{...S.th,position:"sticky",top:0}}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {printHistory.length===0 && <tr><td colSpan={7} style={{...S.td,textAlign:"center",color:T.fgDim,padding:24}}>{historyLoading?"Loading…":"No print jobs logged yet."}</td></tr>}
+                  {printHistory.map(j=>(
+                    <tr key={j.id}>
+                      <td style={S.td}>{j.printed_at?new Date(j.printed_at).toLocaleString("en-KE"):new Date(j.created_at).toLocaleString("en-KE")}</td>
+                      <td style={S.td}>{j.job_type||"—"}</td>
+                      <td style={{...S.td,fontWeight:600}}>{j.reference_number||"—"}</td>
+                      <td style={S.td}>{j.template||"—"}</td>
+                      <td style={S.td}>{j.copies||1}</td>
+                      <td style={S.td}>{j.printed_by_name||"—"}</td>
+                      <td style={S.td}>
+                        <span style={{padding:"2px 8px",borderRadius:4,fontSize:10,fontWeight:700,background:j.status==="completed"?T.successBg:T.warningBg,color:j.status==="completed"?T.success:T.warning}}>
+                          {(j.status||"queued").toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {app==="builder" && (
       <div style={{display:"flex",gap:16,padding:"16px 24px",alignItems:"flex-start"}}>
         {/* Sidebar */}
         <div style={{width:200,flexShrink:0}}>
@@ -282,6 +464,7 @@ export default function PrintEnginePage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
