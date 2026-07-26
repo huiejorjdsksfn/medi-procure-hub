@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { addLetterhead, addFooter } from "@/lib/printDocument";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { T } from "@/lib/theme";
 
 const db = supabase as any;
 const NOW = () => new Date().toLocaleDateString("en-KE", { day: "2-digit", month: "long", year: "numeric" });
@@ -18,22 +19,39 @@ const FMT_KES = (v: number) => `KES ${(v || 0).toLocaleString("en-KE", { minimum
 const FMT_DT  = (s: string) => s ? new Date(s).toLocaleDateString("en-KE") : "";
 
 /* ═══════════════════════ DESIGN TOKENS ═══════════════════════════════ */
+/**
+ * Was a fully static, hardcoded palette — completely disconnected from
+ * the central theme (system_settings -> applyThemeToDOM -> CSS vars ->
+ * T), the same desync bug found in erpTheme.ts. Every colour below is
+ * now a getter deriving from T, so this whole 650-line editor stays in
+ * sync with the rest of the app's theming without needing to touch
+ * every one of its ~150 call sites individually.
+ */
 const C = {
-  blue:   "#1a3a6b", blue2: "#2563eb", blue3: "#dbeafe",
-  green:  "#166534", green3:"#dcfce7",
-  red:    "#991b1b", red3:  "#fee2e2",
-  gray:   "#374151", gray2: "#6b7280", gray3:"#f3f4f6", gray4:"#e5e7eb",
-  white:  "#ffffff", border:"#d1d5db",
-  toolbar:"#f8fafc", ribbon:"#1e3a5f",
+  get blue()   { return T.primary; },
+  get blue2()  { return T.primaryHov; },
+  get blue3()  { return T.primaryBg; },
+  get green()  { return T.success; },
+  get green3() { return T.successBg; },
+  get red()    { return T.error; },
+  get red3()   { return T.errorBg; },
+  get gray()   { return T.fg; },
+  get gray2()  { return T.fgMuted; },
+  get gray3()  { return T.bg; },
+  get gray4()  { return T.border; },
+  white:   "#ffffff",
+  get border() { return T.border; },
+  get toolbar(){ return T.card; },
+  get ribbon() { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
 };
 const S = {
   btn: (active=false,color="blue"): React.CSSProperties => ({
-    padding:"3px 8px", border:`1px solid ${C.border}`, borderRadius:3, cursor:"pointer",
+    padding:"4px 9px", border:`1px solid ${C.border}`, borderRadius:6, cursor:"pointer",
     background: active ? C.blue3 : C.white, color: active ? C.blue2 : C.gray,
     fontSize:11, fontFamily:"Segoe UI,Tahoma,sans-serif", display:"flex",
     alignItems:"center", gap:4, whiteSpace:"nowrap" as const,
   }),
-  inp: { padding:"3px 6px", border:`1px solid ${C.border}`, borderRadius:3, fontSize:11,
+  inp: { padding:"4px 7px", border:`1px solid ${C.border}`, borderRadius:6, fontSize:11,
          fontFamily:"Segoe UI,Tahoma,sans-serif", background:C.white } as React.CSSProperties,
   th: { background:C.blue, color:"#fff", padding:"4px 8px", fontSize:10,
         textAlign:"left" as const, fontWeight:700, whiteSpace:"nowrap" as const },
@@ -1107,48 +1125,50 @@ ${sigBlock}
   ] as { id: Tab; label: string; title: string }[];
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", height:"100vh", fontFamily:"Segoe UI,Tahoma,Arial,sans-serif", fontSize:12, background:C.gray3 }}>
+    <div style={{ display:"flex", flexDirection:"column", height:"100vh", fontFamily:"'Inter','Segoe UI',Tahoma,Arial,sans-serif", fontSize:12, background:T.bg }}>
 
       {/* ══ TOP RIBBON ═══════════════════════════════════════════ */}
-      <div style={{ background:C.ribbon, padding:"6px 12px", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", boxShadow:"0 2px 6px rgba(0,0,0,0.4)" }}>
-        <div style={{ color:"#fff", fontWeight:700, fontSize:13, marginRight:8 }}>📄 Document Studio</div>
+      <div style={{ background:C.ribbon, padding:"10px 16px", display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", boxShadow:"0 2px 8px rgba(16,24,40,.12)" }}>
+        <div style={{ width:30, height:30, borderRadius:8, background:"rgba(255,255,255,.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <span style={{ fontSize:15 }}>📄</span>
+        </div>
+        <div style={{ color:"#fff", fontWeight:700, fontSize:13.5, marginRight:6, letterSpacing:"-.01em" }}>Document Studio</div>
         <input value={docName} onChange={e=>setDocName(e.target.value)}
-          style={{ ...S.inp, background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", width:240, fontWeight:600, fontSize:12 }}
+          style={{ ...S.inp, borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", width:240, fontWeight:600, fontSize:12 }}
           placeholder="Document name…" />
-        <select value={docCat} onChange={e=>setDocCat(e.target.value)} style={{ ...S.inp, background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>
+        <select value={docCat} onChange={e=>setDocCat(e.target.value)} style={{ ...S.inp, borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)" }}>
           {["General","Official","Procurement","Finance","HR","Report","Memo","Letter","Minutes","Other"].map(c=><option key={c} value={c}>{c}</option>)}
         </select>
         <label style={{ color:"rgba(255,255,255,0.85)", fontSize:11, display:"flex", alignItems:"center", gap:4 }}>
           <input type="checkbox" checked={docIsTemplate} onChange={e=>setDocIT(e.target.checked)} /> Template
         </label>
-        <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
-          <button onClick={saveDoc} disabled={saving} style={{ ...S.btn(false), background:C.green3, color:C.green, border:"1px solid #166534", fontWeight:700 }}>
+        <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
+          <button onClick={saveDoc} disabled={saving} style={{ ...S.btn(false), borderRadius:8, background:C.green3, color:C.green, border:"none", fontWeight:700, padding:"6px 12px" }}>
             {saving?"⏳ Saving…":"💾 Save"}
           </button>
           <button onClick={publishDoc} disabled={publishing||saving}
-            style={{ ...S.btn(false), background:docPublished?"#1e40af":"#0078d4", color:"#fff", border:"1px solid #1e3a8a", fontWeight:700, display:"flex", alignItems:"center", gap:5 }}>
+            style={{ ...S.btn(false), borderRadius:8, background:docPublished?T.primaryDark:"#fff", color:docPublished?"#fff":T.primary, border:"none", fontWeight:700, padding:"6px 12px", display:"flex", alignItems:"center", gap:5 }}>
             {publishing?"🚀 Publishing…": docPublished?"✅ Published":"🚀 Publish"}
           </button>
           {docPublished && (
-            <span style={{ fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:99, background:"#dcfce7", color:"#15803d", border:"1px solid #86efac", display:"flex", alignItems:"center", gap:4 }}>
+            <span style={{ fontSize:10, fontWeight:700, padding:"4px 10px", borderRadius:99, background:"rgba(255,255,255,.9)", color:T.success, display:"flex", alignItems:"center", gap:4 }}>
               ● Published
             </span>
           )}
-          <button onClick={printDoc} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>🖨 Print</button>
-          <button onClick={exportPDF} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>📤 PDF</button>
-          <button onClick={()=>setShowBulkEmail(true)} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>📧 Email</button>
-          <button onClick={()=>navigate("/documents")} style={{ ...S.btn(false), background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>✕ Close</button>
+          <button onClick={printDoc} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>🖨 Print</button>
+          <button onClick={exportPDF} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>📤 PDF</button>
+          <button onClick={()=>setShowBulkEmail(true)} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>📧 Email</button>
+          <button onClick={()=>navigate("/documents")} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>✕ Close</button>
         </div>
       </div>
 
       {/* ══ TAB BAR ═══════════════════════════════════════════════ */}
-      <div style={{ display:"flex", background:C.blue, borderBottom:"2px solid #0f2550" }}>
+      <div style={{ display:"flex", gap:4, background:T.card, borderBottom:`1px solid ${T.border}`, padding:"6px 12px" }}>
         {TABS.map(t => (
           <button key={t.id} title={t.title} onClick={()=>setTab(t.id as Tab)}
-            style={{ padding:"7px 18px", border:"none", cursor:"pointer", fontSize:12, fontWeight:tab===t.id?700:400,
-              background:tab===t.id?C.white:"transparent", color:tab===t.id?C.blue:"rgba(255,255,255,0.85)",
-              borderRight:"1px solid rgba(255,255,255,0.15)", borderRadius:tab===t.id?"4px 4px 0 0":0,
-              marginBottom:tab===t.id?-2:0 }}>
+            style={{ padding:"7px 16px", border:"none", cursor:"pointer", fontSize:12.5, fontWeight:tab===t.id?700:600,
+              background:tab===t.id?T.primaryBg:"transparent", color:tab===t.id?T.primary:T.fgMuted,
+              borderRadius:8, transition:"all .12s" }}>
             {t.label}
           </button>
         ))}
