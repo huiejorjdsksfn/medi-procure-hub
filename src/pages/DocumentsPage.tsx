@@ -23,6 +23,7 @@ import {
   Table2, BookOpen, Scan, Zap, Clock, CheckCircle, Filter,
   ArrowRight, FolderOpen, Info, Edit3, Copy
 } from "lucide-react";
+import { PageHeader, BtnPrimary, BtnGhost, KpiBand, PillTabs, font } from "@/lib/erpKit";
 
 const db = supabase as any;
 
@@ -328,56 +329,49 @@ export default function DocumentsPage() {
     return matchSearch && matchCat && matchType;
   });
 
+  /* - KPI stats - */
+  const parsedCount = docs.filter(d=>d.import_status==="parsed").length;
+  const importsComplete = imports.filter(i=>i.status==="complete").length;
+  const storageBytes = docs.reduce((s,d)=>s+(d.file_size||0),0);
+
   /* - */
   return (
-    <div style={{ padding:20, minHeight:"100vh", background:T.bg }}>
+    <div style={{ padding:20, minHeight:"100vh", background:T.bg, fontFamily:font }}>
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
         @keyframes progress{from{width:0%}to{width:100%}}
       `}</style>
 
-      {/* Header */}
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
-        <FolderOpen size={22} color={T.primary}/>
-        <div>
-          <h1 style={{margin:0,fontSize:20,fontWeight:800,color:T.fg}}>Documents & File Imports</h1>
-          <div style={{fontSize:11,color:T.fgDim,marginTop:2}}>
-            {docs.length} documents - {imports.filter(i=>i.status==="complete").length} imports complete - Upload Word, Excel, PDF, CSV
-          </div>
-        </div>
-        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
-          <button onClick={load} style={btn(T.bg2,T.border)}><RefreshCw size={13}/> Refresh</button>
-          <button
-            onClick={()=>{setTab("upload");fileInputRef.current?.click();}}
-            style={btn(T.primary)}>
-            <Upload size={13}/> Upload Files
-          </button>
+      <div style={{ margin:"-20px -20px 20px" }}>
+        <PageHeader icon={FolderOpen} title="Documents & File Imports" subtitle={`${docs.length} documents · ${importsComplete} imports complete · Upload Word, Excel, PDF, CSV`}>
+          <BtnGhost onClick={load} icon={RefreshCw}>Refresh</BtnGhost>
+          <BtnPrimary onClick={()=>{setTab("upload");fileInputRef.current?.click();}} icon={Upload}>Upload Files</BtnPrimary>
           <button onClick={()=>nav("/documents/editor")} style={btn("#7c3aed")}>
             <Edit3 size={13}/> New Document
           </button>
-        </div>
+        </PageHeader>
       </div>
 
+      <KpiBand items={[
+        {label:"Total Documents", val:docs.length,       color:T.primary, icon:FolderOpen},
+        {label:"Parsed",          val:parsedCount,        color:T.success, icon:CheckCircle},
+        {label:"Imports Complete",val:importsComplete,    color:"#7c3aed", icon:Database},
+        {label:"Storage Used",    val:fmtSize(storageBytes),color:"#a4262c",icon:Layers},
+      ]}/>
+
       {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:16}}>
-        {[
-          {id:"library", label:"Document Library", icon:FolderOpen, count:docs.length},
-          {id:"upload",  label:"Upload & Import",  icon:Upload,     count:queue.filter(q=>q.status==="queued").length},
-          {id:"imports", label:"Import History",   icon:Database,   count:imports.length},
-          {id:"hardcopy",label:"Hardcopy Guide",   icon:Scan,       count:0},
-        ].map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id as any)} style={{
-            display:"flex",alignItems:"center",gap:7,padding:"8px 16px",
-            background:tab===t.id?T.primary:T.card,
-            color:tab===t.id?"#fff":T.fgMuted,
-            border:`1px solid ${tab===t.id?T.primary:T.border}`,
-            borderRadius:T.r,fontSize:13,fontWeight:700,cursor:"pointer",
-          }}>
-            <t.icon size={13}/>{t.label}
-            {t.count>0&&<span style={{minWidth:18,height:18,borderRadius:9,background:tab===t.id?"rgba(255,255,255,.3)":T.primary,color:"#fff",fontSize:10,fontWeight:800,textAlign:"center",lineHeight:"18px",padding:"0 5px"}}>{t.count}</span>}
-          </button>
-        ))}
+      <div style={{marginBottom:16}}>
+        <PillTabs
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            {id:"library", label:"Document Library", icon:FolderOpen, count:docs.length},
+            {id:"upload",  label:"Upload & Import",  icon:Upload,     count:queue.filter(q=>q.status==="queued").length},
+            {id:"imports", label:"Import History",   icon:Database,   count:imports.length},
+            {id:"hardcopy",label:"Hardcopy Guide",   icon:Scan},
+          ]}
+        />
       </div>
 
       {/* - LIBRARY TAB - */}

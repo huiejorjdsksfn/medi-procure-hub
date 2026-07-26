@@ -88,6 +88,7 @@ const MODS = [
      // all live inside it as draggable windows, so it's listed first as
      // the primary way in instead of clicking through many separate pages.
      {l:"Finance Desktop",    p:"/finance-dashboard",           I:DollarSign},
+     {l:"Invoice Matching",   p:"/invoice-matching",            I:Receipt},
      {l:"Chart of Accounts",  p:"/financials/chart-of-accounts", I:BookOpen},
      {l:"Fixed Assets",       p:"/financials/fixed-assets",      I:Building2},
      {l:"Accountant Workspace",p:"/accountant-workspace",        I:BarChart2},

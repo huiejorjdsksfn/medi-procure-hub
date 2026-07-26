@@ -107,7 +107,8 @@ jobs:
 
       - name: Guard - undefined reference check
         run: npm run audit:refs
-        # Hard gate: TS2304/TS2552/TS2593 ("Cannot find name") errors mean
+        # Hard gate: TS2304/TS2552/TS2593 ("Cannot find name") and TS2300
+        # ("Duplicate identifier") errors mean
         # an identifier is used but never declared/imported anywhere in
         # scope — a guaranteed runtime ReferenceError if that code path
         # executes, not a strictness nitpick. Caught two real, then-live
@@ -184,7 +185,7 @@ jobs:
           for fn in send-sms send-email send-whatsapp whatsapp-bot whatsapp-webhook \
                     ai-agent verify-role notify-requisition make-call twilio-engine \
                     notify-api google-forms-api github-releases notification-hub edgeone-stats \
-                    analyze-document theme-extract; do
+                    analyze-document theme-extract process-report-schedules; do
             [ -d "supabase/functions/$fn" ] || continue
             echo "→ Deploying $fn"
             if supabase functions deploy $fn --project-ref ${{ env.SUPA_REF }} --no-verify-jwt 2>&1 | tail -5; then

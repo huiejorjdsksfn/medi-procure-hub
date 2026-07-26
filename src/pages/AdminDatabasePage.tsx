@@ -341,6 +341,11 @@ ORDER BY t.table_name;`);
   const [sqlRunning, setSqlRunning] = useState(false);
   const [sqlMs, setSqlMs] = useState<number|null>(null);
   const [schemaData, setSchemaData] = useState<any[]>([]);
+  const [schemaConstraints, setSchemaConstraints] = useState<any[]>([]);
+  const [schemaIndexes, setSchemaIndexes] = useState<any[]>([]);
+  const [schemaPolicies, setSchemaPolicies] = useState<any[]>([]);
+  const [schemaStats, setSchemaStats] = useState<any>(null);
+  const [schemaLoading, setSchemaLoading] = useState(false);
   const [triggers, setTriggers] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
   const [dbDash, setDbDash] = useState<any | null>(null);
@@ -424,6 +429,7 @@ ORDER BY t.table_name;`);
   }, [tableData, rowFilter]);
 
   useEffect(() => { setRowFilter(""); }, [selectedTable]);
+  useEffect(() => { if (activeTab === "schema" && selectedTable) loadSchema(); }, [selectedTable, activeTab]);
 
   // - Load table data -
   const loadTable = useCallback(async () => {
@@ -565,13 +571,38 @@ ORDER BY t.table_name;`);
 
   // - Load schema -
   async function loadSchema() {
-    const { data } = await (supabase as any).rpc("exec_sql", {
-      query: `SELECT table_name, column_name, data_type, is_nullable, column_default
-              FROM information_schema.columns
-              WHERE table_schema='public' AND table_name='${selectedTable}'
-              ORDER BY ordinal_position`
-    });
-    setSchemaData(unwrapRows(data));
+    setSchemaLoading(true);
+    const run = (query: string) => (supabase as any).rpc("exec_sql", { query }).then((r: any) => unwrapRows(r.data)).catch(() => []);
+    const [cols, cons, idx, pol, stats] = await Promise.all([
+      run(`SELECT column_name, data_type, is_nullable, column_default, character_maximum_length
+           FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='${selectedTable}'
+           ORDER BY ordinal_position`),
+      run(`SELECT tc.constraint_name, tc.constraint_type, kcu.column_name,
+                  ccu.table_name AS foreign_table, ccu.column_name AS foreign_column
+           FROM information_schema.table_constraints tc
+           LEFT JOIN information_schema.key_column_usage kcu
+             ON kcu.constraint_name=tc.constraint_name AND kcu.table_schema=tc.table_schema
+           LEFT JOIN information_schema.constraint_column_usage ccu
+             ON ccu.constraint_name=tc.constraint_name AND ccu.table_schema=tc.table_schema AND tc.constraint_type='FOREIGN KEY'
+           WHERE tc.table_schema='public' AND tc.table_name='${selectedTable}'
+           ORDER BY tc.constraint_type, tc.constraint_name`),
+      run(`SELECT indexname, indexdef FROM pg_indexes
+           WHERE schemaname='public' AND tablename='${selectedTable}' ORDER BY indexname`),
+      run(`SELECT policyname, cmd, roles::text AS roles, qual::text AS qual, with_check::text AS with_check
+           FROM pg_policies WHERE tablename='${selectedTable}' ORDER BY cmd, policyname`),
+      run(`SELECT
+             (SELECT reltuples::bigint FROM pg_class WHERE relname='${selectedTable}') AS est_rows,
+             pg_size_pretty(pg_total_relation_size('public.${selectedTable}')) AS total_size,
+             pg_size_pretty(pg_relation_size('public.${selectedTable}')) AS table_size,
+             (SELECT relrowsecurity FROM pg_class WHERE relname='${selectedTable}') AS rls_enabled`),
+    ]);
+    setSchemaData(cols);
+    setSchemaConstraints(cons);
+    setSchemaIndexes(idx);
+    setSchemaPolicies(pol);
+    setSchemaStats(stats?.[0] || null);
+    setSchemaLoading(false);
   }
 
   // - Load triggers -
@@ -1472,26 +1503,118 @@ ORDER BY t.table_name;`);
         {/* - SCHEMA tab - */}
         {activeTab === "schema" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
-            <div style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087",marginBottom:10 }}>Schema: {selectedTable}</div>
-            <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
+              <div style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Schema: {selectedTable}</div>
+              <button onClick={loadSchema} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,background:"#fff" }}>
+                {schemaLoading ? "Loading…" : "Refresh"}
+              </button>
+            </div>
+
+            {/* Row count / size / RLS status strip */}
+            {schemaStats && (
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14 }}>
+                {[
+                  { label:"Estimated Rows", val: Number(schemaStats.est_rows||0).toLocaleString() },
+                  { label:"Table Size",     val: schemaStats.table_size || "—" },
+                  { label:"Total Size (+ indexes)", val: schemaStats.total_size || "—" },
+                  { label:"Row Level Security", val: schemaStats.rls_enabled ? "Enabled" : "DISABLED", warn: !schemaStats.rls_enabled },
+                ].map(s => (
+                  <div key={s.label} style={{ border:`1px solid ${S.border}`,borderRadius:4,padding:"8px 10px",background:s.warn?"#fff5f5":"#fff" }}>
+                    <div style={{ fontSize:9.5,color:"#94a3b8",textTransform:"uppercase",fontWeight:700,marginBottom:3 }}>{s.label}</div>
+                    <div style={{ fontSize:14,fontWeight:800,color:s.warn?"#cc0000":"#0f172a",fontFamily:s.warn?S.font:S.mono }}>{s.val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Columns — from schemaData, real information_schema metadata */}
+            <div style={{ fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",marginBottom:6,marginTop:4 }}>Columns ({schemaData.length})</div>
+            <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font,marginBottom:18 }}>
               <thead>
                 <tr>
-                  {["Column","Data Type","Nullable","Default"].map(h=>(
+                  {["Column","Data Type","Nullable","Default","Key"].map(h=>(
                     <th key={h} style={THEAD_CELL}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {allColumns.map((col,i) => (
-                  <tr key={col.column_name} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
-                    <td style={{ ...CELL,fontWeight:700 }}>{col.column_name}</td>
-                    <td style={{ ...CELL,fontFamily:S.mono }}>{col.data_type}</td>
-                    <td style={{ ...CELL,color:col.is_nullable==="YES"?"#cc6600":"#006600",fontWeight:700 }}>{col.is_nullable}</td>
-                    <td style={{ ...CELL,fontFamily:S.mono,color:"#555",fontSize:11 }}>{col.column_default?.slice(0,60) || "-"}</td>
-                  </tr>
-                ))}
+                {schemaData.map((col,i) => {
+                  const pk = schemaConstraints.find(c => c.constraint_type==="PRIMARY KEY" && c.column_name===col.column_name);
+                  const fk = schemaConstraints.find(c => c.constraint_type==="FOREIGN KEY" && c.column_name===col.column_name);
+                  return (
+                    <tr key={col.column_name} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                      <td style={{ ...CELL,fontWeight:700 }}>{col.column_name}</td>
+                      <td style={{ ...CELL,fontFamily:S.mono }}>{col.data_type}{col.character_maximum_length?`(${col.character_maximum_length})`:""}</td>
+                      <td style={{ ...CELL,color:col.is_nullable==="YES"?"#cc6600":"#006600",fontWeight:700 }}>{col.is_nullable}</td>
+                      <td style={{ ...CELL,fontFamily:S.mono,color:"#555",fontSize:11 }}>{col.column_default?.slice(0,60) || "—"}</td>
+                      <td style={{ ...CELL,fontSize:10.5,fontWeight:700 }}>
+                        {pk && <span style={{ color:"#003087",marginRight:6 }}>PK</span>}
+                        {fk && <span style={{ color:"#7c3aed" }} title={`→ ${fk.foreign_table}.${fk.foreign_column}`}>FK → {fk.foreign_table}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {schemaData.length===0 && !schemaLoading && (
+                  <tr><td colSpan={5} style={{ ...CELL,textAlign:"center",color:"#94a3b8",padding:20 }}>No columns found — click Refresh.</td></tr>
+                )}
               </tbody>
             </table>
+
+            {/* Constraints */}
+            <div style={{ fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",marginBottom:6 }}>Constraints ({schemaConstraints.length})</div>
+            {schemaConstraints.length===0 ? (
+              <div style={{ fontSize:12,color:"#94a3b8",marginBottom:18 }}>No constraints on this table.</div>
+            ) : (
+              <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font,marginBottom:18 }}>
+                <thead><tr>{["Name","Type","Column","References"].map(h=><th key={h} style={THEAD_CELL}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {schemaConstraints.map((c,i)=>(
+                    <tr key={c.constraint_name+i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                      <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{c.constraint_name}</td>
+                      <td style={{ ...CELL,fontWeight:700,color:c.constraint_type==="PRIMARY KEY"?"#003087":c.constraint_type==="FOREIGN KEY"?"#7c3aed":c.constraint_type==="UNIQUE"?"#006600":"#555" }}>{c.constraint_type}</td>
+                      <td style={{ ...CELL }}>{c.column_name || "—"}</td>
+                      <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{c.foreign_table ? `${c.foreign_table}.${c.foreign_column}` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Indexes */}
+            <div style={{ fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",marginBottom:6 }}>Indexes ({schemaIndexes.length})</div>
+            {schemaIndexes.length===0 ? (
+              <div style={{ fontSize:12,color:"#94a3b8",marginBottom:18 }}>No indexes on this table.</div>
+            ) : (
+              <div style={{ marginBottom:18 }}>
+                {schemaIndexes.map((idx,i)=>(
+                  <div key={idx.indexname} style={{ padding:"6px 10px",background:i%2===0?"#ffffff":"#f8fafc",border:`1px solid ${S.border}`,borderTop:i===0?`1px solid ${S.border}`:"none",fontSize:11.5 }}>
+                    <span style={{ fontWeight:700,color:"#003087" }}>{idx.indexname}</span>
+                    <span style={{ fontFamily:S.mono,color:"#64748b",marginLeft:10 }}>{idx.indexdef}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* RLS Policies */}
+            <div style={{ fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",marginBottom:6 }}>Row-Level Security Policies ({schemaPolicies.length})</div>
+            {schemaPolicies.length===0 ? (
+              <div style={{ fontSize:12,color: schemaStats?.rls_enabled ? "#cc0000" : "#94a3b8",fontWeight: schemaStats?.rls_enabled ? 700 : 400 }}>
+                {schemaStats?.rls_enabled ? "⚠ RLS is enabled but has ZERO policies — this table denies all access by default." : "No RLS policies (RLS not enabled on this table)."}
+              </div>
+            ) : (
+              <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
+                <thead><tr>{["Policy","Command","Roles"].map(h=><th key={h} style={THEAD_CELL}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {schemaPolicies.map((p,i)=>(
+                    <tr key={p.policyname+i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
+                      <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{p.policyname}</td>
+                      <td style={{ ...CELL,fontWeight:700 }}>{p.cmd}</td>
+                      <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{p.roles}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
@@ -1505,7 +1628,7 @@ ORDER BY t.table_name;`);
             <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
               <thead>
                 <tr>
-                  {["Trigger Name","Table","Event","Timing"].map(h=>(
+                  {["Trigger Name","Table","Event","Timing","Calls"].map(h=>(
                     <th key={h} style={THEAD_CELL}>{h}</th>
                   ))}
                 </tr>
@@ -1517,6 +1640,7 @@ ORDER BY t.table_name;`);
                     <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.event_object_table}</td>
                     <td style={{ ...CELL,color:t.event_manipulation==="DELETE"?"#cc0000":t.event_manipulation==="INSERT"?"#006600":"#cc6600",fontWeight:700 }}>{t.event_manipulation}</td>
                     <td style={{ ...CELL }}>{t.action_timing}</td>
+                    <td style={{ ...CELL,fontFamily:S.mono,fontSize:10.5,color:"#7c3aed" }}>{(t.action_statement||"").replace(/^EXECUTE (FUNCTION|PROCEDURE) /i,"")}</td>
                   </tr>
                 ))}
               </tbody>

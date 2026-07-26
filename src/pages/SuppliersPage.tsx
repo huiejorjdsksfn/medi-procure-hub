@@ -1,4 +1,10 @@
-
+/**
+ * ProcurBosse - Suppliers v2.0 (2026 ERP redesign)
+ * Same data / validation / export logic — visual layer via shared erpKit
+ * on the central T theme. Rating display swapped from literal "-"
+ * characters to actual Star icons (pure rendering change, same
+ * underlying rating number).
+ */
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ValidationEngine } from "@/engines/validation/ValidationEngine";
@@ -13,15 +19,28 @@ import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { TablePager, ColSearchRow } from "@/components/TablePager";
 import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
+import { T } from "@/lib/theme";
+import { PageHeader, SearchBox, BtnPrimary, BtnGhost, KpiBand, Card, font, spinKeyframes } from "@/lib/erpKit";
 
 const SS: Record<string,{bg:string;color:string}> = {
-  active:   {bg:"#dcfce7",color:"#15803d"},
-  inactive: {bg:"#fee2e2",color:"#dc2626"},
-  suspended:{bg:"#fef3c7",color:"#92400e"},
+  active:   {bg:T.successBg,color:T.success},
+  inactive: {bg:T.errorBg,  color:T.error},
+  suspended:{bg:T.warningBg,color:T.warning},
 };
 const CATS = ["pharmaceutical","medical_equipment","consumables","reagents","laboratory","surgical","general","other"];
-const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
-const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
+const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:`1.5px solid ${T.border}`,borderRadius:T.rMd,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:font,background:T.bg,color:T.fg};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
+
+function RatingStars({ rating }: { rating: number }) {
+  const n = Math.min(Math.max(rating||0,0),5);
+  return (
+    <div style={{display:"flex",gap:1}}>
+      {Array.from({length:5}).map((_,i)=>(
+        <Star key={i} style={{width:12,height:12}} fill={i<n?"#f59e0b":"none"} color={i<n?"#f59e0b":T.border}/>
+      ))}
+    </div>
+  );
+}
 
 export default function SuppliersPage() {
   const { user, profile, roles } = useAuth();
@@ -43,17 +62,11 @@ export default function SuppliersPage() {
   const [colSearch,    setColSearch]    = useState<Record<string,string>>({});
   const [page,         setPage]         = useState(1);
   const [perPage,      setPerPage]      = useState(25);
-  // hospitalName now from useSystemSettings
-  // sysName now from useSystemSettings
   const [form, setForm] = useState({
     name:"",contact_person:"",email:"",phone:"",address:"",
     tax_id:"",kra_pin:"",category:"pharmaceutical",status:"active",
     bank_name:"",bank_account:"",bank_branch:"",rating:"3",website:"",notes:"",
   });
-
-  useEffect(()=>{
-    /* settings via useSystemSettings hook */
-  },[]);
 
   const load = useCallback(async()=>{
     setLoading(true);
@@ -186,7 +199,7 @@ export default function SuppliersPage() {
       <div class="field"><div class="label">Bank</div><div class="val">${s.bank_name||"-"}</div></div>
       <div class="field"><div class="label">Account</div><div class="val">${s.bank_account||"-"}</div></div>
       <div class="field"><div class="label">Branch</div><div class="val">${s.bank_branch||"-"}</div></div>
-      <div class="field"><div class="label">Rating</div><div class="val">${"-".repeat(s.rating||3)}</div></div>
+      <div class="field"><div class="label">Rating</div><div class="val">${"★".repeat(s.rating||3)}</div></div>
     </div>
     ${s.address?`<div class="field"><div class="label">Address</div><div class="val">${s.address}</div></div>`:""}
     ${s.notes?`<div class="field"><div class="label">Notes</div><div class="val">${s.notes}</div></div>`:""}
@@ -195,170 +208,137 @@ export default function SuppliersPage() {
     win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
   };
 
-  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
+  const activeS=suppliers.filter(s=>s.status==="active").length;
+  const suspendedS=suppliers.filter(s=>s.status==="suspended").length;
+  const ratedS=suppliers.filter(s=>s.rating>=4).length;
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",padding:16}}>
-      <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        .sup-row:hover td{background:#eff6ff!important}
-        @media(max-width:768px){.sup-header{flex-direction:column!important}.sup-filters{flex-wrap:wrap!important}.col-hide{display:none!important}}
-      `}</style>
-      {/* KPI TILES */}
-      {(()=>{
-        const activeS=suppliers.filter(s=>s.status==="active").length;
-        const suspendedS=suppliers.filter(s=>s.status==="suspended").length;
-        const ratedS=suppliers.filter(s=>s.rating>=4).length;
-        return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
-            {[
-              {label:"Total Suppliers",val:suppliers.length,bg:"#c0392b"},
-              {label:"Active",val:activeS,bg:"#0e6655"},
-              {label:"Suspended",val:suspendedS,bg:"#7d6608"},
-              {label:"Top Rated (4+)",val:ratedS,bg:"#6c3483"},
-              {label:"Showing",val:filtered.length,bg:"#1a252f"},
-            ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
-                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
-              </div>
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:font}}>
+      <PageHeader icon={Truck} title="Suppliers" subtitle={`${filtered.length} of ${suppliers.length} suppliers`}>
+        <BtnGhost onClick={load} icon={RefreshCw} loading={loading}>Refresh</BtnGhost>
+        <BtnGhost onClick={printAll} icon={Printer}>Print</BtnGhost>
+        <BtnGhost onClick={exportExcel} icon={FileSpreadsheet}>Export</BtnGhost>
+        {isAdmin&&<BtnPrimary onClick={openCreate} icon={Plus}>Add Supplier</BtnPrimary>}
+      </PageHeader>
+
+      <div style={{padding:"20px 20px 32px"}}>
+        <KpiBand loading={loading} items={[
+          {label:"Total Suppliers", val:suppliers.length,color:"#a4262c",icon:Truck},
+          {label:"Active",          val:activeS,          color:T.success,icon:CheckCircle},
+          {label:"Suspended",       val:suspendedS,        color:T.warning,icon:XCircle},
+          {label:"Top Rated (4+)",  val:ratedS,            color:"#6c3483",icon:Star},
+          {label:"Showing",         val:filtered.length,   color:T.primary,icon:Eye},
+        ]}/>
+
+        {/* Filters */}
+        <Card style={{padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:14,flexWrap:"wrap" as const}}>
+          <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
+            <option value="all">All Categories</option>
+            {CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
+          </select>
+          <div style={{display:"flex",gap:4}}>
+            {["all","active","inactive","suspended"].map(s=>(
+              <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?T.primary:T.bg2,color:statusFilter===s?"#fff":T.fgMuted,fontFamily:font}}>
+                {s}
+              </button>
             ))}
           </div>
-        );
-      })()}
-      {/* Header */}
-      <div  style={{background:"linear-gradient(90deg,#1a3a6b,#1d4ed8,#2563eb)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(30,64,175,0.35)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <Truck style={{width:22,height:22,color:"#fff"}}/>
-          <div>
-            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Suppliers</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>{filtered.length} of {suppliers.length} suppliers</div>
+          <div style={{marginLeft:"auto"}}>
+            <SearchBox value={search} onChange={setSearch} placeholder="Search name, email, KRA PIN…" width={220}/>
           </div>
-        </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
-            <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
-          </button>
-          <button onClick={printAll} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff"}}>
-            <Printer style={{width:13,height:13}}/>Print
-          </button>
-          <button onClick={exportExcel} style={{...btnSm,background:"rgba(52,211,153,0.85)",color:"#fff"}}>
-            <FileSpreadsheet style={{width:13,height:13}}/>Export
-          </button>
-          {isAdmin&&<button onClick={openCreate} style={{...btnSm,background:"#fff",color:"#1a3a6b",fontWeight:800}}>
-            <Plus style={{width:13,height:13}}/>Add Supplier
-          </button>}
-        </div>
-      </div>
+        </Card>
 
-      {/* Filters */}
-      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
-        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}}>
-          <option value="all">All Categories</option>
-          {CATS.map(c=><option key={c} value={c}>{c.replace(/_/g," ")}</option>)}
-        </select>
-        <div style={{display:"flex",gap:4}}>
-          {["all","active","inactive","suspended"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3a6b":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
-              {s}
-            </button>
-          ))}
-        </div>
-        <div style={{flex:1,minWidth:180,position:"relative"}}>
-          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, email, KRA PIN..."
-            style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
-          <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead>
-              <tr style={{background:"#1a3a6b"}}>
-                {["#","Name","Contact","Email","Phone","Category","Status","Rating","Actions"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr>
-              <ColSearchRow
-                headerBg="#264f8a"
-                values={colSearch}
-                onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
-                cols={[
-                  {key:"_n",type:"none"},
-                  {key:"name",placeholder:"name"},
-                  {key:"contact",placeholder:"contact"},
-                  {key:"email",placeholder:"email"},
-                  {key:"phone",placeholder:"phone"},
-                  {key:"category",placeholder:"category"},
-                  {key:"status",placeholder:"status"},
-                  {key:"_r",type:"none"},
-                  {key:"_a",type:"none"},
-                ]}
-              />
-            </thead>
-            <tbody>
-              {loading?(
-                <tr><td colSpan={9} style={{padding:"40px",textAlign:"center"}}>
-                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
-                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading suppliers...</span>
-                </td></tr>
-              ):filtered.length===0?(
-                <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No suppliers found</td></tr>
-              ):pageRows.map((s,idx)=>{
-                const i = pageStart + idx;
-                const st=SS[s.status]||{bg:"#f3f4f6",color:"#6b7280"};
-                return (
-                  <tr key={s.id} >
-                    <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
-                    <td style={{padding:"7px 12px",fontWeight:700,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{s.name}</td>
-                    <td style={{padding:"7px 12px",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{s.contact_person||"-"}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.email||"-"}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{s.phone||"-"}</td>
-                    <td style={{padding:"7px 12px",textTransform:"capitalize",color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>{(s.category||"").replace(/_/g," ")}</td>
-                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize"}}>{s.status||"active"}</span>
-                    </td>
-                    <td style={{padding:"7px 12px",color:"#f59e0b",fontSize:13,background:i%2===0?"#fff":"#f9fafb"}}>{"-".repeat(Math.min(s.rating||3,5))}</td>
-                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <div style={{display:"flex",gap:4}}>
-                        <button onClick={()=>setViewSupplier(s)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}><Eye style={{width:12,height:12}}/></button>
-                        {isAdmin&&<button onClick={()=>openEdit(s)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dcfce7",color:"#15803d"}}><Edit style={{width:12,height:12}}/></button>}
-                        {isAdmin&&<button onClick={()=>toggleStatus(s)} title={s.status==="active"?"Deactivate":"Activate"} style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:s.status==="active"?"#fef3c7":"#dcfce7",color:s.status==="active"?"#92400e":"#15803d"}}>{s.status==="active"?<XCircle style={{width:12,height:12}}/>:<CheckCircle style={{width:12,height:12}}/>}</button>}
-                        <button onClick={()=>printOne(s)} title="Print" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#f3f4f6",color:"#374151"}}><Printer style={{width:12,height:12}}/></button>
-                        {isAdmin&&<button onClick={()=>deleteSupplier(s)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}><Trash2 style={{width:12,height:12}}/></button>}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <TablePager total={filtered.length} page={page} perPage={perPage}
-          onPage={setPage} onPerPage={setPerPage} color="#1a3a6b"/>
+        {/* Table */}
+        <Card style={{overflow:"hidden"}}>
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+            <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:T.bg,borderBottom:`1px solid ${T.border}`}}>
+                  {["#","Name","Contact","Email","Phone","Category","Status","Rating","Actions"].map(h=>(
+                    <th key={h} style={{padding:"9px 12px",textAlign:"left",color:T.fgDim,fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr>
+                <ColSearchRow
+                  headerBg={T.bg2}
+                  values={colSearch}
+                  onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
+                  cols={[
+                    {key:"_n",type:"none"},
+                    {key:"name",placeholder:"name"},
+                    {key:"contact",placeholder:"contact"},
+                    {key:"email",placeholder:"email"},
+                    {key:"phone",placeholder:"phone"},
+                    {key:"category",placeholder:"category"},
+                    {key:"status",placeholder:"status"},
+                    {key:"_r",type:"none"},
+                    {key:"_a",type:"none"},
+                  ]}
+                />
+              </thead>
+              <tbody>
+                {loading?(
+                  <tr><td colSpan={9} style={{padding:"40px",textAlign:"center"}}>
+                    <RefreshCw style={{width:18,height:18,color:T.fgDim,animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
+                    <span style={{fontSize:12,color:T.fgDim}}>Loading suppliers…</span>
+                  </td></tr>
+                ):filtered.length===0?(
+                  <tr><td colSpan={9} style={{padding:"50px",textAlign:"center",color:T.fgDim,fontSize:13}}>No suppliers found</td></tr>
+                ):pageRows.map((s,idx)=>{
+                  const i = pageStart + idx;
+                  const st=SS[s.status]||{bg:T.bg2,color:T.fgMuted};
+                  return (
+                    <tr key={s.id} style={{background:T.card,borderBottom:`1px solid ${T.border}`}}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=T.bg}
+                      onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=T.card}>
+                      <td style={{padding:"7px 12px",color:T.fgDim}}>{i+1}</td>
+                      <td style={{padding:"7px 12px",fontWeight:700,color:T.fg,cursor:"pointer"}} onClick={()=>setViewSupplier(s)}>{s.name}</td>
+                      <td style={{padding:"7px 12px",color:T.fgMuted}}>{s.contact_person||"-"}</td>
+                      <td style={{padding:"7px 12px",color:T.fgMuted}}>{s.email||"-"}</td>
+                      <td style={{padding:"7px 12px",color:T.fgMuted}}>{s.phone||"-"}</td>
+                      <td style={{padding:"7px 12px",textTransform:"capitalize",color:T.fgMuted}}>{(s.category||"").replace(/_/g," ")}</td>
+                      <td style={{padding:"7px 12px"}}>
+                        <span className="status-chip" style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:st.bg,color:st.color,textTransform:"capitalize"}}>{s.status||"active"}</span>
+                      </td>
+                      <td style={{padding:"7px 12px"}}><RatingStars rating={s.rating}/></td>
+                      <td style={{padding:"7px 12px"}}>
+                        <div style={{display:"flex",gap:4}}>
+                          <button onClick={()=>setViewSupplier(s)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.primaryBg,color:T.primary}}><Eye style={{width:12,height:12}}/></button>
+                          {isAdmin&&<button onClick={()=>openEdit(s)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.successBg,color:T.success}}><Edit style={{width:12,height:12}}/></button>}
+                          {isAdmin&&<button onClick={()=>toggleStatus(s)} title={s.status==="active"?"Deactivate":"Activate"} style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:s.status==="active"?T.warningBg:T.successBg,color:s.status==="active"?T.warning:T.success}}>{s.status==="active"?<XCircle style={{width:12,height:12}}/>:<CheckCircle style={{width:12,height:12}}/>}</button>}
+                          <button onClick={()=>printOne(s)} title="Print" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.bg2,color:T.fgMuted}}><Printer style={{width:12,height:12}}/></button>
+                          {isAdmin&&<button onClick={()=>deleteSupplier(s)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.errorBg,color:T.error}}><Trash2 style={{width:12,height:12}}/></button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <TablePager total={filtered.length} page={page} perPage={perPage}
+            onPage={setPage} onPerPage={setPerPage} color={T.primary}/>
+        </Card>
       </div>
 
       {/* View Modal */}
       {viewSupplier&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(560px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
-              <div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewSupplier.name}</div><div style={{fontSize:11,color:"rgba(255,255,255,0.9)",marginTop:2}}>{viewSupplier.category?.replace(/_/g," ")}</div></div>
-              <button onClick={()=>setViewSupplier(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:T.card,borderRadius:T.rXl,width:"min(560px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:T.shadowLg}}>
+            <div style={{padding:"14px 20px",background:T.primaryBg,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontSize:15,fontWeight:800,color:T.fg}}>{viewSupplier.name}</div><div style={{fontSize:11,color:T.fgMuted,marginTop:2}}>{viewSupplier.category?.replace(/_/g," ")}</div></div>
+              <button onClick={()=>setViewSupplier(null)} style={{background:T.bg2,border:"none",borderRadius:T.r,padding:"4px 8px",cursor:"pointer",color:T.fgMuted}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Rating","-".repeat(viewSupplier.rating||3)],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
-                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v}</div></div>
+              {[["Contact",viewSupplier.contact_person],["Email",viewSupplier.email],["Phone",viewSupplier.phone],["Address",viewSupplier.address],["KRA PIN",viewSupplier.kra_pin],["Tax ID",viewSupplier.tax_id],["Bank",viewSupplier.bank_name],["Account",viewSupplier.bank_account],["Branch",viewSupplier.bank_branch],["Website",viewSupplier.website],["Status",viewSupplier.status]].filter(([,v])=>v).map(([k,v])=>(
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:T.fg,fontWeight:600}}>{v}</div></div>
               ))}
-              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:"#374151"}}>{viewSupplier.notes}</div></div>}
+              <div><div style={{fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>Rating</div><RatingStars rating={viewSupplier.rating}/></div>
+              {viewSupplier.notes&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Notes</div><div style={{fontSize:13,color:T.fgMuted}}>{viewSupplier.notes}</div></div>}
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
-              <button onClick={()=>printOne(viewSupplier)} style={{...btnSm,padding:"7px 14px",background:"#f3f4f6",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8}}><Printer style={{width:13,height:13}}/>Print</button>
-              {isAdmin&&<button onClick={()=>{setViewSupplier(null);openEdit(viewSupplier);}} style={{padding:"7px 16px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
-              <button onClick={()=>setViewSupplier(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
+            <div style={{padding:"12px 20px",borderTop:`1px solid ${T.border}`,display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>printOne(viewSupplier)} style={{display:"flex",alignItems:"center",gap:5,padding:"7px 14px",background:T.bg2,color:T.fgMuted,border:`1px solid ${T.border}`,borderRadius:T.rMd,cursor:"pointer",fontSize:12,fontWeight:600}}><Printer style={{width:13,height:13}}/>Print</button>
+              {isAdmin&&<button onClick={()=>{setViewSupplier(null);openEdit(viewSupplier);}} style={{padding:"7px 16px",background:T.primary,color:"#fff",border:"none",borderRadius:T.rMd,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
+              <button onClick={()=>setViewSupplier(null)} style={{padding:"7px 16px",border:`1px solid ${T.border}`,background:T.card,color:T.fgMuted,borderRadius:T.rMd,cursor:"pointer",fontSize:13}}>Close</button>
             </div>
           </div>
         </div>
@@ -366,15 +346,15 @@ export default function SuppliersPage() {
 
       {/* Add/Edit Modal */}
       {showForm&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.55)"}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(640px,100%)",maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3a6b,#2563eb)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Supplier":"New Supplier"}</div>
-              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(15,23,42,0.55)"}}>
+          <div style={{background:T.card,borderRadius:T.rXl,width:"min(640px,100%)",maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:T.shadowLg}}>
+            <div style={{padding:"14px 20px",background:T.primaryBg,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:15,fontWeight:800,color:T.fg}}>{editing?"Edit Supplier":"New Supplier"}</div>
+              <button onClick={()=>setShowForm(false)} style={{background:T.bg2,border:"none",borderRadius:T.r,padding:"4px 8px",cursor:"pointer",color:T.fgMuted}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{overflowY:"auto",padding:20}}>
               {!editing && (
-                <div style={{marginBottom:14,paddingBottom:14,borderBottom:"1px dashed #e5e7eb"}}>
+                <div style={{marginBottom:14,paddingBottom:14,borderBottom:`1px dashed ${T.border}`}}>
                   <DocumentAnalyzerButton target="supplier" onApply={(f)=>{
                     setForm(p=>({
                       ...p,
@@ -403,15 +383,15 @@ export default function SuppliersPage() {
                 <div><label style={lbl}>Bank Account</label><input value={form.bank_account} onChange={e=>setForm(p=>({...p,bank_account:e.target.value}))} style={inp}/></div>
                 <div><label style={lbl}>Bank Branch</label><input value={form.bank_branch} onChange={e=>setForm(p=>({...p,bank_branch:e.target.value}))} style={inp}/></div>
                 <div><label style={lbl}>Website</label><input value={form.website} onChange={e=>setForm(p=>({...p,website:e.target.value}))} style={inp} placeholder="https://"/></div>
-                <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"-".repeat(n)} ({n})</option>)}</select></div>
+                <div><label style={lbl}>Rating (1-5)</label><select value={form.rating} onChange={e=>setForm(p=>({...p,rating:e.target.value}))} style={inp}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}</select></div>
                 <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select></div>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><textarea value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
               </div>
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3a6b",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+            <div style={{padding:"12px 20px",borderTop:`1px solid ${T.border}`,display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:`1px solid ${T.border}`,background:T.card,color:T.fgMuted,borderRadius:T.rMd,cursor:"pointer",fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:T.primary,color:"#fff",border:"none",borderRadius:T.rMd,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Truck style={{width:13,height:13}}/>}
                 {saving?"Saving...":"Save Supplier"}
               </button>
@@ -419,6 +399,7 @@ export default function SuppliersPage() {
           </div>
         </div>
       )}
+      <style>{spinKeyframes}</style>
     </div>
   );
 }

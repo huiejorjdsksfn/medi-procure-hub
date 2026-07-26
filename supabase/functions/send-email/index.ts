@@ -1,16 +1,22 @@
 /**
- * EL5 MediProcure — send-email v8.0  PRODUCTION
+ * EL5 MediProcure — send-email v8.1  PRODUCTION
+ * v8.1: Resend is now the PRIMARY provider (was tried last, after
+ * Gmail/SMTP). Falls back to Gmail/SMTP then SMTP2GO if Resend isn't
+ * configured or a send fails. Requires RESEND_API_KEY set as a Supabase
+ * Edge Function secret — set via the Supabase Dashboard (Project
+ * Settings → Edge Functions → Secrets) or `supabase secrets set
+ * RESEND_API_KEY=...`; never hardcoded here, since this file is
+ * committed to a public-facing git history.
  * v8.0: FIXED — smtp_pass was being sent to the SMTP2GO HTTP API as if it
  * were an SMTP2GO API key. It's actually a real Gmail/SMTP password
  * (same system_settings the Settings → Email/SMTP page saves, and the
  * same value notification-hub already used correctly via a real SMTP/TLS
  * connection). This function had no real SMTP client at all — only HTTP
  * API providers — so no smtp_pass value the admin entered could ever
- * work. Added a real Gmail/SMTP path (denomailer) as the primary
- * provider whenever smtp_enabled + host/user/pass are configured.
+ * work. Added a real Gmail/SMTP path (denomailer) as a provider.
  * v7.1: Anti-replay guard (x-el5-nonce / x-el5-ts headers, optional).
- * Primary: Gmail/SMTP (system_settings, real SMTP/TLS)
- * Fallback 1: Resend API (api.resend.com), if RESEND_API_KEY is set
+ * Primary: Resend API (api.resend.com), if RESEND_API_KEY is set
+ * Fallback 1: Gmail/SMTP (system_settings, real SMTP/TLS)
  * Fallback 2: SMTP2GO API (api.smtp2go.com), if SMTP2GO_API_KEY is set
  * EL5 MediProcure · Embu Level 5 Hospital
  */
@@ -181,7 +187,7 @@ serve(async (req) => {
   if (req.method === "GET" && url.searchParams.get("action") === "status") {
     const smtpSettings = await getSmtpSettings();
     return new Response(JSON.stringify({
-      ok: true, version: "8.0", resend_key_set: !!RESEND_KEY, smtp2go_key_set: !!SMTP2GO_KEY,
+      ok: true, version: "8.1", resend_key_set: !!RESEND_KEY, smtp2go_key_set: !!SMTP2GO_KEY,
       gmail_smtp_ready: !!(smtpSettings.enabled && smtpSettings.host && smtpSettings.user && smtpSettings.pass),
       smtp_enabled: smtpSettings.enabled, from: smtpSettings.from_email, from_name: smtpSettings.from_name,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
@@ -225,20 +231,20 @@ serve(async (req) => {
     let result: { ok: boolean; id?: string; error?: string } = { ok: false, error: "No email provider available" };
     let provider = "none";
 
-    if (smtpSettings.enabled && smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
-      result = await sendViaGmailSmtp(to, subject, htmlContent, textContent, smtpSettings);
-      provider = "gmail-smtp";
-    }
-    if (!result.ok && RESEND_KEY) {
+    if (RESEND_KEY) {
       result = await sendViaResend(to, subject, htmlContent, textContent, fromEmail, fromName);
       provider = "resend";
+    }
+    if (!result.ok && smtpSettings.enabled && smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
+      result = await sendViaGmailSmtp(to, subject, htmlContent, textContent, smtpSettings);
+      provider = "gmail-smtp";
     }
     if (!result.ok && SMTP2GO_KEY) {
       result = await sendViaSmtp2Go(to, subject, htmlContent, textContent, fromEmail, fromName, SMTP2GO_KEY);
       provider = "smtp2go-env";
     }
     if (!result.ok) {
-      result.error = result.error || "No email provider configured — set a real Gmail/SMTP password in Settings → Email/SMTP, or configure RESEND_API_KEY/SMTP2GO_API_KEY.";
+      result.error = result.error || "No email provider configured — set RESEND_API_KEY, or a real Gmail/SMTP password in Settings → Email/SMTP, or SMTP2GO_API_KEY.";
     }
 
     await logEmail(Array.isArray(to) ? to[0] : to, subject, result.ok ? "sent" : "failed", provider, result.id, result.error);

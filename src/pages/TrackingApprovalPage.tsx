@@ -1,7 +1,7 @@
 /**
- * EL5 MediProcure — Tracking & Approval Portal v2
- * O365-style portal with prominent Approval Queue inbox
- * Documents pushed from any page appear here for action
+ * EL5 MediProcure — Tracking & Approval Portal v3.0
+ * 2026 ERP redesign: P2P pipeline tracker, elevated card system, refined
+ * typography. Same data + actions as v2 — visual layer only.
  */
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,29 +10,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp, QuickStampButton } from "@/components/DocumentStamp";
 import BrandConfirmation from "@/components/BrandConfirmation";
+import { T } from "@/lib/theme";
 import {
   ShoppingCart, FileText, Package, Users, Bell, AlertTriangle,
   Database, CheckCircle2, XCircle, RefreshCw, Search, BarChart3,
-  Settings, Shield, ClipboardList, Send, Stamp, Eye, ArrowRight,
-  Clock, CheckSquare, Home, Inbox, ChevronRight, Tag, Filter,
+  Settings, Shield, ClipboardList, Stamp, ArrowRight,
+  Clock, CheckSquare, Inbox, ChevronRight, Tag, Filter, ArrowUpRight,
 } from "lucide-react";
 
 const db = supabase as any;
 
-const O = {
-  hero:"#107C73", topBar:"#0a5a52", white:"#ffffff",
-  bg:"#f3f2f1", card:"#ffffff", border:"#edebe9",
-  text:"#323130", textSub:"#605e5c", textMt:"#a19f9d",
-  blue:"#0078d4", shadow:"0 1.6px 3.6px rgba(0,0,0,.13)",
-  shadowHov:"0 6.4px 14.4px rgba(0,0,0,.18)",
-  font:"'Segoe UI','Segoe UI Web','Arial',sans-serif",
+/* ── Visual tokens (colours pulled from the shared theme so GUI-editor
+   customisation still applies; layout/type/spacing is the 2026 pass) ── */
+const V = {
+  font: "'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
 };
 
 const TILES = [
   { label:"Requisitions",    icon:ShoppingCart, color:"#0078d4", path:"/requisitions"    },
   { label:"Purchase Orders", icon:FileText,     color:"#107c10", path:"/purchase-orders"  },
   { label:"GRN Tracking",    icon:Package,      color:"#ca5010", path:"/goods-received"  },
-  { label:"Bulk Approve",    icon:CheckSquare,  color:"#8764b8", path:"/tracking-approval"},
   { label:"Notifications",   icon:Bell,         color:"#038387", path:"/notifications"   },
   { label:"Stock Alerts",    icon:AlertTriangle,color:"#a4262c", path:"/inventory"       },
   { label:"Audit Trail",     icon:ClipboardList,color:"#498205", path:"/audit-log"       },
@@ -228,107 +225,153 @@ export default function TrackingApprovalPage() {
     { id:"stamp",   label:"Awaiting Stamp",   count:stampDocs.length,urgent:false },
   ];
 
+  /* Procure-to-pay pipeline — the flow this whole page exists to move
+     documents through, laid out as connected live stages. */
+  const PIPELINE = [
+    { label:"Requisitions",   sub:"awaiting approval", count:counts.reqs,          icon:ShoppingCart, color:"#0078d4" },
+    { label:"Approval Queue", sub:"pushed for action",  count:counts.inQueue,       icon:Inbox,        color:"#8764b8" },
+    { label:"Purchase Orders",sub:"pending / open",     count:counts.pos,          icon:FileText,     color:"#107c10" },
+    { label:"Goods Received", sub:"pending GRN",        count:counts.grns,         icon:Package,      color:"#ca5010" },
+    { label:"Stamping",       sub:"official seal due",  count:stampDocs.length,    icon:Stamp,        color:"#a4262c" },
+  ];
+
   return (
-    <div style={{ background:O.bg, minHeight:"100vh", fontFamily:O.font, color:O.text }}>
+    <div style={{ background:T.bg, minHeight:"100vh", fontFamily:V.font, color:T.fg }}>
 
-      {/* Top bar */}
-      <div style={{ background:O.topBar, height:44, display:"flex", alignItems:"center", padding:"0 24px", gap:8 }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,5px)", gap:2 }}>
-          {Array(9).fill(0).map((_,i)=><div key={i} style={{ width:5,height:5,background:"rgba(255,255,255,.7)",borderRadius:1 }}/>)}
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div style={{ background:T.card, borderBottom:`1px solid ${T.border}`, padding:"16px 28px", display:"flex", alignItems:"center", gap:16, flexWrap:"wrap", boxShadow:"0 1px 2px rgba(16,24,40,.04)" }}>
+        <div style={{ width:44, height:44, borderRadius:T.rLg, background:`${T.primary}14`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <Inbox size={21} color={T.primary}/>
         </div>
-        <span style={{ color:O.white, fontWeight:700, fontSize:14, marginLeft:6 }}>EL5 MediProcure</span>
-        <div style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center" }}>
-          <button onClick={()=>nav("/notifications")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex" }}><Bell size={16}/></button>
-          <button onClick={()=>nav("/settings")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex" }}><Settings size={16}/></button>
-          <div style={{ width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-            <span style={{ color:O.white,fontWeight:700,fontSize:11 }}>{(profile?.full_name||"A").charAt(0).toUpperCase()}</span>
+        <div style={{ minWidth:0 }}>
+          <h1 style={{ margin:0, fontSize:19, fontWeight:700, color:T.fg, letterSpacing:"-.01em" }}>
+            Tracking &amp; Approval
+          </h1>
+          <div style={{ fontSize:12.5, color:T.fgMuted, marginTop:1 }}>
+            {greeting}, {profile?.full_name?.split(" ")[0]||"Administrator"} · {counts.inQueue} item{counts.inQueue!==1?"s":""} need{counts.inQueue===1?"s":""} your action
           </div>
         </div>
-      </div>
 
-      {/* Teal hero */}
-      <div style={{ background:O.hero, padding:"28px 24px 34px" }}>
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom:16 }}>
-          <div>
-            <h1 style={{ color:O.white, fontSize:24, fontWeight:300, margin:"0 0 4px", letterSpacing:"-.02em" }}>
-              {greeting}, {profile?.full_name?.split(" ")[0]||"Administrator"}
-            </h1>
-            <div style={{ color:"rgba(255,255,255,.7)", fontSize:12 }}>
-              {counts.inQueue} item{counts.inQueue!==1?"s":""} in queue
-            </div>
-          </div>
-          <QuickStampButton label="Official Stamp" size="md" variant="outline"/>
-        </div>
-        {/* Search */}
-        <div style={{ position:"relative", maxWidth:400, display:"flex", gap:8 }}>
-          <div style={{ position:"relative", flex:1 }}>
-            <Search size={13} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:O.textMt, pointerEvents:"none" }}/>
+        <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+          <div style={{ position:"relative" }}>
+            <Search size={14} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:T.fgDim, pointerEvents:"none" }}/>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search queue, approvals…"
-              style={{ width:"100%", padding:"8px 16px 8px 30px", border:"1px solid rgba(255,255,255,.4)", borderRadius:2, fontSize:13, background:O.white, color:O.text, outline:"none", boxSizing:"border-box", fontFamily:O.font }}/>
-            {search&&<button onClick={()=>setSearch("")} style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:O.textMt,fontSize:16,lineHeight:1 }}>×</button>}
+              style={{ width:240, padding:"8px 12px 8px 32px", border:`1px solid ${T.border}`, borderRadius:T.r, fontSize:13, background:T.bg, color:T.fg, outline:"none", boxSizing:"border-box", fontFamily:V.font }}/>
+            {search&&<button onClick={()=>setSearch("")} style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T.fgDim,fontSize:16,lineHeight:1 }}>×</button>}
           </div>
           <button onClick={load} disabled={loading}
-            style={{ padding:"8px 12px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:O.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
-            <RefreshCw size={11} style={{ animation:loading?"spin 1s linear infinite":"none" }}/> Refresh
+            style={{ padding:"8px 12px",background:T.card,border:`1px solid ${T.border}`,borderRadius:T.r,color:T.fgMuted,fontSize:12.5,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>
+            <RefreshCw size={13} style={{ animation:loading?"spin 1s linear infinite":"none" }}/> Refresh
           </button>
+          <QuickStampButton label="Official Stamp" size="md" variant="outline"/>
         </div>
       </div>
 
-      <div style={{ padding:"0 24px 32px" }}>
+      <div style={{ padding:"22px 28px 36px", maxWidth:1400, margin:"0 auto" }}>
 
-        {/* KPI strip */}
-        <div style={{ display:"flex", gap:10, marginTop:16, marginBottom:20, flexWrap:"wrap" }}>
+        {/* ── KPI band ──────────────────────────────────────────────── */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(180px,1fr))", gap:12, marginBottom:20 }}>
           {[
-            { label:"In Approval Queue", val:counts.inQueue, color:"#0078d4", hot:queue.some(q=>q.priority==="urgent") },
-            { label:"Pending Reqs",      val:counts.reqs,    color:"#ca5010", hot:false },
-            { label:"Pending POs",       val:counts.pos,     color:"#107c10", hot:false },
-            { label:"Pending GRNs",      val:counts.grns,    color:"#8764b8", hot:false },
+            { label:"In Approval Queue", val:counts.inQueue, color:"#8764b8", icon:Inbox,        hot:queue.some(q=>q.priority==="urgent") },
+            { label:"Pending Reqs",      val:counts.reqs,    color:"#0078d4", icon:ShoppingCart,  hot:false },
+            { label:"Pending POs",       val:counts.pos,     color:"#107c10", icon:FileText,      hot:false },
+            { label:"Pending GRNs",      val:counts.grns,    color:"#ca5010", icon:Package,       hot:false },
           ].map(b=>(
-            <div key={b.label} style={{ background:O.card, border:`1px solid ${b.hot?"#dc2626":O.border}`, borderTop:`3px solid ${b.color}`, borderRadius:2, padding:"10px 16px", boxShadow:O.shadow, position:"relative" }}>
-              {b.hot&&<span style={{ position:"absolute",top:-8,right:8,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:99 }}>URGENT</span>}
-              <div style={{ fontSize:22, fontWeight:800, color:b.color }}>{loading?"—":b.val}</div>
-              <div style={{ fontSize:10, color:O.textSub, fontWeight:600, textTransform:"uppercase", letterSpacing:".04em" }}>{b.label}</div>
+            <div key={b.label} style={{ background:T.card, border:`1px solid ${b.hot?"#dc262655":T.border}`, borderRadius:T.rLg, padding:"14px 16px", boxShadow:T.shadow, position:"relative", display:"flex", alignItems:"center", gap:12 }}>
+              {b.hot&&<span style={{ position:"absolute",top:-8,right:12,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:99,letterSpacing:".02em" }}>URGENT</span>}
+              <div style={{ width:38, height:38, borderRadius:T.rMd, background:`${b.color}14`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <b.icon size={18} color={b.color}/>
+              </div>
+              <div>
+                <div style={{ fontSize:23, fontWeight:800, color:T.fg, lineHeight:1.1 }}>{loading?"—":b.val}</div>
+                <div style={{ fontSize:11, color:T.fgMuted, fontWeight:600, marginTop:1 }}>{b.label}</div>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* O365 tile grid */}
-        <p style={{ fontSize:12, color:O.textSub, margin:"0 0 10px" }}>Quick access</p>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:24 }}>
-          {TILES.map(t=>(
-            <button key={t.path} onClick={()=>nav(t.path)}
-              style={{ width:82,height:82,background:t.color,border:"none",borderRadius:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",boxShadow:O.shadow,transition:"opacity .15s,transform .15s" }}
-              onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.opacity=".85"; el.style.transform="translateY(-2px)"; }}
-              onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.opacity="1"; el.style.transform="none"; }}>
-              <t.icon size={22} color={O.white} strokeWidth={1.5}/>
-              <span style={{ color:O.white,fontSize:10,fontWeight:700,textAlign:"center",lineHeight:1.2,padding:"0 3px" }}>{t.label}</span>
-            </button>
-          ))}
+        {/* ── Signature: Procure-to-Pay pipeline tracker ───────────────── */}
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rXl, boxShadow:T.shadow, padding:"20px 24px", marginBottom:20 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:T.fg }}>Procure-to-Pay Pipeline</div>
+            <div style={{ fontSize:11.5, color:T.fgDim }}>Live document flow across every stage</div>
+          </div>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:0, overflowX:"auto" }}>
+            {PIPELINE.map((stage,i)=>(
+              <div key={stage.label} style={{ display:"flex", alignItems:"flex-start", flex:i<PIPELINE.length-1?1:"0 0 auto", minWidth:i<PIPELINE.length-1?140:120 }}>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8, minWidth:104 }}>
+                  <div style={{
+                    width:52, height:52, borderRadius:"50%",
+                    background: stage.count>0 ? `${stage.color}16` : T.bg2,
+                    border:`2px solid ${stage.count>0?stage.color:T.border}`,
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    position:"relative", transition:"all .2s",
+                  }}>
+                    <stage.icon size={20} color={stage.count>0?stage.color:T.fgDim} strokeWidth={1.75}/>
+                    {stage.count>0&&(
+                      <span style={{ position:"absolute", top:-6, right:-6, background:stage.color, color:"#fff", fontSize:10.5, fontWeight:800, minWidth:20, height:20, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 5px", border:`2px solid ${T.card}` }}>
+                        {loading?"–":stage.count}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:T.fg, whiteSpace:"nowrap" }}>{stage.label}</div>
+                    <div style={{ fontSize:10.5, color:T.fgDim, marginTop:1, whiteSpace:"nowrap" }}>{stage.sub}</div>
+                  </div>
+                </div>
+                {i<PIPELINE.length-1&&(
+                  <div style={{ flex:1, display:"flex", alignItems:"center", height:52, minWidth:36, position:"relative", top:0 }}>
+                    <div style={{ flex:1, height:2, background:`linear-gradient(90deg, ${stage.color}55, ${PIPELINE[i+1].color}55)`, position:"relative" }}>
+                      <ArrowRight size={13} color={T.fgDim} style={{ position:"absolute", right:-2, top:"50%", transform:"translateY(-50%)" }}/>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div style={{ borderTop:`1px solid ${O.border}`, marginBottom:16 }}/>
+        {/* ── Quick actions ─────────────────────────────────────────────── */}
+        <div style={{ marginBottom:22 }}>
+          <div style={{ fontSize:11.5, fontWeight:700, color:T.fgDim, textTransform:"uppercase", letterSpacing:".05em", marginBottom:10 }}>Quick access</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {TILES.map(t=>(
+              <button key={t.path} onClick={()=>nav(t.path)}
+                style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px 8px 8px", background:T.card, border:`1px solid ${T.border}`, borderRadius:99, cursor:"pointer", transition:"all .15s", boxShadow:T.shadow }}
+                onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.borderColor=t.color; el.style.transform="translateY(-1px)"; el.style.boxShadow=T.shadowMd; }}
+                onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.borderColor=T.border; el.style.transform="none"; el.style.boxShadow=T.shadow; }}>
+                <div style={{ width:26, height:26, borderRadius:"50%", background:`${t.color}16`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <t.icon size={13} color={t.color} strokeWidth={2}/>
+                </div>
+                <span style={{ color:T.fg, fontSize:12.5, fontWeight:600, whiteSpace:"nowrap" }}>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {/* Tabs */}
-        <div style={{ display:"flex", gap:0, borderBottom:`1px solid ${O.border}`, marginBottom:18 }}>
-          {TAB_DEFS.map(tab=>(
-            <button key={tab.id} onClick={()=>setActiveTab(tab.id as any)}
-              style={{ padding:"9px 16px", background:"none", border:"none", borderBottom:activeTab===tab.id?`2px solid ${O.blue}`:"2px solid transparent", cursor:"pointer", fontSize:12, fontWeight:activeTab===tab.id?700:500, color:activeTab===tab.id?O.blue:O.textSub, display:"flex",alignItems:"center",gap:6, transition:"color .1s", position:"relative", top:1 }}>
-              {tab.id==="queue"&&<Inbox size={13}/>}
-              {tab.id==="pending"&&<Clock size={13}/>}
-              {tab.id==="stamp"&&<Stamp size={13}/>}
-              {tab.label}
-              {tab.count>0&&<span style={{ fontSize:10,fontWeight:800,padding:"0 5px",borderRadius:99,background:tab.urgent?"#dc2626":activeTab===tab.id?O.blue:"#e5e7eb",color:tab.urgent||activeTab===tab.id?"#fff":O.textSub }}>{tab.count}</span>}
-            </button>
-          ))}
+        {/* ── Tabs + filter ─────────────────────────────────────────────── */}
+        <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap", gap:12, marginBottom:16 }}>
+          <div style={{ display:"flex", gap:4, background:T.bg2, padding:4, borderRadius:T.rLg }}>
+            {TAB_DEFS.map(tab=>(
+              <button key={tab.id} onClick={()=>setActiveTab(tab.id as any)}
+                style={{ padding:"7px 14px", background:activeTab===tab.id?T.card:"transparent", border:"none", borderRadius:T.rMd, cursor:"pointer", fontSize:12.5, fontWeight:activeTab===tab.id?700:600, color:activeTab===tab.id?T.fg:T.fgMuted, display:"flex",alignItems:"center",gap:7, transition:"all .12s", boxShadow:activeTab===tab.id?T.shadow:"none" }}>
+                {tab.id==="queue"&&<Inbox size={13}/>}
+                {tab.id==="pending"&&<Clock size={13}/>}
+                {tab.id==="stamp"&&<Stamp size={13}/>}
+                {tab.label}
+                {tab.count>0&&<span style={{ fontSize:10,fontWeight:800,padding:"1px 6px",borderRadius:99,background:tab.urgent?"#dc2626":activeTab===tab.id?T.primary:T.bg2,color:tab.urgent||activeTab===tab.id?"#fff":T.fgMuted }}>{tab.count}</span>}
+              </button>
+            ))}
+          </div>
 
           {activeTab==="queue"&&(
-            <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:5, paddingBottom:6 }}>
-              <Filter size={11} color={O.textMt}/>
+            <div style={{ display:"flex", alignItems:"center", gap:5, marginLeft:"auto" }}>
+              <Filter size={12} color={T.fgDim}/>
               {["all","urgent","high","normal","low"].map(p=>(
                 <button key={p} onClick={()=>setQFilter(p)}
-                  style={{ padding:"2px 8px", borderRadius:99, fontSize:10, fontWeight:700, border:"none", cursor:"pointer",
-                    background:qFilter===p?(PRIO_STYLE[p]?.bg||(O as any).blueLt||"#deecf9"):"transparent",
-                    color:qFilter===p?(PRIO_STYLE[p]?.color||O.blue):O.textMt }}>
+                  style={{ padding:"4px 10px", borderRadius:99, fontSize:11, fontWeight:700, border:"none", cursor:"pointer",
+                    background:qFilter===p?(PRIO_STYLE[p]?.bg||T.primaryBg):"transparent",
+                    color:qFilter===p?(PRIO_STYLE[p]?.color||T.primary):T.fgDim }}>
                   {p==="all"?"All":p.charAt(0).toUpperCase()+p.slice(1)}
                 </button>
               ))}
@@ -339,73 +382,73 @@ export default function TrackingApprovalPage() {
         {/* ── TAB: Approval Queue ─────────────────────────────────────── */}
         {activeTab==="queue"&&(
           <>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
-              <span style={{ fontSize:12, color:O.textSub }}>{filteredQueue.length} item{filteredQueue.length!==1?"s":""} awaiting action</span>
-              <span style={{ fontSize:11, color:O.textMt }}>Pushed at</span>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10, fontSize:12, color:T.fgMuted }}>
+              <span>{filteredQueue.length} item{filteredQueue.length!==1?"s":""} awaiting action</span>
+              <span style={{ color:T.fgDim }}>Pushed at</span>
             </div>
 
             {loading ? (
-              <div style={{ textAlign:"center", padding:"32px 0", color:O.textMt }}>
-                <RefreshCw size={18} style={{ animation:"spin 1s linear infinite" }}/>
-                <div style={{ marginTop:8, fontSize:13 }}>Loading…</div>
+              <div style={{ textAlign:"center", padding:"48px 0", color:T.fgDim }}>
+                <RefreshCw size={20} style={{ animation:"spin 1s linear infinite" }}/>
+                <div style={{ marginTop:10, fontSize:13 }}>Loading…</div>
               </div>
             ) : filteredQueue.length===0 ? (
-              <div style={{ textAlign:"center", padding:"40px 0", color:O.textMt }}>
+              <div style={{ textAlign:"center", padding:"56px 0", color:T.fgDim, background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rXl }}>
                 <Inbox size={36} style={{ opacity:.3 }}/>
-                <div style={{ marginTop:10, fontSize:14, fontWeight:600 }}>Approval queue is empty</div>
+                <div style={{ marginTop:12, fontSize:14, fontWeight:700, color:T.fgMuted }}>Approval queue is empty</div>
                 <div style={{ fontSize:12, marginTop:4 }}>Documents pushed from any page appear here for action</div>
               </div>
             ) : (
-              <div style={{ background:O.card, border:`1px solid ${O.border}`, borderRadius:3, boxShadow:O.shadow }}>
+              <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rXl, boxShadow:T.shadow, overflow:"hidden" }}>
                 {filteredQueue.map((item,i)=>{
                   const meta = DOC_META[item.document_type]||DOC_META.requisition;
                   const prio = PRIO_STYLE[item.priority]||PRIO_STYLE.normal;
                   const busy = resolving===item.id;
                   return (
-                    <div key={item.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderBottom:i<filteredQueue.length-1?`1px solid ${O.border}`:"none", transition:"background .1s" }}
-                      onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background="#f7f7f7"; }}
+                    <div key={item.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 18px", borderBottom:i<filteredQueue.length-1?`1px solid ${T.border}`:"none", transition:"background .12s" }}
+                      onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background=T.bg; }}
                       onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background="transparent"; }}>
 
                       {/* Type icon */}
-                      <div style={{ width:38,height:38,background:meta.color,borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                        <meta.icon size={17} color={O.white} strokeWidth={1.5}/>
+                      <div style={{ width:40,height:40,background:`${meta.color}16`,borderRadius:T.rMd,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                        <meta.icon size={18} color={meta.color} strokeWidth={1.75}/>
                       </div>
 
                       {/* Info */}
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
-                          <span style={{ fontSize:13, color:O.blue, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", cursor:"pointer" }}
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+                          <span style={{ fontSize:13.5, color:T.fg, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", cursor:"pointer" }}
                             onClick={()=>nav(meta.path)}>
                             {item.document_number} {item.document_title&&item.document_title!==item.document_number?`— ${item.document_title}`:""}
                           </span>
-                          <span style={{ fontSize:9,fontWeight:800,padding:"1px 6px",borderRadius:99,background:prio.bg,color:prio.color,flexShrink:0,textTransform:"uppercase" }}>
+                          <span style={{ fontSize:9.5,fontWeight:800,padding:"2px 7px",borderRadius:99,background:prio.bg,color:prio.color,flexShrink:0,textTransform:"uppercase",letterSpacing:".02em" }}>
                             {item.priority}
                           </span>
                         </div>
-                        <div style={{ fontSize:11, color:O.textMt, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                          EL5 MediProcure » {meta.label} » {item.department||"General"}
+                        <div style={{ fontSize:11.5, color:T.fgDim, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                          {meta.label} · {item.department||"General"}
                           {item.amount>0&&` · KES ${Number(item.amount).toLocaleString()}`}
                           {item.pushed_by_name&&` · Pushed by ${item.pushed_by_name}`}
                         </div>
-                        {item.notes&&<div style={{ fontSize:11,color:"#92400e",marginTop:2,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📝 {item.notes}</div>}
+                        {item.notes&&<div style={{ fontSize:11.5,color:T.warning,marginTop:3,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📝 {item.notes}</div>}
                       </div>
 
                       {/* Actions */}
-                      <div style={{ display:"flex", gap:5, flexShrink:0 }}>
+                      <div style={{ display:"flex", gap:6, flexShrink:0 }}>
                         <button onClick={()=>resolveQueue(item,"approved")} disabled={busy}
-                          style={{ display:"flex",alignItems:"center",gap:4,padding:"5px 12px",background:busy?"#9ca3af":"#107c10",color:O.white,border:"none",borderRadius:2,fontSize:12,fontWeight:700,cursor:busy?"default":"pointer" }}>
-                          <CheckCircle2 size={12}/> Approve
+                          style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 13px",background:busy?T.bg2:T.success,color:"#fff",border:"none",borderRadius:T.r,fontSize:12,fontWeight:700,cursor:busy?"default":"pointer" }}>
+                          <CheckCircle2 size={13}/> Approve
                         </button>
                         <button onClick={()=>resolveQueue(item,"rejected")} disabled={busy}
-                          style={{ display:"flex",alignItems:"center",gap:4,padding:"5px 12px",background:busy?"#9ca3af":"#a4262c",color:O.white,border:"none",borderRadius:2,fontSize:12,fontWeight:700,cursor:busy?"default":"pointer" }}>
-                          <XCircle size={12}/> Reject
+                          style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 13px",background:busy?T.bg2:"transparent",color:busy?T.fgDim:T.error,border:`1px solid ${busy?T.border:T.error}55`,borderRadius:T.r,fontSize:12,fontWeight:700,cursor:busy?"default":"pointer" }}>
+                          <XCircle size={13}/> Reject
                         </button>
                       </div>
 
                       {/* Timestamp */}
-                      <div style={{ fontSize:11,color:O.textMt,flexShrink:0,textAlign:"right",minWidth:80 }}>
+                      <div style={{ fontSize:11.5,color:T.fgDim,flexShrink:0,textAlign:"right",minWidth:78 }}>
                         {item.pushed_at?new Date(item.pushed_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"—"}
-                        <div style={{ fontSize:9,color:O.textMt }}>
+                        <div style={{ fontSize:9.5, color:T.fgDim }}>
                           {item.pushed_at?new Date(item.pushed_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"}):""}
                         </div>
                       </div>
@@ -420,46 +463,46 @@ export default function TrackingApprovalPage() {
         {/* ── TAB: Pending Approvals ─────────────────────────────────── */}
         {activeTab==="pending"&&(
           <>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
-              <span style={{ fontSize:12, color:O.textSub }}>Your pending requisition approvals</span>
-              <span style={{ fontSize:11, color:O.textMt }}>Submitted date</span>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10, fontSize:12, color:T.fgMuted }}>
+              <span>Your pending requisition approvals</span>
+              <span style={{ color:T.fgDim }}>Submitted date</span>
             </div>
             {loading?(
-              <div style={{ textAlign:"center",padding:"32px 0",color:O.textMt }}>
-                <RefreshCw size={18} style={{ animation:"spin 1s linear infinite" }}/><div style={{ marginTop:8,fontSize:13 }}>Loading…</div>
+              <div style={{ textAlign:"center",padding:"48px 0",color:T.fgDim }}>
+                <RefreshCw size={20} style={{ animation:"spin 1s linear infinite" }}/><div style={{ marginTop:10,fontSize:13 }}>Loading…</div>
               </div>
             ):filteredPending.length===0?(
-              <div style={{ textAlign:"center",padding:"40px 0",color:O.textMt }}>
-                <CheckCircle2 size={32} color="#107c10" style={{ opacity:.5 }}/>
-                <div style={{ marginTop:8,fontSize:14,fontWeight:600 }}>All caught up!</div>
+              <div style={{ textAlign:"center",padding:"56px 0",color:T.fgDim, background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rXl }}>
+                <CheckCircle2 size={36} color={T.success} style={{ opacity:.5 }}/>
+                <div style={{ marginTop:12,fontSize:14,fontWeight:700, color:T.fgMuted }}>All caught up!</div>
                 <div style={{ fontSize:12,marginTop:4 }}>No pending approvals{search?` matching "${search}"`:"."}</div>
               </div>
             ):(
-              <div style={{ background:O.card,border:`1px solid ${O.border}`,borderRadius:3,boxShadow:O.shadow }}>
+              <div style={{ background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,boxShadow:T.shadow, overflow:"hidden" }}>
                 {filteredPending.map((r,i)=>(
-                  <div key={r.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i<filteredPending.length-1?`1px solid ${O.border}`:"none",transition:"background .1s" }}
-                    onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background="#f7f7f7"; }}
+                  <div key={r.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:i<filteredPending.length-1?`1px solid ${T.border}`:"none",transition:"background .12s" }}
+                    onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background=T.bg; }}
                     onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background="transparent"; }}>
-                    <div style={{ width:36,height:36,background:"#0078d4",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                      <ShoppingCart size={16} color={O.white} strokeWidth={1.5}/>
+                    <div style={{ width:40,height:40,background:`${T.primary}16`,borderRadius:T.rMd,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                      <ShoppingCart size={18} color={T.primary} strokeWidth={1.75}/>
                     </div>
                     <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ fontSize:13,color:O.blue,fontWeight:600,cursor:"pointer",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }} onClick={()=>nav("/requisitions")}>
+                      <div style={{ fontSize:13.5,color:T.fg,fontWeight:700,cursor:"pointer",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }} onClick={()=>nav("/requisitions")}>
                         {r.requisition_number||`REQ/${r.department||"General"}`} — {r.title||"Procurement Request"}
                       </div>
-                      <div style={{ fontSize:11,color:O.textMt,marginTop:2 }}>
-                        EL5 MediProcure » Requisitions » {r.department||"General"}
+                      <div style={{ fontSize:11.5,color:T.fgDim,marginTop:2 }}>
+                        Requisitions · {r.department||"General"}
                       </div>
                     </div>
-                    <div style={{ display:"flex",gap:5,flexShrink:0 }}>
-                      <button onClick={()=>approve(r.id)} style={{ display:"flex",alignItems:"center",gap:4,padding:"5px 12px",background:"#107c10",color:O.white,border:"none",borderRadius:2,fontSize:12,fontWeight:700,cursor:"pointer" }}>
-                        <CheckCircle2 size={12}/> Approve
+                    <div style={{ display:"flex",gap:6,flexShrink:0 }}>
+                      <button onClick={()=>approve(r.id)} style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 13px",background:T.success,color:"#fff",border:"none",borderRadius:T.r,fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                        <CheckCircle2 size={13}/> Approve
                       </button>
-                      <button onClick={()=>reject(r.id)} style={{ display:"flex",alignItems:"center",gap:4,padding:"5px 12px",background:"#a4262c",color:O.white,border:"none",borderRadius:2,fontSize:12,fontWeight:700,cursor:"pointer" }}>
-                        <XCircle size={12}/> Reject
+                      <button onClick={()=>reject(r.id)} style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 13px",background:"transparent",color:T.error,border:`1px solid ${T.error}55`,borderRadius:T.r,fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                        <XCircle size={13}/> Reject
                       </button>
                     </div>
-                    <div style={{ fontSize:11,color:O.textMt,flexShrink:0,minWidth:80,textAlign:"right" }}>
+                    <div style={{ fontSize:11.5,color:T.fgDim,flexShrink:0,minWidth:78,textAlign:"right" }}>
                       {r.created_at?new Date(r.created_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"—"}
                     </div>
                   </div>
@@ -467,8 +510,8 @@ export default function TrackingApprovalPage() {
               </div>
             )}
             {!loading&&filteredPending.length>0&&(
-              <button onClick={()=>nav("/requisitions")} style={{ marginTop:14,display:"flex",alignItems:"center",gap:4,background:"none",border:"none",color:O.blue,fontSize:13,fontWeight:600,cursor:"pointer",padding:0 }}>
-                View all requisitions <ArrowRight size={13}/>
+              <button onClick={()=>nav("/requisitions")} style={{ marginTop:14,display:"flex",alignItems:"center",gap:5,background:"none",border:"none",color:T.primary,fontSize:13,fontWeight:600,cursor:"pointer",padding:0 }}>
+                View all requisitions <ArrowUpRight size={14}/>
               </button>
             )}
           </>
@@ -477,33 +520,33 @@ export default function TrackingApprovalPage() {
         {/* ── TAB: Awaiting Stamp ─────────────────────────────────────── */}
         {activeTab==="stamp"&&(
           <>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
-              <span style={{ fontSize:12,color:O.textSub }}>Approved documents awaiting official stamp</span>
-              <span style={{ fontSize:11,color:O.textMt }}>{stampDocs.length} document{stampDocs.length!==1?"s":""}</span>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10, fontSize:12, color:T.fgMuted }}>
+              <span>Approved documents awaiting official stamp</span>
+              <span style={{ color:T.fgDim }}>{stampDocs.length} document{stampDocs.length!==1?"s":""}</span>
             </div>
             {loading?(
-              <div style={{ textAlign:"center",padding:"32px 0",color:O.textMt }}>
-                <RefreshCw size={18} style={{ animation:"spin 1s linear infinite" }}/><div style={{ marginTop:8,fontSize:13 }}>Loading…</div>
+              <div style={{ textAlign:"center",padding:"48px 0",color:T.fgDim }}>
+                <RefreshCw size={20} style={{ animation:"spin 1s linear infinite" }}/><div style={{ marginTop:10,fontSize:13 }}>Loading…</div>
               </div>
             ):stampDocs.length===0?(
-              <div style={{ textAlign:"center",padding:"40px 0",color:O.textMt }}>
-                <Stamp size={32} color="#8764b8" style={{ opacity:.5 }}/>
-                <div style={{ marginTop:8,fontSize:14,fontWeight:600 }}>Nothing awaiting a stamp</div>
+              <div style={{ textAlign:"center",padding:"56px 0",color:T.fgDim, background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rXl }}>
+                <Stamp size={36} color="#8764b8" style={{ opacity:.5 }}/>
+                <div style={{ marginTop:12,fontSize:14,fontWeight:700, color:T.fgMuted }}>Nothing awaiting a stamp</div>
               </div>
             ):(
-              <div style={{ background:O.card,border:`1px solid ${O.border}`,borderRadius:3,boxShadow:O.shadow }}>
+              <div style={{ background:T.card,border:`1px solid ${T.border}`,borderRadius:T.rXl,boxShadow:T.shadow, overflow:"hidden" }}>
                 {stampDocs.map((row,i)=>(
-                  <div key={row.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i<stampDocs.length-1?`1px solid ${O.border}`:"none",transition:"background .1s" }}
-                    onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background="#f7f7f7"; }}
+                  <div key={row.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:i<stampDocs.length-1?`1px solid ${T.border}`:"none",transition:"background .12s" }}
+                    onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background=T.bg; }}
                     onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background="transparent"; }}>
-                    <div style={{ width:36,height:36,background:row.color,borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                      <row.icon size={16} color={O.white} strokeWidth={1.5}/>
+                    <div style={{ width:40,height:40,background:`${row.color}16`,borderRadius:T.rMd,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                      <row.icon size={18} color={row.color} strokeWidth={1.75}/>
                     </div>
                     <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ fontSize:13,color:O.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                        {row.title} <span style={{ color:"#107c10" }}>· {row.label}</span>
+                      <div style={{ fontSize:13.5,color:T.fg,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                        {row.title} <span style={{ color:T.success, fontWeight:600 }}>· {row.label}</span>
                       </div>
-                      <div style={{ fontSize:11,color:O.textMt,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                      <div style={{ fontSize:11.5,color:T.fgDim,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                         {row.meta}{row.by?` · by ${row.by}`:""}
                       </div>
                     </div>
@@ -511,10 +554,10 @@ export default function TrackingApprovalPage() {
                       <DocumentStamp status={row.label.toLowerCase()} size={50} rotate={-8}/>
                     </div>
                     <button onClick={()=>stampItem(row.table,row.id,row.label)} disabled={stampingId===row.id}
-                      style={{ display:"flex",alignItems:"center",gap:4,padding:"5px 12px",background:stampingId===row.id?"#a496c4":"#8764b8",color:O.white,border:"none",borderRadius:2,fontSize:12,fontWeight:700,cursor:stampingId===row.id?"default":"pointer",flexShrink:0 }}>
-                      <Stamp size={12}/>{stampingId===row.id?"Stamping…":"Stamp"}
+                      style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 13px",background:stampingId===row.id?"#a496c4":"#8764b8",color:"#fff",border:"none",borderRadius:T.r,fontSize:12,fontWeight:700,cursor:stampingId===row.id?"default":"pointer",flexShrink:0 }}>
+                      <Stamp size={13}/>{stampingId===row.id?"Stamping…":"Stamp"}
                     </button>
-                    <div style={{ fontSize:11,color:O.textMt,flexShrink:0,minWidth:80,textAlign:"right" }}>
+                    <div style={{ fontSize:11.5,color:T.fgDim,flexShrink:0,minWidth:78,textAlign:"right" }}>
                       {row.date?new Date(row.date).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"—"}
                     </div>
                   </div>

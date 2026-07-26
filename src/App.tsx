@@ -72,6 +72,7 @@ const FixedAssetsPage        = lazy(() => import("@/pages/financials/FixedAssets
 const AccountantWorkspacePage = lazy(() => import("@/pages/AccountantWorkspacePage"));
 const FinanceWorkspacePage   = lazy(() => import("@/pages/FinanceWorkspacePage"));
 const FinanceDashboardPage   = lazy(() => import("@/pages/FinanceDashboardPage"));
+const InvoiceMatchingPage    = lazy(() => import("@/pages/InvoiceMatchingPage"));
 
 // Quality
 const QualityDashboardPage   = lazy(() => import("@/pages/quality/QualityDashboardPage"));
@@ -269,6 +270,7 @@ const App = () => {
               <Route path="/accountant-workspace" element={<P><RoleGuard allowed={["admin","accountant","procurement_manager"]}><AccountantWorkspacePage /></RoleGuard></P>} />
               <Route path="/finance-workspace"    element={<P><RoleGuard allowed={["admin","finance_manager","finance_officer","accountant","procurement_manager"]}><FinanceWorkspacePage /></RoleGuard></P>} />
               <Route path="/finance-dashboard"    element={<P><RoleGuard allowed={["admin","finance_manager","finance_officer","accountant","procurement_manager"]}><FinanceDashboardPage /></RoleGuard></P>} />
+              <Route path="/invoice-matching"     element={<P><RoleGuard allowed={FINANCE}><InvoiceMatchingPage /></RoleGuard></P>} />
 
               {/* Misc */}
               <Route path="/notifications" element={<P><NotificationsPage /></P>} />

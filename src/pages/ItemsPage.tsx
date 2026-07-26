@@ -1,4 +1,8 @@
-
+/**
+ * ProcurBosse - Items & Inventory v2.0 (2026 ERP redesign)
+ * Same CRUD / validation / export / low-stock logic — visual layer via
+ * shared erpKit on the central T theme.
+ */
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PrintEngine } from "@/engines/print/PrintEngine";
@@ -12,18 +16,20 @@ import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { TablePager, ColSearchRow } from "@/components/TablePager";
 import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
+import { T } from "@/lib/theme";
+import { PageHeader, SearchBox, BtnPrimary, BtnGhost, KpiBand, Card, font, spinKeyframes } from "@/lib/erpKit";
 
 const TYPES = ["pharmaceutical","medical_equipment","consumable","reagent","laboratory","surgical","general","other"];
 
 const SC: Record<string,{bg:string;color:string}> = {
-  active:      {bg:"#dcfce7",color:"#15803d"},
-  inactive:    {bg:"#fee2e2",color:"#dc2626"},
-  discontinued:{bg:"#f3f4f6",color:"#6b7280"},
+  active:      {bg:T.successBg,color:T.success},
+  inactive:    {bg:T.errorBg,  color:T.error},
+  discontinued:{bg:T.bg2,      color:T.fgMuted},
 };
 
-const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:"1.5px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"};
+const inp: React.CSSProperties = {width:"100%",padding:"8px 12px",border:`1.5px solid ${T.border}`,borderRadius:T.rMd,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:font,background:T.bg,color:T.fg};
 const sel: React.CSSProperties = {...inp};
-const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
+const lbl: React.CSSProperties = {fontSize:11,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4,display:"block"};
 
 export default function ItemsPage() {
   const { user, profile, roles } = useAuth();
@@ -47,8 +53,6 @@ export default function ItemsPage() {
   const [colSearch,   setColSearch]   = useState<Record<string,string>>({});
   const [page,        setPage]        = useState(1);
   const [perPage,     setPerPage]     = useState(25);
-  // hospitalName now from useSystemSettings
-  // sysName now from useSystemSettings
 
   const [form, setForm] = useState({
     name:"", sku:"", item_type:"pharmaceutical", category_id:"",
@@ -62,7 +66,6 @@ export default function ItemsPage() {
   });
 
   useEffect(()=>{
-    /* settings via useSystemSettings hook */
     supabase.from("item_categories").select("*").then(({data})=>setCats(data||[]));
   },[]);
 
@@ -178,196 +181,155 @@ export default function ItemsPage() {
 
   const totalValue=filtered.reduce((s,it)=>s+Number(it.unit_price||0)*Number(it.quantity_in_stock||0),0);
   const lowStockCount=items.filter(it=>Number(it.quantity_in_stock)<=Number(it.reorder_level||10)).length;
-
-  const btnSm: React.CSSProperties = {padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5};
+  const activeItems=items.filter(it=>it.status==="active").length;
+  const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
 
   return (
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100%",padding:16}}>
-      <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        .item-row:hover td{background:#f0fdf4!important}
-        @media(max-width:768px){.items-header{flex-direction:column!important;align-items:flex-start!important}.items-filters{flex-wrap:wrap!important}.items-table{font-size:11px!important}.col-hide{display:none!important}}
-        @media(max-width:480px){.items-header-btns{flex-wrap:wrap!important}}
-      `}</style>
-      {/* KPI TILES */}
-      {(()=>{
-        const fmtK=(n:number)=>n>=1e6?`KES ${(n/1e6).toFixed(2)}M`:n>=1e3?`KES ${(n/1e3).toFixed(1)}K`:`KES ${n.toFixed(0)}`;
-        const lowStock=items.filter(it=>Number(it.quantity_in_stock||0)<=Number(it.reorder_level||10)).length;
-        const activeItems=items.filter(it=>it.status==="active").length;
-        return(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
-            {[
-              {label:"Total Stock Value",val:fmtK(totalValue),bg:"#c0392b"},
-              {label:"Total Items",val:items.length,bg:"#7d6608"},
-              {label:"Active Items",val:activeItems,bg:"#0e6655"},
-              {label:"Low Stock",val:lowStock,bg:"#6c3483"},
-              {label:"Categories",val:cats.length,bg:"#1a252f"},
-            ].map(k=>(
-              <div key={k.label} style={{borderRadius:10,padding:"12px 16px",color:"#fff",textAlign:"center",background:k.bg,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}}>
-                <div style={{fontSize:20,fontWeight:900,lineHeight:1}}>{k.val}</div>
-                <div style={{fontSize:10,fontWeight:700,marginTop:5,opacity:0.9,letterSpacing:"0.04em"}}>{k.label}</div>
-              </div>
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:font}}>
+      <PageHeader icon={Package} title="Items & Inventory" subtitle={`${filtered.length} items · Value: KES ${totalValue.toLocaleString()} · ${lowStockCount} low stock`}>
+        <BtnGhost onClick={load} icon={RefreshCw} loading={loading}>Refresh</BtnGhost>
+        <BtnGhost onClick={printAll} icon={Printer}>Print</BtnGhost>
+        <BtnGhost onClick={exportExcel} icon={FileSpreadsheet}>Export</BtnGhost>
+        {canEdit&&<BtnPrimary onClick={openCreate} icon={Plus}>Add Item</BtnPrimary>}
+      </PageHeader>
+
+      <div style={{padding:"20px 20px 32px"}}>
+        <KpiBand loading={loading} items={[
+          {label:"Total Stock Value",val:fmtK(totalValue), color:"#a4262c",icon:Package},
+          {label:"Total Items",      val:items.length,     color:T.warning,icon:Package},
+          {label:"Active Items",     val:activeItems,      color:T.success,icon:Eye},
+          {label:"Low Stock",        val:lowStockCount,    color:"#6c3483",icon:AlertTriangle, hot:lowStockCount>0},
+          {label:"Categories",       val:cats.length,      color:T.primary,icon:Package},
+        ]}/>
+
+        {/* Filters */}
+        <Card style={{padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:14,flexWrap:"wrap" as const}}>
+          <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...sel,width:"auto",padding:"5px 10px",fontSize:12}}>
+            <option value="all">All Types</option>
+            {TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}
+          </select>
+          <div style={{display:"flex",gap:4}}>
+            {["all","active","inactive","discontinued"].map(s=>(
+              <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?T.primary:T.bg2,color:statusFilter===s?"#fff":T.fgMuted,fontFamily:font}}>
+                {s}
+              </button>
             ))}
           </div>
-        );
-      })()}
-      {/* Header */}
-      <div  style={{background:"linear-gradient(90deg,#1a3d12,#375623,#4d7c30)",borderRadius:12,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:12,boxShadow:"0 4px 16px rgba(55,86,35,0.35)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <Package style={{width:22,height:22,color:"#fff"}}/>
-          <div>
-            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Items &amp; Inventory</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)"}}>
-              {filtered.length} items - Value: KES {totalValue.toLocaleString()} - <span style={{color:lowStockCount>0?"#fca5a5":"rgba(255,255,255,0.5)"}}>{lowStockCount} low stock</span>
-            </div>
+          <button onClick={()=>setLowOnly(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,background:lowOnly?T.error:T.bg2,color:lowOnly?"#fff":T.fgMuted,fontSize:11,padding:"4px 10px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,fontFamily:font}}>
+            <AlertTriangle style={{width:12,height:12}}/> Low Stock {lowStockCount>0&&`(${lowStockCount})`}
+          </button>
+          <div style={{marginLeft:"auto"}}>
+            <SearchBox value={search} onChange={setSearch} placeholder="Search items…" width={200}/>
           </div>
-        </div>
-        <div  style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-          <button onClick={load} disabled={loading} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff",minWidth:36,justifyContent:"center"}}>
-            <RefreshCw style={{width:14,height:14,animation:loading?"spin 1s linear infinite":"none"}}/>
-          </button>
-          <button onClick={printAll} style={{...btnSm,background:"rgba(255,255,255,0.18)",color:"#fff"}}>
-            <Printer style={{width:13,height:13}}/>Print
-          </button>
-          <button onClick={exportExcel} style={{...btnSm,background:"rgba(52,211,153,0.85)",color:"#fff"}}>
-            <FileSpreadsheet style={{width:13,height:13}}/>Export
-          </button>
-          {canEdit&&(
-            <button onClick={openCreate} style={{...btnSm,background:"#fff",color:"#1a3d12",fontWeight:800}}>
-              <Plus style={{width:13,height:13}}/>Add Item
-            </button>
-          )}
-        </div>
-      </div>
+        </Card>
 
-      {/* Filters */}
-      <div  style={{background:"#fff",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"center",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexWrap:"wrap" as const}}>
-        <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{...sel,width:"auto",padding:"5px 10px",fontSize:12}}>
-          <option value="all">All Types</option>
-          {TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g," ")}</option>)}
-        </select>
-        <div style={{display:"flex",gap:4}}>
-          {["all","active","inactive","discontinued"].map(s=>(
-            <button key={s} onClick={()=>setStatusFilter(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,border:"none",cursor:"pointer",textTransform:"capitalize",background:statusFilter===s?"#1a3d12":"#f3f4f6",color:statusFilter===s?"#fff":"#6b7280"}}>
-              {s}
-            </button>
-          ))}
-        </div>
-        <button onClick={()=>setLowOnly(v=>!v)} style={{...btnSm,background:lowOnly?"#ef4444":"#f3f4f6",color:lowOnly?"#fff":"#6b7280",fontSize:11,padding:"4px 10px",borderRadius:20}}>
-          <AlertTriangle style={{width:12,height:12}}/> Low Stock {lowStockCount>0&&`(${lowStockCount})`}
-        </button>
-        <div style={{flex:1,minWidth:180,position:"relative"}}>
-          <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,color:"#9ca3af"}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items..."
-            style={{...inp,paddingLeft:32,paddingRight:search?28:12,fontSize:12}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}><X style={{width:13,height:13,color:"#9ca3af"}}/></button>}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div style={{background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden"}}>
-        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
-          <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead>
-              <tr style={{background:"#1a3d12"}}>
-                {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:"rgba(255,255,255,0.85)",fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr>
-              <ColSearchRow
-                headerBg="#264d1e"
-                values={colSearch}
-                onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
-                cols={[
-                  {key:"_n",type:"none"},
-                  {key:"name",placeholder:"name"},
-                  {key:"sku",placeholder:"sku"},
-                  {key:"type",placeholder:"type"},
-                  {key:"category",placeholder:"category"},
-                  {key:"uom",placeholder:"uom"},
-                  {key:"_p",type:"none"},
-                  {key:"_q",type:"none"},
-                  {key:"_r",type:"none"},
-                  {key:"status",placeholder:"status"},
-                  {key:"_v",type:"none"},
-                  {key:"_a",type:"none"},
-                ]}
-              />
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
-                  <RefreshCw style={{width:18,height:18,color:"#9ca3af",animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
-                  <span style={{fontSize:12,color:"#9ca3af"}}>Loading items...</span>
-                </td></tr>
-              ) : filtered.length===0 ? (
-                <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:"#9ca3af",fontSize:13}}>No items found</td></tr>
-              ) : pageRows.map((it,idx)=>{
-                const i = pageStart + idx;
-                const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
-                const s=SC[it.status]||{bg:"#f3f4f6",color:"#6b7280"};
-                return (
-                  <tr key={it.id} >
-                    <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{i+1}</td>
-                    <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>{it.name}</td>
-                    <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.sku||"-"}</td>
-                    <td style={{padding:"7px 12px",color:"#374151",textTransform:"capitalize",background:i%2===0?"#fff":"#f9fafb"}}>{(it.item_type||"").replace(/_/g," ")}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.item_categories?.name||"-"}</td>
-                    <td style={{padding:"7px 12px",color:"#6b7280",background:i%2===0?"#fff":"#f9fafb"}}>{it.unit_of_measure||"-"}</td>
-                    <td style={{padding:"7px 12px",fontWeight:600,color:"#111827",background:i%2===0?"#fff":"#f9fafb"}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
-                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <span style={{fontWeight:700,color:isLow?"#dc2626":"#15803d"}}>{it.quantity_in_stock||0}</span>
-                      {isLow&&<AlertTriangle style={{width:11,height:11,color:"#ef4444",marginLeft:4,verticalAlign:"middle"}}/>}
-                    </td>
-                    <td style={{padding:"7px 12px",color:"#9ca3af",background:i%2===0?"#fff":"#f9fafb"}}>{it.reorder_level||10}</td>
-                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color,textTransform:"capitalize"}}>{it.status||"active"}</span>
-                    </td>
-                    <td style={{padding:"7px 12px",fontWeight:600,color:"#374151",background:i%2===0?"#fff":"#f9fafb"}}>KES {(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td>
-                    <td style={{padding:"7px 12px",background:i%2===0?"#fff":"#f9fafb"}}>
-                      <div style={{display:"flex",gap:4}}>
-                        <button onClick={()=>setViewItem(it)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dbeafe",color:"#1d4ed8"}}>
-                          <Eye style={{width:12,height:12}}/>
-                        </button>
-                        {canEdit&&<button onClick={()=>openEdit(it)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#dcfce7",color:"#15803d"}}>
-                          <Edit style={{width:12,height:12}}/>
-                        </button>}
-                        {canEdit&&<button onClick={()=>deleteItem(it)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:"#fee2e2",color:"#dc2626"}}>
-                          <Trash2 style={{width:12,height:12}}/>
-                        </button>}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <TablePager total={filtered.length} page={page} perPage={perPage}
-          onPage={setPage} onPerPage={setPerPage} color="#1a3d12"/>
-        <div style={{padding:"6px 14px",background:"#f9fafb",borderTop:"1px solid #e5e7eb",display:"flex",gap:20,fontSize:11,color:"#6b7280",flexWrap:"wrap" as const}}>
-          <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
-          {lowStockCount>0&&<span style={{color:"#ef4444",fontWeight:700}}>- {lowStockCount} low stock</span>}
-        </div>
+        {/* Table */}
+        <Card style={{overflow:"hidden"}}>
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch" as any}}>
+            <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:T.bg,borderBottom:`1px solid ${T.border}`}}>
+                  {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
+                    <th key={h} style={{padding:"9px 12px",textAlign:"left",color:T.fgDim,fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr>
+                <ColSearchRow
+                  headerBg={T.bg2}
+                  values={colSearch}
+                  onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
+                  cols={[
+                    {key:"_n",type:"none"},
+                    {key:"name",placeholder:"name"},
+                    {key:"sku",placeholder:"sku"},
+                    {key:"type",placeholder:"type"},
+                    {key:"category",placeholder:"category"},
+                    {key:"uom",placeholder:"uom"},
+                    {key:"_p",type:"none"},
+                    {key:"_q",type:"none"},
+                    {key:"_r",type:"none"},
+                    {key:"status",placeholder:"status"},
+                    {key:"_v",type:"none"},
+                    {key:"_a",type:"none"},
+                  ]}
+                />
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
+                    <RefreshCw style={{width:18,height:18,color:T.fgDim,animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
+                    <span style={{fontSize:12,color:T.fgDim}}>Loading items…</span>
+                  </td></tr>
+                ) : filtered.length===0 ? (
+                  <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:T.fgDim,fontSize:13}}>No items found</td></tr>
+                ) : pageRows.map((it,idx)=>{
+                  const i = pageStart + idx;
+                  const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
+                  const s=SC[it.status]||{bg:T.bg2,color:T.fgMuted};
+                  return (
+                    <tr key={it.id} style={{background:T.card,borderBottom:`1px solid ${T.border}`}}
+                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=T.bg}
+                      onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=T.card}>
+                      <td style={{padding:"7px 12px",color:T.fgDim}}>{i+1}</td>
+                      <td style={{padding:"7px 12px",fontWeight:600,color:T.fg,cursor:"pointer"}} onClick={()=>setViewItem(it)}>{it.name}</td>
+                      <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:T.fgMuted}}>{it.sku||"-"}</td>
+                      <td style={{padding:"7px 12px",color:T.fgMuted,textTransform:"capitalize"}}>{(it.item_type||"").replace(/_/g," ")}</td>
+                      <td style={{padding:"7px 12px",color:T.fgMuted}}>{it.item_categories?.name||"-"}</td>
+                      <td style={{padding:"7px 12px",color:T.fgMuted}}>{it.unit_of_measure||"-"}</td>
+                      <td style={{padding:"7px 12px",fontWeight:600,color:T.fg}}>KES {Number(it.unit_price||0).toLocaleString()}</td>
+                      <td style={{padding:"7px 12px"}}>
+                        <span style={{fontWeight:700,color:isLow?T.error:T.success}}>{it.quantity_in_stock||0}</span>
+                        {isLow&&<AlertTriangle style={{width:11,height:11,color:T.error,marginLeft:4,verticalAlign:"middle"}}/>}
+                      </td>
+                      <td style={{padding:"7px 12px",color:T.fgDim}}>{it.reorder_level||10}</td>
+                      <td style={{padding:"7px 12px"}}>
+                        <span className="status-chip" style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color,textTransform:"capitalize"}}>{it.status||"active"}</span>
+                      </td>
+                      <td style={{padding:"7px 12px",fontWeight:600,color:T.fgMuted}}>KES {(Number(it.unit_price||0)*Number(it.quantity_in_stock||0)).toLocaleString()}</td>
+                      <td style={{padding:"7px 12px"}}>
+                        <div style={{display:"flex",gap:4}}>
+                          <button onClick={()=>setViewItem(it)} title="View" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.primaryBg,color:T.primary}}>
+                            <Eye style={{width:12,height:12}}/>
+                          </button>
+                          {canEdit&&<button onClick={()=>openEdit(it)} title="Edit" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.successBg,color:T.success}}>
+                            <Edit style={{width:12,height:12}}/>
+                          </button>}
+                          {canEdit&&<button onClick={()=>deleteItem(it)} title="Delete" style={{padding:"4px 6px",borderRadius:6,border:"none",cursor:"pointer",background:T.errorBg,color:T.error}}>
+                            <Trash2 style={{width:12,height:12}}/>
+                          </button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <TablePager total={filtered.length} page={page} perPage={perPage}
+            onPage={setPage} onPerPage={setPerPage} color={T.primary}/>
+          <div style={{padding:"6px 14px",background:T.bg,borderTop:`1px solid ${T.border}`,display:"flex",gap:20,fontSize:11,color:T.fgMuted,flexWrap:"wrap" as const}}>
+            <span>Total Stock Value: KES {totalValue.toLocaleString()}</span>
+            {lowStockCount>0&&<span style={{color:T.error,fontWeight:700}}>· {lowStockCount} low stock</span>}
+          </div>
+        </Card>
       </div>
 
       {/* View Modal */}
       {viewItem&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(540px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{viewItem.name}</div>
-              <button onClick={()=>setViewItem(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:T.card,borderRadius:T.rXl,width:"min(540px,100%)",maxHeight:"88vh",overflow:"auto",boxShadow:T.shadowLg}}>
+            <div style={{padding:"14px 20px",background:T.primaryBg,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:15,fontWeight:800,color:T.fg}}>{viewItem.name}</div>
+              <button onClick={()=>setViewItem(null)} style={{background:T.bg2,border:"none",borderRadius:T.r,padding:"4px 8px",cursor:"pointer",color:T.fgMuted}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {[["SKU",viewItem.sku],["Type",(viewItem.item_type||"").replace(/_/g," ")],["Category",viewItem.item_categories?.name],["Unit of Measure",viewItem.unit_of_measure],["Unit Price",`KES ${Number(viewItem.unit_price||0).toLocaleString()}`],["Qty in Stock",viewItem.quantity_in_stock],["Reorder Level",viewItem.reorder_level],["Status",viewItem.status]].map(([k,v])=>(
-                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:"#111827",fontWeight:600}}>{v||"-"}</div></div>
+                <div key={k as string}><div style={{fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{k}</div><div style={{fontSize:13,color:T.fg,fontWeight:600}}>{v||"-"}</div></div>
               ))}
-              {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:"#374151"}}>{viewItem.description}</div></div>}
+              {viewItem.description&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:10,fontWeight:700,color:T.fgDim,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Description</div><div style={{fontSize:13,color:T.fgMuted}}>{viewItem.description}</div></div>}
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
-              {canEdit&&<button onClick={()=>{setViewItem(null);openEdit(viewItem);}} style={{padding:"7px 16px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
-              <button onClick={()=>setViewItem(null)} style={{padding:"7px 16px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Close</button>
+            <div style={{padding:"12px 20px",borderTop:`1px solid ${T.border}`,display:"flex",justifyContent:"flex-end",gap:8}}>
+              {canEdit&&<button onClick={()=>{setViewItem(null);openEdit(viewItem);}} style={{padding:"7px 16px",background:T.primary,color:"#fff",border:"none",borderRadius:T.rMd,cursor:"pointer",fontWeight:700,fontSize:13}}>Edit</button>}
+              <button onClick={()=>setViewItem(null)} style={{padding:"7px 16px",border:`1px solid ${T.border}`,background:T.card,color:T.fgMuted,borderRadius:T.rMd,cursor:"pointer",fontSize:13}}>Close</button>
             </div>
           </div>
         </div>
@@ -375,15 +337,15 @@ export default function ItemsPage() {
 
       {/* Add/Edit Modal */}
       {showForm&&(
-        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.55)"}}>
-          <div style={{background:"#fff",borderRadius:14,width:"min(600px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{padding:"14px 20px",background:"linear-gradient(135deg,#1a3d12,#375623)",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"14px 14px 0 0"}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{editing?"Edit Item":"New Item"}</div>
-              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",color:"#fff"}}><X style={{width:14,height:14}}/></button>
+        <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(15,23,42,0.55)"}}>
+          <div style={{background:T.card,borderRadius:T.rXl,width:"min(600px,100%)",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:T.shadowLg}}>
+            <div style={{padding:"14px 20px",background:T.primaryBg,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:15,fontWeight:800,color:T.fg}}>{editing?"Edit Item":"New Item"}</div>
+              <button onClick={()=>setShowForm(false)} style={{background:T.bg2,border:"none",borderRadius:T.r,padding:"4px 8px",cursor:"pointer",color:T.fgMuted}}><X style={{width:14,height:14}}/></button>
             </div>
             <div style={{overflowY:"auto",padding:20,display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {!editing && (
-                <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:"1px dashed #e5e7eb"}}>
+                <div style={{gridColumn:"1/-1",marginBottom:2,paddingBottom:12,borderBottom:`1px dashed ${T.border}`}}>
                   <DocumentAnalyzerButton target="item" onApply={(f)=>{
                     const matchedCat = f.category ? cats.find((c:any)=>c.name.toLowerCase().includes(String(f.category).toLowerCase()) || String(f.category).toLowerCase().includes(c.name.toLowerCase())) : null;
                     setForm(p=>({
@@ -410,9 +372,9 @@ export default function ItemsPage() {
               <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={sel}><option value="active">Active</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></div>
               <div style={{gridColumn:"1/-1"}}><label style={lbl}>Description</label><textarea value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={2} style={{...inp,resize:"none"}}/></div>
             </div>
-            <div style={{padding:"12px 20px",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"flex-end",gap:8}}>
-              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:"1px solid #e5e7eb",background:"#fff",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:"#1a3d12",color:"#fff",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
+            <div style={{padding:"12px 20px",borderTop:`1px solid ${T.border}`,display:"flex",justifyContent:"flex-end",gap:8}}>
+              <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",border:`1px solid ${T.border}`,background:T.card,color:T.fgMuted,borderRadius:T.rMd,cursor:"pointer",fontSize:13}}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 20px",background:T.primary,color:"#fff",border:"none",borderRadius:T.rMd,cursor:saving?"not-allowed":"pointer",fontSize:13,fontWeight:700,opacity:saving?0.7:1}}>
                 {saving?<RefreshCw style={{width:13,height:13,animation:"spin 1s linear infinite"}}/>:<Package style={{width:13,height:13}}/>}
                 {saving?"Saving...":"Save Item"}
               </button>
@@ -420,6 +382,7 @@ export default function ItemsPage() {
           </div>
         </div>
       )}
+      <style>{spinKeyframes}</style>
     </div>
   );
 }
