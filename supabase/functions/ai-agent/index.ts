@@ -160,6 +160,20 @@ Reply with ONLY the message text, no explanation.`;
       return new Response(JSON.stringify({ ok: true, message }), { headers: CORS });
     }
 
+    if (action === "analyze_ncr") {
+      const { title, description, severity, category, department } = body.ncr || {};
+      const system = `You are a quality-management assistant for a hospital procurement & inventory system (Embu Level 5 Hospital, Kenya). Given a non-conformance report, suggest a root cause analysis. Reply with ONLY valid JSON, no markdown fences, no explanation, matching exactly this shape:
+{"rootCauseCategory":"<one of: Process, Human Error, Equipment/Material, Supplier, Documentation, Training, Environment>","rootCause":"<1-2 sentence plausible root cause>","correctiveAction":"<1-2 sentence immediate fix>","preventiveAction":"<1-2 sentence systemic fix to stop recurrence>"}`;
+      const prompt = `Title: ${title || "(untitled)"}\nCategory: ${category || "unspecified"}\nSeverity: ${severity || "unspecified"}\nDepartment: ${department || "unspecified"}\nDescription: ${description || "(no description provided)"}`;
+      const raw = await callClaude(prompt, system, 350);
+      let parsed: any = null;
+      try { parsed = JSON.parse(raw.replace(/^```json\s*|```\s*$/g, "").trim()); } catch { /* fall through */ }
+      if (!parsed) {
+        return new Response(JSON.stringify({ ok: false, error: "AI response could not be parsed", raw }), { headers: CORS });
+      }
+      return new Response(JSON.stringify({ ok: true, suggestion: parsed }), { headers: CORS });
+    }
+
     if (action === "send_approval") {
       const { ref, amount, department, phone, email: toEmail, channel = "sms", message: customMsg } = approval || {};
       const system = `You are the AI agent for EL5 MediProcure hospital procurement system at Embu Level 5 Hospital, Kenya.
