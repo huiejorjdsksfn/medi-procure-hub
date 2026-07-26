@@ -173,13 +173,22 @@ export default function PrintEnginePage() {
   },[]);
   useEffect(()=>{ if(app==="schedules") loadSchedules(); },[app,loadSchedules]);
 
+  const computeInitialNextRun=(cron:string):Date=>{
+    const next=new Date();
+    if(cron==="0 8 * * *"){ next.setDate(next.getDate()+ (next.getHours()>=8?1:0)); next.setHours(8,0,0,0); return next; }
+    if(cron==="0 7 * * 1"){ const d=next.getDay(); const add=d<=1?(1-d):(8-d); next.setDate(next.getDate()+(add||7)); next.setHours(7,0,0,0); return next; }
+    if(cron==="0 17 * * 5"){ const d=next.getDay(); const add=d<=5?(5-d):(12-d); next.setDate(next.getDate()+(add||7)); next.setHours(17,0,0,0); return next; }
+    if(cron==="0 6 1 * *"){ next.setMonth(next.getMonth()+(next.getDate()>1?1:0),1); next.setHours(6,0,0,0); return next; }
+    next.setDate(next.getDate()+1); return next;
+  };
+
   const createSchedule=async()=>{
     if(!schedForm.name.trim()){ toast({title:"Name required",variant:"destructive"}); return; }
     const recipients=schedForm.recipients.split(",").map(s=>s.trim()).filter(Boolean);
     const {error}=await db.from("report_schedules").insert({
       name:schedForm.name, report_type:schedForm.report_type, cron:schedForm.cron,
       format:schedForm.format, recipients, is_active:true, enabled:true,
-      created_by:profile?.id,
+      created_by:profile?.id, next_run_at: computeInitialNextRun(schedForm.cron).toISOString(),
     });
     if(error){ toast({title:"Create failed",description:error.message,variant:"destructive"}); return; }
     toast({title:"✓ Schedule created"});
