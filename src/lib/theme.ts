@@ -34,31 +34,31 @@ export const T = {
   fgDim:     "#8d96a3",
 
   // - Primary brand -
-  get primary()    { return cssVar("--color-primary",  "#0078d4"); },
-  get primaryHov() { return cssVar("--color-primary",  "#106ebe"); },
-  primaryDark: "#005a9e",
+  get primary()    { return cssVar("--color-primary",  "#4F46E5"); },
+  get primaryHov() { return cssVar("--color-primary",  "#4338CA"); },
+  primaryDark: "#3730A3",
   get primaryBg()  {
-    const c = cssVar("--color-primary","#0078d4");
+    const c = cssVar("--color-primary","#4F46E5");
     return c + "18";  // 10% opacity tint
   },
 
   // - Accent -
-  get accent()    { return cssVar("--color-accent",   "#d83b01"); },
-  accentHov:  "#b83200",
+  get accent()    { return cssVar("--color-accent",   "#EA580C"); },
+  accentHov:  "#C2410C",
   get accentBg()  {
-    const c = cssVar("--color-accent","#d83b01");
+    const c = cssVar("--color-accent","#EA580C");
     return c + "18";
   },
 
   // - Status -
-  get success()   { return cssVar("--color-success",  "#107c10"); },
-  successBg:  "#dff6dd",
-  get warning()   { return cssVar("--color-warning",  "#d39a04"); },
-  warningBg:  "#fff4ce",
-  get error()     { return cssVar("--color-danger",   "#a4262c"); },
-  errorBg:    "#fde7e9",
-  get info()      { return cssVar("--color-primary",  "#0078d4"); },
-  get infoBg()    { return cssVar("--color-primary",  "#0078d4") + "18"; },
+  get success()   { return cssVar("--color-success",  "#16A34A"); },
+  successBg:  "#dcfce7",
+  get warning()   { return cssVar("--color-warning",  "#D97706"); },
+  warningBg:  "#fef3c7",
+  get error()     { return cssVar("--color-danger",   "#dc2626"); },
+  errorBg:    "#fee2e2",
+  get info()      { return cssVar("--color-primary",  "#4F46E5"); },
+  get infoBg()    { return cssVar("--color-primary",  "#4F46E5") + "18"; },
 
   // - Module ribbon colors (keep as fixed palette; not user-configurable) -
   procurement:"#0078d4",
