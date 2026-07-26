@@ -7,7 +7,7 @@
  *                              or a live pull through the on-prem ODBC bridge (mssql-import) when configured
  *   4. Review & go live     -> creates the facilities record, marks the deployment completed
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,14 +23,17 @@ import {
 const db = supabase as any;
 
 /* ── styles ─────────────────────────────────────────────────────── */
-const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rLg, boxShadow: "0 1px 4px rgba(0,0,0,.06)" };
-const inp: React.CSSProperties = { width: "100%", border: `1px solid ${T.border}`, borderRadius: T.r, padding: "8px 12px", fontSize: 13, outline: "none", background: T.card, color: T.fg, boxSizing: "border-box" };
+const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rLg, boxShadow: "0 2px 10px rgba(16,24,40,.06)", transition:"box-shadow .15s ease" };
+const inp: React.CSSProperties = { width: "100%", border: `1.5px solid ${T.border}`, borderRadius: T.r, padding: "8px 12px", fontSize: 13, outline: "none", background: T.card, color: T.fg, boxSizing: "border-box", transition:"border-color .15s ease, box-shadow .15s ease" };
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: T.fgMuted, marginBottom: 4, display: "block" };
 const btnS = (bg: string, border?: string): React.CSSProperties => ({
   display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px",
   background: bg, color: border ? T.fgMuted : "#fff", border: `1px solid ${border || "transparent"}`,
   borderRadius: T.r, fontSize: 13, fontWeight: 700, cursor: "pointer",
+  boxShadow: border ? "none" : "0 1px 3px rgba(16,24,40,.1)", transition:"transform .1s ease, filter .1s ease",
 });
+const btnHover = (e:React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.filter="brightness(1.05)"; };
+const btnLeave = (e:React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform="none"; e.currentTarget.style.filter="none"; };
 
 /* ── steps ──────────────────────────────────────────────────────── */
 const STEPS = [
@@ -460,15 +463,27 @@ export default function CompanyOnboardingPage() {
         <p style={{ margin: "0 0 20px", fontSize: 13, color: T.fgMuted }}>Set up a new company deployment in four steps.</p>
 
         {/* Stepper */}
-        <div style={{ display: "flex", marginBottom: 22, gap: 4 }}>
+        <div style={{ display: "flex", marginBottom: 26, alignItems:"flex-start" }}>
           {STEPS.map((s, i) => (
-            <div key={s.id} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{
-                height: 4, borderRadius: 2, marginBottom: 6,
-                background: i <= stepIdx ? T.primary : T.border,
-              }} />
-              <span style={{ fontSize: 11, fontWeight: i === stepIdx ? 700 : 500, color: i <= stepIdx ? T.primary : T.fgMuted }}>{s.label}</span>
-            </div>
+            <Fragment key={s.id}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, minWidth:0 }}>
+                <div style={{
+                  width:28, height:28, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:12, fontWeight:800,
+                  background: i < stepIdx ? T.primary : i === stepIdx ? T.card : T.bg,
+                  border: `2px solid ${i <= stepIdx ? T.primary : T.border}`,
+                  color: i < stepIdx ? "#fff" : i === stepIdx ? T.primary : T.fgMuted,
+                  boxShadow: i === stepIdx ? `0 0 0 4px ${T.primary}18` : "none",
+                  transition:"box-shadow .2s ease, background .2s ease",
+                }}>
+                  {i < stepIdx ? <CheckCircle2 size={16}/> : i+1}
+                </div>
+                <span style={{ fontSize:10.5, fontWeight: i === stepIdx ? 700 : 500, color: i <= stepIdx ? T.primary : T.fgMuted, textAlign:"center", whiteSpace:"nowrap" }}>{s.label}</span>
+              </div>
+              {i < STEPS.length-1 && (
+                <div style={{ flex:1, height:2, background: i < stepIdx ? T.primary : T.border, marginTop:13, transition:"background .2s ease" }}/>
+              )}
+            </Fragment>
           ))}
         </div>
 

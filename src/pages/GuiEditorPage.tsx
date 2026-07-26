@@ -271,7 +271,7 @@ export default function GuiEditorPage() {
   const inp: React.CSSProperties = {
     width:"100%", padding:"7px 10px", border:"1.5px solid #e2e8f0",
     borderRadius:6, fontSize:12.5, outline:"none", background:"#fff",
-    color:"#1e293b", boxSizing:"border-box",
+    color:"#1e293b", boxSizing:"border-box", transition:"border-color .15s ease, box-shadow .15s ease",
   };
   const lbl: React.CSSProperties = {
     display:"block", fontSize:9.5, fontWeight:700,
@@ -577,7 +577,9 @@ export default function GuiEditorPage() {
           <button onClick={resetAll}
             style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px",
               borderRadius:7, border:"1px solid #e2e8f0", background:"#fff",
-              color:"#64748b", cursor:"pointer", fontSize:12, fontWeight:600 }}>
+              color:"#64748b", cursor:"pointer", fontSize:12, fontWeight:600, transition:"background .12s ease, border-color .12s ease" }}
+            onMouseEnter={e=>{ e.currentTarget.style.background="#f1f5f9"; e.currentTarget.style.borderColor="#cbd5e1"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.background="#fff"; e.currentTarget.style.borderColor="#e2e8f0"; }}>
             <RotateCcw style={{ width:12, height:12 }}/>Reset
           </button>
           <button onClick={handleSave} disabled={saving}
@@ -585,7 +587,9 @@ export default function GuiEditorPage() {
               padding:"8px 0", borderRadius:7, border:"none",
               background:`linear-gradient(135deg,${cfg.primary_color},${cfg.accent_color}aa)`,
               color:"#fff", cursor: saving ? "not-allowed" : "pointer",
-              fontSize:12, fontWeight:700, opacity: saving ? 0.7 : 1 }}>
+              fontSize:12, fontWeight:700, opacity: saving ? 0.7 : 1, boxShadow:"0 2px 8px rgba(0,0,0,.12)", transition:"transform .1s ease, filter .1s ease" }}
+            onMouseEnter={e=>{ if(!saving){ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.filter="brightness(1.06)"; } }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.filter="none"; }}>
             {saving
               ? <RefreshCw style={{ width:13, height:13, animation:"spin 1s linear infinite" }}/>
               : <Save style={{ width:13, height:13 }}/>}
@@ -606,11 +610,15 @@ export default function GuiEditorPage() {
             {(["desktop","tablet","mobile"] as Device[]).map(d => {
               const icons = { desktop:Monitor, tablet:Tablet, mobile:Smartphone };
               const Icon  = icons[d];
+              const active = device===d;
               return (
                 <button key={d} onClick={() => setDevice(d)}
                   style={{ padding:"5px 8px", borderRadius:6, border:"1px solid #e2e8f0", cursor:"pointer",
-                    background: device === d ? cfg.primary_color : "#fff",
-                    color:      device === d ? "#fff" : "#64748b" }}>
+                    background: active ? cfg.primary_color : "#fff",
+                    color:      active ? "#fff" : "#64748b", transition:"background .12s ease, box-shadow .12s ease",
+                    boxShadow: active ? `0 2px 6px ${cfg.primary_color}55` : "none" }}
+                  onMouseEnter={e=>{ if(!active) e.currentTarget.style.background="#f1f5f9"; }}
+                  onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="#fff"; }}>
                   <Icon style={{ width:13, height:13 }}/>
                 </button>
               );

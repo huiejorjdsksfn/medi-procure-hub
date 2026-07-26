@@ -29,10 +29,10 @@ const S = {
   wrap:  { padding: 20, background: "#f8fafc", minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif" } as const,
   h:     { fontSize: 22, fontWeight: 700, color: "#0f172a", margin: "6px 0 16px" } as const,
   grid:  { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 16 } as const,
-  card:  { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.05)" } as const,
+  card:  { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 16, boxShadow: "0 1px 3px rgba(16,24,40,.05)", transition:"box-shadow .15s ease" } as const,
   title: { display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 6 } as const,
   sub:   { fontSize: 12, color: "#64748b", marginBottom: 10 } as const,
-  btn:   (bg = "#2563eb"): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: bg, color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }),
+  btn:   (bg = "#2563eb"): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: bg, color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow:"0 1px 3px rgba(16,24,40,.12)", transition:"transform .1s ease, filter .1s ease" }),
   pill:  (ok: boolean): React.CSSProperties => ({ display: "inline-block", padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: ok ? "#dcfce7" : "#fee2e2", color: ok ? "#166534" : "#991b1b" }),
   code:  { fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#334155", background: "#f1f5f9", padding: 8, borderRadius: 6, marginTop: 8, whiteSpace: "pre-wrap" as const, maxHeight: 160, overflow: "auto" as const },
 };
@@ -221,10 +221,20 @@ export default function SupabaseControlsPage() {
   return (
     <RoleGuard allowed={["admin", "database_admin"]}>
       <div style={S.wrap}>
-        <h1 style={S.h}>Supabase Live Controls</h1>
+        <div style={{ background:"linear-gradient(120deg,#0f172a,#1e293b 70%)", borderRadius:14, padding:"16px 22px", display:"flex", alignItems:"center", gap:12, marginBottom:18, boxShadow:"0 4px 16px rgba(15,23,42,.18)" }}>
+          <div style={{ width:38, height:38, borderRadius:10, background:"rgba(255,255,255,.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Database size={19} color="#fff"/>
+          </div>
+          <div>
+            <h1 style={{ fontSize:16, fontWeight:800, color:"#fff", margin:0 }}>Supabase Live Controls</h1>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,.65)" }}>Real-time server health, storage buckets, and edge function status</div>
+          </div>
+        </div>
 
         {/* Live Server Monitor (compact) — real pg_stat_* data, same RPC as the full Live Monitor tab on /admin/database */}
-        <div style={{ ...S.card, marginBottom: 16 }}>
+        <div style={{ ...S.card, marginBottom: 16 }}
+          onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 6px 18px rgba(16,24,40,.09)")}
+          onMouseLeave={e=>(e.currentTarget.style.boxShadow="0 1px 3px rgba(16,24,40,.05)")}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
             <div style={S.title}><Activity size={16}/> Live Server Monitor</div>
             <button onClick={()=>nav("/admin/database")} style={{ fontSize:11, color:"#2563eb", background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>
