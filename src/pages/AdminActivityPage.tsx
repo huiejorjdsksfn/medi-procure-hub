@@ -133,7 +133,7 @@ export default function AdminActivityPage() {
     card:    {background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,boxShadow:"0 1px 4px rgba(0,0,0,.06)"},
     th:      {padding:"8px 12px",textAlign:"left" as const,fontSize:11,fontWeight:700,color:T.fgMuted,textTransform:"uppercase" as const,letterSpacing:".04em",borderBottom:`1px solid ${T.border}`,background:"#f8f9fa"},
     td:      {padding:"7px 12px",fontSize:12,borderBottom:`1px solid ${T.border}`,color:T.fg},
-    tabBtn:  (active:boolean,col:string)=>({display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:6,border:"none",background:active?`${col}12`:"transparent",color:active?col:T.fgMuted,fontSize:13,fontWeight:active?700:400,cursor:"pointer",whiteSpace:"nowrap" as const}),
+    tabBtn:  (active:boolean,col:string)=>({display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:0,border:"none",borderBottom:active?`2.5px solid ${col}`:"2.5px solid transparent",background:"transparent",color:active?col:T.fgMuted,fontSize:13,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap" as const,transition:"color .12s, border-color .12s"}),
   };
 
   return (
@@ -181,12 +181,18 @@ export default function AdminActivityPage() {
       )}
 
       {/* KPI Strip */}
-      <div style={{display:"flex",gap:8,padding:"16px 24px",overflowX:"auto",background:"#fff",borderBottom:`1px solid ${T.border}`}}>
+      <div style={{display:"flex",gap:10,padding:"16px 24px",overflowX:"auto",background:T.bg}}>
         {KPI.map(k=>(
-          <div key={k.label} style={{flex:"1 1 100px",minWidth:100,padding:"10px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.bg,textAlign:"center"}}>
-            <k.icon size={18} color={k.col} style={{margin:"0 auto 4px"}}/>
-            <div style={{fontSize:20,fontWeight:800,color:k.col}}>{loading?"…":k.val}</div>
-            <div style={{fontSize:10,color:T.fgMuted,marginTop:2}}>{k.label}</div>
+          <div key={k.label} style={{flex:"1 1 130px",minWidth:130,display:"flex",alignItems:"center",gap:10,padding:"11px 13px",borderRadius:10,border:`1px solid ${T.border}`,background:"#fff",boxShadow:"0 1px 3px rgba(16,24,40,.05)",transition:"box-shadow .15s,transform .15s"}}
+            onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.boxShadow="0 6px 18px rgba(16,24,40,.09)"; el.style.transform="translateY(-2px)"; }}
+            onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.boxShadow="0 1px 3px rgba(16,24,40,.05)"; el.style.transform="none"; }}>
+            <div style={{width:32,height:32,borderRadius:8,background:k.col+"16",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <k.icon size={15} color={k.col}/>
+            </div>
+            <div>
+              <div style={{fontSize:19,fontWeight:800,color:k.col,lineHeight:1.1}}>{loading?"…":k.val}</div>
+              <div style={{fontSize:9.5,color:T.fgMuted,marginTop:1,fontWeight:600,whiteSpace:"nowrap"}}>{k.label}</div>
+            </div>
           </div>
         ))}
       </div>

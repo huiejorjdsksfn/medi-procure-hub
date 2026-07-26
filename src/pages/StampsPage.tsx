@@ -138,17 +138,24 @@ export default function StampsPage() {
       </div>
 
       {/* ── Stats row ── */}
-      <div style={{ padding:"16px 28px", background: T.card, borderBottom:`1px solid ${T.border}`,
-        display:"flex", gap:24, flexWrap:"wrap" }}>
+      <div style={{ padding:"16px 28px", background: T.bg,
+        display:"flex", gap:12, flexWrap:"wrap" }}>
         {[
-          { label:"Total Stamp Types", val: ALL_STAMPS.length, color: T.success },
-          { label:"Available to My Role", val: ALL_STAMPS.filter(s=>s.roles.some(r=>roles.includes(r))).length, color: T.primary },
-          { label:"Approval Stamps",   val: ALL_STAMPS.filter(s=>["approved","verified","official"].includes(s.status)).length, color: T.primaryDark },
-          { label:"Rejection/Void",    val: ALL_STAMPS.filter(s=>["rejected","cancelled","expired"].includes(s.status)).length, color: T.error },
+          { label:"Total Stamp Types", val: ALL_STAMPS.length, color: T.success, icon: Stamp },
+          { label:"Available to My Role", val: ALL_STAMPS.filter(s=>s.roles.some(r=>roles.includes(r))).length, color: T.primary, icon: Stamp },
+          { label:"Approval Stamps",   val: ALL_STAMPS.filter(s=>["approved","verified","official"].includes(s.status)).length, color: T.primaryDark, icon: Stamp },
+          { label:"Rejection/Void",    val: ALL_STAMPS.filter(s=>["rejected","cancelled","expired"].includes(s.status)).length, color: T.error, icon: Stamp },
         ].map(s => (
-          <div key={s.label} style={{ display:"flex", flexDirection:"column", gap:2 }}>
-            <span style={{ fontSize:22, fontWeight:900, color:s.color }}>{s.val}</span>
-            <span style={{ fontSize:11, color: T.fgMuted }}>{s.label}</span>
+          <div key={s.label} style={{ flex:"1 1 160px", minWidth:160, display:"flex", alignItems:"center", gap:10, background:T.card, border:`1px solid ${T.border}`, borderRadius:T.rLg, padding:"12px 14px", boxShadow:"0 1px 3px rgba(16,24,40,.05)", transition:"box-shadow .15s, transform .15s" }}
+            onMouseEnter={e=>{ const el=e.currentTarget as HTMLElement; el.style.boxShadow="0 6px 18px rgba(16,24,40,.09)"; el.style.transform="translateY(-2px)"; }}
+            onMouseLeave={e=>{ const el=e.currentTarget as HTMLElement; el.style.boxShadow="0 1px 3px rgba(16,24,40,.05)"; el.style.transform="none"; }}>
+            <div style={{ width:34,height:34,borderRadius:9,background:s.color+"16",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+              <s.icon size={16} color={s.color}/>
+            </div>
+            <div>
+              <div style={{ fontSize:20, fontWeight:900, color:s.color, lineHeight:1.1 }}>{s.val}</div>
+              <div style={{ fontSize:10.5, color: T.fgMuted, fontWeight:600 }}>{s.label}</div>
+            </div>
           </div>
         ))}
       </div>

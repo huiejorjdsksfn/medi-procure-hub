@@ -91,7 +91,7 @@ function DeviceIcon({ ua }: { ua?: string|null }) {
   return <Monitor size={12}/>;
 }
 function cs(extra?: any) {
-  return { background:D.card, borderRadius:"6px", boxShadow:D.shadow, border:`1px solid ${D.border}`, ...extra };
+  return { background:D.card, borderRadius:"8px", boxShadow:"0 1px 3px rgba(16,24,40,.06)", border:`1px solid ${D.border}`, transition:"box-shadow .15s ease, transform .15s ease", ...extra };
 }
 
 function getCacheEntries(): CacheEntry[] {
@@ -318,10 +318,11 @@ export default function UsersIpAuditPage() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Teal hero — matches the Admin Hub visual style, replaces the old breadcrumb + small header */}
-      <div style={{background:"linear-gradient(135deg,#107C73,#0a5a52)",padding:"24px 24px 20px"}}>
-        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+      <div style={{background:"linear-gradient(120deg,#107C73,#0c5a52 65%,#0a4a44)",padding:"24px 24px 20px",position:"relative",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.12)"}}>
+        <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.05)"}}/>
+        <div style={{position:"relative",display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:42,height:42,borderRadius:10,background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{width:42,height:42,borderRadius:10,background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,.15)"}}>
               <Globe size={20} color="#fff"/>
             </div>
             <div>
@@ -331,11 +332,13 @@ export default function UsersIpAuditPage() {
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {btn("⬇ Export",exportCSV,{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",color:"#fff"})}
             <button onClick={runFullReaudit} disabled={reauditing}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"rgba(255,255,255,.9)",border:"none",borderRadius:D.radius,fontSize:12,cursor:"pointer",color:"#0a5a52",fontWeight:700}}>
+              style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"rgba(255,255,255,.9)",border:"none",borderRadius:D.radius,fontSize:12,cursor:"pointer",color:"#0a5a52",fontWeight:700,transition:"background .12s ease"}}
+              onMouseEnter={e=>(e.currentTarget.style.background="#fff")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.9)")}>
               <RefreshCw size={11} style={{animation:reauditing?"spin 1s linear infinite":"none"}}/> {reauditing?"Re-auditing…":"Full Re-Audit"}
             </button>
             <button onClick={loadAll} disabled={loading}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:D.radius,fontSize:12,cursor:"pointer",color:"#fff"}}>
+              style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:D.radius,fontSize:12,cursor:"pointer",color:"#fff",transition:"background .12s ease"}}
+              onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.24)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.15)")}>
               <RefreshCw size={11} style={{animation:loading?"spin 1s linear infinite":"none"}}/> Refresh
             </button>
             <label style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"rgba(255,255,255,.85)",cursor:"pointer"}}>

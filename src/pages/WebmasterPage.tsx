@@ -75,10 +75,10 @@ const GROUP_COLORS: Record<string, string> = {
 
 type WMTab = "overview"|"modules"|"roles"|"system"|"codebase"|"broadcast"|"terminal"|"deploy"|"deployments"|"notfound";
 
-const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rLg, padding: "16px 20px" };
-const inp: React.CSSProperties  = { width:"100%", background: T.bg, border:`1px solid ${T.border}`, borderRadius: T.r, padding:"8px 12px", color: T.fg, fontSize:13, outline:"none", boxSizing:"border-box" };
-const btn = (bg: string, bd?: string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:7, padding:"8px 14px", background:bg, color:bd?T.fgMuted:"#fff", border:`1px solid ${bd||"transparent"}`, borderRadius:T.r, fontSize:12, fontWeight:700, cursor:"pointer" });
-const chip = (col: string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px", borderRadius:99, fontSize:9, fontWeight:700, background:col+"20", color:col, border:`1px solid ${col}44` });
+const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rLg, padding: "16px 20px", boxShadow:"0 1px 2px rgba(16,24,40,0.04)", transition:"box-shadow .15s ease, border-color .15s ease, transform .15s ease" };
+const inp: React.CSSProperties  = { width:"100%", background: T.card, border:`1.5px solid ${T.border}`, borderRadius: T.rMd, padding:"8px 12px", color: T.fg, fontSize:13, outline:"none", boxSizing:"border-box", transition:"border-color .15s ease, box-shadow .15s ease" };
+const btn = (bg: string, bd?: string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:7, padding:"8px 14px", background:bg, color:bd?T.fgMuted:"#fff", border:`1px solid ${bd||"transparent"}`, borderRadius:T.rMd, fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:bd?"none":"0 1px 2px rgba(16,24,40,0.08)", transition:"transform .1s ease, filter .1s ease" });
+const chip = (col: string): React.CSSProperties => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"2.5px 9px", borderRadius:99, fontSize:9.5, fontWeight:700, background:col+"18", color:col, border:`1px solid ${col}38` });
 
 export default function WebmasterPage() {
   const nav = useNavigate();
@@ -544,17 +544,19 @@ export default function WebmasterPage() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Teal hero — matches the Admin Hub visual style, replaces the old breadcrumb + small header */}
-      <div style={{ background:"linear-gradient(135deg,#107C73,#0a5a52)", padding:"24px 24px 28px" }}>
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+      <div style={{ background:"linear-gradient(120deg,#107C73,#0c5a52 65%,#0a4a44)", padding:"24px 24px 28px", position:"relative", overflow:"hidden", boxShadow:"0 2px 8px rgba(0,0,0,.12)" }}>
+        <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,.05)" }}/>
+        <div style={{ position:"relative", display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <div style={{ width:42, height:42, borderRadius:10, background:"rgba(255,255,255,.15)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ width:42, height:42, borderRadius:10, background:"rgba(255,255,255,.15)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 2px 8px rgba(0,0,0,.15)" }}>
               <Globe size={20} color="#fff"/>
             </div>
             <div>
               <h1 style={{ margin:0, fontSize:22, fontWeight:300, color:"#fff", letterSpacing:"-.02em" }}>Webmaster / Superadmin Control Centre</h1>
             </div>
           </div>
-          <button onClick={loadKpis} style={{ padding:"8px 12px", background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.3)", borderRadius:6, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:5 }}>
+          <button onClick={loadKpis} style={{ padding:"8px 12px", background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.3)", borderRadius:6, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:5, transition:"background .12s ease" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.24)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.15)")}>
             <RefreshCw size={13}/> Refresh
           </button>
         </div>
@@ -567,10 +569,14 @@ export default function WebmasterPage() {
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             display:"flex", alignItems:"center", gap:7, padding:"10px 16px",
-            background:"transparent", border:"none",
+            background:"transparent", border:"none", borderRadius:"6px 6px 0 0",
             borderBottom:`2px solid ${tab===t.id?T.primary:"transparent"}`,
-            color:tab===t.id?T.primary:T.fgMuted, fontSize:12, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap",
-          }}><t.icon size={14}/>{t.label}</button>
+            color:tab===t.id?T.primary:T.fgMuted, fontSize:12, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap", transition:"background .12s ease, color .12s ease",
+          }}
+          onMouseEnter={e=>{ if(tab!==t.id) e.currentTarget.style.background=T.bg; }}
+          onMouseLeave={e=>{ if(tab!==t.id) e.currentTarget.style.background="transparent"; }}>
+            <t.icon size={14}/>{t.label}
+          </button>
         ))}
       </div>
 
@@ -586,7 +592,8 @@ export default function WebmasterPage() {
               { label:"Unread Notifs", value:kpis.unread,      icon:Bell,     color:"#dc2626",  path:"/notifications"},
             ].map(k => (
               <div key={k.label} onClick={() => nav(k.path)} style={{ ...card, cursor:"pointer", textAlign:"center", padding:"16px 12px" }}
-                onMouseEnter={e=>(e.currentTarget.style.borderColor=k.color)} onMouseLeave={e=>(e.currentTarget.style.borderColor=T.border)}>
+                onMouseEnter={e=>{ e.currentTarget.style.borderColor=k.color; e.currentTarget.style.boxShadow=`0 6px 18px ${k.color}22`; e.currentTarget.style.transform="translateY(-2px)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="0 1px 2px rgba(16,24,40,0.04)"; e.currentTarget.style.transform="none"; }}>
                 <k.icon size={20} color={k.color} style={{ margin:"0 auto 8px", display:"block" }}/>
                 <div style={{ fontSize:26, fontWeight:900, color:T.fg }}>{k.value ?? 0}</div>
                 <div style={{ fontSize:10, color:T.fgDim, marginTop:2 }}>{k.label}</div>

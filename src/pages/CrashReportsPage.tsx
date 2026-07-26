@@ -28,16 +28,18 @@ interface CrashRow {
 
 const S = {
   wrap:  { padding: 20, background: "#f8fafc", minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif" } as const,
-  h:     { fontSize: 22, fontWeight: 700, color: "#0f172a", margin: "6px 0 4px" } as const,
-  sub:   { fontSize: 12, color: "#64748b", marginBottom: 16 } as const,
-  bar:   { display: "flex", gap: 10, marginBottom: 14, alignItems: "center" } as const,
-  btn:   (bg = "#2563eb"): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", background: bg, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }),
-  card:  { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: 14, marginBottom: 10, boxShadow: "0 1px 2px rgba(0,0,0,.04)" } as const,
+  bar:   { display: "flex", gap: 10, marginBottom: 16, alignItems: "center" } as const,
+  btn:   (bg = "#2563eb"): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", background: bg, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "transform .1s, filter .1s" }),
+  card:  { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 15, marginBottom: 10, boxShadow: "0 1px 3px rgba(16,24,40,.05)", transition: "box-shadow .15s" } as const,
   pill:  (ok: boolean): React.CSSProperties => ({ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: ok ? "#dcfce7" : "#fee2e2", color: ok ? "#166534" : "#991b1b" }),
   meta:  { fontSize: 11, color: "#64748b", display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 6 },
   msg:   { fontSize: 13, color: "#0f172a", fontWeight: 600, marginBottom: 8 } as const,
   stack: { fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#334155", background: "#f1f5f9", padding: 8, borderRadius: 6, whiteSpace: "pre-wrap" as const, maxHeight: 180, overflow: "auto" as const },
 };
+const btnHover = (e:React.MouseEvent<HTMLElement>)=>{ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.filter="brightness(1.06)"; };
+const btnLeave = (e:React.MouseEvent<HTMLElement>)=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.filter="none"; };
+const cardHover = (e:React.MouseEvent<HTMLElement>)=>{ e.currentTarget.style.boxShadow="0 6px 18px rgba(16,24,40,.09)"; };
+const cardLeave = (e:React.MouseEvent<HTMLElement>)=>{ e.currentTarget.style.boxShadow="0 1px 3px rgba(16,24,40,.05)"; };
 
 export default function CrashReportsPage() {
   const [rows, setRows] = useState<CrashRow[]>([]);
@@ -87,11 +89,20 @@ export default function CrashReportsPage() {
   return (
     <RoleGuard allowed={["admin", "database_admin"]}>
       <div style={S.wrap}>
-        <h1 style={S.h}>Crash Diagnostics</h1>
-        <div style={S.sub}>{openCount} open · {rows.length} total (most recent 100)</div>
+        <div style={{ background:"linear-gradient(120deg,#7c2d12,#991b1b 70%)", borderRadius:14, padding:"16px 22px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom:18, boxShadow:"0 4px 16px rgba(153,27,27,.22)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:38,height:38,borderRadius:10,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+              <AlertTriangle size={19} color="#fff"/>
+            </div>
+            <div>
+              <h1 style={{ fontSize:16, fontWeight:800, color:"#fff", margin:0 }}>Crash Diagnostics</h1>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,.7)" }}>{openCount} open · {rows.length} total (most recent 100)</div>
+            </div>
+          </div>
+        </div>
 
         <div style={S.bar}>
-          <button style={S.btn()} onClick={load} disabled={loading}>
+          <button style={S.btn()} onClick={load} disabled={loading} onMouseEnter={btnHover} onMouseLeave={btnLeave}>
             <RefreshCw size={13}/> {loading ? "Loading…" : "Refresh"}
           </button>
           <label style={{ fontSize: 12, color: "#334155", display: "flex", gap: 6, alignItems: "center" }}>
@@ -108,7 +119,7 @@ export default function CrashReportsPage() {
         )}
 
         {visible.map(r => (
-          <div key={r.id} style={S.card}>
+          <div key={r.id} style={S.card} onMouseEnter={cardHover} onMouseLeave={cardLeave}>
             <div style={S.meta}>
               <span style={S.pill(r.resolved)}>{r.resolved ? "resolved" : "open"}</span>
               <span>🕒 {new Date(r.created_at).toLocaleString("en-KE")}</span>
@@ -128,14 +139,14 @@ export default function CrashReportsPage() {
             )}
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               {!r.resolved && (
-                <button style={S.btn("#059669")} onClick={() => markResolved(r.id)}>
+                <button style={S.btn("#059669")} onClick={() => markResolved(r.id)} onMouseEnter={btnHover} onMouseLeave={btnLeave}>
                   <CheckCircle size={13}/> Mark resolved
                 </button>
               )}
-              <button style={S.btn("#475569")} onClick={() => copyStack(r)}>
+              <button style={S.btn("#475569")} onClick={() => copyStack(r)} onMouseEnter={btnHover} onMouseLeave={btnLeave}>
                 <Copy size={13}/> Copy stack
               </button>
-              <button style={S.btn("#dc2626")} onClick={() => del(r.id)}>
+              <button style={S.btn("#dc2626")} onClick={() => del(r.id)} onMouseEnter={btnHover} onMouseLeave={btnLeave}>
                 <Trash2 size={13}/> Delete
               </button>
             </div>
