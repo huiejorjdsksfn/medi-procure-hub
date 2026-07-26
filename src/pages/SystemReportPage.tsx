@@ -153,7 +153,7 @@ export default function SystemReportPage() {
     <div style={{ background: O.bg, minHeight: "100vh", fontFamily: O.font, color: O.text }}>
 
       {/* ── Top bar ─────────────────────────────────────────── */}
-      <div style={{ background: O.topBar, padding: "0 24px", display: "flex", alignItems: "center", height: 48 }}>
+      <div style={{ background: O.topBar, padding: "0 24px", display: "flex", alignItems: "center", height: 48, boxShadow:"0 1px 4px rgba(0,0,0,.15)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,6px)", gap: 2 }}>
             {Array(9).fill(0).map((_,i)=>(
@@ -163,38 +163,42 @@ export default function SystemReportPage() {
           <span style={{ color: O.white, fontWeight: 700, fontSize: 15, marginLeft: 8 }}>EL5 MediProcure</span>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-          <button onClick={exportCSV} style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:O.white,fontSize:12,fontWeight:600,cursor:"pointer" }}>
+          <button onClick={exportCSV} style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:6,color:O.white,fontSize:12,fontWeight:600,cursor:"pointer",transition:"background .12s ease" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.24)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.15)")}>
             <Download size={12} /> Export CSV
           </button>
-          <button onClick={() => nav("/settings")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex",alignItems:"center" }}>
+          <button onClick={() => nav("/settings")} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",display:"flex",alignItems:"center",padding:8,borderRadius:6,transition:"background .12s ease" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.12)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}>
             <Settings size={17} />
           </button>
-          <div style={{ width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",marginLeft:4 }}>
+          <div style={{ width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",marginLeft:4 }}>
             <span style={{ color:O.white,fontWeight:700,fontSize:13 }}>{(profile?.full_name||"A").charAt(0).toUpperCase()}</span>
           </div>
         </div>
       </div>
 
       {/* ── Teal hero ───────────────────────────────────────── */}
-      <div style={{ background: O.hero, padding: "36px 24px 40px" }}>
-        <h1 style={{ color:O.white, fontSize:28, fontWeight:300, margin:"0 0 20px", letterSpacing:"-.02em" }}>
+      <div style={{ background: `linear-gradient(120deg, ${O.hero}, #0c5a52 65%, #0a4a44)`, padding: "36px 24px 40px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:-60, right:-60, width:220, height:220, borderRadius:"50%", background:"rgba(255,255,255,.05)" }}/>
+        <h1 style={{ position:"relative", color:O.white, fontSize:28, fontWeight:300, margin:"0 0 20px", letterSpacing:"-.02em" }}>
           {greeting}, {profile?.full_name?.split(" ")[0] || "Administrator"}
         </h1>
 
         {/* Search + Period selector */}
-        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+        <div style={{ position:"relative", display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           <div style={{ position:"relative", flex:1, maxWidth:380 }}>
             <Search size={15} style={{ position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:O.textSub,pointerEvents:"none" }} />
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search activity log…"
-              style={{ width:"100%",padding:"10px 16px 10px 36px",border:"1px solid rgba(255,255,255,.4)",borderRadius:2,fontSize:14,background:O.white,color:O.text,outline:"none",boxSizing:"border-box",fontFamily:O.font }} />
+              style={{ width:"100%",padding:"10px 16px 10px 36px",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:14,background:O.white,color:O.text,outline:"none",boxSizing:"border-box",fontFamily:O.font }} />
             {search && <button onClick={()=>setSearch("")} style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:O.textMt,fontSize:16,lineHeight:1 }}>×</button>}
           </div>
           <select value={period} onChange={e=>setPeriod(e.target.value)}
-            style={{ padding:"10px 14px",border:"1px solid rgba(255,255,255,.4)",borderRadius:2,fontSize:13,background:O.white,color:O.text,outline:"none",cursor:"pointer",fontFamily:O.font }}>
+            style={{ padding:"10px 14px",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:13,background:O.white,color:O.text,outline:"none",cursor:"pointer",fontFamily:O.font }}>
             {TIME_PERIODS.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
           </select>
           <button onClick={load} disabled={loading}
-            style={{ display:"flex",alignItems:"center",gap:5,padding:"10px 14px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:2,color:O.white,fontSize:13,fontWeight:600,cursor:"pointer" }}>
+            style={{ display:"flex",alignItems:"center",gap:5,padding:"10px 14px",background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",borderRadius:8,color:O.white,fontSize:13,fontWeight:600,cursor:"pointer",transition:"background .12s ease" }}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.24)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.15)")}>
             <RefreshCw size={13} style={{ animation:loading?"spin 1s linear infinite":"none" }} /> Refresh
           </button>
         </div>
@@ -203,12 +207,14 @@ export default function SystemReportPage() {
       <div style={{ padding:"0 24px 32px" }}>
 
         {/* ── Metric summary strip ─────────────────────────── */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))", gap:8, marginTop:20, marginBottom:28 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))", gap:10, marginTop:-24, marginBottom:28, position:"relative", zIndex:3 }}>
           {metricCards.map(m => (
-            <div key={m.label} style={{ background:O.card,border:`1px solid ${O.border}`,borderTop:`3px solid ${m.color}`,borderRadius:2,padding:"14px 16px",boxShadow:O.shadow }}>
+            <div key={m.label} style={{ background:O.card,border:`1px solid ${O.border}`,borderRadius:12,padding:"14px 16px",boxShadow:"0 4px 16px rgba(16,24,40,.08)",transition:"box-shadow .15s ease, transform .15s ease" }}
+              onMouseEnter={e=>{ e.currentTarget.style.boxShadow=`0 8px 22px ${m.color}28`; e.currentTarget.style.transform="translateY(-2px)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.boxShadow="0 4px 16px rgba(16,24,40,.08)"; e.currentTarget.style.transform="none"; }}>
               <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
-                <div style={{ width:26,height:26,borderRadius:2,background:`${m.color}18`,display:"flex",alignItems:"center",justifyContent:"center" }}>
-                  <m.icon size={13} color={m.color} />
+                <div style={{ width:28,height:28,borderRadius:8,background:`${m.color}18`,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                  <m.icon size={14} color={m.color} />
                 </div>
                 <span style={{ display:"flex",alignItems:"center",gap:3,fontSize:11,color:m.trend>0?"#107c10":m.trend<0?"#a4262c":"#a19f9d",fontWeight:700 }}>
                   {trendIcon(m.trend)}{m.trend !== 0 ? `${Math.abs(m.trend)}%` : ""}

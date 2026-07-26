@@ -893,13 +893,13 @@ ORDER BY t.table_name;`);
 
   // - Tab nav -
   const tabs = [
-    { id:"tables",   label:"Tables",        icon:TableIcon },
-    { id:"sql",      label:"SQL Editor",    icon:Code2 },
-    { id:"schema",   label:"Schema",        icon:Layers },
-    { id:"triggers", label:"Triggers",      icon:Zap },
-    { id:"storage",  label:"Storage",       icon:HardDrive },
-    { id:"monitor",  label:"Live Monitor",  icon:Activity },
-    { id:"mssql",    label:"SQL Server Bridge", icon:Server },
+    { id:"tables",   label:"Tables",        icon:TableIcon, col:"#2563eb" },
+    { id:"sql",      label:"SQL Editor",    icon:Code2,     col:"#7c3aed" },
+    { id:"schema",   label:"Schema",        icon:Layers,    col:"#0d9488" },
+    { id:"triggers", label:"Triggers",      icon:Zap,       col:"#d97706" },
+    { id:"storage",  label:"Storage",       icon:HardDrive, col:"#db2777" },
+    { id:"monitor",  label:"Live Monitor",  icon:Activity,  col:"#16a34a" },
+    { id:"mssql",    label:"SQL Server Bridge", icon:Server, col:"#475569" },
   ];
 
   // ── Menu-bar actions (File/Edit/View/Project/Debug/Tools/Window/Help) ──
@@ -1069,7 +1069,7 @@ ORDER BY t.table_name;`);
             style={{
               display:"flex",alignItems:"center",gap:6,padding:"6px 16px",
               border:`1px solid ${activeTab===t.id?SSMS.tabBorder:"transparent"}`,
-              borderBottom: activeTab===t.id ? `1px solid ${SSMS.tabActive}` : `1px solid transparent`,
+              borderBottom: activeTab===t.id ? `2px solid ${t.col}` : `1px solid transparent`,
               borderTopLeftRadius:3, borderTopRightRadius:3,
               background: activeTab===t.id ? SSMS.tabActive : "transparent",
               cursor:"pointer", fontFamily:SSMS.font, fontSize:12,
@@ -1077,8 +1077,11 @@ ORDER BY t.table_name;`);
               color: activeTab===t.id ? SSMS.titleText : "#475569",
               marginBottom:-1, position:"relative", top:1,
               boxShadow: activeTab===t.id ? "0 -1px 0 rgba(0,0,0,0.02)" : "none",
-            }}>
-            <t.icon style={{ width:12,height:12, color: activeTab===t.id ? SSMS.accent : "#94a3b8" }} />
+              transition:"background .12s ease",
+            }}
+            onMouseEnter={e=>{ if(activeTab!==t.id) e.currentTarget.style.background="rgba(0,0,0,0.03)"; }}
+            onMouseLeave={e=>{ if(activeTab!==t.id) e.currentTarget.style.background="transparent"; }}>
+            <t.icon style={{ width:12,height:12, color: activeTab===t.id ? t.col : "#94a3b8" }} />
             {t.label}
           </button>
         ))}

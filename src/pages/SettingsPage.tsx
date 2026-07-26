@@ -59,9 +59,11 @@ function FR({ label, sub, color, children }: { label: string; sub?: string; colo
 
 function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) {
   return (
-    <div style={{ background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:14,padding:"18px 22px",marginBottom:20 }}>
+    <div style={{ background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:14,padding:"18px 22px",marginBottom:20,boxShadow:"0 1px 3px rgba(16,24,40,.05)",transition:"box-shadow .2s ease" }}
+      onMouseEnter={e=>(e.currentTarget.style.boxShadow=`0 6px 20px ${color}22`)}
+      onMouseLeave={e=>(e.currentTarget.style.boxShadow="0 1px 3px rgba(16,24,40,.05)")}>
       <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:12,borderBottom:"1px solid #e2e8f0" }}>
-        <div style={{ width:36,height:36,borderRadius:9,background:color,display:"flex",alignItems:"center",justifyContent:"center" }}>
+        <div style={{ width:36,height:36,borderRadius:9,background:color,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 3px 10px ${color}44` }}>
           <Icon style={{ width:17,height:17,color:"#fff" }} />
         </div>
         <div style={{ flex:1 }}>
@@ -69,7 +71,9 @@ function Card({ title, sub, color, icon: Icon, onSave, saving, children }: any) 
           {sub && <div style={{ fontSize:11,color:"#64748b" }}>{sub}</div>}
         </div>
         {onSave && (
-          <button onClick={onSave} disabled={saving} style={{ padding:"6px 14px",borderRadius:7,border:"none",background:"rgba(79,70,229,0.8)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:5 }}>
+          <button onClick={onSave} disabled={saving} style={{ padding:"6px 14px",borderRadius:7,border:"none",background:color,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:5,transition:"transform .1s ease, filter .1s ease" }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.filter="brightness(1.1)"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.filter="none"; }}>
             <Save style={{ width:12,height:12 }} />{saving ? "Saving-" : "Save"}
           </button>
         )}
@@ -185,7 +189,9 @@ function SettingsInner() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              style={{ width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 14px",background:tab===t.id?"rgba(79,70,229,0.15)":"transparent",border:"none",borderLeft:tab===t.id?`3px solid ${t.color}`:"3px solid transparent",cursor:"pointer" }}
+              style={{ width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 14px",background:tab===t.id?`${t.color}26`:"transparent",border:"none",borderLeft:tab===t.id?`3px solid ${t.color}`:"3px solid transparent",cursor:"pointer",transition:"background .12s ease" }}
+              onMouseEnter={e=>{ if(tab!==t.id) e.currentTarget.style.background="rgba(255,255,255,0.05)"; }}
+              onMouseLeave={e=>{ if(tab!==t.id) e.currentTarget.style.background="transparent"; }}
             >
               <t.icon style={{ width:15,height:15,color:tab===t.id?t.color:"#475569",flexShrink:0 }} />
               <span style={{ fontSize:12.5,fontWeight:tab===t.id?700:400,color:tab===t.id?"#f1f5f9":"#64748b" }}>{t.label}</span>
