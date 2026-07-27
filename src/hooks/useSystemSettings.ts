@@ -34,8 +34,8 @@ export const DEFAULTS: SystemSettings = {
   show_stamp:           "true",
   print_confidential:   "false",
   printer_type:         "pdf",
-  primary_color:        "#0a2558",
-  accent_color:         "#C45911",
+  primary_color:        "#4F46E5",
+  accent_color:         "#EA580C",
   nav_bg_color:         "#ffffff",
   nav_text_color:       "#1e293b",
   page_bg_color:        "#f8fafc",
@@ -43,8 +43,8 @@ export const DEFAULTS: SystemSettings = {
   text_primary:         "#1e293b",
   text_secondary:       "#64748b",
   border_color:         "#e2e8f0",
-  success_color:        "#166534",
-  warning_color:        "#92400e",
+  success_color:        "#16A34A",
+  warning_color:        "#D97706",
   danger_color:         "#dc2626",
   font_family:          "Segoe UI",
   font_size_base:       "22px",
@@ -193,8 +193,8 @@ export function applyThemeToDOM(settings: SystemSettings): void {
     if (val) root.style.setProperty(varName, val);
   };
 
-  css("--color-primary",    "primary_color",   "#0a2558");
-  css("--color-accent",     "accent_color",    "#C45911");
+  css("--color-primary",    "primary_color",   "#4F46E5");
+  css("--color-accent",     "accent_color",    "#EA580C");
   css("--color-nav-bg",     "nav_bg_color",    "#ffffff");
   css("--color-nav-text",   "nav_text_color",  "#1e293b");
   css("--color-page-bg",    "page_bg_color",   "#f8fafc");
@@ -202,8 +202,8 @@ export function applyThemeToDOM(settings: SystemSettings): void {
   css("--color-text",       "text_primary",    "#1e293b");
   css("--color-text-muted", "text_secondary",  "#64748b");
   css("--color-border",     "border_color",    "#e2e8f0");
-  css("--color-success",    "success_color",   "#166534");
-  css("--color-warning",    "warning_color",   "#92400e");
+  css("--color-success",    "success_color",   "#16A34A");
+  css("--color-warning",    "warning_color",   "#D97706");
   css("--color-danger",     "danger_color",    "#dc2626");
   css("--font-family",      "font_family",     "Segoe UI");
   css("--font-size-base",   "font_size_base",  "22px");

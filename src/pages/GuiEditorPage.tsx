@@ -18,6 +18,7 @@ import { useRealIP } from "@/hooks/useRealIP";
 import { supabase } from "@/integrations/supabase/client";
 
 const PRESETS = [
+  { name:"Indigo (Default)", primary:"#4F46E5", accent:"#EA580C", navBg:"#ffffff", navText:"#1e293b", pageBg:"#f8fafc" },
   { name:"Navy Blue",    primary:"#0a2558", accent:"#C45911", navBg:"#ffffff", navText:"#1e293b", pageBg:"#f8fafc" },
   { name:"Forest Green", primary:"#065f46", accent:"#d97706", navBg:"#ffffff", navText:"#1e293b", pageBg:"#f0fdf4" },
   { name:"Royal Purple", primary:"#4c1d95", accent:"#be185d", navBg:"#ffffff", navText:"#1e293b", pageBg:"#faf5ff" },
@@ -49,12 +50,12 @@ const DEFAULT_NAV: NavItem[] = [
 ];
 
 const DEFAULTS = {
-  primary_color:"#0a2558",  accent_color:"#C45911",
+  primary_color:"#4F46E5",  accent_color:"#EA580C",
   nav_bg_color:"#ffffff",   nav_text_color:"#1e293b",
   page_bg_color:"#f8fafc",  card_bg:"#ffffff",
   text_primary:"#1e293b",   text_secondary:"#64748b",
-  border_color:"#e2e8f0",   success_color:"#166534",
-  warning_color:"#92400e",  danger_color:"#dc2626",
+  border_color:"#e2e8f0",   success_color:"#16A34A",
+  warning_color:"#D97706",  danger_color:"#dc2626",
   font_family:"Segoe UI",   font_size_base:"22px",
   font_size_sm:"18px",      font_size_lg:"22px",
   border_radius:"8px",      content_padding:"16px",
