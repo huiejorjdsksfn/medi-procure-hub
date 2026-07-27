@@ -26,7 +26,7 @@ import { printDataTable } from "@/lib/printDocument";
 
 // - Table groups with all 57 tables -
 const TABLE_GROUPS = [
-  { id:"procurement", label:"Procurement", color:"#003087", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","procurement_plan_items","bid_evaluations","tenders","contracts","contract_milestones","suppliers","supplier_scorecards","quotations","quotation_items","approval_queue"] },
+  { id:"procurement", label:"Procurement", color:"#4f46e5", tables:["requisitions","requisition_items","purchase_orders","purchase_order_items","goods_received","goods_received_items","grn_items","procurement_plans","procurement_plan_items","bid_evaluations","tenders","contracts","contract_milestones","suppliers","supplier_scorecards","quotations","quotation_items","approval_queue"] },
   { id:"inventory", label:"Inventory & Stock", color:"#107c10", tables:["items","item_categories","categories","departments","stock_movements"] },
   { id:"finance", label:"Finance & Vouchers", color:"#8B4513", tables:["payment_vouchers","receipt_vouchers","journal_vouchers","journal_voucher_lines","purchase_vouchers","purchase_voucher_lines","sales_vouchers","budgets","budget_alerts","chart_of_accounts","bank_accounts","bank_statements","gl_entries","gl_journal","gl_mappings","fixed_assets","invoice_matching","invoice_matching_queue","payment_proposals","vouchers"] },
   { id:"quality", label:"Quality Control", color:"#005C3C", tables:["inspections","inspection_items","non_conformance","non_conformances"] },
@@ -44,61 +44,77 @@ const TABLE_GROUPS = [
 
 // - Styles (Clean white Inter design - v5.8) -
 const S = {
-  font:  "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+  font:  "'Inter', system-ui, -apple-system, sans-serif",
   bg:    "#ffffff",
-  bg2:   "#f8fafc",
-  fg:    "#0f172a",
-  fg2:   "#475569",
-  border:"#e2e8f0",
-  head:  "#f1f5f9",
-  blue:  "#2563eb",
-  sel:   "rgba(37,99,235,0.08)",
-  err:   "#dc2626",
-  ok:    "#16a34a",
-  warn:  "#d97706",
+  bg2:   "#fafafa",
+  fg:    "#18181b",
+  fg2:   "#52525b",
+  fgMuted: "#a1a1aa",
+  border:"#e4e4e7",
+  borderLight: "#f4f4f4",
+  head:  "#fafafa",
+  blue:  "#6366f1",
+  sel:   "rgba(99,102,241,0.08)",
+  err:   "#ef4444",
+  errBg: "#fef2f2",
+  ok:    "#22c55e",
+  okBg:  "#f0fdf4",
+  warn:  "#f59e0b",
+  warnBg:"#fffbeb",
   mono:  "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace",
+  radius: 8,
+  radiusLg: 12,
+  shadow: "0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06)",
+  shadowMd: "0 4px 16px rgba(0,0,0,.09)",
 };
 
-// SSMS ("SQL Server Management Studio") chrome theme — v6.0 redesign.
-// Distinct from S above: this governs only the window chrome (menu bar,
-// toolbar, Object Explorer header, document tabs, status bar), matching
-// the classic SSMS light/blue theme. Table/grid/SQL-editor content below
-// keeps using S so none of that logic changes.
+// Chrome tokens — 2025 modern redesign (v7.0). Previously a literal SSMS
+// 2012 Windows chrome recreation (fake File/Edit/View menu bar, flat
+// Windows-blue document tabs, solid blue Windows status bar). Replaced
+// with a modern flat design: no fake OS chrome, pill-segmented tabs,
+// rounded cards with subtle shadows, indigo accent, minimal footer.
+// Variable kept as `SSMS` (not renamed) to avoid touching every call site
+// across this large file — only the values changed, not the shape.
 const SSMS = {
-  font:      "'Segoe UI', 'Inter', system-ui, sans-serif",
-  titlebar:  "#f3f3f3",
-  titleText: "#1e1e1e",
-  menubar:   "#f3f3f3",
-  toolbar:   "#eef2f6",
-  toolbarBd: "#d6dce3",
-  accent:    "#0067b8",
-  accentDk:  "#004b87",
-  tabActive: "#ffffff",
-  tabInactive: "#e4e9ee",
-  tabBorder: "#c9d2db",
-  statusbar: "#0067b8",
-  explorerHd:"#e4e9ee",
+  font:      S.font,
+  titlebar:  "#ffffff",
+  titleText: S.fg,
+  menubar:   "#ffffff",
+  toolbar:   "#ffffff",
+  toolbarBd: S.border,
+  accent:    "#6366f1",
+  accentDk:  "#4f46e5",
+  accentBg:  "#eef2ff",
+  tabActive: "#18181b",
+  tabInactive: "transparent",
+  tabBorder: S.border,
+  statusbar: "#fafafa",
+  explorerHd:"#ffffff",
 };
 
 const CELL: React.CSSProperties = {
-  border: `1px solid #e2e8f0`,
-  padding: "7px 14px",
-  fontSize: 12,
+  padding: "8px 14px",
+  fontSize: 12.5,
   fontFamily: S.font,
-  color: "#0f172a",
+  color: S.fg,
   whiteSpace: "nowrap",
   maxWidth: 220,
   overflow: "hidden",
   textOverflow: "ellipsis",
   background: "transparent",
+  borderBottom: `1px solid ${S.borderLight}`,
 };
-const THEAD_CELL: React.CSSProperties = { ...CELL, background:"#1e3a5f", color:"#f1f5f9", fontWeight:700, textAlign:"left", border:"1px solid #16304d" };
+const THEAD_CELL: React.CSSProperties = {
+  ...CELL, background: S.bg2, color: S.fg2, fontWeight: 600, fontSize: 10.5,
+  textTransform: "uppercase", letterSpacing: ".04em", textAlign: "left",
+  borderBottom: `1px solid ${S.border}`, borderTop: "none",
+};
 
 // - Live Monitor helper components (dbForge-style) -
 function MonitorChartCard({ title, subtitle, stats, children, empty }: { title:string; subtitle?:string; stats?:{label:string;value:string}[]; children:React.ReactNode; empty?:boolean }) {
   return (
     <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 12px",background:"#fff",marginBottom:10,position:"relative" }}>
-      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>{title}</div>
+      <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font }}>{title}</div>
       {subtitle && <div style={{ fontSize:9.5,color:"#94a3b8",fontFamily:S.font,marginBottom:4 }}>{subtitle}</div>}
       <div style={{ display:"flex",gap:16,alignItems:"center" }}>
         <div style={{ flex:1,minWidth:0 }}>{children}</div>
@@ -167,7 +183,7 @@ function PlanNode({ node, totalCost }: { node: any; totalCost?: number }) {
 function MonitorTable({ title, headers, rows, empty }: { title:string; headers:string[]; rows:(string|number)[][]; empty?:string }) {
   return (
     <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginBottom:10,overflow:"hidden" }}>
-      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+      <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
         <span>{title}</span>
         {rows.length > 0 && <span style={{ fontSize:9.5,color:"#94a3b8",fontWeight:600 }}>{rows.length} row{rows.length===1?"":"s"}</span>}
       </div>
@@ -988,100 +1004,106 @@ ORDER BY t.table_name;`);
   },[]);
 
   return (
-    <div style={{ height:"100%",display:"flex",flexDirection:"column",background:"#ffffff",fontFamily:SSMS.font,color:SSMS.titleText,minHeight:"100%" }}>
+    <div style={{ height:"100%",display:"flex",flexDirection:"column",background:S.bg,fontFamily:S.font,color:S.fg,minHeight:"100%" }}>
 
-      {/* ── SSMS menu bar — real dropdowns, wired to MENUS ── */}
-      <div style={{ background:SSMS.menubar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"3px 12px",display:"flex",alignItems:"center",gap:2,flexShrink:0,position:"relative" }}
-        onMouseLeave={()=>setOpenMenu(null)}>
-        {Object.keys(MENUS).map(m=>(
-          <div key={m} style={{ position:"relative" }}>
-            <span onClick={()=>setOpenMenu(p=>p===m?null:m)} onMouseEnter={()=>{ if(openMenu) setOpenMenu(m); }}
-              style={{ fontSize:11.5,color: openMenu===m ? "#fff" : "#333",background: openMenu===m ? SSMS.accent : "transparent",padding:"2px 8px",borderRadius:2,cursor:"pointer",userSelect:"none",display:"inline-block" }}>
-              {m}
-            </span>
-            {openMenu===m && (
-              <div style={{ position:"absolute",top:"100%",left:0,background:"#fff",border:`1px solid ${SSMS.toolbarBd}`,boxShadow:"0 4px 14px rgba(0,0,0,0.15)",minWidth:210,zIndex:100,padding:"3px 0" }}>
-                {MENUS[m].map(item=>(
-                  <div key={item.label}
-                    onClick={()=>{ if(item.disabled) return; item.action(); setOpenMenu(null); }}
-                    style={{
-                      padding:"6px 14px",fontSize:12,cursor: item.disabled ? "not-allowed" : "pointer",
-                      color: item.disabled ? "#b0b6bd" : "#1e1e1e",
-                      background: activeTab===tabs.find(t=>t.label===item.label)?.id ? "#eef2f8" : "transparent",
-                    }}
-                    onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background="#dbe6f2"; }}
-                    onMouseLeave={e=>{ e.currentTarget.style.background = activeTab===tabs.find(t=>t.label===item.label)?.id ? "#eef2f8" : "transparent"; }}>
-                    {item.label}
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* ── Modern header: title, command search, action menus ── */}
+      <div style={{ background:"#fff",borderBottom:`1px solid ${S.border}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:14,flexShrink:0 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:9 }}>
+          <div style={{ width:30,height:30,borderRadius:S.radius,background:`linear-gradient(135deg,${SSMS.accent},${SSMS.accentDk})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            <Database style={{ width:16,height:16,color:"#fff" }} />
           </div>
-        ))}
-        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:6 }}>
-          <Search style={{ width:11,height:11,color:"#94a3b8" }} />
+          <div style={{ fontSize:14,fontWeight:700,color:S.fg,whiteSpace:"nowrap" }}>Database</div>
+        </div>
+
+        <div style={{ position:"relative",flex:1,maxWidth:420 }}>
+          <Search style={{ width:13,height:13,color:S.fgMuted,position:"absolute",left:11,top:"50%",transform:"translateY(-50%)" }} />
           <input value={quickLaunch} onChange={e=>setQuickLaunch(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") runQuickLaunch(); }}
-            placeholder="Quick Launch — jump to a tab or table"
-            style={{ border:`1px solid ${SSMS.toolbarBd}`,borderRadius:3,padding:"2px 8px",fontSize:11,width:190,outline:"none",fontFamily:SSMS.font }} />
+            placeholder="Jump to a table or view…"
+            style={{ width:"100%",border:`1px solid ${S.border}`,borderRadius:S.radius,padding:"7px 12px 7px 32px",fontSize:12.5,outline:"none",fontFamily:S.font,background:S.bg2,boxSizing:"border-box" }}
+            onFocus={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.borderColor=SSMS.accent;}}
+            onBlur={e=>{e.currentTarget.style.background=S.bg2;e.currentTarget.style.borderColor=S.border;}} />
+        </div>
+
+        <div style={{ display:"flex",alignItems:"center",gap:5,position:"relative" }} onMouseLeave={()=>setOpenMenu(null)}>
+          {Object.keys(MENUS).map(m=>(
+            <div key={m} style={{ position:"relative" }}>
+              <button onClick={()=>setOpenMenu(p=>p===m?null:m)} onMouseEnter={()=>{ if(openMenu) setOpenMenu(m); }}
+                style={{ fontSize:12,fontWeight:500,color: openMenu===m ? SSMS.accentDk : S.fg2,
+                  background: openMenu===m ? SSMS.accentBg : "transparent",
+                  border:"none",padding:"6px 10px",borderRadius:S.radius,cursor:"pointer" }}>
+                {m}
+              </button>
+              {openMenu===m && (
+                <div style={{ position:"absolute",top:"calc(100% + 4px)",right:0,background:"#fff",border:`1px solid ${S.border}`,borderRadius:S.radiusLg,boxShadow:S.shadowMd,minWidth:220,zIndex:100,padding:6 }}>
+                  {MENUS[m].map(item=>(
+                    <div key={item.label}
+                      onClick={()=>{ if(item.disabled) return; item.action(); setOpenMenu(null); }}
+                      style={{
+                        padding:"7px 11px",fontSize:12.5,borderRadius:6,cursor: item.disabled ? "not-allowed" : "pointer",
+                        color: item.disabled ? S.fgMuted : S.fg,
+                        background: activeTab===tabs.find(t=>t.label===item.label)?.id ? SSMS.accentBg : "transparent",
+                        fontWeight: activeTab===tabs.find(t=>t.label===item.label)?.id ? 600 : 400,
+                      }}
+                      onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background=S.bg2; }}
+                      onMouseLeave={e=>{ e.currentTarget.style.background = activeTab===tabs.find(t=>t.label===item.label)?.id ? SSMS.accentBg : "transparent"; }}>
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ── SSMS toolbar ── */}
-      <div style={{ background:SSMS.toolbar,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 10px",display:"flex",alignItems:"center",gap:4,flexShrink:0 }}>
+      {/* ── Toolbar: primary actions + live status ── */}
+      <div style={{ background:"#fff",borderBottom:`1px solid ${S.border}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:6,flexShrink:0 }}>
         <button onClick={()=>{setActiveTab("sql");}} title="New Query"
-          style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
-          onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
-          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="transparent";}}>
-          <FileText style={{ width:13,height:13,color:SSMS.accent }} /> New Query
+          style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",background:S.bg2,border:`1px solid transparent`,borderRadius:S.radius,cursor:"pointer",fontSize:12,fontWeight:500,color:S.fg }}
+          onMouseEnter={e=>{e.currentTarget.style.background=SSMS.accentBg;e.currentTarget.style.color=SSMS.accentDk;}}
+          onMouseLeave={e=>{e.currentTarget.style.background=S.bg2;e.currentTarget.style.color=S.fg;}}>
+          <FileText style={{ width:13,height:13 }} /> New Query
         </button>
-        <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 4px" }} />
         <button onClick={loadTable} title="Refresh"
-          style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:"pointer",fontSize:11.5,color:SSMS.titleText }}
-          onMouseEnter={e=>{e.currentTarget.style.background="#dbe6f2";e.currentTarget.style.borderColor=SSMS.toolbarBd;}}
-          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="transparent";}}>
-          <RefreshCw style={{ width:13,height:13,color:SSMS.accent }} /> Refresh
+          style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",background:S.bg2,border:`1px solid transparent`,borderRadius:S.radius,cursor:"pointer",fontSize:12,fontWeight:500,color:S.fg }}
+          onMouseEnter={e=>{e.currentTarget.style.background=SSMS.accentBg;e.currentTarget.style.color=SSMS.accentDk;}}
+          onMouseLeave={e=>{e.currentTarget.style.background=S.bg2;e.currentTarget.style.color=S.fg;}}>
+          <RefreshCw style={{ width:13,height:13 }} /> Refresh
         </button>
         {activeTab==="sql" && (
-          <>
-            <div style={{ width:1,height:18,background:SSMS.toolbarBd,margin:"0 4px" }} />
-            <button onClick={runSQL} disabled={sqlRunning} title="Execute (⌘↵)"
-              style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 9px",background:"transparent",border:"1px solid transparent",borderRadius:3,cursor:sqlRunning?"not-allowed":"pointer",fontSize:11.5,color:sqlRunning?"#94a3b8":SSMS.titleText,fontWeight:600 }}>
-              <Play style={{ width:13,height:13,color: sqlRunning?"#94a3b8":"#16a34a" }} /> {sqlRunning?"Executing…":"Execute"}
-            </button>
-          </>
+          <button onClick={runSQL} disabled={sqlRunning} title="Execute (⌘↵)"
+            style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background: sqlRunning ? S.bg2 : SSMS.accent,border:"none",borderRadius:S.radius,cursor:sqlRunning?"not-allowed":"pointer",fontSize:12,fontWeight:600,color:sqlRunning?S.fgMuted:"#fff" }}>
+            <Play style={{ width:13,height:13 }} /> {sqlRunning?"Executing…":"Execute"}
+          </button>
         )}
-        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:14 }}>
-          <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-            <div style={{ background:realtimeOn?"#16a34a":"#94a3b8",width:7,height:7,borderRadius:"50%" }} />
-            <span style={{ fontSize:10.5,color:"#475569" }}>{realtimeOn?"Realtime ON":"Realtime OFF"}</span>
+        <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:16 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:20,background: realtimeOn ? S.okBg : S.bg2 }}>
+            <div style={{ background:realtimeOn?S.ok:S.fgMuted,width:6,height:6,borderRadius:"50%" }} />
+            <span style={{ fontSize:11,fontWeight:500,color: realtimeOn ? "#15803d" : S.fgMuted }}>{realtimeOn?"Realtime":"Offline"}</span>
           </div>
-          <div style={{ display:"flex",alignItems:"center",gap:6,fontSize:10.5,color:"#64748b" }}>
+          <div style={{ display:"flex",alignItems:"center",gap:5,fontSize:11,color:S.fgMuted }}>
             <Server style={{ width:11,height:11 }} />
-            <span>yvjfehnzbzjliizjvuhq.supabase.co</span>
+            <span>yvjfehnzbzjliizjvuhq</span>
           </div>
         </div>
       </div>
 
-      {/* ── Document tabs (SSMS style) ── */}
-      <div style={{ display:"flex",borderBottom:`1px solid ${SSMS.tabBorder}`,background:SSMS.tabInactive,flexShrink:0,paddingTop:4 }}>
+      {/* ── Pill-segmented tabs ── */}
+      <div style={{ display:"flex",gap:4,background:"#fff",borderBottom:`1px solid ${S.border}`,flexShrink:0,padding:"8px 16px",overflowX:"auto" }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id as any); if(t.id==="schema") loadSchema(); if(t.id==="triggers") loadTriggers(); if(t.id==="stats") loadStats(); }}
             style={{
-              display:"flex",alignItems:"center",gap:6,padding:"6px 16px",
-              border:`1px solid ${activeTab===t.id?SSMS.tabBorder:"transparent"}`,
-              borderBottom: activeTab===t.id ? `2px solid ${t.col}` : `1px solid transparent`,
-              borderTopLeftRadius:3, borderTopRightRadius:3,
-              background: activeTab===t.id ? SSMS.tabActive : "transparent",
-              cursor:"pointer", fontFamily:SSMS.font, fontSize:12,
-              fontWeight: activeTab===t.id ? 600 : 400,
-              color: activeTab===t.id ? SSMS.titleText : "#475569",
-              marginBottom:-1, position:"relative", top:1,
-              boxShadow: activeTab===t.id ? "0 -1px 0 rgba(0,0,0,0.02)" : "none",
-              transition:"background .12s ease",
+              display:"flex",alignItems:"center",gap:6,padding:"6px 13px",whiteSpace:"nowrap",
+              border:"none",borderRadius:20,
+              background: activeTab===t.id ? t.col : "transparent",
+              cursor:"pointer", fontFamily:S.font, fontSize:12.5,
+              fontWeight: activeTab===t.id ? 600 : 500,
+              color: activeTab===t.id ? "#fff" : S.fg2,
+              transition:"background .12s,color .12s",
             }}
-            onMouseEnter={e=>{ if(activeTab!==t.id) e.currentTarget.style.background="rgba(0,0,0,0.03)"; }}
+            onMouseEnter={e=>{ if(activeTab!==t.id) e.currentTarget.style.background=S.bg2; }}
             onMouseLeave={e=>{ if(activeTab!==t.id) e.currentTarget.style.background="transparent"; }}>
-            <t.icon style={{ width:12,height:12, color: activeTab===t.id ? t.col : "#94a3b8" }} />
+            <t.icon style={{ width:12.5,height:12.5, color: activeTab===t.id ? "#fff" : S.fgMuted }} />
             {t.label}
           </button>
         ))}
@@ -1090,49 +1112,52 @@ ORDER BY t.table_name;`);
       {/* - Main content - */}
       <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
 
-        {/* Left sidebar - table tree, styled as SSMS Object Explorer */}
+        {/* Left sidebar - table tree, modernized */}
         {activeTab === "tables" && (
-          <div style={{ width:230,borderRight:`1px solid ${SSMS.toolbarBd}`,overflowY:"auto",background:"#ffffff",flexShrink:0,display:"flex",flexDirection:"column" }}>
-            <div style={{ background:SSMS.explorerHd,borderBottom:`1px solid ${SSMS.toolbarBd}`,padding:"5px 8px",display:"flex",alignItems:"center",gap:6 }}>
-              <span style={{ fontSize:11,fontWeight:700,color:SSMS.titleText }}>Object Explorer</span>
-              <div style={{ marginLeft:"auto",display:"flex",gap:4 }}>
-                <button onClick={loadTable} title="Refresh" style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
-                  <RefreshCw style={{ width:11,height:11,color:"#64748b" }} />
-                </button>
-                <button title="Filter" onClick={()=>tableSearchRef.current?.focus()} style={{ background:"none",border:"none",cursor:"pointer",padding:2,display:"flex" }}>
-                  <Filter style={{ width:11,height:11,color:"#64748b" }} />
-                </button>
+          <div style={{ width:240,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"#fff",flexShrink:0,display:"flex",flexDirection:"column" }}>
+            <div style={{ padding:"10px 12px 8px" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:8 }}>
+                <span style={{ fontSize:10.5,fontWeight:700,color:S.fgMuted,textTransform:"uppercase",letterSpacing:".04em" }}>Tables</span>
+                <div style={{ marginLeft:"auto",display:"flex",gap:2 }}>
+                  <button onClick={loadTable} title="Refresh" style={{ background:"none",border:"none",cursor:"pointer",padding:4,borderRadius:6,display:"flex" }}
+                    onMouseEnter={e=>e.currentTarget.style.background=S.bg2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <RefreshCw style={{ width:12,height:12,color:S.fgMuted }} />
+                  </button>
+                  <button title="Filter" onClick={()=>tableSearchRef.current?.focus()} style={{ background:"none",border:"none",cursor:"pointer",padding:4,borderRadius:6,display:"flex" }}
+                    onMouseEnter={e=>e.currentTarget.style.background=S.bg2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <Filter style={{ width:12,height:12,color:S.fgMuted }} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div style={{ padding:"5px 8px",borderBottom:`1px solid ${SSMS.toolbarBd}`,background:"#fafbfc",display:"flex",alignItems:"center",gap:5 }}>
-              <Server style={{ width:11,height:11,color:SSMS.accent,flexShrink:0 }} />
-              <span style={{ fontSize:10.5,color:"#475569",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>yvjfehnzbzjliizjvuhq (Supabase)</span>
-            </div>
-            <div style={{ padding:"6px 8px",borderBottom:`1px solid ${S.border}`,background:S.head }}>
-              <input ref={tableSearchRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables-"
-                style={{ width:"100%",border:`1px solid ${S.border}`,padding:"3px 6px",fontSize:11,fontFamily:S.font,outline:"none",boxSizing:"border-box" }} />
+              <div style={{ position:"relative" }}>
+                <Search style={{ width:11,height:11,color:S.fgMuted,position:"absolute",left:9,top:"50%",transform:"translateY(-50%)" }} />
+                <input ref={tableSearchRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search tables…"
+                  style={{ width:"100%",border:`1px solid ${S.border}`,borderRadius:S.radius,padding:"6px 8px 6px 26px",fontSize:11.5,fontFamily:S.font,outline:"none",boxSizing:"border-box",background:S.bg2 }} />
+              </div>
             </div>
             {TABLE_GROUPS.map(grp => {
               const filtered = grp.tables.filter(t => t.toLowerCase().includes(search.toLowerCase()));
               if (filtered.length === 0) return null;
               const isOpen = openGroups.has(grp.id);
               return (
-                <div key={grp.id}>
+                <div key={grp.id} style={{ padding:"0 6px" }}>
                   <button onClick={() => setOpenGroups(p => { const s=new Set(p); s.has(grp.id)?s.delete(grp.id):s.add(grp.id); return s; })}
-                    style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"transparent",border:"none",cursor:"pointer",borderBottom:`1px solid rgba(255,255,255,0.05)` }}>
-                    {isOpen ? <ChevronDown style={{ width:11,height:11,color:grp.color }} /> : <ChevronRight style={{ width:11,height:11,color:grp.color }} />}
-                    <span style={{ fontSize:11,fontWeight:700,color:grp.color,fontFamily:S.font }}>{grp.label}</span>
-                    <span style={{ fontSize:9,color:"#888",marginLeft:"auto",fontFamily:S.font }}>({filtered.length})</span>
+                    style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"6px 6px",background:"transparent",border:"none",cursor:"pointer",borderRadius:6 }}
+                    onMouseEnter={e=>e.currentTarget.style.background=S.bg2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    {isOpen ? <ChevronDown style={{ width:11,height:11,color:S.fgMuted }} /> : <ChevronRight style={{ width:11,height:11,color:S.fgMuted }} />}
+                    <div style={{ width:6,height:6,borderRadius:2,background:grp.color,flexShrink:0 }} />
+                    <span style={{ fontSize:11.5,fontWeight:600,color:S.fg,fontFamily:S.font }}>{grp.label}</span>
+                    <span style={{ fontSize:10,color:S.fgMuted,marginLeft:"auto",fontFamily:S.font }}>{filtered.length}</span>
                   </button>
                   {isOpen && filtered.map(t => (
                     <button key={t} onClick={() => { setSelectedTable(t); setPage(0); setSearch(""); }}
-                      style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 4px 22px",background:selectedTable===t?"rgba(59,130,246,0.2)":"transparent",border:"none",borderBottom:`1px solid #e8e8e8`,cursor:"pointer" }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:5 }}>
-                        <TableIcon style={{ width:10,height:10,color:grp.color,flexShrink:0 }} />
-                        <span style={{ fontSize:11,fontFamily:S.font,color:S.fg,fontWeight:selectedTable===t?700:400 }}>{t}</span>
-                      </div>
+                      style={{ width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px 5px 26px",background:selectedTable===t?SSMS.accentBg:"transparent",border:"none",borderRadius:6,cursor:"pointer" }}
+                      onMouseEnter={e=>{ if(selectedTable!==t) e.currentTarget.style.background=S.bg2; }}
+                      onMouseLeave={e=>{ if(selectedTable!==t) e.currentTarget.style.background="transparent"; }}>
+                      <TableIcon style={{ width:11,height:11,color:selectedTable===t?SSMS.accentDk:S.fgMuted,flexShrink:0 }} />
+                      <span style={{ fontSize:11.5,fontFamily:S.font,color:selectedTable===t?SSMS.accentDk:S.fg2,fontWeight:selectedTable===t?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,textAlign:"left" }}>{t}</span>
                       {tableCounts[t] !== undefined && (
-                        <span style={{ fontSize:9,color:"#888",background:"#e0e0e0",borderRadius:8,padding:"0 4px",fontFamily:S.font }}>{tableCounts[t]}</span>
+                        <span style={{ fontSize:9.5,color:S.fgMuted,background:S.bg2,borderRadius:8,padding:"1px 6px",fontFamily:S.font,flexShrink:0 }}>{tableCounts[t]}</span>
                       )}
                     </button>
                   ))}
@@ -1147,7 +1172,7 @@ ORDER BY t.table_name;`);
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
             {/* Toolbar */}
             <div style={{ padding:"6px 12px",display:"flex",alignItems:"center",gap:8,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}` }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>{selectedTable}</span>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#4f46e5" }}>{selectedTable}</span>
               <span style={{ fontSize:11,color:"#64748b",fontFamily:S.font }}>({totalRows.toLocaleString()} rows)</span>
               <div style={{ display:"flex",alignItems:"center",gap:4,border:`1px solid ${S.border}`,padding:"2px 6px",background:S.bg,marginLeft:8 }}>
                 <Search style={{ width:11,height:11,color:"#94a3b8" }} />
@@ -1161,7 +1186,7 @@ ORDER BY t.table_name;`);
                   {[25,50,100,200,500].map(n=><option key={n}>{n}</option>)}
                 </select>
                 <button onClick={() => setNewRow(Object.fromEntries(tableColumns.filter(c=>c!=="id"&&c!=="created_at"&&c!=="updated_at").map(c=>[c,""])))}
-                  style={{ border:`1px solid #003087`,background:"#003087",color:"#fff",padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  style={{ border:"none",background:"#4f46e5",color:"#fff",padding:"6px 12px",borderRadius:8,cursor:"pointer",fontFamily:S.font,fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:4 }}>
                   <Plus style={{ width:11,height:11 }} /> New Row
                 </button>
                 <button onClick={exportExcel} style={{ border:`1px solid ${S.border}`,background:S.bg,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
@@ -1203,7 +1228,7 @@ ORDER BY t.table_name;`);
                       style={{ border:`1px solid ${S.border}`,padding:"2px 5px",fontSize:11,fontFamily:S.font,width:100 }} />
                   </div>
                 ))}
-                <button onClick={saveNew} style={{ background:"#003087",color:"#fff",border:"none",padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Insert</button>
+                <button onClick={saveNew} style={{ background:"#4f46e5",color:"#fff",border:"none",padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Insert</button>
                 <button onClick={()=>setNewRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"4px 12px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Cancel</button>
               </div>
             )}
@@ -1216,10 +1241,10 @@ ORDER BY t.table_name;`);
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead style={{ position:"sticky",top:0,zIndex:10,background:S.head }}>
                     <tr>
-                      <th style={{ ...CELL,background:"#1e3a5f",color:"#f1f5f9",fontWeight:700,width:60 }}>Actions</th>
+                      <th style={{ ...CELL,background:"#fafafa",color:"#52525b",fontWeight:700,width:60 }}>Actions</th>
                       {tableColumns.filter(col=>col!=="id").map(col => (
                         <th key={col} onClick={() => { setSortCol(col); setSortAsc(s=>sortCol===col?!s:true); }}
-                          style={{ ...CELL,background:"#1e3a5f",color:"#f1f5f9",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
+                          style={{ ...CELL,background:"#fafafa",color:"#52525b",fontWeight:700,cursor:"pointer",userSelect:"none" }}>
                           {col}{sortCol===col?(sortAsc?" -":" -"):""}
                         </th>
                       ))}
@@ -1233,7 +1258,7 @@ ORDER BY t.table_name;`);
                         <td style={{ ...CELL,width:60,textAlign:"center" }}>
                           <div style={{ display:"flex",gap:3,justifyContent:"center" }}>
                             <button title="Edit" onClick={() => setEditingRow({...row})} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
-                              <Edit3 style={{ width:12,height:12,color:"#003087" }} />
+                              <Edit3 style={{ width:12,height:12,color:"#4f46e5" }} />
                             </button>
                             <button title="Delete" onClick={() => setDeleteConfirm(row.id)} style={{ background:"none",border:"none",cursor:"pointer",padding:2 }}>
                               <Trash2 style={{ width:12,height:12,color:"#cc0000" }} />
@@ -1244,13 +1269,13 @@ ORDER BY t.table_name;`);
                           <td key={col} style={CELL} title={resolveName(row[col]) || String(row[col]??"")} >
                             {editingRow?.id === row.id
                               ? <input value={editingRow[col]??""} onChange={e=>setEditingRow((p:any)=>({...p,[col]:e.target.value}))}
-                                  style={{ border:`1px solid #003087`,padding:"1px 4px",fontSize:11,fontFamily:S.font,width:"100%",minWidth:80 }} />
+                                  style={{ border:`1px solid #4f46e5`,padding:"1px 4px",fontSize:11,fontFamily:S.font,width:"100%",minWidth:80 }} />
                               : (() => {
                                   const v = row[col];
                                   if (v === null || v === undefined) return <span style={{ color:"#999" }}>null</span>;
                                   if (typeof v === "boolean") return <span style={{ color:v?"#006600":"#cc0000",fontWeight:700 }}>{v?"true":"false"}</span>;
                                   const name = resolveName(v);
-                                  if (name) return <span style={{ color:"#003087",fontWeight:600 }}>{name}</span>;
+                                  if (name) return <span style={{ color:"#4f46e5",fontWeight:600 }}>{name}</span>;
                                   if (typeof v === "string" && UUID_RE.test(v)) return <span style={{ color:"#94a3b8",fontStyle:"italic" as const }}>linked record</span>;
                                   const sv = String(v);
                                   if (sv.includes("T") && sv.includes(":") && sv.length > 16) return sv.slice(0,16).replace("T"," ");
@@ -1297,7 +1322,7 @@ ORDER BY t.table_name;`);
                     ))}
                   </div>
                   <div style={{ marginTop:14,display:"flex",gap:8,justifyContent:"flex-end" }}>
-                    <button onClick={saveEdit} style={{ background:"#003087",color:"#fff",border:"none",padding:"7px 20px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700 }}>Save Changes</button>
+                    <button onClick={saveEdit} style={{ background:"#4f46e5",color:"#fff",border:"none",padding:"7px 20px",cursor:"pointer",fontFamily:S.font,fontSize:12,fontWeight:700 }}>Save Changes</button>
                     <button onClick={()=>setEditingRow(null)} style={{ background:S.bg,border:`1px solid ${S.border}`,padding:"7px 16px",cursor:"pointer",fontFamily:S.font,fontSize:12 }}>Cancel</button>
                   </div>
                 </div>
@@ -1324,7 +1349,7 @@ ORDER BY t.table_name;`);
         {activeTab === "sql" && (
           <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff" }}>
             <div style={{ padding:"9px 14px",display:"flex",alignItems:"center",gap:10,background:"#f8fafc",flexShrink:0,borderBottom:`1px solid ${S.border}`,boxShadow:"0 1px 2px rgba(0,0,0,.04)",flexWrap:"wrap" as const }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087",letterSpacing:.2 }}>SQL Editor PRO</span>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#4f46e5",letterSpacing:.2 }}>SQL Editor PRO</span>
               {sqlMs !== null && <span style={{ fontSize:11,color:"#059669",fontFamily:S.font,background:"#ecfdf5",border:"1px solid #a7f3d0",padding:"2px 8px",borderRadius:12,fontWeight:700 }}>⏱ {sqlMs}ms</span>}
               {/* Saved queries */}
               <select value={selectedSaved} onChange={e=>{
@@ -1384,7 +1409,7 @@ ORDER BY t.table_name;`);
                 </button>
                 <div style={{ width:1,height:20,background:S.border }} />
                 <button onClick={()=>{ const next=!showSqlHistory; setShowSqlHistory(next); if(next && !sqlHistory.length) loadSqlHistory(); }}
-                  style={{ border:`1px solid ${S.border}`,background:showSqlHistory?"#003087":"#fff",color:showSqlHistory?"#fff":"#334155",padding:"5px 10px",borderRadius:6,cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
+                  style={{ border:`1px solid ${S.border}`,background:showSqlHistory?"#4f46e5":"#fff",color:showSqlHistory?"#fff":"#334155",padding:"5px 10px",borderRadius:6,cursor:"pointer",fontFamily:S.font,fontSize:11,display:"flex",alignItems:"center",gap:4 }}>
                   <Clock style={{width:11,height:11}}/>History
                 </button>
                 <button onClick={async()=>{
@@ -1408,15 +1433,15 @@ ORDER BY t.table_name;`);
                 </button>
                 <div style={{ width:1,height:20,background:S.border }} />
                 <div style={{ display:"flex",border:`1px solid ${S.border}`,borderRadius:6,overflow:"hidden" }}>
-                  <button onClick={()=>setSqlViewMode("table")} style={{ border:"none",background:sqlViewMode==="table"?"#003087":"#fff",color:sqlViewMode==="table"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>TABLE</button>
-                  <button onClick={()=>setSqlViewMode("json")} style={{ border:"none",background:sqlViewMode==="json"?"#003087":"#fff",color:sqlViewMode==="json"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>JSON</button>
+                  <button onClick={()=>setSqlViewMode("table")} style={{ border:"none",background:sqlViewMode==="table"?"#4f46e5":"#fff",color:sqlViewMode==="table"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>TABLE</button>
+                  <button onClick={()=>setSqlViewMode("json")} style={{ border:"none",background:sqlViewMode==="json"?"#4f46e5":"#fff",color:sqlViewMode==="json"?"#fff":"#334155",padding:"5px 10px",cursor:"pointer",fontFamily:S.font,fontSize:10,fontWeight:700 }}>JSON</button>
                 </div>
-                <button onClick={runSQL} disabled={sqlRunning} style={{ background:sqlRunning?"#5b7db1":"#003087",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",cursor:sqlRunning?"not-allowed":"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5,boxShadow:"0 1px 3px rgba(0,48,135,.3)" }}>
+                <button onClick={runSQL} disabled={sqlRunning} style={{ background:sqlRunning?"#5b7db1":"#4f46e5",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",cursor:sqlRunning?"not-allowed":"pointer",fontFamily:S.font,fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5,boxShadow:"0 1px 3px rgba(0,48,135,.3)" }}>
                   <Play style={{ width:12,height:12 }} />{sqlRunning?"Running…":"Run ⌘↵"}
                 </button>
               </div>
             </div>
-            <div style={{ flex:"0 0 220px",borderBottom:`2px solid #003087`,position:"relative" }}>
+            <div style={{ flex:"0 0 220px",borderBottom:`2px solid #4f46e5`,position:"relative" }}>
               <textarea
                 ref={sqlRef}
                 value={sql}
@@ -1431,7 +1456,7 @@ ORDER BY t.table_name;`);
             <div style={{ flex:1,overflow:"auto",padding:0 }}>
               {showSqlHistory && (
                 <div style={{ margin:12,border:`1px solid ${S.border}`,borderRadius:6,overflow:"hidden" }}>
-                  <div style={{ padding:"6px 12px",background:"#f0f4fa",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,fontWeight:700,color:"#003087" }}>
+                  <div style={{ padding:"6px 12px",background:"#f0f4fa",borderBottom:`1px solid ${S.border}`,fontFamily:S.font,fontSize:11,fontWeight:700,color:"#4f46e5" }}>
                     Job Log — last {sqlHistory.length} run{sqlHistory.length===1?"":"s"}
                   </div>
                   <div style={{ maxHeight:260,overflow:"auto" }}>
@@ -1507,7 +1532,7 @@ ORDER BY t.table_name;`);
         {activeTab === "schema" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
             <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
-              <div style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Schema: {selectedTable}</div>
+              <div style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#4f46e5" }}>Schema: {selectedTable}</div>
               <button onClick={loadSchema} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,background:"#fff" }}>
                 {schemaLoading ? "Loading…" : "Refresh"}
               </button>
@@ -1551,7 +1576,7 @@ ORDER BY t.table_name;`);
                       <td style={{ ...CELL,color:col.is_nullable==="YES"?"#cc6600":"#006600",fontWeight:700 }}>{col.is_nullable}</td>
                       <td style={{ ...CELL,fontFamily:S.mono,color:"#555",fontSize:11 }}>{col.column_default?.slice(0,60) || "—"}</td>
                       <td style={{ ...CELL,fontSize:10.5,fontWeight:700 }}>
-                        {pk && <span style={{ color:"#003087",marginRight:6 }}>PK</span>}
+                        {pk && <span style={{ color:"#4f46e5",marginRight:6 }}>PK</span>}
                         {fk && <span style={{ color:"#7c3aed" }} title={`→ ${fk.foreign_table}.${fk.foreign_column}`}>FK → {fk.foreign_table}</span>}
                       </td>
                     </tr>
@@ -1574,7 +1599,7 @@ ORDER BY t.table_name;`);
                   {schemaConstraints.map((c,i)=>(
                     <tr key={c.constraint_name+i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
                       <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{c.constraint_name}</td>
-                      <td style={{ ...CELL,fontWeight:700,color:c.constraint_type==="PRIMARY KEY"?"#003087":c.constraint_type==="FOREIGN KEY"?"#7c3aed":c.constraint_type==="UNIQUE"?"#006600":"#555" }}>{c.constraint_type}</td>
+                      <td style={{ ...CELL,fontWeight:700,color:c.constraint_type==="PRIMARY KEY"?"#4f46e5":c.constraint_type==="FOREIGN KEY"?"#7c3aed":c.constraint_type==="UNIQUE"?"#006600":"#555" }}>{c.constraint_type}</td>
                       <td style={{ ...CELL }}>{c.column_name || "—"}</td>
                       <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{c.foreign_table ? `${c.foreign_table}.${c.foreign_column}` : "—"}</td>
                     </tr>
@@ -1591,7 +1616,7 @@ ORDER BY t.table_name;`);
               <div style={{ marginBottom:18 }}>
                 {schemaIndexes.map((idx,i)=>(
                   <div key={idx.indexname} style={{ padding:"6px 10px",background:i%2===0?"#ffffff":"#f8fafc",border:`1px solid ${S.border}`,borderTop:i===0?`1px solid ${S.border}`:"none",fontSize:11.5 }}>
-                    <span style={{ fontWeight:700,color:"#003087" }}>{idx.indexname}</span>
+                    <span style={{ fontWeight:700,color:"#4f46e5" }}>{idx.indexname}</span>
                     <span style={{ fontFamily:S.mono,color:"#64748b",marginLeft:10 }}>{idx.indexdef}</span>
                   </div>
                 ))}
@@ -1625,7 +1650,7 @@ ORDER BY t.table_name;`);
         {activeTab === "triggers" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Database Triggers ({triggers.length})</span>
+              <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#4f46e5" }}>Database Triggers ({triggers.length})</span>
               <button onClick={loadTriggers} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
             </div>
             <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
@@ -1640,7 +1665,7 @@ ORDER BY t.table_name;`);
                 {triggers.map((t,i) => (
                   <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc" }}>
                     <td style={{ ...CELL,fontFamily:S.mono,fontSize:11 }}>{t.trigger_name}</td>
-                    <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.event_object_table}</td>
+                    <td style={{ ...CELL,fontWeight:700,color:"#4f46e5" }}>{t.event_object_table}</td>
                     <td style={{ ...CELL,color:t.event_manipulation==="DELETE"?"#cc0000":t.event_manipulation==="INSERT"?"#006600":"#cc6600",fontWeight:700 }}>{t.event_manipulation}</td>
                     <td style={{ ...CELL }}>{t.action_timing}</td>
                     <td style={{ ...CELL,fontFamily:S.mono,fontSize:10.5,color:"#7c3aed" }}>{(t.action_statement||"").replace(/^EXECUTE (FUNCTION|PROCEDURE) /i,"")}</td>
@@ -1656,12 +1681,12 @@ ORDER BY t.table_name;`);
           <>
             <div style={{ width:200,borderRight:`1px solid ${S.border}`,overflowY:"auto",background:"#ffffff",flexShrink:0,display:"flex",flexDirection:"column" }}>
               <div style={{ background:"#e8eef7",borderBottom:`1px solid ${S.border}`,padding:"5px 8px",display:"flex",alignItems:"center",gap:6 }}>
-                <span style={{ fontSize:11,fontWeight:700,color:"#003087" }}>Buckets</span>
+                <span style={{ fontSize:11,fontWeight:700,color:"#4f46e5" }}>Buckets</span>
               </div>
               {storageBuckets.map(b => (
                 <div key={b.id} onClick={()=>{ setStorageBucket(b.id); setStoragePath(""); }}
                   style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 9px",cursor:"pointer",fontSize:12,fontFamily:S.font,
-                    background: storageBucket===b.id ? "#dbe9fb" : "transparent", color: storageBucket===b.id ? "#003087":"#334155", fontWeight: storageBucket===b.id?700:400 }}
+                    background: storageBucket===b.id ? "#dbe9fb" : "transparent", color: storageBucket===b.id ? "#4f46e5":"#334155", fontWeight: storageBucket===b.id?700:400 }}
                   onMouseEnter={e=>{ if(storageBucket!==b.id) (e.currentTarget as HTMLElement).style.background="#f1f5f9"; }}
                   onMouseLeave={e=>{ if(storageBucket!==b.id) (e.currentTarget as HTMLElement).style.background="transparent"; }}>
                   {b.public ? <Globe2 size={13} style={{ flexShrink:0, color:"#16a34a" }}/> : <Lock size={13} style={{ flexShrink:0, color:"#94a3b8" }}/>}
@@ -1674,11 +1699,11 @@ ORDER BY t.table_name;`);
             <div style={{ flex:1,overflow:"auto",padding:14 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8 }}>
                 <div style={{ display:"flex",alignItems:"center",gap:4,fontSize:12,fontFamily:S.font,color:"#334155",flexWrap:"wrap" }}>
-                  <button onClick={()=>setStoragePath("")} disabled={!storagePath} style={{ border:"none",background:"none",cursor:storagePath?"pointer":"default",fontWeight:700,color:storagePath?"#0078d4":"#003087",padding:0 }}>{storageBucket}</button>
+                  <button onClick={()=>setStoragePath("")} disabled={!storagePath} style={{ border:"none",background:"none",cursor:storagePath?"pointer":"default",fontWeight:700,color:storagePath?"#0078d4":"#4f46e5",padding:0 }}>{storageBucket}</button>
                   {storagePath.split("/").filter(Boolean).map((seg,i,arr) => (
                     <span key={i} style={{ display:"flex",alignItems:"center",gap:4 }}>
                       <ChevronRight size={12} color="#94a3b8"/>
-                      <button onClick={()=>storageGoToCrumb(i)} disabled={i===arr.length-1} style={{ border:"none",background:"none",cursor:i===arr.length-1?"default":"pointer",fontWeight:i===arr.length-1?700:400,color:i===arr.length-1?"#003087":"#0078d4",padding:0 }}>{seg}</button>
+                      <button onClick={()=>storageGoToCrumb(i)} disabled={i===arr.length-1} style={{ border:"none",background:"none",cursor:i===arr.length-1?"default":"pointer",fontWeight:i===arr.length-1?700:400,color:i===arr.length-1?"#4f46e5":"#0078d4",padding:0 }}>{seg}</button>
                     </span>
                   ))}
                 </div>
@@ -1749,7 +1774,7 @@ ORDER BY t.table_name;`);
         {activeTab === "monitor" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#4f46e5",display:"flex",alignItems:"center",gap:6 }}>
                 <Activity size={15}/> Live Monitor
                 {liveStatsLoading && <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>}
               </span>
@@ -1792,7 +1817,7 @@ ORDER BY t.table_name;`);
                 <button key={t.id} onClick={()=>setMonitorSubTab(t.id as any)}
                   style={{ padding:"6px 12px",border:"none",borderBottom:monitorSubTab===t.id?`2px solid ${S.blue}`:"2px solid transparent",
                     marginBottom:-2,background:"transparent",cursor:"pointer",fontFamily:S.font,fontSize:12,whiteSpace:"nowrap",
-                    fontWeight:monitorSubTab===t.id?700:500,color:monitorSubTab===t.id?"#003087":"#64748b" }}>
+                    fontWeight:monitorSubTab===t.id?700:500,color:monitorSubTab===t.id?"#4f46e5":"#64748b" }}>
                   {t.label}
                 </button>
               ))}
@@ -1892,7 +1917,7 @@ ORDER BY t.table_name;`);
                   />
                   {liveStats.tables?.length > 0 && (
                     <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginTop:14,overflow:"hidden" }}>
-                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>
                         BUSIEST TABLES (live, by total activity — real pg_stat_user_tables)
                       </div>
                       <div style={{ overflowX:"auto",maxHeight:400,overflowY:"auto" }}>
@@ -1908,7 +1933,7 @@ ORDER BY t.table_name;`);
                               onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}
                               onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
                               onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f8fafc")}>
-                              <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                              <td style={{ ...CELL,fontWeight:700,color:"#4f46e5" }}>{t.table_name}</td>
                               <td style={{ ...CELL }}>{t.total_size}</td>
                               <td style={{ ...CELL,textAlign:"right" }}>{(t.row_estimate??0).toLocaleString()}</td>
                               <td style={{ ...CELL,textAlign:"right",color:(t.dead_rows??0)>0?"#ca8a04":"#666" }}>{(t.dead_rows??0).toLocaleString()}</td>
@@ -2124,13 +2149,13 @@ ORDER BY t.table_name;`);
 
                 {monitorSubTab==="site" && liveStats && (
                   <div>
-                    <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:10,fontFamily:S.font }}>
+                    <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",marginBottom:10,fontFamily:S.font }}>
                       SITE ACTIVITY — real application-level metrics, not raw Postgres internals
                     </div>
                     <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10 }}>
                       {[
-                        ["Requisitions today", liveStats.site?.requisitions_today, "#003087"],
-                        ["Purchase orders today", liveStats.site?.purchase_orders_today, "#003087"],
+                        ["Requisitions today", liveStats.site?.requisitions_today, "#4f46e5"],
+                        ["Purchase orders today", liveStats.site?.purchase_orders_today, "#4f46e5"],
                         ["New users today", liveStats.site?.new_users_today, "#16a34a"],
                         ["Active users (30 min)", liveStats.site?.active_users_last_30min, "#16a34a"],
                         ["Audit events today", liveStats.site?.audit_events_today, "#666"],
@@ -2155,7 +2180,7 @@ ORDER BY t.table_name;`);
                 {monitorSubTab==="loggers" && liveStats && (
                   <div>
                     <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-                      <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font }}>
                         LIVE ACTIVITY FEED — merged from audit_log, ip_access_log, not_found_log, crash_reports, sms_log
                       </div>
                       <span style={{ fontSize:10,color:"#999",fontFamily:S.font }}>{liveStats.loggers?.length ?? 0} recent events</span>
@@ -2186,7 +2211,7 @@ ORDER BY t.table_name;`);
           <div style={{ flex:1,display:"flex",overflow:"hidden" }}>
             {/* Watch-table picker sidebar */}
             <div style={{ width:200,borderRight:`1px solid ${S.border}`,overflow:"auto",background:S.head,flexShrink:0 }}>
-              <div style={{ padding:"8px 10px",fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,borderBottom:`1px solid ${S.border}` }}>
+              <div style={{ padding:"8px 10px",fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font,borderBottom:`1px solid ${S.border}` }}>
                 Watch Tables ({watchTables.length || 1})
               </div>
               <div style={{ padding:"4px 6px" }}>
@@ -2200,7 +2225,7 @@ ORDER BY t.table_name;`);
                     <input type="checkbox" checked={watchTables.includes(t)}
                       onChange={e=>setWatchTables(p => e.target.checked ? [...p,t] : p.filter(x=>x!==t))}
                       disabled={realtimeOn} />
-                    <span style={{ color:watchTables.includes(t)?"#003087":"#475569",fontWeight:watchTables.includes(t)?700:400 }}>{t}</span>
+                    <span style={{ color:watchTables.includes(t)?"#4f46e5":"#475569",fontWeight:watchTables.includes(t)?700:400 }}>{t}</span>
                   </label>
                 ))}
               </div>
@@ -2208,7 +2233,7 @@ ORDER BY t.table_name;`);
 
             <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
               <div style={{ padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.head,display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap" as const }}>
-                <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Real-time Monitor</span>
+                <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#4f46e5" }}>Real-time Monitor</span>
                 <div style={{ display:"flex",alignItems:"center",gap:6 }}>
                   <div style={{ width:8,height:8,borderRadius:"50%",background:realtimeOn?"#00cc44":"#cc0000" }} />
                   <span style={{ fontSize:11,fontFamily:S.font }}>{realtimeOn?"Connected":"Disconnected"}</span>
@@ -2257,7 +2282,7 @@ ORDER BY t.table_name;`);
 
             {/* ── Live Server Dashboard — real pg_stat_* data, polled every 5s ── */}
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#4f46e5",display:"flex",alignItems:"center",gap:6 }}>
                 <Server size={15}/> Server Dashboard
                 {dbDashLoading && <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>}
               </span>
@@ -2280,7 +2305,7 @@ ORDER BY t.table_name;`);
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:10,marginBottom:16 }}>
                 {/* Server card */}
                 <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Server size={13}/> SERVER</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Server size={13}/> SERVER</div>
                   <div style={{ fontSize:11,fontFamily:S.font,color:"#333",lineHeight:1.9 }}>
                     <div>{dbDash.server?.version}</div>
                     <div>Uptime: {Math.floor((dbDash.server?.uptime_seconds||0)/86400)}d {Math.floor(((dbDash.server?.uptime_seconds||0)%86400)/3600)}h</div>
@@ -2290,7 +2315,7 @@ ORDER BY t.table_name;`);
 
                 {/* Connections card */}
                 <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Cpu size={13}/> CONNECTIONS</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Cpu size={13}/> CONNECTIONS</div>
                   <div style={{ fontSize:22,fontWeight:700,color:"#111" }}>{dbDash.connections?.total}<span style={{ fontSize:11,color:"#888",fontWeight:400 }}> / {dbDash.server?.max_connections}</span></div>
                   <div style={{ fontSize:10,color:"#666",marginTop:4 }}>
                     <span style={{ color:"#16a34a",fontWeight:700 }}>{dbDash.connections?.active}</span> active ·{" "}
@@ -2301,21 +2326,21 @@ ORDER BY t.table_name;`);
 
                 {/* Storage card */}
                 <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><HardDrive size={13}/> STORAGE</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><HardDrive size={13}/> STORAGE</div>
                   <div style={{ fontSize:22,fontWeight:700,color:"#111" }}>{dbDash.storage?.database_size_pretty}</div>
                   <div style={{ fontSize:10,color:"#666",marginTop:4 }}>Total database size (live)</div>
                 </div>
 
                 {/* Performance card */}
                 <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Zap size={13}/> CACHE HIT RATIO</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><Zap size={13}/> CACHE HIT RATIO</div>
                   <div style={{ fontSize:22,fontWeight:700,color:(dbDash.performance?.cache_hit_ratio||0)>95?"#16a34a":"#ca8a04" }}>{dbDash.performance?.cache_hit_ratio ?? "-"}%</div>
                   <div style={{ fontSize:10,color:"#666",marginTop:4 }}>{dbDash.performance?.transactions_committed?.toLocaleString()} tx committed</div>
                 </div>
 
                 {/* Errors card */}
                 <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><AlertTriangle size={13}/> ERRORS</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><AlertTriangle size={13}/> ERRORS</div>
                   <div style={{ fontSize:22,fontWeight:700,color:(dbDash.errors?.unresolved_count||0)>0?"#dc2626":"#16a34a" }}>{dbDash.errors?.unresolved_count ?? 0}</div>
                   <div style={{ fontSize:10,color:"#666",marginTop:4 }}>unresolved · {dbDash.errors?.last_24h_count ?? 0} in last 24h</div>
                 </div>
@@ -2324,7 +2349,7 @@ ORDER BY t.table_name;`);
                     pg_stat_statements bar chart + EXPLAIN plan viewer */}
                 <div onClick={()=>{ setActiveTab("monitor"); setMonitorSubTab("topqueries"); }}
                   style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff",cursor:"pointer" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#003087",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><BarChart3 size={13}/> TOP RESOURCE CONSUMERS</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",display:"flex",alignItems:"center",gap:5,marginBottom:8 }}><BarChart3 size={13}/> TOP RESOURCE CONSUMERS</div>
                   <div style={{ fontSize:13,fontWeight:700,color:"#0e7490" }}>View query plans →</div>
                   <div style={{ fontSize:10,color:"#666",marginTop:4 }}>Real execution plans, Live Monitor tab</div>
                 </div>
@@ -2334,7 +2359,7 @@ ORDER BY t.table_name;`);
             {/* Live connections/cache-hit trend — real samples from the 5s poll, not a mock chart */}
             {dbDashHistory.length > 1 && (
               <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:12,background:"#fff",marginBottom:16 }}>
-                <div style={{ fontSize:11,fontWeight:700,color:"#003087",marginBottom:8 }}>ACTIVE CONNECTIONS (live, last {dbDashHistory.length} samples)</div>
+                <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",marginBottom:8 }}>ACTIVE CONNECTIONS (live, last {dbDashHistory.length} samples)</div>
                 <svg viewBox="0 0 600 80" style={{ width:"100%",height:80 }}>
                   {(() => {
                     const max = Math.max(1, ...dbDashHistory.map(h=>h.active));
@@ -2348,7 +2373,7 @@ ORDER BY t.table_name;`);
             {/* Top tables by size — real pg_total_relation_size, matches "Storage" panels in reference dashboards */}
             {dbDash?.storage?.top_tables?.length > 0 && (
               <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginBottom:16,overflow:"hidden" }}>
-                <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>LARGEST TABLES (live)</div>
+                <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>LARGEST TABLES (live)</div>
                 <div style={{ overflowX:"auto" }}>
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead style={{ position:"sticky",top:0,zIndex:1 }}><tr>
@@ -2361,7 +2386,7 @@ ORDER BY t.table_name;`);
                       <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(t.table_name); setActiveTab("tables"); }}
                         onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
                         onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#fff":"#f8fafc")}>
-                        <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                        <td style={{ ...CELL,fontWeight:700,color:"#4f46e5" }}>{t.table_name}</td>
                         <td style={{ ...CELL }}>{t.total_size}</td>
                         <td style={{ ...CELL,textAlign:"right" }}>{Math.round(t.row_estimate||0).toLocaleString()}</td>
                       </tr>
@@ -2375,7 +2400,7 @@ ORDER BY t.table_name;`);
             {/* Recent errors — real rows from system_errors */}
             {dbDash?.errors?.recent?.length > 0 && (
               <div style={{ border:`1px solid ${S.border}`,borderRadius:6,background:"#fff",marginBottom:16,overflow:"hidden" }}>
-                <div style={{ fontSize:11,fontWeight:700,color:"#003087",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>RECENT ERRORS (live)</div>
+                <div style={{ fontSize:11,fontWeight:700,color:"#4f46e5",fontFamily:S.font,padding:"10px 12px",borderBottom:`1px solid ${S.border}`,background:"#f8fafc" }}>RECENT ERRORS (live)</div>
                 <div style={{ overflowX:"auto" }}>
                 <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                   <thead style={{ position:"sticky",top:0,zIndex:1 }}><tr>
@@ -2404,7 +2429,7 @@ ORDER BY t.table_name;`);
 
             <div style={{ borderTop:`2px solid ${S.border}`,margin:"8px 0 16px",paddingTop:14 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-                <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#003087" }}>Table Schema Detail ({stats.length || "-"} tables)</span>
+                <span style={{ fontWeight:700,fontSize:13,fontFamily:S.font,color:"#4f46e5" }}>Table Schema Detail ({stats.length || "-"} tables)</span>
                 <button onClick={loadStats} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Refresh</button>
               </div>
             {stats.length > 0 ? (
@@ -2423,7 +2448,7 @@ ORDER BY t.table_name;`);
                     <tr key={i} style={{ background:i%2===0?"#ffffff":"#f8fafc",cursor:"pointer" }} onClick={()=>{ setSelectedTable(row.table_name); setActiveTab("tables"); }}
                       onMouseEnter={e=>(e.currentTarget.style.background="#eef4fb")}
                       onMouseLeave={e=>(e.currentTarget.style.background=i%2===0?"#ffffff":"#f8fafc")}>
-                      <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{row.table_name}</td>
+                      <td style={{ ...CELL,fontWeight:700,color:"#4f46e5" }}>{row.table_name}</td>
                       <td style={{ ...CELL,textAlign:"center" }}>{row.column_count}</td>
                       <td style={{ ...CELL,textAlign:"center",color:row.policy_count>0?"#006600":"#cc0000",fontWeight:700 }}>{row.policy_count}</td>
                       <td style={{ ...CELL,textAlign:"center",color:row.trigger_count>0?"#cc6600":"#666" }}>{row.trigger_count}</td>
@@ -2448,7 +2473,7 @@ ORDER BY t.table_name;`);
                     of context that's only relevant next to the charts ── */}
               {liveStats && monitorSubTab==="overview" && (
                 <div style={{ width:240,flexShrink:0,border:`1px solid ${S.border}`,borderRadius:6,background:"#fafbfc",alignSelf:"flex-start",maxHeight:"calc(100vh - 260px)",overflowY:"auto" }}>
-                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#003087",position:"sticky",top:0,background:"#fafbfc" }}>Server Properties</div>
+                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#4f46e5",position:"sticky",top:0,background:"#fafbfc" }}>Server Properties</div>
                   <PropRow k="Version" v={liveStats.server?.version}/>
                   <PropRow k="Database" v={liveStats.server?.current_database}/>
                   <PropRow k="Uptime" v={`${Math.floor((liveStats.server?.uptime_seconds||0)/86400)}d ${Math.floor(((liveStats.server?.uptime_seconds||0)%86400)/3600)}h`}/>
@@ -2459,7 +2484,7 @@ ORDER BY t.table_name;`);
                   <PropRow k="Timezone" v={liveStats.server?.timezone}/>
                   <PropRow k="Encoding" v={liveStats.server?.server_encoding}/>
                   <PropRow k="Data Checksums" v={liveStats.server?.data_checksums}/>
-                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,borderTop:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#003087",marginTop:6 }}>Database Size</div>
+                  <div style={{ padding:"8px 12px",borderBottom:`1px solid ${S.border}`,borderTop:`1px solid ${S.border}`,fontSize:11,fontWeight:700,color:"#4f46e5",marginTop:6 }}>Database Size</div>
                   <PropRow k="Total Size" v={liveStats.storage?.database_size_pretty}/>
                 </div>
               )}
@@ -2471,7 +2496,7 @@ ORDER BY t.table_name;`);
         {activeTab === "mssql" && (
           <div style={{ flex:1,overflow:"auto",padding:14 }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#003087",display:"flex",alignItems:"center",gap:6 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#4f46e5",display:"flex",alignItems:"center",gap:6 }}>
                 <Server size={15}/> SQL Server Bridge
               </span>
               {bridgeStatus && (
@@ -2509,7 +2534,7 @@ ORDER BY t.table_name;`);
 
               <div style={{ display:"flex",gap:8,alignItems:"center" }}>
                 <button onClick={()=>saveBridgeConfig(true)} disabled={bridgeSaving || !bridgeForm.url || !bridgeForm.secret}
-                  style={{ padding:"7px 14px",borderRadius:5,border:"none",background:"#003087",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",opacity:(bridgeSaving||!bridgeForm.url||!bridgeForm.secret)?0.5:1 }}>
+                  style={{ padding:"8px 16px",borderRadius:8,border:"none",background:"#4f46e5",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",opacity:(bridgeSaving||!bridgeForm.url||!bridgeForm.secret)?0.5:1 }}>
                   {bridgeCfg?.is_enabled ? "Save & Reconnect" : "Save & Enable"}
                 </button>
                 {bridgeCfg?.is_enabled && (
@@ -2531,7 +2556,7 @@ ORDER BY t.table_name;`);
             {bridgeStatus?.connected && (
               <div style={{ marginBottom:16 }}>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
-                  <div style={{ fontSize:12,fontWeight:700,color:"#003087" }}>LIVE SQL SERVER SCHEMA</div>
+                  <div style={{ fontSize:12,fontWeight:700,color:"#4f46e5" }}>LIVE SQL SERVER SCHEMA</div>
                   <button onClick={loadBridgeSchema} style={{ border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11 }}>Load tables</button>
                 </div>
                 {bridgeSchema && (
@@ -2544,7 +2569,7 @@ ORDER BY t.table_name;`);
                     <tbody>
                       {bridgeSchema.map((t:any,i:number)=>(
                         <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
-                          <td style={{ ...CELL,fontWeight:700,color:"#003087" }}>{t.table_name}</td>
+                          <td style={{ ...CELL,fontWeight:700,color:"#4f46e5" }}>{t.table_name}</td>
                           <td style={{ ...CELL }}>{t.column_count}</td>
                         </tr>
                       ))}
@@ -2558,18 +2583,18 @@ ORDER BY t.table_name;`);
 
       </div>
 
-      {/* ── SSMS status bar ── */}
-      <div style={{ background:SSMS.statusbar,color:"#fff",padding:"3px 12px",display:"flex",alignItems:"center",gap:16,flexShrink:0,fontSize:10.5 }}>
+      {/* ── Minimal status footer ── */}
+      <div style={{ background:SSMS.statusbar,borderTop:`1px solid ${S.border}`,color:S.fgMuted,padding:"6px 16px",display:"flex",alignItems:"center",gap:16,flexShrink:0,fontSize:11 }}>
         <span style={{ display:"flex",alignItems:"center",gap:5 }}>
           {sqlRunning
-            ? <><RefreshCw style={{ width:10,height:10,animation:"spin 1s linear infinite" }} /> Executing query…</>
-            : <><CheckCircle style={{ width:10,height:10 }} /> Ready</>}
+            ? <><RefreshCw style={{ width:10,height:10,animation:"spin 1s linear infinite",color:SSMS.accent }} /> <span style={{color:SSMS.accentDk,fontWeight:500}}>Executing query…</span></>
+            : <><CheckCircle style={{ width:10,height:10,color:S.ok }} /> Ready</>}
         </span>
         {activeTab==="tables" && selectedTable && (
-          <span>{selectedTable} — {totalRows.toLocaleString()} row{totalRows===1?"":"s"}</span>
+          <span>{selectedTable} · {totalRows.toLocaleString()} row{totalRows===1?"":"s"}</span>
         )}
-        <span style={{ marginLeft:"auto" }}>yvjfehnzbzjliizjvuhq (Supabase Postgres)</span>
-        <span>{realtimeOn ? "Realtime: ON" : "Realtime: OFF"}</span>
+        <span style={{ marginLeft:"auto" }}>yvjfehnzbzjliizjvuhq</span>
+        <span style={{color: realtimeOn ? "#15803d" : S.fgMuted}}>{realtimeOn ? "● Realtime" : "○ Offline"}</span>
       </div>
     </div>
   );
