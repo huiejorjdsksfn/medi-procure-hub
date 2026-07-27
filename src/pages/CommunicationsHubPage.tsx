@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { netEngine, securityGuard } from "@/lib/networkEngine";
+import { T } from "@/lib/theme";
 import {
   Mail, MessageSquare, Send, Phone, Video, PhoneCall, PhoneIncoming, PhoneOutgoing,
   MailOpen, Bell, Settings, RefreshCw, Users, Search, Plus, CheckCircle2,
@@ -402,7 +403,7 @@ export default function CommunicationsHubPage() {
         <div className="w-64 bg-white border-r flex flex-col">
           <div className="p-4 space-y-1">
             {[
-              { id: 'email', icon: Mail, label: 'Email', count: emails.filter(e => !e.read).length, color: '#0078d4' },
+              { id: 'email', icon: Mail, label: 'Email', count: emails.filter(e => !e.read).length, color: T.primary },
               { id: 'sms', icon: MessageSquare, label: 'SMS / WhatsApp', count: 2, color: '#25D366' },
               { id: 'calls', icon: Phone, label: 'Call Logs', count: calls.filter(c => c.status === 'missed').length, color: '#8b5cf6' },
               { id: 'voice', icon: Video, label: 'Voice / Video', count: 0, color: '#ec4899' },
