@@ -48,6 +48,8 @@ export default function SupabaseControlsPage() {
   const [expandedBucket, setExpandedBucket] = useState<string | null>(null);
   const [fnHealth, setFnHealth] = useState<Record<string, boolean>>({});
   const [tableCount, setTableCount] = useState<number | null>(null);
+  const [sysHealth, setSysHealth] = useState<any|null>(null);
+  const [sysHealthErr, setSysHealthErr] = useState("");
   const [lastLog, setLastLog] = useState<string>("");
   const [backupLog, setBackupLog] = useState<string>("");
   const [botStats, setBotStats] = useState<Record<string, any>>({});
@@ -121,6 +123,22 @@ export default function SupabaseControlsPage() {
     }
   }, []);
 
+  const loadSysHealth = useCallback(async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) { setSysHealthErr("Not signed in"); return; }
+      const res = await fetch(`${ELIMU_FUNCTIONS_BASE}/health-api`, {
+        headers: { apikey: ELIMU_ANON_KEY, Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json();
+      if (!res.ok || d?.error) { setSysHealthErr(d?.error || `HTTP ${res.status}`); setSysHealth(null); return; }
+      setSysHealthErr(""); setSysHealth(d);
+    } catch (e: any) {
+      setSysHealthErr(e?.message || "unreachable"); setSysHealth(null);
+    }
+  }, []);
+
   const pollBots = useCallback(async () => {
     try {
       const r = await fetch(ELIMU_STATUS_URL, { headers: { apikey: ELIMU_ANON_KEY } });
@@ -191,7 +209,8 @@ export default function SupabaseControlsPage() {
     run("load", async () => { await Promise.all([loadBuckets(), loadSchema()]); });
     ["session-validate","role-check","track-404","edgeone-stats"].forEach(pingFn);
     loadEdgeOne();
-  }, [run, loadBuckets, loadSchema, pingFn, loadEdgeOne]);
+    loadSysHealth();
+  }, [run, loadBuckets, loadSchema, pingFn, loadEdgeOne, loadSysHealth]);
 
   useEffect(() => {
     const loadLiveMon = async () => {
@@ -348,6 +367,42 @@ export default function SupabaseControlsPage() {
             <button style={{ ...S.btn("#7c3aed"), marginTop: 10 }}
               onClick={() => ["session-validate","role-check","track-404","edgeone-stats"].forEach(pingFn)}>
               <Activity size={14}/> Re-ping all
+            </button>
+          </div>
+
+          <div style={S.card}>
+            <div style={S.title}><Activity size={16}/> System Health</div>
+            <div style={S.sub}>health-api — DB, sessions, circuit breakers (previously built, never called)</div>
+            {sysHealthErr && <div style={{ fontSize: 12, color: "#991b1b", marginBottom: 6 }}>{sysHealthErr}</div>}
+            {sysHealth && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                  <span>Status</span>
+                  <span style={S.pill(sysHealth.status === "healthy")}>{sysHealth.status} · {sysHealth.latency_ms}ms</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                  <span>Active sessions</span><span>{sysHealth.sessions?.active_now ?? 0} ({sysHealth.sessions?.unique_users ?? 0} users)</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                  <span>Sessions (24h)</span><span>{sysHealth.sessions?.sessions_24h ?? 0}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                  <span>Modules enabled</span><span>{sysHealth.modules?.enabled ?? 0}/{sysHealth.modules?.total ?? 0}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                  <span>Open circuits</span>
+                  <span style={S.pill((sysHealth.failover?.open_circuits ?? 0) === 0)}>{sysHealth.failover?.open_circuits ?? 0}</span>
+                </div>
+                {(sysHealth.system_metrics || []).map((m: any, i: number) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0", color: "#64748b" }}>
+                    <span>{m.hostname || "server"}</span>
+                    <span>CPU {m.cpu_percent ?? "—"}% · RAM {m.ram_percent ?? "—"}% · Disk {m.disk_percent ?? "—"}%</span>
+                  </div>
+                ))}
+              </>
+            )}
+            <button style={{ ...S.btn("#0369a1"), marginTop: 10 }} onClick={loadSysHealth}>
+              <RefreshCw size={14}/> Refresh
             </button>
           </div>
 
