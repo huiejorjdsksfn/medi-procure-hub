@@ -323,6 +323,58 @@ function DBInner() {
     loadStorageItems(storageBucket, storagePath);
   };
 
+  // ── Import (upload) + New Folder ──────────────────────────────────
+  // Uploads go straight into the real bucket/path currently being
+  // browsed — the same backend every other page's uploader (avatars,
+  // documents, signatures, facilities logos, item/supplier images)
+  // already reads from, so anything imported here is immediately live
+  // and visible everywhere that bucket is used. No separate sync step
+  // needed; there's only one storage backend.
+  const [storageUploading, setStorageUploading] = useState(false);
+  const [storageUploadPct, setStorageUploadPct] = useState<{done:number;total:number}|null>(null);
+  const storageFileInputRef = useRef<HTMLInputElement>(null);
+
+  const storageUploadFiles = async (files: FileList | File[]) => {
+    if (!storageBucket || !files || (files as any).length === 0) return;
+    const list = Array.from(files);
+    setStorageUploading(true);
+    setStorageUploadPct({ done: 0, total: list.length });
+    let failed: string[] = [];
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i];
+      const dest = storageFullPath(file.name);
+      const { error } = await supabase.storage.from(storageBucket).upload(dest, file, { upsert: false, cacheControl: "3600" });
+      if (error) failed.push(`${file.name} (${error.message})`);
+      setStorageUploadPct({ done: i + 1, total: list.length });
+    }
+    setStorageUploading(false);
+    setStorageUploadPct(null);
+    if (failed.length) {
+      toast({ title: `${list.length - failed.length}/${list.length} uploaded`, description: failed.slice(0,3).join("; "), variant: failed.length===list.length?"destructive":undefined });
+    } else {
+      toast({ title: `Uploaded ${list.length} file${list.length===1?"":"s"}` });
+    }
+    loadStorageItems(storageBucket, storagePath);
+  };
+
+  const storageCreateFolder = async () => {
+    if (!storageBucket) return;
+    const name = window.prompt("Folder name:")?.trim();
+    if (!name) return;
+    if (/[/\\]/.test(name)) { toast({ title:"Folder name can't contain / or \\", variant:"destructive" }); return; }
+    // Supabase Storage (S3-compatible) has no real folder objects — a
+    // folder only "exists" once something is stored under that prefix.
+    // Upload an empty placeholder, matching Supabase's own convention
+    // (loadStorageItems already filters .emptyFolderPlaceholder out of
+    // the listing above) so the folder shows up as browsable immediately.
+    const placeholder = new Blob([""], { type: "text/plain" });
+    const dest = storageFullPath(`${name}/.emptyFolderPlaceholder`);
+    const { error } = await supabase.storage.from(storageBucket).upload(dest, placeholder, { upsert: false });
+    if (error) { toast({ title:"Couldn't create folder", description:error.message, variant:"destructive" }); return; }
+    toast({ title:`Folder "${name}" created` });
+    loadStorageItems(storageBucket, storagePath);
+  };
+
   function fmtStorageBytes(n?:number) {
     if (n==null) return "—";
     if (n < 1024) return `${n} B`;
@@ -1707,16 +1759,39 @@ ORDER BY t.table_name;`);
                     </span>
                   ))}
                 </div>
-                <div style={{ display:"flex",gap:6 }}>
+                <div style={{ display:"flex",gap:6,alignItems:"center" }}>
                   {storagePath && <button onClick={storageGoUp} style={{ display:"flex",alignItems:"center",gap:5,border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,background:"#fff" }}><ChevronLeft size={12}/> Up</button>}
                   {storageSelected.size>0 && (
                     <button onClick={storageDeleteSelected} disabled={storageDeleting} style={{ display:"flex",alignItems:"center",gap:5,border:"1px solid #dc2626",padding:"3px 10px",cursor:storageDeleting?"not-allowed":"pointer",fontFamily:S.font,fontSize:11,background:"#fee2e2",color:"#991b1b",fontWeight:700 }}>
                       <Trash2 size={12}/> Delete {storageSelected.size} selected
                     </button>
                   )}
+                  <input ref={storageFileInputRef} type="file" multiple style={{ display:"none" }}
+                    onChange={e=>{ if(e.target.files?.length) storageUploadFiles(e.target.files); e.target.value=""; }} />
+                  <button onClick={storageCreateFolder} disabled={!storageBucket}
+                    style={{ display:"flex",alignItems:"center",gap:5,border:`1px solid ${S.border}`,padding:"3px 10px",cursor:storageBucket?"pointer":"not-allowed",fontFamily:S.font,fontSize:11,background:"#fff",borderRadius:6 }}>
+                    <Folder size={12}/> New Folder
+                  </button>
+                  <button onClick={()=>storageFileInputRef.current?.click()} disabled={!storageBucket||storageUploading}
+                    style={{ display:"flex",alignItems:"center",gap:5,border:"none",padding:"5px 12px",cursor:(!storageBucket||storageUploading)?"not-allowed":"pointer",fontFamily:S.font,fontSize:11,fontWeight:600,background:"#4f46e5",color:"#fff",borderRadius:6,opacity:(!storageBucket||storageUploading)?0.6:1 }}>
+                    <Download size={12} style={{ transform:"rotate(180deg)" }}/> {storageUploading ? `Uploading ${storageUploadPct?.done||0}/${storageUploadPct?.total||0}…` : "Import"}
+                  </button>
                   <button onClick={()=>storageBucket && loadStorageItems(storageBucket, storagePath)} style={{ display:"flex",alignItems:"center",gap:5,border:`1px solid ${S.border}`,padding:"3px 10px",cursor:"pointer",fontFamily:S.font,fontSize:11,background:"#fff" }}><RefreshCw size={12}/> Refresh</button>
                 </div>
               </div>
+
+              {storageBucket && (()=>{ const bkt = storageBuckets.find(b=>b.id===storageBucket); return bkt ? (
+                <div style={{ fontSize:10.5,color:"#94a3b8",marginBottom:10,fontFamily:S.font }}>
+                  {bkt.public ? "Public bucket" : "Private bucket"}
+                  {bkt.file_size_limit ? ` · Max ${fmtStorageBytes(bkt.file_size_limit)}/file` : ""}
+                  {bkt.allowed_mime_types?.length ? ` · Accepts: ${bkt.allowed_mime_types.join(", ")}` : ""}
+                </div>
+              ) : null; })()}
+
+              <div
+                onDragOver={e=>{ e.preventDefault(); }}
+                onDrop={e=>{ e.preventDefault(); if(e.dataTransfer.files?.length) storageUploadFiles(e.dataTransfer.files); }}
+              >
 
               {storageLoading ? (
                 <div style={{ padding:24,textAlign:"center",color:"#94a3b8",fontSize:12,fontFamily:S.font }}>Loading…</div>
@@ -1766,6 +1841,7 @@ ORDER BY t.table_name;`);
                   </tbody>
                 </table>
               )}
+              </div>
             </div>
           </>
         )}
