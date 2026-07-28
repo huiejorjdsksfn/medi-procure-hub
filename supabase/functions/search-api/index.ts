@@ -8,8 +8,8 @@ const cors = { "Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":
 
 const TABLES = [
   { name:"requisitions",    label:"requisition_number", sub:"purpose"       },
-  { name:"purchase_orders", label:"po_number",          sub:"vendor_name"   },
-  { name:"suppliers",       label:"company_name",       sub:"contact_person"},
+  { name:"purchase_orders", label:"po_number",          sub:"supplier_name" },
+  { name:"suppliers",       label:"name",               sub:"contact_person"},
   { name:"items",           label:"name",               sub:"description"   },
   { name:"contracts",       label:"contract_number",    sub:"supplier_name" },
   { name:"tenders",         label:"tender_number",      sub:"title"         },

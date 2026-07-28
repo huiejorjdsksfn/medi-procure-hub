@@ -24,6 +24,9 @@ const TYPE_COLORS: Record<string, string> = {
   purchase_order: "#8b5cf6",
   supplier:       "#22c55e",
   item:           "#f59e0b",
+  contracts:      "#0891b2",
+  tenders:        "#dc2626",
+  documents:      "#7c3aed",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -31,6 +34,9 @@ const TYPE_LABELS: Record<string, string> = {
   purchase_order: "Purchase Order",
   supplier:       "Supplier",
   item:           "Item",
+  contracts:      "Contract",
+  tenders:        "Tender",
+  documents:      "Document",
 };
 
 // Local fallback: searches whatever each list page last cached via
@@ -120,7 +126,7 @@ export default function GlobalSearchBar() {
       // timeout on every keystroke), "critical" priority jumps the
       // request queue ahead of background/prefetch work, and timeouts
       // adapt to real connection quality instead of a fixed value.
-      const [reqs, pos, sups, items] = await Promise.all([
+      const [reqs, pos, sups, items, more] = await Promise.all([
         netEngine.request(
           "search:requisitions",
           () => supabase.from("requisitions")
@@ -152,6 +158,31 @@ export default function GlobalSearchBar() {
             .or(`name.ilike.${like},sku.ilike.${like}`)
             .limit(5),
           { priority: "critical", label: "search items" }
+        ),
+        // Contracts/Tenders/Documents weren't searchable here before —
+        // routed through the search-api edge function (previously built,
+        // never called from anywhere) rather than adding three more
+        // one-off table queries, since it already covers exactly these
+        // three plus dedupes/scores/sorts them server-side.
+        netEngine.request(
+          "search:edge-more",
+          async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return { data: [], error: null } as any;
+            const url = `${(import.meta.env.VITE_SUPABASE_URL || "https://yvjfehnzbzjliizjvuhq.supabase.co")}/functions/v1/search-api`;
+            const res = await fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
+              },
+              body: JSON.stringify({ query: q.trim(), limit: 9, tables: ["contracts","tenders","documents"] }),
+            });
+            if (!res.ok) return { data: null, error: new Error(`search-api ${res.status}`) } as any;
+            return { data: await res.json(), error: null } as any;
+          },
+          { priority: "background", label: "search contracts/tenders/documents" }
         ),
       ]);
 
@@ -192,6 +223,17 @@ export default function GlobalSearchBar() {
           label: r.name,
           subtitle: `${r.sku || "Item"} · ${r.category || ""}`,
           url: `/items?focus=${r.id}`, icon: "📦",
+        }));
+      }
+      if (!more.error && Array.isArray(more.data)) {
+        anyOk = anyOk || more.data.length > 0;
+        const ICONS: Record<string,string> = { contracts:"📄", tenders:"🏆", documents:"📁" };
+        (more.data as any[]).forEach((r: any) => out.push({
+          id: r.id, type: r.table,
+          label: r.label || r.id,
+          subtitle: r.subtitle || "",
+          url: r.url ? `${r.url}?focus=${r.id}` : `/${r.table}?focus=${r.id}`,
+          icon: ICONS[r.table] || "📄",
         }));
       }
 
