@@ -21,13 +21,14 @@ import { genDocNumber } from "@/lib/docNumber";
 import {
   Plus, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye,
   CheckCircle, XCircle, Clock, ClipboardList, Send, AlertTriangle,
-  Download, Edit3, ChevronDown
+  Download, Edit3, ChevronDown, Lock
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { printRequisition } from "@/lib/printDocument";
 import { useDepartments } from "@/hooks/useDropdownData";
 import { useConflictResolver } from "@/hooks/useConflictResolver";
+import { useRecordLock } from "@/hooks/useRecordLock";
 import { ConflictResolutionBanner } from "@/components/ConflictResolutionBanner";
 import { DocumentStamp } from "@/components/DocumentStamp";
 import DocumentAnalyzerButton from "@/components/DocumentAnalyzerButton";
@@ -120,6 +121,10 @@ export default function RequisitionsPage() {
   }, [conflictResolver]);
 
   const formCacheKey = user?.id ? `req_form_${user.id}_${editReq?.id || "new"}` : null;
+
+  // Soft "someone else is editing this" indicator — advisory only, backed
+  // by concurrency-api (built, previously never called anywhere).
+  const recLock = useRecordLock("requisitions", editReq?.id);
 
   useEffect(() => {
     if (!showForm || !formCacheKey) return;
@@ -244,6 +249,7 @@ export default function RequisitionsPage() {
     conflictResolver.clearDirty();
     conflictResolver.setBaseline({ ...form, ...payload });
     if (formCacheKey) { try { localStorage.removeItem(formCacheKey); } catch {} }
+    recLock.release();
     toast({title:editReq?"Requisition updated":"Requisition created",description:num});
     setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); setReqItems([{...EMPTY_ITEM}]); load();
     setSaving(false);
@@ -289,7 +295,7 @@ export default function RequisitionsPage() {
   const modalOverlay: React.CSSProperties = {position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20};
   const modalBox: React.CSSProperties = {background:T.card,borderRadius:T.rXl,width:"100%",maxWidth:640,maxHeight:"90vh",overflowY:"auto",boxShadow:T.shadowLg};
   const inputStyle: React.CSSProperties = {width:"100%",padding:"8px 10px",border:`1.5px solid ${T.border}`,borderRadius:T.rMd,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:font,color:T.fg,background:T.bg};
-  const closeFormAll = () => { setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); setReqItems([{...EMPTY_ITEM}]); conflictResolver.clearDirty(); };
+  const closeFormAll = () => { recLock.release(); setShowForm(false); setEditReq(null); setForm({...EMPTY_FORM}); setReqItems([{...EMPTY_ITEM}]); conflictResolver.clearDirty(); };
 
   // - Render -
   return (
@@ -420,7 +426,7 @@ export default function RequisitionsPage() {
                             <Eye style={{width:13,height:13,color:T.primary}}/>
                           </button>
                           {(isDraft||r.requested_by===user?.id)&&(
-                            <button title="Edit" onClick={()=>{const nextForm={title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"};setEditReq(r);setForm(nextForm);loadItemsForEdit(r.id);conflictResolver.clearDirty();conflictResolver.setBaseline(nextForm);setShowForm(true);}} style={{padding:5,borderRadius:6,border:"none",background:T.successBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <button title="Edit" onClick={async()=>{const nextForm={title:r.title||"",department:r.department||"",priority:r.priority||"normal",notes:r.notes||"",delivery_date:r.delivery_date||"",justification:r.justification||"",cost_centre:r.cost_centre||"",fund_source:r.fund_source||"County Fund"};setEditReq(r);setForm(nextForm);loadItemsForEdit(r.id);conflictResolver.clearDirty();conflictResolver.setBaseline(nextForm);setShowForm(true);const ok=await recLock.acquire();if(!ok&&recLock.heldByOther){toast({title:"Someone else is editing this",description:`Currently open in ${recLock.heldByOther.name}'s session. You can still edit — just watch for a conflict banner.`});}}} style={{padding:5,borderRadius:6,border:"none",background:T.successBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               <Edit3 style={{width:13,height:13,color:T.success}}/>
                             </button>
                           )}
@@ -490,6 +496,14 @@ export default function RequisitionsPage() {
               </button>
             </div>
             <ConflictResolutionBanner fields={conflictResolver.conflict} onResolve={conflictResolver.resolve} remoteLabel="requisition" />
+            {recLock.heldByOther&&(
+              <div style={{margin:"0 22px",marginTop:12,padding:"9px 14px",borderRadius:T.rMd,background:T.warningBg,border:`1px solid ${T.warning}55`,display:"flex",alignItems:"center",gap:8}}>
+                <Lock style={{width:14,height:14,color:T.warning,flexShrink:0}}/>
+                <span style={{fontSize:12.5,color:T.warning,fontWeight:600}}>
+                  {recLock.heldByOther.name} has this open too — save carefully to avoid overwriting their changes.
+                </span>
+              </div>
+            )}
 
             <div style={{padding:"18px 22px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {!editReq && (
