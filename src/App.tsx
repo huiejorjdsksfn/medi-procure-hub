@@ -13,6 +13,7 @@ import { AuthProvider }                    from "@/contexts/AuthContext";
 import { FacilityProvider }               from "@/contexts/FacilityContext";
 import ProtectedRoute                     from "@/components/ProtectedRoute";
 import ErrorBoundary                      from "@/components/ErrorBoundary";
+import ExecutiveGuard                     from "@/components/ExecutiveGuard";
 import AppLayout                          from "@/components/AppLayout";
 import RoleGuard                          from "@/components/RoleGuard";
 import RouterGuard                        from "@/components/RouterGuard";
@@ -164,6 +165,7 @@ const App = () => {
             <KeepAliveBot />
             <ErrorBoundary pageName="Routing">
             <Suspense fallback={<PageLoader />}>
+            <ExecutiveGuard>
             <Routes>
               {/* Public */}
               <Route path="/login"          element={<LoginPage />} />
@@ -247,7 +249,7 @@ const App = () => {
               <Route path="/audit"                       element={<Navigate to="/audit-log" replace />} />
               <Route path="/audit-log"                   element={<P><RoleGuard allowed={["admin","superadmin","webmaster","database_admin"]}><AuditLogPage /></RoleGuard></P>} />
               <Route path="/admin/database"              element={<P><RoleGuard allowed={["admin","database_admin"]}><AdminDatabasePage /></RoleGuard></P>} />
-              <Route path="/admin/supabase-controls"     element={<P><SupabaseControlsPage /></P>} />
+              <Route path="/admin/supabase-controls"     element={<P><RoleGuard allowed={[...ADMINS,"database_admin"]}><SupabaseControlsPage /></RoleGuard></P>} />
               <Route path="/admin/panel"                 element={<P><RoleGuard allowed={ADMINS}><AdminPanelPage /></RoleGuard></P>} />
               <Route path="/admin/deployments"           element={<Navigate to="/webmaster" replace />} />
               <Route path="/admin/deployments/new"       element={<P><RoleGuard allowed={ADMINS}><CompanyOnboardingPage /></RoleGuard></P>} />
@@ -277,6 +279,7 @@ const App = () => {
               <Route path="/releases"      element={<P><ReleasesPage /></P>} />
               <Route path="*"             element={<NotFound />} />
             </Routes>
+            </ExecutiveGuard>
             </Suspense>
             </ErrorBoundary>
           </NetworkGuard>

@@ -40,9 +40,23 @@ export type ProcurementRole =
   | "procurement_manager" | "procurement_officer"
   | "inventory_manager" | "warehouse_officer"
   | "requisitioner" | "accountant"
-  | "finance_officer" | "finance_manager";
+  | "finance_officer" | "finance_manager"
+  | "ceo" | "cfo";
 
 export const ADMIN_TIER: ProcurementRole[] = ["superadmin", "admin", "webmaster"];
+
+// CEO/CFO: view-only executive tier — stats/trends/reports only, no
+// operational pages, no write access anywhere. Enforced in two places:
+// AppLayout's nav (only Dashboard + Reports & BI show for these roles)
+// and ExecutiveGuard below (redirects any other route back to the
+// dashboard, so this isn't just a hidden-nav-item convenience — direct
+// URL navigation is blocked too).
+export const EXECUTIVE_TIER: ProcurementRole[] = ["ceo", "cfo"];
+export const EXECUTIVE_ALLOWED_PATHS = [
+  "/dashboard", "/reports", "/reports/system-utilization",
+  "/financials/dashboard", "/quality/dashboard",
+  "/notifications", "/profile",
+];
 
 interface AuthCtx {
   session:      Session | null;
@@ -68,6 +82,7 @@ export const useAuth = () => useContext(Ctx);
 
 const PRIORITY: ProcurementRole[] = [
   "superadmin","admin","webmaster","database_admin",
+  "ceo","cfo",
   "procurement_manager","finance_manager","procurement_officer",
   "accountant","finance_officer",
   "inventory_manager","warehouse_officer","requisitioner",
