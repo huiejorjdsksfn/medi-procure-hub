@@ -3,11 +3,12 @@ import type React from "react";
  * EL5 MediProcure — Quality Control Dashboard v10
  * Classic ERP Financial Management System UI
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+import { QuickPrintButton } from "@/components/QuickPrintButton";
 
 const db = supabase as any;
 
@@ -71,6 +72,7 @@ export default function QualityDashboardPage() {
   const [verifyTarget, setVerifyTarget] = useState<NCR|null>(null);
   const [verifyForm, setVerifyForm] = useState({ verification_date:new Date().toISOString().slice(0,10), verification_notes:"" });
   const [verifySaving, setVerifySaving] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -302,7 +304,7 @@ export default function QualityDashboardPage() {
               {t.label}
             </button>
           ))}
-          <button onClick={()=>window.print()} style={erpStyles.btn(false)}>- Print</button>
+          <QuickPrintButton targetRef={contentRef} page="quality_dashboard" entityType={tab} label="- Print"/>
           <button onClick={()=>exportRowsToCSV(tab==="ncr"?ncrs:tab==="suppliers"?supplierScores:inspections, tab==="ncr"?"ncr_reports":tab==="suppliers"?"supplier_quality_scorecard":"inspections")} style={erpStyles.btn(false)}>- Export</button>
         </div>
       </div>
@@ -321,7 +323,7 @@ export default function QualityDashboardPage() {
       </div>
 
       {/* Content */}
-      <div style={{ margin:8 }}>
+      <div style={{ margin:8 }} ref={contentRef}>
 
         {/* Dashboard Tab */}
         {tab==="dashboard" && (

@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('procurBosse', {
 
   // Print (native)
   printDocument: (options) => ipcRenderer.invoke('print-document', options),
+  getPrinters:   () => ipcRenderer.invoke('get-printers'),
+  quickPrint:    (opts) => ipcRenderer.invoke('quick-print', opts),
 
   // Events from main process
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, info) => cb(info)),
@@ -65,6 +67,8 @@ try {
     getSystemInfo:() => ipc.invoke('get-system-info'),
     clearCache:  () => ipc.invoke('clear-cache'),
     printDocument:(o) => ipc.invoke('print-document', o),
+    getPrinters:  () => ipc.invoke('get-printers'),
+    quickPrint:   (o) => ipc.invoke('quick-print', o),
     showNotification:(t,b) => ipc.invoke('show-notification',{title:t,body:b}),
     showSaveDialog:(o) => ipc.invoke('show-save-dialog', o),
     showOpenDialog:(o) => ipc.invoke('show-open-dialog', o),

@@ -477,6 +477,50 @@ ipcMain.handle('print-document', async (_, options = {}) => {
   }
 });
 
+// Printer Auto-Detector Bot: enumerate every printer Windows/macOS/Linux
+// currently knows about (USB, network, PDF virtual printers, etc.) so the
+// renderer can show a real picker instead of only ever hitting the native
+// print dialog. Re-queried on every call, so a printer plugged in mid-
+// session shows up next time the renderer asks — no app restart needed.
+ipcMain.handle('get-printers', async () => {
+  if (!win) return [];
+  try {
+    const printers = await win.webContents.getPrintersAsync();
+    return printers.map(p => ({
+      name: p.name, displayName: p.displayName || p.name,
+      isDefault: !!p.isDefault, status: p.status ?? null,
+    }));
+  } catch (e) {
+    return [];
+  }
+});
+
+// Quick Print: one click, straight to a chosen (or last-used) printer, no
+// OS dialog in the way. silent:false falls back to the normal OS picker
+// when the caller wants the person to confirm/choose instead.
+ipcMain.handle('quick-print', async (_, opts = {}) => {
+  if (!win) return { ok: false, error: 'No window' };
+  const { deviceName, silent = true, copies = 1 } = opts;
+  try {
+    await new Promise((res, rej) => {
+      win.webContents.print({
+        silent: !!silent,
+        printBackground: true,
+        color: true,
+        copies: copies || 1,
+        deviceName: deviceName || undefined,
+        margins: { marginType: 'printableArea' },
+      }, (success, failReason) => {
+        if (success) res(true);
+        else rej(new Error(failReason || 'print failed'));
+      });
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
 ipcMain.handle('show-save-dialog', async (_, opts) => {
   if (!win) return null;
   return dialog.showSaveDialog(win, opts);

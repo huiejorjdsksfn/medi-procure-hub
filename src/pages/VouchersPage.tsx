@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { pageCache } from "@/lib/pageCache";
-import { PrintEngine } from "@/engines/print/PrintEngine";
+import { QuickPrintButton } from "@/components/QuickPrintButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -51,6 +51,7 @@ export default function VouchersPage() {
   const [showNew, setShowNew] = useState(false);
   const [detail,  setDetail]  = useState<any>(null);
   const [print,   setPrint]   = useState<any>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const [saving,  setSaving]  = useState(false);
   const [form,setForm] = useState({voucher_number:"",requested_by:profile?.full_name||"",department_id:"",purpose:"",date:new Date().toISOString().split("T")[0],items:[{...EMPTY}]});
 
@@ -412,11 +413,11 @@ export default function VouchersPage() {
             <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e5e7eb"}}>
               <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Store Requisition Voucher</span>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>window.print()} style={{padding:"6px 14px",background:"#15803d",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><Printer style={{width:11,height:11}}/> Print</button>
+                <QuickPrintButton targetRef={printRef} page="vouchers" entityType="requisition_voucher" entityId={print?.id} label="Print"/>
                 <button onClick={()=>setPrint(null)} style={{background:"#f3f4f6",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",lineHeight:0}}><X style={{width:13,height:13}}/></button>
               </div>
             </div>
-            <div id="print-area" style={{padding:24,fontFamily:"serif"}}>
+            <div id="print-area" ref={printRef} style={{padding:24,fontFamily:"serif"}}>
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:8,paddingBottom:8,borderBottom:"2px solid #111"}}>
                 <img src={logo} alt="logo" style={{width:70,height:70,objectFit:"contain"}}/>
                 <div>

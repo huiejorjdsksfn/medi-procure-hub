@@ -795,3 +795,28 @@ div:has(> div > table) {
   .ribbon-tabs, .sub-nav-bar, .admin-quick-bar, .mob-nav-backdrop { display: none !important; }
   .app-page-content { overflow: visible !important; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   PRINT ISOLATION — used by printElement() in src/lib/quickPrint.ts
+   Printing used to mean "screenshot whatever's on screen": app nav,
+   modal backdrops, rounded corners and box-shadows all came out on
+   the page. This isolates exactly one element (given [data-print-
+   target]) and hides literally everything else in the document, so
+   what prints is a clean, well-organized document — not the UI.
+   ════════════════════════════════════════════════════════════════ */
+@media print {
+  body.qp-printing > * { visibility: hidden !important; }
+  body.qp-printing [data-print-target],
+  body.qp-printing [data-print-target] * { visibility: visible !important; }
+  body.qp-printing [data-print-target] {
+    position: absolute !important; left: 0 !important; top: 0 !important;
+    width: 100% !important; margin: 0 !important; padding: 12mm !important;
+    box-shadow: none !important; border-radius: 0 !important; background: #fff !important;
+    max-height: none !important; overflow: visible !important;
+  }
+  body.qp-printing [data-print-hide] { display: none !important; }
+  body.qp-printing table { border-collapse: collapse !important; width: 100% !important; }
+  body.qp-printing th, body.qp-printing td { border: 1px solid #999 !important; padding: 4px 8px !important; }
+  body.qp-printing thead { display: table-header-group !important; } /* repeat header on every printed page */
+  body.qp-printing tr { page-break-inside: avoid !important; }
+}
