@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
-import { Package, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye, Plus, Edit, AlertTriangle, Trash2 } from "lucide-react";
+import { Package, Search, X, RefreshCw, FileSpreadsheet, Printer, Eye, Plus, Edit, AlertTriangle, Trash2, CheckSquare, Square } from "lucide-react";
+import { callBulkOps } from "@/lib/bulkOps";
 import * as XLSX from "@e965/xlsx";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { TablePager, ColSearchRow } from "@/components/TablePager";
@@ -53,6 +54,8 @@ export default function ItemsPage() {
   const [colSearch,   setColSearch]   = useState<Record<string,string>>({});
   const [page,        setPage]        = useState(1);
   const [perPage,     setPerPage]     = useState(25);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy,    setBulkBusy]    = useState(false);
 
   const [form, setForm] = useState({
     name:"", sku:"", item_type:"pharmaceutical", category_id:"",
@@ -133,6 +136,28 @@ export default function ItemsPage() {
     logAudit(user?.id,profile?.full_name,"delete","items",it.id,{name:it.name});
     toast({title:"Item deleted"});
     load();
+  };
+
+  // Bulk status update — routed through the bulk-ops edge function
+  // (transaction-safe batching + automatic admin_activity_log entry,
+  // server-side) rather than looping individual .update() calls.
+  const bulkSetStatus = async (status: "active"|"inactive") => {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const updates = Array.from(selectedIds).map(id => ({ id, data: { status } }));
+      const result = await callBulkOps("update", "items", { updates });
+      toast({
+        title: `Bulk update complete`,
+        description: `${result.success} item(s) marked ${status}${result.failed ? `, ${result.failed} failed` : ""}`,
+        variant: result.failed ? "destructive" : undefined,
+      });
+      setSelectedIds(new Set());
+      load();
+    } catch (e: any) {
+      toast({ title: "Bulk update failed", description: e.message, variant: "destructive" });
+    }
+    setBulkBusy(false);
   };
 
   const exportExcel=()=>{
@@ -229,6 +254,16 @@ export default function ItemsPage() {
             <table data-mobile-card="true" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead>
                 <tr style={{background:T.bg,borderBottom:`1px solid ${T.border}`}}>
+                  <th style={{padding:"9px 12px",width:32}}>
+                    {canEdit&&(
+                      <button onClick={()=>setSelectedIds(s=>s.size===pageRows.length&&pageRows.length>0?new Set():new Set(pageRows.map(r=>r.id)))}
+                        style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex"}}>
+                        {selectedIds.size>0&&selectedIds.size===pageRows.length
+                          ?<CheckSquare style={{width:15,height:15,color:T.primary}}/>
+                          :<Square style={{width:15,height:15,color:T.fgDim}}/>}
+                      </button>
+                    )}
+                  </th>
                   {["#","Name","SKU","Type","Category","UoM","Unit Price","Qty","Reorder","Status","Stock Value","Actions"].map(h=>(
                     <th key={h} style={{padding:"9px 12px",textAlign:"left",color:T.fgDim,fontSize:10,fontWeight:700,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
                   ))}
@@ -238,6 +273,7 @@ export default function ItemsPage() {
                   values={colSearch}
                   onChange={(k,v)=>setColSearch(p=>({...p,[k]:v}))}
                   cols={[
+                    {key:"_sel",type:"none"},
                     {key:"_n",type:"none"},
                     {key:"name",placeholder:"name"},
                     {key:"sku",placeholder:"sku"},
@@ -255,20 +291,30 @@ export default function ItemsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={12} style={{padding:"40px",textAlign:"center"}}>
+                  <tr><td colSpan={13} style={{padding:"40px",textAlign:"center"}}>
                     <RefreshCw style={{width:18,height:18,color:T.fgDim,animation:"spin 1s linear infinite",display:"block",margin:"0 auto 8px"}}/>
                     <span style={{fontSize:12,color:T.fgDim}}>Loading items…</span>
                   </td></tr>
                 ) : filtered.length===0 ? (
-                  <tr><td colSpan={12} style={{padding:"50px",textAlign:"center",color:T.fgDim,fontSize:13}}>No items found</td></tr>
+                  <tr><td colSpan={13} style={{padding:"50px",textAlign:"center",color:T.fgDim,fontSize:13}}>No items found</td></tr>
                 ) : pageRows.map((it,idx)=>{
                   const i = pageStart + idx;
                   const isLow=Number(it.quantity_in_stock)<=Number(it.reorder_level||10);
                   const s=SC[it.status]||{bg:T.bg2,color:T.fgMuted};
                   return (
-                    <tr key={it.id} style={{background:T.card,borderBottom:`1px solid ${T.border}`}}
-                      onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=T.bg}
-                      onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=T.card}>
+                    <tr key={it.id} style={{background:selectedIds.has(it.id)?T.primaryBg:T.card,borderBottom:`1px solid ${T.border}`}}
+                      onMouseEnter={e=>{ if(!selectedIds.has(it.id)) (e.currentTarget as HTMLElement).style.background=T.bg; }}
+                      onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background=selectedIds.has(it.id)?T.primaryBg:T.card; }}>
+                      <td style={{padding:"7px 12px"}}>
+                        {canEdit&&(
+                          <button onClick={()=>setSelectedIds(s=>{const n=new Set(s); n.has(it.id)?n.delete(it.id):n.add(it.id); return n;})}
+                            style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex"}}>
+                            {selectedIds.has(it.id)
+                              ?<CheckSquare style={{width:14,height:14,color:T.primary}}/>
+                              :<Square style={{width:14,height:14,color:T.fgDim}}/>}
+                          </button>
+                        )}
+                      </td>
                       <td style={{padding:"7px 12px",color:T.fgDim}}>{i+1}</td>
                       <td style={{padding:"7px 12px",fontWeight:600,color:T.fg,cursor:"pointer"}} onClick={()=>setViewItem(it)}>{it.name}</td>
                       <td style={{padding:"7px 12px",fontFamily:"monospace",fontSize:11,color:T.fgMuted}}>{it.sku||"-"}</td>
@@ -311,6 +357,26 @@ export default function ItemsPage() {
             {lowStockCount>0&&<span style={{color:T.error,fontWeight:700}}>· {lowStockCount} low stock</span>}
           </div>
         </Card>
+
+        {/* Bulk actions bar — appears once anything is selected */}
+        {selectedIds.size>0 && canEdit && (
+          <div style={{position:"sticky",bottom:16,marginTop:14,display:"flex",alignItems:"center",gap:10,padding:"10px 16px",background:T.fg,borderRadius:T.rLg,boxShadow:T.shadowLg,color:"#fff"}}>
+            <span style={{fontSize:12.5,fontWeight:700}}>{selectedIds.size} selected</span>
+            <div style={{flex:1}}/>
+            <button onClick={()=>bulkSetStatus("active")} disabled={bulkBusy}
+              style={{padding:"6px 14px",borderRadius:T.r,border:"none",background:T.success,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,opacity:bulkBusy?0.6:1}}>
+              Mark Active
+            </button>
+            <button onClick={()=>bulkSetStatus("inactive")} disabled={bulkBusy}
+              style={{padding:"6px 14px",borderRadius:T.r,border:"none",background:T.warning,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,opacity:bulkBusy?0.6:1}}>
+              Mark Inactive
+            </button>
+            <button onClick={()=>setSelectedIds(new Set())}
+              style={{padding:"6px 12px",borderRadius:T.r,border:"1px solid rgba(255,255,255,.3)",background:"transparent",color:"#fff",cursor:"pointer",fontSize:12}}>
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       {/* View Modal */}
