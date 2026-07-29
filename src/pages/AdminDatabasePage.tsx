@@ -339,7 +339,7 @@ function DBInner() {
     const list = Array.from(files);
     setStorageUploading(true);
     setStorageUploadPct({ done: 0, total: list.length });
-    let failed: string[] = [];
+    const failed: string[] = [];
     for (let i = 0; i < list.length; i++) {
       const file = list[i];
       const dest = storageFullPath(file.name);

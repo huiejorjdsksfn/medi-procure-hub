@@ -280,7 +280,7 @@ export default function ODBCPage() {
         for (let i = 0; i < rows.length; i += batchSize) {
           const batch = rows.slice(i, i + batchSize);
           const valueRows = batch.map((r: any) => `(${colNames.map(c => mysqlVal(r[c])).join(",")})`).join(",\n  ");
-          sql += `INSERT INTO \`${t}\` (\`${colNames.join("\`,\`")}\`) VALUES\n  ${valueRows};\n`;
+          sql += `INSERT INTO \`${t}\` (\`${colNames.join("`,`")}\`) VALUES\n  ${valueRows};\n`;
         }
         sql += `\n`;
       }
