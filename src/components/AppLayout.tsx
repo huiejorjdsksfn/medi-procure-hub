@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, EXECUTIVE_TIER, EXECUTIVE_ALLOWED_PATHS } from "@/contexts/AuthContext";
 import { isRouteAllowed, getDefaultRoute } from "@/lib/sessionCookie";
 import { supabase } from "@/integrations/supabase/client";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -169,18 +169,26 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
   const sysName   = s.get("system_name",   "EL5 MediProcure");
   const hospName  = s.get("hospital_name", "Embu Level 5 Hospital");
 
+  const isExecutiveOnly = roles.length>0 && roles.every(r=>EXECUTIVE_TIER.includes(r as any));
+
   const canSee = useCallback((modRoles:string[])=>{
+    if(isExecutiveOnly) return true; // module-level gating skipped; filterItems does the real restriction below
     if(!modRoles.length) return true;
     if(!rolesReady) return true;
     if(isAdmin) return true;
     return modRoles.some(r=>roles?.includes(r));
-  },[roles,isAdmin,rolesReady]);
+  },[roles,isAdmin,rolesReady,isExecutiveOnly]);
 
   const filterItems = useCallback((items:{p:string;[k:string]:any}[])=>{
+    // CEO/CFO with no other role: stats/trends only, everywhere —
+    // matches ExecutiveGuard's route-level block so the nav doesn't
+    // dangle links to pages the user would just get redirected away
+    // from anyway.
+    if(isExecutiveOnly) return items.filter(item => EXECUTIVE_ALLOWED_PATHS.some(p=>item.p===p||item.p.startsWith(p+"/")));
     if(!rolesReady) return items;
     if(isAdmin) return items;
     return items.filter(item => isRouteAllowed(primaryRole, item.p));
-  },[isAdmin,primaryRole,rolesReady]);
+  },[isAdmin,primaryRole,rolesReady,isExecutiveOnly]);
 
   useEffect(()=>{
     const found = MODS.find(m=>m.items.some(i=>i.p!=="/dashboard"&&loc.pathname.startsWith(i.p)));

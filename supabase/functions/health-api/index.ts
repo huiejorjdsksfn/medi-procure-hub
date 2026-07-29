@@ -14,6 +14,25 @@ const cors = {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
+  // Was fully open — anyone could call this with no auth at all and get
+  // hostname/CPU/RAM/disk and live session counts. Require a real,
+  // authenticated admin/database_admin/webmaster caller.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: cors });
+  const authed = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } }
+  );
+  const { data: { user } } = await authed.auth.getUser();
+  if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: cors });
+  const { data: rows } = await authed.from("user_roles").select("role").eq("user_id", user.id);
+  const roles = (rows || []).map((r: any) => r.role);
+  const allowed = ["admin", "database_admin", "webmaster", "superadmin"];
+  if (!roles.some((r: string) => allowed.includes(r))) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: cors });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""

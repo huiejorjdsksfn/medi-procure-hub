@@ -17,14 +17,43 @@ Deno.serve(async (req: Request) => {
 
   if (operation === "lock") {
     const key = `lock:${table}:${record_id}`;
-    const expires = new Date(Date.now() + 15000).toISOString();
+    const now = Date.now();
+    const expires = new Date(now + 15000).toISOString();
+
+    // Was: always upsert, unconditionally overwriting whoever held the
+    // lock. That's not a lock, it's a shared variable — any second caller
+    // silently "stole" it with zero mutual exclusion. Now: check for an
+    // existing, still-valid lock held by someone else first.
+    const { data: existing } = await supabase.from("system_settings").select("value").eq("key", key).maybeSingle();
+    if (existing?.value) {
+      try {
+        const cur = JSON.parse(existing.value);
+        if (cur.userId && cur.userId !== user.id && new Date(cur.expires).getTime() > now) {
+          const { data: holder } = await supabase.from("profiles").select("full_name").eq("id", cur.userId).maybeSingle();
+          return new Response(JSON.stringify({ locked: false, heldBy: holder?.full_name || "another user", expiresAt: cur.expires }),
+            { headers: { ...cors, "Content-Type":"application/json" } });
+        }
+      } catch { /* malformed existing value — fall through and overwrite */ }
+    }
+
     const { error } = await supabase.from("system_settings").upsert({ key, value: JSON.stringify({ userId: user.id, expires }), category: "lock" }, { onConflict: "key" });
-    return new Response(JSON.stringify({ locked: !error }), { headers: { ...cors, "Content-Type":"application/json" } });
+    return new Response(JSON.stringify({ locked: !error, expiresAt: expires }), { headers: { ...cors, "Content-Type":"application/json" } });
   }
 
   if (operation === "unlock") {
     const key = `lock:${table}:${record_id}`;
-    await supabase.from("system_settings").delete().eq("key", key).eq("value", JSON.stringify({ userId: user.id }));
+    // Was: .eq("value", JSON.stringify({ userId: user.id })) — the stored
+    // value always also contains `expires`, so that string could never
+    // equal what's actually in the row. This delete never matched
+    // anything; locks only ever went away by being overwritten (see the
+    // lock() bug above), never by an actual unlock call.
+    const { data: existing } = await supabase.from("system_settings").select("value").eq("key", key).maybeSingle();
+    if (existing?.value) {
+      try {
+        const cur = JSON.parse(existing.value);
+        if (cur.userId === user.id) await supabase.from("system_settings").delete().eq("key", key);
+      } catch { await supabase.from("system_settings").delete().eq("key", key); }
+    }
     return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "Content-Type":"application/json" } });
   }
 
