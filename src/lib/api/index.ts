@@ -295,6 +295,32 @@ export const auditApi = {
   async log(entry: AuditEntry): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    // Was: always a direct client-side insert into admin_activity_log —
+    // exactly the table audit-api exists to write to server-side (with
+    // the requester's IP captured from the raw request, not from
+    // whatever the client claims). Route through the edge function
+    // first now; keep the direct insert as a fallback so a failed/
+    // offline edge call still doesn't lose the entry entirely.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      try {
+        const supaUrl = import.meta.env.VITE_SUPABASE_URL || "https://yvjfehnzbzjliizjvuhq.supabase.co";
+        const res = await fetch(`${supaUrl}/functions/v1/audit-api`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
+          },
+          body: JSON.stringify({
+            action: entry.action, entity_type: entry.table_name, entity_id: entry.record_id,
+            old_values: entry.old_values, new_values: entry.new_values,
+            severity: entry.severity || "info", description: entry.description, metadata: entry.metadata,
+          }),
+        });
+        if (res.ok) return;
+      } catch { /* fall through to direct insert */ }
+    }
     await db.from("admin_activity_log").insert({
       user_id: user.id,
       action: entry.action,
