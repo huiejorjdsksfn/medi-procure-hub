@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { safeFetch } from "@/lib/safeFetch";
 import {
   Database, RefreshCw, Play, Save, Plus, Trash2, Edit3, X, Search,
-  Download, Server, Table as TableIcon, Code2, Activity, Wifi,
+  Download, Server, Table as TableIcon, Code2, Activity, Wifi, ShieldCheck,
   ChevronRight, ChevronDown, Filter, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu,
@@ -438,6 +438,9 @@ ORDER BY t.table_name;`);
   // SQL Server Bridge — real config + live status, never mocked
   const [bridgeCfg, setBridgeCfg] = useState<any | null>(null);
   const [bridgeStatus, setBridgeStatus] = useState<any | null>(null);
+  const [integrityResult, setIntegrityResult] = useState<any | null>(null);
+  const [integrityErr, setIntegrityErr] = useState("");
+  const [integrityLoading, setIntegrityLoading] = useState(false);
   const [bridgeChecking, setBridgeChecking] = useState(false);
   const [bridgeForm, setBridgeForm] = useState({ url: "", secret: "" });
   const [bridgeSaving, setBridgeSaving] = useState(false);
@@ -822,6 +825,24 @@ ORDER BY t.table_name;`);
     if (data) setBridgeForm({ url: data.bridge_url || "", secret: data.shared_secret || "" });
   }, []);
 
+  const runIntegrityCheck = useCallback(async () => {
+    setIntegrityLoading(true);
+    setIntegrityErr("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not signed in");
+      const res = await fetch(`https://yvjfehnzbzjliizjvuhq.supabase.co/functions/v1/data-integrity`, {
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "" },
+      });
+      const d = await res.json();
+      if (!res.ok || d?.error) throw new Error(d?.error || `HTTP ${res.status}`);
+      setIntegrityResult(d);
+    } catch (e: any) {
+      setIntegrityErr(e?.message || "Check failed");
+    }
+    setIntegrityLoading(false);
+  }, []);
+
   const pingBridge = useCallback(async () => {
     setBridgeChecking(true);
     try {
@@ -968,6 +989,7 @@ ORDER BY t.table_name;`);
     { id:"storage",  label:"Storage",       icon:HardDrive, col:"#db2777" },
     { id:"monitor",  label:"Live Monitor",  icon:Activity,  col:"#16a34a" },
     { id:"mssql",    label:"SQL Server Bridge", icon:Server, col:"#475569" },
+    { id:"integrity",label:"Data Integrity", icon:ShieldCheck, col:"#be123c" },
   ];
 
   // ── Menu-bar actions (File/Edit/View/Project/Debug/Tools/Window/Help) ──
@@ -2653,6 +2675,73 @@ ORDER BY t.table_name;`);
                   </table>
                 )}
               </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "integrity" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
+              <span style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#be123c",display:"flex",alignItems:"center",gap:6 }}>
+                <ShieldCheck size={15}/> Data Integrity
+              </span>
+              <button onClick={runIntegrityCheck} disabled={integrityLoading}
+                style={{ padding:"7px 16px",borderRadius:8,border:"none",background:"#be123c",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",opacity:integrityLoading?0.6:1,display:"flex",alignItems:"center",gap:6 }}>
+                <RefreshCw size={13} style={integrityLoading?{ animation:"spin 1s linear infinite" }:{}}/>
+                {integrityLoading ? "Checking…" : "Run Check"}
+              </button>
+            </div>
+
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+              <div style={{ fontSize:12,color:"#666",lineHeight:1.6 }}>
+                Runs 6 business-logic checks the database's own foreign keys can't enforce: negative stock,
+                duplicate SKUs, purchase orders whose stored total has drifted from their line items, approved
+                requisitions missing an approver on record, active suppliers with no contact info, and goods-received
+                notes that came in well over their linked PO's value. Was a 9-line stub returning a fixed "ok" status
+                with no real check performed until now.
+              </div>
+            </div>
+
+            {integrityErr && (
+              <div style={{ padding:12,borderRadius:6,background:"#fef2f2",border:"1px solid #fecaca",color:"#991b1b",fontSize:12,marginBottom:16 }}>
+                {integrityErr}
+              </div>
+            )}
+
+            {integrityResult && (
+              <>
+                <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 }}>
+                  {[
+                    { label:"Total Issues", val:integrityResult.issues_found, col:"#334155" },
+                    { label:"High",         val:integrityResult.high,         col:"#dc2626" },
+                    { label:"Medium",       val:integrityResult.medium,       col:"#d97706" },
+                    { label:"Low",          val:integrityResult.low,          col:"#65a30d" },
+                  ].map(s => (
+                    <div key={s.label} style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 14px",background:"#fff" }}>
+                      <div style={{ fontSize:20,fontWeight:800,color:s.col }}>{s.val}</div>
+                      <div style={{ fontSize:10,color:"#888",textTransform:"uppercase",fontWeight:700 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {integrityResult.issues.length === 0 ? (
+                  <div style={{ padding:24,textAlign:"center",color:"#16a34a",fontWeight:700,fontSize:13 }}>✓ No issues found</div>
+                ) : integrityResult.issues.map((issue: any, i: number) => (
+                  <div key={i} style={{ border:`1px solid ${S.border}`,borderRadius:6,marginBottom:10,overflow:"hidden" }}>
+                    <div style={{ padding:"8px 12px",background: issue.severity==="high"?"#fef2f2":issue.severity==="medium"?"#fffbeb":"#f0fdf4",display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                      <span style={{ fontSize:12.5,fontWeight:700,color:"#1e293b" }}>{issue.category}</span>
+                      <span style={{ fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99,
+                        background: issue.severity==="high"?"#dc2626":issue.severity==="medium"?"#d97706":"#65a30d", color:"#fff" }}>
+                        {issue.severity.toUpperCase()} · {issue.count}
+                      </span>
+                    </div>
+                    <div style={{ padding:"8px 12px",fontSize:11,fontFamily:"monospace",color:"#475569",maxHeight:150,overflow:"auto",background:"#fafafa" }}>
+                      <pre style={{ margin:0,whiteSpace:"pre-wrap" }}>{JSON.stringify(issue.sample, null, 2)}</pre>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ fontSize:10,color:"#999",marginTop:6 }}>Checked at {new Date(integrityResult.checked_at).toLocaleString()}</div>
+              </>
             )}
           </div>
         )}
