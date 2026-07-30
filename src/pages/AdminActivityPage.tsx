@@ -4,11 +4,12 @@
  * daily trends, top users, module breakdown — all sourced from Supabase.
  * EL5 MediProcure · Embu Level 5 Hospital
  */
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { safeFetch } from "@/lib/safeFetch";
 import { T } from "@/lib/theme";
+import { printElement } from "@/lib/quickPrint";
 import {
   Activity, Users as UsersIcon, KeyRound, ShieldAlert, Globe,
   RefreshCw, Printer, Filter, TrendingUp, TrendingDown, AlertTriangle,
@@ -44,6 +45,7 @@ const TABS: {id:TabKey;label:string;icon:any}[] = [
 export default function AdminActivityPage() {
   const nav = useNavigate();
   const [tab, setTab]         = useState<TabKey>("overview");
+  const printRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays]       = useState(30);
   const [search, setSearch]   = useState("");
@@ -165,7 +167,7 @@ export default function AdminActivityPage() {
             style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:T.primary,color:"#fff",border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:"pointer"}}>
             <RefreshCw size={13} style={{animation:loading?"spin 1s linear infinite":"none"}}/>{loading?"Loading…":"Refresh"}
           </button>
-          <button onClick={()=>window.print()}
+          <button onClick={()=>printRef.current && printElement(printRef.current)}
             style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",background:"#f1f5f9",border:`1px solid ${T.border}`,borderRadius:6,fontSize:12,cursor:"pointer",color:T.fgMuted}}>
             <Printer size={13}/>Print
           </button>
@@ -206,7 +208,7 @@ export default function AdminActivityPage() {
         ))}
       </div>
 
-      <div style={{padding:"20px 24px"}}>
+      <div style={{padding:"20px 24px"}} ref={printRef}>
 
         {/* ── TAB: OVERVIEW ─────────────────────────────────────────── */}
         {tab==="overview" && (

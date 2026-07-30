@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { printElement } from "@/lib/quickPrint";
 import { useVoteHeads } from "@/hooks/useVoteHeads";
 import { useChartOfAccounts, usePurchaseOrders } from "@/hooks/useDropdownData";
 import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
@@ -539,6 +540,7 @@ export default function AccountantWorkspacePage() {
   const COA = liveAccounts.map((a: any) => ({ code: a.account_code, name: a.account_name, type: TYPE_MAP[a.account_type] || a.account_type || "" }));
 
   const [tab, setTab] = useState<WinTab>("vouchers");
+  const workspaceContentRef = useRef<HTMLDivElement>(null);
   const [vouchers, setVouchers] = useState<Payment[]>([]);
   const [glEntries, setGlEntries] = useState<GLEntry[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -953,7 +955,7 @@ export default function AccountantWorkspacePage() {
     { label: "New Payment Voucher", icon: "💳", onClick: () => { setTab("vouchers"); setEditVoucher(null); setShowNewVoucher(true); } },
     { label: "New Journal Entry", icon: "📓", onClick: () => { setTab("journals"); setShowNewJournal(true); } },
     { label: "", onClick: () => {}, divider: true },
-    { label: "Print Current View", icon: "🖨", onClick: () => tab === "vouchers" ? printAllVouchers() : window.print() },
+    { label: "Print Current View", icon: "🖨", onClick: () => tab === "vouchers" ? printAllVouchers() : (workspaceContentRef.current && printElement(workspaceContentRef.current)) },
     { label: "Export to CSV", icon: "📤", onClick: () => tab === "vouchers" ? exportCSV() : tab === "journals" ? exportJournalsCSV() : exportBudgetsCSV() },
     { label: "", onClick: () => {}, divider: true },
     { label: "Close Window", icon: "✕", onClick: () => navigate("/dashboard") },
@@ -1147,7 +1149,7 @@ export default function AccountantWorkspacePage() {
           </div>
 
           {/* Right: filter bar + grid */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }} ref={workspaceContentRef}>
             {/* Filter bar */}
             <div style={{ background: "#f5f4ea", border: `1px solid ${XP.gridBorder}`, margin: 4, padding: "4px 8px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
               <span style={{ fontWeight: 700, color: "#555" }}>

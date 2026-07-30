@@ -6,7 +6,7 @@
  *   • Right-panel editor with live preview
  *   • Persists custom configs to system_settings table
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentStamp } from "@/components/DocumentStamp";
 import { broadcastToAll } from "@/lib/broadcast";
 import { T } from "@/lib/theme";
+import { printElement } from "@/lib/quickPrint";
 import {
   Search, RefreshCw, Download, Upload, RotateCcw,
   Save, Eye, Palette, Settings, Home, ChevronRight, X,
@@ -77,6 +78,7 @@ export default function StampDesignPage() {
   const [configs, setConfigs]   = useState<Record<string, StampDef>>({ ...DEFAULT_CFG });
   const [search, setSearch]     = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft]       = useState<StampDef | null>(null);
   const [saving, setSaving]     = useState(false);
   const [loading, setLoading]   = useState(false);
@@ -236,7 +238,7 @@ export default function StampDesignPage() {
     if (action === "import")   importJSON();
     if (action === "settings") nav("/settings");
     if (action === "print") {
-      window.print();
+      if (printRef.current) printElement(printRef.current);
     }
   };
 
@@ -317,7 +319,7 @@ export default function StampDesignPage() {
         <div style={{ borderTop:`1px solid ${O.border}`, marginBottom:18 }}/>
 
         {/* ── Main content: stamp grid + editor ─────────────────── */}
-        <div style={{ display:"grid", gridTemplateColumns: selected ? "1fr 380px" : "1fr", gap:16 }}>
+        <div style={{ display:"grid", gridTemplateColumns: selected ? "1fr 380px" : "1fr", gap:16 }} ref={printRef}>
 
           {/* Stamp tile grid */}
           <div>

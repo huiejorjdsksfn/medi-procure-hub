@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { printElement } from "@/lib/quickPrint";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ const TABLES = [
 
 const DatabaseAdminPage = () => {
   const [active, setActive] = useState("items");
+  const printRef = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -143,7 +145,7 @@ const DatabaseAdminPage = () => {
           <Button size="sm" variant="secondary" className="h-8" onClick={exportCSV}>
             <Download className="w-4 h-4 mr-1" /> Export CSV
           </Button>
-          <Button size="sm" variant="secondary" className="h-8" onClick={() => window.print()}>
+          <Button size="sm" variant="secondary" className="h-8" onClick={() => printRef.current && printElement(printRef.current)}>
             <Printer className="w-4 h-4 mr-1" /> Print
           </Button>
           <div className="ml-auto text-xs text-sidebar-foreground/60">
@@ -169,7 +171,7 @@ const DatabaseAdminPage = () => {
         </div>
 
         {/* Data grid */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4" ref={printRef}>
           <Card className="bg-[hsl(215_28%_14%)] border-sidebar-border">
             <CardHeader className="py-2 px-3 border-b border-sidebar-border">
               <CardTitle className="text-sm text-sidebar-foreground capitalize">
