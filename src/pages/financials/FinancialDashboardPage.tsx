@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { usePurchaseOrders } from "@/hooks/useDropdownData";
+import { printElement } from "@/lib/quickPrint";
 
 /* ═══════════════════════════════════════════════════════════════
    Windows XP Luna Blue design system
@@ -150,6 +151,7 @@ interface KPI { total_payments: number; total_receipts: number; total_budget: nu
 
 export default function FinancialDashboardPage() {
   const [tab, setTab] = useState<Tab>("overview");
+  const printRef = useRef<HTMLDivElement>(null);
   const [kpi, setKpi] = useState<KPI>({ total_payments:0, total_receipts:0, total_budget:0, total_spent:0, pending_count:0, approved_count:0 });
   const [payments, setPayments]  = useState<any[]>([]);
   const [receipts, setReceipts]  = useState<any[]>([]);
@@ -262,7 +264,7 @@ export default function FinancialDashboardPage() {
 
   /* ── print ───────────────────────────────────────────────────────── */
   function printActive() {
-    window.print();
+    if (printRef.current) printElement(printRef.current);
   }
 
   /* ── export CSV ──────────────────────────────────────────────────── */
@@ -279,7 +281,7 @@ export default function FinancialDashboardPage() {
   /* ═══════════════════════════ TOOLBAR ════════════════════════════ */
   function Toolbar({ onNew, onExport, rows, exportName }: any) {
     return (
-      <div style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", background:XP.winBg, borderBottom:"1px solid "+XP.gridBorder, flexWrap:"wrap" }}>
+      <div data-print-hide style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", background:XP.winBg, borderBottom:"1px solid "+XP.gridBorder, flexWrap:"wrap" }}>
         <XBtn variant="green" onClick={onNew} style={{ fontSize:11 }}>➕ New</XBtn>
         <XBtn onClick={load} style={{ fontSize:11 }}>🔄 Refresh</XBtn>
         <XBtn onClick={printActive} style={{ fontSize:11 }}>🖨 Print</XBtn>
@@ -982,7 +984,7 @@ export default function FinancialDashboardPage() {
       </div>
 
       {/* Content area */}
-      <div style={{ background:"#fff", minHeight:"calc(100vh - 120px)" }}>
+      <div style={{ background:"#fff", minHeight:"calc(100vh - 120px)" }} ref={printRef}>
         {tabContent[tab]}
       </div>
 

@@ -3,13 +3,14 @@
  * Classic ERP Financial Management System UI
  */
 import type React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ERP, erpStyles } from "@/lib/erpTheme";
 import { pageCache } from "@/lib/pageCache";
 import { useVoteHeads } from "@/hooks/useVoteHeads";
 import { useChartOfAccounts, usePurchaseOrders } from "@/hooks/useDropdownData";
+import { printElement } from "@/lib/quickPrint";
 import { genDocNumber } from "@/lib/docNumber";
 import { useAuth } from "@/contexts/AuthContext";
 import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
@@ -45,6 +46,7 @@ export default function PaymentVouchersPage() {
   const [showLatest, setShowLatest] = useState<"all"|"latest100"|"thismonth">("all");
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const printRef = useRef<HTMLDivElement>(null);
   const [viewVoucher, setViewVoucher] = useState<PaymentVoucher|null>(null);
   const [dateFrom, setDateFrom] = useState("2025-12-31");
   const [dateTo, setDateTo] = useState(new Date().toISOString().split("T")[0]);
@@ -243,7 +245,7 @@ export default function PaymentVouchersPage() {
           <button style={{ ...erpStyles.btn(true) }} onClick={()=>setShowNew(v=>!v)}>+ New Voucher</button>
           {selected.length>0 && <button onClick={bulkApprove} style={{ ...erpStyles.btn(true), background:"linear-gradient(180deg,#22c55e,#16a34a)", borderColor:"#16a34a" }}>✓ Approve {selected.length}</button>}
           <button onClick={exportCSV} style={erpStyles.btn(false)}>- Export</button>
-          <button onClick={()=>window.print()} style={erpStyles.btn(false)}>- Print</button>
+          <button onClick={()=>printRef.current && printElement(printRef.current)} style={erpStyles.btn(false)}>- Print</button>
         </div>
       </div>
 
@@ -407,7 +409,7 @@ export default function PaymentVouchersPage() {
         </div>
 
         {/* Data Grid */}
-        <div style={{ flex:1, overflow:"auto", background:"#fff", border:"1px solid #ccc" }}>
+        <div style={{ flex:1, overflow:"auto", background:"#fff", border:"1px solid #ccc" }} ref={printRef}>
           {loading ? (
             <div style={{ padding:40, textAlign:"center", color:"#888" }}>Loading payment vouchers...</div>
           ) : (
