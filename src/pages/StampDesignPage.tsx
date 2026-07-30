@@ -279,7 +279,8 @@ export default function StampDesignPage() {
       </div>
 
       {/* ── O365 teal hero ──────────────────────────────────────────── */}
-      <div style={{ background:O.hero, padding:"30px 24px 36px" }}>
+      <div style={{ background:`linear-gradient(120deg, ${O.hero}, ${O.topBar} 65%)`, padding:"30px 24px 36px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,.05)" }}/>
         <h1 style={{ color:O.white, fontSize:26, fontWeight:300, margin:"0 0 18px", letterSpacing:"-.02em" }}>
           {greeting}, {profile?.full_name?.split(" ")[0] || "Administrator"}
         </h1>
