@@ -17,7 +17,7 @@ import {
   ChevronRight, ChevronDown, Filter, AlertTriangle,
   CheckCircle, Clock, Layers, FileText, Zap, BarChart3, Eye, Printer,
   ToggleLeft, ToggleRight, Settings, HardDrive, Cpu,
-  Folder, FolderOpen, File, Image as ImageIcon, ChevronLeft, Lock, Globe2,
+  Folder, FolderOpen, File, Image as ImageIcon, ChevronLeft, Lock, Globe2, Plug, Copy,
 } from "lucide-react";
 import * as XLSX from "@e965/xlsx";
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -224,7 +224,7 @@ function PropRow({ k, v }: { k:string; v:any }) {
 function DBInner() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
-  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage">("monitor");
+  const [activeTab, setActiveTab] = useState<"tables"|"sql"|"schema"|"triggers"|"monitor"|"mssql"|"storage"|"odbc"|"integrity">("monitor");
   const [openMenu, setOpenMenu] = useState<string|null>(null);
   const [quickLaunch, setQuickLaunch] = useState("");
   const rowFilterRef = useRef<HTMLInputElement>(null);
@@ -444,6 +444,10 @@ ORDER BY t.table_name;`);
   const [bridgeChecking, setBridgeChecking] = useState(false);
   const [bridgeForm, setBridgeForm] = useState({ url: "", secret: "" });
   const [bridgeSaving, setBridgeSaving] = useState(false);
+  const [odbcNewPassword, setOdbcNewPassword] = useState("");
+  const [odbcSaving, setOdbcSaving] = useState(false);
+  const [odbcLastSet, setOdbcLastSet] = useState<string|null>(null);
+  const [odbcPoolerMode, setOdbcPoolerMode] = useState<"direct"|"pooler">("pooler");
   const [bridgeSchema, setBridgeSchema] = useState<any[] | null>(null);
   const [realtimeLog, setRealtimeLog] = useState<any[]>([]);
   const [realtimeOn, setRealtimeOn] = useState(false);
@@ -888,6 +892,45 @@ ORDER BY t.table_name;`);
     }
   };
 
+  /* ── ODBC reader role ────────────────────────────────────────────
+   * odbc_reader is a dedicated, read-only Postgres role (see migration
+   * 20260731000000_odbc_reader_role.sql) so external tools — Excel,
+   * Power BI, Crystal Reports, Access — can connect via a standard
+   * PostgreSQL ODBC driver without ever being handed the project's
+   * real database credentials. Rotating the password goes through the
+   * admin_set_odbc_password() RPC (SECURITY DEFINER, is_admin()-gated)
+   * rather than any table, so there's nowhere a plaintext password
+   * sits around to be read back later — same as any other DB role.
+   */
+  function generateOdbcPassword(): string {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+    let out = "";
+    const arr = new Uint32Array(20);
+    crypto.getRandomValues(arr);
+    for (let i = 0; i < 20; i++) out += chars[arr[i] % chars.length];
+    return out;
+  }
+
+  const rotateOdbcPassword = async (pwd?: string) => {
+    const newPwd = pwd || odbcNewPassword;
+    if (!newPwd || newPwd.length < 12) {
+      toast({ title: "Password must be at least 12 characters", variant: "destructive" });
+      return;
+    }
+    setOdbcSaving(true);
+    try {
+      const { error } = await (supabase as any).rpc("admin_set_odbc_password", { new_password: newPwd });
+      if (error) throw error;
+      setOdbcNewPassword(newPwd);
+      setOdbcLastSet(new Date().toLocaleString());
+      toast({ title: "✓ ODBC password set", description: "Copy it now — it won't be shown again after you leave this tab." });
+    } catch (e: any) {
+      toast({ title: "Couldn't set ODBC password", description: e.message, variant: "destructive" });
+    } finally {
+      setOdbcSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab !== "mssql") return;
     loadBridgeConfig().then(() => {});
@@ -989,6 +1032,7 @@ ORDER BY t.table_name;`);
     { id:"storage",  label:"Storage",       icon:HardDrive, col:"#db2777" },
     { id:"monitor",  label:"Live Monitor",  icon:Activity,  col:"#16a34a" },
     { id:"mssql",    label:"SQL Server Bridge", icon:Server, col:"#475569" },
+    { id:"odbc",     label:"ODBC Config",    icon:Plug,      col:"#0891b2" },
     { id:"integrity",label:"Data Integrity", icon:ShieldCheck, col:"#be123c" },
   ];
 
@@ -2676,6 +2720,119 @@ ORDER BY t.table_name;`);
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* - ODBC CONFIG tab: connection details for Excel/Power BI/Crystal Reports/Access - */}
+        {activeTab === "odbc" && (
+          <div style={{ flex:1,overflow:"auto",padding:14 }}>
+            <div style={{ fontWeight:700,fontSize:14,fontFamily:S.font,color:"#0891b2",display:"flex",alignItems:"center",gap:6,marginBottom:10 }}>
+              <Plug size={15}/> ODBC Configuration
+            </div>
+
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+              <div style={{ fontSize:12,color:"#666",marginBottom:14,lineHeight:1.6 }}>
+                Connects Excel, Power BI, Crystal Reports, or Microsoft Access directly to this database for reporting,
+                using the standard PostgreSQL ODBC driver (<code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>psqlODBC</code>).
+                This uses a dedicated <b>read-only</b> role — <code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>odbc_reader</code> —
+                so external tools never get the project's real database credentials, and can only SELECT, never modify anything.
+              </div>
+              <div style={{ fontSize:11,color:"#9a3412",background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:5,padding:"8px 10px",marginBottom:14,lineHeight:1.6 }}>
+                ⚠ This role sees <b>every row in every table</b> — it bypasses row-level security so reports aren't
+                silently filtered down to nothing, the same tradeoff any BI/reporting connection makes. It still can't
+                write or run DDL. Treat this password the same as a database password: share it only with people who
+                should see the hospital's full data (finance/BI staff), not end users.
+              </div>
+
+              {(() => {
+                const host = odbcPoolerMode==="pooler" ? "aws-0-us-east-1.pooler.supabase.com" : "db.yvjfehnzbzjliizjvuhq.supabase.co";
+                const port = odbcPoolerMode==="pooler" ? "6543" : "5432";
+                const user = odbcPoolerMode==="pooler" ? "odbc_reader.yvjfehnzbzjliizjvuhq" : "odbc_reader";
+                const connString = `Driver={PostgreSQL Unicode};Server=${host};Port=${port};Database=postgres;Uid=${user};Pwd=YOUR_ODBC_PASSWORD;sslmode=require;`;
+                const copy = (label:string, val:string) => { navigator.clipboard.writeText(val); toast({ title:`✓ Copied ${label}` }); };
+                return (
+                <>
+                  <div style={{ display:"flex",gap:6,marginBottom:12 }}>
+                    {(["pooler","direct"] as const).map(m=>(
+                      <button key={m} onClick={()=>setOdbcPoolerMode(m)}
+                        style={{ padding:"5px 12px",borderRadius:5,border:`1px solid ${odbcPoolerMode===m?"#0891b2":S.border}`,
+                          background:odbcPoolerMode===m?"#ecfeff":"#fff",color:odbcPoolerMode===m?"#0891b2":"#666",
+                          fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:S.font }}>
+                        {m==="pooler"?"Connection Pooler (recommended)":"Direct Connection"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12 }}>
+                    {[
+                      { label:"Host", value:host },
+                      { label:"Port", value:port },
+                      { label:"Database", value:"postgres" },
+                      { label:"Username", value:user },
+                    ].map(f=>(
+                      <div key={f.label}>
+                        <label style={{ fontSize:10,fontWeight:700,color:"#666",display:"block",marginBottom:3 }}>{f.label}</label>
+                        <div style={{ display:"flex",gap:6 }}>
+                          <input readOnly value={f.value} style={{ flex:1,padding:"6px 9px",border:`1px solid ${S.border}`,borderRadius:5,fontSize:11.5,fontFamily:"monospace",background:"#f8fafc" }}/>
+                          <button onClick={()=>copy(f.label,f.value)} title="Copy" style={{ border:`1px solid ${S.border}`,background:"#fff",borderRadius:5,padding:"0 8px",cursor:"pointer" }}><Copy size={12}/></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <label style={{ fontSize:10,fontWeight:700,color:"#666",display:"block",marginBottom:3 }}>SSL Mode</label>
+                  <div style={{ fontSize:11.5,fontFamily:"monospace",background:"#f8fafc",border:`1px solid ${S.border}`,borderRadius:5,padding:"6px 9px",marginBottom:12 }}>require</div>
+
+                  <label style={{ fontSize:10,fontWeight:700,color:"#666",display:"block",marginBottom:3 }}>Full ODBC Connection String</label>
+                  <div style={{ display:"flex",gap:6,marginBottom:4 }}>
+                    <textarea readOnly value={connString} rows={2}
+                      style={{ flex:1,padding:"6px 9px",border:`1px solid ${S.border}`,borderRadius:5,fontSize:11,fontFamily:"monospace",background:"#f8fafc",resize:"none" }}/>
+                    <button onClick={()=>copy("connection string",connString)} title="Copy" style={{ border:`1px solid ${S.border}`,background:"#fff",borderRadius:5,padding:"0 10px",cursor:"pointer",alignSelf:"stretch" }}><Copy size={13}/></button>
+                  </div>
+                  <div style={{ fontSize:10.5,color:"#999" }}>Swap YOUR_ODBC_PASSWORD for the password you set below.</div>
+                </>
+                );
+              })()}
+            </div>
+
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+              <div style={{ fontWeight:700,fontSize:12,color:"#0891b2",marginBottom:10 }}>🔑 Set / Rotate ODBC Password</div>
+              <div style={{ display:"flex",gap:8,alignItems:"center",flexWrap:"wrap" }}>
+                <input type="text" value={odbcNewPassword} onChange={e=>setOdbcNewPassword(e.target.value)}
+                  placeholder="At least 12 characters"
+                  style={{ flex:1,minWidth:220,padding:"7px 10px",border:`1px solid ${S.border}`,borderRadius:5,fontSize:12,fontFamily:"monospace" }}/>
+                <button onClick={()=>setOdbcNewPassword(generateOdbcPassword())}
+                  style={{ padding:"7px 12px",borderRadius:5,border:`1px solid ${S.border}`,background:"#fff",fontSize:11.5,fontWeight:600,cursor:"pointer" }}>
+                  🎲 Generate
+                </button>
+                <button onClick={()=>rotateOdbcPassword()} disabled={odbcSaving || !odbcNewPassword}
+                  style={{ padding:"8px 16px",borderRadius:6,border:"none",background:"#0891b2",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",opacity:(odbcSaving||!odbcNewPassword)?0.5:1 }}>
+                  {odbcSaving ? "Setting…" : "Set Password"}
+                </button>
+                {odbcNewPassword && (
+                  <button onClick={()=>{ navigator.clipboard.writeText(odbcNewPassword); toast({ title:"✓ Password copied" }); }}
+                    style={{ border:`1px solid ${S.border}`,background:"#fff",borderRadius:5,padding:"7px 10px",cursor:"pointer" }} title="Copy password"><Copy size={13}/></button>
+                )}
+              </div>
+              {odbcLastSet && <div style={{ fontSize:10.5,color:"#999",marginTop:8 }}>Last set: {odbcLastSet} — this is the only time it's shown; Postgres stores it hashed, not in plaintext anywhere.</div>}
+              <div style={{ fontSize:10.5,color:"#c2410c",marginTop:8,background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:5,padding:"6px 10px" }}>
+                ⚠ This password is only ever shown here, once, right after you set it. Copy it into your ODBC DSN now — there's no way to retrieve it again afterward, same as any database password.
+              </div>
+            </div>
+
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff" }}>
+              <div style={{ fontWeight:700,fontSize:12,color:"#0891b2",marginBottom:10 }}>📖 Driver Setup</div>
+              <div style={{ fontSize:11.5,color:"#444",lineHeight:1.8 }}>
+                <b>Windows:</b> Install the psqlODBC driver from <span style={{ color:"#0891b2" }}>postgresql.org/ftp/odbc/versions/msi</span>,
+                then open "ODBC Data Sources (64-bit)" → System DSN → Add → PostgreSQL Unicode, and enter the details above.<br/><br/>
+                <b>macOS:</b> <code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>brew install psqlodbc</code>, then configure via
+                iODBC Administrator or an <code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>odbc.ini</code> file.<br/><br/>
+                <b>Linux:</b> <code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>sudo apt install odbc-postgresql</code>,
+                then add a matching entry to <code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>~/.odbc.ini</code>.<br/><br/>
+                Once the DSN is set up, connect from Excel via <i>Data → Get Data → From Other Sources → From ODBC</i>,
+                or from Power BI via <i>Get Data → ODBC</i>.
+              </div>
+            </div>
           </div>
         )}
 
