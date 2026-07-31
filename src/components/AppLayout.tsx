@@ -341,65 +341,19 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         </button>
       </div>
 
-      {/* ── ADMIN QUICK BAR ──────────────────────────────────────────── */}
-      {(isAdmin||isDbAdmin) && (
-        <div className="admin-quick-bar"
-             style={{background:"#1c2229",borderBottom:`2px solid ${T.accent}`,padding:"4px 14px",display:"flex",gap:5,
-                     alignItems:"center",flexShrink:0,overflowX:"auto",
-                     WebkitOverflowScrolling:"touch" as any}}>
-          <span style={{fontSize:9.5,fontWeight:800,color:T.accent,marginRight:5,letterSpacing:"0.06em",
-                        whiteSpace:"nowrap",flexShrink:0,textTransform:"uppercase"}}>Admin</span>
-          {[
-            [
-              {l:"Panel",  p:"/admin/panel", I:Layers},
-            ],
-            [
-              {l:"Users",   p:"/users",                 I:Users},
-              {l:"+ User",  p:"/admin/create-user",     I:UserPlus},
-              {l:"Security Center",p:"/admin/users-ip-audit",  I:Shield},
-              {l:"Audit Log",p:"/audit-log",     I:ClipboardList},
-            ],
-            [
-              {l:"Settings",  p:"/settings",       I:Settings},
-              {l:"GUI Editor",p:"/gui-editor",     I:Palette},
-              {l:"Database",  p:"/admin/database", I:Database},
-            ],
-            [
-              {l:"Webmaster / Superadmin", p:"/webmaster",  I:Code2},
-            ],
-          ].map((group,gi)=>(
-            <div key={gi} style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,
-                                   paddingLeft:gi>0?6:0,borderLeft:gi>0?"1px solid rgba(255,255,255,.1)":"none"}}>
-              {group.map(a=>(
-                <button key={a.p} onClick={()=>nav(a.p)}
-                  style={{display:"flex",alignItems:"center",gap:4,padding:"3px 9px",borderRadius:T.r,
-                          background:loc.pathname===a.p?T.accent:"rgba(255,255,255,.06)",
-                          border:"1px solid transparent",
-                          color:loc.pathname===a.p?"#fff":"rgba(255,255,255,.7)",fontSize:10.5,fontWeight:loc.pathname===a.p?700:500,
-                          cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"background .12s,color .12s"}}
-                  onMouseEnter={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.14)";(e.currentTarget as any).style.color="#fff";}}}
-                  onMouseLeave={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.06)";(e.currentTarget as any).style.color="rgba(255,255,255,.7)";}}}>
-                  <a.I size={11}/>{a.l}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* ── D365 RIBBON (module tabs) — hidden on phone ───────────── */}
       <div className="ribbon-tabs"
            style={{background:"#fff",borderBottom:`1px solid ${T.border}`,display:"flex",
-                   alignItems:"stretch",padding:"0 8px",flexShrink:0,
-                   boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflowX:"auto",
+                   alignItems:"stretch",padding:"0 10px",flexShrink:0,
+                   boxShadow:"0 1px 3px rgba(0,0,0,.05)",overflowX:"auto",
                    WebkitOverflowScrolling:"touch" as any}}>
         <button onClick={()=>{setActiveMod(null);nav("/dashboard");}}
-          style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
+          style={{display:"flex",alignItems:"center",gap:6,padding:"11px 16px",
                   color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,
-                  fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",
-                  background:loc.pathname==="/dashboard"?`${T.primary}0a`:"transparent",
-                  border:"none",borderRadius:loc.pathname==="/dashboard"?"8px 8px 0 0":0,
-                  borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,
+                  fontWeight:loc.pathname==="/dashboard"?700:500,fontSize:13,cursor:"pointer",
+                  background:loc.pathname==="/dashboard"?`${T.primary}0d`:"transparent",
+                  border:"none",borderRadius:"8px 8px 0 0",
+                  borderBottom:`2.5px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,
                   whiteSpace:"nowrap",transition:"all .18s cubic-bezier(.4,0,.2,1)",flexShrink:0}}
           onMouseEnter={e=>{(e.currentTarget as any).style.color=T.primary}}
           onMouseLeave={e=>{(e.currentTarget as any).style.color=loc.pathname==="/dashboard"?T.primary:T.fgMuted}}>
@@ -422,13 +376,13 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                 const first = filterItems(mod.items as any[])[0];
                 if (first) nav(first.p);
               }}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
-                      color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,
-                      fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}0a`:"transparent",
-                      border:"none",borderRadius:isAct?"8px 8px 0 0":0,borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,
+              style={{display:"flex",alignItems:"center",gap:6,padding:"11px 16px",
+                      color:isAct?mod.col:T.fgMuted,fontWeight:isAct?700:500,
+                      fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}0d`:"transparent",
+                      border:"none",borderRadius:"8px 8px 0 0",borderBottom:`2.5px solid ${isAct?mod.col:"transparent"}`,
                       whiteSpace:"nowrap",transition:"all .18s cubic-bezier(.4,0,.2,1)",flexShrink:0}}
-              onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}0a`;}}
-              onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}0a`:"transparent";}}>
+              onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}0d`;}}
+              onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}0d`:"transparent";}}>
               {mod.label}
               {(modCnt as number)>0&&<Badge n={modCnt as number} col={mod.col}/>}
               <ChevronDown size={11} style={{transform:isAct?"rotate(180deg)":"none",transition:"transform .2s"}}/>
@@ -440,12 +394,14 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* ── SUB-NAV COMMAND BAR — hidden on phone ─────────────────── */}
       {activeModDef && (
         <div className="sub-nav-bar"
-             style={{background:`${activeModDef.col}05`,borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${activeModDef.col}`,
-                     boxShadow:"0 2px 6px rgba(0,0,0,.04)",
-                     display:"flex",alignItems:"center",padding:"4px 12px",gap:2,
+             style={{background:"#fff",borderBottom:`1px solid ${T.border}`,
+                     boxShadow:"0 2px 8px rgba(16,24,40,.05)",
+                     display:"flex",alignItems:"center",padding:"7px 14px",gap:6,
                      overflowX:"auto",flexShrink:0,WebkitOverflowScrolling:"touch" as any}}>
-          <span style={{fontSize:11,fontWeight:700,color:activeModDef.col,whiteSpace:"nowrap",
-                        marginRight:8,paddingRight:8,borderRight:`1px solid ${T.border}`,flexShrink:0}}>
+          <span style={{display:"flex",alignItems:"center",gap:5,fontSize:11,fontWeight:700,color:"#fff",
+                        background:activeModDef.col,padding:"3px 10px",borderRadius:99,
+                        whiteSpace:"nowrap",marginRight:4,flexShrink:0,letterSpacing:".01em"}}>
+            <span style={{width:5,height:5,borderRadius:"50%",background:"rgba(255,255,255,.85)",flexShrink:0}}/>
             {activeModDef.label}
           </span>
           {filterItems(activeModDef.items).map(item=>{
@@ -453,15 +409,15 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             const n=cnt[(item as any).b as string]||0;
             return(
               <button key={item.p} onClick={()=>nav(item.p)}
-                style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",
-                        borderRadius:T.r,
-                        background:isAct?`${activeModDef.col}14`:"transparent",
+                style={{display:"flex",alignItems:"center",gap:5,padding:"6px 13px",
+                        borderRadius:99,
+                        background:isAct?`${activeModDef.col}16`:"transparent",
+                        border:`1px solid ${isAct?`${activeModDef.col}33`:"transparent"}`,
                         color:isAct?activeModDef.col:T.fgMuted,
-                        fontSize:isTablet?11:12,fontWeight:isAct?600:400,
-                        cursor:"pointer",border:"none",whiteSpace:"nowrap",transition:"all .12s"}}
-                onMouseEnter={e=>{(e.currentTarget as any).style.background=`${activeModDef.col}10`;(e.currentTarget as any).style.color=activeModDef.col;}}
-                onMouseLeave={e=>{(e.currentTarget as any).style.background=isAct?`${activeModDef.col}14`:"transparent";(e.currentTarget as any).style.color=isAct?activeModDef.col:T.fgMuted;}}>
-                {isAct&&<span style={{width:5,height:5,borderRadius:"50%",background:activeModDef.col,flexShrink:0}}/>}
+                        fontSize:isTablet?11:12,fontWeight:isAct?700:500,
+                        cursor:"pointer",whiteSpace:"nowrap",transition:"all .12s"}}
+                onMouseEnter={e=>{ if(!isAct){(e.currentTarget as any).style.background=T.bg;(e.currentTarget as any).style.color=activeModDef.col;} }}
+                onMouseLeave={e=>{(e.currentTarget as any).style.background=isAct?`${activeModDef.col}16`:"transparent";(e.currentTarget as any).style.color=isAct?activeModDef.col:T.fgMuted;}}>
                 <item.I size={12}/>{item.l}{n>0&&<Badge n={n} col={activeModDef.col}/>}
               </button>
             );
