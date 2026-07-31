@@ -2651,7 +2651,7 @@ ORDER BY t.table_name;`);
               )}
             </div>
 
-            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:8,padding:16,background:"#fff",marginBottom:16,boxShadow:"0 1px 3px rgba(16,24,40,.05)" }}>
               <div style={{ fontSize:12,color:"#666",marginBottom:14,lineHeight:1.6 }}>
                 Deno Edge Functions (what Supabase runs) can only make HTTP/HTTPS calls — they can't open the raw
                 TCP connection SQL Server's TDS protocol needs. So this stays honestly disconnected until you run the
@@ -2730,7 +2730,7 @@ ORDER BY t.table_name;`);
               <Plug size={15}/> ODBC Configuration
             </div>
 
-            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:8,padding:16,background:"#fff",marginBottom:16,boxShadow:"0 1px 3px rgba(16,24,40,.05)" }}>
               <div style={{ fontSize:12,color:"#666",marginBottom:14,lineHeight:1.6 }}>
                 Connects Excel, Power BI, Crystal Reports, or Microsoft Access directly to this database for reporting,
                 using the standard PostgreSQL ODBC driver (<code style={{ background:"#f1f5f9",padding:"1px 5px",borderRadius:4 }}>psqlODBC</code>).
@@ -2795,7 +2795,7 @@ ORDER BY t.table_name;`);
               })()}
             </div>
 
-            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:8,padding:16,background:"#fff",marginBottom:16,boxShadow:"0 1px 3px rgba(16,24,40,.05)" }}>
               <div style={{ fontWeight:700,fontSize:12,color:"#0891b2",marginBottom:10 }}>🔑 Set / Rotate ODBC Password</div>
               <div style={{ display:"flex",gap:8,alignItems:"center",flexWrap:"wrap" }}>
                 <input type="text" value={odbcNewPassword} onChange={e=>setOdbcNewPassword(e.target.value)}
@@ -2820,7 +2820,7 @@ ORDER BY t.table_name;`);
               </div>
             </div>
 
-            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff" }}>
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:8,padding:16,background:"#fff",boxShadow:"0 1px 3px rgba(16,24,40,.05)" }}>
               <div style={{ fontWeight:700,fontSize:12,color:"#0891b2",marginBottom:10 }}>📖 Driver Setup</div>
               <div style={{ fontSize:11.5,color:"#444",lineHeight:1.8 }}>
                 <b>Windows:</b> Install the psqlODBC driver from <span style={{ color:"#0891b2" }}>postgresql.org/ftp/odbc/versions/msi</span>,
@@ -2849,7 +2849,7 @@ ORDER BY t.table_name;`);
               </button>
             </div>
 
-            <div style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:16,background:"#fff",marginBottom:16 }}>
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:8,padding:16,background:"#fff",marginBottom:16,boxShadow:"0 1px 3px rgba(16,24,40,.05)" }}>
               <div style={{ fontSize:12,color:"#666",lineHeight:1.6 }}>
                 Runs 6 business-logic checks the database's own foreign keys can't enforce: negative stock,
                 duplicate SKUs, purchase orders whose stored total has drifted from their line items, approved
@@ -2874,7 +2874,7 @@ ORDER BY t.table_name;`);
                     { label:"Medium",       val:integrityResult.medium,       col:"#d97706" },
                     { label:"Low",          val:integrityResult.low,          col:"#65a30d" },
                   ].map(s => (
-                    <div key={s.label} style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 14px",background:"#fff" }}>
+                    <div key={s.label} style={{ border:`1px solid ${S.border}`,borderRadius:6,padding:"10px 14px",background:"#fff",boxShadow:"0 1px 3px rgba(16,24,40,.05)" }}>
                       <div style={{ fontSize:20,fontWeight:800,color:s.col }}>{s.val}</div>
                       <div style={{ fontSize:10,color:"#888",textTransform:"uppercase",fontWeight:700 }}>{s.label}</div>
                     </div>
